@@ -4,6 +4,7 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useBuilderHubFaucet } from "../../hooks/useBuilderHubFaucet";
 import { useL1List, type L1ListItem } from "../../stores/l1ListStore";
 import { consoleToast } from "../../lib/console-toast";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 const LOW_BALANCE_THRESHOLD = 1;
 
@@ -29,6 +30,7 @@ export const EVMFaucetButton = ({
   } = useWalletStore();
   const { requestTokens } = useBuilderHubFaucet();
   const l1List = useL1List();
+  const { notify } = useConsoleNotifications();
 
   const [isRequestingTokens, setIsRequestingTokens] = useState(false);
 
@@ -45,6 +47,14 @@ export const EVMFaucetButton = ({
     if (isRequestingTokens || !walletEVMAddress) return;
     setIsRequestingTokens(true);
     const faucetRequest = requestTokens(chainId);
+
+    notify(
+      {
+        type: "local",
+        name: `${chainConfig.coinName} Faucet Claim`,
+      },
+      faucetRequest
+    );
 
     consoleToast.promise(faucetRequest, {
       loading: `Requesting ${chainConfig.coinName} tokens...`,

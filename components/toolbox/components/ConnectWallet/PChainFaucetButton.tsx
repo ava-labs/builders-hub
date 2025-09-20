@@ -2,6 +2,7 @@
 import { useState } from "react"
 import { useWalletStore } from "@/components/toolbox/stores/walletStore"
 import { consoleToast } from "../../lib/console-toast"
+import useConsoleNotifications from "@/hooks/useConsoleNotifications"
 
 const LOW_BALANCE_THRESHOLD = 0.5
 
@@ -13,6 +14,7 @@ interface PChainFaucetButtonProps {
 
 export const PChainFaucetButton = ({ className, buttonProps, children }: PChainFaucetButtonProps = {}) => {
   const { pChainAddress, isTestnet, pChainBalance, updatePChainBalance } = useWalletStore();
+  const { notify } = useConsoleNotifications();
 
   const [isRequestingPTokens, setIsRequestingPTokens] = useState(false);
 
@@ -50,7 +52,17 @@ export const PChainFaucetButton = ({ className, buttonProps, children }: PChainF
       return data;
     };
 
-    consoleToast.promise(faucetRequest(), {
+    const faucetPromise = faucetRequest();
+
+    notify(
+      {
+        type: "local",
+        name: "P-Chain AVAX Faucet Claim",
+      },
+      faucetPromise
+    );
+
+    consoleToast.promise(faucetPromise, {
       loading: "Requesting P-Chain AVAX tokens...",
       success: (data) => {
         const successMessage = data.txID ? `P-Chain AVAX tokens sent! TX: ${data.txID.substring(0, 10)}...` : "P-Chain AVAX tokens sent successfully!";
@@ -72,6 +84,7 @@ export const PChainFaucetButton = ({ className, buttonProps, children }: PChainF
 
         return successMessage;
       },
+      
       error: (error) => {
         console.error("P-Chain token request error:", error);
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
@@ -94,8 +107,8 @@ export const PChainFaucetButton = ({ className, buttonProps, children }: PChainF
       },
     });
 
-    try {
-      await faucetRequest();
+    try { 
+      await faucetPromise;
     } catch (error) {
     } finally {
       setIsRequestingPTokens(false);
