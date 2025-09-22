@@ -6,6 +6,7 @@ export enum BadgeCategory {
   academy,
   project,
   requirement,
+
 }
 
 export interface AssignBadgeBody {
@@ -15,6 +16,7 @@ export interface AssignBadgeBody {
   hackathonId?: string;
   projectId?: string;
   requirementId?: string; // For social badges - specific requirement to fulfill
+  badgesId?: string[];
 }
 
 export interface AssignBadgeResult {
@@ -203,6 +205,31 @@ export async function getBadgesByHackathonId(
   }
 
   return filteredBadges.map((badge) => ({
+    id: badge.id,
+    name: badge.name,
+    description: badge.description,
+    
+    image_path: badge.image_path,
+    category: badge.category,
+    requirements: badge.requirements.map((requirement) =>
+      parseBadgeMetadata(requirement)
+    ) as Requirement[],
+  }));
+}
+
+
+export async function getBadgesByIds(
+  badgesIds: string[]
+): Promise<Badge[]> {
+  const badges = await prisma.badge.findMany({
+    where: {
+      id: {
+        in: badgesIds,
+      },
+    },
+  });
+
+  return badges.map((badge) => ({
     id: badge.id,
     name: badge.name,
     description: badge.description,

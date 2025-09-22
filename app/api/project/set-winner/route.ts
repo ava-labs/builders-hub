@@ -15,13 +15,13 @@ export const PUT = withAuthRole("badge_admin", async (req: NextRequest) => {
         { status: 400 }
       );
     }
-    if (!body.IsWinner) {
+    if (!body.isWinner) {
       return NextResponse.json(
         { error: "IsWinner parameter is required" },
         { status: 400 }
       );
     }
-    const badge = await SetWinner(body.project_id, body.IsWinner, name);
+    const badge = await SetWinner(body.project_id, body.isWinner, name);
 
     return NextResponse.json(badge, { status: 200 });
   } catch (error) {

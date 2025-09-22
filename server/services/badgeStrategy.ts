@@ -25,9 +25,6 @@ export class AcademyBadgeStrategy implements BadgeAssignmentStrategy {
     return null;
   }
 }
-
-
-
 /**
  * Strategy for Project badges
  */

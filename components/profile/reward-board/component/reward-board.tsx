@@ -1,3 +1,4 @@
+
 import React from "react";
 import { RewardCard } from "./reward-card";
 import { getAuthSession } from "@/lib/auth/authSession";
@@ -45,7 +46,7 @@ export default async function RewardBoard() {
       image={reward.image_path}
       requirements={reward.requirements}
       id={reward.id}
-       className="border border-gray-900 dark:bg-zinc-900"
+
     />
   ));
   const academyRewards = academyBadgesUnlocked.map((reward) => (
@@ -60,7 +61,7 @@ export default async function RewardBoard() {
       requirements={reward.requirements}
       id={reward.id}
       is_unlocked={reward.is_unlocked}
-      className="border border-gray-900 dark:bg-zinc-900 py-2"
+  
     />
   ));
 
