@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Check } from "lucide-react";
 
 type Requirement = {
   id: string | number;
@@ -33,20 +34,22 @@ export function RequirementsPanel({
               {requirements.map((requirement) => (
                 <li
                   key={requirement.id}
-                  className="flex items-start space-x-3 text-sm text-gray-700 dark:text-gray-300"
+                  className="flex items-start space-x-3 text-sm text-gray-700 dark:text-gray-300 pt-2"
                 >
-                  <span className="flex-shrink-0 w-2 h-2 bg-gradient-to-r from-red-500 to-zinc-700 rounded-full mt-2"></span>
+
 
                   <span
-                    className="leading-relaxed"
-                    style={{
-                      textDecoration: requirement.unlocked ? "line-through" : "none",
-                    }}
+                    className="leading-relaxed flex items-center"
                     title={requirement.description}
                   >
-                    {requirement.description}:{" "}
-                    <span className="font-bold">
-                      {Number(requirement.points ?? 0)} points
+                    {(requirement.unlocked) && (
+                      <Check className="w-10 h-10 text-green-500 mr-2" />
+                    )}
+                    <span>
+                      {requirement.description}:{" "}
+                      <span className="font-bold">
+                        {Number(requirement.points ?? 0)} points
+                      </span>
                     </span>
                   </span>
                 </li>
