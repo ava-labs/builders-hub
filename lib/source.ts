@@ -2,7 +2,7 @@ import { loader } from 'fumadocs-core/source';
 import { createElement } from 'react';
 import { icons } from 'lucide-react';
 import { createMDXSource } from 'fumadocs-mdx';
-import { meta, docs, blog as blogs, course, courseMeta, integrations } from '@/.source';
+import { meta, docs, blog as blogs, course, courseMeta, integrations, apiReferences, apiMeta } from '@/.source';
 import type { InferMetaType, InferPageType } from 'fumadocs-core/source';
 
 export const documentation = loader({
@@ -31,6 +31,15 @@ export const blog = loader({
 export const integration = loader({
   baseUrl: '/integrations',
   source: createMDXSource(integrations, []),
+});
+
+export const apiReference = loader({
+  baseUrl: '/avalanche-apis',
+  icon(icon) {
+    if (icon && icon in icons)
+      return createElement(icons[icon as keyof typeof icons]);
+  },
+  source: createMDXSource(apiReferences, apiMeta),
 });
 
 export type Page = InferPageType<typeof documentation>;

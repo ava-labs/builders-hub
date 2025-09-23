@@ -1,0 +1,22 @@
+{
+  "title": "Webhooks API",
+  "icon": "Webhook",
+  "root": true,
+  "pages": [
+    "index",
+    "---Webhook Management---",
+    "createWebhook",
+    "getWebhook",
+    "listWebhooks",
+    "updateWebhook",
+    "deactivateWebhook",
+    "---Address Management---",
+    "addAddressesToWebhook",
+    "removeAddressesFromWebhook", 
+    "getAddressesFromWebhook",
+    "sendAddressActivityWebhook",
+    "---Security---",
+    "generateOrRotateSharedSecret",
+    "getSharedSecret"
+  ]
+}
