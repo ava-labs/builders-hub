@@ -5,7 +5,7 @@ import { Input } from "@/components/toolbox/components/Input";
 import { RadioGroup } from "@/components/toolbox/components/RadioGroup";
 import { Select } from "@/components/toolbox/components/Select";
 import { SUBNET_EVM_VM_ID } from "@/constants/console";
-import generateName from 'boring-name-generator';
+const generateName = require('boring-name-generator');
 
 interface ChainConfigStepProps {
     chainName: string;
@@ -15,12 +15,34 @@ interface ChainConfigStepProps {
 }
 
 export const generateRandomChainName = () => {
-    const firstLetterUppercase = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
-    for (let i = 0; i < 1000; i++) {
-        const randomName = generateName({ words: 2 }).raw.map(firstLetterUppercase).join(' ');
-        if (!randomName.includes('-')) return randomName + " Chain";
+    try {
+        const firstLetterUppercase = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
+        for (let i = 0; i < 100; i++) {
+            const result = generateName({ words: 2 }) as any;
+            // Handle both object with .raw property and direct string results
+            let words: string[];
+            if (result && typeof result === 'object' && 'raw' in result && Array.isArray(result.raw)) {
+                words = result.raw;
+            } else if (typeof result === 'string') {
+                words = (result as string).split('-');
+            } else {
+                continue; // Skip invalid result
+            }
+            
+            const randomName = words.map(firstLetterUppercase).join(' ');
+            if (!randomName.includes('-')) {
+                return randomName + " Chain";
+            }
+        }
+    } catch (error) {
+        // Silently fall through to use fallback generator
     }
-    throw new Error("Could not generate a name without a dash after 1000 attempts");
+    // Simple fallback generator
+    const adjectives = ['Fast', 'Secure', 'Smart', 'Digital', 'Global', 'Quantum', 'Hyper'];
+    const nouns = ['Network', 'Protocol', 'System', 'Platform', 'Infrastructure', 'Ledger'];
+    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    return `${adj} ${noun} Chain`;
 };
 
 export function ChainConfigStep({ chainName, onChainNameChange, vmId, onVmIdChange }: ChainConfigStepProps) {
@@ -36,7 +58,15 @@ export function ChainConfigStep({ chainName, onChainNameChange, vmId, onVmIdChan
     };
 
     const handleGenerateRandomName = () => {
-        onChainNameChange(generateRandomChainName());
+        try {
+            const newName = generateRandomChainName();
+            onChainNameChange(newName);
+        } catch (error) {
+            console.error("Error generating random name:", error);
+            // Fallback to a simple random name
+            const fallbackName = `Chain ${Math.floor(Math.random() * 10000)}`;
+            onChainNameChange(fallbackName);
+        }
     };
 
     return (
@@ -49,8 +79,13 @@ export function ChainConfigStep({ chainName, onChainNameChange, vmId, onVmIdChan
                             Chain Name
                         </label>
                         <button
-                            onClick={handleGenerateRandomName}
-                            className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                            type="button"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleGenerateRandomName();
+                            }}
+                            className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer transition-colors px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 relative z-10"
                         >
                             Generate Random
                         </button>
