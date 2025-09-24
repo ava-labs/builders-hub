@@ -78,8 +78,8 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
     const bootstrapFromBlock = async () => {
       try {
         const latest = await publicClient.getBlockNumber()
-        // Default to last ~9,500 blocks to stay under Avalanche's 10k eth_getLogs range limit
-        const suggested = latest > 9500n ? (latest - 9500n).toString() : '0'
+        // Default to last ~2,000 blocks to stay under RPC's 2048 block range limit
+        const suggested = latest > 2000n ? (latest - 2000n).toString() : '0'
         if (!cancelled) setFromBlock((prev) => (prev ? prev : suggested))
       } catch (e) {
         // ignore
@@ -146,7 +146,7 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
         setEvents([])
         return
       }
-      const CHUNK_SIZE = 9000n
+      const CHUNK_SIZE = 2000n // Reduced from 9000 to stay well within RPC limit of 2048
       let cursor = startBlock
       const allLogs: any[] = []
       while (cursor <= latest) {
