@@ -42,7 +42,7 @@ interface WalletState {
 
 interface WalletActions {
   // Simplified setters - group related updates
-  updateWalletConnection: (data: {
+  updateWalletConnection: (data: { 
     coreWalletClient?: CoreWalletClientType | null;
     walletEVMAddress?: string;
     walletChainId?: number;

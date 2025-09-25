@@ -10,19 +10,19 @@ import InputChainId from "@/components/toolbox/components/InputChainId";
 import SelectSubnet, { SubnetSelection } from "@/components/toolbox/components/SelectSubnet";
 import { Callout } from "fumadocs-ui/components/callout";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
+import { getPChainBalance } from "@/components/toolbox/coreViem/methods/getPChainbalance";
+import { Success } from "@/components/toolbox/components/Success";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 const metadata: ConsoleToolMetadata = {
     title: "Convert Subnet to L1",
     description: "Convert your existing Subnet to an L1 with validator management",
-    toolRequirements: [
+    walletRequirements: [
         WalletRequirementsConfigKey.PChainBalance
-    ],
-    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+    ]
 };
 
 function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
@@ -42,12 +42,32 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
     const [validators, setValidators] = useState<ConvertToL1Validator[]>([]);
 
     const { pChainAddress, isTestnet } = useWalletStore();
-    const pChainBalance = useWalletStore((s) => s.balances.pChain);
     const { coreWalletClient } = useConnectedWallet();
 
     const [isConverting, setIsConverting] = useState(false);
     
     const { sendCoreWalletNotSetNotification, notify } = useConsoleNotifications();
+
+    // TO-DO do we need this?
+    const [rawPChainBalanceNavax, setRawPChainBalanceNavax] = useState<bigint | null>(null);
+    useEffect(() => {
+        const isMounted = { current: true };
+
+        const fetchBalance = async () => {
+            if (!pChainAddress) return;
+            try {
+                const balanceValue = await getPChainBalance(coreWalletClient);
+                if (isMounted.current) {
+                    setRawPChainBalanceNavax(balanceValue);
+                }
+            } catch (error) {
+                console.error("Error fetching P-Chain balance in ConvertToL1:", error);
+            }
+        };
+
+        fetchBalance();
+        return () => { isMounted.current = false; };
+    }, [pChainAddress, coreWalletClient]);
 
     async function handleConvertToL1() {
         setConvertToL1TxId("");

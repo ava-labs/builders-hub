@@ -13,19 +13,13 @@ import NodesList from "./NodesList";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { useManagedTestnetNodes } from "@/hooks/useManagedTestnetNodes";
 import { toast } from "@/hooks/use-toast";
+import TestnetOnly from "./TestnetOnly";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import { AccountRequirementsConfigKey } from "@/components/toolbox/hooks/useAccountRequirements";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 
 const metadata: ConsoleToolMetadata = {
     title: "Managed Testnet Nodes",
     description: "Manage your hosted testnet nodes.",
-    toolRequirements: [
-        WalletRequirementsConfigKey.TestnetRequired,
-        AccountRequirementsConfigKey.UserLoggedIn
-    ],
-    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+    walletRequirements: []
 };
 
 function ManagedTestnetNodesBase() {
@@ -34,7 +28,7 @@ function ManagedTestnetNodesBase() {
         fetchNodes();
     }, []);
     
-    const { avalancheNetworkID } = useWalletStore();
+    const { avalancheNetworkID, isTestnet } = useWalletStore();
     const {
         nodes,
         isLoadingNodes,
@@ -101,6 +95,12 @@ function ManagedTestnetNodesBase() {
             }
         }
     };
+    // If not on testnet, show disabled message
+    if (!isTestnet) {
+        return (
+            <TestnetOnly />
+        );
+    }
 
     return (
         <>

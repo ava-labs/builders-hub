@@ -24,10 +24,9 @@ const TELEPORTER_MESSENGER_SOURCE_URL = `https://github.com/ava-labs/icm-contrac
 const metadata: ConsoleToolMetadata = {
     title: "Deploy ICM Messenger",
     description: "Deploy the ICM messenger contract to your L1 to enable cross-L1 messaging and applications like ICTT",
-    toolRequirements: [
+    walletRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
-    ],
-    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+    ]
 };
 
 const TopUpComponent = ({
@@ -41,7 +40,7 @@ const TopUpComponent = ({
     const [isSending, setIsSending] = useState(false);
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const viemChain = useViemChainStore();
-    const { publicClient, walletEVMAddress } = useWalletStore();
+    const { publicClient } = useWalletStore();
     const { coreWalletClient } = useConnectedWallet();
 
     // Throw critical errors during render

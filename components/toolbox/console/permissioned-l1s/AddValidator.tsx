@@ -14,11 +14,10 @@ import CompleteValidatorRegistration from '@/components/toolbox/console/permissi
 import { ValidatorListInput, ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { getPChainBalance } from '@/components/toolbox/coreViem/methods/getPChainbalance';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../components/WithConsoleToolMetadata';
 import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
-import { Alert } from '@/components/toolbox/components/Alert';
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 // Helper functions for BigInt serialization
 const serializeValidators = (validators: ConvertToL1Validator[]) => {
@@ -42,11 +41,10 @@ const STORAGE_KEY = 'addValidator_validators';
 const metadata: ConsoleToolMetadata = {
   title: "Add New Validator",
   description: "Add a validator to your L1 by following these steps in order",
-  toolRequirements: [
+  walletRequirements: [
     WalletRequirementsConfigKey.EVMChainBalance,
     WalletRequirementsConfigKey.PChainBalance
-  ],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  ]
 };
 
 const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
@@ -62,6 +60,7 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
 
   // Form state with local persistence
   const { walletEVMAddress, pChainAddress, isTestnet } = useWalletStore();
+  const { coreWalletClient } = useConnectedWallet();
   const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
   const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
   const [resetKey, setResetKey] = useState<number>(0);
@@ -111,6 +110,22 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
     ownerType,
     isDetectingOwnerType
   } = useValidatorManagerDetails({ subnetId: subnetIdL1 });
+
+  // Fetch P-Chain balance when component mounts so we can pass it to the ValidatorListInput to check if the validator balance is greater than the user's current P-Chain balance
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (!pChainAddress) return;
+
+      try {
+        const balanceValue = await getPChainBalance(coreWalletClient);
+        setUserPChainBalanceNavax(balanceValue);
+      } catch (balanceError) {
+        console.error("Error fetching P-Chain balance:", balanceError);
+      }
+    };
+
+    fetchBalance();
+  }, [pChainAddress, coreWalletClient]);
 
   // Restore intermediate state from persisted validators data when available
   useEffect(() => {

@@ -15,8 +15,6 @@ import { AddValidatorControls } from '@/components/toolbox/components/ValidatorL
 import type { ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput'
 import { Steps, Step } from 'fumadocs-ui/components/steps'
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import { Alert } from '@/components/toolbox/components/Alert';
 
 // Network-specific constants
 const NETWORK_CONFIG = {
@@ -49,10 +47,9 @@ const BUFFER_MINUTES = 5
 const metadata: ConsoleToolMetadata = {
   title: "Stake on Primary Network",
   description: "Stake AVAX as a validator on Avalanche's Primary Network to secure the network and earn rewards",
-  toolRequirements: [
+  walletRequirements: [
     WalletRequirementsConfigKey.PChainBalance
-  ],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  ]
 }
 
 function Stake({ onSuccess }: BaseConsoleToolProps) {

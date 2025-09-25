@@ -3,8 +3,13 @@
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
 import { useState, useRef } from "react";
 import { Button } from "@/components/toolbox/components/Button";
-import { GenesisBuilderInner } from '@/components/toolbox/console/layer-1/create/GenesisBuilder';
+import { Input } from "@/components/toolbox/components/Input";
+import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import GenesisBuilder from '@/components/toolbox/console/layer-1/create/GenesisBuilder';
 import { Step, Steps } from "fumadocs-ui/components/steps";
+import generateName from 'boring-name-generator'
+import { RadioGroup } from "@/components/toolbox/components/RadioGroup";
+import InputSubnetId from "@/components/toolbox/components/InputSubnetId";
 import { SUBNET_EVM_VM_ID } from "@/constants/console";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
@@ -12,45 +17,68 @@ import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
-// Import new Genesis Wizard components
-import { GenesisWizard } from "@/components/toolbox/components/genesis/GenesisWizard";
-import { SubnetStep } from "@/components/toolbox/components/genesis/SubnetStep";
-import { ChainConfigStep, generateRandomChainName } from "@/components/toolbox/components/genesis/ChainConfigStep";
+const generateRandomName = () => {
+    //makes sure the name doesn't contain a dash
+    const firstLetterUppercase = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
+    for (let i = 0; i < 1000; i++) {
+        const randomName = generateName({ words: 2 }).raw.map(firstLetterUppercase).join(' ');
+        if (!randomName.includes('-')) return randomName + " Chain";
+    }
+    throw new Error("Could not generate a name with a dash after 1000 attempts");
+}
 
 const metadata: ConsoleToolMetadata = {
     title: "Create Chain",
     description: "Create a subnet and add a new blockchain with custom parameters and genesis data",
-    toolRequirements: [
+    walletRequirements: [
         WalletRequirementsConfigKey.PChainBalance
-    ],
-    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+    ]
 };
 
-interface CreateChainProps extends BaseConsoleToolProps {
-    embedded?: boolean;
-}
+function CreateChain({ onSuccess }: BaseConsoleToolProps) {
+    const {
+        subnetId,
+        setChainID,
+        setSubnetID,
+        genesisData,
+        setChainName,
+    } = useCreateChainStore()();
 
-function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
-    const store = useCreateChainStore();
-    const subnetId = store(state => state.subnetId);
-    const setChainID = store(state => state.setChainID);
-    const setSubnetID = store(state => state.setSubnetID);
-    const genesisData = store(state => state.genesisData);
-    const setGenesisData = store(state => state.setGenesisData);
-    const setChainName = store(state => state.setChainName);
-
+    const { pChainAddress } = useWalletStore();
     const { coreWalletClient } = useConnectedWallet();
-    const { notify } = useConsoleNotifications();
 
+    const [isCreatingSubnet, setIsCreatingSubnet] = useState(false);
     const [isCreatingChain, setIsCreatingChain] = useState(false);
-    const [localChainName, setLocalChainName] = useState<string>(generateRandomChainName());
+
+    const [localGenesisData, setLocalGenesisData] = useState<string>(genesisData);
+    const [localChainName, setLocalChainName] = useState<string>(generateRandomName());
+
+    const [showVMIdInput, setShowVMIdInput] = useState<boolean>(false);
     const [vmId, setVmId] = useState<string>(SUBNET_EVM_VM_ID);
     const prevVmIdRef = useRef(vmId);
 
-    // Clear genesis data when switching FROM Subnet-EVM TO custom VM
-    const handleVmIdChange = (newVmId: string) => {
-        if (prevVmIdRef.current === SUBNET_EVM_VM_ID && newVmId !== SUBNET_EVM_VM_ID) {
-            setGenesisData("");
+    const { notify, sendCoreWalletNotSetNotification } = useConsoleNotifications();
+
+
+    // Wrapper function to handle subnet ID changes properly
+    const handleSubnetIdChange = (newSubnetId: string) => {
+        setSubnetID(newSubnetId);
+    };
+
+    async function handleCreateSubnet() {
+        setIsCreatingSubnet(true);
+
+        const createSubnetTx = coreWalletClient.createSubnet({
+            subnetOwners: [pChainAddress]
+        });
+
+        notify('createSubnet', createSubnetTx);
+
+        try {
+            const txID = await createSubnetTx;
+            setSubnetID(txID);
+        } finally {
+            setIsCreatingSubnet(false);
         }
         prevVmIdRef.current = newVmId;
         setVmId(newVmId);
@@ -64,7 +92,7 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
             subnetId: subnetId,
             vmId,
             fxIds: [],
-            genesisData: genesisData,
+            genesisData: localGenesisData,
             subnetAuth: [0],
         })
 
@@ -74,17 +102,28 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
             const txID = await createChainTx;
             setChainID(txID);
             setChainName(localChainName);
-            setLocalChainName(generateRandomChainName());
+            setLocalChainName(generateRandomName());
 
         } finally {
             setIsCreatingChain(false);
         }
     }
 
-    const canProceedToStep2 = !!subnetId;
-    const canProceedToStep3 = canProceedToStep2 && !!localChainName;
-    const canProceedToStep4 = canProceedToStep3 && !!genesisData && genesisData !== "" && !genesisData.startsWith("Error:");
-    const canCreateChain = canProceedToStep4;
+    return (
+        <>
+                <Steps>
+                    <Step>
+                        <h2 className="text-lg font-semibold">Step 1: Create a Subnet</h2>
+                        <p className="text-sm text-gray-500">
+                            Every chain needs to be associated with a Subnet. If you don't have a Subnet, create one here. If you already have a Subnet, skip to the next step.
+                        </p>
+                        <div className="space-y-4">
+                            <Input
+                                label="Subnet Owner"
+                                value={pChainAddress}
+                                disabled={true}
+                                type="text"
+                            />
 
     return (
         <div className="space-y-6">
@@ -240,12 +279,74 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                                 Create Chain
                             </Button>
                         </div>
-                    )}
-                </Step>
-            </Steps>
-        </div>
+                    </Step>
+                    <Step>
+                        <h2 className="text-lg font-semibold">Step 2: Create a Chain</h2>
+                        <p className="text-sm text-gray-500">
+                            Enter the parameters for your new chain.
+                        </p>
+
+                        <InputSubnetId
+                            id="create-chain-subnet-id"
+                            label="Subnet ID"
+                            value={subnetId}
+                            onChange={handleSubnetIdChange}
+                            validationDelayMs={3000}
+                            hideSuggestions={true}
+                            placeholder="Create a Subnet in Step 1 or enter a SubnetID."
+                        />
+
+                        <Input
+                            label="Chain Name"
+                            value={localChainName}
+                            onChange={setLocalChainName}
+                            placeholder="Enter chain name"
+                        />
+
+                        <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Virtual Machine</h3>
+                        <p className="text-sm text-gray-500">
+                            Select what Virtual Machine (VM) your chain will use.
+                        </p>
+                        <RadioGroup
+                            value={showVMIdInput ? 'true' : 'false'}
+                            onChange={(value) => {
+                                const shouldShow = value === "true";
+                                setShowVMIdInput(shouldShow);
+                                // Reset to standard EVM when switching to uncustomized
+                                if (!shouldShow) {
+                                    setVmId(SUBNET_EVM_VM_ID);
+                                }
+                            }}
+                            idPrefix={`show-vm-id`}
+                            className="mb-4"
+                            items={[
+                                { value: "false", label: "Uncustomized EVM" },
+                                { value: "true", label: "Customized EVM or alternative VM (Experts only)" }
+                            ]}
+                        />
+                        {showVMIdInput && (
+                            <Input
+                                label="VM ID"
+                                value={vmId}
+                                onChange={setVmId}
+                                placeholder="Enter VM ID"
+                                helperText={`For an L1 with an uncustomized EVM use ${SUBNET_EVM_VM_ID}`}
+                            />
+                        )}
+
+                        <GenesisBuilder genesisData={localGenesisData} setGenesisData={setLocalGenesisData} />
+
+                        <Button
+                            onClick={handleCreateChain}
+                            loading={isCreatingChain}
+                            loadingText="Creating Chain..."
+                        >
+                            Create Chain
+                        </Button>
+                    </Step>
+                </Steps>
+        </>
     );
 }
 
-export { CreateChain };
 export default withConsoleToolMetadata(CreateChain, metadata);

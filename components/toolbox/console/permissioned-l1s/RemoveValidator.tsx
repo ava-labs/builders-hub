@@ -1,5 +1,6 @@
 "use client"
 import React, { useState, useMemo } from 'react'
+import { AlertCircle } from "lucide-react"
 import { Button } from "@/components/toolbox/components/Button"
 import { Alert } from '@/components/toolbox/components/Alert'
 import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId"
@@ -17,16 +18,14 @@ import { Step, Steps } from "fumadocs-ui/components/steps"
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements"
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata"
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext"
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 const metadata: ConsoleToolMetadata = {
   title: "Remove Validator",
   description: "Remove a validator from an Avalanche L1 by following these steps in order",
-  toolRequirements: [
+  walletRequirements: [
     WalletRequirementsConfigKey.EVMChainBalance,
     WalletRequirementsConfigKey.PChainBalance
-  ],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  ]
 }
 
 const RemoveValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {

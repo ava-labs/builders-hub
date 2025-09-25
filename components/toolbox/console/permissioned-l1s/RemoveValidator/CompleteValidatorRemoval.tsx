@@ -11,7 +11,8 @@ import poaManagerAbi from '@/contracts/icm-contracts/compiled/PoAManager.json';
 import { GetRegistrationJustification } from '../ValidatorManager/justification';
 import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { packWarpIntoAccessList } from '../ValidatorManager/packWarp';
-import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
+import { extractL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/methods/extractL1ValidatorWeightMessage';
+import { useAvaCloudSDK } from '@/components/toolbox/stores/useAvaCloudSDK';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 interface CompleteValidatorRemovalProps {

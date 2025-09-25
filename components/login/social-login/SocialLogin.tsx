@@ -23,50 +23,11 @@ function SocialLogin({ callbackUrl = "/" }: SocialLoginProps) {
         </div>
       </div>
 
-      {/* Social Buttons */}
-      <div className="grid grid-cols-3 gap-2.5">
-        <Button
-          variant="outline"
-          className="h-10 flex items-center justify-center border border-zinc-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 group"
-          onClick={() => SignInSocialMedia("google")}
-        >
-          <Image
-            src="/brands/google.svg"
-            alt="Google"
-            width={20}
-            height={20}
-            className="w-5 h-5"
-          />
-          <span className="sr-only">Google</span>
-        </Button>
-        <Button
-          variant="outline"
-          className="h-10 flex items-center justify-center border border-zinc-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 group"
-          onClick={() => SignInSocialMedia("github")}
-        >
-          <Image
-            src="/brands/github.svg"
-            alt="GitHub"
-            width={20}
-            height={20}
-            className="w-5 h-5 dark:invert"
-          />
-          <span className="sr-only">Github</span>
-        </Button>
-        <Button
-          variant="outline"
-          className="h-10 flex items-center justify-center border border-zinc-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 group"
+        <SocialLoginButton
+          name="X"
+          image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackaton-platform-images/X_X_logo-xyp7skXcigJFOHpmC3ps7MRg0d14m2.svg"
           onClick={() => SignInSocialMedia("X")}
-        >
-          <Image
-            src="/brands/x.svg"
-            alt="X"
-            width={20}
-            height={20}
-            className="w-5 h-5 dark:invert"
-          />
-          <span className="sr-only">X</span>
-        </Button>
+        />
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import React from 'react';
-import { CheckRequirements, RequirementsConfigKey } from './CheckRequirements';
+import { CheckWalletRequirements } from './CheckWalletRequirements';
+import { WalletRequirementsConfigKey } from '../hooks/useWalletRequirements';
 import { Container } from './Container';
 
 // Console tool metadata interface
@@ -8,10 +9,8 @@ export interface ConsoleToolMetadata {
     title: string;
     /** Brief description of what the tool does */
     description: string;
-    /** Tool requirements (wallet and/or account requirements) */
-    toolRequirements: RequirementsConfigKey[];
-    /** GitHub URL for editing the tool source code */
-    githubUrl?: string;
+    /** Wallet requirements including if the tool is only available on testnet */
+    walletRequirements: WalletRequirementsConfigKey[];
 }
 
 // Props interface for console tools
@@ -24,17 +23,17 @@ export interface BaseConsoleToolProps {
 type BaseConsoleToolComponent = React.ComponentType<BaseConsoleToolProps>;
 
 // Console Tool with Metadata
-type ConsoleToolComponent = BaseConsoleToolComponent & {
+export type ConsoleToolComponent = BaseConsoleToolComponent & {
     /** Required metadata for all console tools */
     metadata: ConsoleToolMetadata;
 };
 
 /**
- * Higher-Order Component that wraps console tools with metadata and requirements.
+ * Higher-Order Component that wraps console tools with metadata and wallet requirements.
  * 
  * @param BaseComponent - The base console tool component
- * @param metadata - Console tool metadata including tool requirements
- * @returns Console tool component with metadata and requirements wrapper
+ * @param metadata - Console tool metadata including wallet requirements
+ * @returns Console tool component with metadata and wallet wrapper
  * 
  * @example
  * const CrossChainTransfer = withConsoleToolMetadata(
@@ -42,7 +41,7 @@ type ConsoleToolComponent = BaseConsoleToolComponent & {
  *     {
  *         title: "Cross-Chain Transfer",
  *         description: "Transfer AVAX between Platform (P) and Contract (C) chains",
- *         toolRequirements: [WalletRequirementsConfigKey.CoreWalletConnected]
+ *         walletRequirements: [WalletRequirementsConfigKey.CoreWalletConnected]
  *     }
  * );
  */
@@ -52,21 +51,21 @@ export function withConsoleToolMetadata(
 ): ConsoleToolComponent {
     const WrappedComponent = (props: BaseConsoleToolProps) => {
         const ContainerContent = () => (
-            <Container title={metadata.title} description={metadata.description} githubUrl={metadata.githubUrl}>
+            <Container title={metadata.title} description={metadata.description}>
                 <BaseComponent {...props} />
             </Container>
         );
 
-        // If no tool requirements, render container directly
-        if (!metadata.toolRequirements || metadata.toolRequirements.length === 0) {
+        // If no wallet requirements, render container directly
+        if (!metadata.walletRequirements || metadata.walletRequirements.length === 0) {
             return <ContainerContent />;
         }
 
-        // Wrap with tool requirements
+        // Wrap with wallet requirements
         return (
-            <CheckRequirements toolRequirements={metadata.toolRequirements}>
+            <CheckWalletRequirements configKey={metadata.walletRequirements}>
                 <ContainerContent />
-            </CheckRequirements>
+            </CheckWalletRequirements>
         );
     };
 

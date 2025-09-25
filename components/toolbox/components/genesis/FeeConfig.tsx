@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { RawInput } from "../Input";
 import { Info } from "lucide-react";
 import { ValidationMessages } from "./types";
-import { useGenesisHighlight } from "./GenesisHighlightContext";
+import { AddConnectedWalletButton } from '@/components/toolbox/components/ConnectWallet/AddConnectedWalletButton';
 
 // Helper function to convert gwei to wei
 const gweiToWei = (gwei: number): number => gwei * 1000000000;
@@ -346,6 +346,84 @@ function FeeConfigBase({
               </div>
             </div>
           </div>
+
+          {feeManager.enabled && (
+            <div className="pl-6 space-y-2 mt-2">
+              <TextArea
+                label="Fee Manager Admin Addresses"
+                value={formatAddressList(feeManager.adminAddresses)}
+                onChange={(value: string) => handleFeeManagerAdminsChange(parseAddressList(value))}
+                placeholder="0x1234..., 0x5678..."
+                helperText="Comma-separated list of addresses that can manage fees via precompile 0x02...03"
+                rows={2}
+                error={validationMessages.errors.feeManager}
+              />
+              <AddConnectedWalletButton
+                onAddAddress={(address) => {
+                  handleFeeManagerAdminsChange([...feeManager.adminAddresses, address as Address]);
+                }}
+                addressSource={feeManager.adminAddresses}
+                buttonText="Add Connected Wallet"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Reward Manager */}
+      <div>
+        <h4 className="font-medium mb-3 text-zinc-800 dark:text-white">Dynamic Reward Parameters</h4>
+        <div className="space-y-4">
+          <p>The transaction fees can be either burned, given to the block building validator or sent to a smart contract. The permission for dynamically adjusting the reward mechanism as well as granting and revoking other addresses these permissions can be granted to an EOR or a smart contract.</p>
+          <div className="flex flex-col space-y-2">
+            <div className="flex items-start">
+              <input
+                type="radio"
+                id="static-rewards"
+                name="reward-manager"
+                className="mt-1 mr-2"
+                checked={!rewardManager.enabled}
+                onChange={() => handleRewardManagerEnabledChange(false)}
+              />
+              <label htmlFor="static-rewards" className="cursor-pointer text-sm text-zinc-700 dark:text-zinc-300">
+                Fixed reward parameters.
+              </label>
+            </div>
+            <div className="flex items-start">
+              <input
+                type="radio"
+                id="dynamic-rewards"
+                name="reward-manager"
+                className="mt-1 mr-2"
+                checked={rewardManager.enabled}
+                onChange={() => handleRewardManagerEnabledChange(true)}
+              />
+              <label htmlFor="dynamic-rewards" className="cursor-pointer text-sm text-zinc-700 dark:text-zinc-300">
+                Dynamically adjustable reward parameters via RewardManager precompile.
+              </label>
+            </div>
+          </div>
+
+          {rewardManager.enabled && (
+            <div className="pl-6 space-y-2 mt-2">
+              <TextArea
+                label="Reward Manager Admin Addresses"
+                value={formatAddressList(rewardManager.adminAddresses)}
+                onChange={(value: string) => handleRewardManagerAdminsChange(parseAddressList(value))}
+                placeholder="0x1234..., 0x5678..."
+                helperText="Comma-separated list of addresses that can manage rewards via precompile 0x02...04"
+                rows={2}
+                error={validationMessages.errors.rewardManager}
+              />
+              <AddConnectedWalletButton
+                onAddAddress={(address) => {
+                  handleRewardManagerAdminsChange([...rewardManager.adminAddresses, address as Address]);
+                }}
+                addressSource={rewardManager.adminAddresses}
+                buttonText="Add Connected Wallet"
+              />
+            </div>
+          )}
         </div>
       </div>
       {/* Dynamic fee/reward sections removed; these are now configured under Precompiles. */}

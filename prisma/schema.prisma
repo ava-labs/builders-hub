@@ -217,7 +217,7 @@ model ConsoleLog {
   data        Json?    // Flexible JSON data
   created_at  DateTime @default(now()) @db.Timestamptz(3)
   user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
+  
   @@index([user_id])
   @@index([created_at])
 }

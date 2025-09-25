@@ -12,7 +12,6 @@ import { utils } from '@avalabs/avalanchejs';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { Alert } from '@/components/toolbox/components/Alert';
 
 interface InitiateValidatorRegistrationProps {
   subnetId: string;

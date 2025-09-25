@@ -1,0 +1,37 @@
+---
+title: ERC-20 vs eERC
+description: Comparing traditional ERC-20 tokens with eERC in the Avalanche ecosystem.
+updated: 2025-09-02
+authors: [alejandro99so]
+icon: Table
+---
+
+In the previous section, we learned what kind of privacy **eERC** offers on Avalanche.  
+Now, let’s compare it directly to **ERC-20**, the most widely used fungible token standard in the EVM ecosystem.
+
+---
+
+## Key Differences
+
+| Feature | ERC-20 | eERC (Encrypted ERC) |
+|---------|--------|----------------------|
+| **Balance Visibility** | Public: anyone can see wallet balances on-chain. | Private: balances are encrypted, visible only to the holder and authorized auditors. |
+| **Transaction Amount Visibility** | Public: amounts are visible in every transfer. | Private: transfer amounts are encrypted and hidden from the public. |
+| **Privacy Technology** | None: all data is transparent. | Zero-knowledge proofs (zk-SNARKs) + homomorphic encryption. |
+| **Compliance Options** | Requires custom solutions for compliance and auditability. | Built-in Auditability Module allows selective decryption for authorized auditors. |
+| **Blockchain Compatibility** | Works on any EVM-compatible chain. | Works on any EVM-compatible chain, including Avalanche C-Chain Mainnet, Fuji (Testnet), and custom L1s. |
+| **Gas Efficiency** | Very efficient for transfers and approvals. | Slightly higher cost due to encryption and proof verification, but optimized for Avalanche’s low fees. |
+| **Modes Available** | Single implementation. | Standalone Mode and Converter Mode for different privacy needs. |
+| **Total Supply Visibility** | Public by default. | Concealed in Standalone Mode (optional in Converter Mode). |
+| **Use Cases** | Public tokens, open DeFi, governance tokens. | Confidential DeFi, enterprise payments, private RWA, regulated financial use. |
+
+---
+
+## Summary
+
+While **ERC-20** remains the foundation for most tokens in the EVM ecosystem, it offers no privacy features.  
+**eERC**, on the other hand, is designed for scenarios where confidentiality, compliance, and selective transparency are required, making it ideal for enterprise, regulated markets, and advanced DeFi protocols on Avalanche.
+
+---
+
+In the **next section**, we will explore the **Technology Behind eERC**, understanding the cryptographic tools, on-chain components, and modes of operation that make this privacy possible.

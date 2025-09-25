@@ -2,7 +2,6 @@
 
 import { useState, useCallback } from "react";
 import { NodeRegistration, RegisterSubnetResponse } from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/types";
-import posthog from 'posthog-js';
 
 export function useManagedTestnetNodes() {
     const [nodes, setNodes] = useState<NodeRegistration[]>([]);
@@ -97,22 +96,8 @@ export function useManagedTestnetNodes() {
             const data = await response.json();
 
             if (!response.ok || data.error) {
-                // Track error
-                posthog.capture('managed_testnet_node_delete_error', {
-                    subnet_id: node.subnet_id,
-                    blockchain_id: node.blockchain_id,
-                    error_message: data.message || data.error || 'Failed to delete node',
-                    context: 'console'
-                });
                 throw new Error(data.message || data.error || 'Failed to delete node');
             }
-
-            // Track successful deletion
-            posthog.capture('managed_testnet_node_deleted', {
-                subnet_id: node.subnet_id,
-                blockchain_id: node.blockchain_id,
-                context: 'console'
-            });
 
             // Refresh nodes
             await fetchNodes();

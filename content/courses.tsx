@@ -10,7 +10,7 @@ export type Course = {
     languages: string[];
     tools: string[];
     instructors: string[];
-    category: "Fundamentals" | "Smart Contract Development" | "L1 Development" | "Interoperability" | "Entrepreneur";
+    category: "Fundamentals" | "Smart Contract Development" | "L1 Development" | "Interoperability" | "Codebase";
     certificateTemplate?: string;
 };
 
@@ -88,7 +88,20 @@ const officialCourses: Course[] = [
         status: "featured",
         tools: ["Avalanche CLI"],
         languages: ["Go"],
-        instructors: ["Martin Eckardt", "Ash"],
+        instructors: ["Martin Eckardt", "Ash"], // + Usman
+        category: "L1 Development",
+        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
+    },
+    {
+        name: "Layer 1 Tokenomics",
+        description: "Learn how to design and deploy tokenomics for your Avalanche L1",
+        slug: "l1-tokenomics",
+        icon: <Coins />,
+        duration: "2 hours",
+        status: "featured",
+        tools: ["Avalanche CLI", "ICM"],
+        languages: ["Solidity"],
+        instructors: ["Sarp", "Owen Wahlgren"],
         category: "L1 Development",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
@@ -106,22 +119,22 @@ const officialCourses: Course[] = [
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
-        name: "Permissioned L1s",
-        description: "Learn how to create and manage permissioned blockchains with Proof of Authority on Avalanche",
-        slug: "permissioned-l1s",
-        icon: <SquareStackIcon />,
-        duration: "2 hours",
-        status: "featured",
-        tools: ["Validator Manager", "P-Chain", "ICM"],
+        name: "L1 Validator Management",
+        description: "Learn how to manage your Avalanche L1 Validators",
+        slug: "l1-validator-management",
+        icon: <UserPen />,
+        duration: "1 hour",
+        status: "normal",
+        tools: ["Warp"],
         languages: ["Solidity"],
-        instructors: ["Martin Eckardt", "Owen Wahlgren", "Nicolas Arnedo"],
+        instructors: ["Owen Wahlgren", "Martin Eckardt"],
         category: "L1 Development",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
-        name: "Permissionless L1s",
-        description: "Learn how to transition from permissioned blockchains with PoA to permissionless blockchains with PoS",
-        slug: "permissionless-l1s",
+        name: "Permissioned L1s",
+        description: "Learn how to create and manage permissioned blockchains with Proof of Authority on Avalanche",
+        slug: "permissioned-l1s",
         icon: <SquareStackIcon />,
         duration: "2 hours",
         status: "featured",
@@ -193,7 +206,7 @@ const officialCourses: Course[] = [
         languages: [],
         tools: ["Entrepreneur"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
-        category: "Entrepreneur",
+        category: "Codebase",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_Foundations.pdf"
     },
     {
@@ -206,12 +219,12 @@ const officialCourses: Course[] = [
         languages: [],
         tools: ["Entrepreneur"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
-        category: "Entrepreneur",
+        category: "Codebase",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_GTM.pdf"
     },
     {
         name: "Web3 Community Architect",
-        description: "Build engaged communities, amplify growth through media and events, and design impactful token economies.",
+        description: "Build engaged communities, amplifiy growth through media and events, and design impactful token economies.",
         slug: "web3-community-architect",
         icon: <SquareStackIcon />,
         status: "featured",
@@ -219,7 +232,7 @@ const officialCourses: Course[] = [
         languages: [],
         tools: ["Entrepreneur"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
-        category: "Entrepreneur",
+        category: "Codebase",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_Community.pdf"
     },
     {
@@ -232,7 +245,7 @@ const officialCourses: Course[] = [
         languages: [],
         tools: ["Entrepreneur"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
-        category: "Entrepreneur",
+        category: "Codebase",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_Fundraising.pdf"
     },
     {
@@ -290,7 +303,7 @@ const ecosystemCourses: Course[] = [
    }*/
 ];
 
-const entrepreneurCourses = officialCourses.filter((course) => course.category === "Entrepreneur");
+const codebaseEntrepreneurCourses = officialCourses.filter((course) => course.category === "Codebase");
 
 // Helper function to create course configuration mappings
 export const getCourseConfig = () => {
@@ -312,7 +325,7 @@ export const getCourseConfig = () => {
 export const getCourseNameMapping = () => {
     const mapping: Record<string, string> = {};
     
-    entrepreneurCourses.forEach(course => {
+    codebaseEntrepreneurCourses.forEach(course => {
         if (course.certificateTemplate) {
             mapping[course.slug] = course.name;
         }
@@ -322,9 +335,9 @@ export const getCourseNameMapping = () => {
 };
 
 export default {
-    official: officialCourses.filter((course) => ["normal", "featured"].includes(course.status) && course.category !== "Entrepreneur"),
-    official_featured: officialCourses.filter((course) => course.status === "featured" && course.category !== "Entrepreneur"),
-    avalancheEntrepreneur: entrepreneurCourses,
+    official: officialCourses.filter((course) => ["normal", "featured"].includes(course.status) && course.category !== "Codebase"),
+    official_featured: officialCourses.filter((course) => course.status === "featured" && course.category !== "Codebase"),
+    codebaseEntrepreneur: codebaseEntrepreneurCourses,
     ecosystem: ecosystemCourses,
 };
 

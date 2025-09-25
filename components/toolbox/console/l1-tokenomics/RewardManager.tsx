@@ -13,7 +13,6 @@ import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 // Default Reward Manager address
 const DEFAULT_REWARD_MANAGER_ADDRESS =
@@ -49,10 +48,9 @@ const StatusBadge = ({ status, loadingText, isLoading }: StatusBadgeProps) => {
 const metadata: ConsoleToolMetadata = {
   title: "Reward Manager",
   description: "Manage reward settings for the network including fee recipients and reward addresses",
-  toolRequirements: [
+  walletRequirements: [
     WalletRequirementsConfigKey.EVMChainBalance
-  ],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  ]
 };
 
 function RewardManager({ onSuccess }: BaseConsoleToolProps) {

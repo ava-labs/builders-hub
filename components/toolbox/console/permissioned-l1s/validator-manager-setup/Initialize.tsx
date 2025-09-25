@@ -18,18 +18,17 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 const metadata: ConsoleToolMetadata = {
     title: "Initial Validator Manager Configuration",
     description: "Initialize the ValidatorManager contract with the initial configuration",
-    toolRequirements: [
+    walletRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
-    ],
-    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+    ]
 };
 
 function Initialize({ onSuccess }: BaseConsoleToolProps) {
+    const [proxyAddress, setProxyAddress] = useState<string>("");
     const { walletEVMAddress, publicClient } = useWalletStore();
     const { coreWalletClient } = useConnectedWallet();
     const [isChecking, setIsChecking] = useState(false);
@@ -46,7 +45,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
     const managerAddress = useCreateChainStore()(state => state.managerAddress);
     const setManagerAddress = useCreateChainStore()(state => state.setManagerAddress);
 
-    const { notify } = useConsoleNotifications();
+    const { sendCoreWalletNotSetNotification, notify } = useConsoleNotifications();
 
     useEffect(() => {
         if (walletEVMAddress && !adminAddress) {
@@ -145,12 +144,11 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
         };
 
         const initPromise = coreWalletClient.writeContract({
-            address: managerAddress as `0x${string}`,
+            address: proxyAddress as `0x${string}`,
             abi: ValidatorManagerABI.abi,
             functionName: 'initialize',
             args: [settings],
             chain: viemChain ?? undefined,
-            account: walletEVMAddress as `0x${string}`
         });
 
         notify({

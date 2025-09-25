@@ -4,8 +4,6 @@ import { useConsoleLog } from './use-console-log';
 import { PChainClient, createPChainClient } from '@avalanche-sdk/client';
 import { avalanche, avalancheFuji } from '@avalanche-sdk/client/chains';
 import { usePathname } from 'next/navigation';
-import { showCustomErrorToast } from '@/components/ui/custom-error-toast';
-import posthog from 'posthog-js';
 
 const getPChainTxExplorerURL = (txID: string, isTestnet: boolean) => {
     return `https://${isTestnet ? "subnets-test" : "subnets"}.avax.network/p-chain/tx/${txID}`;
@@ -75,7 +73,7 @@ const waitForTransaction = async (client: PChainClient, txID: string, maxAttempt
 
 const usePChainNotifications = () => {
     const isTestnet = typeof window !== 'undefined' ? useWalletStore((s) => s.isTestnet) : false;
-    const { addLog } = useConsoleLog(false); // Don't auto-fetch logs
+    const { addLog } = useConsoleLog();
     const pathname = usePathname();
 
     const client: PChainClient = createPChainClient({ chain: isTestnet ? avalancheFuji : avalanche, transport: { type: 'http' } });
@@ -109,10 +107,7 @@ const usePChainNotifications = () => {
                 toast.loading('Waiting for transaction confirmation...', { id: toastId });
 
                 try {
-                    if (typeof txID !== 'string' && txID && 'txHash' in txID) {
-                        txID = (txID as { txHash: string }).txHash;
-                    }
-                    await waitForTransaction(client, txID as string);
+                    await waitForTransaction(client, txID);
                     toast.success(`${config.successMessage}`, {
                         id: toastId,
                         action: {
@@ -129,62 +124,21 @@ const usePChainNotifications = () => {
                         actionPath,
                         data
                     });
-
-                    // Track successful action in PostHog
-                    posthog.capture('console_action_success', {
-                        action_type: config.eventType,
-                        action_name: action,
-                        action_path: actionPath,
-                        network: isTestnet ? 'testnet' : 'mainnet',
-                        tx_id: txID,
-                        context: pathname?.includes('/academy') ? 'academy' : (pathname?.includes('/docs') ? 'docs' : 'console'),
-                        chain_type: 'p-chain'
-                    });
                 } catch (error) {
-                    const errorMessage = config.errorMessagePrefix + (error as Error).message;
-
-                    toast.dismiss(toastId);
-                    showCustomErrorToast(errorMessage);
-
+                    toast.error(config.errorMessagePrefix + (error as Error).message, { id: toastId });
                     addLog({
                         status: 'error',
                         actionPath,
                         data: { error: (error as Error).message, network: isTestnet ? 'testnet' : 'mainnet' }
                     });
-
-                    // Track error in PostHog
-                    posthog.capture('console_action_error', {
-                        action_type: config.eventType,
-                        action_name: action,
-                        action_path: actionPath,
-                        network: isTestnet ? 'testnet' : 'mainnet',
-                        error_message: (error as Error).message,
-                        context: pathname?.includes('/academy') ? 'academy' : (pathname?.includes('/docs') ? 'docs' : 'console'),
-                        chain_type: 'p-chain'
-                    });
                 }
             })
             .catch((error) => {
-                const errorMessage = config.errorMessagePrefix + error.message;
-
-                toast.dismiss(toastId);
-                showCustomErrorToast(errorMessage);
-
+                toast.error(config.errorMessagePrefix + error.message, { id: toastId });
                 addLog({
                     status: 'error',
                     actionPath,
                     data: { error: error.message, network: isTestnet ? 'testnet' : 'mainnet' }
-                });
-
-                // Track error in PostHog
-                posthog.capture('console_action_error', {
-                    action_type: config.eventType,
-                    action_name: action,
-                    action_path: actionPath,
-                    network: isTestnet ? 'testnet' : 'mainnet',
-                    error_message: error.message,
-                    context: pathname?.includes('/academy') ? 'academy' : (pathname?.includes('/docs') ? 'docs' : 'console'),
-                    chain_type: 'p-chain'
                 });
             });
     };

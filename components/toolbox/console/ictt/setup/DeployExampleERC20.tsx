@@ -13,64 +13,47 @@ import { http, createPublicClient } from "viem";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { ExternalLink } from "lucide-react";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 
-const metadata: ConsoleToolMetadata = {
-  title: "Deploy Example ERC20",
-  description: "Deploy an ERC20 token contract for testing. If you want to use an existing token like USDC, you can skip this step.",
-  toolRequirements: [
-    WalletRequirementsConfigKey.EVMChainBalance
-  ],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
-};
-
-function DeployExampleERC20() {
-  const [criticalError, setCriticalError] = useState<Error | null>(null);
-  const { exampleErc20Address, setExampleErc20Address } = useToolboxStore();
-  const { coreWalletClient, walletEVMAddress } = useWalletStore();
-  const viemChain = useViemChainStore();
-  const [isDeploying, setIsDeploying] = useState(false);
-  const { walletChainId } = useWalletStore();
-  const { notify } = useConsoleNotifications();
-  // Throw critical errors during render
-  if (criticalError) {
-    throw criticalError;
-  }
-
-  async function handleDeploy() {
-    if (!coreWalletClient) {
-      setCriticalError(new Error("Core wallet not found"));
-      return;
+export default function DeployExampleERC20() {
+    const [criticalError, setCriticalError] = useState<Error | null>(null);
+    const { exampleErc20Address, setExampleErc20Address } = useToolboxStore();
+    const { coreWalletClient, walletEVMAddress } = useWalletStore();
+    const viemChain = useViemChainStore();
+    const [isDeploying, setIsDeploying] = useState(false);
+    const { walletChainId } = useWalletStore();
+    const { notify } = useConsoleNotifications();
+    // Throw critical errors during render
+    if (criticalError) {
+        throw criticalError;
     }
 
-    setIsDeploying(true);
-    try {
-      if (!viemChain) throw new Error("No chain selected");
+    async function handleDeploy() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
+        setIsDeploying(true);
+        try {
+            if (!viemChain) throw new Error("No chain selected");
 
       const publicClient = createPublicClient({
         transport: http(viemChain.rpcUrls.default.http[0] || ""),
       });
 
-      const deployPromise = coreWalletClient.deployContract({
-        abi: ExampleERC20.abi as any,
-        bytecode: ExampleERC20.bytecode.object as `0x${string}`,
-        args: [],
-        chain: viemChain,
-        account: walletEVMAddress as `0x${string}`,
-      });
+            const deployPromise = coreWalletClient.deployContract({
+                abi: ExampleERC20.abi as any,
+                bytecode: ExampleERC20.bytecode.object as `0x${string}`,
+                args: [],
+                chain: viemChain,
+                account: walletEVMAddress as `0x${string}`
+            });
 
-      notify(
-        {
-          type: "deploy",
-          name: "ExampleERC20",
-        },
-        deployPromise,
-        viemChain ?? undefined
-      );
-      const receipt = await publicClient.waitForTransactionReceipt({
-        hash: await deployPromise,
-      });
+            notify({
+                type: 'deploy',
+                name: 'ExampleERC20'
+            }, deployPromise, viemChain ?? undefined);
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: await deployPromise });
 
       if (!receipt.contractAddress) {
         throw new Error("No contract address in receipt");

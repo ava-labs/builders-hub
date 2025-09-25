@@ -20,15 +20,13 @@ import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 const metadata: ConsoleToolMetadata = {
     title: "Deploy PoA Manager",
     description: "Deploy and initialize the PoAManager contract to manage Proof of Authority validators",
-    toolRequirements: [
+    walletRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
-    ],
-    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+    ]
 };
 
 function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {

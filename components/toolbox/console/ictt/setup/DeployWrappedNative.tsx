@@ -11,25 +11,16 @@ import { Success } from "@/components/toolbox/components/Success";
 import { http, createPublicClient } from "viem";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import WrapNativeToken from "./wrappedNativeToken/WrapNativeToken";
-import UnwrapNativeToken from "./wrappedNativeToken/UnwrapNativeToken";
-import DisplayNativeBalance from "./wrappedNativeToken/DisplayNativeBalance";
-import DisplayWrappedBalance from "./wrappedNativeToken/DisplayWrappedBalance";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-
-// Pre-deployed wrapped native token address (from genesis)
-// This is the standard address used in the pre-installed contracts section
-const PREDEPLOYED_WRAPPED_NATIVE_ADDRESS = '0x1111111111111111111111111111111111111111';
 
 const metadata: ConsoleToolMetadata = {
-    title: "Wrapped Native Token",
-    description: "Deploy a wrapped native token or use the pre-deployed one to wrap/unwrap native tokens.",
-    toolRequirements: [
+    title: "Deploy Wrapped Native Token",
+    description: "Deploy a Wrapped Native token contract for testing and ICTT integration",
+    walletRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
-    ],
-    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+    ]
 };
 
 function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
@@ -38,17 +29,11 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
 
     const setWrappedNativeToken = useSetWrappedNativeToken();
     const selectedL1 = useSelectedL1()();
+    const wrappedNativeTokenAddress = wrappedNativeTokenAddressStore || selectedL1?.wrappedTokenAddress;
+
+    const { walletEVMAddress } = useWalletStore();
+    const { coreWalletClient } = useConnectedWallet();
     
-    // Get cached values from wallet store
-    const cachedWrappedToken = useWrappedNativeToken();
-    const cachedNativeCurrency = useNativeCurrencyInfo();
-    
-    // Initialize with cached value to prevent flickering
-    const [wrappedNativeTokenAddress, setLocalWrappedNativeTokenAddress] = useState<string>(cachedWrappedToken || '');
-    const [hasPredeployedToken, setHasPredeployedToken] = useState(!!cachedWrappedToken);
-    const [isCheckingToken, setIsCheckingToken] = useState(!cachedWrappedToken);
-    const { coreWalletClient, walletEVMAddress, walletChainId } = useWalletStore();
-    const setNativeCurrencyInfo = useSetNativeCurrencyInfo();
     const { notify } = useConsoleNotifications();
     const viemChain = useViemChainStore();
     const [isDeploying, setIsDeploying] = useState(false);
@@ -200,7 +185,6 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
                 chain: viemChain,
                 account: walletEVMAddress as `0x${string}`
             });
-            
             notify({
                 type: 'deploy',
                 name: 'WrappedNativeToken'
@@ -212,8 +196,8 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
                 throw new Error('No contract address in receipt');
             }
 
-            setWrappedNativeToken(receipt.contractAddress);
-            setLocalWrappedNativeTokenAddress(receipt.contractAddress);
+            setWrappedNativeTokenAddress(receipt.contractAddress);
+            onSuccess?.();
         } catch (error) {
             setCriticalError(error instanceof Error ? error : new Error(String(error)));
         } finally {
@@ -221,6 +205,15 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
         }
     }
 
+    return (
+        <>
+                <div className="space-y-4">
+                    <div className="">
+                        This will deploy an Wrapped Native token contract to your connected network (Chain ID: <code>{walletChainId}</code>).
+                        You can use this token for testing token transfers and other Native token interactions.
+                        Wrapped Native Assets are required for interacting with most DeFi protocols, as many of them expect ERC-20 compliant tokens.
+                        By wrapping your native token (e.g., AVAX), you ensure compatibility with these systems.
+                    </div>
 
     // Don't render anything until we've finished checking (or during SSR/initial mount)
     if (!isMounted || isCheckingToken) {
@@ -270,36 +263,7 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
                         Deploy Wrapped Native Token
                     </Button>
                 </div>
-            )}
-
-            {/* Independent Tools Section - Only show if wrapped token exists */}
-            {wrappedNativeTokenAddress && (
-                <div className="space-y-6">
-                    {/* Balance Display Row */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <DisplayNativeBalance
-                            onError={setCriticalError}
-                        />
-                        <DisplayWrappedBalance
-                            wrappedNativeTokenAddress={wrappedNativeTokenAddress}
-                            onError={setCriticalError}
-                        />
-                    </div>
-                    
-                    {/* Wrap/Unwrap Tools Row */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <WrapNativeToken
-                            wrappedNativeTokenAddress={wrappedNativeTokenAddress}
-                            onError={setCriticalError}
-                        />
-                        <UnwrapNativeToken
-                            wrappedNativeTokenAddress={wrappedNativeTokenAddress}
-                            onError={setCriticalError}
-                        />
-                    </div>
-                </div>
-            )}
-        </div>
+        </>
     );
 }
 

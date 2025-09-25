@@ -4,7 +4,13 @@ import { formatEther, parseEther, createPublicClient, http, Chain } from 'viem';
 import { L1ListItem, useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { useL1ListStore } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useState, useEffect, useMemo } from 'react';
+import { Input, RawInput } from '@/components/toolbox/components/Input';
+import { Button } from '@/components/toolbox/components/Button';
+import { useState, useEffect } from 'react';
+import { RefreshCw } from 'lucide-react';
+
+import versions from '@/scripts/versions.json';
+import { Note } from '@/components/toolbox/components/Note';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
@@ -12,35 +18,23 @@ import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalle
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DockerInstallation } from '@/components/toolbox/components/DockerInstallation';
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import { GenesisHighlightProvider, useGenesisHighlight } from '@/components/toolbox/components/genesis/GenesisHighlightContext';
-import { NetworkSelector } from './NetworkSelector';
-import { RelayerFunding } from './RelayerFunding';
-import { AdvancedSettings } from './AdvancedSettings';
-import { ConfigPreview } from './ConfigPreview';
-import { useRelayerKey } from './useRelayerKey';
-import { useConfigHighlighting } from './useConfigHighlighting';
-import { generateRelayerConfig, genConfigCommand, relayerDockerCommand } from './relayer-config';
 
 const metadata: ConsoleToolMetadata = {
     title: "ICM Relayer",
     description: "Configure the ICM Relayer for cross-chain message delivery",
-    toolRequirements: [
+    walletRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
-    ],
-    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+    ]
 };
 
-function ICMRelayerInner({ onSuccess }: BaseConsoleToolProps) {
+function ICMRelayer({ onSuccess }: BaseConsoleToolProps) {
     const selectedL1 = useSelectedL1()();
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const { isTestnet, walletEVMAddress } = useWalletStore();
     const { coreWalletClient } = useConnectedWallet();
     const { l1List } = useL1ListStore()();
     const { notify } = useConsoleNotifications();
-    const { setHighlightPath, clearHighlight, highlightPath } = useGenesisHighlight();
-    const { privateKey, relayerAddress } = useRelayerKey();
-
+    // Initialize state with one-time calculation
     const [selectedSources, setSelectedSources] = useState<string[]>(() => {
         return [...new Set([selectedL1?.id, l1List[0]?.id].filter(Boolean) as string[])];
     });
@@ -51,11 +45,13 @@ function ICMRelayerInner({ onSuccess }: BaseConsoleToolProps) {
     const [isLoadingBalances, setIsLoadingBalances] = useState(false);
     const [isSending, setIsSending] = useState(false);
     const [tokenAmounts, setTokenAmounts] = useState<Record<string, string>>({});
-    const [logLevel, setLogLevel] = useState<'info' | 'debug' | 'warn' | 'error'>('info');
-    const [processMissedBlocks, setProcessMissedBlocks] = useState(true);
-    const [storageLocation, setStorageLocation] = useState('./awm-relayer-storage');
-    const [apiPort, setApiPort] = useState(8080);
-    const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+
+    const updateTokenAmount = (chainId: string, amount: string) => {
+        setTokenAmounts(prev => ({
+            ...prev,
+            [chainId]: amount
+        }));
+    };
 
     if (criticalError) {
         throw criticalError;
@@ -206,7 +202,6 @@ function ICMRelayerInner({ onSuccess }: BaseConsoleToolProps) {
             const transactionPromise = coreWalletClient.sendTransaction({
                 to: relayerAddress as `0x${string}`,
                 value: parseEther(amount),
-                account: walletEVMAddress as `0x${string}`,
                 chain: viemChain,
                 nonce: nextNonce,
             });
@@ -231,11 +226,23 @@ function ICMRelayerInner({ onSuccess }: BaseConsoleToolProps) {
     }, [relayerAddress, selectedChains.length]);
 
     return (
-        <div className="space-y-6">
-            <Steps>
-                <Step>
-                    <DockerInstallation includeCompose={false} />
-                </Step>
+        <Steps>
+            <Step>
+                <DockerInstallation includeCompose={false} />
+            </Step>
+            
+            <Step>
+                <h3 className="text-xl font-bold mb-4">Configure Relayer</h3>
+                <Input
+                    label="Relayer EVM Address"
+                    value={relayerAddress || ''}
+                    disabled
+                />
+                <Note variant="warning">
+                    <span className="font-semibold">Important:</span> The Relayer EVM Address above uses a temporary private key generated in your browser. Feel free to replace it with another private key in the relayer config file (field <code>account-private-key</code> of all destination blockchains) below.
+                    This generated key is stored only in session storage and will be <span className="font-semibold">lost when you close this browser tab</span>.
+                    Ensure you fund this address sufficiently.
+                </Note>
 
                 <Step>
                     <h3 className="text-xl font-bold mb-4">Configure Relayer</h3>
@@ -305,50 +312,133 @@ function ICMRelayerInner({ onSuccess }: BaseConsoleToolProps) {
                     </div>
                 </Step>
 
-                <Step>
-                    <h3 className="text-xl font-bold mb-4">Save Configuration to Machine</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Run this command to save your relayer configuration to your local machine:
-                    </p>
-                    <DynamicCodeBlock
-                        code={genConfigCommand(
-                            getConfigSources(),
-                            getConfigDestinations(),
-                            isTestnet ?? false,
-                            logLevel,
-                            storageLocation,
-                            processMissedBlocks,
-                            apiPort
-                        )}
-                        lang="bash"
-                    />
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                        This creates the configuration file at <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">~/.icm-relayer/config.json</code>
-                    </p>
-                </Step>
+                {/* Balances Section */}
+                <div className="space-y-4">
+                    <div className="text-lg font-bold">Relayer Balances</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Ensure the relayer address maintains a positive balance on all selected chains to cover transaction fees for message delivery.
+                    </div>
+                    <div className="space-y-2">
+                {selectedChains.map((chain: L1ListItem) => (
+                            <div key={`balance-${chain.id}`} className="flex items-center justify-between p-3 border rounded-md">
+                                <div>
+                                    <div className="font-medium">{chain.name}</div>
+                                    <div className="flex items-center gap-1 text-sm text-gray-500">
+                                        {balances[chain.id] ? `${balances[chain.id]} ${chain.coinName}` : 'Loading...'}
+                                        <button
+                                            onClick={() => fetchBalances()}
+                                            disabled={isLoadingBalances}
+                                            className="p-1 text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                                            style={{ lineHeight: 0 }}
+                                        >
+                                            <RefreshCw className={`h-4 w-4 ${isLoadingBalances ? 'animate-spin' : ''}`} />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <RawInput
+                                        value={tokenAmounts[chain.id] || '1'}
+                                        onChange={(e) => updateTokenAmount(chain.id, e.target.value)}
+                                        placeholder="1.0"
+                                        type="number"
+                                        step="0.1"
+                                        min="0"
+                                        className="w-20 h-8"
+                                    />
+                                    <Button
+                                        size="sm"
+                                        variant="primary"
+                                        className="w-24 px-2 flex-shrink-0 h-8 text-sm"
+                                        onClick={() => sendOneCoin(chain.id)}
+                                        loading={isSending}
+                                    >
+                                        Send {chain.coinName}
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
 
-                <Step>
-                    <h3 className="text-xl font-bold mb-4">Run the Relayer</h3>
-                    <p>Start the ICM Relayer using the following Docker command:</p>
-                    <DynamicCodeBlock
-                        code={relayerDockerCommand(isTestnet ?? false)}
-                        lang="sh"
-                    />
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                        The relayer will monitor the source blockchains for cross-chain messages and deliver them to the destination blockchains.
-                    </p>
-                </Step>
-            </Steps>
-        </div>
+                <div className="text-lg font-bold">Relayer Configuration</div>
+                <DynamicCodeBlock
+                    code={genConfigCommand(getConfigSources(), getConfigDestinations(), isTestnet ?? false)}
+                    lang="bash"
+                />
+
+            </Step>
+            
+            <Step>
+                <h3 className="text-xl font-bold mb-4">Run the Relayer</h3>
+                <p>Start the ICM Relayer using the following Docker command:</p>
+                <DynamicCodeBlock
+                    code={relayerDockerCommand()}
+                    lang="sh"
+                />
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    The relayer will monitor the source blockchains for cross-chain messages and deliver them to the destination blockchains.
+                </p>
+            </Step>
+        </Steps>
     );
 }
 
-function ICMRelayer(props: BaseConsoleToolProps) {
-    return (
-        <GenesisHighlightProvider>
-            <ICMRelayerInner {...props} />
-        </GenesisHighlightProvider>
-    );
+export default withConsoleToolMetadata(ICMRelayer, metadata);
+
+const genConfigCommand = (
+    sources: {
+        subnetId: string;
+        blockchainId: string;
+        rpcUrl: string;
+    }[],
+    destinations: {
+        subnetId: string;
+        blockchainId: string;
+        rpcUrl: string;
+        privateKey: string;
+    }[],
+    isTestnet: boolean
+) => {
+    const config = {
+        "api-port": 63123,
+        "info-api": {
+            "base-url": isTestnet ? "https://api.avax-test.network" : "https://api.avax.network"
+        },
+        "p-chain-api": {
+            "base-url": isTestnet ? "https://api.avax-test.network" : "https://api.avax.network"
+        },
+        "source-blockchains": sources.map(source => ({
+            "subnet-id": source.subnetId,
+            "blockchain-id": source.blockchainId,
+            "vm": "evm",
+            "rpc-endpoint": {
+                "base-url": source.rpcUrl,
+            },
+            "ws-endpoint": {
+                "base-url": source.rpcUrl.replace("http", "ws").replace("/rpc", "/ws"),
+            },
+            "message-contracts": {
+                "0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf": {
+                    "message-format": "teleporter",
+                    "settings": {
+                        "reward-address": "0x0000000000000000000000000000000000000000"
+                    }
+                }
+            }
+        })),
+        "destination-blockchains": destinations.map(destination => ({
+            "subnet-id": destination.subnetId,
+            "blockchain-id": destination.blockchainId,
+            "vm": "evm",
+            "rpc-endpoint": {
+                "base-url": destination.rpcUrl
+            },
+            "account-private-key": destination.privateKey
+        }))
+    };
+
+    const configStr = JSON.stringify(config, null, 4);
+    return `mkdir -p ~/.icm-relayer && echo '${configStr}' > ~/.icm-relayer/config.json`;
 }
 
 export default withConsoleToolMetadata(ICMRelayer, metadata);

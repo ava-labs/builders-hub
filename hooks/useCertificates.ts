@@ -90,12 +90,8 @@ export function useCertificates(): UseCertificatesReturn {
       // Redirect after success
       setTimeout(() => {
         // Redirect to the appropriate academy page
-        if (
-          courseId.startsWith('codebase-entrepreneur-') ||
-          courseId.startsWith('avalanche-entrepreneur-') ||
-          courseId.startsWith('entrepreneur-')
-        ) {
-          router.push('/academy/entrepreneur');
+        if (courseId.startsWith('codebase-entrepreneur-')) {
+          router.push('/codebase-entrepreneur-academy');
         } else {
           router.push('/academy');
         }

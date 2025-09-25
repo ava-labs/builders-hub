@@ -18,19 +18,8 @@ import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchain
 import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
 import TeleporterRegistryAddressInput from "@/components/toolbox/components/TeleporterRegistryAddressInput";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { AcknowledgementCallout } from "@/components/toolbox/components/AcknowledgementCallout";
-import { LockedContent } from "@/components/toolbox/components/LockedContent";
-import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
-const metadata: ConsoleToolMetadata = {
-    title: "Deploy Native Token Remote Contract",
-    description: "Deploy the NativeTokenRemote contract for your native token.",
-    toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
-    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
-};
-function DeployNativeTokenRemote() {
+export default function DeployNativeTokenRemote() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const {
         nativeTokenRemoteAddress,

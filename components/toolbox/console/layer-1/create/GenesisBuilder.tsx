@@ -77,11 +77,8 @@ function GenesisBuilderInner({
     const { walletEVMAddress } = useWalletStore();
     const { setHighlightPath, clearHighlight } = useGenesisHighlight();
 
-    // --- State ---
-    const [evmChainId, setEvmChainId] = useState<number>(MIN_CHAIN_ID + Math.floor(Math.random() * (MAX_CHAIN_ID - MIN_CHAIN_ID)));
-    
-    // Stable timestamp - generated once when component mounts
-    const [blockTimestamp] = useState<number>(() => Math.floor(Date.now() / 1000));
+    // --- State --- 
+    const [evmChainId, setEvmChainId] = useState<number>(10000 + Math.floor(Math.random() * 90000));
     const [tokenName, setTokenName] = useState<string>("COIN");
     const [tokenSymbol, setTokenSymbol] = useState<string>("COIN");
     const [gasLimit, setGasLimit] = useState<number>(15000000);
@@ -154,6 +151,12 @@ function GenesisBuilderInner({
         if (!tokenSymbol || tokenSymbol.length === 0) errors.tokenSymbol = "Token symbol is required";
         else if (tokenSymbol.length > 10) errors.tokenSymbol = "Token symbol must be 10 characters or less";
         else if (!/^[A-Z0-9]+$/.test(tokenSymbol)) errors.tokenSymbol = "Token symbol must be uppercase letters and numbers only";
+
+        // Token Name and Symbol validation
+        if (tokenName.length > 50) errors.tokenName = "Token name must be 50 characters or less";
+        
+        if (tokenSymbol.length < 2 || tokenSymbol.length > 6) errors.tokenSymbol = "Token symbol must be 2-6 characters";
+        else if (!/^[A-Z0-9]+$/.test(tokenSymbol)) warnings.tokenSymbol = "Token symbol should be uppercase letters and numbers only";
 
         // Gas Limit
         if (gasLimit < MIN_GAS_LIMIT) errors.gasLimit = `Gas limit must be at least ${MIN_GAS_LIMIT.toLocaleString()}`;
@@ -392,44 +395,22 @@ function GenesisBuilderInner({
         <div className="space-y-6 mb-4">
             {/* Compact single-column: remove top tab bar per design */}
 
-            {/* Configuration - single column */}
-            <div className="space-y-4">
-                    {/* EVM Chain ID - Outside of sections */}
-                    <div>
-                        <div className="flex items-baseline gap-1.5 mb-1.5">
-                            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">EVM Chain ID</label>
-                            <Tooltip>
-                                <TooltipTrigger className="inline-flex">
-                                    <Info className="h-3.5 w-3.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" />
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                    <div className="space-y-2">
-                                        <p className="text-xs">A unique identifier for your blockchain network. Choose an ID that doesn't conflict with existing chains.</p>
-                                        <a 
-                                            href="https://chainlist.org" 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
-                                        >
-                                            Check registered IDs on chainlist.org
-                                            <ExternalLink className="h-3 w-3" />
-                                        </a>
-                                    </div>
-                                </TooltipContent>
-                            </Tooltip>
-                        </div>
-                        <Input
-                            label=""
-                            value={evmChainId.toString()}
-                            onChange={(value) => handleSetEvmChainId(Number(value))}
-                            placeholder="Enter chain ID"
-                            type="number"
-                            error={validationMessages.errors.chainId}
-                            className="max-w-xs"
-                            onFocus={() => setHighlightPath('chainId')}
-                            onBlur={() => clearHighlight()}
-                        />
-                    </div>
+            {/* Configuration Tab */}
+            {activeTab === "config" && (
+                <div className="space-y-6">
+                    <ChainParamsSection
+                        evmChainId={evmChainId}
+                        setEvmChainId={handleSetEvmChainId}
+                        tokenName={tokenName}
+                        setTokenName={setTokenName}
+                        tokenSymbol={tokenSymbol}
+                        setTokenSymbol={setTokenSymbol}
+                        isExpanded={isSectionExpanded('chainParams')}
+                        toggleExpand={() => toggleSection('chainParams')}
+                        validationError={validationMessages.errors.chainId}
+                        tokenNameError={validationMessages.errors.tokenName}
+                        tokenSymbolError={validationMessages.errors.tokenSymbol}
+                    />
 
                     {/* Main Configuration Sections */}
                     <div className="space-y-8">
@@ -490,6 +471,480 @@ function GenesisBuilderInner({
                     {/* Validation Summary & Actions */}
                    
                 </div>
+            )}
+
+            {/* Precompiles Tab */}
+            {activeTab === "precompiles" && (
+                <div className="space-y-6">
+                    <div className="space-y-4">
+                        {/* Header */}
+                        <div className="text-center mb-4">
+                            <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
+                                Precompile Configuration
+                            </h2>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
+                                Review the status and configuration of precompiles based on your settings.
+                            </p>
+
+                            {/* Status Summary */}
+                            <div className="inline-flex items-center space-x-2 bg-zinc-100 dark:bg-zinc-800 px-3 py-1 rounded-full">
+                                <div className={`w-1.5 h-1.5 rounded-full ${(() => {
+                                    const enabledCount = [
+                                        contractDeployerAllowListConfig.activated,
+                                        contractNativeMinterConfig.activated,
+                                        txAllowListConfig.activated,
+                                        feeManagerEnabled,
+                                        rewardManagerEnabled,
+                                        warpConfig.enabled
+                                    ].filter(Boolean).length;
+                                    return enabledCount === 6 ? 'bg-green-500' : enabledCount > 0 ? 'bg-yellow-500' : 'bg-zinc-400';
+                                })()}`} />
+                                <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                                    {[
+                                        contractDeployerAllowListConfig.activated,
+                                        contractNativeMinterConfig.activated,
+                                        txAllowListConfig.activated,
+                                        feeManagerEnabled,
+                                        rewardManagerEnabled,
+                                        warpConfig.enabled
+                                    ].filter(Boolean).length} of 6 precompiles enabled
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Contract Deployer Allow List */}
+                        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 transition-all duration-200 hover:shadow-sm dark:hover:shadow-zinc-900/20">
+                            <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                    <div className="flex items-baseline space-x-2 mb-1">
+                                        <h3 className="font-semibold text-zinc-900 dark:text-white leading-none">Contract Deployer Allow List</h3>
+                                        <div className={`px-2 py-0.5 text-xs font-medium rounded-full ${contractDeployerAllowListConfig.activated
+                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                                            }`}>
+                                            {contractDeployerAllowListConfig.activated ? 'Enabled' : 'Disabled'}
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+                                        Controls which addresses can deploy smart contracts on the blockchain
+                                    </p>
+                                    <div className="text-xs font-mono text-zinc-500 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                        {PRECOMPILE_ADDRESSES.contractDeployer}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {contractDeployerAllowListConfig.activated && (
+                                <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 mt-3">
+                                    <div className="space-y-3">
+                                        {contractDeployerAllowListConfig.addresses.Admin.length > 0 && (
+                                            <div>
+                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Admin Addresses</div>
+                                                <div className="space-y-1">
+                                                    {contractDeployerAllowListConfig.addresses.Admin.map((entry, index) => (
+                                                        <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                            {entry.address}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {contractDeployerAllowListConfig.addresses.Manager.length > 0 && (
+                                            <div>
+                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Manager Addresses</div>
+                                                <div className="space-y-1">
+                                                    {contractDeployerAllowListConfig.addresses.Manager.map((entry, index) => (
+                                                        <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                            {entry.address}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {contractDeployerAllowListConfig.addresses.Enabled.length > 0 && (
+                                            <div>
+                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Enabled Addresses</div>
+                                                <div className="space-y-1">
+                                                    {contractDeployerAllowListConfig.addresses.Enabled.map((entry, index) => (
+                                                        <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                            {entry.address}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {contractDeployerAllowListConfig.addresses.Admin.length === 0 &&
+                                            contractDeployerAllowListConfig.addresses.Manager.length === 0 &&
+                                            contractDeployerAllowListConfig.addresses.Enabled.length === 0 && (
+                                                <div className="text-zinc-500 dark:text-zinc-400 text-sm">
+                                                    No addresses configured
+                                                </div>
+                                            )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Native Minter */}
+                        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 transition-all duration-200 hover:shadow-sm dark:hover:shadow-zinc-900/20">
+                            <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                    <div className="flex items-baseline space-x-2 mb-1">
+                                        <h3 className="font-semibold text-zinc-900 dark:text-white leading-none">Native Minter</h3>
+                                        <div className={`px-2 py-0.5 text-xs font-medium rounded-full ${contractNativeMinterConfig.activated
+                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                                            }`}>
+                                            {contractNativeMinterConfig.activated ? 'Enabled' : 'Disabled'}
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+                                        Allows authorized addresses to mint native tokens on the blockchain
+                                    </p>
+                                    <div className="text-xs font-mono text-zinc-500 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                        {PRECOMPILE_ADDRESSES.nativeMinter}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {contractNativeMinterConfig.activated && (
+                                <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 mt-3">
+                                    <div className="space-y-3">
+                                        {contractNativeMinterConfig.addresses.Admin.length > 0 && (
+                                            <div>
+                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Admin Addresses</div>
+                                                <div className="space-y-1">
+                                                    {contractNativeMinterConfig.addresses.Admin.map((entry, index) => (
+                                                        <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                            {entry.address}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {contractNativeMinterConfig.addresses.Manager.length > 0 && (
+                                            <div>
+                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Manager Addresses</div>
+                                                <div className="space-y-1">
+                                                    {contractNativeMinterConfig.addresses.Manager.map((entry, index) => (
+                                                        <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                            {entry.address}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {contractNativeMinterConfig.addresses.Enabled.length > 0 && (
+                                            <div>
+                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Enabled Addresses</div>
+                                                <div className="space-y-1">
+                                                    {contractNativeMinterConfig.addresses.Enabled.map((entry, index) => (
+                                                        <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                            {entry.address}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {contractNativeMinterConfig.addresses.Admin.length === 0 &&
+                                            contractNativeMinterConfig.addresses.Manager.length === 0 &&
+                                            contractNativeMinterConfig.addresses.Enabled.length === 0 && (
+                                                <div className="text-zinc-500 dark:text-zinc-400 text-sm">
+                                                    No addresses configured
+                                                </div>
+                                            )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Transaction Allow List */}
+                        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 transition-all duration-200 hover:shadow-sm dark:hover:shadow-zinc-900/20">
+                            <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                    <div className="flex items-baseline space-x-2 mb-1">
+                                        <h3 className="font-semibold text-zinc-900 dark:text-white leading-none">Transaction Allow List</h3>
+                                        <div className={`px-2 py-0.5 text-xs font-medium rounded-full ${txAllowListConfig.activated
+                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                                            }`}>
+                                            {txAllowListConfig.activated ? 'Enabled' : 'Disabled'}
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+                                        Controls which addresses can submit transactions to the blockchain
+                                    </p>
+                                    <div className="text-xs font-mono text-zinc-500 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                        {PRECOMPILE_ADDRESSES.txAllowList}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {txAllowListConfig.activated && (
+                                <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 mt-3">
+                                    <div className="space-y-3">
+                                        {txAllowListConfig.addresses.Admin.length > 0 && (
+                                            <div>
+                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Admin Addresses</div>
+                                                <div className="space-y-1">
+                                                    {txAllowListConfig.addresses.Admin.map((entry, index) => (
+                                                        <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                            {entry.address}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {txAllowListConfig.addresses.Manager.length > 0 && (
+                                            <div>
+                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Manager Addresses</div>
+                                                <div className="space-y-1">
+                                                    {txAllowListConfig.addresses.Manager.map((entry, index) => (
+                                                        <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                            {entry.address}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {txAllowListConfig.addresses.Enabled.length > 0 && (
+                                            <div>
+                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Enabled Addresses</div>
+                                                <div className="space-y-1">
+                                                    {txAllowListConfig.addresses.Enabled.map((entry, index) => (
+                                                        <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                            {entry.address}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {txAllowListConfig.addresses.Admin.length === 0 &&
+                                            txAllowListConfig.addresses.Manager.length === 0 &&
+                                            txAllowListConfig.addresses.Enabled.length === 0 && (
+                                                <div className="text-zinc-500 dark:text-zinc-400 text-sm">
+                                                    No addresses configured
+                                                </div>
+                                            )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Fee Manager */}
+                        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 transition-all duration-200 hover:shadow-sm dark:hover:shadow-zinc-900/20">
+                            <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                    <div className="flex items-baseline space-x-2 mb-1">
+                                        <h3 className="font-semibold text-zinc-900 dark:text-white leading-none">Fee Manager</h3>
+                                        <div className={`px-2 py-0.5 text-xs font-medium rounded-full ${feeManagerEnabled
+                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                                            }`}>
+                                            {feeManagerEnabled ? 'Enabled' : 'Disabled'}
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+                                        Manages dynamic fee configuration and collection on the blockchain
+                                    </p>
+                                    <div className="text-xs font-mono text-zinc-500 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                        {PRECOMPILE_ADDRESSES.feeManager}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {feeManagerEnabled && (
+                                <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 mt-3">
+                                    <div>
+                                        <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Admin Addresses</div>
+                                        {feeManagerAdmins.length > 0 ? (
+                                            <div className="space-y-1">
+                                                {feeManagerAdmins.map((address, index) => (
+                                                    <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                        {address}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-xs text-red-500 dark:text-red-400">
+                                                No admin addresses configured (Required)
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Reward Manager */}
+                        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 transition-all duration-200 hover:shadow-sm dark:hover:shadow-zinc-900/20">
+                            <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                    <div className="flex items-baseline space-x-2 mb-1">
+                                        <h3 className="font-semibold text-zinc-900 dark:text-white leading-none">Reward Manager</h3>
+                                        <div className={`px-2 py-0.5 text-xs font-medium rounded-full ${rewardManagerEnabled
+                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                                            }`}>
+                                            {rewardManagerEnabled ? 'Enabled' : 'Disabled'}
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+                                        Manages validator rewards and distribution mechanisms
+                                    </p>
+                                    <div className="text-xs font-mono text-zinc-500 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                        {PRECOMPILE_ADDRESSES.rewardManager}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {rewardManagerEnabled && (
+                                <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 mt-3">
+                                    <div>
+                                        <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Admin Addresses</div>
+                                        {rewardManagerAdmins.length > 0 ? (
+                                            <div className="space-y-1">
+                                                {rewardManagerAdmins.map((address, index) => (
+                                                    <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                        {address}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-xs text-red-500 dark:text-red-400">
+                                                No admin addresses configured (Required)
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Warp Messenger */}
+                        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 transition-all duration-200 hover:shadow-sm dark:hover:shadow-zinc-900/20">
+                            <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                    <div className="flex items-baseline space-x-2 mb-1">
+                                        <h3 className="font-semibold text-zinc-900 dark:text-white leading-none">Warp Messenger</h3>
+                                        <div className={`px-2 py-0.5 text-xs font-medium rounded-full ${warpConfig.enabled
+                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                                            }`}>
+                                            {warpConfig.enabled ? 'Enabled' : 'Disabled'}
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+                                        Enables cross-chain communication and message passing between subnets
+                                    </p>
+                                    <div className="text-xs font-mono text-zinc-500 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                        {PRECOMPILE_ADDRESSES.warpMessenger}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {warpConfig.enabled && (
+                                <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 mt-3">
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Quorum Threshold</span>
+                                            <span className="text-sm text-zinc-600 dark:text-zinc-400">{warpConfig.quorumNumerator}%</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Require Primary Network Signers</span>
+                                            <span className="text-sm text-zinc-600 dark:text-zinc-400">{warpConfig.requirePrimaryNetworkSigners ? "Yes" : "No"}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex justify-center space-x-4">
+                        <Button onClick={() => setActiveTab("config")} variant="secondary">Back to Configuration</Button>
+                        <Button onClick={() => setActiveTab("preinstalls")} variant="secondary">View Pre-Deployed Contracts</Button>
+                        {isGenesisReady && <Button onClick={() => setActiveTab("genesis")} variant="secondary">View Genesis JSON</Button>}
+                    </div>
+                </div>
+            )}
+
+            {/* Preinstalls Tab */}
+            {activeTab === "preinstalls" && (
+                <PreinstallsTab
+                    preinstallConfig={preinstallConfig}
+                    setPreinstallConfig={setPreinstallConfig}
+                    ownerAddress={tokenAllocations[0]?.address}
+                    tokenName={tokenName}
+                    tokenSymbol={tokenSymbol}
+                    isGenesisReady={!!isGenesisReady}
+                    setActiveTab={setActiveTab}
+                />
+            )}
+
+            {/* Genesis JSON Tab */}
+            {activeTab === "genesis" && isGenesisReady && (
+                <div className="p-5 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 space-y-4">
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-medium text-zinc-800 dark:text-white">Genesis JSON</h3>
+                        <div className="flex space-x-2">
+                            <Button onClick={handleCopyToClipboard} variant="secondary" size="sm" className="flex items-center">
+                                <Copy className="h-4 w-4 mr-1" /> {copied ? "Copied!" : "Copy"}
+                            </Button>
+                            <Button onClick={handleDownloadGenesis} variant="secondary" size="sm" className="flex items-center">
+                                <Download className="h-4 w-4 mr-1" /> Download
+                            </Button>
+                        </div>
+                    </div>
+
+                    <DynamicCodeBlock lang="json" code={genesisData} />
+
+                    {/* Genesis Size Progress Bar */}
+                    <div className="mt-4 p-4 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                Genesis Size
+                            </span>
+                            <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                                {genesisSizeKiB.toFixed(2)} KiB / {maxSizeKiB} KiB
+                            </span>
+                        </div>
+                        <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-2.5">
+                            <div
+                                className={`h-2.5 rounded-full transition-all duration-300 ${sizePercentage >= 90
+                                    ? "bg-red-500"
+                                    : sizePercentage >= 75
+                                        ? "bg-yellow-500"
+                                        : "bg-green-500"
+                                    }`}
+                                style={{ width: `${sizePercentage}%` }}
+                            ></div>
+                        </div>
+                        <div className="flex justify-between items-center mt-2">
+                            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                {sizePercentage >= 90 && "⚠️ Approaching P-Chain limit"}
+                                {sizePercentage >= 75 && sizePercentage < 90 && "⚡ Consider optimizing"}
+                                {sizePercentage < 75 && "✅ Within safe limits"}
+                            </span>
+                            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                {sizePercentage.toFixed(1)}%
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 flex justify-center space-x-4">
+                        <Button onClick={() => setActiveTab("config")} variant="secondary">Back to Configuration</Button>
+                        <Button onClick={() => setActiveTab("precompiles")} variant="secondary">View Precompiles</Button>
+                        <Button onClick={() => setActiveTab("preinstalls")} variant="secondary">View Pre-Deployed Contracts</Button>
+                    </div>
+                </div>
+            )}
 
         </div>
     );

@@ -19,18 +19,25 @@ import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput
 import { utils } from "@avalabs/avalanchejs";
 import { ListContractEvents } from "@/components/toolbox/components/ListContractEvents";
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { Container } from "@/components/toolbox/components/Container";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 
-const metadata: ConsoleToolMetadata = {
-  title: "Register Remote Contract with Home",
-  description: "Register the remote contract with the home contract.",
-  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
-};
+export default function RegisterWithHome() {
+    const [criticalError, setCriticalError] = useState<Error | null>(null);
+    const { erc20TokenRemoteAddress, nativeTokenRemoteAddress } = useToolboxStore();
+    const [remoteAddress, setRemoteAddress] = useState("");
+    const { coreWalletClient } = useWalletStore();
+    const { notify } = useConsoleNotifications();
+    const viemChain = useViemChainStore();
+    const selectedL1 = useSelectedL1()();
+    const [sourceChainId, setSourceChainId] = useState<string>("");
+    const [isRegistering, setIsRegistering] = useState(false);
+    const [lastTxId, setLastTxId] = useState<string>();
+    const [localError, setLocalError] = useState("");
+    const [homeContractAddress, setHomeContractAddress] = useState<string | null>(null);
+    const [homeContractClient, setHomeContractClient] = useState<PublicClient | null>(null);
+    const [isRegistered, setIsRegistered] = useState(false);
+    const [isCheckingRegistration, setIsCheckingRegistration] = useState(false);
 
 function RegisterWithHome() {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
@@ -149,9 +156,118 @@ function RegisterWithHome() {
       return;
     }
 
-    if (!viemChain) {
-      setLocalError("Current chain configuration is missing");
-      return;
+    // Move fetchSettings outside useEffect and wrap in useCallback for stable reference
+    const fetchSettings = useCallback(async () => {
+        if (isCheckingRegistration || !remoteAddress || !sourceChainId) return;
+        setIsCheckingRegistration(true);
+        try {
+            if (!viemChain || !sourceL1?.rpcUrl || !selectedL1?.id) return;
+
+            const remotePublicClient = createPublicClient({
+                chain: viemChain,
+                transport: http(viemChain.rpcUrls.default.http[0])
+            });
+
+            const homePublicClient = createPublicClient({
+                transport: http(sourceL1.rpcUrl)
+            });
+
+            setHomeContractClient(homePublicClient);
+
+            const tokenHomeAddress = await remotePublicClient.readContract({
+                address: remoteAddress as `0x${string}`,
+                abi: ERC20TokenRemoteABI.abi,
+                functionName: 'getTokenHomeAddress',
+            });
+
+            setHomeContractAddress(tokenHomeAddress as string);
+
+            // Convert CURRENT chain ID to hex for the contract call
+            // This is where the remote contract is deployed
+            const remoteBlockchainIDHex = utils.bufferToHex(utils.base58check.decode(selectedL1.id));
+
+            const remoteSettings = await homePublicClient.readContract({
+                address: tokenHomeAddress as `0x${string}`,
+                abi: ERC20TokenHomeABI.abi,
+                functionName: 'getRemoteTokenTransferrerSettings',
+                args: [remoteBlockchainIDHex, remoteAddress]
+            }) as { registered: boolean, collateralNeeded: bigint, tokenMultiplier: bigint, multiplyOnRemote: boolean };
+
+            console.log({ remoteSettings });
+            setIsRegistered(remoteSettings.registered);
+        } catch (error: any) {
+            console.error("Error fetching token home address:", error);
+            setLocalError(`Error fetching token home address: ${error.shortMessage || error.message}`);
+            setHomeContractAddress(null);
+        } finally {
+            setIsCheckingRegistration(false);
+        }
+    }, [remoteAddress, sourceChainId, viemChain?.id, sourceL1?.rpcUrl, selectedL1?.id]);
+
+    useEffect(() => {
+        fetchSettings();
+    }, [fetchSettings]);
+
+    async function handleRegister() {
+        setLocalError("");
+
+        if (!coreWalletClient) {
+            setLocalError('Core wallet not found');
+            return;
+        }
+
+        if (!remoteAddress) {
+            setLocalError("Please enter a valid remote contract address");
+            return;
+        }
+
+        if (!viemChain) {
+            setLocalError("Current chain configuration is missing");
+            return;
+        }
+
+        setIsRegistering(true);
+        setLastTxId(undefined);
+
+        try {
+            const publicClient = createPublicClient({
+                chain: viemChain,
+                transport: http(viemChain.rpcUrls.default.http[0])
+            });
+
+            const feeInfo: readonly [`0x${string}`, bigint] = [zeroAddress, 0n]; // feeTokenAddress, amount
+
+            console.log(`Calling registerWithHome on ${remoteAddress} with feeInfo:`, feeInfo);
+
+            // Simulate the transaction first
+            const { request } = await publicClient.simulateContract({
+                address: remoteAddress as `0x${string}`,
+                abi: ERC20TokenRemoteABI.abi,
+                functionName: 'registerWithHome',
+                args: [feeInfo],
+                chain: viemChain,
+            });
+
+            // Send the transaction
+            const writePromise = coreWalletClient.writeContract(request);
+            notify({
+                type: 'call',
+                name: 'Register With Home'
+            }, writePromise, viemChain ?? undefined);
+            const hash = await writePromise;
+            setLastTxId(hash);
+
+            // Wait for confirmation
+            await publicClient.waitForTransactionReceipt({ hash });
+            setLocalError("");
+
+        } catch (error: any) {
+            console.error("Registration failed:", error);
+            setLocalError(`Registration failed: ${error.shortMessage || error.message}`);
+            setCriticalError(error instanceof Error ? error : new Error(String(error)));
+        } finally {
+            setIsRegistering(false);
+        }
     }
 
     setIsRegistering(true);

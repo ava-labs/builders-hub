@@ -12,9 +12,8 @@ import poaManagerAbi from '@/contracts/icm-contracts/compiled/PoAManager.json';
 import nativeTokenStakingManagerAbi from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
-import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
+import { useAvaCloudSDK } from '@/components/toolbox/stores/useAvaCloudSDK';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { Alert } from '@/components/toolbox/components/Alert';
 
 interface CompleteValidatorRegistrationProps {
   subnetIdL1: string;
@@ -42,7 +41,7 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
   ownerType,
 }) => {
   const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
-  const { aggregateSignature } = useAvalancheSDKChainkit();
+  const { aggregateSignature } = useAvaCloudSDK();
   const { notify } = useConsoleNotifications();
   const viemChain = useViemChainStore();
   const [pChainTxIdState, setPChainTxId] = useState(pChainTxId || '');

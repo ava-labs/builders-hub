@@ -109,10 +109,24 @@ export default function UnitConverter() {
     }
   };
 
-  const handleInputChange = (value: string, unit: string) => {
-    setAmount(value);
-    setSelectedUnit(unit);
-  };
+    return (
+        <Container
+            title="AVAX Unit Converter"
+            description="Convert between AVAX, P-Chain nAVAX, and C-Chain wei"
+        >
+            <div className="space-y-4">
+                <div className="p-4 bg-gray-50 dark:bg-zinc-800 rounded-lg space-y-2 border border-gray-100 dark:border-zinc-700">
+                    <p className="text-sm text-gray-700 dark:text-zinc-300">
+                        Avalanche has different chains that use different base units for AVAX:
+                    </p>
+                    <ul className="text-sm text-gray-700 dark:text-zinc-300 list-disc pl-5 space-y-1">
+                        <li><span className="text-blue-600 dark:text-blue-400 font-medium"><strong>C-Chain</strong></span>: Uses wei (10⁻¹⁸) as the base unit, similar to Ethereum</li>
+                        <li><span className="text-red-600 dark:text-red-400 font-medium"><strong>P-Chain</strong></span>: Uses nAVAX (10⁻⁹) as the base unit</li>
+                    </ul>
+                    <p className="text-sm text-gray-700 dark:text-zinc-300 mt-2">
+                        This converter helps you translate between these different denominations when working across chains.
+                    </p>
+                </div>
 
   const handleReset = () => {
     setAmount("1.00");

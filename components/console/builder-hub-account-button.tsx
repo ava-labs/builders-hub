@@ -3,6 +3,7 @@
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { CircleUserRound, LogOut, User } from "lucide-react";
+import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -52,50 +53,45 @@ export function BuilderHubAccountButton() {
         );
     }
 
-    return (
-        <>
-            <LoginModal />
-            {isAuthenticated ? (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                            {session?.user?.image ? (
-                                <Image
-                                    src={session.user.image}
-                                    alt="User Avatar"
-                                    width={20}
-                                    height={20}
-                                    className="rounded-md"
-                                />
-                            ) : (
-                                <CircleUserRound className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
-                            )}
-                            <span className="sr-only">Account menu</span>
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56">
-                        <DropdownMenuItem disabled>
-                            {session?.user?.email || 'No email available'}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem disabled>
-                            {session?.user?.name || 'No name available'}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => router.push('/profile')}>
-                            <User className="mr-2 h-3 w-3" />
-                            Profile
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={handleSignOut}>
-                            <LogOut className="mr-2 h-3 w-3" />
-                            Sign Out
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            ) : (
-                <Button size="sm" onClick={handleLoginClick}>
-                    Log In
-                </Button>
-            )}
-        </>
-    );
+    return (isAuthenticated ? (
+        <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+          {session?.user?.image ? (
+            <Image
+              src={session.user.image}
+              alt="User Avatar"
+              width={20}
+              height={20}
+              className="rounded-md"
+            />
+          ) : (
+            <CircleUserRound className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
+          )}
+          <span className="sr-only">Account menu</span>
+        </Button>
+      </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56">
+                <DropdownMenuItem disabled>
+                    {session?.user?.email || 'No email available'}
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled>
+                    {session?.user?.name || 'No name available'}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push('/profile')}>
+                    <User className="mr-2 h-3 w-3" />
+                    Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-3 w-3" />
+                    Sign Out
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    ) : (
+        <Button size="sm" onClick={handleLoginClick}>
+            Log In
+        </Button>
+    ));
 }

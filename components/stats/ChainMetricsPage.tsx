@@ -1,9 +1,12 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
-import { Card, CardContent } from "@/components/ui/card";
+import * as React from "react";
+import { useState, useEffect } from "react";
+import { Area,AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, ReferenceLine } from "recharts";
+import {Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight } from "lucide-react";
+import {type ChartConfig, ChartContainer,ChartTooltip,ChartTooltipContent } from "@/components/ui/chart";
+import DateRangeFilter from "@/components/ui/DateRangeFilter";
+import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Zap, Gauge, DollarSign, TrendingDown, Clock, Fuel, ExternalLink } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
@@ -599,86 +602,44 @@ export default function ChainMetricsPage({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       <div className="container mx-auto mt-4 p-4 sm:p-6 pb-24 space-y-8 sm:space-y-12">
-        {/* Header */}
-        <div className="relative overflow-hidden rounded-2xl p-8 sm:p-12">
-          {/* Multi-layer gradient background */}
-          <div className="absolute inset-0 bg-black" />
-          <div
-            className="absolute inset-0 opacity-60"
-            style={{
-              background: `linear-gradient(140deg, ${themeColor}88 0%, transparent 70%)`
-            }}
-          />
-          <div
-            className="absolute inset-0 opacity-40"
-            style={{
-              background: `linear-gradient(to top left, ${themeColor}66 0%, transparent 50%)`
-            }}
-          />
-          <div
-            className="absolute inset-0 opacity-30"
-            style={{
-              background: `radial-gradient(circle at 50% 50%, ${themeColor}44 0%, transparent 70%)`
-            }}
-          />
-
-          {/* Content */}
-          <div className="relative z-10">
-            {/* Top row with ExplorerDropdown */}
-            {!chainName.includes("C-Chain") && currentChain?.explorers && (
-              <div className="flex justify-end mb-4">
-                <div className="[&_button]:border-neutral-300 dark:[&_button]:border-white/30 [&_button]:text-neutral-800 dark:[&_button]:text-white [&_button]:hover:bg-neutral-100 dark:[&_button]:hover:bg-white/10 [&_button]:hover:border-neutral-400 dark:[&_button]:hover:border-white/50">
-                  <ExplorerDropdown
-                    explorers={currentChain.explorers}
-                    variant="outline"
-                    size="sm"
-                  />
-                </div>
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl md:text-5xl break-words mb-2">
+                {chainName.includes("C-Chain")
+                  ? "Avalanche C-Chain Metrics"
+                  : `${chainName} L1 Metrics`}
+              </h1>
+              <p className="text-zinc-400 text-sm sm:text-md text-left">
+                {description}
+              </p>
+            </div>
+            {!chainName.includes("C-Chain") && (
+              <div className="shrink-0 mt-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    window.open(`https://${chainId}.snowtrace.io`, "_blank")
+                  }
+                  className="flex items-center gap-2 text-xs sm:text-sm"
+                >
+                  <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4" />
+                  View Explorer
+                </Button>
               </div>
             )}
-
-            {/* Main content row */}
-            <div className="flex flex-col sm:flex-row items-start gap-6">
-              {/* Logo */}
-              {chainLogoURI && (
-                <div className="shrink-0">
-                  <img
-                    src={chainLogoURI}
-                    alt={`${chainName} logo`}
-                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-contain bg-white/10 p-2"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                </div>
-              )}
-
-              {/* Title and description */}
-              <div className="flex-1 min-w-0">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-3 break-words">
-                  {chainName.includes("C-Chain")
-                    ? "Avalanche C-Chain Metrics"
-                    : `${chainName} L1 Metrics`}
-                </h1>
-                <p className="text-white/80 text-sm sm:text-base max-w-3xl">
-                  {description}
-                </p>
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Network Overview */}
         <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
-              Network Overview
-            </h2>
+            <h2 className="text-lg sm:text-2xl font-medium text-left">Network Overview</h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             {[
               {
                 key: "activeAddresses",
@@ -712,20 +673,20 @@ export default function ChainMetricsPage({
 
               return (
                 <div
-                  key={item.key}
-                  className="text-center p-4 sm:p-6 rounded-md bg-card border border-gray-200 dark:border-gray-700"
+                  key={config.metricKey}
+                  className="text-center p-4 sm:p-6 rounded-lg bg-card border"
                 >
                   <div className="flex items-center justify-center gap-2 mb-2 sm:mb-3">
                     <Icon
                       className="h-4 w-4 sm:h-5 sm:w-5"
-                      style={{ color: item.color }}
+                      style={{ color: config.chartConfig.value.color }}
                     />
                     <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                      {item.label}
+                      {config.title}
                     </p>
                   </div>
                   <p className="text-xl sm:text-3xl font-mono font-semibold break-all">
-                    {formatNumber(currentValue)}
+                    {displayValue}
                   </p>
                 </div>
               );
@@ -744,22 +705,237 @@ export default function ChainMetricsPage({
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {chartConfigs
-              .filter(
-                (config) =>
-                  config.metricKey !== "cumulativeTxCount" &&
-                  config.metricKey !== "cumulativeAddresses" &&
-                  config.metricKey !== "activeSenders"
-              )
-              .map((config) => {
-                const rawData =
-                  config.metricKey === "icmMessages"
-                    ? getICMChartData()
-                    : getChartData(config.metricKey);
-                if (rawData.length === 0) return null;
+            {allConfigs.map((config) => {
+              const isICMChart = config.metricKey === "icmMessages";
+              const chartData = isICMChart
+                ? getICMChartData()
+                : getChartData(
+                    config.metricKey as keyof Omit<
+                      CChainMetrics,
+                      "last_updated" | "icmMessages"
+                    >
+                  );
+              const yAxisDomain = getYAxisDomain(chartData, isICMChart);
+              const currentValue = getCurrentValue(config.metricKey);
+              const { change, isPositive } = getValueChange(config.metricKey);
+              const Icon = config.icon;
 
-                const period = chartPeriods[config.metricKey];
-                const currentValue = getCurrentValue(config.metricKey);
+              return (
+                <Card key={config.metricKey} className="w-full py-2 sm:py-0">
+                  <CardHeader className="px-4 pt-2 pb-2 sm:px-6 sm:pt-4 sm:pb-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <CardTitle className="flex items-center gap-2 font-medium text-sm sm:text-base min-w-0 flex-1">
+                          <Icon
+                            className="h-4 w-4 sm:h-5 sm:w-5"
+                            style={{
+                              color: isICMChart
+                                ? config.chartConfig.messageCount.color
+                                : config.chartConfig.value.color,
+                            }}
+                          />
+                          <span className="truncate">{config.title}</span>
+                        </CardTitle>
+                        <div className="shrink-0">
+                          <DateRangeFilter
+                            compact={true}
+                            defaultRange={timeRange}
+                            onRangeChange={(range) => {
+                              if (
+                                range === "30d" ||
+                                range === "90d" ||
+                                range === "1y" ||
+                                range === "all"
+                              ) {
+                                setTimeRange(range);
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <CardDescription className="text-xs sm:text-sm">
+                        {config.description}
+                      </CardDescription>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-2 pt-2 sm:px-6 sm:pt-4">
+                    <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4">
+                      <div className="text-lg sm:text-2xl font-mono break-all">
+                        {isICMChart
+                          ? `${formatNumber(currentValue)} Messages`
+                          : formatTooltipValue(
+                              typeof currentValue === "string"
+                                ? parseFloat(currentValue)
+                                : currentValue,
+                              config.metricKey
+                            )}
+                      </div>
+                      {change > 0 && (
+                        <div
+                          className={`flex items-center gap-1 text-xs sm:text-sm ${
+                            isPositive ? "text-green-600" : "text-red-600"
+                          }`}
+                          title={`Change compared to ${getComparisonPeriodLabel(
+                            timeRange
+                          )}`}
+                        >
+                          <TrendingUp
+                            className={`h-3 w-3 sm:h-4 sm:w-4 ${
+                              isPositive ? "" : "rotate-180"
+                            }`}
+                          />
+                          {change.toFixed(1)}%
+                        </div>
+                      )}
+                    </div>
+                    <ChartContainer
+                      config={config.chartConfig}
+                      className={`aspect-auto w-full font-mono ${
+                        isICMChart
+                          ? "h-[200px] sm:h-[300px]"
+                          : "h-[180px] sm:h-[250px]"
+                      }`}
+                    >
+                      {isICMChart ? (
+                        <BarChart
+                          data={chartData}
+                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            vertical={false}
+                          />
+                          <XAxis
+                            dataKey="day"
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            minTickGap={32}
+                            tickFormatter={(value) => formatDateLabel(value)}
+                            tick={{
+                              fontFamily:
+                                'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                            }}
+                          />
+                          <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            tickFormatter={(value) => value.toLocaleString()}
+                            tick={{
+                              fontFamily:
+                                'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                            }}
+                          />
+                          <ChartTooltip
+                            cursor={false}
+                            content={({ active, payload, label }) => {
+                              if (active && payload && payload.length) {
+                                const messageCount =
+                                  payload[0]?.payload?.messageCount || 0;
+                                return (
+                                  <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                                    <div className="grid gap-2">
+                                      <div className="font-medium">
+                                        {formatTooltipDate(label)}
+                                      </div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <div
+                                          className="w-3 h-3 rounded-sm"
+                                          style={{
+                                            backgroundColor:
+                                              config.chartConfig.messageCount
+                                                .color,
+                                          }}
+                                        />
+                                        <span>
+                                          ICM Messages:{" "}
+                                          {formatNumber(messageCount)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          {toShowAverageLine(config.metricKey) && (
+                            <ReferenceLine
+                              {...getAverageLineProps(chartData, config.metricKey, true)}
+                            />
+                          )}
+                          <Bar
+                            dataKey="messageCount"
+                            fill={config.chartConfig.messageCount.color}
+                            radius={[4, 4, 4, 4]}
+                          />
+                        </BarChart>
+                      ) : (
+                        <AreaChart data={chartData}>
+                          <defs>
+                            <linearGradient
+                              id={`fill-${config.metricKey}`}
+                              x1="0"
+                              y1="0"
+                              x2="0"
+                              y2="1"
+                            >
+                              <stop
+                                offset="5%"
+                                stopColor={config.chartConfig.value.color}
+                                stopOpacity={0.8}
+                              />
+                              <stop
+                                offset="95%"
+                                stopColor={config.chartConfig.value.color}
+                                stopOpacity={0.1}
+                              />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid vertical={false} />
+                          <XAxis
+                            dataKey="day"
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            minTickGap={32}
+                            tickFormatter={(value) => formatDateLabel(value)}
+                            tick={{
+                              fontFamily:
+                                'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                            }}
+                          />
+                          <YAxis
+                            domain={yAxisDomain}
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            tickFormatter={(value) => formatNumber(value)}
+                            tick={{
+                              fontFamily:
+                                'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                            }}
+                          />
+                          <ChartTooltip
+                            cursor={false}
+                            content={
+                              <ChartTooltipContent
+                                labelFormatter={(value) =>
+                                  formatTooltipDate(value)
+                                }
+                                indicator="dot"
+                                formatter={(value) => [
+                                  formatTooltipValue(
+                                    value as number,
+                                    config.metricKey
+                                  ),
+                                  "",
+                                ]}
+                                className="font-mono"
+                              />
+                            }
+                          />
 
                 // Get cumulative data for charts that need it
                 let cumulativeData = null;

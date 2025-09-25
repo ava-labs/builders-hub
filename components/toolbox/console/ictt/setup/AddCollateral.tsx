@@ -17,12 +17,8 @@ import ERC20TokenHomeABI from "@/contracts/icm-contracts/compiled/ERC20TokenHome
 import NativeTokenHomeABI from "@/contracts/icm-contracts/compiled/NativeTokenHome.json";
 import { getToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
-import { useL1ByChainId, useSelectedL1, useL1List } from "@/components/toolbox/stores/l1ListStore";
+import { useL1ByChainId, useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { RadioGroup } from "@/components/toolbox/components/RadioGroup";
-import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 const metadata: ConsoleToolMetadata = {
     title: "Add Collateral",
@@ -65,8 +61,6 @@ function AddCollateral() {
     const [isCheckingStatus, setIsCheckingStatus] = useState(false);
     const [isCollateralized, setIsCollateralized] = useState<boolean | null>(null);
     const [isAutoFilled, setIsAutoFilled] = useState(false);
-    const [isFetchingTokenHome, setIsFetchingTokenHome] = useState(false);
-    
     // Throw critical errors during render
     if (criticalError) {
         throw criticalError;
@@ -418,10 +412,7 @@ function AddCollateral() {
             
             const { request } = await publicClient.simulateContract(simulateParams);
 
-            const writePromise = coreWalletClient.writeContract({
-                ...request,
-                account: walletEVMAddress as `0x${string}`,
-            });
+            const writePromise = coreWalletClient.writeContract(request);
             notify({
                 type: 'call',
                 name: 'Add Collateral'

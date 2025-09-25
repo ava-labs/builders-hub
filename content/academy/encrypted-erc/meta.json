@@ -1,0 +1,18 @@
+{
+    "title": "eERC Token Standard (Encrypted ERC)",
+    "icon": "SendHorizontal",
+    "root": true,
+    "pages": [
+      "index",
+      "---What is a digital asset?---",
+      "...01-what-is-a-digital-asset",
+      "---Real Privacy---",
+      "...02-real-privacy",
+      "---Encrypted Tokens---",
+      "...03-encrypted-tokens",
+      "---Usability of eERC---",
+      "...04-usability-eerc",
+      "---eERC Contracts Flow---",
+      "...05-eerc-contracts-flow"
+    ]
+  }

@@ -4,11 +4,6 @@ import { useWalletStore } from "./walletStore";
 import { localStorageComp, STORE_VERSION } from "./utils";
 import { useMemo } from "react";
 
-export type FaucetThresholds = {
-    threshold: number; // min balance threshold to trigger drip
-    dripAmount: number;
-};
-
 export type L1ListItem = {
     id: string;
     name: string;
@@ -52,10 +47,7 @@ const l1ListInitialStateFuji = {
             hasBuilderHubFaucet: true,
             externalFaucetUrl: "https://core.app/tools/testnet-faucet",
             explorerUrl: "https://subnets-test.avax.network/c-chain",
-            faucetThresholds: {
-                threshold: 0.2,
-                dripAmount: 0.5
-            },
+            dripAmount: 1,
             features: [
                 "EVM-compatible blockchain",
                 "Deploy smart contracts"
@@ -77,10 +69,7 @@ const l1ListInitialStateFuji = {
             hasBuilderHubFaucet: true,
             externalFaucetUrl: "https://core.app/tools/testnet-faucet",
             explorerUrl: "https://subnets-test.avax.network/echo",
-            faucetThresholds: {
-                threshold: 1.0,
-                dripAmount: 2
-            },
+            dripAmount: 2,
             features: [
                 "EVM-compatible L1 chain",
                 "Deploy dApps & test interoperability with Echo"
@@ -102,10 +91,7 @@ const l1ListInitialStateFuji = {
             hasBuilderHubFaucet: true,
             externalFaucetUrl: "https://core.app/tools/testnet-faucet",
             explorerUrl: "https://subnets-test.avax.network/dispatch",
-            faucetThresholds: {
-                threshold: 1.0,
-                dripAmount: 2
-            },
+            dripAmount: 2,
             features: [
                 "EVM-compatible L1 chain",
                 "Deploy dApps & test interoperability with Dispatch"

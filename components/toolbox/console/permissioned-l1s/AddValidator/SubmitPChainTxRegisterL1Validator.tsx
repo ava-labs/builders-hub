@@ -3,9 +3,8 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Success } from '@/components/toolbox/components/Success';
-import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
+import { useAvaCloudSDK } from '@/components/toolbox/stores/useAvaCloudSDK';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { Alert } from '@/components/toolbox/components/Alert';
 
 interface SubmitPChainTxRegisterL1ValidatorProps {
   subnetIdL1: string;
@@ -29,7 +28,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   onError,
 }) => {
   const { coreWalletClient, pChainAddress, publicClient } = useWalletStore();
-  const { aggregateSignature } = useAvalancheSDKChainkit();
+  const { aggregateSignature } = useAvaCloudSDK();
   const { notify } = useConsoleNotifications();
   const [evmTxHashState, setEvmTxHashState] = useState(evmTxHash || '');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -209,6 +208,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
 
       // Submit to P-Chain using registerL1Validator with all required parameters
       const registerL1ValidatorPromise = coreWalletClient.registerL1Validator({
+        pChainAddress: pChainAddress!,
         balance: validatorBalance.trim(),
         blsProofOfPossession: blsProofOfPossession.trim(),
         signedWarpMessage: signedMessage,

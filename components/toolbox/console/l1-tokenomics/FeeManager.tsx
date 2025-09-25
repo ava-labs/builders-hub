@@ -12,7 +12,6 @@ import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 // Default Fee Manager address
 const DEFAULT_FEE_MANAGER_ADDRESS =
@@ -21,10 +20,9 @@ const DEFAULT_FEE_MANAGER_ADDRESS =
 const metadata: ConsoleToolMetadata = {
   title: "Fee Manager",
   description: "Configure dynamic fee parameters and manage allowlist for your L1",
-  toolRequirements: [
+  walletRequirements: [
     WalletRequirementsConfigKey.EVMChainBalance
-  ],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  ]
 };
 
 function FeeManager({ onSuccess }: BaseConsoleToolProps) {

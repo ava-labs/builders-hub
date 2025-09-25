@@ -6,8 +6,9 @@ import {
 } from 'fumadocs-core/source';
 import { createElement } from 'react';
 import { icons } from 'lucide-react';
-import { meta, docs, blog as blogs, course, courseMeta, integrations } from '@/.source';
-import { openapiPlugin } from 'fumadocs-openapi/server';
+import { createMDXSource } from 'fumadocs-mdx';
+import { meta, docs, blog as blogs, course, courseMeta, integrations, codebaseEntrepreneur, codebaseEntrepreneurMeta } from '@/.source';
+import type { InferMetaType, InferPageType } from 'fumadocs-core/source';
 
 export const documentation = loader({
   baseUrl: '/docs',
@@ -127,11 +128,14 @@ export const academy = loader({
   source: createMDXSource(course, courseMeta as any),
 });
 
-export function getAcademyTree(prefix: string) {
-  const fullTree = academy.pageTree;
-  if (!prefix) return fullTree;
-  return filterTreeByPrefix(fullTree, prefix);
-}
+export const codebaseEntrepreneurAcademy = loader({
+  baseUrl: '/codebase-entrepreneur-academy',
+  icon(icon) {
+    if (icon && icon in icons)
+      return createElement(icons[icon as keyof typeof icons]);
+  },
+  source: createMDXSource(codebaseEntrepreneur, codebaseEntrepreneurMeta),
+});
 
 export const blog = loader({
   baseUrl: '/blog',

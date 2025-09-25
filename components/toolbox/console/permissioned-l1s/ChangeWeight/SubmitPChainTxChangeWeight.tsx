@@ -3,8 +3,7 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Success } from '@/components/toolbox/components/Success';
-import { Alert } from '@/components/toolbox/components/Alert';
-import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
+import { useAvaCloudSDK } from '@/components/toolbox/stores/useAvaCloudSDK';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 interface SubmitPChainTxChangeWeightProps {
@@ -28,7 +27,7 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
   onError,
 }) => {
   const { coreWalletClient, pChainAddress, publicClient } = useWalletStore();
-  const { aggregateSignature } = useAvalancheSDKChainkit();
+  const { aggregateSignature } = useAvaCloudSDK();
   const { notify } = useConsoleNotifications();
   const [evmTxHash, setEvmTxHash] = useState(initialEvmTxHash || '');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -219,6 +218,7 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
 
       // Step 2: Submit to P-Chain
       const pChainTxIdPromise = coreWalletClient.setL1ValidatorWeight({
+        pChainAddress: pChainAddress!,
         signedWarpMessage: signedMessage,
       });
       notify('setL1ValidatorWeight', pChainTxIdPromise);

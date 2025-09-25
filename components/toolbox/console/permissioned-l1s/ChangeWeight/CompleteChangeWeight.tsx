@@ -11,7 +11,8 @@ import poaManagerAbi from '@/contracts/icm-contracts/compiled/PoAManager.json';
 import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/justification';
 import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp';
-import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
+import { extractL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/methods/extractL1ValidatorWeightMessage';
+import { useAvaCloudSDK } from '@/components/toolbox/stores/useAvaCloudSDK';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 interface CompleteChangeWeightProps {
@@ -39,8 +40,8 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
   isLoadingOwnership,
   ownerType,
 }) => {
-  const { coreWalletClient, publicClient, avalancheNetworkID, walletEVMAddress } = useWalletStore();
-  const { aggregateSignature } = useAvalancheSDKChainkit();
+  const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
+  const { aggregateSignature } = useAvaCloudSDK();
   const { notify } = useConsoleNotifications();
   const viemChain = useViemChainStore();
   const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || '');

@@ -25,55 +25,30 @@ import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchain
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import TeleporterRegistryAddressInput from "@/components/toolbox/components/TeleporterRegistryAddressInput";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { AcknowledgementCallout } from "@/components/toolbox/components/AcknowledgementCallout";
-import { LockedContent } from "@/components/toolbox/components/LockedContent";
-import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 
-const metadata: ConsoleToolMetadata = {
-  title: "Deploy ERC20 Token Remote Contract",
-  description: "Deploy the ERC20TokenRemote contract for your ERC20 token.",
-  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
-};
-
-function DeployERC20TokenRemote() {
-  const [criticalError, setCriticalError] = useState<Error | null>(null);
-  const { erc20TokenRemoteAddress, setErc20TokenRemoteAddress } =
-    useToolboxStore();
-  const { coreWalletClient, walletEVMAddress } = useWalletStore();
-  const { notify } = useConsoleNotifications();
-  const viemChain = useViemChainStore();
-  const selectedL1 = useSelectedL1()();
-  const [isDeploying, setIsDeploying] = useState(false);
-  const [sourceChainId, setSourceChainId] = useState<string>("");
-  const [teleporterManager, setTeleporterManager] = useState(walletEVMAddress);
-  const [localError, setLocalError] = useState("");
-  const [tokenName, setTokenName] = useState("");
-  const [tokenSymbol, setTokenSymbol] = useState("");
-  const [tokenDecimals, setTokenDecimals] = useState("0");
-  const [minTeleporterVersion, setMinTeleporterVersion] = useState("1");
-  const [tokenHomeAddress, setTokenHomeAddress] = useState("");
-  const [teleporterRegistryAddress, setTeleporterRegistryAddress] =
-    useState("");
-  const [acknowledged, setAcknowledged] = useState(false);
-  const [workflowDismissed, setWorkflowDismissed] = useState(false);
-  
-  // Throw critical errors during render
-  if (criticalError) {
-    throw criticalError;
-  }
-
-  const sourceL1 = useL1ByChainId(sourceChainId)();
-  const sourceToolboxStore = getToolboxStore(sourceChainId)();
-
-  const tokenHomeBlockchainIDHex = useMemo(() => {
-    if (!sourceL1?.id) return undefined;
-    try {
-      return utils.bufferToHex(utils.base58check.decode(sourceL1.id));
-    } catch (e) {
-      console.error("Error decoding source chain ID:", e);
-      return undefined;
+export default function DeployERC20TokenRemote() {
+    const [criticalError, setCriticalError] = useState<Error | null>(null);
+    const {
+        erc20TokenRemoteAddress,
+        setErc20TokenRemoteAddress,
+    } = useToolboxStore();
+    const { coreWalletClient, walletEVMAddress } = useWalletStore();
+    const { notify } = useConsoleNotifications();
+    const viemChain = useViemChainStore();
+    const selectedL1 = useSelectedL1()();
+    const [isDeploying, setIsDeploying] = useState(false);
+    const [sourceChainId, setSourceChainId] = useState<string>("");
+    const [teleporterManager, setTeleporterManager] = useState(walletEVMAddress);
+    const [localError, setLocalError] = useState("");
+    const [tokenName, setTokenName] = useState("");
+    const [tokenSymbol, setTokenSymbol] = useState("");
+    const [tokenDecimals, setTokenDecimals] = useState("0");
+    const [minTeleporterVersion, setMinTeleporterVersion] = useState("1");
+    const [tokenHomeAddress, setTokenHomeAddress] = useState("");
+    const [teleporterRegistryAddress, setTeleporterRegistryAddress] = useState("");
+    // Throw critical errors during render
+    if (criticalError) {
+        throw criticalError;
     }
   }, [sourceL1?.id]);
 
@@ -84,10 +59,105 @@ function DeployERC20TokenRemote() {
     sourceChainError = "Source and destination chains must be different";
   }
 
-  //Updates token decimals
-  useEffect(() => {
-    const fetchTokenDetails = async () => {
-      try {
+    const tokenHomeBlockchainIDHex = useMemo(() => {
+        if (!sourceL1?.id) return undefined;
+        try {
+            return utils.bufferToHex(utils.base58check.decode(sourceL1.id));
+        } catch (e) {
+            console.error("Error decoding source chain ID:", e);
+            return undefined;
+        }
+    }, [sourceL1?.id]);
+
+    let sourceChainError: string | undefined = undefined;
+    if (!sourceChainId) {
+        sourceChainError = "Please select a source chain";
+    } else if (selectedL1?.id === sourceChainId) {
+        sourceChainError = "Source and destination chains must be different";
+    }
+
+    //Updates token decimals
+    useEffect(() => {
+        const fetchTokenDetails = async () => {
+            try {
+                setLocalError("");
+                setTokenDecimals("0");
+                setTokenName("loading...");
+                setTokenSymbol("loading...");
+
+                if (!sourceL1?.rpcUrl || !tokenHomeAddress) return;
+
+                const publicClient = createPublicClient({
+                    transport: http(sourceL1.rpcUrl)
+                });
+
+                const tokenAddress = await publicClient.readContract({
+                    address: tokenHomeAddress as `0x${string}`,
+                    abi: ERC20TokenHomeABI.abi,
+                    functionName: "getTokenAddress"
+                });
+                const decimals = await publicClient.readContract({
+                    address: tokenAddress as `0x${string}`,
+                    abi: ExampleERC20.abi,
+                    functionName: "decimals"
+                });
+                const name = await publicClient.readContract({
+                    address: tokenAddress as `0x${string}`,
+                    abi: ExampleERC20.abi,
+                    functionName: "name"
+                });
+                const symbol = await publicClient.readContract({
+                    address: tokenAddress as `0x${string}`,
+                    abi: ExampleERC20.abi,
+                    functionName: "symbol"
+                });
+
+                setTokenDecimals(String(decimals));
+                setTokenName(name as string);
+                setTokenSymbol(symbol as string);
+            } catch (error: any) {
+                console.error(error);
+                setLocalError("Fetching token details failed: " + error.message);
+            }
+        };
+
+        fetchTokenDetails();
+    }, [sourceChainId, sourceL1?.rpcUrl, tokenHomeAddress]);
+
+    // Suggestions for source contract address on current chain
+    const [homeContractSuggestions, setHomeContractSuggestions] = useState<Suggestion[]>([]);
+    useEffect(() => {
+        const fetchSuggestions = async () => {
+            const suggestions: Suggestion[] = [];
+
+            if (sourceToolboxStore.erc20TokenHomeAddress) {
+                suggestions.push({
+                    title: sourceToolboxStore.erc20TokenHomeAddress,
+                    value: sourceToolboxStore.erc20TokenHomeAddress,
+                    description: `ERC20 Token Home on ${sourceL1?.name}`,
+                });
+            }
+
+            if (sourceToolboxStore.nativeTokenHomeAddress) {
+                suggestions.push({
+                    title: sourceToolboxStore.nativeTokenHomeAddress,
+                    value: sourceToolboxStore.nativeTokenHomeAddress,
+                    description: `Native Token Home on ${sourceL1?.name}`,
+                });
+            }
+
+            setHomeContractSuggestions(suggestions);
+        };
+
+        fetchSuggestions();
+    }, [sourceChainId]);
+
+    async function handleDeploy() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
         setLocalError("");
         setTokenDecimals("0");
         setTokenName("loading...");
@@ -140,21 +210,19 @@ function DeployERC20TokenRemote() {
     const fetchSuggestions = async () => {
       const suggestions: Suggestion[] = [];
 
-      if (sourceToolboxStore.erc20TokenHomeAddress) {
-        suggestions.push({
-          title: sourceToolboxStore.erc20TokenHomeAddress,
-          value: sourceToolboxStore.erc20TokenHomeAddress,
-          description: `ERC20 Token Home on ${sourceL1?.name}`,
-        });
-      }
+            const deployPromise = coreWalletClient.deployContract({
+                abi: ERC20TokenRemote.abi as any,
+                bytecode: ERC20TokenRemote.bytecode.object as `0x${string}`,
+                args: constructorArgs,
+                account: walletEVMAddress as `0x${string}`,
+                chain: viemChain
+            });
+            notify({
+                type: 'deploy',
+                name: 'ERC20TokenRemote'
+            }, deployPromise, viemChain ?? undefined);
 
-      if (sourceToolboxStore.nativeTokenHomeAddress) {
-        suggestions.push({
-          title: sourceToolboxStore.nativeTokenHomeAddress,
-          value: sourceToolboxStore.nativeTokenHomeAddress,
-          description: `Native Token Home on ${sourceL1?.name}`,
-        });
-      }
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: await deployPromise });
 
       setHomeContractSuggestions(suggestions);
     };

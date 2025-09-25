@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import { Loader2, CheckCircle2, ArrowUpRight, RefreshCw } from "lucide-react"
 import { Button } from "../../components/Button"
+import { Context, pvm, utils } from "@avalabs/avalanchejs"
 import { useWalletStore } from "@/components/toolbox/stores/walletStore"
 import { Input } from "../../components/Input"
 import SelectValidationID, { ValidationSelection } from "../../components/SelectValidationID"
@@ -9,8 +10,6 @@ import SelectSubnetId from "../../components/SelectSubnetId"
 import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import { Alert } from "../../components/Alert";
 
 // Helper function for delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -22,6 +21,14 @@ const metadata: ConsoleToolMetadata = {
     WalletRequirementsConfigKey.PChainBalance
   ],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+}
+
+const metadata: ConsoleToolMetadata = {
+  title: "Validator Balance Increase",
+  description: "Increase the balance of a validator to extend its validation period and maintain network participation",
+  walletRequirements: [
+    WalletRequirementsConfigKey.PChainBalance
+  ]
 }
 
 function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
@@ -38,9 +45,20 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
 
   // Use nullish coalescing to safely access store values
   const { pChainAddress, isTestnet } = useWalletStore()
-  const updatePChainBalance = useWalletStore((s) => s.updatePChainBalance);
-  const pChainBalance = useWalletStore((s) => s.balances.pChain);
   const { coreWalletClient } = useConnectedWallet()
+
+  // Fetch P-Chain balance
+  const fetchPChainBalance = async () => {
+    if (coreWalletClient && pChainAddress) {
+      try {
+        const balance = await coreWalletClient.getPChainBalance()
+        const balanceNumber = Number(balance) / 1e9
+        setPChainBalance(balanceNumber)
+      } catch (error) {
+        console.error("Error fetching P-Chain balance:", error)
+      }
+    }
+  }
 
   // Fetch P-Chain balance periodically
   useEffect(() => {

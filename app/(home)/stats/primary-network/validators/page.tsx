@@ -359,7 +359,7 @@ export default function PrimaryNetworkValidatorMetrics() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       <div className="container mx-auto mt-4 p-4 sm:p-6 pb-24 space-y-8 sm:space-y-12">
         <div className="space-y-2">
           <div>
@@ -388,12 +388,12 @@ export default function PrimaryNetworkValidatorMetrics() {
               return (
                 <div
                   key={config.metricKey}
-                  className="text-center p-4 sm:p-6 rounded-md bg-card border border-gray-200 dark:border-gray-700"
+                  className="text-center p-4 sm:p-6 rounded-lg bg-card border"
                 >
                   <div className="flex items-center justify-center gap-2 mb-2 sm:mb-3">
                     <Icon
                       className="h-4 w-4 sm:h-5 sm:w-5"
-                      style={{ color: config.color }}
+                      style={{ color: config.chartConfig.value.color }}
                     />
                     <p className="text-xs sm:text-sm text-muted-foreground truncate">
                       {config.title}
@@ -421,35 +421,164 @@ export default function PrimaryNetworkValidatorMetrics() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {chartConfigs.map((config) => {
-              const rawData = getChartData(config.metricKey);
-              if (rawData.length === 0) return null;
-
-              const period = chartPeriods[config.metricKey];
+            {chartConfigs.map((config, index) => {
+              const chartData = getChartData(config.metricKey);
               const currentValue = getCurrentValue(config.metricKey);
 
               return (
-                <ValidatorChartCard
-                  key={config.metricKey}
-                  config={config}
-                  rawData={rawData}
-                  period={period}
-                  currentValue={currentValue}
-                  onPeriodChange={(newPeriod) =>
-                    setChartPeriods((prev) => ({
-                      ...prev,
-                      [config.metricKey]: newPeriod,
-                    }))
-                  }
-                  formatTooltipValue={(value) =>
-                    formatTooltipValue(value, config.metricKey)
-                  }
-                  formatYAxisValue={
-                    config.metricKey.includes("weight")
-                      ? formatWeightForAxis
-                      : formatNumber
-                  }
-                />
+                <Card key={config.metricKey} className="w-full py-2 sm:py-0">
+                  <CardHeader className="px-4 pt-2 pb-2 sm:px-6 sm:pt-4 sm:pb-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <CardTitle className="flex items-center gap-2 font-medium text-sm sm:text-base min-w-0 flex-1">
+                          <Icon
+                            className="h-4 w-4 sm:h-5 sm:w-5"
+                            style={{ color: config.chartConfig.value.color }}
+                          />
+                          <span className="truncate">{config.title}</span>
+                        </CardTitle>
+                        <div className="shrink-0">
+                          <DateRangeFilter
+                            compact={true}
+                            defaultRange={timeRange}
+                            onRangeChange={(range) => {
+                              if (
+                                range === "30d" ||
+                                range === "90d" ||
+                                range === "1y" ||
+                                range === "all"
+                              ) {
+                                setTimeRange(range);
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <CardDescription className="text-xs sm:text-sm">
+                        {config.description}
+                      </CardDescription>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-2 pt-2 sm:px-6 sm:pt-4">
+                    <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4">
+                      <div className="text-lg sm:text-2xl font-mono break-all">
+                        {config.metricKey.includes("weight")
+                          ? formatWeight(currentValue)
+                          : formatNumber(currentValue)}
+                      </div>
+                      {change > 0 && (
+                        <div
+                          className={`flex items-center gap-1 text-xs sm:text-sm ${
+                            isPositive ? "text-green-600" : "text-red-600"
+                          }`}
+                          title={`Change compared to ${getComparisonPeriodLabel(
+                            timeRange
+                          )}`}
+                        >
+                          <TrendingUp
+                            className={`h-3 w-3 sm:h-4 sm:w-4 ${
+                              isPositive ? "" : "rotate-180"
+                            }`}
+                          />
+                          {change.toFixed(1)}%
+                        </div>
+                      )}
+                    </div>
+                    <ChartContainer
+                      config={config.chartConfig}
+                      className="aspect-auto w-full font-mono h-[180px] sm:h-[250px]"
+                    >
+                      <AreaChart data={chartData}>
+                        <defs>
+                          <linearGradient
+                            id={`fill-${config.metricKey}`}
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop
+                              offset="5%"
+                              stopColor={`var(--color-value)`}
+                              stopOpacity={0.8}
+                            />
+                            <stop
+                              offset="95%"
+                              stopColor={`var(--color-value)`}
+                              stopOpacity={0.1}
+                            />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                          dataKey="day"
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
+                          minTickGap={32}
+                          tickFormatter={(value) => formatDateLabel(value)}
+                          tick={{
+                            fontFamily:
+                              'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                          }}
+                        />
+                        <YAxis
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
+                          tickFormatter={(value) =>
+                            config.metricKey.includes("weight")
+                              ? formatWeightForAxis(value)
+                              : formatNumber(value)
+                          }
+                          tick={{
+                            fontFamily:
+                              'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                          }}
+                        />
+                        <ChartTooltip
+                          cursor={false}
+                          content={
+                            <ChartTooltipContent
+                              labelFormatter={(value) =>
+                                formatTooltipDate(value)
+                              }
+                              indicator="dot"
+                              formatter={(value) => [
+                                formatTooltipValue(
+                                  value as number,
+                                  config.metricKey
+                                ),
+                                "",
+                              ]}
+                              className="font-mono"
+                            />
+                          }
+                        />
+                        {timeRange === "all" &&
+                          getYearBoundaries(chartData).map(
+                            (yearBoundary, idx) => (
+                              <ReferenceLine
+                                key={`year-${idx}`}
+                                x={yearBoundary}
+                                stroke="#d1d5db"
+                                strokeWidth={1}
+                                strokeDasharray="3 3"
+                                opacity={0.6}
+                              />
+                            )
+                          )}
+                        <Area
+                          dataKey="value"
+                          type="natural"
+                          fill={`url(#fill-${config.metricKey})`}
+                          stroke={`var(--color-value)`}
+                          strokeWidth={2}
+                        />
+                      </AreaChart>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>

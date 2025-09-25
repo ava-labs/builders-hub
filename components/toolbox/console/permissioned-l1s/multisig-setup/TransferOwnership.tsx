@@ -11,28 +11,21 @@ import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId";
 import { useValidatorManagerDetails } from "@/components/toolbox/hooks/useValidatorManagerDetails";
 import { ValidatorManagerDetails } from "@/components/toolbox/components/ValidatorManagerDetails";
 import { TransactionReceipt } from "viem";
-import { Info } from "lucide-react";
+import { AlertCircle, Info } from "lucide-react";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import { Alert } from "@/components/toolbox/components/Alert";
 
 const metadata: ConsoleToolMetadata = {
     title: "Transfer Validator Manager Ownership",
     description: "Transfer the ownership of the Validator Manager to a new address (EOA, StakingManager, or PoAManager)",
-    toolRequirements: [
+    walletRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
-    ],
-    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+    ]
 };
 
-export interface TransferOwnershipProps extends BaseConsoleToolProps {
-    defaultNewOwnerAddress?: string;
-}
-
-function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwnershipProps) {
+function TransferOwnership({ onSuccess }: BaseConsoleToolProps) {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const { publicClient, walletEVMAddress } = useWalletStore();
     const { coreWalletClient } = useConnectedWallet();
@@ -120,11 +113,10 @@ function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwners
         }
         try {
             const transferPromise = coreWalletClient.writeContract({
-                address: validatorManagerAddress as `0x${string}`,
+                to: validatorManagerAddress,
                 abi: ValidatorManagerABI.abi,
                 functionName: 'transferOwnership',
                 args: [newOwnerAddress],
-                account: coreWalletClient.account,
                 chain: viemChain ?? undefined,
             });
 
@@ -239,6 +231,5 @@ function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwners
     );
 }
 
-export { TransferOwnership };
 export default withConsoleToolMetadata(TransferOwnership, metadata);
 

@@ -15,13 +15,11 @@ function SetEnabledComponent({
   precompileType = "precompiled contract",
   abi = allowListAbi.abi,
   onSuccess,
-  defaultAddress,
 }: {
   precompileAddress: string;
   precompileType?: string;
   abi?: any;
   onSuccess?: () => void;
-  defaultAddress?: string;
 }) {
   const { publicClient, walletEVMAddress, walletChainId } =
     useWalletStore();
@@ -525,13 +523,11 @@ export function AllowlistComponent({
   precompileType = "precompiled contract",
   abi = allowListAbi.abi,
   onSuccess,
-  defaultEnabledAddress,
 }: {
   precompileAddress: string;
   precompileType?: string;
   abi?: any;
   onSuccess?: () => void;
-  defaultEnabledAddress?: string;
 }) {
   return (
     <div className="space-y-6">
@@ -542,7 +538,6 @@ export function AllowlistComponent({
             precompileType={precompileType}
             abi={abi}
             onSuccess={onSuccess}
-            defaultAddress={defaultEnabledAddress}
           />
           <SetManagerComponent
             precompileAddress={precompileAddress}

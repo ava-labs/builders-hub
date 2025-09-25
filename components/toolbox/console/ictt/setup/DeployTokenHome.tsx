@@ -21,15 +21,30 @@ import TeleporterRegistryAddressInput from "@/components/toolbox/components/Tele
 import { RadioGroup } from "@/components/toolbox/components/RadioGroup";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 
-const metadata: ConsoleToolMetadata = {
-  title: "Deploy Token Home Contract",
-  description: "Deploy the TokenHome contract for your token.",
-  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
-};
+export default function DeployTokenHome() {
+    const [criticalError, setCriticalError] = useState<Error | null>(null);
+    const {
+        exampleErc20Address,
+        wrappedNativeTokenAddress,
+        setErc20TokenHomeAddress,
+        erc20TokenHomeAddress,
+        setNativeTokenHomeAddress,
+        nativeTokenHomeAddress
+    } = useToolboxStore();
+    const selectedL1 = useSelectedL1()();
+    const { coreWalletClient, walletEVMAddress, walletChainId } = useWalletStore();
+    const { notify } = useConsoleNotifications();
+    const viemChain = useViemChainStore();
+    const [isDeploying, setIsDeploying] = useState(false);
+    const [teleporterManager, setTeleporterManager] = useState("");
+    const [minTeleporterVersion, setMinTeleporterVersion] = useState("1");
+    const [tokenAddress, setTokenAddress] = useState("");
+    const [tokenDecimals, setTokenDecimals] = useState("0");
+    const [localError, setLocalError] = useState("");
+    const [deployError, setDeployError] = useState("");
+    const [teleporterRegistryAddress, setTeleporterRegistryAddress] = useState("");//local, not in store
+    const [tokenType, setTokenType] = useState<"erc20" | "native">("erc20");
 
 function DeployTokenHome() {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
@@ -108,12 +123,107 @@ function DeployTokenHome() {
       return;
     }
 
-    setDeployError("");
-    if (!teleporterRegistryAddress) {
-      setDeployError(
-        "Teleporter Registry address is required. Please deploy it first."
-      );
-      return;
+    useEffect(() => {
+        const tokenAddress = tokenType === "erc20" ? exampleErc20Address : (wrappedNativeTokenAddress || selectedL1?.wrappedTokenAddress);
+        if (!tokenAddress) return;
+        setTokenAddress(tokenAddress);
+    }, [tokenType, selectedL1, exampleErc20Address]);
+
+    const [initTeleporterManagerRan, setInitTeleporterManagerRan] = useState(false);
+    useEffect(() => {
+        if (!teleporterManager && walletEVMAddress && !initTeleporterManagerRan) {
+            setTeleporterManager(walletEVMAddress);
+            setInitTeleporterManagerRan(true);
+        }
+    }, [walletEVMAddress, teleporterManager, initTeleporterManagerRan]);
+
+    useEffect(() => {
+        if (!tokenAddress) return;
+        if (!viemChain) return;
+
+        setLocalError("");
+        const publicClient = createPublicClient({
+            chain: viemChain,
+            transport: http(viemChain.rpcUrls.default.http[0])
+        });
+        publicClient.readContract({
+            address: tokenAddress as `0x${string}`,
+            abi: ExampleERC20.abi,
+            functionName: "decimals",
+        }).then((res) => {
+            setTokenDecimals((res as bigint).toString());
+        }).catch((error) => {
+            setLocalError("Failed to fetch token decimals: " + error);
+        });
+    }, [tokenAddress, viemChain?.id]);
+
+    async function handleDeploy() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
+        setDeployError("");
+        if (!teleporterRegistryAddress) {
+            setDeployError("Teleporter Registry address is required. Please deploy it first.");
+            return;
+        }
+
+        if (!tokenAddress) {
+            setDeployError("Token address is required. Please deploy an ERC20 token first.");
+            return;
+        }
+
+        if (!viemChain) {
+            throw new Error("Failed to fetch chain. Please try again.");
+        }
+
+        setIsDeploying(true);
+        try {
+            const publicClient = createPublicClient({
+                chain: viemChain,
+                transport: http(viemChain.rpcUrls.default.http[0])
+            });
+
+            const args = [
+                teleporterRegistryAddress as `0x${string}`,
+                teleporterManager || coreWalletClient.account.address,
+                BigInt(minTeleporterVersion),
+                tokenAddress as `0x${string}`,
+            ];
+
+            if (tokenType === "erc20") {
+                args.push(parseInt(tokenDecimals));
+            }
+
+            const deployPromise = coreWalletClient.deployContract({
+                abi: (tokenType === "erc20" ? ERC20TokenHome.abi : NativeTokenHome.abi) as any,
+                bytecode: tokenType === "erc20" ? ERC20TokenHome.bytecode.object as `0x${string}` : NativeTokenHome.bytecode.object as `0x${string}`,
+                args,
+                chain: viemChain,
+                account: walletEVMAddress as `0x${string}`,
+            });
+
+            notify({
+                type: 'deploy',
+                name: 'TokenHome'
+            }, deployPromise, viemChain ?? undefined);
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: await deployPromise });
+
+            if (!receipt.contractAddress) {
+                throw new Error('No contract address in receipt');
+            }
+
+            if (tokenType === "erc20") {
+                setErc20TokenHomeAddress(receipt.contractAddress);
+            } else {
+                setNativeTokenHomeAddress(receipt.contractAddress);
+            }
+        } catch (error) {
+            setCriticalError(error instanceof Error ? error : new Error(String(error)));
+        } finally {
+            setIsDeploying(false);
+        }
     }
 
     if (!tokenAddress) {

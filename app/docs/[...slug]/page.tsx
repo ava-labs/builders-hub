@@ -145,8 +145,10 @@ export default async function Page(props: {
       </DocsBody>
       <Feedback
         path={path}
-        title={page.data.title || "Untitled"}
-        pagePath={`/docs/${page.slugs.join("/")}`}
+        title={page.data.title}
+        pagePath={`/docs/${page.slugs.join('/')}`}
+        editUrl={editUrl}
+        pageType="docs"
         onRateAction={async (url, feedback) => {
           "use server";
           await posthog.capture("on_rate_document", feedback);

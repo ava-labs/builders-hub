@@ -100,12 +100,12 @@ export default function ConsoleHistoryPage() {
           type: 'address'
         });
       }
-      if (toolboxStore.nativeStakingManagerAddress && toolboxStore.nativeStakingManagerAddress !== '') {
+      if (toolboxStore.stakingManagerAddress && toolboxStore.stakingManagerAddress !== '') {
         items.push({
-          id: 'tb-native-staking-mgr',
-          title: 'Native Token Staking Manager',
+          id: 'tb-staking-mgr',
+          title: 'Staking Manager',
           description: 'Deployed Contract',
-          address: toolboxStore.nativeStakingManagerAddress,
+          address: toolboxStore.stakingManagerAddress,
           chainId,
           type: 'address'
         });
@@ -140,13 +140,12 @@ export default function ConsoleHistoryPage() {
           type: 'address'
         });
       }
-      // Get wrapped native token address from L1 store
-      if (selectedL1?.wrappedTokenAddress && selectedL1.wrappedTokenAddress !== '') {
+      if (toolboxStore.wrappedNativeTokenAddress && toolboxStore.wrappedNativeTokenAddress !== '') {
         items.push({
           id: 'tb-wrapped-native',
           title: 'Wrapped Native Token',
           description: 'Token Contract',
-          address: selectedL1.wrappedTokenAddress,
+          address: toolboxStore.wrappedNativeTokenAddress,
           chainId,
           type: 'address'
         });
