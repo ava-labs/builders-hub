@@ -29,7 +29,7 @@ const RequestUpdateButton: React.FC<RequestUpdateButtonProps> = ({
 Page: [${pagePath || 'Unknown'}](https://docs.avax.network${pagePath})
 
 [Provide more details here...]`,
-    labels: ['outdated', 'documentation'],
+    labels: ['outdated', 'Docs'],
   });
 
   const openIssue = () => {

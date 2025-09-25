@@ -14,21 +14,30 @@ import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
 import { utils } from '@avalabs/avalanchejs';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
-import { Container } from '@/components/toolbox/components/Container';
 import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
 import { useAvaCloudSDK } from "@/components/toolbox/stores/useAvaCloudSDK";
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 const cb58ToHex = (cb58: string) => utils.bufferToHex(utils.base58check.decode(cb58));
 const add0x = (hex: string): `0x${string}` => hex.startsWith('0x') ? hex as `0x${string}` : `0x${hex}`;
 
-export default function InitValidatorSet() {
+const metadata: ConsoleToolMetadata = {
+    title: "Initialize Validator Set",
+    description: "Initialize the ValidatorManager contract with the initial validator set",
+    walletRequirements: [
+        WalletRequirementsConfigKey.EVMChainBalance
+    ]
+};
+
+function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
     const [conversionTxID, setConversionTxID] = useState<string>("");
     const [L1ConversionSignature, setL1ConversionSignature] = useState<string>("");
     const viemChain = useViemChainStore();
-    const { coreWalletClient, publicClient } = useWalletStore();
+    const { publicClient } = useWalletStore();
+    const { coreWalletClient } = useConnectedWallet();
     const { aggregateSignature } = useAvaCloudSDK();
     const [isInitializing, setIsInitializing] = useState(false);
     const [txHash, setTxHash] = useState<string | null>(null);
@@ -44,11 +53,6 @@ export default function InitValidatorSet() {
     const { sendCoreWalletNotSetNotification, notify } = useConsoleNotifications();
 
     async function aggSigs() {
-        if (!coreWalletClient) {
-            sendCoreWalletNotSetNotification();
-            return;
-        }
-
         setL1ConversionSignatureError("");
         setIsAggregating(true);
 
@@ -161,6 +165,7 @@ export default function InitValidatorSet() {
                     throw new Error(`Transaction failed: ${decodedError}`);
                 }
 
+                onSuccess?.();
                 return hash;
             } catch (err) {
                 setError((err as Error).message);
@@ -171,13 +176,7 @@ export default function InitValidatorSet() {
     };
 
     return (
-        <CheckWalletRequirements configKey={[
-            WalletRequirementsConfigKey.EVMChainBalance,
-        ]}>
-            <Container
-                title="Initialize Validator Set"
-                description="This will initialize the ValidatorManager contract."
-            >
+        <>
                 <Steps>
                     <Step>
                         <h2 className="text-lg font-semibold">Step 1: Aggregate Signature of Conversion Data</h2>
@@ -237,10 +236,11 @@ export default function InitValidatorSet() {
                         </div>
                     )
                 }
-            </Container>
-        </CheckWalletRequirements>
+        </>
     );
 }
+
+export default withConsoleToolMetadata(InitValidatorSet, metadata);
 
 
 const debugTraceAndDecode = async (txHash: string, rpcEndpoint: string) => {

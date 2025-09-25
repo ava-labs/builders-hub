@@ -50,6 +50,7 @@ import TestSend from '@/components/toolbox/console/ictt/token-transfer/TestSend'
 import TeleporterRegistry from '@/components/toolbox/console/icm/setup/TeleporterRegistry';
 import ICMRelayer from '@/components/toolbox/console/icm/setup/ICMRelayer';
 import Faucet from '@/components/toolbox/console/primary-network/Faucet';
+import CreateManagedTestnetNode from '@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/CreateManagedTestnetNode';
 
 export const dynamicParams = false;
 
@@ -59,6 +60,7 @@ const toolboxComponents = {
   GenesisBuilder,
   CreateChain,
   AvalancheGoDocker,
+  CreateManagedTestnetNode,
   ConvertToL1: ConvertSubnetToL1,
   DeployExampleERC20,
   DeployTokenHome,
@@ -128,6 +130,7 @@ export default async function Page(props: {
         title={page.data.title}
         pagePath={`/academy/${page.slugs.join('/')}`}
         editUrl={editUrl}
+        pageType="academy"
         onRateAction={async (url, feedback) => {
           'use server';
           await posthog.capture('on_rate_document', feedback);

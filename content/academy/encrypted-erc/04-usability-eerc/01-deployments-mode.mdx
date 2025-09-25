@@ -1,0 +1,37 @@
+---
+title: Deployment Modes of eERC
+description: Understanding Standalone and Converter deployment modes of eERC in the Avalanche ecosystem.
+updated: 2025-09-02
+authors: [alejandro99so]
+icon: Split
+---
+
+The **eERC** standard offers two deployment modes to fit different project needs: **Standalone Mode** and **Converter Mode**.  
+Both deliver encrypted balances and private transfers, but they differ in how the token is created and used.
+
+---
+
+## Standalone Mode
+- Token is **private from creation**, all balances and amounts are encrypted from the first mint.
+- Uses **ElGamal encryption** over the **BabyJubJub** curve for privacy.
+- Transaction proofs use **Poseidon hashing** for efficiency in zk-SNARKs.
+- **Optional hidden total supply** to prevent public insight into circulation.
+- Best suited for:
+  - Enterprise payment systems.
+  - Regulated financial assets with selective auditor access.
+  - Private gaming economies on Avalanche L1s.
+
+---
+
+## Converter Mode
+- Wraps an **existing ERC-20 token** into an encrypted form.
+- Allows private transfers using the eERC format while preserving the option to unwrap back to the public ERC-20.
+- Uses the same encryption and proof flow as Standalone Mode.
+- Best suited for:
+  - Adding privacy to an already deployed public token.
+  - Hybrid systems where some transactions are public and others private.
+  - Bridging between public liquidity pools and private markets.
+
+---
+
+In the **next section**, we will explore **Use Cases of eERC**, including examples from Avalanche C-Chain Mainnet, Fuji (Testnet), and custom L1 deployments, along with a step-by-step view of a private transfer flow.

@@ -9,7 +9,6 @@ icon: Terminal
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Button } from '@/components/ui/button';
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
-import ManagedTestnetNodes from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes";
 import AvalancheGoDocker from "@/components/toolbox/console/layer-1/AvalancheGoDockerL1";
 import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain";
 
@@ -73,7 +72,7 @@ Launch a node to track your Subnet. This node will become a validator for your S
 Use our *free managed testnet infrastructure* - no Docker installation or AWS account required:
 
 <ToolboxMdxWrapper walletMode="testnet-mainnet">
-    <ManagedTestnetNodes />
+    <CreateManagedTestnetNode />
 </ToolboxMdxWrapper>
 
 **Managing Your Nodes**
@@ -101,4 +100,16 @@ For production environments or extended testing periods, you should use Docker t
 
 - **P-Chain Registry**: All validators and blockchains are registered on the P-Chain
 - **Subnet Foundation**: Your Subnet provides the blockchain infrastructure necessary for this course
-- **Managed Infrastructure or Self-Hosted**: Builder Hub provides free managed testnet nodes, eliminating the need for Docker or AWS setup - you can also choose to run it yourself.
+- **Managed Infrastructure or Self-Hosted**: Builder Hub provides free managed testnet nodes,
+  eliminating the need for Docker or AWS setup - you can also choose to run it yourself.
+
+## Optional Alternative: Self-Hosted Infrastructure
+
+The free managed testnet nodes are a great option for playing around with Avalanche L1s, but are not
+intended for running on production environments. They are shut down automatically after 3 days. If you want to test out your production environment, running beyond 3 days, or anything more complex you should run nodes on your own infrastructure
+using Docker:
+
+<ToolboxMdxWrapper walletMode="testnet-mainnet">
+    <AvalancheGoDocker />
+</ToolboxMdxWrapper>
+

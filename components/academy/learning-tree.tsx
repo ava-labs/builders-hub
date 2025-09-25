@@ -3,145 +3,36 @@
 import React from "react";
 import Link from "next/link";
 import { cn } from "@/utils/cn";
-import { ArrowRight, BookOpen, Code, Layers, ChevronDown, ArrowLeftRight, Coins } from "lucide-react";
+import { ArrowRight, ChevronDown, GraduationCap, BookOpen, Shield } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-interface CourseNode {
-  id: string;
-  name: string;
-  description: string;
-  slug: string;
-  category: string;
-  dependencies?: string[];
-  position: { x: number; y: number };
-  mobileOrder?: number;
+// CourseNode interface definition
+export interface CourseNode {
+    id: string;
+    name: string;
+    description: string;
+    slug: string;
+    category: string;
+    position: { x: number; y: number };
+    dependencies?: string[];
+    mobileOrder: number;
 }
 
-const learningPaths: CourseNode[] = [
-  // Foundation Layer
-  {
-    id: "blockchain-fundamentals",
-    name: "Blockchain Fundamentals",
-    description: "Start here to learn about blockchain and solidity basics",
-    slug: "blockchain-fundamentals",
-    category: "Fundamentals",
-    position: { x: 50, y: 0 },
-    mobileOrder: 1
-  },
+// Import configs
+import { avalancheLearningPaths, avalancheCategoryStyles } from './learning-path-configs/avalanche-developer.config';
+import { entrepreneurLearningPaths, entrepreneurCategoryStyles } from './learning-path-configs/codebase-entrepreneur.config';
 
-  // Second Layer - Avalanche Fundamentals
-  {
-    id: "avalanche-fundamentals",
-    name: "Avalanche Fundamentals",
-    description: "Learn about Avalanche Consensus, Multi-Chain Architecture, and VMs",
-    slug: "avalanche-fundamentals",
-    category: "Fundamentals",
-    dependencies: ["blockchain-fundamentals"],
-    position: { x: 50, y: 150 },
-    mobileOrder: 2
-  },
+interface LearningTreeProps {
+  pathType?: 'avalanche' | 'entrepreneur';
+}
 
-  // Third Layer - Branching paths
-  {
-    id: "interchain-messaging",
-    name: "Interchain Messaging",
-    description: "Build apps leveraging Avalanche's Interchain Messaging",
-    slug: "interchain-messaging",
-    category: "Interoperability",
-    dependencies: ["avalanche-fundamentals"],
-    position: { x: 15, y: 350 },
-    mobileOrder: 3
-  },
-  {
-    id: "permissioned-l1s",
-    name: "Permissioned L1s",
-    description: "Create and manage permissioned blockchains with Proof of Authority",
-    slug: "permissioned-l1s",
-    category: "L1 Development",
-    dependencies: ["avalanche-fundamentals"],
-    position: { x: 40, y: 350 },
-    mobileOrder: 7
-  },
-  {
-    id: "l1-tokenomics",
-    name: "L1 Tokenomics",
-    description: "Design L1 economics with transaction fees and staking",
-    slug: "l1-tokenomics",
-    category: "L1 Tokenomics",
-    dependencies: ["avalanche-fundamentals"],
-    position: { x: 65, y: 350 },
-    mobileOrder: 6
-  },
-  {
-    id: "customizing-evm",
-    name: "Customizing the EVM",
-    description: "Add custom precompiles and configure the EVM",
-    slug: "customizing-evm",
-    category: "VM Customization",
-    dependencies: ["avalanche-fundamentals"],
-    position: { x: 90, y: 350 },
-    mobileOrder: 8
-  },
-
-  // Fourth Layer - Advanced topics (adjusted for no overlap)
-  {
-    id: "interchain-token-transfer",
-    name: "Interchain Token Transfer",
-    description: "Transfer assets between chains using Interchain Messaging",
-    slug: "interchain-token-transfer",
-    category: "Interoperability",
-    dependencies: ["interchain-messaging"],
-    position: { x: 5, y: 550 },
-    mobileOrder: 4
-  },
-  {
-    id: "icm-chainlink",
-    name: "Chainlink via ICM",
-    description: "Use Chainlink services on an L1 through the Interchain Messaging",
-    slug: "icm-chainlink",
-    category: "Interoperability",
-    dependencies: ["interchain-messaging"],
-    position: { x: 35, y: 550 },
-    mobileOrder: 5
-  },
-];
-
-const categoryStyles = {
-  "Fundamentals": {
-    gradient: "from-blue-500 to-blue-600",
-    icon: BookOpen,
-    lightBg: "bg-blue-50",
-    darkBg: "dark:bg-blue-950/30"
-  },
-  "Interoperability": {
-    gradient: "from-purple-500 to-purple-600",
-    icon: ArrowLeftRight,
-    lightBg: "bg-purple-50",
-    darkBg: "dark:bg-purple-950/30"
-  },
-  "L1 Development": {
-    gradient: "from-emerald-500 to-emerald-600",
-    icon: Layers,
-    lightBg: "bg-emerald-50",
-    darkBg: "dark:bg-emerald-950/30"
-  },
-  "L1 Tokenomics": {
-    gradient: "from-red-400 to-red-500",
-    icon: Coins,
-    lightBg: "bg-red-50",
-    darkBg: "dark:bg-red-950/30"
-  },
-  "VM Customization": {
-    gradient: "from-orange-500 to-orange-600",
-    icon: Code,
-    lightBg: "bg-orange-50",
-    darkBg: "dark:bg-orange-950/30"
-  }
-};
-
-export default function LearningTree() {
+export default function LearningTree({ pathType = 'avalanche' }: LearningTreeProps) {
   const [hoveredNode, setHoveredNode] = React.useState<string | null>(null);
   const isMobile = useIsMobile();
+
+  // Select the appropriate learning paths and styles based on pathType
+  const learningPaths = pathType === 'avalanche' ? avalancheLearningPaths : entrepreneurLearningPaths;
+  const categoryStyles = pathType === 'avalanche' ? avalancheCategoryStyles : entrepreneurCategoryStyles;
 
   // Function to get all ancestor nodes (dependencies) of a given node
   const getAncestors = (nodeId: string, ancestors: Set<string> = new Set()): Set<string> => {
@@ -171,7 +62,32 @@ export default function LearningTree() {
   }, [hoveredNode]);
 
   // Calculate SVG dimensions based on node positions
-  const maxY = Math.max(...learningPaths.map(node => node.position.y)) + 200;
+  const maxY = Math.max(...learningPaths.map(node => node.position.y)) + 250;
+
+  // Legend component
+  const Legend = ({ isMobile = false }: { isMobile?: boolean }) => (
+    <div className={isMobile ? "mt-8 grid grid-cols-2 gap-3" : "flex flex-wrap gap-6 justify-center"}>
+      {Object.entries(categoryStyles).map(([category, style]) => {
+        const Icon = style.icon;
+        return (
+          <div key={category} className="flex items-center gap-2">
+            <div className={cn(
+              isMobile ? "w-6 h-6" : "w-8 h-8",
+              "rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm",
+              isMobile && "flex-shrink-0",
+              style.gradient
+            )}>
+              <Icon className={isMobile ? "w-3 h-3 text-white" : "w-4 h-4 text-white"} />
+            </div>
+            <span className={cn(
+              isMobile ? "text-xs" : "text-sm",
+              "font-medium text-zinc-600 dark:text-zinc-400"
+            )}>{category}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
 
   const drawConnections = () => {
     const connections: React.JSX.Element[] = [];
@@ -198,34 +114,25 @@ export default function LearningTree() {
             // Calculate control points for curved path
             const midY = (parentBottomY + childTopY) / 2;
 
+            // Adjust the end point to account for arrow marker
+            const adjustedChildTopY = childTopY + (isActive ? 6 : 5); // Account for marker size
+
             // Create a curved path
-            const pathData = `M ${parentCenterX} ${parentBottomY} C ${parentCenterX} ${midY}, ${childCenterX} ${midY}, ${childCenterX} ${childTopY}`;
+            const pathData = `M ${parentCenterX} ${parentBottomY} C ${parentCenterX} ${midY}, ${childCenterX} ${midY}, ${childCenterX} ${adjustedChildTopY}`;
 
             connections.push(
-              <g key={`${depId}-${node.id}`}>
-                {/* Main path - thin and elegant */}
-                <path
-                  d={pathData}
-                  fill="none"
-                  stroke={isActive ? "rgb(99, 102, 241)" : "rgb(226, 232, 240)"}
-                  strokeWidth={isActive ? "1.5" : "1"}
-                  opacity={isActive ? "1" : "0.5"}
-                  className="transition-all duration-700 ease-in-out"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-
-                {/* Arrow marker at the end */}
-                {isActive && (
-                  <circle
-                    cx={childCenterX}
-                    cy={childTopY}
-                    r="2"
-                    fill="rgb(99, 102, 241)"
-                    className="transition-all duration-700 ease-in-out"
-                  />
-                )}
-              </g>
+              <path
+                key={`${depId}-${node.id}`}
+                d={pathData}
+                fill="none"
+                stroke={isActive ? "rgb(99, 102, 241)" : "rgb(226, 232, 240)"}
+                strokeWidth={isActive ? "1.5" : "1"}
+                opacity={isActive ? "1" : "0.5"}
+                className="transition-all duration-700 ease-in-out"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                markerEnd={isActive ? "url(#arrow-active)" : "url(#arrow-inactive)"}
+              />
             );
           }
         });
@@ -251,12 +158,27 @@ export default function LearningTree() {
                 {/* Connection line from previous course */}
                 {index > 0 && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <ChevronDown className="w-4 h-4 text-zinc-400 dark:text-zinc-600" />
+                    <svg width="16" height="16" viewBox="0 0 16 16" className="text-zinc-400 dark:text-zinc-600">
+                      <path
+                        d="M8 2 L8 10"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        fill="none"
+                      />
+                      <path
+                        d="M4 8 L8 12 L12 8"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        fill="none"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                      />
+                    </svg>
                   </div>
                 )}
 
                 <Link
-                  href={`/academy/${node.slug}`}
+                  href={pathType === 'entrepreneur' ? `/codebase-entrepreneur-academy/${node.slug}` : `/academy/${node.slug}`}
                   className="block relative group"
                 >
                   <div
@@ -299,24 +221,6 @@ export default function LearningTree() {
             );
           })}
         </div>
-
-        {/* Legend for mobile */}
-        <div className="mt-8 grid grid-cols-2 gap-3">
-          {Object.entries(categoryStyles).map(([category, style]) => {
-            const Icon = style.icon;
-            return (
-              <div key={category} className="flex items-center gap-2">
-                <div className={cn(
-                  "w-6 h-6 rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm flex-shrink-0",
-                  style.gradient
-                )}>
-                  <Icon className="w-3 h-3 text-white" />
-                </div>
-                <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">{category}</span>
-              </div>
-            );
-          })}
-        </div>
       </div>
     );
   };
@@ -332,6 +236,38 @@ export default function LearningTree() {
           style={{ height: `${maxY}px`, zIndex: 1 }}
           preserveAspectRatio="none"
         >
+          {/* Define arrow markers */}
+          <defs>
+            <marker
+              id="arrow-inactive"
+              viewBox="0 0 10 10"
+              refX="5"
+              refY="5"
+              markerWidth="5"
+              markerHeight="5"
+              orient="auto"
+            >
+              <path
+                d="M 0 0 L 10 5 L 0 10 z"
+                fill="rgb(226, 232, 240)"
+                opacity="0.5"
+              />
+            </marker>
+            <marker
+              id="arrow-active"
+              viewBox="0 0 10 10"
+              refX="5"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto"
+            >
+              <path
+                d="M 0 0 L 10 5 L 0 10 z"
+                fill="rgb(99, 102, 241)"
+              />
+            </marker>
+          </defs>
           {drawConnections()}
         </svg>
 
@@ -356,7 +292,7 @@ export default function LearningTree() {
               onMouseLeave={() => setHoveredNode(null)}
             >
               <Link
-                href={`/academy/${node.slug}`}
+                href={pathType === 'entrepreneur' ? `/codebase-entrepreneur-academy/${node.slug}` : `/academy/${node.slug}`}
                 className="block relative group w-full"
               >
                 <div
@@ -401,29 +337,16 @@ export default function LearningTree() {
           );
         })}
       </div>
-
-      {/* Legend */}
-      <div className="mt-8 flex flex-wrap gap-6 justify-center">
-        {Object.entries(categoryStyles).map(([category, style]) => {
-          const Icon = style.icon;
-          return (
-            <div key={category} className="flex items-center gap-2">
-              <div className={cn(
-                "w-8 h-8 rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm",
-                style.gradient
-              )}>
-                <Icon className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">{category}</span>
-            </div>
-          );
-        })}
-      </div>
     </>
   );
 
   return (
     <div className="relative w-full">
+      {/* Legend at top for all learning trees */}
+      <div className="mb-8">
+        <Legend isMobile={false} />
+      </div>
+
       {/* Mobile Layout - visible on small screens, hidden on lg and up */}
       <div className="block lg:hidden">
         <MobileLayout />

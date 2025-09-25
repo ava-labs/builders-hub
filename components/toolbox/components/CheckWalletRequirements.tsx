@@ -3,6 +3,7 @@ import { Button } from "./ui/button";
 import { CheckCircle, XCircle, Wallet, Loader2, CircleMinus } from "lucide-react";
 import { useWalletRequirements, type WalletRequirementsConfigKey } from "../hooks/useWalletRequirements";
 import { useWalletStore } from "../stores/walletStore";
+import { ConnectedWalletProvider } from "../contexts/ConnectedWalletContext";
 
 interface CheckWalletRequirementsProps {
     children: React.ReactNode;
@@ -278,5 +279,9 @@ export const CheckWalletRequirements = ({
         );
     }
 
-    return <>{children}</>;
+    return (
+        <ConnectedWalletProvider>
+            {children}
+        </ConnectedWalletProvider>
+    );
 }; 

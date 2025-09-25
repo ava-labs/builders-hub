@@ -6,7 +6,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
 import PoAManagerABI from "@/contracts/icm-contracts/compiled/PoAManager.json";
-import { Container } from "@/components/toolbox/components/Container";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { Success } from "@/components/toolbox/components/Success";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
@@ -16,17 +15,28 @@ import { useValidatorManagerDetails } from "@/components/toolbox/hooks/useValida
 import { ValidatorManagerDetails } from "@/components/toolbox/components/ValidatorManagerDetails";
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
 import SelectSafeWallet, { SafeSelection } from "@/components/toolbox/components/SelectSafeWallet";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 
-export default function DeployPoAManager() {
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
+
+const metadata: ConsoleToolMetadata = {
+    title: "Deploy PoA Manager",
+    description: "Deploy and initialize the PoAManager contract to manage Proof of Authority validators",
+    walletRequirements: [
+        WalletRequirementsConfigKey.EVMChainBalance
+    ]
+};
+
+function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const {
         poaManagerAddress,
         setPoaManagerAddress
     } = useToolboxStore();
-    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
+    const { publicClient, walletEVMAddress } = useWalletStore();
+    const { coreWalletClient } = useConnectedWallet();
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
     const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
     const [isDeploying, setIsDeploying] = useState(false);
@@ -73,11 +83,6 @@ export default function DeployPoAManager() {
     }, [poaManagerAddress]);
 
     async function deployPoAManager() {
-        if (!coreWalletClient) {
-            setCriticalError(new Error('Core wallet not found'));
-            return;
-        }
-
         if (!safeSelection.safeAddress) {
             setSafeError("Select an Ash account (Safe) to deploy");
             return;
@@ -117,6 +122,7 @@ export default function DeployPoAManager() {
             setPoaManagerAddress(receipt.contractAddress);
             setIsInitialized(true);
             setVerifiedOwner(ownerAddress);
+            onSuccess?.();
         } catch (error) {
             setCriticalError(error instanceof Error ? error : new Error(String(error)));
         } finally {
@@ -148,13 +154,7 @@ export default function DeployPoAManager() {
     }
 
     return (
-        <CheckWalletRequirements configKey={[
-            WalletRequirementsConfigKey.EVMChainBalance,
-        ]}>
-            <Container
-                title="Deploy PoA Manager"
-                description="Deploy and initialize the PoAManager contract to manage Proof of Authority validators."
-            >
+        <>
                 <div className="space-y-4">
                     {/* Subnet Selection */}
                     <div className="space-y-2">
@@ -309,7 +309,8 @@ export default function DeployPoAManager() {
                         </Step>
                     </Steps>
                 </div>
-            </Container>
-        </CheckWalletRequirements>
+        </>
     );
 }
+
+export default withConsoleToolMetadata(DeployPoAManager, metadata);

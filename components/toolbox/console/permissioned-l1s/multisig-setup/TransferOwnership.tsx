@@ -6,19 +6,29 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { ResultField } from "@/components/toolbox/components/ResultField";
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
-import { Container } from "@/components/toolbox/components/Container";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId";
 import { useValidatorManagerDetails } from "@/components/toolbox/hooks/useValidatorManagerDetails";
 import { ValidatorManagerDetails } from "@/components/toolbox/components/ValidatorManagerDetails";
 import { TransactionReceipt } from "viem";
 import { AlertCircle, Info } from "lucide-react";
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-export default function TransferOwnership() {
+
+const metadata: ConsoleToolMetadata = {
+    title: "Transfer Validator Manager Ownership",
+    description: "Transfer the ownership of the Validator Manager to a new address (EOA, StakingManager, or PoAManager)",
+    walletRequirements: [
+        WalletRequirementsConfigKey.EVMChainBalance
+    ]
+};
+
+function TransferOwnership({ onSuccess }: BaseConsoleToolProps) {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
-    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
+    const { publicClient, walletEVMAddress } = useWalletStore();
+    const { coreWalletClient } = useConnectedWallet();
     const [isTransferring, setIsTransferring] = useState(false);
     const [selectedSubnetId, setSelectedSubnetId] = useState<string>('');
     const [newOwnerAddress, setNewOwnerAddress] = useState<string>('');
@@ -90,11 +100,6 @@ export default function TransferOwnership() {
     }, [newOwnerAddress, publicClient]);
 
     async function handleTransferOwnership() {
-        if (!coreWalletClient) {
-            setCriticalError(new Error('Core wallet not found'));
-            return;
-        }
-
         setIsTransferring(true);
         try {
             const transferPromise = coreWalletClient.writeContract({
@@ -133,13 +138,7 @@ export default function TransferOwnership() {
         (isCurrentUserOwner || isOwnerContract || isLoadingOwnership); // Allow contract owners and loading states
 
     return (
-        <CheckWalletRequirements configKey={[
-            WalletRequirementsConfigKey.EVMChainBalance,
-        ]}>
-            <Container
-                title="Transfer Validator Manager Ownership"
-                description="This will transfer the ownership of the Validator Manager to a new address, which could be an EOA, StakingManager or PoAManager."
-            >
+        <>
                 <div className="space-y-4">
                     <SelectSubnetId
                         value={selectedSubnetId}
@@ -221,8 +220,9 @@ export default function TransferOwnership() {
                         showCheck={!!receipt.transactionHash}
                     />
                 )}
-            </Container>
-        </CheckWalletRequirements>
+        </>
     );
-};
+}
+
+export default withConsoleToolMetadata(TransferOwnership, metadata);
 

@@ -9,20 +9,28 @@ import { Success } from "@/components/toolbox/components/Success";
 import TeleporterRegistryBytecode from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterRegistry_Bytecode_v1.0.0.txt.json';
 import TeleporterMessengerAddress from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
 import TeleporterRegistryManualyCompiled from '@/contracts/icm-contracts/compiled/TeleporterRegistry.json';
-import { Container } from "@/components/toolbox/components/Container";
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import versions from '@/scripts/versions.json';
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 const TELEPORTER_REGISTRY_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/teleporter/registry/TeleporterRegistry.sol`;
 
+const metadata: ConsoleToolMetadata = {
+    title: "Deploy ICM Registry",
+    description: "Deploy the ICM Registry contract to your L1",
+    walletRequirements: [
+        WalletRequirementsConfigKey.EVMChainBalance
+    ]
+};
 
-export default function TeleporterRegistry() {
+function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const { setTeleporterRegistryAddress, teleporterRegistryAddress } = useToolboxStore();
-    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
+    const { publicClient, walletEVMAddress } = useWalletStore();
+    const { coreWalletClient } = useConnectedWallet();
     const [isDeploying, setIsDeploying] = useState(false);
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1()();
@@ -33,11 +41,6 @@ export default function TeleporterRegistry() {
     }
 
     async function handleDeploy() {
-        if (!coreWalletClient) {
-            setCriticalError(new Error('Core wallet not found'));
-            return;
-        }
-
         setIsDeploying(true);
         setTeleporterRegistryAddress("");
         try {
@@ -66,6 +69,7 @@ export default function TeleporterRegistry() {
             }
 
             setTeleporterRegistryAddress(receipt.contractAddress);
+            onSuccess?.();
         } catch (error) {
             setCriticalError(error instanceof Error ? error : new Error(String(error)));
         } finally {
@@ -74,35 +78,30 @@ export default function TeleporterRegistry() {
     }
 
     return (
-        <CheckWalletRequirements configKey={[
-            WalletRequirementsConfigKey.EVMChainBalance,
-        ]}>
-            <Container
-                title="Deploy ICM Registry"
-                description="Deploy the ICM Registry contract to your L1."
-            >
-                <div className="space-y-4">
-                    <div className="mb-4">
-                        This will deploy the <code>TeleporterRegistry</code> contract to the EVM network #<code>{selectedL1?.evmChainId}</code>.
-                        The contract will be initialized with the Teleporter Messenger address <code>{TeleporterMessengerAddress.content.trim()}</code>.
-                    </div>
-                    <p className="text-sm text-gray-500">
-                        Contract source: <a href={TELEPORTER_REGISTRY_SOURCE_URL} target="_blank" rel="noreferrer">TeleporterRegistry.sol</a> @ <code>{ICM_COMMIT.slice(0, 7)}</code>
-                    </p>
-                    <Button
-                        variant="primary"
-                        onClick={handleDeploy}
-                        loading={isDeploying}
-                        disabled={isDeploying}
-                    >
-                        {teleporterRegistryAddress ? "Redeploy" : "Deploy"} TeleporterRegistry
-                    </Button>
+        <>
+            <div className="space-y-4">
+                <div className="mb-4">
+                    This will deploy the <code>TeleporterRegistry</code> contract to the EVM network #<code>{selectedL1?.evmChainId}</code>.
+                    The contract will be initialized with the Teleporter Messenger address <code>{TeleporterMessengerAddress.content.trim()}</code>.
                 </div>
-                <Success
-                    label="TeleporterRegistry Address"
-                    value={teleporterRegistryAddress}
-                />
-            </Container>
-        </CheckWalletRequirements>
+                <p className="text-sm text-gray-500">
+                    Contract source: <a href={TELEPORTER_REGISTRY_SOURCE_URL} target="_blank" rel="noreferrer">TeleporterRegistry.sol</a> @ <code>{ICM_COMMIT.slice(0, 7)}</code>
+                </p>
+                <Button
+                    variant="primary"
+                    onClick={handleDeploy}
+                    loading={isDeploying}
+                    disabled={isDeploying}
+                >
+                    {teleporterRegistryAddress ? "Redeploy" : "Deploy"} TeleporterRegistry
+                </Button>
+            </div>
+            <Success
+                label="TeleporterRegistry Address"
+                value={teleporterRegistryAddress}
+            />
+        </>
     );
 }
+
+export default withConsoleToolMetadata(TeleporterRegistry, metadata);

@@ -6,7 +6,6 @@ authors: [owenwahlgren]
 icon: Terminal
 ---
 
-import ManagedTestnetNodes from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes";
 import AvalancheGoDocker from "@/components/toolbox/console/layer-1/AvalancheGoDockerL1";
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
 
@@ -22,16 +21,18 @@ Use our free managed testnet infrastructure to instantly deploy a node for your 
 - Monitor and manage through the [Builder Console](/console/testnet-infra/nodes)
 
 <ToolboxMdxWrapper walletMode="testnet-mainnet">
-    <ManagedTestnetNodes />
+    <CreateManagedTestnetNode />
 </ToolboxMdxWrapper>
 
 <Callout type="warning">
 Managed nodes automatically shut down after 3 days. For production or extended testing, see the self-hosted option below.
 </Callout>
 
-## Optional: Self-Hosted Infrastructure
+## Optional Alternative: Self-Hosted Infrastructure
 
-If you want to test out your production environment, running beyond 3 days, or anything more complex; you should run nodes on your own infrastructure using Docker:
+The free managed testnet nodes are a great option for playing around with Avalanche L1s, but are not
+intended for running on production environments. They are shut down automatically after 3 days. If you want to test out your production environment, running beyond 3 days, or anything more complex you should run nodes on your own infrastructure
+using Docker:
 
 <ToolboxMdxWrapper walletMode="testnet-mainnet">
     <AvalancheGoDocker />

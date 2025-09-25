@@ -3,24 +3,27 @@
 import { useState } from "react";
 import { useWalletStore } from "../stores/walletStore";
 import { useViemChainStore } from "../stores/toolboxStore";
-import { Container } from "./Container";
 import { Button } from "./Button";
 import { EVMAddressInput } from "./EVMAddressInput";
 import { ResultField } from "./ResultField";
 import allowListAbi from "../../../contracts/precompiles/AllowList.json";
+import { useConnectedWallet } from "../contexts/ConnectedWalletContext";
 
 // Component for setting Enabled permissions
 export function SetEnabledComponent({
   precompileAddress,
   precompileType = "precompiled contract",
   abi = allowListAbi.abi,
+  onSuccess,
 }: {
   precompileAddress: string;
   precompileType?: string;
   abi?: any;
+  onSuccess?: () => void;
 }) {
-  const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } =
+  const { publicClient, walletEVMAddress, walletChainId } =
     useWalletStore();
+  const { coreWalletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [isProcessing, setIsProcessing] = useState(false);
   const [enabledAddress, setEnabledAddress] = useState<string>("");
@@ -28,16 +31,11 @@ export function SetEnabledComponent({
   const [error, setError] = useState<string | null>(null);
 
   const handleSetEnabled = async () => {
-    if (!coreWalletClient) {
-      setError('Core wallet not found');
-      return;
-    }
-
     setIsProcessing(true);
     setError(null);
 
     try {
-      const hash = await (coreWalletClient as any).writeContract({
+      const hash = await coreWalletClient.writeContract({
         address: precompileAddress as `0x${string}`,
         abi: abi,
         functionName: "setEnabled",
@@ -51,6 +49,7 @@ export function SetEnabledComponent({
 
       if (receipt.status === "success") {
         setTxHash(hash);
+        onSuccess?.();
       } else {
         setError("Transaction failed");
       }
@@ -75,15 +74,11 @@ export function SetEnabledComponent({
   const canSetEnabled = Boolean(
     enabledAddress &&
     walletEVMAddress &&
-    coreWalletClient &&
     !isProcessing
   );
 
   return (
-    <Container
-      title={`Set Enabled ${precompileType}`}
-      description={`These addresses can use the ${precompileType} (e.g., mint native tokens) but cannot modify the allow list.`}
-    >
+    <>
       <div className="space-y-4">
         {error && (
           <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
@@ -115,7 +110,7 @@ export function SetEnabledComponent({
           />
         )}
       </div>
-    </Container>
+    </>
   );
 };
 
@@ -124,13 +119,16 @@ export function SetManagerComponent({
   precompileAddress,
   precompileType = "precompiled contract",
   abi = allowListAbi.abi,
+  onSuccess,
 }: {
   precompileAddress: string;
   precompileType?: string;
   abi?: any;
+  onSuccess?: () => void;
 }) {
-  const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } =
+  const { publicClient, walletEVMAddress, walletChainId } =
     useWalletStore();
+  const { coreWalletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [isProcessing, setIsProcessing] = useState(false);
   const [managerAddress, setManagerAddress] = useState<string>("");
@@ -138,11 +136,6 @@ export function SetManagerComponent({
   const [error, setError] = useState<string | null>(null);
 
   const handleSetManager = async () => {
-    if (!coreWalletClient) {
-      setError('Core wallet not found');
-      return;
-    }
-
     setIsProcessing(true);
     setError(null);
 
@@ -161,6 +154,7 @@ export function SetManagerComponent({
 
       if (receipt.status === "success") {
         setTxHash(hash);
+        onSuccess?.();
       } else {
         setError("Transaction failed");
       }
@@ -185,15 +179,11 @@ export function SetManagerComponent({
   const canSetManager = Boolean(
     managerAddress &&
     walletEVMAddress &&
-    coreWalletClient &&
     !isProcessing
   );
 
   return (
-    <Container
-      title={`Set Manager ${precompileType}`}
-      description={`These addresses can add or remove Enabled addresses but cannot modify Admins or Managers.`}
-    >
+    <>
       <div className="space-y-4">
         {error && (
           <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
@@ -225,7 +215,7 @@ export function SetManagerComponent({
           />
         )}
       </div>
-    </Container>
+    </>
   );
 }
 
@@ -234,13 +224,16 @@ export function SetAdminComponent({
   precompileAddress,
   precompileType = "precompiled contract",
   abi = allowListAbi.abi,
+  onSuccess,
 }: {
   precompileAddress: string;
   precompileType?: string;
   abi?: any;
+  onSuccess?: () => void;
 }) {
-  const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } =
+  const { publicClient, walletEVMAddress, walletChainId } =
     useWalletStore();
+  const { coreWalletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [isProcessing, setIsProcessing] = useState(false);
   const [adminAddress, setAdminAddress] = useState<string>("");
@@ -248,11 +241,6 @@ export function SetAdminComponent({
   const [error, setError] = useState<string | null>(null);
 
   const handleSetAdmin = async () => {
-
-    if (!coreWalletClient) {
-      setError('Core wallet not found');
-      return;
-    }
 
     setIsProcessing(true);
     setError(null);
@@ -272,6 +260,7 @@ export function SetAdminComponent({
 
       if (receipt.status === "success") {
         setTxHash(hash);
+        onSuccess?.();
       } else {
         setError("Transaction failed");
       }
@@ -296,15 +285,11 @@ export function SetAdminComponent({
   const canSetAdmin = Boolean(
     adminAddress &&
     walletEVMAddress &&
-    coreWalletClient &&
     !isProcessing
   );
 
   return (
-    <Container
-      title={`Set Admin ${precompileType}`}
-      description={`These addresses have full control over the allow list, including the ability to add or remove Admins, Managers, and Enabled addresses.`}
-    >
+    <>
       <div className="space-y-4">
         {error && (
           <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
@@ -336,7 +321,7 @@ export function SetAdminComponent({
           />
         )}
       </div>
-    </Container>
+    </>
   );
 }
 
@@ -345,13 +330,16 @@ export function RemoveAllowListComponent({
   precompileAddress,
   precompileType = "precompiled contract",
   abi = allowListAbi.abi,
+  onSuccess,
 }: {
   precompileAddress: string;
   precompileType?: string;
   abi?: any;
+  onSuccess?: () => void;
 }) {
-  const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } =
+  const { publicClient, walletEVMAddress, walletChainId } =
     useWalletStore();
+  const { coreWalletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [isProcessing, setIsProcessing] = useState(false);
   const [removeAddress, setRemoveAddress] = useState<string>("");
@@ -359,12 +347,6 @@ export function RemoveAllowListComponent({
   const [error, setError] = useState<string | null>(null);
 
   const handleRemove = async () => {
-
-    if (!coreWalletClient) {
-      setError('Core wallet not found');
-      return;
-    }
-
     setIsProcessing(true);
     setError(null);
 
@@ -383,6 +365,7 @@ export function RemoveAllowListComponent({
 
       if (receipt.status === "success") {
         setTxHash(hash);
+        onSuccess?.();
       } else {
         setError("Transaction failed");
       }
@@ -407,15 +390,11 @@ export function RemoveAllowListComponent({
   const canRemove = Boolean(
     removeAddress &&
     walletEVMAddress &&
-    coreWalletClient &&
     !isProcessing
   );
 
   return (
-    <Container
-      title={`Remove from ${precompileType} Allowlist`}
-      description={`Remove all permissions for an address. This will prevent the address from using the ${precompileType} or modifying the allow list.`}
-    >
+    <>
       <div className="space-y-4">
         {error && (
           <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
@@ -447,7 +426,7 @@ export function RemoveAllowListComponent({
           />
         )}
       </div>
-    </Container>
+    </>
   );
 }
 
@@ -495,10 +474,7 @@ export function ReadAllowListComponent({
   const canRead = Boolean(readAddress && !isReading);
 
   return (
-    <Container
-      title={`Read ${precompileType} Allowlist`}
-      description={`Check the current role of an address in the ${precompileType} allow list. Roles include Admin, Manager, Enabled, or None.`}
-    >
+    <>
       <div className="space-y-4">
         {error && (
           <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
@@ -537,7 +513,7 @@ export function ReadAllowListComponent({
           </div>
         )}
       </div>
-    </Container>
+    </>
   );
 }
 
@@ -546,10 +522,12 @@ export function AllowlistComponent({
   precompileAddress,
   precompileType = "precompiled contract",
   abi = allowListAbi.abi,
+  onSuccess,
 }: {
   precompileAddress: string;
   precompileType?: string;
   abi?: any;
+  onSuccess?: () => void;
 }) {
   return (
     <div className="space-y-6">
@@ -559,21 +537,25 @@ export function AllowlistComponent({
             precompileAddress={precompileAddress}
             precompileType={precompileType}
             abi={abi}
+            onSuccess={onSuccess}
           />
           <SetManagerComponent
             precompileAddress={precompileAddress}
             precompileType={precompileType}
             abi={abi}
+            onSuccess={onSuccess}
           />
           <SetAdminComponent
             precompileAddress={precompileAddress}
             precompileType={precompileType}
             abi={abi}
+            onSuccess={onSuccess}
           />
           <RemoveAllowListComponent
             precompileAddress={precompileAddress}
             precompileType={precompileType}
             abi={abi}
+            onSuccess={onSuccess}
           />
           <ReadAllowListComponent
             precompileAddress={precompileAddress}

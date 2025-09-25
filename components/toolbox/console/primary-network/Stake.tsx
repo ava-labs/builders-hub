@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/toolbox/components/Button'
 import { Input } from '@/components/toolbox/components/Input'
-import { Container } from '@/components/toolbox/components/Container'
-import { CheckWalletRequirements } from '@/components/toolbox/components/CheckWalletRequirements'
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements'
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../components/WithConsoleToolMetadata'
 import { useWalletStore } from '@/components/toolbox/stores/walletStore'
 import { Success } from '@/components/toolbox/components/Success'
 import { useWallet } from '@/components/toolbox/hooks/useWallet'
@@ -46,8 +45,16 @@ const MAX_END_SECONDS = 365 * 24 * 60 * 60 // 1 year
 const DEFAULT_DELEGATOR_REWARD_PERCENTAGE = "2"
 const BUFFER_MINUTES = 5
 
-export default function Stake() {
-  const { coreWalletClient, pChainAddress, isTestnet, avalancheNetworkID, walletEVMAddress } = useWalletStore()
+const metadata: ConsoleToolMetadata = {
+  title: "Stake on Primary Network",
+  description: "Stake AVAX as a validator on Avalanche's Primary Network to secure the network and earn rewards",
+  walletRequirements: [
+    WalletRequirementsConfigKey.PChainBalance
+  ]
+}
+
+function Stake({ onSuccess }: BaseConsoleToolProps) {
+  const { pChainAddress, isTestnet, avalancheNetworkID } = useWalletStore()
   const { avalancheWalletClient } = useWallet();
 
   const [validator, setValidator] = useState<ConvertToL1Validator | null>(null)
@@ -93,7 +100,7 @@ export default function Stake() {
   }
 
   const validateForm = (): string | null => {
-    if (!coreWalletClient || !pChainAddress) {
+    if (!pChainAddress) {
       return 'Connect Core Wallet to get your P-Chain address'
     }
 
@@ -184,7 +191,7 @@ export default function Stake() {
 
       const txHash = await stakePromise;
       setTxId(txHash)
-
+      onSuccess?.()
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -200,11 +207,7 @@ export default function Stake() {
   }
 
   return (
-    <CheckWalletRequirements configKey={[WalletRequirementsConfigKey.PChainBalance]}>
-      <Container
-        title="Become a Validator"
-        description="Stake AVAX to become a validator on the Primary Network"
-      >
+    <>
         <div className="space-y-6">
           <Steps>
             <Step>
@@ -344,7 +347,8 @@ export default function Stake() {
             Stake {networkName} Validator
           </Button>
         </div>
-      </Container>
-    </CheckWalletRequirements>
+    </>
   )
 }
+
+export default withConsoleToolMetadata(Stake, metadata)

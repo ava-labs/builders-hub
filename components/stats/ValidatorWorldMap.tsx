@@ -230,21 +230,24 @@ export function ValidatorWorldMap() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5" style={{ color: "#40c9ff" }} />
-              Global Validator Distribution
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <div className="min-w-0">
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+              <Globe
+                className="h-4 w-4 sm:h-5 sm:w-5"
+                style={{ color: "#40c9ff" }}
+              />
+              <span className="truncate">Global Validator Distribution</span>
             </CardTitle>
-            <CardDescription className="pt-2">
+            <CardDescription className="pt-1 sm:pt-2 text-xs sm:text-sm">
               Geographic distribution of Avalanche Primary Network validators
               worldwide
             </CardDescription>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1 sm:gap-2 shrink-0">
             <button
               onClick={() => setVisualMode("validators")}
-              className={`px-3 py-1 text-sm rounded-md transition-colors ${
+              className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors ${
                 visualMode === "validators"
                   ? "bg-primary text-primary-foreground"
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -254,7 +257,7 @@ export function ValidatorWorldMap() {
             </button>
             <button
               onClick={() => setVisualMode("stake")}
-              className={`px-3 py-1 text-sm rounded-md transition-colors ${
+              className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors ${
                 visualMode === "stake"
                   ? "bg-primary text-primary-foreground"
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -264,7 +267,7 @@ export function ValidatorWorldMap() {
             </button>
             <button
               onClick={() => setVisualMode("heatmap")}
-              className={`px-3 py-1 text-sm rounded-md transition-colors ${
+              className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors ${
                 visualMode === "heatmap"
                   ? "bg-primary text-primary-foreground"
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -276,7 +279,7 @@ export function ValidatorWorldMap() {
         </div>
       </CardHeader>
       <CardContent className="pt-4 px-0 pb-0">
-        <div className="h-[500px] w-full">
+        <div className="h-[300px] sm:h-[500px] w-full">
           <MapContainer
             center={[20, 0]}
             zoom={2}

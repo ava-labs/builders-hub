@@ -41,6 +41,7 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
   const [isLoadingValidators, setIsLoadingValidators] = useState<boolean>(false)
   const [validatorIdHexSet, setValidatorIdHexSet] = useState<Set<string>>(new Set())
   const [validatorStatusById, setValidatorStatusById] = useState<Record<string, number>>({})
+  const [fetchProgress, setFetchProgress] = useState<{ current: number; total: number } | null>(null)
   const [actionState, setActionState] = useState<Record<string, {
     isProcessing: boolean
     error?: string | null
@@ -78,8 +79,9 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
     const bootstrapFromBlock = async () => {
       try {
         const latest = await publicClient.getBlockNumber()
-        // Default to last ~9,500 blocks to stay under Avalanche's 10k eth_getLogs range limit
-        const suggested = latest > 9500n ? (latest - 9500n).toString() : '0'
+        // Default to last ~100,000 blocks to search a much wider range
+        // The fetching will handle chunking in 2000 block increments to stay under RPC limits
+        const suggested = latest > 100000n ? (latest - 100000n).toString() : '0'
         if (!cancelled) setFromBlock((prev) => (prev ? prev : suggested))
       } catch (e) {
         // ignore
@@ -139,6 +141,7 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
     setIsLoading(true)
     setError(null)
     setEvents([])
+    setFetchProgress(null)
     try {
       const startBlock = (fromBlock && fromBlock.trim().length > 0) ? BigInt(fromBlock) : 0n
       const latest = await publicClient.getBlockNumber()
@@ -146,11 +149,20 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
         setEvents([])
         return
       }
-      const CHUNK_SIZE = 9000n
+      const CHUNK_SIZE = 2000n
+      const totalBlocks = latest - startBlock
+      const totalChunks = Math.ceil(Number(totalBlocks) / Number(CHUNK_SIZE))
+      let currentChunk = 0
       let cursor = startBlock
       const allLogs: any[] = []
+      
+      console.log(`Searching ${totalBlocks} blocks (${totalChunks} chunks) from block ${startBlock} to ${latest}`)
+      
       while (cursor <= latest) {
         const to = cursor + CHUNK_SIZE > latest ? latest : cursor + CHUNK_SIZE
+        currentChunk++
+        setFetchProgress({ current: currentChunk, total: totalChunks })
+        
         const chunkLogs = await publicClient.getLogs({
           address: validatorManagerAddress as Address,
           event: initiatedEventAbi,
@@ -160,6 +172,8 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
         allLogs.push(...chunkLogs)
         cursor = to + 1n
       }
+
+      console.log(`Found ${allLogs.length} InitiatedValidatorRegistration events`)
 
       const parsed: ParsedInitiatedRegistration[] = allLogs.map((log: any) => {
         const args = (log as Log & { args?: any }).args || {}
@@ -177,6 +191,7 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
       setError((e as Error).message || 'Failed to fetch logs')
     } finally {
       setIsLoading(false)
+      setFetchProgress(null)
     }
   }
 
@@ -416,10 +431,45 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
           />
         </div>
 
-        <div className="flex items-center justify-end">
-          <Button onClick={fetchEvents} disabled={isLoading || !validatorManagerAddress || !initiatedEventAbi} className="h-10 px-4">
-            {isLoading ? 'Fetching…' : 'Fetch InitiatedValidatorRegistration'}
-          </Button>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                From Block (optional - defaults to last 100,000 blocks)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={fromBlock}
+                  onChange={(e) => setFromBlock(e.target.value)}
+                  placeholder="Enter block number or leave blank"
+                  className="flex-1 px-3 py-2 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                />
+                <button
+                  onClick={() => setFromBlock("0")}
+                  className="px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors"
+                >
+                  Search All
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="text-xs text-zinc-600 dark:text-zinc-400">
+              {fromBlock && (
+                <span>
+                  Will search from block <span className="font-mono font-medium">{fromBlock}</span> to latest
+                </span>
+              )}
+            </div>
+            <Button onClick={fetchEvents} disabled={isLoading || !validatorManagerAddress || !initiatedEventAbi} className="h-10 px-4">
+              {isLoading 
+                ? fetchProgress 
+                  ? `Fetching… (${fetchProgress.current}/${fetchProgress.total} chunks)`
+                  : 'Fetching…' 
+                : 'Fetch InitiatedValidatorRegistration'}
+            </Button>
+          </div>
         </div>
 
         {(events.length > 0) && (
@@ -520,8 +570,14 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
           </div>
         )}
 
-        {!isLoading && !error && filteredEvents.length === 0 && validatorManagerAddress && (
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">No InitiatedValidatorRegistration events found in the selected block range.</p>
+        {!isLoading && !error && events.length === 0 && validatorManagerAddress && (
+          <div className="p-3 rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-sm">
+            <p className="font-medium">No InitiatedValidatorRegistration events found</p>
+            <p className="text-xs mt-1">
+              Try searching a larger block range by entering an earlier "From Block" number above, or leave it empty to search the last 100,000 blocks. 
+              You can also enter "0" to search from the beginning of the chain.
+            </p>
+          </div>
         )}
       </div>
     </Container>

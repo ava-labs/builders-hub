@@ -7,10 +7,10 @@ import { Button } from "@/components/toolbox/components/Button";
 import { keccak256 } from 'viem';
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
 import ValidatorMessagesABI from "@/contracts/icm-contracts/compiled/ValidatorMessages.json";
-import { Container } from "@/components/toolbox/components/Container";
 import { Steps, Step } from "fumadocs-ui/components/steps";
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import versions from '@/scripts/versions.json';
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
@@ -25,9 +25,18 @@ function calculateLibraryHash(libraryPath: string) {
     return hash.slice(0, 34);
 }
 
-export default function DeployValidatorContracts() {
+const metadata: ConsoleToolMetadata = {
+    title: "Deploy Validator Contracts",
+    description: "Deploy the ValidatorMessages library and ValidatorManager contract to the EVM network",
+    walletRequirements: [
+        WalletRequirementsConfigKey.EVMChainBalance
+    ]
+};
+
+function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
     const { validatorMessagesLibAddress, setValidatorMessagesLibAddress, setValidatorManagerAddress, validatorManagerAddress } = useToolboxStore();
-    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
+    const { publicClient, walletEVMAddress } = useWalletStore();
+    const { coreWalletClient } = useConnectedWallet();
     const [isDeployingMessages, setIsDeployingMessages] = useState(false);
     const [isDeployingManager, setIsDeployingManager] = useState(false);
     const viemChain = useViemChainStore();
@@ -55,11 +64,6 @@ export default function DeployValidatorContracts() {
     };
 
     async function deployValidatorMessages() {
-        if (!coreWalletClient) {
-            sendCoreWalletNotSetNotification();
-            return;
-        }
-
         setIsDeployingMessages(true);
         setValidatorMessagesLibAddress("");
 
@@ -90,11 +94,6 @@ export default function DeployValidatorContracts() {
     }
 
     async function deployValidatorManager() {
-        if (!coreWalletClient) {
-            sendCoreWalletNotSetNotification();
-            return;
-        }
-
         setIsDeployingManager(true);
         setValidatorManagerAddress("");
 
@@ -121,16 +120,11 @@ export default function DeployValidatorContracts() {
         }
         setValidatorManagerAddress(receipt.contractAddress as string);
         setIsDeployingManager(false);
+        onSuccess?.();
     }
 
     return (
-        <CheckWalletRequirements configKey={[
-            WalletRequirementsConfigKey.EVMChainBalance,
-        ]}>
-            <Container
-                title="Deploy Validator Contracts"
-                description="Deploy the ValidatorMessages library and ValidatorManager contract to the EVM network."
-            >
+        <>
                 <div className="space-y-4">
                     <Steps>
                         <Step>
@@ -179,7 +173,8 @@ export default function DeployValidatorContracts() {
                         </Step>
                     </Steps>
                 </div>
-            </Container>
-        </CheckWalletRequirements>
+        </>
     );
 }
+
+export default withConsoleToolMetadata(DeployValidatorContracts, metadata);
