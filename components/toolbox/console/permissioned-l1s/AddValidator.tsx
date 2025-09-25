@@ -1,6 +1,6 @@
 "use client"
 import React, { useState, useMemo, useEffect } from 'react';
-import { Container } from '@/components/toolbox/components/Container';
+import Link from 'next/link';
 import { Button } from '@/components/toolbox/components/Button';
 import { AlertCircle } from 'lucide-react';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
@@ -16,8 +16,9 @@ import { ValidatorListInput, ConvertToL1Validator } from '@/components/toolbox/c
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { getPChainBalance } from '@/components/toolbox/coreViem/methods/getPChainbalance';
-import { CheckWalletRequirements } from '@/components/toolbox/components/CheckWalletRequirements';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../components/WithConsoleToolMetadata';
+import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
 
 // Helper functions for BigInt serialization
 const serializeValidators = (validators: ConvertToL1Validator[]) => {
@@ -38,7 +39,16 @@ const deserializeValidators = (serializedValidators: any[]): ConvertToL1Validato
 
 const STORAGE_KEY = 'addValidator_validators';
 
-const AddValidatorExpert: React.FC = () => {
+const metadata: ConsoleToolMetadata = {
+  title: "Add New Validator",
+  description: "Add a validator to your L1 by following these steps in order",
+  walletRequirements: [
+    WalletRequirementsConfigKey.EVMChainBalance,
+    WalletRequirementsConfigKey.PChainBalance
+  ]
+};
+
+const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [globalSuccess, setGlobalSuccess] = useState<string | null>(null);
   const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState<boolean>(false);
@@ -50,7 +60,8 @@ const AddValidatorExpert: React.FC = () => {
   const [evmTxHash, setEvmTxHash] = useState<string>('');
 
   // Form state with local persistence
-  const { walletEVMAddress, pChainAddress, coreWalletClient } = useWalletStore();
+  const { walletEVMAddress, pChainAddress, isTestnet } = useWalletStore();
+  const { coreWalletClient } = useConnectedWallet();
   const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
   const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
   const [resetKey, setResetKey] = useState<number>(0);
@@ -104,7 +115,7 @@ const AddValidatorExpert: React.FC = () => {
   // Fetch P-Chain balance when component mounts so we can pass it to the ValidatorListInput to check if the validator balance is greater than the user's current P-Chain balance
   useEffect(() => {
     const fetchBalance = async () => {
-      if (!pChainAddress || !coreWalletClient) return;
+      if (!pChainAddress) return;
 
       try {
         const balanceValue = await getPChainBalance(coreWalletClient);
@@ -181,11 +192,7 @@ const AddValidatorExpert: React.FC = () => {
   };
 
   return (
-    <CheckWalletRequirements configKey={[
-      WalletRequirementsConfigKey.EVMChainBalance,
-      WalletRequirementsConfigKey.PChainBalance
-    ]}>
-      <Container title="Add New Validator" description="Add a validator to your L1 by following these steps in order.">
+    <>
         <div className="space-y-6">
           {globalError && (
             <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
@@ -197,6 +204,19 @@ const AddValidatorExpert: React.FC = () => {
           )}
 
           <Steps>
+            <Step>
+              <h2 className="text-lg font-semibold">Ensure L1 Node is Running</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Before adding a validator, you must have an L1 node set up and running. If you haven't done this yet, 
+                visit the <Link href="/console/layer-1/l1-node-setup" className="text-blue-600 hover:text-blue-800 underline">L1 Node Setup Tool</Link> first.
+                {isTestnet && (
+                  <>
+                    {' '}On testnet, you can also use our <Link href="/console/testnet-infra/nodes" className="text-blue-600 hover:text-blue-800 underline">free testnet infrastructure</Link>.
+                  </>
+                )}
+              </p>
+            </Step>
+            
             <Step>
               <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
               <p className="text-sm text-gray-500 mb-4">
@@ -311,6 +331,7 @@ const AddValidatorExpert: React.FC = () => {
                 onSuccess={(message) => {
                   setGlobalSuccess(message);
                   setGlobalError(null);
+                  onSuccess?.();
                 }}
                 onError={(message) => setGlobalError(message)}
               />
@@ -330,9 +351,8 @@ const AddValidatorExpert: React.FC = () => {
             </Button>
           )}
         </div>
-      </Container>
-    </CheckWalletRequirements>
+    </>
   );
 };
 
-export default AddValidatorExpert;
+export default withConsoleToolMetadata(AddValidatorExpert, metadata);

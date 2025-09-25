@@ -1,0 +1,60 @@
+---
+title: P-Chain Disable Validator
+description: Practical - disable a validator at the P-Chain level.
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+We can directly disable a validator on the P-Chain using the `DisableL1ValidatorTx` transaction and without needing to go through the VMC flow.
+
+### Why Direct P-Chain Disabling Exists
+
+The direct disable flow is crucial for possible emergency situations like:
+- The L1 goes down or becomes unreachable
+- The Validator Manager Contract (VMC) is down or malfunctioning
+- Something in the system is malfunctioning and immediate action is needed
+
+These issues all become critical when the owner of the validators needs to retrieve their validator P-Chain AVAX used to keep it running (e.g; they deposited 1000 AVAX to never have to worry about topping up balances and now can't get it back)
+
+### How It Works
+
+**Direct P-Chain Transaction**: You can issue a `DisableL1ValidatorTx` directly on the P-Chain to disable any validator without interacting with the L1's Validator Manager contract at all.
+
+**Weight Preservation**: When a validator is disabled this way, their weight still counts towards the L1's total weight - they're just inactive.
+
+**Re-activation**: Disabled validators can be re-activated at any time by increasing their balance with an `IncreaseBalanceTx`. Anyone can call this transaction for any validator on the P-Chain.
+
+**Key Management**: When a validator is disabled, the keys are no longer stored on disk, providing additional security.
+
+**Permanent Removal Requires Contract**: To completely and permanently remove a validator from the set, you still need to call `initiateValidatorRemoval()` through the contract flow
+
+
+### Chapter Conclusion
+
+Throughout this chapter, we've explored the complete validator lifecycle - from adding validators through the VMC, modifying their weights, removing them properly, and handling emergency situations with direct P-Chain disabling.
+
+This is all you will need to know in order to **manage the validator set of your permissioned L1**. 
+
+## Appendix: Direct P-Chain Disable Flow
+
+<Mermaid chart={`sequenceDiagram
+    participant User as User/Admin
+    participant PChain as P-Chain
+    participant L1Validator as L1 Validator
+
+    User->>PChain: IssueDisableL1ValidatorTx(validationID)
+    PChain->>PChain: Process DisableL1ValidatorTx<br/>Remove keys from disk
+    PChain->>L1Validator: Disable validator
+
+    Note left of L1Validator: Validator becomes inactive<br/>Weight still counts toward total<br/>Keys no longer on disk
+    Note over User,L1Validator: 2. Optional: Re-activation
+
+    User->>PChain: IncreaseBalanceTx(validationID, amount)
+    Note right of User: Anyone can call this<br/>for any validator
+
+    PChain->>PChain: Process IncreaseBalanceTx
+
+    PChain->>L1Validator: Re-activate validator`} />
+
+

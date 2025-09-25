@@ -9,19 +9,28 @@ import { AbiEvent } from 'viem';
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
 import { utils } from "@avalabs/avalanchejs";
 import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId";
-import { Container } from "@/components/toolbox/components/Container";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
 import { Step, Steps } from "fumadocs-ui/components/steps";
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
-export default function Initialize() {
-    const [criticalError, setCriticalError] = useState<Error | null>(null);
+const metadata: ConsoleToolMetadata = {
+    title: "Initial Validator Manager Configuration",
+    description: "Initialize the ValidatorManager contract with the initial configuration",
+    walletRequirements: [
+        WalletRequirementsConfigKey.EVMChainBalance
+    ]
+};
+
+function Initialize({ onSuccess }: BaseConsoleToolProps) {
     const [proxyAddress, setProxyAddress] = useState<string>("");
-    const { walletEVMAddress, coreWalletClient, publicClient } = useWalletStore();
+    const { walletEVMAddress, publicClient } = useWalletStore();
+    const { coreWalletClient } = useConnectedWallet();
     const [isChecking, setIsChecking] = useState(false);
     const [isInitializing, setIsInitializing] = useState(false);
     const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
@@ -34,10 +43,7 @@ export default function Initialize() {
     const [subnetId, setSubnetId] = useState("");
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
 
-    // Throw critical errors during render
-    if (criticalError) {
-        throw criticalError;
-    }
+    const { sendCoreWalletNotSetNotification, notify } = useConsoleNotifications();
 
     useEffect(() => {
         if (walletEVMAddress && !adminAddress) {
@@ -116,56 +122,49 @@ export default function Initialize() {
             }
         } catch (error) {
             console.error('Error checking initialization:', error);
-            setCriticalError(error instanceof Error ? error : new Error(String(error)));
+            // setCriticalError(error instanceof Error ? error : new Error(String(error))); // Removed criticalError
         } finally {
             setIsChecking(false);
         }
     }
 
     async function handleInitialize() {
-        if (!proxyAddress || !window.avalanche) return;
-
         setIsInitializing(true);
+
+        const formattedSubnetId = subnetIDHex.startsWith('0x') ? subnetIDHex : `0x${subnetIDHex}`;
+        const formattedAdmin = adminAddress as `0x${string}`;
+
+        const settings = {
+            admin: formattedAdmin,
+            subnetID: formattedSubnetId,
+            churnPeriodSeconds: BigInt(churnPeriodSeconds),
+            maximumChurnPercentage: Number(maximumChurnPercentage)
+        };
+
+        const initPromise = coreWalletClient.writeContract({
+            address: proxyAddress as `0x${string}`,
+            abi: ValidatorManagerABI.abi,
+            functionName: 'initialize',
+            args: [settings],
+            chain: viemChain ?? undefined,
+        });
+
+        notify({
+            type: 'call',
+            name: 'Initialize Validator Manager'
+        }, initPromise, viemChain ?? undefined);
+
         try {
-            const formattedSubnetId = subnetIDHex.startsWith('0x') ? subnetIDHex : `0x${subnetIDHex}`;
-            const formattedAdmin = adminAddress as `0x${string}`;
-
-            // Create settings object with exact types from the ABI
-            const settings = {
-                admin: formattedAdmin,
-                subnetID: formattedSubnetId, // Note: ABI shows it as subnetID (capital ID), not subnetId
-                churnPeriodSeconds: BigInt(churnPeriodSeconds),
-                maximumChurnPercentage: Number(maximumChurnPercentage)
-            };
-
-            console.log("Settings object:", settings);
-
-            const hash = await coreWalletClient.writeContract({
-                address: proxyAddress as `0x${string}`,
-                abi: ValidatorManagerABI.abi,
-                functionName: 'initialize',
-                args: [settings],
-                chain: viemChain,
-            });
-
+            const hash = await initPromise;
             await publicClient.waitForTransactionReceipt({ hash });
             await checkIfInitialized();
-        } catch (error) {
-            console.error('Error initializing:', error);
-            setCriticalError(error instanceof Error ? error : new Error(String(error)));
         } finally {
             setIsInitializing(false);
         }
     }
 
     return (
-        <CheckWalletRequirements configKey={[
-            WalletRequirementsConfigKey.EVMChainBalance,
-        ]}>
-            <Container
-                title="Initial Validator Manager Configuration"
-                description="This will initialize the ValidatorManager contract with the initial configuration."
-            >
+        <div>
                 <Steps>
                     <Step>
                         <h2 className="text-lg font-semibold">Select the Validator Manager</h2>
@@ -254,11 +253,15 @@ export default function Initialize() {
                         showCheck={isInitialized}
                     />
                 )}
-            </Container>
-        </CheckWalletRequirements>
+                {isInitialized !== null && (
+                    <p className="mt-4">Initialization Status: {isInitialized ? 'Initialized' : 'Not Initialized'}</p>
+                )}
+        </div>
 
     );
-};
+}
+
+export default withConsoleToolMetadata(Initialize, metadata);
 
 function jsonStringifyWithBigint(value: unknown) {
     return JSON.stringify(value, (_, v) =>

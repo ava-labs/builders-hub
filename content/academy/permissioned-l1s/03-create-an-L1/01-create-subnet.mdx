@@ -7,6 +7,10 @@ icon: Terminal
 ---
 
 import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Button } from '@/components/ui/button';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import AvalancheGoDocker from "@/components/toolbox/console/layer-1/AvalancheGoDockerL1";
+import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain";
 
 In the [Avalanche Fundamentals course](/academy/avalanche-fundamentals), you learned how to quickly set up an L1 using the [Developer Console](https://build.avax.network/tools/l1-toolbox). This section provides an in depth review of that flow, understanding what comes pre-configured in our genesis, and laying the foundation for what we will need for our Permissioned L1.
 
@@ -17,14 +21,21 @@ Let's create a fresh new Subnet that we can use during this course to test all o
 <Steps>
 <Step>
 
-### Connect & Fund Core Wallet
+### Create Builder Account & Fund Wallet
 
+Before creating your Subnet, we recommend setting up an Avalanche Builder Account for easier access to testnet resources.
+
+<Button target="_blank" href="/login">Create Avalanche Builder Account</Button>
+
+**Benefits of a Builder Account:**
+- **Faucet**: C-Chain and P-Chain Testnet AVAX directly sent to your account without needing to claim
+- **Free Managed Testnet Infrastructure**: Access free managed testnet nodes and ICM relayers for your L1
+- **No Docker Required**: Launch and manage nodes directly from the Builder Console without local setup
+
+After creating your account:
 1. [Download Core Wallet](https://core.app/) if not already installed
-2. Connect your wallet and set to Tesnet mode (upper-right toggle button)
-3. Use the **faucet button** in this wallet component (below your C-chain balance) to claim **test AVAX on the C-Chain**
-4. Use the same button (but below P-Chain balance) to claim **test AVAX on the P-Chain**
-
-<ToolboxMdxWrapper walletMode="c-chain"/>
+2. Set Core to Testnet mode (upper-right toggle button)
+3. Visit the [Builder Console](/console) to claim test AVAX on both C-Chain and P-Chain
 
 </Step>
 <Step>
@@ -56,11 +67,32 @@ On **Step 2: Create a Chain** select the *Genesis JSON* tab to the right and ski
 
 ### Set Up Validator Node
 
-Launch a node to track your Subnet using Docker. This node will become a validator for your Subnet, and later will be managed by the Validator Manager contract when we convert to L1.
+Launch a node to track your Subnet. This node will become a validator for your Subnet, and later will be managed by the Validator Manager contract when we convert to L1.
+
+Use our *free managed testnet infrastructure* - no Docker installation or AWS account required:
+
+<ToolboxMdxWrapper walletMode="testnet-mainnet">
+    <CreateManagedTestnetNode />
+</ToolboxMdxWrapper>
+
+**Managing Your Nodes**
+
+After creating nodes, you can view and manage them at the [Testnet Infrastructure Console](/console/testnet-infra/nodes).
+
+<Callout type="warning">
+Managed nodes automatically shut down after 3 days. For production or extended testing, see the self-hosted option below.
+</Callout>
+
+### Production & Extended Testing Environments
+
+For production environments or extended testing periods, you should use Docker to run your nodes.
+
+**Docker Setup Guide:**
 
 <ToolboxMdxWrapper walletMode="testnet-mainnet">
     <AvalancheGoDocker />
 </ToolboxMdxWrapper>
+
 </Step>
 </Steps>
 
@@ -68,3 +100,16 @@ Launch a node to track your Subnet using Docker. This node will become a validat
 
 - **P-Chain Registry**: All validators and blockchains are registered on the P-Chain
 - **Subnet Foundation**: Your Subnet provides the blockchain infrastructure necessary for this course
+- **Managed Infrastructure or Self-Hosted**: Builder Hub provides free managed testnet nodes,
+  eliminating the need for Docker or AWS setup - you can also choose to run it yourself.
+
+## Optional Alternative: Self-Hosted Infrastructure
+
+The free managed testnet nodes are a great option for playing around with Avalanche L1s, but are not
+intended for running on production environments. They are shut down automatically after 3 days. If you want to test out your production environment, running beyond 3 days, or anything more complex you should run nodes on your own infrastructure
+using Docker:
+
+<ToolboxMdxWrapper walletMode="testnet-mainnet">
+    <AvalancheGoDocker />
+</ToolboxMdxWrapper>
+

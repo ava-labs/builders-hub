@@ -7,6 +7,7 @@ import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorMan
 import { AlertCircle } from 'lucide-react';
 import { Success } from '@/components/toolbox/components/Success';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 interface InitiateValidatorRemovalProps {
   subnetId: string;
@@ -35,7 +36,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 }) => {
   const { coreWalletClient, publicClient } = useWalletStore();
   const viemChain = useViemChainStore();
-
+  const { notify } = useConsoleNotifications();
   const [validation, setValidation] = useState<ValidationSelection>({
     validationId: initialValidationId || '',
     nodeId: initialNodeId || ''
@@ -88,6 +89,11 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
     setErrorState(null);
     setTxSuccess(null);
 
+    if (!coreWalletClient) {
+      setErrorState("Core wallet not found");
+      return;
+    }
+
     if (!validateInputs()) {
       return;
     }
@@ -101,7 +107,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
       try {
         // Try initiateValidatorRemoval directly (no simulation first)
-        hash = await coreWalletClient.writeContract({
+        const writePromise = coreWalletClient.writeContract({
           address: validatorManagerAddress as `0x${string}`,
           abi: validatorManagerAbi.abi,
           functionName: 'initiateValidatorRemoval',
@@ -109,7 +115,11 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
           account,
           chain: viemChain
         });
-
+        notify({
+          type: 'call',
+          name: 'Initiate Validator Removal'
+        }, writePromise, viemChain ?? undefined);
+        hash = await writePromise;
         // Wait for transaction receipt to check if it was successful
         receipt = await publicClient.waitForTransactionReceipt({ hash });
 
@@ -129,7 +139,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
       } catch (txError) {
         // Use resendValidatorRemovalMessage as fallback
         try {
-          const fallbackHash = await coreWalletClient.writeContract({
+          const fallbackPromise = coreWalletClient.writeContract({
             address: validatorManagerAddress as `0x${string}`,
             abi: validatorManagerAbi.abi,
             functionName: 'resendValidatorRemovalMessage',
@@ -137,7 +147,12 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
             account,
             chain: viemChain
           });
-
+          notify({
+            type: 'call',
+            name: 'Resend Validator Removal Message'
+          }, fallbackPromise, viemChain ?? undefined);
+          
+          const fallbackHash = await fallbackPromise;
           const fallbackReceipt = await publicClient.waitForTransactionReceipt({ hash: fallbackHash });
 
           if (fallbackReceipt.status === 'reverted') {

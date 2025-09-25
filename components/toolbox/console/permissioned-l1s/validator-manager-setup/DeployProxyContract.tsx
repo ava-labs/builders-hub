@@ -6,21 +6,27 @@ import { useState } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import ProxyAdminABI from "@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json";
 import TransparentUpgradeableProxyABI from "@/contracts/openzeppelin-4.9/compiled/TransparentUpgradeableProxy.json";
-import { Container } from "@/components/toolbox/components/Container";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { Callout } from "fumadocs-ui/components/callout";
-import { Success } from "@/components/toolbox/components/Success";
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import { Checkbox } from "@/components/toolbox/components/Checkbox";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 const PROXYADMIN_SOURCE_URL = "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.0/contracts/proxy/transparent/ProxyAdmin.sol";
 const TRANSPARENT_PROXY_SOURCE_URL = "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.0/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-export default function DeployProxyContract() {
-    const [criticalError, setCriticalError] = useState<Error | null>(null);
-    const { coreWalletClient, publicClient } = useWalletStore();
+const metadata: ConsoleToolMetadata = {
+    title: "Deploy Proxy Contracts",
+    description: "Deploy ProxyAdmin and TransparentUpgradeableProxy contracts to the EVM network",
+    walletRequirements: [
+        WalletRequirementsConfigKey.EVMChainBalance
+    ]
+};
+
+function DeployProxyContract({ onSuccess }: BaseConsoleToolProps) {
     const [isDeployingProxyAdmin, setIsDeployingProxyAdmin] = useState(false);
     const [isDeployingProxy, setIsDeployingProxy] = useState(false);
     const [implementationAddress, setImplementationAddress] = useState<string>("");
@@ -28,79 +34,70 @@ export default function DeployProxyContract() {
     const [proxyAdminAddress, setProxyAdminAddress] = useState<string>("");
     const viemChain = useViemChainStore();
     const [acknowledged, setAcknowledged] = useState(false);
+    const [warningDismissed, setWarningDismissed] = useState(false);
 
-    // Throw critical errors during render
-    if (criticalError) {
-        throw criticalError;
-    }
+    const { publicClient, walletEVMAddress } = useWalletStore();
+    const { coreWalletClient } = useConnectedWallet();
+
+    const { sendCoreWalletNotSetNotification, notify } = useConsoleNotifications();
 
     async function deployProxyAdmin() {
         setIsDeployingProxyAdmin(true);
         setProxyAdminAddress("");
-        try {
-            await coreWalletClient.addChain({ chain: viemChain });
-            await coreWalletClient.switchChain({ id: viemChain!.id });
-            const hash = await coreWalletClient.deployContract({
-                abi: ProxyAdminABI.abi,
-                bytecode: ProxyAdminABI.bytecode.object as `0x${string}`,
-                chain: viemChain,
-            });
 
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        const deployPromise = coreWalletClient.deployContract({
+            abi: ProxyAdminABI.abi as any,
+            bytecode: ProxyAdminABI.bytecode.object as `0x${string}`,
+            chain: viemChain ?? undefined,
+            account: walletEVMAddress as `0x${string}`
+        });
 
-            if (!receipt.contractAddress) {
-                throw new Error('No contract address in receipt');
-            }
+        notify({
+            type: 'deploy',
+            name: 'ProxyAdmin'
+        }, deployPromise, viemChain ?? undefined);
 
-            setProxyAdminAddress(receipt.contractAddress);
-        } catch (error) {
-            setCriticalError(error instanceof Error ? error : new Error(String(error)));
-        } finally {
-            setIsDeployingProxyAdmin(false);
+        const hash = await deployPromise;
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        if (!receipt.contractAddress) {
+            throw new Error('No contract address in receipt');
         }
+        setProxyAdminAddress(receipt.contractAddress);
+        setIsDeployingProxyAdmin(false);
+        onSuccess?.();
     }
 
     async function deployTransparentProxy() {
         setIsDeployingProxy(true);
         setProxyAddress("");
-        try {
-            if (!implementationAddress) throw new Error("Implementation address is required");
-            if (!proxyAdminAddress) throw new Error("ProxyAdmin address is required");
-            if (!viemChain) throw new Error("Viem chain not found");
 
-            await coreWalletClient.addChain({ chain: viemChain });
-            await coreWalletClient.switchChain({ id: viemChain!.id });
+        if (!implementationAddress) throw new Error("Implementation address is required");
+        if (!proxyAdminAddress) throw new Error("ProxyAdmin address is required");
 
-            // Deploy the proxy using implementation address and proxy admin address
-            const hash = await coreWalletClient.deployContract({
-                abi: TransparentUpgradeableProxyABI.abi,
-                bytecode: TransparentUpgradeableProxyABI.bytecode.object as `0x${string}`,
-                args: [implementationAddress, proxyAdminAddress, "0x"], // No initialization data
-                chain: viemChain,
-            });
+        const deployPromise = coreWalletClient.deployContract({
+            abi: TransparentUpgradeableProxyABI.abi as any,
+            bytecode: TransparentUpgradeableProxyABI.bytecode.object as `0x${string}`,
+            args: [implementationAddress, proxyAdminAddress, "0x"],
+            chain: viemChain ?? undefined,
+            account: walletEVMAddress as `0x${string}`
+        });
 
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        notify({
+            type: 'deploy',
+            name: 'TransparentUpgradeableProxy'
+        }, deployPromise, viemChain ?? undefined);
 
-            if (!receipt.contractAddress) {
-                throw new Error('No contract address in receipt');
-            }
-
-            setProxyAddress(receipt.contractAddress);
-        } catch (error) {
-            setCriticalError(error instanceof Error ? error : new Error(String(error)));
-        } finally {
-            setIsDeployingProxy(false);
+        const hash = await deployPromise;
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        if (!receipt.contractAddress) {
+            throw new Error('No contract address in receipt');
         }
+        setProxyAddress(receipt.contractAddress);
+        setIsDeployingProxy(false);
     }
 
     return (
-        <CheckWalletRequirements configKey={[
-            WalletRequirementsConfigKey.EVMChainBalance,
-        ]}>
-            <Container
-                title="Deploy Proxy Contracts"
-                description="Deploy ProxyAdmin and TransparentUpgradeableProxy contracts to the EVM network."
-            >
+        <>
                 <p className="my-3">
                     <a href="https://github.com/OpenZeppelin/openzeppelin-contracts/tree/release-v4.9/contracts/proxy/transparent"
                         target="_blank"
@@ -111,18 +108,42 @@ export default function DeployProxyContract() {
 
                 <p className="mb-3"><strong>How It Works:</strong> The proxy contract stores state and forwards function calls, while the implementation contract contains only the logic. The proxy admin manages implementation upgrades securely.</p>
 
-                <Callout type="warn" className="mb-8">
-                    <div className="space-y-3">
-                        <p>
-                            If you have created the L1 that you want to deploy the Validator Manager for with the Builder Console, a proxy contract is pre-deployed with the Genesis at the address <code>0xfacade...</code> and you can skip this step. You only need this tool if you want to use the validator manager on a different L1 or if you want to deploy a new proxy contract for any reason.
-                        </p>
-                        <Checkbox
-                            label="I know what I'm doing"
-                            checked={acknowledged}
-                            onChange={setAcknowledged}
-                        />
+                {!warningDismissed && (
+                    <div className="relative">
+                        <div className="absolute -inset-1 bg-red-500/20 dark:bg-red-500/10 rounded-lg blur-sm" />
+                        <Callout type="warn" className="relative mb-8 border-2 border-red-500 dark:border-red-400">
+                            <div className="space-y-3">
+                                <div className="flex items-start gap-2">
+                                    <div className="space-y-2">
+                                        <p>
+                                            If you created your L1 using the <strong>Builder Console</strong>, a proxy contract is <strong>already pre-deployed</strong> at address <code className="bg-red-100 dark:bg-red-900/30 px-1 py-0.5 rounded">0xfacade0000000000000000000000000000000000</code>
+                                        </p>
+                                        <p className="text-sm">
+                                            You only need this tool if:
+                                        </p>
+                                        <ul className="list-disc list-inside text-sm ml-2 space-y-1">
+                                            <li>You want to deploy the Validator Manager on a different L1</li>
+                                            <li>You need to deploy a new proxy contract for a specific reason</li>
+                                            <li>You're working with an L1 not created through Builder Console (AvaCloud, Gelato, alt BaaS provider)</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div className="pt-2 border-t border-red-300 dark:border-red-700">
+                                    <Checkbox
+                                        label="I understand and need to deploy a new proxy contract"
+                                        checked={acknowledged}
+                                        onChange={(checked) => {
+                                            setAcknowledged(checked);
+                                            if (checked) {
+                                                setWarningDismissed(true);
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        </Callout>
                     </div>
-                </Callout>
+                )}
 
                 <Steps>
                     <Step>
@@ -138,18 +159,13 @@ export default function DeployProxyContract() {
                             variant="primary"
                             onClick={deployProxyAdmin}
                             loading={isDeployingProxyAdmin}
-                            disabled={isDeployingProxyAdmin || !!proxyAdminAddress || !acknowledged}
+                            disabled={isDeployingProxyAdmin || !!proxyAdminAddress || (!acknowledged && !warningDismissed)}
                             className="mt-4"
                         >
                             Deploy Proxy Admin
                         </Button>
 
-                        {proxyAdminAddress && (
-                            <Success
-                                label="ProxyAdmin Contract Deployed"
-                                value={proxyAdminAddress}
-                            />
-                        )}
+                        <p>Deployment Status: <code>{proxyAdminAddress || "Not deployed"}</code></p>
                     </Step>
                     <Step>
                         <h2 className="text-lg font-semibold">Deploy Transparent Proxy Contract</h2>
@@ -173,22 +189,17 @@ export default function DeployProxyContract() {
                             variant="primary"
                             onClick={deployTransparentProxy}
                             loading={isDeployingProxy}
-                            disabled={isDeployingProxy || !proxyAdminAddress || !implementationAddress || !acknowledged}
+                            disabled={isDeployingProxy || !proxyAdminAddress || !implementationAddress || (!acknowledged && !warningDismissed)}
                             className="mt-4"
                         >
                             Deploy Proxy Contract
                         </Button>
-
-                        {proxyAddress && (
-                            <Success
-                                label="Proxy Contract Deployed"
-                                value={proxyAddress}
-                            />
-                        )}
+                        <p>Deployment Status: <code>{proxyAddress || "Not deployed"}</code></p>
 
                     </Step>
                 </Steps>
-            </Container>
-        </CheckWalletRequirements>
+        </>
     );
 }
+
+export default withConsoleToolMetadata(DeployProxyContract, metadata);

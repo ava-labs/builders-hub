@@ -1,14 +1,15 @@
 import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { Plus, Edit3, X, RotateCcw } from 'lucide-react'
 import { resetAllStores } from '@/components/toolbox/stores/reset'
+import { useWallet } from '@/components/toolbox/hooks/useWallet'
 
 interface NetworkActionsProps {
-  onAddNetwork: () => void
   isEditMode: boolean
   onToggleEditMode: () => void
 }
 
-export function NetworkActions({ onAddNetwork, isEditMode, onToggleEditMode }: NetworkActionsProps) {
+export function NetworkActions({ isEditMode, onToggleEditMode }: NetworkActionsProps) {
+  const { addChain } = useWallet()
   return (
     <>
       <DropdownMenuSeparator />
@@ -24,7 +25,7 @@ export function NetworkActions({ onAddNetwork, isEditMode, onToggleEditMode }: N
         {isEditMode ? 'Done Editing' : 'Edit Network List'}
       </DropdownMenuItem>
       <DropdownMenuItem
-        onSelect={(e) => { e.preventDefault(); onAddNetwork() }}
+        onSelect={() => addChain()}
         className='cursor-pointer'
       >
         <Plus className="mr-2 h-3 w-3" />

@@ -1,0 +1,29 @@
+---
+title: Remove Expired Validator Registration
+description: Learn how to identify and remove expired validator registrations that were not completed within the 24-hour window.
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+import RemoveExpiredValidatorRegistration from "@/components/toolbox/console/permissioned-l1s/RemoveExpiredValidatorRegistration/RemoveExpiredValidatorRegistration.tsx"
+
+## Understanding Expired Validator Registrations
+
+When validators are registered through the Validator Manager contract, they are given a **24-hour window** to complete their registration on the P-Chain. If this window expires without completion, the registration becomes invalid but remains in the pending registrations list.
+
+Expired validator registrations typically occur due to configuration errors or manual mistakes during the registration process that prevent proper P-Chain registration.
+
+These registrations create contract clutter by remaining in the pending list indefinitely, making it difficult to identify valid pending registrations.
+
+## Removing Expired Registrations
+
+This tool automatically identifies registrations past their expiry time and removes them from the pending list to keep your validator management system organized.
+
+When removing an expired registration, the tool builds the required justification for P-Chain removal, signs the removal message using the appropriate signing mechanism, executes the `completeValidatorRemoval` function, and updates the contract state to remove the expired registration from the pending list.
+
+<ToolboxMdxWrapper walletMode="l1">
+  <RemoveExpiredValidatorRegistration />
+</ToolboxMdxWrapper>
+

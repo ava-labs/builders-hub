@@ -2,9 +2,9 @@
 import { EVMFaucetButton } from "@/components/toolbox/components/ConnectWallet/EVMFaucetButton";
 import { PChainFaucetButton } from "@/components/toolbox/components/ConnectWallet/PChainFaucetButton";
 import { Droplets, Sparkles, AlertCircle } from "lucide-react";
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { useL1List, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
 
 function EVMFaucetCard({ chain }: { chain: L1ListItem }) {
   const getFeatures = () => {
@@ -51,17 +51,22 @@ function EVMFaucetCard({ chain }: { chain: L1ListItem }) {
   );
 }
 
-export default function Faucet() {
+const metadata: ConsoleToolMetadata = {
+  title: "Testnet Faucet",
+  description: "Request free test tokens for Fuji testnet and Avalanche L1s",
+  walletRequirements: [
+    WalletRequirementsConfigKey.TestnetRequired
+  ]
+};
+
+function Faucet({ onSuccess }: BaseConsoleToolProps) {
   const l1List = useL1List();
   const EVMChainsWithBuilderHubFaucet = l1List.filter(
     (chain: L1ListItem) => chain.hasBuilderHubFaucet
   );
 
   return (
-    <CheckWalletRequirements
-      configKey={[WalletRequirementsConfigKey.TestnetRequired]}
-    >
-      <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 text-sm font-medium mb-4">
@@ -77,11 +82,6 @@ export default function Faucet() {
 
         {/* Token Request Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Dynamic EVM Chain FaucetCards */}
-          {EVMChainsWithBuilderHubFaucet.map((chain: L1ListItem) => (
-            <EVMFaucetCard key={chain.id} chain={chain} />
-          ))}
-
           {/* P-Chain Card */}
           <div className="bg-white/90 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-700/70 shadow-md rounded-xl p-6 hover:shadow-xl transition-all duration-300">
             <div className="flex items-center gap-4 mb-6">
@@ -118,6 +118,11 @@ export default function Faucet() {
               Request P-Chain Tokens
             </PChainFaucetButton>
           </div>
+
+          {/* Dynamic EVM Chain FaucetCards - C-Chain and other EVM chains */}
+          {EVMChainsWithBuilderHubFaucet.map((chain: L1ListItem) => (
+            <EVMFaucetCard key={chain.id} chain={chain} />
+          ))}
         </div>
 
         {/* Info Section */}
@@ -140,6 +145,7 @@ export default function Faucet() {
           </div>
         </div>
       </div>
-    </CheckWalletRequirements>
   );
 }
+
+export default withConsoleToolMetadata(Faucet, metadata);

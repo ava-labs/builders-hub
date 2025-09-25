@@ -124,7 +124,6 @@ const data = {
         },
       ],
     },
-
     {
       title: "Free Testnet Infrastructure",
       icon: Box,
@@ -197,6 +196,11 @@ const data = {
           title: "Change Validator Weight",
           url: "/console/permissioned-l1s/change-validator-weight",
           icon: SlidersVertical,
+        },
+        {
+          title: "Remove Expired Validator Registration",
+          url: "/console/permissioned-l1s/remove-expired-validator-registration",
+          icon: SquareMinus,
         }
       ],
     },

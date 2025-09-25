@@ -1,35 +1,36 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { cn } from "@/utils/cn";
+import type { BubbleNavigationConfig } from "./bubble-navigation.types";
 
-interface BubbleNavItem {
-  id: string;
-  label: string;
-  href: string;
+interface BubbleNavigationProps {
+  config: BubbleNavigationConfig;
+  getActiveItem?: (pathname: string, items: BubbleNavigationConfig['items']) => string;
 }
 
-const navItems: BubbleNavItem[] = [
-  { id: "avalanche-l1s", label: "Avalanche L1s", href: "/stats/overview" },
-  { id: "c-chain", label: "C-Chain", href: "/stats/primary-network/c-chain" },
-  { id: "validators", label: "Validators", href: "/stats/primary-network/validators" },
-];
-
-export default function BubbleNavigation() {
+export default function BubbleNavigation({
+  config,
+  getActiveItem
+}: BubbleNavigationProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [activeItem, setActiveItem] = useState("validators");
+  const [activeItem, setActiveItem] = useState("");
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [bottomOffset, setBottomOffset] = useState(32);
   const navRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const currentItem = navItems.find((item) => pathname === item.href);
-    if (currentItem) {
-      setActiveItem(currentItem.id);
-    } else if (pathname.startsWith("/stats/l1/")) {
-      setActiveItem("");
+    // Use custom logic if provided, otherwise default to exact path matching
+    if (getActiveItem) {
+      setActiveItem(getActiveItem(pathname, config.items));
+    } else {
+      const currentItem = config.items.find((item) => pathname === item.href);
+      if (currentItem) {
+        setActiveItem(currentItem.id);
+      }
     }
-  }, [pathname]);
+  }, [pathname, config.items, getActiveItem]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -67,7 +68,7 @@ export default function BubbleNavigation() {
     };
   }, []);
 
-  const handleItemClick = (item: BubbleNavItem) => {
+  const handleItemClick = (item: BubbleNavigationConfig['items'][0]) => {
     setActiveItem(item.id);
     router.push(item.href);
   };
@@ -80,9 +81,12 @@ export default function BubbleNavigation() {
         bottom: `${bottomOffset}px`,
       }}
     >
-      <nav className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-full p-4 shadow-lg">
-        <div className="flex items-center justify-center space-x-2">
-          {navItems.map((item, index) => {
+      <nav className={cn(
+        "bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-full p-4 shadow-lg",
+        config.buttonScale
+      )}>
+        <div className={cn("flex items-center justify-center", config.buttonSpacing || "space-x-2")}>
+          {config.items.map((item) => {
             const isActive = activeItem === item.id;
             const isHovered = hoveredItem === item.id;
 
@@ -92,40 +96,40 @@ export default function BubbleNavigation() {
                 onClick={() => handleItemClick(item)}
                 onMouseEnter={() => setHoveredItem(item.id)}
                 onMouseLeave={() => setHoveredItem(null)}
-                className={`
-                  relative flex items-center justify-center
-                  px-4 py-2 rounded-full
-                  transition-all duration-300 ease-out
-                  transform-gpu
-                  ${
-                    isActive
-                      ? "bg-blue-600 dark:bg-blue-500 text-white scale-110 shadow-lg"
-                      : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100"
-                  }
-                  ${isHovered && !isActive ? "scale-105 shadow-md" : ""}
-                  hover:shadow-xl
-                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900
-                  group
-                  whitespace-nowrap text-sm font-medium
-                `}
+                className={cn(
+                  "relative flex items-center justify-center",
+                  config.buttonPadding || "px-4 py-2",
+                  "rounded-full",
+                  "transition-all duration-300 ease-out",
+                  "transform-gpu",
+                  isActive
+                    ? cn(config.activeColor, config.darkActiveColor, "text-white shadow-lg")
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100",
+                  isHovered && !isActive ? "scale-105 shadow-md" : "",
+                  "hover:shadow-xl",
+                  "focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900",
+                  config.focusRingColor,
+                  "group",
+                  "whitespace-nowrap text-sm font-medium"
+                )}
                 aria-label={item.label}
               >
                 <span
-                  className={`
-                  transition-transform duration-2000
-                  ${isHovered ? "animate-pulse" : ""}
-                `}
+                  className={cn(
+                    "transition-transform duration-2000",
+                    isHovered ? "animate-pulse" : ""
+                  )}
                 >
                   {item.label}
                 </span>
 
                 <div
-                  className={`
-                  absolute inset-0 rounded-full
-                  bg-gray-300/30 dark:bg-gray-600/30 scale-0
-                  transition-transform duration-300
-                  ${isActive ? "animate-ping" : ""}
-                `}
+                  className={cn(
+                    "absolute inset-0 rounded-full",
+                    "bg-gray-300/30 dark:bg-gray-600/30 scale-0",
+                    "transition-transform duration-300",
+                    isActive ? "animate-ping" : ""
+                  )}
                 ></div>
               </button>
             );
@@ -134,7 +138,11 @@ export default function BubbleNavigation() {
 
         <div className="absolute inset-0 overflow-hidden rounded-full pointer-events-none">
           <div className="absolute -top-2 -left-2 w-4 h-4 bg-gray-200/40 dark:bg-gray-600/40 rounded-full animate-pulse"></div>
-          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-200/40 dark:bg-blue-400/40 rounded-full animate-pulse delay-1000"></div>
+          <div className={cn(
+            "absolute -bottom-1 -right-1 w-3 h-3 rounded-full animate-pulse delay-1000",
+            config.pulseColor,
+            config.darkPulseColor
+          )}></div>
           <div className="absolute top-1/2 -left-1 w-2 h-2 bg-gray-300/40 dark:bg-gray-500/40 rounded-full animate-pulse delay-500"></div>
         </div>
       </nav>

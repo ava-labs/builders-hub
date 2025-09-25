@@ -7,12 +7,12 @@ import { Button } from "@/components/toolbox/components/Button";
 import { keccak256 } from 'viem';
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
 import ValidatorMessagesABI from "@/contracts/icm-contracts/compiled/ValidatorMessages.json";
-import { Container } from "@/components/toolbox/components/Container";
 import { Steps, Step } from "fumadocs-ui/components/steps";
-import { Success } from "@/components/toolbox/components/Success";
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import versions from '@/scripts/versions.json';
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 const VALIDATOR_MANAGER_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`;
@@ -25,18 +25,23 @@ function calculateLibraryHash(libraryPath: string) {
     return hash.slice(0, 34);
 }
 
-export default function DeployValidatorContracts() {
-    const [criticalError, setCriticalError] = useState<Error | null>(null);
+const metadata: ConsoleToolMetadata = {
+    title: "Deploy Validator Contracts",
+    description: "Deploy the ValidatorMessages library and ValidatorManager contract to the EVM network",
+    walletRequirements: [
+        WalletRequirementsConfigKey.EVMChainBalance
+    ]
+};
+
+function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
     const { validatorMessagesLibAddress, setValidatorMessagesLibAddress, setValidatorManagerAddress, validatorManagerAddress } = useToolboxStore();
-    const { coreWalletClient, publicClient } = useWalletStore();
+    const { publicClient, walletEVMAddress } = useWalletStore();
+    const { coreWalletClient } = useConnectedWallet();
     const [isDeployingMessages, setIsDeployingMessages] = useState(false);
     const [isDeployingManager, setIsDeployingManager] = useState(false);
     const viemChain = useViemChainStore();
 
-    // Throw critical errors during render
-    if (criticalError) {
-        throw criticalError;
-    }
+    const { sendCoreWalletNotSetNotification, notify } = useConsoleNotifications();
 
     const getLinkedBytecode = () => {
         if (!validatorMessagesLibAddress) {
@@ -61,66 +66,65 @@ export default function DeployValidatorContracts() {
     async function deployValidatorMessages() {
         setIsDeployingMessages(true);
         setValidatorMessagesLibAddress("");
-        try {
-            await coreWalletClient.addChain({ chain: viemChain });
-            await coreWalletClient.switchChain({ id: viemChain!.id });
-            const hash = await coreWalletClient.deployContract({
-                abi: ValidatorMessagesABI.abi,
-                bytecode: ValidatorMessagesABI.bytecode.object as `0x${string}`,
-                chain: viemChain,
-            });
 
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        
+        if (!viemChain) throw new Error("Viem chain not found");
+        await coreWalletClient.addChain({ chain: viemChain });
+        await coreWalletClient.switchChain({ id: viemChain.id });
+        const deployPromise = coreWalletClient.deployContract({
+            abi: ValidatorMessagesABI.abi as any,
+            bytecode: ValidatorMessagesABI.bytecode.object as `0x${string}`,
+            chain: viemChain,
+            account: walletEVMAddress as `0x${string}`
+        });
 
-            if (!receipt.contractAddress) {
-                throw new Error('No contract address in receipt');
-            }
+        notify({
+            type: 'deploy',
+            name: 'ValidatorMessages Library'
+        }, deployPromise, viemChain ?? undefined);
 
-            setValidatorMessagesLibAddress(receipt.contractAddress);
-        } catch (error) {
-            setCriticalError(error instanceof Error ? error : new Error(String(error)));
-        } finally {
-            setIsDeployingMessages(false);
+        const hash = await deployPromise;
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        if (!receipt.contractAddress) {
+            throw new Error('No contract address in receipt');
         }
+        setValidatorMessagesLibAddress(receipt.contractAddress as string);
+        setIsDeployingMessages(false);
+
     }
 
     async function deployValidatorManager() {
         setIsDeployingManager(true);
         setValidatorManagerAddress("");
-        try {
-            if (!viemChain) throw new Error("Viem chain not found");
-            await coreWalletClient.addChain({ chain: viemChain });
-            await coreWalletClient.switchChain({ id: viemChain!.id });
 
-            const hash = await coreWalletClient.deployContract({
-                abi: ValidatorManagerABI.abi,
-                bytecode: getLinkedBytecode(),
-                args: [0],
-                chain: viemChain,
-            });
+        if (!viemChain) throw new Error("Viem chain not found");
+        await coreWalletClient.addChain({ chain: viemChain });
+        await coreWalletClient.switchChain({ id: viemChain.id });
+        const deployPromise = coreWalletClient.deployContract({
+            abi: ValidatorManagerABI.abi as any,
+            bytecode: getLinkedBytecode(),
+            args: [0],
+            chain: viemChain,
+            account: walletEVMAddress as `0x${string}`
+        });
 
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        notify({
+            type: 'deploy',
+            name: 'ValidatorManager'
+        }, deployPromise, viemChain ?? undefined);
 
-            if (!receipt.contractAddress) {
-                throw new Error('No contract address in receipt');
-            }
-
-            setValidatorManagerAddress(receipt.contractAddress);
-        } catch (error) {
-            setCriticalError(error instanceof Error ? error : new Error(String(error)));
-        } finally {
-            setIsDeployingManager(false);
+        const hash = await deployPromise;
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        if (!receipt.contractAddress) {
+            throw new Error('No contract address in receipt');
         }
+        setValidatorManagerAddress(receipt.contractAddress as string);
+        setIsDeployingManager(false);
+        onSuccess?.();
     }
 
     return (
-        <CheckWalletRequirements configKey={[
-            WalletRequirementsConfigKey.EVMChainBalance,
-        ]}>
-            <Container
-                title="Deploy Validator Contracts"
-                description="Deploy the ValidatorMessages library and ValidatorManager contract to the EVM network."
-            >
+        <>
                 <div className="space-y-4">
                     <Steps>
                         <Step>
@@ -136,19 +140,13 @@ export default function DeployValidatorContracts() {
                                 variant="primary"
                                 onClick={deployValidatorMessages}
                                 loading={isDeployingMessages}
-                                disabled={isDeployingMessages || !!validatorMessagesLibAddress}
+                                disabled={isDeployingMessages}
                             >
                                 Deploy Library
                             </Button>
 
                             <p>Deployment Status: <code>{validatorMessagesLibAddress || "Not deployed"}</code></p>
 
-                            {validatorMessagesLibAddress && (
-                                <Success
-                                    label="ValidatorMessages Library Deployed"
-                                    value={validatorMessagesLibAddress}
-                                />
-                            )}
                         </Step>
 
                         <Step>
@@ -164,23 +162,19 @@ export default function DeployValidatorContracts() {
                                 variant="primary"
                                 onClick={deployValidatorManager}
                                 loading={isDeployingManager}
-                                disabled={isDeployingManager || !validatorMessagesLibAddress || !!validatorManagerAddress}
+                                disabled={isDeployingManager || !validatorMessagesLibAddress}
                                 className="mt-1"
                             >
                                 Deploy Manager Contract
                             </Button>
 
-                            {validatorManagerAddress && (
-                                <Success
-                                    label="ValidatorManager Address"
-                                    value={validatorManagerAddress}
-                                />
-                            )}
+                            <p>Deployment Status: <code>{validatorManagerAddress || "Not deployed"}</code></p>
 
                         </Step>
                     </Steps>
                 </div>
-            </Container>
-        </CheckWalletRequirements>
+        </>
     );
 }
+
+export default withConsoleToolMetadata(DeployValidatorContracts, metadata);

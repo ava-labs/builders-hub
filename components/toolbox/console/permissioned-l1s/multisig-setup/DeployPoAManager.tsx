@@ -6,7 +6,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
 import PoAManagerABI from "@/contracts/icm-contracts/compiled/PoAManager.json";
-import { Container } from "@/components/toolbox/components/Container";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { Success } from "@/components/toolbox/components/Success";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
@@ -17,16 +16,27 @@ import { ValidatorManagerDetails } from "@/components/toolbox/components/Validat
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
 import SelectSafeWallet, { SafeSelection } from "@/components/toolbox/components/SelectSafeWallet";
 
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 
-export default function DeployPoAManager() {
+const metadata: ConsoleToolMetadata = {
+    title: "Deploy PoA Manager",
+    description: "Deploy and initialize the PoAManager contract to manage Proof of Authority validators",
+    walletRequirements: [
+        WalletRequirementsConfigKey.EVMChainBalance
+    ]
+};
+
+function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const {
         poaManagerAddress,
         setPoaManagerAddress
     } = useToolboxStore();
-    const { coreWalletClient, publicClient } = useWalletStore();
+    const { publicClient, walletEVMAddress } = useWalletStore();
+    const { coreWalletClient } = useConnectedWallet();
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
     const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
     const [isDeploying, setIsDeploying] = useState(false);
@@ -41,7 +51,7 @@ export default function DeployPoAManager() {
     const [safeError, setSafeError] = useState<string | null>(null);
 
     const viemChain = useViemChainStore();
-
+    const { notify } = useConsoleNotifications();
     const {
         validatorManagerAddress,
         error: validatorManagerError,
@@ -83,18 +93,26 @@ export default function DeployPoAManager() {
 
         setIsDeploying(true);
         setPoaManagerAddress("");
+
         try {
             if (!viemChain) throw new Error("Viem chain not found");
             await coreWalletClient.addChain({ chain: viemChain });
             await coreWalletClient.switchChain({ id: viemChain!.id });
 
-            const hash = await coreWalletClient.deployContract({
-                abi: PoAManagerABI.abi,
+            const deployPromise = coreWalletClient.deployContract({
+                abi: PoAManagerABI.abi as any,
                 bytecode: PoAManagerABI.bytecode.object as `0x${string}`,
                 args: [ownerAddress as `0x${string}`, validatorManagerAddress as `0x${string}`],
                 chain: viemChain,
+                account: walletEVMAddress as `0x${string}`
             });
 
+            notify({
+                type: 'deploy',
+                name: 'PoAManager'
+            }, deployPromise, viemChain);
+
+            const hash = await deployPromise;
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
             if (!receipt.contractAddress) {
@@ -104,6 +122,7 @@ export default function DeployPoAManager() {
             setPoaManagerAddress(receipt.contractAddress);
             setIsInitialized(true);
             setVerifiedOwner(ownerAddress);
+            onSuccess?.();
         } catch (error) {
             setCriticalError(error instanceof Error ? error : new Error(String(error)));
         } finally {
@@ -135,13 +154,7 @@ export default function DeployPoAManager() {
     }
 
     return (
-        <CheckWalletRequirements configKey={[
-            WalletRequirementsConfigKey.EVMChainBalance,
-        ]}>
-            <Container
-                title="Deploy PoA Manager"
-                description="Deploy and initialize the PoAManager contract to manage Proof of Authority validators."
-            >
+        <>
                 <div className="space-y-4">
                     {/* Subnet Selection */}
                     <div className="space-y-2">
@@ -296,7 +309,8 @@ export default function DeployPoAManager() {
                         </Step>
                     </Steps>
                 </div>
-            </Container>
-        </CheckWalletRequirements>
+        </>
     );
 }
+
+export default withConsoleToolMetadata(DeployPoAManager, metadata);

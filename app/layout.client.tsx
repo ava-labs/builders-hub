@@ -1,5 +1,6 @@
 'use client';
 import type { ReactNode } from 'react';
+import { Toaster } from 'sonner';
 
 export function Body({
   children,
@@ -7,8 +8,9 @@ export function Body({
   children: ReactNode;
 }): React.ReactElement {
   return (
-    <div>
+    <>
       {children}
-    </div>
+      <Toaster position="bottom-right" richColors expand={true} visibleToasts={5} />
+    </>
   );
 }

@@ -1,0 +1,41 @@
+---
+title: Data Strategy and Privacy
+description: On-chain vs off-chain data considerations and privacy principles
+updated: 2025-07-31
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+### On-Chain vs. Off-Chain Data Considerations
+
+<YouTube id="aUZTJ6QeOjE" params="start=0&rel=0&modestbranding=1" /> 
+
+<Callout type="quote">
+<div style={{ fontSize: '1.1rem'}}>
+<span style={{ fontWeight: 'bold' }}>"You should treat off-chain data as trustless, which means that you cannot rely on data off-chain. But you can have some kind of proof of computation or some kind of proof of validity of that data on-chain"</span> - [Martin Prado](https://www.linkedin.com/in/martinprado/), Chief Information Security Officer at Ava Labs
+</div>
+</Callout>
+
+When deciding where to store data, consider:
+
+- **On-chain storage** is appropriate for:
+  - Immutable, transparent, censorship-resistant data
+  - Token information
+  - Ownership records (like Non-Fungible Tokens - NFTs)
+  - Deterministic logic
+
+- **Off-chain storage** is better for:
+  - Most other types of data
+  - Cost-efficient storage
+  - Easier processing
+
+A hybrid approach often works best: store data off-chain but keep proofs of validity on-chain. Zero-Knowledge Proofs are an emerging solution in this space.
+
+### Privacy Principles
+
+To maintain user privacy:
+- Only collect information you actually need
+- Assess the nature of the data you're collecting
+- Keep on-chain complexity to a minimum
+- Plan for potential future migration between on-chain and off-chain storage
+- Balance security, cost, and performance requirements

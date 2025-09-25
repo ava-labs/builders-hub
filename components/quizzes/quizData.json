@@ -98,7 +98,7 @@
       "title": "Permissioned L1s",
       "quizzes": []
     },
-    "codebase-entrepreneur-foundations": {
+    "foundations-web3-venture": {
       "title": "Foundations of a Web3 Venture",
       "quizzes": [
         "906",
@@ -111,7 +111,7 @@
         "920"
       ]
     },
-    "codebase-entrepreneur-community": {
+    "web3-community-architect": {
       "title": "Web3 Community Architect",
       "quizzes": [
         "701",
@@ -120,7 +120,7 @@
         "802"
       ]
     },
-    "codebase-entrepreneur-go-to-market": {
+    "go-to-market": {
       "title": "Go-to-Market Strategist",
       "quizzes": [
         "923",
@@ -131,7 +131,7 @@
         "941"
       ]
     },
-    "codebase-entrepreneur-fundraising": {
+    "fundraising-finance": {
       "title": "Fundraising & Finance Pro",
       "quizzes": [
         "601",

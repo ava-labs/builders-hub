@@ -13,6 +13,7 @@ import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/util
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp';
 import { extractL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/methods/extractL1ValidatorWeightMessage';
 import { useAvaCloudSDK } from '@/components/toolbox/stores/useAvaCloudSDK';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 interface CompleteChangeWeightProps {
   subnetIdL1: string;
@@ -41,6 +42,7 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
 }) => {
   const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
   const { aggregateSignature } = useAvaCloudSDK();
+  const { notify } = useConsoleNotifications();
   const viemChain = useViemChainStore();
   const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || '');
 
@@ -141,20 +143,24 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
         "11111111111111111111111111111111LpoYY" // always use P-Chain ID
       );
 
-      const signature = await aggregateSignature({
+      const aggregateSignaturePromise = aggregateSignature({
         message: bytesToHex(changeWeightMessage),
         justification: bytesToHex(justification),
         signingSubnetId: signingSubnetId || subnetIdL1,
         quorumPercentage: 67,
       });
-
+      notify({
+        type: 'local',
+        name: 'Aggregate Signatures'
+      }, aggregateSignaturePromise);
+      const signature = await aggregateSignaturePromise;
       setPChainSignature(signature.signedMessage);
 
       // Step 4: Complete the weight change on EVM
       const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
       const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
 
-      const hash = await coreWalletClient.writeContract({
+      const writePromise = coreWalletClient.writeContract({
         address: targetContractAddress as `0x${string}`,
         abi: targetAbi,
         functionName: "completeValidatorWeightUpdate",
@@ -163,7 +169,12 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
         account: coreWalletClient.account,
         chain: viemChain,
       });
+      notify({
+        type: 'call',
+        name: 'Complete Validator Weight Update'
+      }, writePromise, viemChain ?? undefined);
 
+      const hash = await writePromise;
       const finalReceipt = await publicClient.waitForTransactionReceipt({ hash });
       if (finalReceipt.status !== 'success') {
         throw new Error(`Transaction failed with status: ${finalReceipt.status}`);

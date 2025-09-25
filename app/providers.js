@@ -10,7 +10,8 @@ if (typeof window !== 'undefined') {
     const consent = localStorage.getItem('cookie_consent')
     posthog.init(posthogKey, {
       api_host: posthogHost || 'https://app.posthog.com',
-      persistence: consent === 'yes' ? 'localStorage+cookie' : 'memory'
+      persistence: consent === 'yes' ? 'localStorage+cookie' : 'memory',
+      enable_heatmaps: true
     })
   } else {
     console.warn('PostHog key not found in environment variables')
