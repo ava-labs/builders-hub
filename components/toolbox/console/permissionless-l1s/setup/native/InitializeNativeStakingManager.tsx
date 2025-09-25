@@ -16,6 +16,8 @@ import { useValidatorManagerDetails } from '@/components/toolbox/hooks/useValida
 import NativeTokenStakingManager from "@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json";
 import { parseEther } from "viem";
 import versions from '@/scripts/versions.json';
+import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 const INITIALIZE_FUNCTION_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/NativeTokenStakingManager.sol#L43`;
@@ -44,6 +46,7 @@ export default function InitializeNativeStakingManager() {
     const { coreWalletClient, publicClient } = useWalletStore();
     const viemChain = useViemChainStore();
     const { nativeStakingManagerAddress: storedStakingManagerAddress, rewardCalculatorAddress: storedRewardCalculatorAddress } = useToolboxStore();
+    const { notify } = useConsoleNotifications();
     
     // Get validator manager details from subnet ID
     const {
@@ -111,9 +114,24 @@ export default function InitializeNativeStakingManager() {
         
         setIsInitializing(true);
         try {
+            if (!coreWalletClient) throw new Error("Wallet not connected");
             if (!validatorManagerAddress) throw new Error("Validator Manager address required");
             if (!rewardCalculatorAddress) throw new Error("Reward Calculator address required");
             if (!blockchainId) throw new Error("Blockchain ID not found. Please select a valid subnet.");
+            
+            // Convert blockchain ID from CB58 to hex
+            let hexBlockchainId: string;
+            try {
+                hexBlockchainId = cb58ToHex(blockchainId);
+                // Ensure it's 32 bytes (64 hex chars)
+                if (hexBlockchainId.length < 64) {
+                    // Pad with zeros on the left to make it 32 bytes
+                    hexBlockchainId = hexBlockchainId.padStart(64, '0');
+                }
+                hexBlockchainId = `0x${hexBlockchainId}` as `0x${string}`;
+            } catch (error) {
+                throw new Error(`Failed to convert blockchain ID to hex: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
             
             // Create settings object
             const settings = {
@@ -125,7 +143,7 @@ export default function InitializeNativeStakingManager() {
                 maximumStakeMultiplier: parseInt(maximumStakeMultiplier),
                 weightToValueFactor: parseEther(weightToValueFactor),
                 rewardCalculator: rewardCalculatorAddress as `0x${string}`,
-                uptimeBlockchainID: blockchainId as `0x${string}`
+                uptimeBlockchainID: hexBlockchainId as `0x${string}`
             };
 
             // Estimate gas for initialization
@@ -140,7 +158,7 @@ export default function InitializeNativeStakingManager() {
             // Add 20% buffer to gas estimate for safety
             const gasWithBuffer = gasEstimate + (gasEstimate * 20n / 100n);
 
-            const hash = await coreWalletClient.writeContract({
+            const writePromise = coreWalletClient.writeContract({
                 address: stakingManagerAddressInput as `0x${string}`,
                 abi: NativeTokenStakingManager.abi,
                 functionName: 'initialize',
@@ -149,6 +167,12 @@ export default function InitializeNativeStakingManager() {
                 gas: gasWithBuffer,
             });
 
+            notify({
+                type: 'call',
+                name: 'Initialize Native Token Staking Manager'
+            }, writePromise, viemChain ?? undefined);
+
+            const hash = await writePromise;
             await publicClient.waitForTransactionReceipt({ hash });
             await checkIfInitialized();
         } catch (error) {
@@ -227,8 +251,22 @@ export default function InitializeNativeStakingManager() {
                                         <strong>Validator Manager Address:</strong> <code>{validatorManagerAddress}</code>
                                     </p>
                                     <p className="text-sm mt-1">
-                                        <strong>Uptime Blockchain ID:</strong> <code>{blockchainId || 'Loading...'}</code>
+                                        <strong>Uptime Blockchain ID (CB58):</strong> <code>{blockchainId || 'Loading...'}</code>
                                     </p>
+                                    {blockchainId && (
+                                        <p className="text-sm mt-1">
+                                            <strong>Uptime Blockchain ID (Hex):</strong> <code>
+                                                {(() => {
+                                                    try {
+                                                        const hex = cb58ToHex(blockchainId);
+                                                        return `0x${hex.padStart(64, '0')}`;
+                                                    } catch {
+                                                        return 'Invalid CB58';
+                                                    }
+                                                })()}
+                                            </code>
+                                        </p>
+                                    )}
                                 </div>
                             )}
                             

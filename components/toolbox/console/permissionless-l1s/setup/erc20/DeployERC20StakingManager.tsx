@@ -11,6 +11,7 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import ERC20TokenStakingManager from "@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json";
 import versions from '@/scripts/versions.json';
 import { keccak256 } from 'viem';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 const ERC20_TOKEN_STAKING_MANAGER_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ERC20TokenStakingManager.sol`;
@@ -30,6 +31,7 @@ export default function DeployERC20StakingManager() {
     const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
     const viemChain = useViemChainStore();
     const { erc20StakingManagerAddress, setErc20StakingManagerAddress, validatorMessagesLibAddress } = useToolboxStore();
+    const { notify } = useConsoleNotifications();
 
     // Throw critical errors during render
     if (criticalError) {
@@ -61,6 +63,8 @@ export default function DeployERC20StakingManager() {
         setErc20StakingManagerAddress("");
         try {
             if (!viemChain) throw new Error("Viem chain not found");
+            if (!coreWalletClient) throw new Error("Wallet not connected");
+            if (!walletEVMAddress) throw new Error("Wallet address not available");
             
             // Check for library first
             if (!validatorMessagesLibAddress) {
@@ -71,13 +75,20 @@ export default function DeployERC20StakingManager() {
             await coreWalletClient.addChain({ chain: viemChain });
             await coreWalletClient.switchChain({ id: viemChain!.id });
 
-            const hash = await coreWalletClient.deployContract({
-                abi: ERC20TokenStakingManager.abi,
+            const deployPromise = coreWalletClient.deployContract({
+                abi: ERC20TokenStakingManager.abi as any,
                 bytecode: getLinkedBytecode(), // Use linked bytecode with library
                 args: [0], // ICMInitializable.Allowed
                 chain: viemChain,
+                account: walletEVMAddress as `0x${string}`,
             });
 
+            notify({
+                type: 'deploy',
+                name: 'ERC20 Token Staking Manager'
+            }, deployPromise, viemChain ?? undefined);
+
+            const hash = await deployPromise;
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
             if (!receipt.contractAddress) {

@@ -11,6 +11,7 @@ import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWa
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import ExampleRewardCalculator from "@/contracts/icm-contracts/compiled/ExampleRewardCalculator.json";
 import versions from '@/scripts/versions.json';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 const EXAMPLE_REWARD_CALCULATOR_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ExampleRewardCalculator.sol`;
@@ -20,9 +21,10 @@ export default function DeployExampleRewardCalculator() {
     const [isDeploying, setIsDeploying] = useState(false);
     const [rewardBasisPoints, setRewardBasisPoints] = useState<string>("500"); // Default 5% APR (500 basis points)
     
-    const { coreWalletClient, publicClient } = useWalletStore();
+    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
     const viemChain = useViemChainStore();
     const { rewardCalculatorAddress, setRewardCalculatorAddress } = useToolboxStore();
+    const { notify } = useConsoleNotifications();
 
     // Throw critical errors during render
     if (criticalError) {
@@ -33,18 +35,29 @@ export default function DeployExampleRewardCalculator() {
         setIsDeploying(true);
         setRewardCalculatorAddress("");
         try {
+            if (!coreWalletClient) throw new Error("Wallet not connected");
+            if (!walletEVMAddress) throw new Error("Wallet address not available");
+            if (!viemChain) throw new Error("Chain not selected");
+            
             await coreWalletClient.addChain({ chain: viemChain });
             await coreWalletClient.switchChain({ id: viemChain!.id });
             
             // Let viem handle gas estimation automatically
             // ExampleRewardCalculator is a simple contract, so auto-estimation should work
-            const hash = await coreWalletClient.deployContract({
-                abi: ExampleRewardCalculator.abi,
+            const deployPromise = coreWalletClient.deployContract({
+                abi: ExampleRewardCalculator.abi as any,
                 bytecode: ExampleRewardCalculator.bytecode.object as `0x${string}`,
                 args: [BigInt(rewardBasisPoints)], // Constructor takes uint64 rewardBasisPoints
                 chain: viemChain,
+                account: walletEVMAddress as `0x${string}`,
             });
 
+            notify({
+                type: 'deploy',
+                name: 'Example Reward Calculator'
+            }, deployPromise, viemChain ?? undefined);
+
+            const hash = await deployPromise;
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
             if (!receipt.contractAddress) {
