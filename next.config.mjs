@@ -266,6 +266,26 @@ const config = {
         destination: "/console/l1-access-restrictions/deployer-allowlist",
         permanent: true,
       },
+      {
+        source: "/docs/nodes/configure/chain-configs/p-chain",
+        destination: "/docs/nodes/chain-configs/p-chain",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/configure/chain-configs/x-chain",
+        destination: "/docs/nodes/chain-configs/x-chain",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/configure/chain-configs/c-chain",
+        destination: "/docs/nodes/chain-configs/c-chain",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/configure/chain-configs/subnet-evm",
+        destination: "/docs/nodes/chain-configs/subnet-evm",
+        permanent: true,
+      },
     ];
   },
 };

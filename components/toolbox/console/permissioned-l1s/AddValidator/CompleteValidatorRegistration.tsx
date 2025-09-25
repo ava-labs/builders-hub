@@ -14,6 +14,7 @@ import poaManagerAbi from '@/contracts/icm-contracts/compiled/PoAManager.json';
 import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
 import { useAvaCloudSDK } from '@/components/toolbox/stores/useAvaCloudSDK';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 interface CompleteValidatorRegistrationProps {
   subnetIdL1: string;
@@ -42,9 +43,9 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
 }) => {
   const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
   const { aggregateSignature } = useAvaCloudSDK();
+  const { notify } = useConsoleNotifications();
   const viemChain = useViemChainStore();
   const [pChainTxIdState, setPChainTxId] = useState(pChainTxId || '');
-
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -160,20 +161,24 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
       }
 
       // Step 5: Create P-Chain warp signature using the L1ValidatorRegistrationMessage
-      const signature = await aggregateSignature({
+      const aggregateSignaturePromise = aggregateSignature({
         message: bytesToHex(l1ValidatorRegistrationMessage),
         justification: bytesToHex(justification),
         signingSubnetId: signingSubnetId || subnetIdL1,
         quorumPercentage: 67,
       });
-
+      notify({
+        type: 'local',
+        name: 'Aggregate Signatures'
+      }, aggregateSignaturePromise);
+      const signature = await aggregateSignaturePromise;
       setPChainSignature(signature.signedMessage);
 
       // Step 6: Complete the validator registration on EVM
       const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
       const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
 
-      const hash = await coreWalletClient.writeContract({
+      const writePromise = coreWalletClient.writeContract({
         address: targetContractAddress as `0x${string}`,
         abi: targetAbi,
         functionName: "completeValidatorRegistration",
@@ -182,7 +187,12 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
         account: coreWalletClient.account,
         chain: viemChain
       });
+      notify({
+        type: 'call',
+        name: 'Complete Validator Registration'
+      }, writePromise, viemChain ?? undefined);
 
+      const hash = await writePromise;
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
       if (receipt.status === 'success') {
@@ -238,7 +248,7 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
         label="P-Chain RegisterL1ValidatorTx ID"
         value={pChainTxIdState}
         onChange={setPChainTxId}
-        placeholder="Enter the P-Chain RegisterL1ValidatorTx ID from step 4"
+        placeholder="Enter the P-Chain RegisterL1ValidatorTx ID from step 5"
         disabled={isProcessing}
       />
 

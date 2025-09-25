@@ -6,13 +6,13 @@ import ICMRelayer from "@/components/toolbox/console/icm/setup/ICMRelayer";
 export const steps: StepDefinition[] = [
     {
       type: "single",
-      key: "teleporter-messenger",
+      key: "icm-messenger",
       title: "Deploy Teleporter Messenger",
       component: TeleporterMessenger,
     },
     {
       type: "single",
-      key: "teleporter-registry",
+      key: "icm-registry",
       title: "Deploy Teleporter Registry",
       component: TeleporterRegistry,
     },

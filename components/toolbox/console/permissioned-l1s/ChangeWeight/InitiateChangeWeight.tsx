@@ -10,6 +10,7 @@ import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorMan
 import { AlertCircle } from 'lucide-react';
 import { Success } from '@/components/toolbox/components/Success';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 interface InitiateChangeWeightProps {
   subnetId: string;
@@ -43,7 +44,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
 }) => {
   const { coreWalletClient, publicClient } = useWalletStore();
   const viemChain = useViemChainStore();
-
+  const { notify } = useConsoleNotifications();
   const [validation, setValidation] = useState<ValidationSelection>({
     validationId: initialValidationId || '',
     nodeId: initialNodeId || ''
@@ -68,6 +69,12 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
   const handleInitiateChangeWeight = async () => {
     setErrorState(null);
     setTxSuccess(null);
+
+    if (!coreWalletClient) {
+      setErrorState("Core wallet not found");
+      return;
+    }
+
     if (!validation.validationId.trim()) {
       setErrorState("Validation ID is required"); return;
     }
@@ -119,7 +126,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
       }
 
       const weightBigInt = BigInt(weight);
-      const changeWeightTx = await coreWalletClient.writeContract({
+      const writeContractPromise = coreWalletClient.writeContract({
         address: validatorManagerAddress as `0x${string}`,
         abi: validatorManagerAbi.abi,
         functionName: 'initiateValidatorWeightUpdate',
@@ -127,21 +134,26 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
         chain: viemChain,
         account: coreWalletClient.account,
       });
+      notify({
+        type: 'call',
+        name: 'Initiate Validator Weight Update'
+      }, writeContractPromise, viemChain ?? undefined);
 
       // Wait for transaction receipt to check if it was successful
+      const hash = await writeContractPromise;
       const receipt = await publicClient.waitForTransactionReceipt({
-        hash: changeWeightTx,
+        hash
       });
 
       if (receipt.status === 'reverted') {
-        setErrorState(`Transaction reverted. Hash: ${changeWeightTx}`);
-        onError(`Transaction reverted. Hash: ${changeWeightTx}`);
+        setErrorState(`Transaction reverted. Hash: ${hash}`);
+        onError(`Transaction reverted. Hash: ${hash}`);
         return;
       }
 
-      setTxSuccess(`Transaction successful! Hash: ${changeWeightTx}`);
+      setTxSuccess(`Transaction successful! Hash: ${hash}`);
       onSuccess({
-        txHash: changeWeightTx,
+        txHash: hash,
         nodeId: validation.nodeId,
         validationId: validation.validationId,
         weight: weight,

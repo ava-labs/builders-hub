@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu'
 import { useL1ListStore } from '@/components/toolbox/stores/l1ListStore'
-import { AddChainModal } from '@/components/toolbox/components/ConnectWallet/AddChainModal'
 import { Button } from '@/components/ui/button'
 import { useWalletStore } from '@/components/toolbox/stores/walletStore'
 import { createCoreWalletClient } from '@/components/toolbox/coreViem'
@@ -16,12 +15,10 @@ import { NetworkActions } from './components/NetworkActions'
 import { WalletInfo } from './components/WalletInfo'
 
 export function EvmNetworkWallet() {
-  const [isAddNetworkModalOpen, setIsAddNetworkModalOpen] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
   const [isCoreWalletAvailable, setIsCoreWalletAvailable] = useState(false)
 
   const l1ListStore = useL1ListStore()
-  const addL1 = l1ListStore((s: any) => s.addL1)
   const removeL1 = l1ListStore((s: any) => s.removeL1)
 
   const {
@@ -120,10 +117,6 @@ export function EvmNetworkWallet() {
     }
   }
 
-  const handleAddNetwork = () => {
-    setIsAddNetworkModalOpen(true)
-  }
-
   const handleRemoveNetwork = (network: any) => {
     removeL1(network.id)
   }
@@ -179,7 +172,6 @@ export function EvmNetworkWallet() {
           />
 
           <NetworkActions
-            onAddNetwork={handleAddNetwork}
             isEditMode={isEditMode}
             onToggleEditMode={() => setIsEditMode((v) => !v)}
           />
@@ -195,16 +187,6 @@ export function EvmNetworkWallet() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {isAddNetworkModalOpen && (
-        <AddChainModal
-          onClose={() => setIsAddNetworkModalOpen(false)}
-          onAddChain={(chain) => {
-            addL1(chain as any)
-            setIsAddNetworkModalOpen(false)
-          }}
-          allowLookup={true}
-        />
-      )}
     </>
   )
 }

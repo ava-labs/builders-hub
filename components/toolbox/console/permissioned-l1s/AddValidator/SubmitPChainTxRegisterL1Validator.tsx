@@ -5,6 +5,7 @@ import { Input } from '@/components/toolbox/components/Input';
 import { AlertCircle } from 'lucide-react';
 import { Success } from '@/components/toolbox/components/Success';
 import { useAvaCloudSDK } from '@/components/toolbox/stores/useAvaCloudSDK';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 interface SubmitPChainTxRegisterL1ValidatorProps {
   subnetIdL1: string;
@@ -29,6 +30,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
 }) => {
   const { coreWalletClient, pChainAddress, publicClient } = useWalletStore();
   const { aggregateSignature } = useAvaCloudSDK();
+  const { notify } = useConsoleNotifications();
   const [evmTxHashState, setEvmTxHashState] = useState(evmTxHash || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -139,6 +141,11 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     setErrorState(null);
     setTxSuccess(null);
 
+    if (!coreWalletClient) {
+      setErrorState("Core wallet not found");
+      return;
+    }
+
     // Validate required inputs
     const evmTxValidation = !evmTxHashState.trim() ? "EVM transaction hash is required" : null;
 
@@ -187,22 +194,29 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     setIsProcessing(true);
     try {
       // Sign the warp message
-      const { signedMessage } = await aggregateSignature({
+      const aggregateSignaturePromise = aggregateSignature({
         message: unsignedWarpMessage,
         signingSubnetId: signingSubnetId || subnetIdL1,
         quorumPercentage: 67,
       });
+      notify({
+        type: 'local',
+        name: 'Aggregate Signatures'
+      }, aggregateSignaturePromise);
+      const { signedMessage } = await aggregateSignaturePromise;
 
       setSignedWarpMessage(signedMessage);
 
       // Submit to P-Chain using registerL1Validator with all required parameters
-      const pChainTxId = await coreWalletClient.registerL1Validator({
+      const registerL1ValidatorPromise = coreWalletClient.registerL1Validator({
         pChainAddress: pChainAddress!,
         balance: validatorBalance.trim(),
         blsProofOfPossession: blsProofOfPossession.trim(),
         signedWarpMessage: signedMessage,
       });
+      notify('registerL1Validator', registerL1ValidatorPromise);
 
+      const pChainTxId = await registerL1ValidatorPromise;
       setTxSuccess(`P-Chain transaction successful! ID: ${pChainTxId}`);
       onSuccess(pChainTxId);
     } catch (err: any) {
@@ -271,7 +285,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
         label="initiateValidatorRegistration Transaction Hash"
         value={evmTxHashState}
         onChange={handleTxHashChange}
-        placeholder="Enter the initiateValidatorRegistration transaction hash from step 3 (0x...)"
+        placeholder="Enter the initiateValidatorRegistration transaction hash from step 4 (0x...)"
         disabled={isProcessing || txSuccess !== null}
         error={evmTxHashError}
       />
@@ -280,7 +294,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       {(validatorBalance || blsProofOfPossession) && (
         <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
           <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-            Validator Details (collected from step 2)
+            Validator Details (collected from step 3)
           </h3>
           <div className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
             {validatorBalance && (

@@ -9,16 +9,24 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import TeleporterMessengerDeploymentTransaction from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Deployment_Transaction_v1.0.0.txt.json';
 import TeleporterMessengerDeployerAddress from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Deployer_Address_v1.0.0.txt.json';
 import TeleporterMessengerAddress from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
-import { Container } from "@/components/toolbox/components/Container";
 import { Step, Steps } from "fumadocs-ui/components/steps";
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import versions from '@/scripts/versions.json';
 
 const MINIMUM_BALANCE = parseEther('11');
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 const TELEPORTER_MESSENGER_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/teleporter/TeleporterMessenger.sol`;
+
+const metadata: ConsoleToolMetadata = {
+    title: "Deploy ICM Messenger",
+    description: "Deploy the ICM messenger contract to your L1 to enable cross-L1 messaging and applications like ICTT",
+    walletRequirements: [
+        WalletRequirementsConfigKey.EVMChainBalance
+    ]
+};
 
 const TopUpComponent = ({
     deployerAddress,
@@ -31,7 +39,8 @@ const TopUpComponent = ({
     const [isSending, setIsSending] = useState(false);
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const viemChain = useViemChainStore();
-    const { coreWalletClient, publicClient } = useWalletStore();
+    const { publicClient } = useWalletStore();
+    const { coreWalletClient } = useConnectedWallet();
 
     // Throw critical errors during render
     if (criticalError) {
@@ -80,9 +89,10 @@ const TopUpComponent = ({
         </Step>)
 };
 
-export default function TeleporterMessenger() {
+function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
-    const { publicClient, coreWalletClient } = useWalletStore();
+    const { publicClient } = useWalletStore();
+    const { coreWalletClient } = useConnectedWallet();
     const [isDeploying, setIsDeploying] = useState(false);
     const [deployerBalance, setDeployerBalance] = useState(BigInt(0));
     const [isCheckingBalance, setIsCheckingBalance] = useState(true);
@@ -135,6 +145,7 @@ export default function TeleporterMessenger() {
 
             await publicClient.waitForTransactionReceipt({ hash });
             setIsDeployed(true);
+            onSuccess?.();
 
             // Refresh balance after deployment
             await checkDeployerBalance();
@@ -148,13 +159,7 @@ export default function TeleporterMessenger() {
     const hasEnoughBalance = deployerBalance >= MINIMUM_BALANCE;
 
     return (
-        <CheckWalletRequirements configKey={[
-            WalletRequirementsConfigKey.EVMChainBalance,
-        ]}>
-            <Container
-                title="Deploy ICM Messenger (formerly called TeleporterMessenger)"
-                description="Deploy the ICM messenger contract to your L1 to enable cross-L1 messaging and applications like ICTT."
-            >
+        <>
                 <div>
                     <p className="mt-2">This tool deploys the TeleporterMessenger contract, which is the core contract that handles cross-subnet message sending and receiving. Please read more <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/teleporter/README.md" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">here</a>.</p>
                 </div>
@@ -244,7 +249,8 @@ export default function TeleporterMessenger() {
                         value={expectedContractAddress}
                     />
                 )}
-            </Container >
-        </CheckWalletRequirements>
+        </>
     );
 }
+
+export default withConsoleToolMetadata(TeleporterMessenger, metadata);

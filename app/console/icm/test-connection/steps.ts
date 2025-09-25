@@ -11,7 +11,7 @@ export const steps: StepDefinition[] = [
     },
     {
       type: "single",
-      key: "send-icm-message",
+      key: "send-icm-demo-message",
       title: "Send ICM Message",
       component: SendICMMessage,
     },

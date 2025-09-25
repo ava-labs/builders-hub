@@ -213,6 +213,12 @@ export const ConnectWallet = ({
   }, [isClient]);
 
   const onChainChanged = (chainId: string | number) => {
+
+    if (!coreWalletClient) {
+      setCriticalError(new Error('Core wallet not found'));
+      return;
+    }
+
     if (typeof chainId === "string") {
       chainId = Number.parseInt(chainId, 16);
     }
@@ -248,6 +254,11 @@ export const ConnectWallet = ({
   };
 
   const handleAccountsChanged = (accounts: string[]) => {
+    if (!coreWalletClient) {
+      setCriticalError(new Error('Core wallet not found'));
+      return;
+    }
+
     if (accounts.length === 0) {
       setWalletEVMAddress("");
       return;
@@ -284,6 +295,11 @@ export const ConnectWallet = ({
   };
 
   async function connectWallet() {
+    if (!coreWalletClient) {
+      setCriticalError(new Error('Core wallet not found'));
+      return;
+    }
+
     if (!isClient) return;
 
     console.log("Connecting wallet");

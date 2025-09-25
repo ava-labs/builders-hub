@@ -358,7 +358,7 @@ export async function GetRegistrationJustification(
       if (warpLogs.length > 0) {
         console.log(`Found ${warpLogs.length} Warp logs in current chunk. Searching for ValidationID ${validationIDHex}...`);
 
-        for (const log of warpLogs) {
+        for (const log of warpLogs.slice().reverse()) {
           try {
             const decodedArgs = log.args as { message?: `0x${string}` };
             const fullMessageHex = decodedArgs.message;

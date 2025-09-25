@@ -40,7 +40,7 @@ import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWr
 import CrossChainTransfer from "@/components/toolbox/console/primary-network/CrossChainTransfer"
 import AvalancheGoDocker from '@/components/toolbox/console/layer-1/AvalancheGoDockerL1';
 import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain"
-import ConvertToL1 from "@/components/toolbox/console/layer-1/create/ConvertToL1"
+import ConvertSubnetToL1 from "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1"
 import GenesisBuilder from '@/components/toolbox/console/layer-1/create/GenesisBuilder';
 import DeployExampleERC20 from '@/components/toolbox/console/ictt/setup/DeployExampleERC20';
 import DeployTokenHome from '@/components/toolbox/console/ictt/setup/DeployTokenHome';
@@ -50,6 +50,7 @@ import TestSend from '@/components/toolbox/console/ictt/token-transfer/TestSend'
 import TeleporterRegistry from '@/components/toolbox/console/icm/setup/TeleporterRegistry';
 import ICMRelayer from '@/components/toolbox/console/icm/setup/ICMRelayer';
 import Faucet from '@/components/toolbox/console/primary-network/Faucet';
+import CreateManagedTestnetNode from '@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/CreateManagedTestnetNode';
 
 export const dynamicParams = false;
 
@@ -59,7 +60,8 @@ const toolboxComponents = {
   GenesisBuilder,
   CreateChain,
   AvalancheGoDocker,
-  ConvertToL1,
+  CreateManagedTestnetNode,
+  ConvertToL1: ConvertSubnetToL1,
   DeployExampleERC20,
   DeployTokenHome,
   DeployERC20TokenRemote,
@@ -128,6 +130,7 @@ export default async function Page(props: {
         title={page.data.title}
         pagePath={`/academy/${page.slugs.join('/')}`}
         editUrl={editUrl}
+        pageType="academy"
         onRateAction={async (url, feedback) => {
           'use server';
           await posthog.capture('on_rate_document', feedback);

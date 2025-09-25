@@ -5,20 +5,29 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
-import { Container } from "@/components/toolbox/components/Container";
 import { ResultField } from "@/components/toolbox/components/ResultField";
 import feeManagerAbi from "@/contracts/precompiles/FeeManager.json";
 import { AllowlistComponent } from "@/components/toolbox/components/AllowListComponents";
 import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 
 // Default Fee Manager address
 const DEFAULT_FEE_MANAGER_ADDRESS =
   "0x0200000000000000000000000000000000000003";
 
-export default function FeeManager() {
-  const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
+const metadata: ConsoleToolMetadata = {
+  title: "Fee Manager",
+  description: "Configure dynamic fee parameters and manage allowlist for your L1",
+  walletRequirements: [
+    WalletRequirementsConfigKey.EVMChainBalance
+  ]
+};
+
+function FeeManager({ onSuccess }: BaseConsoleToolProps) {
+  const { publicClient, walletEVMAddress } = useWalletStore();
+  const { coreWalletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [gasLimit, setGasLimit] = useState<string>("20000000");
   const [targetBlockRate, setTargetBlockRate] = useState<string>("2");
@@ -65,6 +74,7 @@ export default function FeeManager() {
 
       if (receipt.status === "success") {
         setTxHash(hash);
+        onSuccess?.();
       } else {
         throw new Error("Transaction failed");
       }
@@ -123,17 +133,11 @@ export default function FeeManager() {
   );
 
   return (
-    <CheckWalletRequirements configKey={[
-      WalletRequirementsConfigKey.EVMChainBalance
-    ]}>
-      <CheckPrecompile
-        configKey="feeManagerConfig"
-        precompileName="Fee Manager"
-      >
-        <Container
-          title="Fee Configuration"
-          description="Configure the dynamic fee parameters for the chain."
-        >
+    <CheckPrecompile
+      configKey="feeManagerConfig"
+      precompileName="Fee Manager"
+    >
+        <>
           <div className="space-y-4">
             <div className="space-y-2">
               <Input
@@ -235,12 +239,9 @@ export default function FeeManager() {
               />
             )}
           </div>
-        </Container>
+        </>
 
-        <Container
-          title="Current Fee Configuration"
-          description="View the current fee configuration and last change timestamp."
-        >
+        <div className="space-y-4 mt-8">
           <div className="space-y-4">
             <Button
               onClick={handleGetFeeConfig}
@@ -272,13 +273,15 @@ export default function FeeManager() {
               </div>
             )}
           </div>
-        </Container>
+        </div>
 
         <AllowlistComponent
           precompileAddress={DEFAULT_FEE_MANAGER_ADDRESS}
           precompileType="Fee Manager"
+          onSuccess={onSuccess}
         />
       </CheckPrecompile>
-    </CheckWalletRequirements>
   );
 }
+
+export default withConsoleToolMetadata(FeeManager, metadata);

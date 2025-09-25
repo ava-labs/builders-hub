@@ -63,6 +63,8 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
 
     // --- State --- 
     const [evmChainId, setEvmChainId] = useState<number>(10000 + Math.floor(Math.random() * 90000));
+    const [tokenName, setTokenName] = useState<string>("COIN");
+    const [tokenSymbol, setTokenSymbol] = useState<string>("COIN");
     const [gasLimit, setGasLimit] = useState<number>(15000000);
     const [targetBlockRate, setTargetBlockRate] = useState<number>(2);
     const [tokenAllocations, setTokenAllocations] = useState<AllocationEntry[]>([]);
@@ -122,6 +124,12 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
         // Chain ID
         if (evmChainId <= 0) errors.chainId = "Chain ID must be positive";
 
+        // Token Name and Symbol validation
+        if (tokenName.length > 50) errors.tokenName = "Token name must be 50 characters or less";
+        
+        if (tokenSymbol.length < 2 || tokenSymbol.length > 6) errors.tokenSymbol = "Token symbol must be 2-6 characters";
+        else if (!/^[A-Z0-9]+$/.test(tokenSymbol)) warnings.tokenSymbol = "Token symbol should be uppercase letters and numbers only";
+
         // Gas Limit
         if (gasLimit < 0) errors.gasLimit = "Gas limit must be non-negative";
         if (gasLimit < 15000000) warnings.gasLimit = "Gas limit below 15M may impact network performance";
@@ -175,7 +183,7 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
         // Only set the flag to generate genesis if there are no errors
         setShouldGenerateGenesis(Object.keys(errors).length === 0);
     }, [
-        evmChainId, gasLimit, targetBlockRate, tokenAllocations,
+        evmChainId, tokenName, tokenSymbol, gasLimit, targetBlockRate, tokenAllocations,
         contractDeployerAllowListConfig, contractNativeMinterConfig, txAllowListConfig,
         feeManagerEnabled, feeManagerAdmins, rewardManagerEnabled, rewardManagerAdmins,
         feeConfig, preinstallConfig
@@ -213,7 +221,9 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
                     contractDeployerAllowlistConfig: contractDeployerAllowListCopy,
                     nativeMinterAllowlistConfig: contractNativeMinterCopy,
                     poaOwnerAddress: ownerAddressForProxy as Address,
-                    preinstallConfig: preinstallConfig
+                    preinstallConfig: preinstallConfig,
+                    tokenName: tokenName,
+                    tokenSymbol: tokenSymbol
                 });
 
                 // Override feeConfig, gasLimit, targetBlockRate, warpConfig in the base genesis
@@ -390,9 +400,15 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
                     <ChainParamsSection
                         evmChainId={evmChainId}
                         setEvmChainId={handleSetEvmChainId}
+                        tokenName={tokenName}
+                        setTokenName={setTokenName}
+                        tokenSymbol={tokenSymbol}
+                        setTokenSymbol={setTokenSymbol}
                         isExpanded={isSectionExpanded('chainParams')}
                         toggleExpand={() => toggleSection('chainParams')}
                         validationError={validationMessages.errors.chainId}
+                        tokenNameError={validationMessages.errors.tokenName}
+                        tokenSymbolError={validationMessages.errors.tokenSymbol}
                     />
 
                     <PermissionsSection
@@ -909,6 +925,8 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
                     preinstallConfig={preinstallConfig}
                     setPreinstallConfig={setPreinstallConfig}
                     ownerAddress={tokenAllocations[0]?.address}
+                    tokenName={tokenName}
+                    tokenSymbol={tokenSymbol}
                     isGenesisReady={!!isGenesisReady}
                     setActiveTab={setActiveTab}
                 />

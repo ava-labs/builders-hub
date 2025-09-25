@@ -19,7 +19,9 @@ type GenerateGenesisArgs = {
     txAllowlistConfig: AllowlistPrecompileConfig,
     contractDeployerAllowlistConfig: AllowlistPrecompileConfig,
     nativeMinterAllowlistConfig: AllowlistPrecompileConfig,
-    poaOwnerAddress: string
+    poaOwnerAddress: string,
+    tokenName?: string,
+    tokenSymbol?: string
 }
 
 function generateAllowListConfig(config: AllowlistPrecompileConfig) {
@@ -47,7 +49,7 @@ function hexTo32Bytes(hex: string) {
     return "0x" + hex.padStart(64, "0");
 }
 
-export function generateGenesis({ evmChainId, tokenAllocations, txAllowlistConfig, contractDeployerAllowlistConfig, nativeMinterAllowlistConfig, poaOwnerAddress }: GenerateGenesisArgs) {
+export function generateGenesis({ evmChainId, tokenAllocations, txAllowlistConfig, contractDeployerAllowlistConfig, nativeMinterAllowlistConfig, poaOwnerAddress, tokenName, tokenSymbol }: GenerateGenesisArgs) {
     // Convert balances to wei
     const allocations: Record<string, { balance: string, code?: string, storage?: Record<string, string>, nonce?: string }> = {};
     tokenAllocations.forEach((allocation) => {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useToolboxStore, useViemChainStore, getToolboxStore } from "@/components/toolbox/stores/toolboxStore";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
@@ -9,22 +8,31 @@ import { createPublicClient, http } from 'viem';
 import ICMDemoABI from "@/contracts/example-contracts/compiled/ICMDemo.json";
 import { utils } from "@avalabs/avalanchejs";
 import { Input } from "@/components/toolbox/components/Input";
-import { Container } from "@/components/toolbox/components/Container";
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
 import { useL1ByChainId, useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useEffect } from "react";
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 const predeployedDemos: Record<string, string> = {
     //fuji
     "yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp": "0x05c474824e7d2cc67cf22b456f7cf60c0e3a1289"
 }
 
-export default function SendICMMessage() {
+const metadata: ConsoleToolMetadata = {
+    title: "Send ICM Message",
+    description: "Send a test message between L1s using Avalanche's Inter-Chain Messaging (ICM) protocol",
+    walletRequirements: [
+        WalletRequirementsConfigKey.EVMChainBalance
+    ]
+};
+
+function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const { icmReceiverAddress, setIcmReceiverAddress } = useToolboxStore();
-    const { coreWalletClient } = useWalletStore();
+    const { coreWalletClient } = useConnectedWallet();
     const selectedL1 = useSelectedL1()();
     const [message, setMessage] = useState(Math.floor(Math.random() * 10000));
     const [destinationChainId, setDestinationChainId] = useState<string>("");
@@ -33,7 +41,7 @@ export default function SendICMMessage() {
     const viemChain = useViemChainStore();
     const [isQuerying, setIsQuerying] = useState(false);
     const [lastReceivedMessage, setLastReceivedMessage] = useState<number>();
-
+    const { notify } = useConsoleNotifications();
     // Throw critical errors during render
     if (criticalError) {
         throw criticalError;
@@ -78,7 +86,7 @@ export default function SendICMMessage() {
     }, [destinationChainId]);
 
     async function handleSendMessage() {
-        if (!icmReceiverAddress || !targetToolboxStore.icmReceiverAddress || !destinationBlockchainIDHex || !viemChain || !coreWalletClient) {
+        if (!icmReceiverAddress || !targetToolboxStore.icmReceiverAddress || !destinationBlockchainIDHex || !viemChain) {
             setCriticalError(new Error('Missing required information to send message.'));
             return;
         }
@@ -110,13 +118,20 @@ export default function SendICMMessage() {
                 account: coreWalletClient.account,
             });
 
-            const hash = await coreWalletClient.writeContract({
+            const writePromise = coreWalletClient.writeContract({
                 ...request,
                 chain: viemChain,
             });
 
+            notify({
+                type: 'call',
+                name: 'Send ICM Message'
+            }, writePromise, viemChain ?? undefined);
+
+            const hash = await writePromise;
             console.log("Transaction hash:", hash);
             setLastTxId(hash);
+            onSuccess?.();
 
         } catch (error) {
             console.error("ICM Send Error:", error);
@@ -158,7 +173,6 @@ export default function SendICMMessage() {
         !!targetContractError ||
         !!destinationChainError ||
         !message ||
-        !coreWalletClient ||
         !destinationBlockchainIDHex;
 
     const isQueryButtonDisabled = isQuerying ||
@@ -166,10 +180,7 @@ export default function SendICMMessage() {
         !targetL1?.rpcUrl;
 
     return (
-        <CheckWalletRequirements configKey={[
-            WalletRequirementsConfigKey.EVMChainBalance,
-        ]}>
-            <Container title="Send ICM Message">
+        <>
                 <div className="space-y-4">
                     <Input
                         value={icmReceiverAddress}
@@ -231,7 +242,8 @@ export default function SendICMMessage() {
                         </div>
                     </div>
                 </div>
-            </Container>
-        </CheckWalletRequirements>
+        </>
     );
 }
+
+export default withConsoleToolMetadata(SendICMMessage, metadata);

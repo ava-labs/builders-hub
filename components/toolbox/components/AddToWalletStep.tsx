@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from './Button';
-import { AddChainModal } from './ConnectWallet/AddChainModal';
-import { useL1ListStore } from '../stores/l1ListStore';
+import { useWallet } from '../hooks/useWallet';
 import { nipify } from './HostInput';
 
 interface AddToWalletStepProps {
@@ -17,8 +16,7 @@ export const AddToWalletStep: React.FC<AddToWalletStepProps> = ({
     nodeRunningMode,
     onChainAdded
 }) => {
-    const [isAddChainModalOpen, setIsAddChainModalOpen] = useState(false);
-    const { addL1 } = useL1ListStore()();
+    const { addChain } = useWallet();
 
     const getRPCUrl = () => {
         if (nodeRunningMode === 'server' && domain) {
@@ -33,30 +31,20 @@ export const AddToWalletStep: React.FC<AddToWalletStepProps> = ({
             <p>Click the button below to add your chain to your wallet:</p>
 
             <Button
-                onClick={() => setIsAddChainModalOpen(true)}
+                onClick={async () => {
+                    const result = await addChain({ 
+                        rpcUrl: getRPCUrl(), 
+                        allowLookup: false 
+                    });
+                    if (result.success) {
+                        const chainName = result.chainData.name;
+                        onChainAdded?.(chainName);
+                    }
+                }}
                 className="mt-4 w-48"
             >
                 Add to Wallet
             </Button>
-
-            {isAddChainModalOpen && (
-                <AddChainModal
-                    onClose={() => setIsAddChainModalOpen(false)}
-                    onAddChain={(chain) => {
-                        if (onChainAdded) {
-                            onChainAdded(chain.name);
-                        }
-                        // Try addL1 but catch any errors that might cause resets
-                        try {
-                            addL1(chain);
-                        } catch (error) {
-                            console.log("addL1 error (non-blocking):", error);
-                        }
-                    }}
-                    allowLookup={false}
-                    fixedRPCUrl={getRPCUrl()}
-                />
-            )}
         </div>
     );
 }; 

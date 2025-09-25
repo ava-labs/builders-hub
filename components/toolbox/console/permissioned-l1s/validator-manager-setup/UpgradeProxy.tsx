@@ -5,26 +5,35 @@ import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/toolbox/components/Button";
-import { Success } from "@/components/toolbox/components/Success";
 import ProxyAdminABI from "@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json";
-import { Container } from "@/components/toolbox/components/Container";
 import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
 import { getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { Input } from "@/components/toolbox/components/Input";
 import { Step, Steps } from "fumadocs-ui/components/steps";
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 // Storage slot with the admin of the proxy (following EIP1967)
 const ADMIN_SLOT = "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103";
 
-export default function UpgradeProxy() {
+const metadata: ConsoleToolMetadata = {
+    title: "Upgrade Proxy Implementation",
+    description: "Upgrade the proxy implementation to the desired implementation",
+    walletRequirements: [
+        WalletRequirementsConfigKey.EVMChainBalance
+    ]
+};
+
+function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const { validatorManagerAddress } = useToolboxStore();
     const [proxyAdminAddress, setProxyAdminAddress] = useState<`0x${string}` | null>(null);
     const selectedL1 = useSelectedL1()();
-    const { coreWalletClient, publicClient, walletChainId } = useWalletStore();
+    const { publicClient, walletChainId } = useWalletStore();
+    const { coreWalletClient } = useConnectedWallet();
     const [isUpgrading, setIsUpgrading] = useState(false);
     const [currentImplementation, setCurrentImplementation] = useState<string | null>(null);
     const [desiredImplementation, setDesiredImplementation] = useState<string | null>(null);
@@ -33,6 +42,8 @@ export default function UpgradeProxy() {
     const viemChain = useViemChainStore();
 
     const [proxyAddress, setProxyAddress] = useState<string>("");
+
+    const { sendCoreWalletNotSetNotification, notify } = useConsoleNotifications();
 
     // Throw critical errors during render
     if (criticalError) {
@@ -137,19 +148,25 @@ export default function UpgradeProxy() {
         }
 
         setIsUpgrading(true);
-        try {
-            const hash = await coreWalletClient.writeContract({
-                address: proxyAdminAddress,
-                abi: ProxyAdminABI.abi,
-                functionName: 'upgrade',
-                args: [proxyAddress, desiredImplementation as `0x${string}`],
-                chain: viemChain,
-            });
 
+        const upgradePromise = coreWalletClient.writeContract({
+            address: proxyAdminAddress,
+            abi: ProxyAdminABI.abi,
+            functionName: 'upgrade',
+            args: [proxyAddress, desiredImplementation as `0x${string}`],
+            chain: viemChain ?? undefined,
+        });
+
+        notify({
+            type: 'call',
+            name: 'Upgrade Proxy'
+        }, upgradePromise, viemChain ?? undefined);
+
+        try {
+            const hash = await upgradePromise;
             await publicClient.waitForTransactionReceipt({ hash });
             await checkCurrentImplementation();
-        } catch (error) {
-            setCriticalError(error instanceof Error ? error : new Error(String(error)));
+            onSuccess?.();
         } finally {
             setIsUpgrading(false);
         }
@@ -159,13 +176,7 @@ export default function UpgradeProxy() {
     const canUpgrade = !!proxyAddress && !!proxyAdminAddress && !!desiredImplementation && isUpgradeNeeded;
 
     return (
-        <CheckWalletRequirements configKey={[
-            WalletRequirementsConfigKey.EVMChainBalance
-        ]}>
-            <Container
-                title="Upgrade Proxy Implementation"
-                description="This will upgrade the proxy implementation to the desired implementation."
-            >
+        <>
 
                 <Steps>
                     <Step>
@@ -221,11 +232,11 @@ export default function UpgradeProxy() {
                 </Steps>
 
 
-                {!isUpgradeNeeded && currentImplementation && <Success
-                    label="Current Implementation"
-                    value={"No change needed"}
-                />}
-            </Container>
-        </CheckWalletRequirements>
+                {!isUpgradeNeeded && currentImplementation && (
+                    <p className="mt-4 text-green-600">No change needed - Already up to date</p>
+                )}
+        </>
     );
-};
+}
+
+export default withConsoleToolMetadata(UpgradeProxy, metadata);

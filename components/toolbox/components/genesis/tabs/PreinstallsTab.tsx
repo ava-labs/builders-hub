@@ -7,6 +7,8 @@ interface PreinstallsTabProps {
     preinstallConfig: PreinstallConfig;
     setPreinstallConfig: (config: SetStateAction<PreinstallConfig>) => void;
     ownerAddress?: Address;
+    tokenName?: string;
+    tokenSymbol?: string;
     isGenesisReady: boolean;
     setActiveTab: (tab: string) => void;
 }
@@ -15,6 +17,8 @@ export function PreinstallsTab({
     preinstallConfig,
     setPreinstallConfig,
     ownerAddress,
+    tokenName,
+    tokenSymbol,
     isGenesisReady,
     setActiveTab
 }: PreinstallsTabProps) {
@@ -24,6 +28,8 @@ export function PreinstallsTab({
                 config={preinstallConfig}
                 onConfigChange={setPreinstallConfig}
                 ownerAddress={ownerAddress}
+                tokenName={tokenName}
+                tokenSymbol={tokenSymbol}
             />
 
             <div className="flex justify-center space-x-4">

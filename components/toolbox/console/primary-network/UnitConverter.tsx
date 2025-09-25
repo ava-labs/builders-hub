@@ -109,7 +109,6 @@ export default function UnitConverter() {
         <Container
             title="AVAX Unit Converter"
             description="Convert between AVAX, P-Chain nAVAX, and C-Chain wei"
-            logoColorTheme="red"
         >
             <div className="space-y-4">
                 <div className="p-4 bg-gray-50 dark:bg-zinc-800 rounded-lg space-y-2 border border-gray-100 dark:border-zinc-700">

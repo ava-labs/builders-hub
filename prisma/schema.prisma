@@ -53,6 +53,7 @@ model User {
   hackathons          Hackathon[]
   badges              UserBadge[]
   managedTestnetNodes NodeRegistration[]
+  consoleLog          ConsoleLog[]
 }
 
 model VerificationToken {
@@ -195,4 +196,17 @@ model NodeRegistration {
   @@index([user_id])
   @@index([status])
   @@index([subnet_id])
+}
+
+model ConsoleLog {
+  id          String   @id @default(uuid())
+  user_id     String
+  status      String   // success, error, warning, info
+  action_path String?  // Full path context (e.g., "permissioned-l1s/validator-manager-setup/deploy/validator_manager")
+  data        Json?    // Flexible JSON data
+  created_at  DateTime @default(now()) @db.Timestamptz(3)
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  @@index([user_id])
+  @@index([created_at])
 }

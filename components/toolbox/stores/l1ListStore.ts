@@ -3,6 +3,7 @@ import { persist, createJSONStorage, combine } from 'zustand/middleware'
 import { useWalletStore } from "./walletStore";
 import { localStorageComp, STORE_VERSION } from "./utils";
 import { useMemo } from "react";
+
 export type L1ListItem = {
     id: string;
     name: string;
@@ -23,8 +24,6 @@ export type L1ListItem = {
     features?: string[];
 };
 
-
-
 const l1ListInitialStateFuji = {
     l1List: [
         {
@@ -43,7 +42,7 @@ const l1ListInitialStateFuji = {
             hasBuilderHubFaucet: true,
             externalFaucetUrl: "https://core.app/tools/testnet-faucet",
             explorerUrl: "https://subnets-test.avax.network/c-chain",
-            dripAmount: 3,
+            dripAmount: 1,
             features: [
                 "EVM-compatible blockchain",
                 "Deploy smart contracts"
@@ -65,7 +64,7 @@ const l1ListInitialStateFuji = {
             hasBuilderHubFaucet: true,
             externalFaucetUrl: "https://core.app/tools/testnet-faucet",
             explorerUrl: "https://subnets-test.avax.network/echo",
-            dripAmount: 3,
+            dripAmount: 2,
             features: [
                 "EVM-compatible L1 chain",
                 "Deploy dApps & test interoperability with Echo"
@@ -87,7 +86,7 @@ const l1ListInitialStateFuji = {
             hasBuilderHubFaucet: true,
             externalFaucetUrl: "https://core.app/tools/testnet-faucet",
             explorerUrl: "https://subnets-test.avax.network/dispatch",
-            dripAmount: 3,
+            dripAmount: 2,
             features: [
                 "EVM-compatible L1 chain",
                 "Deploy dApps & test interoperability with Dispatch"

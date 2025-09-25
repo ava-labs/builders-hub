@@ -7,10 +7,10 @@ export default function Instructors({ names }: { names: string[] }) {
     return (
         <div className="flex flex-col space-y-4">
             {getInstructorsByNames(names).map((instructor) => (
-                <Link href={instructor.twitter} target="_blank" key={uuidv4()} className="flex text-muted-foreground hover:text-foreground">
+                <Link href={instructor.x} target="_blank" key={uuidv4()} className="flex text-muted-foreground hover:text-foreground">
                     <div className="relative w-12 h-12">
                         <Image
-                            src={`/common-images/intro/instructors/${instructor.name.toLowerCase().replaceAll(" ", "-")}.jpeg`}
+                            src={instructor.image}
                             alt={instructor.name}
                             fill
                             className="rounded-full object-cover"
