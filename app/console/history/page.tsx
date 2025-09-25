@@ -100,12 +100,22 @@ export default function ConsoleHistoryPage() {
           type: 'address'
         });
       }
-      if (toolboxStore.stakingManagerAddress && toolboxStore.stakingManagerAddress !== '') {
+      if (toolboxStore.nativeStakingManagerAddress && toolboxStore.nativeStakingManagerAddress !== '') {
         items.push({
-          id: 'tb-staking-mgr',
-          title: 'Staking Manager',
+          id: 'tb-native-staking-mgr',
+          title: 'Native Token Staking Manager',
           description: 'Deployed Contract',
-          address: toolboxStore.stakingManagerAddress,
+          address: toolboxStore.nativeStakingManagerAddress,
+          chainId,
+          type: 'address'
+        });
+      }
+      if (toolboxStore.erc20StakingManagerAddress && toolboxStore.erc20StakingManagerAddress !== '') {
+        items.push({
+          id: 'tb-erc20-staking-mgr',
+          title: 'ERC20 Token Staking Manager',
+          description: 'Deployed Contract',
+          address: toolboxStore.erc20StakingManagerAddress,
           chainId,
           type: 'address'
         });

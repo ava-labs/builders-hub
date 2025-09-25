@@ -22,7 +22,7 @@ export const steps: StepDefinition[] = [
         title: "Initialize Staking Manager",
         component: InitializeNativeTokenStakingManager,
     },
-    { type: "single", key: "enable-staking-minting", title: "Enable StakingManager in Native Minter", component: EnableStakingManagerMinting, optional: true },
+    { type: "single", key: "enable-staking-minting", title: "Enable StakingManager in Native Minter", component: EnableStakingManagerMinting },
     { type: "single", key: "transfer-ownership", title: "Transfer Ownership", component: TransferOwnership },
     { type: "single", key: "read-contract", title: "Read Contract", component: ReadContract },
 ];
