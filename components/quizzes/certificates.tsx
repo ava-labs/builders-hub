@@ -8,7 +8,7 @@ import Quiz from '@/components/quizzes/quiz';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Linkedin, Twitter, Award, Share2 } from 'lucide-react';
 import { AwardBadgeWrapper } from '@/components/quizzes/components/awardBadgeWrapper';
-	import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useCertificates } from '@/hooks/useCertificates';
 import { toast } from '@/hooks/use-toast';
 
