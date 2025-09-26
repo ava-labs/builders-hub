@@ -1,6 +1,5 @@
 import { parseEther } from 'viem'
-import { AllowlistPrecompileConfig, AllocationEntry } from './types';
-import { PreinstallConfig } from './PreinstalledContractsSection';
+import { AllowlistPrecompileConfig, AllocationEntry, PreinstallConfig } from './types';
 import TransparentUpgradeableProxy from "../../../../contracts/openzeppelin-4.9/compiled/TransparentUpgradeableProxy.json"
 import ProxyAdmin from "../../../../contracts/openzeppelin-4.9/compiled/ProxyAdmin.json"
 import TeleporterMessenger from "../../../../contracts/icm-contracts/compiled/TeleporterMessenger.json"
