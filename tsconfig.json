@@ -19,6 +19,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    "allowImportingTsExtensions": true,
     "paths": {
       "@/.source": [
         "./.source/index.ts"
@@ -44,8 +45,8 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
+    "**/*.mts",
     ".next/types/**/*.ts",
-    "utils/remote-content.mts",
     "hooks/getLucideIcon.tsz"
   ],
   "exclude": [

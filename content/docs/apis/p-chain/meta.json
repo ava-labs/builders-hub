@@ -1,0 +1,10 @@
+{
+    "title": "P-Chain API",
+    "description": "API methods for the Platform Chain (P-Chain).",
+    "icon": "Platform",
+    "root": false,
+    "pages": [
+        "txn-format",
+        "api"
+    ]
+}
