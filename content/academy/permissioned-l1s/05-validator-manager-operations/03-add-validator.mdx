@@ -55,9 +55,24 @@ When registering validators, it's important to understand the **expiry field**:
 - **Default Expiry**: Validator registrations expire after **24 hours** by default
 - **Completion Required**: If a validator registration is not completed before the expiry time, the registration becomes invalid
 - **Pending State**: Expired registrations remain in the pending registrations list in the Validator Manager contracts
-- **Cleanup Required**: Expired registrations must be manually removed using the [Remove Expired Validator Registration tool](/console/permissioned-l1s/remove-expired-validator-registration)
+- **Cleanup Required**: Expired registrations must be manually removed to keep your validator management system clean
 
-This ensures that only active, properly configured validators remain in your Subnet's validator set.
+### What Happens When Registrations Expire?
+
+Expired validator registrations can occur due to various reasons:
+- **Network connectivity issues** preventing P-Chain registration
+- **Configuration errors** in validator node setup
+- **Delayed validator setup** taking longer than 24 hours
+- **Manual errors** in the registration process
+
+These expired registrations remain in the pending list indefinitely, which can:
+- Clutter your validator management interface
+- Make it difficult to identify valid pending registrations
+- Skew validator count and status reporting
+
+### Managing Expired Registrations
+
+At the end of this chapter, you'll learn how to identify and clean up expired validator registrations using the [Remove Expired Validator Registration tool](/academy/permissioned-l1s/05-validator-manager-operations/09-expired-validator-registration). This tool helps maintain a clean and organized validator management system.
 
 ## Appendix: Adding Validator Flow
 

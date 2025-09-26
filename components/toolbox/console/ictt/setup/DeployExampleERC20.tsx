@@ -9,6 +9,7 @@ import { Success } from "@/components/toolbox/components/Success";
 import { http, createPublicClient } from "viem";
 import { Container } from "@/components/toolbox/components/Container";
 import { ExternalLink } from "lucide-react";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 export default function DeployExampleERC20() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
@@ -17,7 +18,7 @@ export default function DeployExampleERC20() {
     const viemChain = useViemChainStore();
     const [isDeploying, setIsDeploying] = useState(false);
     const { walletChainId } = useWalletStore();
-
+    const { notify } = useConsoleNotifications();
     // Throw critical errors during render
     if (criticalError) {
         throw criticalError;
@@ -37,15 +38,19 @@ export default function DeployExampleERC20() {
                 transport: http(viemChain.rpcUrls.default.http[0] || "")
             });
 
-            const hash = await coreWalletClient.deployContract({
+            const deployPromise = coreWalletClient.deployContract({
                 abi: ExampleERC20.abi as any,
                 bytecode: ExampleERC20.bytecode.object as `0x${string}`,
                 args: [],
                 chain: viemChain,
                 account: walletEVMAddress as `0x${string}`
             });
-            
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+            notify({
+                type: 'deploy',
+                name: 'ExampleERC20'
+            }, deployPromise, viemChain ?? undefined);
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: await deployPromise });
 
             if (!receipt.contractAddress) {
                 throw new Error('No contract address in receipt');

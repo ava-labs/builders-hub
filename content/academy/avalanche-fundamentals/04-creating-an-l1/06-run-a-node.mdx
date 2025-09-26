@@ -1,18 +1,40 @@
 ---
 title: Set up Validator Nodes
-description: Learn how to set up a AvalancheGo node tracking a Subnet with Docker and the Builder Tooling.
+description: Learn how to deploy validator nodes for your L1 using managed infrastructure or self-hosted Docker deployments.
 updated: 2025-03-19
 authors: [owenwahlgren]
 icon: Terminal
 ---
 
-Now that the P-Chain records are set up, you can start the nodes tracking the Subnet. We will use Docker to run the node. Docker is a containerization platform that allows you to run applications in isolated environments called containers. This makes it easy to deploy and manage applications, as well as to ensure that they run consistently across different environments.
+import AvalancheGoDocker from "@/components/toolbox/console/layer-1/AvalancheGoDockerL1";
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
 
-Ideally you would run the node on a cloud linux server. You can use any cloud provider you like,
-like AWS, GCP, Azure, or Digital Ocean. You can also run the node on your local machine, but this is
-not recommended, because the ports should not be open to the public. You can complete most of the
-steps without opening the ports, but your L1 will not be be able to use the interoperability features of the Avalanche network.
+Now that the P-Chain records are set up, you can start syncing the node with your Subnet.
+
+## Run Your L1 Node
+
+Use our free managed testnet infrastructure to instantly deploy a node for your L1, no need for Docker or Cloud Provider account set up with credits. Enjoy the benefits of:
+
+- Instant deployment with one click
+- Automatic configuration for your Subnet
+- Free for testnet development
+- Monitor and manage through the [Builder Console](/console/testnet-infra/nodes)
+
+<ToolboxMdxWrapper walletMode="testnet-mainnet">
+    <CreateManagedTestnetNode />
+</ToolboxMdxWrapper>
+
+<Callout type="warning">
+Managed nodes automatically shut down after 3 days. For production or extended testing, see the self-hosted option below.
+</Callout>
+
+## Optional Alternative: Self-Hosted Infrastructure
+
+The free managed testnet nodes are a great option for playing around with Avalanche L1s, but are not
+intended for running on production environments. They are shut down automatically after 3 days. If you want to test out your production environment, running beyond 3 days, or anything more complex you should run nodes on your own infrastructure
+using Docker:
 
 <ToolboxMdxWrapper walletMode="testnet-mainnet">
     <AvalancheGoDocker />
 </ToolboxMdxWrapper>
+

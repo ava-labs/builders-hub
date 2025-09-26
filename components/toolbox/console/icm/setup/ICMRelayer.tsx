@@ -5,25 +5,36 @@ import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { L1ListItem, useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { useL1ListStore } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { Input } from '@/components/toolbox/components/Input';
+import { Input, RawInput } from '@/components/toolbox/components/Input';
 import { Button } from '@/components/toolbox/components/Button';
 import { useState, useEffect } from 'react';
 import { RefreshCw } from 'lucide-react';
 
 import versions from '@/scripts/versions.json';
 import { Note } from '@/components/toolbox/components/Note';
-import { Container } from '@/components/toolbox/components/Container';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
-import { CheckWalletRequirements } from '@/components/toolbox/components/CheckWalletRequirements';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
+import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+import { DockerInstallation } from '@/components/toolbox/components/DockerInstallation';
 
+const metadata: ConsoleToolMetadata = {
+    title: "ICM Relayer",
+    description: "Configure the ICM Relayer for cross-chain message delivery",
+    walletRequirements: [
+        WalletRequirementsConfigKey.EVMChainBalance
+    ]
+};
 
-export default function ICMRelayer() {
+function ICMRelayer({ onSuccess }: BaseConsoleToolProps) {
     const selectedL1 = useSelectedL1()();
     const [criticalError, setCriticalError] = useState<Error | null>(null);
-    const { coreWalletClient, isTestnet, walletEVMAddress } = useWalletStore();
+    const { isTestnet, walletEVMAddress } = useWalletStore();
+    const { coreWalletClient } = useConnectedWallet();
     const { l1List } = useL1ListStore()();
-
+    const { notify } = useConsoleNotifications();
     // Initialize state with one-time calculation
     const [selectedSources, setSelectedSources] = useState<string[]>(() => {
         return [...new Set([selectedL1?.id, l1List[0]?.id].filter(Boolean) as string[])];
@@ -35,6 +46,14 @@ export default function ICMRelayer() {
     const [balances, setBalances] = useState<Record<string, string>>({});
     const [isLoadingBalances, setIsLoadingBalances] = useState(false);
     const [isSending, setIsSending] = useState(false);
+    const [tokenAmounts, setTokenAmounts] = useState<Record<string, string>>({});
+
+    const updateTokenAmount = (chainId: string, amount: string) => {
+        setTokenAmounts(prev => ({
+            ...prev,
+            [chainId]: amount
+        }));
+    };
 
     // Use sessionStorage for private key to persist across refreshes
     const [privateKey, setPrivateKey] = useState<`0x${string}` | null>(null);
@@ -143,15 +162,16 @@ export default function ICMRelayer() {
     };
 
     const sendOneCoin = async (chainId: string) => {
-        if (!coreWalletClient) {
-            setCriticalError(new Error('Core wallet not found'));
-            return;
-        }
-
         setIsSending(true);
         try {
             const chain = l1List.find((l1: L1ListItem) => l1.id === chainId);
             if (!chain) return;
+
+            const amount = tokenAmounts[chainId] || '1';
+            if (!amount || parseFloat(amount) <= 0) {
+                setCriticalError(new Error('Please enter a valid amount'));
+                return;
+            }
 
             const viemChain: Chain = {
                 id: chain.evmChainId,
@@ -176,15 +196,19 @@ export default function ICMRelayer() {
                 blockTag: 'pending',
             });
 
-            const txHash = await coreWalletClient.sendTransaction({
+            const transactionPromise = coreWalletClient.sendTransaction({
                 to: relayerAddress as `0x${string}`,
-                value: parseEther('1'),
+                value: parseEther(amount),
                 chain: viemChain,
                 gas: 21000n,
                 nonce: nextNonce,
             });
-
-            await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` });
+            notify({
+                type: 'transfer',
+                name: 'Send Native Coin'
+            }, transactionPromise, viemChain ?? undefined);
+            const hash = await transactionPromise;
+            await publicClient.waitForTransactionReceipt({ hash });
             await fetchBalances();
         } catch (error) {
             setCriticalError(error instanceof Error ? error : new Error(String(error)));
@@ -199,20 +223,20 @@ export default function ICMRelayer() {
     }, []);
 
     return (
-        <CheckWalletRequirements configKey={[
-            WalletRequirementsConfigKey.EVMChainBalance,
-        ]}>
-            <Container
-                title="ICM Relayer"
-                description="Configure the ICM Relayer for cross-chain message delivery."
-            >
+        <Steps>
+            <Step>
+                <DockerInstallation includeCompose={false} />
+            </Step>
+            
+            <Step>
+                <h3 className="text-xl font-bold mb-4">Configure Relayer</h3>
                 <Input
                     label="Relayer EVM Address"
                     value={relayerAddress || ''}
                     disabled
                 />
                 <Note variant="warning">
-                    <span className="font-semibold">Important:</span> The Relayer EVM Address above uses a temporary private key generated in your browser. Feel free to replace it with another private key in the ralyer config file (field <code>account-private-key</code> of all destination blockchains) below.
+                    <span className="font-semibold">Important:</span> The Relayer EVM Address above uses a temporary private key generated in your browser. Feel free to replace it with another private key in the relayer config file (field <code>account-private-key</code> of all destination blockchains) below.
                     This generated key is stored only in session storage and will be <span className="font-semibold">lost when you close this browser tab</span>.
                     Ensure you fund this address sufficiently.
                 </Note>
@@ -276,7 +300,7 @@ export default function ICMRelayer() {
                         Ensure the relayer address maintains a positive balance on all selected chains to cover transaction fees for message delivery.
                     </div>
                     <div className="space-y-2">
-                        {selectedChains.map((chain: L1ListItem) => (
+                {selectedChains.map((chain: L1ListItem) => (
                             <div key={`balance-${chain.id}`} className="flex items-center justify-between p-3 border rounded-md">
                                 <div>
                                     <div className="font-medium">{chain.name}</div>
@@ -292,15 +316,26 @@ export default function ICMRelayer() {
                                         </button>
                                     </div>
                                 </div>
-                                <Button
-                                    size="sm"
-                                    variant="primary"
-                                    className="w-auto px-4 flex-shrink-0"
-                                    onClick={() => sendOneCoin(chain.id)}
-                                    loading={isSending}
-                                >
-                                    Send 1 {chain.coinName}
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                    <RawInput
+                                        value={tokenAmounts[chain.id] || '1'}
+                                        onChange={(e) => updateTokenAmount(chain.id, e.target.value)}
+                                        placeholder="1.0"
+                                        type="number"
+                                        step="0.1"
+                                        min="0"
+                                        className="w-20 h-8"
+                                    />
+                                    <Button
+                                        size="sm"
+                                        variant="primary"
+                                        className="w-24 px-2 flex-shrink-0 h-8 text-sm"
+                                        onClick={() => sendOneCoin(chain.id)}
+                                        loading={isSending}
+                                    >
+                                        Send {chain.coinName}
+                                    </Button>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -312,15 +347,24 @@ export default function ICMRelayer() {
                     lang="bash"
                 />
 
-                <div className="text-lg mt-8 font-bold">Run the relayer</div>
+            </Step>
+            
+            <Step>
+                <h3 className="text-xl font-bold mb-4">Run the Relayer</h3>
+                <p>Start the ICM Relayer using the following Docker command:</p>
                 <DynamicCodeBlock
                     code={relayerDockerCommand()}
                     lang="sh"
                 />
-            </Container>
-        </CheckWalletRequirements>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    The relayer will monitor the source blockchains for cross-chain messages and deliver them to the destination blockchains.
+                </p>
+            </Step>
+        </Steps>
     );
 }
+
+export default withConsoleToolMetadata(ICMRelayer, metadata);
 
 const genConfigCommand = (
     sources: {

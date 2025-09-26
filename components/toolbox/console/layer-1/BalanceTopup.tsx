@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react"
 import { AlertCircle, Loader2, CheckCircle2, ArrowUpRight, RefreshCw } from "lucide-react"
 import { Button } from "../../components/Button"
-import { Container } from "../../components/Container"
 import { Context, pvm, utils } from "@avalabs/avalanchejs"
 import { useWalletStore } from "@/components/toolbox/stores/walletStore"
 import { bytesToHex } from "viem"
@@ -10,8 +9,9 @@ import { getRPCEndpoint } from "../../coreViem/utils/rpc"
 import { Input } from "../../components/Input"
 import SelectValidationID, { ValidationSelection } from "../../components/SelectValidationID"
 import SelectSubnetId from "../../components/SelectSubnetId"
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements"
 import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 
 // Helper function for delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -22,7 +22,15 @@ interface AvalancheResponse {
   [key: string]: any;
 }
 
-export default function ValidatorBalanceIncrease() {
+const metadata: ConsoleToolMetadata = {
+  title: "Validator Balance Increase",
+  description: "Increase the balance of a validator to extend its validation period and maintain network participation",
+  walletRequirements: [
+    WalletRequirementsConfigKey.PChainBalance
+  ]
+}
+
+function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
 
   const [amount, setAmount] = useState<string>("")
   const [subnetId, setSubnetId] = useState<string>("")
@@ -36,7 +44,8 @@ export default function ValidatorBalanceIncrease() {
   const [validatorTxId, setValidatorTxId] = useState<string>("")
 
   // Use nullish coalescing to safely access store values
-  const { pChainAddress, coreWalletClient, isTestnet } = useWalletStore()
+  const { pChainAddress, isTestnet } = useWalletStore()
+  const { coreWalletClient } = useConnectedWallet()
 
   // Fetch P-Chain balance
   const fetchPChainBalance = async () => {
@@ -146,6 +155,7 @@ export default function ValidatorBalanceIncrease() {
 
       setShowConfetti(true)
       setOperationSuccessful(true)
+      onSuccess?.()
 
       await delay(2000)
       await fetchPChainBalance()
@@ -170,15 +180,8 @@ export default function ValidatorBalanceIncrease() {
   }
 
   return (
-    <CheckWalletRequirements configKey={[
-      WalletRequirementsConfigKey.PChainBalance,
-    ]}>
-      <Container
-        title="L1 Validator Balance Topup"
-        description="Increase your validator's balance using funds from your P-Chain address."
-      >
-        <div className="space-y-6 w-full">
-          {operationSuccessful ? (
+    <div className="space-y-6 w-full">
+      {operationSuccessful ? (
             <div className="p-6 space-y-6 animate-fadeIn max-w-md mx-auto">
               <div className="flex items-center justify-center">
                 <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center animate-pulse">
@@ -330,7 +333,6 @@ export default function ValidatorBalanceIncrease() {
               </Button>
             </div>
           )}
-        </div>
 
         {showConfetti && (
           <div className="absolute inset-0 pointer-events-none">
@@ -341,7 +343,8 @@ export default function ValidatorBalanceIncrease() {
             <div className="absolute top-0 left-1/3 w-3 h-3 bg-purple-500 rounded-full animate-confetti-3"></div>
           </div>
         )}
-      </Container>
-    </CheckWalletRequirements>
+    </div>
   )
 }
+
+export default withConsoleToolMetadata(ValidatorBalanceIncrease, metadata)

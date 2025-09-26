@@ -17,6 +17,7 @@ import ExampleERC20 from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
 import { Container } from "@/components/toolbox/components/Container";
 import TeleporterRegistryAddressInput from "@/components/toolbox/components/TeleporterRegistryAddressInput";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 export default function DeployERC20TokenRemote() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
@@ -25,6 +26,7 @@ export default function DeployERC20TokenRemote() {
         setErc20TokenRemoteAddress,
     } = useToolboxStore();
     const { coreWalletClient, walletEVMAddress } = useWalletStore();
+    const { notify } = useConsoleNotifications();
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1()();
     const [isDeploying, setIsDeploying] = useState(false);
@@ -37,7 +39,6 @@ export default function DeployERC20TokenRemote() {
     const [minTeleporterVersion, setMinTeleporterVersion] = useState("1");
     const [tokenHomeAddress, setTokenHomeAddress] = useState("");
     const [teleporterRegistryAddress, setTeleporterRegistryAddress] = useState("");
-
     // Throw critical errors during render
     if (criticalError) {
         throw criticalError;
@@ -181,15 +182,19 @@ export default function DeployERC20TokenRemote() {
 
             console.log("Deploying ERC20TokenRemote with args:", constructorArgs);
 
-            const hash = await coreWalletClient.deployContract({
+            const deployPromise = coreWalletClient.deployContract({
                 abi: ERC20TokenRemote.abi as any,
                 bytecode: ERC20TokenRemote.bytecode.object as `0x${string}`,
                 args: constructorArgs,
                 account: walletEVMAddress as `0x${string}`,
                 chain: viemChain
             });
+            notify({
+                type: 'deploy',
+                name: 'ERC20TokenRemote'
+            }, deployPromise, viemChain ?? undefined);
 
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: await deployPromise });
 
             if (!receipt.contractAddress) {
                 throw new Error("No contract address in receipt");

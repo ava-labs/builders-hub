@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowUpDown, ArrowUp, ArrowDown, Activity, Users, BarChart3, Search, ExternalLink } from "lucide-react";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { Area, AreaChart, XAxis, YAxis, CartesianGrid } from "recharts";
-import BubbleNavigation from "@/components/navigation/BubbleNavigation";
+import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import l1ChainsData from "@/constants/l1-chains.json";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
@@ -394,7 +394,7 @@ export default function AvalancheMetrics() {
         </div>
 
         {/* Bubble Navigation */}
-        <BubbleNavigation />
+        <StatsBubbleNav />
       </div>
     );
   }
@@ -419,7 +419,7 @@ export default function AvalancheMetrics() {
         </main>
 
         {/* Bubble Navigation */}
-        <BubbleNavigation />
+        <StatsBubbleNav />
       </div>
     );
   }
@@ -446,7 +446,7 @@ export default function AvalancheMetrics() {
         </main>
 
         {/* Bubble Navigation */}
-        <BubbleNavigation />
+        <StatsBubbleNav />
       </div>
     );
   }
@@ -487,18 +487,16 @@ export default function AvalancheMetrics() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <main className="container mx-auto px-4 py-8 pb-24 space-y-8">
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-          <div className="space-y-3">
-            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">
-              Avalanche Mainnet L1 Stats
-            </h1>
-            <p className="text-base text-muted-foreground max-w-2xl leading-relaxed">
+      <main className="container mx-auto px-4 py-6 sm:py-8 pb-24 space-y-6 sm:space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
+          <div className="space-y-2 sm:space-y-3">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">Avalanche Mainnet L1 Stats</h1>
+            <p className="text-sm sm:text-base text-muted-foreground max-w-2xl leading-relaxed">
               Opinionated stats for Avalanche Mainnet L1s. Click on any chain to
               view detailed metrics.
             </p>
           </div>
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-col sm:items-end gap-2 self-start">
             <DateRangeFilter
               onRangeChange={(range) =>
                 setTimeRange(range as "30d" | "90d" | "1y" | "all")
@@ -508,15 +506,15 @@ export default function AvalancheMetrics() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
           <Card className="py-0 bg-card hover:border-border transition-colors">
-            <CardContent className="p-6">
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium text-muted-foreground">
+            <CardContent className="p-4 sm:p-6">
+              <div className="space-y-2 sm:space-y-3">
+                <h3 className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
                   Active Mainnet Avalanche L1s
                 </h3>
                 <div className="space-y-1">
-                  <p className="text-3xl font-bold text-foreground">
+                  <p className="text-2xl sm:text-3xl font-bold text-foreground">
                     {overviewMetrics.chains.length}
                   </p>
                 </div>
@@ -525,13 +523,13 @@ export default function AvalancheMetrics() {
           </Card>
 
           <Card className="py-0 bg-card hover:border-border transition-colors">
-            <CardContent className="p-6">
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium text-muted-foreground">
+            <CardContent className="p-4 sm:p-6">
+              <div className="space-y-2 sm:space-y-3">
+                <h3 className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
                   Total Transactions ({timeRange})
                 </h3>
                 <div className="space-y-1">
-                  <p className="text-3xl font-bold text-foreground">
+                  <p className="text-2xl sm:text-3xl font-bold text-foreground">
                     {formatNumber(
                       typeof overviewMetrics.aggregated.totalTxCount
                         .current_value === "number"
@@ -544,14 +542,14 @@ export default function AvalancheMetrics() {
             </CardContent>
           </Card>
 
-          <Card className="py-0 bg-card hover:border-border transition-colors">
-            <CardContent className="p-6">
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium text-muted-foreground">
+          <Card className="py-0 bg-card hover:border-border transition-colors sm:col-span-2 lg:col-span-1">
+            <CardContent className="p-4 sm:p-6">
+              <div className="space-y-2 sm:space-y-3">
+                <h3 className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
                   Active Addresses ({timeRange})
                 </h3>
                 <div className="space-y-1">
-                  <p className="text-3xl font-bold text-foreground">
+                  <p className="text-2xl sm:text-3xl font-bold text-foreground">
                     {formatNumber(
                       typeof overviewMetrics.aggregated.totalActiveAddresses
                         .current_value === "number"
@@ -566,14 +564,14 @@ export default function AvalancheMetrics() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <Card className="py-0 bg-blue-500/10 border-blue-500/20">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="text-center space-y-1">
                 <p className="text-xs font-medium text-muted-foreground">
                   Active Chains ({timeRange})
                 </p>
-                <p className="text-lg font-bold text-foreground">
+                <p className="text-base sm:text-lg font-bold text-foreground">
                   {overviewMetrics.aggregated.activeChains}
                 </p>
               </div>
@@ -581,12 +579,12 @@ export default function AvalancheMetrics() {
           </Card>
 
           <Card className="py-0 bg-green-500/10 border-green-500/20">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="text-center space-y-1">
                 <p className="text-xs font-medium text-muted-foreground">
                   ICM Messages
                 </p>
-                <p className="text-lg font-bold text-foreground">
+                <p className="text-base sm:text-lg font-bold text-foreground">
                   {formatNumber(
                     overviewMetrics.aggregated.totalICMMessages.current_value
                   )}
@@ -596,12 +594,12 @@ export default function AvalancheMetrics() {
           </Card>
 
           <Card className="py-0 bg-yellow-500/10 border-yellow-500/20">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="text-center space-y-1">
                 <p className="text-xs font-medium text-muted-foreground">
                   Total Validators
                 </p>
-                <p className="text-lg font-bold text-foreground">
+                <p className="text-base sm:text-lg font-bold text-foreground">
                   {formatNumber(overviewMetrics.aggregated.totalValidators)}
                 </p>
               </div>
@@ -610,15 +608,15 @@ export default function AvalancheMetrics() {
         </div>
 
         <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-              <BarChart3 className="h-5 w-5 text-orange-500" />
-              Daily Transaction Trends - Top L1s ({timeRange})
+          <CardHeader className="pb-3 sm:pb-4">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-xl">
+              <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500" />
+              <span className="break-words">Daily Transaction Trends - Top L1s ({timeRange})</span>
             </CardTitle>
-            <p className="text-sm text-muted-foreground">Stacked daily transaction volumes showing total activity across top L1s for the selected time range</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Stacked daily transaction volumes showing total activity across top L1s for the selected time range</p>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfig} className="h-[350px] w-full">
+            <ChartContainer config={chartConfig} className="h-[250px] sm:h-[350px] w-full">
               <AreaChart
                 data={chartData}
                 margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
@@ -777,14 +775,14 @@ export default function AvalancheMetrics() {
           </CardContent>
         </Card>
 
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between">
+          <div className="relative flex-1 max-w-sm w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 rounded-xl bg-white"
+              className="pl-10 rounded-xl bg-white text-sm"
             />
           </div>
           <Button
@@ -794,6 +792,7 @@ export default function AvalancheMetrics() {
               setSearchTerm("");
               setVisibleCount(25);
             }}
+            className="text-xs sm:text-sm"
           >
             Clear Search
           </Button>
@@ -804,49 +803,49 @@ export default function AvalancheMetrics() {
             <Table>
               <TableHeader>
                 <TableRow className="border-b-2 bg-muted/30 hover:bg-muted/30">
-                  <TableHead className="font-medium py-6 px-6 text-muted-foreground min-w-[200px]">
+                  <TableHead className="font-medium py-3 sm:py-6 px-3 sm:px-6 text-muted-foreground min-w-[160px] sm:min-w-[200px]">
                     <SortButton field="chainName">L1 Name</SortButton>
                   </TableHead>
-                  <TableHead className="font-medium text-center min-w-[140px] text-muted-foreground">
+                  <TableHead className="font-medium text-center min-w-[100px] sm:min-w-[140px] text-muted-foreground px-2 sm:px-4">
                     <SortButton field="weeklyTxCount">
                       <span className="hidden lg:flex items-center gap-1">
                         <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                         Transactions ({timeRange})
                       </span>
-                      <span className="lg:hidden">Transactions</span>
+                      <span className="lg:hidden text-xs">Txs</span>
                     </SortButton>
                   </TableHead>
-                  <TableHead className="font-medium text-center min-w-[140px] text-muted-foreground">
+                  <TableHead className="font-medium text-center min-w-[100px] sm:min-w-[140px] text-muted-foreground px-2 sm:px-4">
                     <SortButton field="weeklyActiveAddresses">
                       <span className="hidden lg:flex items-center gap-1">
                         <Users className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                         Active Addresses ({timeRange})
                       </span>
-                      <span className="lg:hidden">Addresses</span>
+                      <span className="lg:hidden text-xs">Addrs</span>
                     </SortButton>
                   </TableHead>
-                  <TableHead className="font-medium text-center min-w-[140px] text-muted-foreground">
+                  <TableHead className="font-medium text-center min-w-[80px] sm:min-w-[140px] text-muted-foreground px-2 sm:px-4">
                     <SortButton field="totalIcmMessages">
                       <span className="hidden lg:flex items-center gap-1">
                         <Activity className="h-4 w-4 text-green-600 dark:text-green-400" />
                         Total ICM Count
                       </span>
-                      <span className="lg:hidden">ICM</span>
+                      <span className="lg:hidden text-xs">ICM</span>
                     </SortButton>
                   </TableHead>
-                  <TableHead className="font-medium text-center min-w-[140px] text-muted-foreground">
+                  <TableHead className="font-medium text-center min-w-[80px] sm:min-w-[140px] text-muted-foreground px-2 sm:px-4">
                     <SortButton field="validatorCount">
                       <span className="hidden lg:flex items-center gap-1">
                         <Users className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
                         Validators
                       </span>
-                      <span className="lg:hidden">Validators</span>
+                      <span className="lg:hidden text-xs">Vals</span>
                     </SortButton>
                   </TableHead>
-                  <TableHead className="font-medium text-center min-w-[100px] text-muted-foreground">
+                  <TableHead className="font-medium text-center min-w-[80px] sm:min-w-[100px] text-muted-foreground text-xs sm:text-sm">
                     Activity
                   </TableHead>
-                  <TableHead className="font-medium text-center min-w-[100px] text-muted-foreground">
+                  <TableHead className="font-medium text-center min-w-[80px] sm:min-w-[100px] text-muted-foreground text-xs sm:text-sm">
                     Details
                   </TableHead>
                 </TableRow>
@@ -862,36 +861,36 @@ export default function AvalancheMetrics() {
                       key={chain.chainId}
                       className="border-b border-border/50 hover:bg-muted/30 transition-colors"
                     >
-                      <TableCell className="py-4 px-6">
-                        <div className="flex items-center gap-4">
+                      <TableCell className="py-2 sm:py-4 px-3 sm:px-6">
+                        <div className="flex items-center gap-2 sm:gap-4">
                           <div className="relative">
                             {chain.chainLogoURI ? (
                               <Image
                                 src={chain.chainLogoURI || "/placeholder.svg"}
                                 alt={`${chain.chainName} logo`}
-                                width={32}
-                                height={32}
-                                className="rounded-full flex-shrink-0 ring-2 ring-border/50"
+                                width={24}
+                                height={24}
+                                className="sm:w-8 sm:h-8 rounded-full flex-shrink-0 ring-2 ring-border/50"
                                 onError={(e) => {
                                   e.currentTarget.style.display = "none";
                                 }}
                               />
                             ) : (
-                              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold text-white flex-shrink-0">
                                 {chain.chainName.charAt(0)}
                               </div>
                             )}
                           </div>
-                          <div>
-                            <div className="font-semibold text-foreground text-base">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-semibold text-foreground text-sm sm:text-base truncate">
                               {chain.chainName}
                             </div>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center px-2 sm:px-4">
                         <span
-                          className={`font-mono font-semibold text-sm ${
+                          className={`font-mono font-semibold text-xs sm:text-sm ${
                             typeof chain.txCount.current_value === "number" &&
                             chain.txCount.current_value > 0
                               ? "text-foreground"
@@ -903,9 +902,9 @@ export default function AvalancheMetrics() {
                             : chain.txCount.current_value}
                         </span>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center px-2 sm:px-4">
                         <span
-                          className={`font-mono font-semibold text-sm ${
+                          className={`font-mono font-semibold text-xs sm:text-sm ${
                             typeof chain.activeAddresses.current_value ===
                               "number" &&
                             chain.activeAddresses.current_value > 0
@@ -921,9 +920,9 @@ export default function AvalancheMetrics() {
                             : chain.activeAddresses.current_value}
                         </span>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center px-2 sm:px-4">
                         <span
-                          className={`font-mono font-semibold text-sm ${
+                          className={`font-mono font-semibold text-xs sm:text-sm ${
                             typeof chain.icmMessages.current_value ===
                               "number" && chain.icmMessages.current_value > 0
                               ? "text-foreground"
@@ -935,9 +934,9 @@ export default function AvalancheMetrics() {
                             : chain.icmMessages.current_value}
                         </span>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center px-2 sm:px-4">
                         <span
-                          className={`font-mono font-semibold text-sm ${
+                          className={`font-mono font-semibold text-xs sm:text-sm ${
                             typeof chain.validatorCount === "number" &&
                             chain.validatorCount > 0
                               ? "text-foreground"
@@ -949,18 +948,18 @@ export default function AvalancheMetrics() {
                             : chain.validatorCount}
                         </span>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center px-2 sm:px-4">
                         <ActivityIndicator count={getActivityDots(chain)} />
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center px-2 sm:px-4">
                         {chainSlug ? (
                           <Link href={`/stats/l1/${chainSlug}`}>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0 hover:bg-primary/10"
+                              className="h-6 w-6 sm:h-8 sm:w-8 p-0 hover:bg-primary/10"
                             >
-                              <ExternalLink className="h-4 w-4" />
+                              <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4" />
                             </Button>
                           </Link>
                         ) : (
@@ -999,7 +998,7 @@ export default function AvalancheMetrics() {
       </main>
 
       {/* Bubble Navigation */}
-      <BubbleNavigation />
+      <StatsBubbleNav />
     </div>
   );
 }

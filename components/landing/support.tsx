@@ -15,9 +15,9 @@ const support = [
   },
   {
     id: 2,
-    title: "<strong>Twitter</strong>.",
+    title: "<strong>X</strong>.",
     description:
-      "Follow the official Avalanche Developers handle on Twitter for latest news and development updates.",
+      "Follow the official Avalanche Developers handle on X for latest news and development updates.",
     href: "https://x.com/AvaxDevelopers"
   },
   {

@@ -1,0 +1,48 @@
+---
+title: Use Cases of eERC
+description: Real-world applications of eERC on Avalanche and the flow of a private transfer.
+updated: 2025-09-02
+authors: [alejandro99so]
+icon: Rocket
+---
+
+The **eERC** standard can be deployed across Avalanche C-Chain **Mainnet**, **Fuji (Testnet)**, and **custom L1s**, enabling privacy in a variety of scenarios.
+
+---
+
+## Avalanche C-Chain
+- **Private DeFi operations**: Farming, lending, and trading without exposing transaction sizes.
+- **Confidential payments**: Salaries and supplier payments visible only to participants and authorized auditors.
+
+---
+
+## Custom L1 Deployments
+- **Tokenized real-world assets (RWA)**: Privacy-enabled trading with compliance auditability.
+- **Private gaming economies**: Fungible and non-fungible in-game assets with encrypted transfers.
+
+---
+
+## Step-by-Step: Private Transfer Flow (Standalone Mode)
+
+1. **Transaction Creation**  
+   - Wallet integrates.  
+   - Amount is encrypted using **ElGamal** over **BabyJubJub**.  
+   - A **Poseidon hash** of the ciphertext is generated for proof validation.
+
+2. **Proof Generation**  
+   - User creates a **zk-SNARK** proving the transaction’s validity without revealing details.
+
+3. **On-Chain Verification**  
+   - Smart contract verifies the proof in a zk-friendly circuit optimized for BabyJubJub and Poseidon.  
+   - Encrypted balances in the `EncryptedUserBalances` contract are updated.
+
+4. **Auditor Access (Optional)**  
+   - Authorized auditors can decrypt specific transactions if enabled in the **Registrar Contract**.
+
+5. **Finalization**  
+   - Transaction is recorded on Avalanche with encrypted values only.  
+   - Explorers show the transfer occurred, but not the amount or updated balances.
+
+---
+
+In the **next section**, we will examine the **eERC Contracts Flow**, covering how to create an eERC, configure auditor access, choose zk-proof types, and interact with it as a user.

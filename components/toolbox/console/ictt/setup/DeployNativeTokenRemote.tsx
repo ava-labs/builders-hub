@@ -18,6 +18,8 @@ import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchain
 import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
 import { Container } from "@/components/toolbox/components/Container";
 import TeleporterRegistryAddressInput from "@/components/toolbox/components/TeleporterRegistryAddressInput";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+
 export default function DeployNativeTokenRemote() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const {
@@ -26,6 +28,7 @@ export default function DeployNativeTokenRemote() {
     } = useToolboxStore();
     const [teleporterRegistryAddress, setTeleporterRegistryAddress] = useState("");
     const { coreWalletClient, walletEVMAddress } = useWalletStore();
+    const { notify } = useConsoleNotifications();
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1()();
     const [isDeploying, setIsDeploying] = useState(false);
@@ -160,15 +163,19 @@ export default function DeployNativeTokenRemote() {
 
             console.log("Deploying NativeTokenRemote with args:", constructorArgs);
 
-            const hash = await coreWalletClient.deployContract({
+            const deployPromise = coreWalletClient.deployContract({
                 abi: NativeTokenRemote.abi as any,
                 bytecode: NativeTokenRemote.bytecode.object as `0x${string}`,
                 args: constructorArgs,
                 chain: viemChain,
                 account: walletEVMAddress as `0x${string}`
             });
+            notify({
+                type: 'deploy',
+                name: 'NativeTokenRemote'
+            }, deployPromise, viemChain ?? undefined);
 
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: await deployPromise });
 
             if (!receipt.contractAddress) {
                 throw new Error("No contract address in receipt");
