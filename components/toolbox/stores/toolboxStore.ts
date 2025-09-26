@@ -26,7 +26,7 @@ const toolboxInitialState = {
 
 export const getToolboxStore = (chainId: string) => create(
     persist(
-        combine(toolboxInitialState, (set) => ({
+        combine(toolboxInitialState, (set, get) => ({
             setValidatorMessagesLibAddress: (validatorMessagesLibAddress: string) => set({ validatorMessagesLibAddress }),
             setValidatorManagerAddress: (validatorManagerAddress: string) => set({ validatorManagerAddress }),
             setRewardCalculatorAddress: (rewardCalculatorAddress: string) => set({ rewardCalculatorAddress }),
@@ -40,6 +40,10 @@ export const getToolboxStore = (chainId: string) => create(
             setErc20TokenRemoteAddress: (address: string) => set({ erc20TokenRemoteAddress: address }),
             setNativeTokenRemoteAddress: (address: string) => set({ nativeTokenRemoteAddress: address }),
             setPoaManagerAddress: (address: string) => set({ poaManagerAddress: address }),
+
+            // Wrapped native token helpers for backward compatibility
+            setWrappedNativeToken: (address: string) => set({ wrappedNativeTokenAddress: address }),
+            getWrappedNativeToken: () => get().wrappedNativeTokenAddress,
 
             reset: () => {
                 if (typeof window !== 'undefined') {
@@ -88,3 +92,14 @@ export function useViemChainStore() {
 
     return viemChain;
 }
+
+// Selectors for wrapped native token from toolbox store
+export const useWrappedNativeToken = () => {
+    const toolboxStore = useToolboxStore();
+    return toolboxStore.wrappedNativeTokenAddress;
+};
+
+export const useSetWrappedNativeToken = () => {
+    const toolboxStore = useToolboxStore();
+    return toolboxStore.setWrappedNativeToken;
+};

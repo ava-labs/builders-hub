@@ -37,6 +37,10 @@ interface WalletState {
     l1Chains: Record<string, boolean>; // Key: chainId, Value: loading state
   };
   bootstrapped: boolean;
+  
+  
+  // Native currency info cache
+  nativeCurrencyCache: Record<string, { name: string; symbol: string; decimals: number }>; // Key: chainId
 }
 
 interface WalletActions {
@@ -93,6 +97,11 @@ interface WalletActions {
 
   getBootstrapped: () => boolean;
   setBootstrapped: (bootstrapped: boolean) => void;
+  
+  
+  // Native currency cache actions
+  setNativeCurrencyInfo: (chainId: string, info: { name: string; symbol: string; decimals: number }) => void;
+  getNativeCurrencyInfo: (chainId: string) => { name: string; symbol: string; decimals: number } | undefined;
 }
 
 type WalletStore = WalletState & WalletActions;
@@ -125,13 +134,11 @@ export const useWalletStore = create<WalletStore>((set, get) => {
       l1Chains: {},
     },
     bootstrapped: false,
+    nativeCurrencyCache: {},
 
     // Actions
     updateWalletConnection: (data: { coreWalletClient?: ReturnType<typeof createCoreWalletClient>; walletEVMAddress?: string; walletChainId?: number; pChainAddress?: string; coreEthAddress?: string; }) => {
-      set((state) => ({
-        ...state,
-        ...data,
-      }));
+      set((state) => ({ ...state, ...data }));
     },
 
     updateNetworkSettings: (data: { avalancheNetworkID?: typeof networkIDs.FujiID | typeof networkIDs.MainnetID; isTestnet?: boolean; evmChainName?: string; }) => {
@@ -243,6 +250,20 @@ export const useWalletStore = create<WalletStore>((set, get) => {
 
     getBootstrapped: () => get().bootstrapped,
     setBootstrapped: (bootstrapped: boolean) => set({ bootstrapped: bootstrapped }),
+    
+    // Native currency cache actions
+    setNativeCurrencyInfo: (chainId: string, info: { name: string; symbol: string; decimals: number }) => {
+      set((state) => ({
+        nativeCurrencyCache: {
+          ...state.nativeCurrencyCache,
+          [chainId]: info,
+        },
+      }));
+    },
+    
+    getNativeCurrencyInfo: (chainId: string) => {
+      return get().nativeCurrencyCache[chainId];
+    },
   };
 
   // Set up balance service callbacks
@@ -308,3 +329,11 @@ export const useL1LoadingStates = () => useWalletStore((state) => state.isLoadin
 // Selector for specific L1 balance
 export const useL1Balance = (chainId: string) => useWalletStore((state) => state.balances.l1Chains[chainId] || 0);
 export const useL1Loading = (chainId: string) => useWalletStore((state) => state.isLoading.l1Chains[chainId] || false);
+
+
+export const useNativeCurrencyInfo = (chainId?: string) => {
+  const walletChainId = useWalletStore((state) => state.walletChainId);
+  const getNativeCurrencyInfo = useWalletStore((state) => state.getNativeCurrencyInfo);
+  const effectiveChainId = chainId || walletChainId.toString();
+  return getNativeCurrencyInfo(effectiveChainId);
+};
