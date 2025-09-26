@@ -27,6 +27,7 @@ import {
   SlidersVertical,
   SquareMinus,
   SquarePlus,
+  BookKey,
 } from "lucide-react";
 
 import {
@@ -230,6 +231,16 @@ const data = {
           title: "Format Converter",
           url: "/console/utilities/format-converter",
           icon: Wrench,
+        },
+        {
+          title: "Migrate VMC From V1 to V2",
+          url: "/console/utilities/vmcMigrateFromV1",
+          icon: Wrench,
+        },
+        {
+          title: "Glacier API Tokens",
+          url: "/console/utilities/glacier-api-tokens",
+          icon: BookKey,
         },
       ],
     },
