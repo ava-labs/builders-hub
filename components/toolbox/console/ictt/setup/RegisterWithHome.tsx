@@ -15,12 +15,14 @@ import { utils } from "@avalabs/avalanchejs";
 import { ListContractEvents } from "@/components/toolbox/components/ListContractEvents";
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
 import { Container } from "@/components/toolbox/components/Container";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 export default function RegisterWithHome() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const { erc20TokenRemoteAddress, nativeTokenRemoteAddress } = useToolboxStore();
     const [remoteAddress, setRemoteAddress] = useState("");
     const { coreWalletClient } = useWalletStore();
+    const { notify } = useConsoleNotifications();
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1()();
     const [sourceChainId, setSourceChainId] = useState<string>("");
@@ -139,7 +141,12 @@ export default function RegisterWithHome() {
             });
 
             // Send the transaction
-            const hash = await coreWalletClient.writeContract(request);
+            const writePromise = coreWalletClient.writeContract(request);
+            notify({
+                type: 'call',
+                name: 'Register With Home'
+            }, writePromise, viemChain ?? undefined);
+            const hash = await writePromise;
             setLastTxId(hash);
 
             // Wait for confirmation

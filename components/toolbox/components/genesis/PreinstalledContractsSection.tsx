@@ -43,6 +43,8 @@ interface PreinstalledContractsSectionProps {
     config: PreinstallConfig;
     onConfigChange: (config: PreinstallConfig) => void;
     ownerAddress?: string;
+    tokenName?: string;
+    tokenSymbol?: string;
 }
 
 interface ContractInfoProps {
@@ -136,7 +138,9 @@ const ContractInfo: React.FC<ContractInfoProps> = ({
 export const PreinstalledContractsSection: React.FC<PreinstalledContractsSectionProps> = ({
     config,
     onConfigChange,
-    ownerAddress
+    ownerAddress,
+    tokenName,
+    tokenSymbol
 }) => {
     const handleToggle = (key: keyof PreinstallConfig, enabled: boolean) => {
         let newConfig = {
@@ -257,9 +261,9 @@ export const PreinstalledContractsSection: React.FC<PreinstalledContractsSection
         },
         {
             id: 'wrappedNativeToken' as keyof PreinstallConfig,
-            title: 'Wrapped Native Token',
+            title: tokenName ? `Wrapped ${tokenName}${tokenSymbol ? ` (W${tokenSymbol})` : ''}` : 'Wrapped Native Token',
             address: '0x1111111111111111111111111111111111111111',
-            description: 'WETH-like contract for wrapping native tokens into ERC-20 format',
+            description: `WETH-like contract for wrapping ${tokenName ? tokenName : 'native'} tokens into ERC-20 format`,
             details: [
                 'Enables native tokens to be used in DeFi protocols',
                 'Standard ERC-20 interface for wrapped native tokens',

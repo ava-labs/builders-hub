@@ -22,7 +22,7 @@ Make sure you have:
 Use the following command to deploy the `CrossChainVRFConsumer` contract on your unsupported L1.
 
 ```bash
-forge create --rpc-url <RPC_URL> --private-key <PRIVATE_KEY> src/CrossChainVRFConsumer.sol:CrossChainVRFConsumer --constructor-args <TELEPORTER_MESSENGER_ADDRESS> $VRF_WRAPPER --broadcast
+forge create --rpc-url <RPC_URL> --private-key <PRIVATE_KEY> --broadcast --constructor-args <TELEPORTER_MESSENGER_ADDRESS> $VRF_WRAPPER src/CrossChainVRFConsumer.sol:CrossChainVRFConsumer
 ```
 
 Replace the following:

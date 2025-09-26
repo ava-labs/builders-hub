@@ -3,10 +3,11 @@ import * as React from "react";
 import { useState, useEffect } from "react";
 import { Area,AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, ReferenceLine } from "recharts";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {type ChartConfig, ChartContainer,ChartTooltip,ChartTooltipContent } from "@/components/ui/chart";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
-import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Zap, Gauge, DollarSign, TrendingDown, Clock, Fuel } from "lucide-react";
-import BubbleNavigation from "@/components/navigation/BubbleNavigation";
+import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Zap, Gauge, DollarSign, TrendingDown, Clock, Fuel, ExternalLink } from "lucide-react";
+import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import {TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, ChartDataPoint, TimeRange } from "@/types/stats";
 
@@ -673,7 +674,7 @@ export default function ChainMetricsPage({
           </div>
           <ChartSkeletonLoader />
         </div>
-        <BubbleNavigation />
+        <StatsBubbleNav />
       </div>
     );
   }
@@ -702,24 +703,43 @@ export default function ChainMetricsPage({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <div className="container mx-auto mt-4 p-6 pb-24 space-y-12">
-        <div className="space-y-2">
-          <div>
-            <h1 className="text-2xl md:text-5xl mb-4">
-              {chainName.includes("C-Chain")
-                ? "Avalanche C-Chain Metrics"
-                : `${chainName} L1 Metrics`}
-            </h1>
-            <p className="text-zinc-400 text-md text-left">{description}</p>
+      <div className="container mx-auto mt-4 p-4 sm:p-6 pb-24 space-y-8 sm:space-y-12">
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl md:text-5xl break-words mb-2">
+                {chainName.includes("C-Chain")
+                  ? "Avalanche C-Chain Metrics"
+                  : `${chainName} L1 Metrics`}
+              </h1>
+              <p className="text-zinc-400 text-sm sm:text-md text-left">
+                {description}
+              </p>
+            </div>
+            {!chainName.includes("C-Chain") && (
+              <div className="shrink-0 mt-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    window.open(`https://${chainId}.snowtrace.io`, "_blank")
+                  }
+                  className="flex items-center gap-2 text-xs sm:text-sm"
+                >
+                  <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4" />
+                  View Explorer
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
-        <section className="space-y-6">
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-2xl font-medium text-left">Network Overview</h2>
+            <h2 className="text-lg sm:text-2xl font-medium text-left">Network Overview</h2>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             {[
               addressConfigs[0],
               transactionConfigs[0],
@@ -746,18 +766,18 @@ export default function ChainMetricsPage({
               return (
                 <div
                   key={config.metricKey}
-                  className="text-center p-6 rounded-lg bg-card border"
+                  className="text-center p-4 sm:p-6 rounded-lg bg-card border"
                 >
-                  <div className="flex items-center justify-center gap-2 mb-3">
+                  <div className="flex items-center justify-center gap-2 mb-2 sm:mb-3">
                     <Icon
-                      className="h-5 w-5"
+                      className="h-4 w-4 sm:h-5 sm:w-5"
                       style={{ color: config.chartConfig.value.color }}
                     />
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">
                       {config.title}
                     </p>
                   </div>
-                  <p className="text-3xl font-mono font-semibold">
+                  <p className="text-xl sm:text-3xl font-mono font-semibold break-all">
                     {displayValue}
                   </p>
                 </div>
@@ -766,17 +786,17 @@ export default function ChainMetricsPage({
           </div>
         </section>
 
-        <section className="space-y-6">
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-2xl font-medium text-left">
+            <h2 className="text-lg sm:text-2xl font-medium text-left">
               Historical Trends
             </h2>
-            <p className="text-zinc-400 text-md text-left">
+            <p className="text-zinc-400 text-sm sm:text-md text-left">
               Track {chainName} network growth and activity over time
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {allConfigs.map((config) => {
               const isICMChart = config.metricKey === "icmMessages";
               const chartData = isICMChart
@@ -793,43 +813,46 @@ export default function ChainMetricsPage({
               const Icon = config.icon;
 
               return (
-                <Card key={config.metricKey} className="w-full">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <CardTitle className="flex items-center gap-2 font-medium">
+                <Card key={config.metricKey} className="w-full py-2 sm:py-0">
+                  <CardHeader className="px-4 pt-2 pb-2 sm:px-6 sm:pt-4 sm:pb-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <CardTitle className="flex items-center gap-2 font-medium text-sm sm:text-base min-w-0 flex-1">
                           <Icon
-                            className="h-5 w-5"
+                            className="h-4 w-4 sm:h-5 sm:w-5"
                             style={{
                               color: isICMChart
                                 ? config.chartConfig.messageCount.color
                                 : config.chartConfig.value.color,
                             }}
                           />
-                          {config.title}
+                          <span className="truncate">{config.title}</span>
                         </CardTitle>
-                        <CardDescription>{config.description}</CardDescription>
+                        <div className="shrink-0">
+                          <DateRangeFilter
+                            compact={true}
+                            defaultRange={timeRange}
+                            onRangeChange={(range) => {
+                              if (
+                                range === "30d" ||
+                                range === "90d" ||
+                                range === "1y" ||
+                                range === "all"
+                              ) {
+                                setTimeRange(range);
+                              }
+                            }}
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 px-2">
-                        <DateRangeFilter
-                          defaultRange={timeRange}
-                          onRangeChange={(range) => {
-                            if (
-                              range === "30d" ||
-                              range === "90d" ||
-                              range === "1y" ||
-                              range === "all"
-                            ) {
-                              setTimeRange(range);
-                            }
-                          }}
-                        />
-                      </div>
+                      <CardDescription className="text-xs sm:text-sm">
+                        {config.description}
+                      </CardDescription>
                     </div>
                   </CardHeader>
-                  <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="text-2xl font-mono">
+                  <CardContent className="px-2 pt-2 sm:px-6 sm:pt-4">
+                    <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4">
+                      <div className="text-lg sm:text-2xl font-mono break-all">
                         {isICMChart
                           ? `${formatNumber(currentValue)} Messages`
                           : formatTooltipValue(
@@ -841,7 +864,7 @@ export default function ChainMetricsPage({
                       </div>
                       {change > 0 && (
                         <div
-                          className={`flex items-center gap-1 text-sm ${
+                          className={`flex items-center gap-1 text-xs sm:text-sm ${
                             isPositive ? "text-green-600" : "text-red-600"
                           }`}
                           title={`Change compared to ${getComparisonPeriodLabel(
@@ -849,7 +872,7 @@ export default function ChainMetricsPage({
                           )}`}
                         >
                           <TrendingUp
-                            className={`h-4 w-4 ${
+                            className={`h-3 w-3 sm:h-4 sm:w-4 ${
                               isPositive ? "" : "rotate-180"
                             }`}
                           />
@@ -860,7 +883,9 @@ export default function ChainMetricsPage({
                     <ChartContainer
                       config={config.chartConfig}
                       className={`aspect-auto w-full font-mono ${
-                        isICMChart ? "h-[300px]" : "h-[250px]"
+                        isICMChart
+                          ? "h-[200px] sm:h-[300px]"
+                          : "h-[180px] sm:h-[250px]"
                       }`}
                     >
                       {isICMChart ? (
@@ -1041,7 +1066,7 @@ export default function ChainMetricsPage({
       </div>
 
       {/* Bubble Navigation */}
-      <BubbleNavigation />
+      <StatsBubbleNav />
     </div>
   );
 }

@@ -6,12 +6,12 @@ import type { AbiEvent } from "viem"
 import { useEffect, useState } from "react"
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json"
 import { Button } from "@/components/toolbox/components/Button"
-import { Container } from "@/components/toolbox/components/Container"
 import { ChevronDown, ChevronRight } from "lucide-react"
 import { getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier"
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput"
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements"
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 
 type ViewData = {
   [key: string]: any
@@ -30,7 +30,15 @@ const serializeValue = (value: any): any => {
   return value
 }
 
-export default function ReadContract() {
+const metadata: ConsoleToolMetadata = {
+  title: "Read Contract",
+  description: "Read and view contract data from the ValidatorManager",
+  walletRequirements: [
+    WalletRequirementsConfigKey.CoreWalletConnected
+  ]
+}
+
+function ReadContract({ onSuccess }: BaseConsoleToolProps) {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const [proxyAddress, setProxyAddress] = useState<string>("");
   const [viewData, setViewData] = useState<ViewData>({})
@@ -138,14 +146,7 @@ export default function ReadContract() {
   }
 
   return (
-
-    <CheckWalletRequirements configKey={[
-      WalletRequirementsConfigKey.CoreWalletConnected,
-    ]}>
-      <Container
-        title="Read Proxy Contract"
-        description="This will read the data from the ValidatorManager contract."
-      >
+    <div>
         <div className="space-y-4">
           <EVMAddressInput
             label="Proxy Address"
@@ -257,8 +258,9 @@ export default function ReadContract() {
             </div>
           </div>
         )}
-      </Container>
-    </CheckWalletRequirements>
+    </div>
   )
 }
+
+export default withConsoleToolMetadata(ReadContract, metadata)
 

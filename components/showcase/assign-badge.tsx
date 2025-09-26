@@ -27,9 +27,11 @@ export const AssignBadge = ({
   useEffect(() => {
     const fetchBadges = async () => {
       const response = await axios.get("/api/badge/get-all");
-
+      const filteredBadges = response.data.filter(
+        (badge: Badge) => badge.category == "hackathon"
+      );
       setOptionsWithLabel(
-        response.data.map((option: Badge) => ({
+        filteredBadges.map((option: Badge) => ({
           label: option.name,
           value: option.id,
         }))
@@ -52,7 +54,6 @@ export const AssignBadge = ({
       category: BadgeCategory.project,
     });
     if (response.status == 200) {
-
       toast({
         title: "Badges assigned successfully",
         description: "The badges have been assigned to the project",
@@ -71,7 +72,7 @@ export const AssignBadge = ({
 
   const multiSelectCard = (
     <div className="flex flex-col gap-2">
-        <Toaster />
+      <Toaster />
       <MultiSelect
         options={optionsWithLabel}
         selected={selectedBadges}

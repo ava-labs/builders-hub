@@ -13,6 +13,7 @@ import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils
 import { packWarpIntoAccessList } from '../ValidatorManager/packWarp';
 import { extractL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/methods/extractL1ValidatorWeightMessage';
 import { useAvaCloudSDK } from '@/components/toolbox/stores/useAvaCloudSDK';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 interface CompleteValidatorRemovalProps {
   subnetIdL1: string;
@@ -50,7 +51,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   const { aggregateSignature } = useAvaCloudSDK();
   const viemChain = useViemChainStore();
   const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || '');
-
+  const { notify } = useConsoleNotifications();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -142,12 +143,17 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         "11111111111111111111111111111111LpoYY" // always use P-Chain ID
       );
 
-      const signature = await aggregateSignature({
+      const aggregateSignaturePromise = aggregateSignature({
         message: bytesToHex(removeValidatorMessage),
         justification: bytesToHex(justification),
         signingSubnetId: signingSubnetId || subnetIdL1,
         quorumPercentage: 67,
       });
+      notify({
+        type: 'local',
+        name: 'Aggregate Signatures'
+      }, aggregateSignaturePromise);
+      const signature = await aggregateSignaturePromise;
 
       setPChainSignature(signature.signedMessage);
 
@@ -155,7 +161,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
       const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
 
-      const hash = await coreWalletClient.writeContract({
+      const writePromise = coreWalletClient.writeContract({
         address: targetContractAddress as `0x${string}`,
         abi: targetAbi,
         functionName: "completeValidatorRemoval",
@@ -164,7 +170,12 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         account: coreWalletClient.account,
         chain: viemChain,
       });
+      notify({
+        type: 'call',
+        name: 'Complete Validator Removal'
+      }, writePromise, viemChain ?? undefined);
 
+      const hash = await writePromise;
       const finalReceipt = await publicClient.waitForTransactionReceipt({ hash });
       if (finalReceipt.status !== 'success') {
         throw new Error(`Transaction failed with status: ${finalReceipt.status}`);

@@ -1,0 +1,83 @@
+---
+title: Standards
+description: Learn about ERC-20, ERC-721, and ERC-1155 in the Avalanche ecosystem, starting from the concept of digital assets.
+updated: 2025-09-02
+authors: [alejandro99so]
+icon: Coins
+---
+
+A **digital asset** is any representation of value, rights, or property stored and transacted on a blockchain. These can range from cryptocurrencies and stablecoins to in-game items, tokenized real estate, and certificates.  
+
+On Avalanche, most digital assets are created and managed on the **C-Chain**, which is fully compatible with the **EVM (Ethereum Virtual Machine)**. This compatibility allows Avalanche to use the same token standards as the broader EVM ecosystem while adding **high throughput, sub-second finality, and low fees**.  
+
+Because of this, developers building on Avalanche, whether deploying to **C-Chain** for **mainnet** or **Fuji** (testnet), use **standards** to ensure their tokens are interoperable with wallets, marketplaces, and decentralized applications. These standards define the rules for how tokens behave, how they are transferred, and how they are recognized across different platforms.
+
+The three most widely used token standards in the EVM ecosystem, and therefore in Avalanche, are:
+
+---
+
+## ERC-20: Fungible Token Standard
+The ERC-20 standard defines fungible tokens where each unit is identical.
+
+**Key Characteristics**
+- Fungible: Each token has the same value as any other token of the same contract.
+- Divisible: Commonly 18 decimal places for microtransactions.
+- Highly interoperable with all EVM-compatible tools and dApps.
+- Extremely low-cost transfers on Avalanche due to low gas fees.
+
+**Common Functions**
+- `transfer(address to, uint amount)`
+- `approve(address spender, uint amount)`
+- `transferFrom(address from, address to, uint amount)`
+- `balanceOf(address account)`
+
+---
+
+## ERC-721: Non-Fungible Token Standard
+The ERC-721 standard defines unique, non-fungible tokens (NFTs).
+
+**Key Characteristics**
+- Each token has a unique `tokenId`.
+- Supports metadata for traits, images, descriptions.
+- Provides immutable proof of ownership.
+
+**Common Functions**
+- `ownerOf(uint256 tokenId)`
+- `safeTransferFrom(address from, address to, uint256 tokenId)`
+- `tokenURI(uint256 tokenId)`
+
+---
+
+## ERC-1155: Multi-Token Standard
+The ERC-1155 standard supports multiple token types (fungible, non-fungible, and semi-fungible) in one contract.
+
+**Key Characteristics**
+- Can store and manage different asset types in a single contract.
+- Supports batch operations to save gas.
+- Flexible for gaming and metaverse applications.
+
+**Common Functions**
+- `safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes data)`
+- `safeBatchTransferFrom(address from, address to, uint256[] ids, uint256[] amounts, bytes data)`
+- `balanceOf(address account, uint256 id)`
+
+---
+
+## Standards Comparison Table (Avalanche Context)
+
+| Feature | ERC-20 | ERC-721 | ERC-1155 |
+|---------|--------|---------|----------|
+| Token Type | Fungible | Non-fungible | Fungible + Non-fungible |
+| Uniqueness | No | Yes | Optional per token ID |
+| Metadata | No | Yes (`tokenURI`) | Yes |
+| Batch Transfers | No | No | Yes |
+| Typical Use Cases on Avalanche | Stablecoins, governance, utilities | NFTs, in-game items, certificates | Gaming, collectibles, asset baskets |
+| Gas Efficiency on Avalanche | High | Moderate | High (batch) |
+| Privacy | None | None | None |
+| Interoperability | Very high | High | Medium–High |
+
+---
+
+These standards are the foundation for asset creation and interaction in Avalanche’s C-Chain Mainnet and Fuji (Testnet). They allow developers to build interoperable applications and ensure that tokens can be used across different wallets, marketplaces, and decentralized protocols.  
+
+In the **next section**, we will explore the **current uses of these standards in blockchain**, with real examples from Avalanche’s ecosystem, including DeFi platforms, NFT marketplaces, gaming L1, and tokenized real-world assets.
