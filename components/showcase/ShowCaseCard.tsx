@@ -210,13 +210,9 @@ export default function ShowCaseCard({
         <Separator className='my-8 bg-zinc-300 dark:bg-zinc-800 h-[2px]' />
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
           {projects.map((project, index) => (
-            <Link
-              key={index}
-              href={`/showcase/${project.id}`}
-              className='w-full h-full'
-            >
-              <ProjectCard project={project} />
-            </Link>
+         
+              <ProjectCard project={project} key={index}/>
+      
           ))}
         </div>
         <div className='w-full flex justify-end mt-8'>
