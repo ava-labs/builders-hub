@@ -1,0 +1,32 @@
+---
+title: Secure Management of Cryptographic Assets
+description: Best practices for managing private keys, admin privileges, and wallets
+updated: 2025-07-31
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+## Managing Private Keys, Admin Privileges, and Wallets
+
+<YouTube id="3bINYz4-stM" params="start=0&rel=0&modestbranding=1" /> 
+
+<Callout type="quote">
+<div style={{ fontSize: '1.1rem'}}>
+<span style={{ fontWeight: 'bold' }}>"The ideal situation involves private key material being kept offline, encrypted, and ideally split into different charts."</span> - [Martin Prado](https://www.linkedin.com/in/martinprado/), Chief Information Security Officer at Ava Labs
+</div>
+</Callout>
+
+For blockchain projects, cryptographic key management is fundamental to security. Follow these best practices:
+
+1. **Follow established standards**: The Cryptocurrency Security Standard (currently version 9) provides comprehensive guidance for key material management.
+
+2. **Keep private keys secure**:
+   - Store keys offline when possible
+   - Always encrypt private key material
+   - Consider splitting keys into different shards
+   - Use Hardware Security Modules (HSMs) for enhanced protection
+
+3. **Implement strict admin privilege controls**:
+   - No one should have admin rights by default
+   - Use a "breaking glass" mechanism requiring approval from stakeholders for privilege escalation
+   - Remember that risk = rights × time (minimize both)

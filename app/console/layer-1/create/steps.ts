@@ -1,8 +1,8 @@
 import { type StepDefinition } from "@/components/console/step-flow";
 import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain";
 import AvalancheGoDockerL1 from "@/components/toolbox/console/layer-1/AvalancheGoDockerL1";
-import ConvertToL1 from "@/components/toolbox/console/layer-1/create/ConvertToL1";
-import ManagedTestnetNodes from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes";
+import ConvertSubnetToL1 from "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1";
+import CreateManagedTestnetNode from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/CreateManagedTestnetNode";
 
 export const steps: StepDefinition[] = [
     {
@@ -16,14 +16,14 @@ export const steps: StepDefinition[] = [
       key: "node-setup",
       title: "Set Up a Node",
       options: [
+        { key: "managed-testnet-l1-nodes", label: "Managed Testnet L1 Nodes", component: CreateManagedTestnetNode },
         { key: "l1-node-setup", label: "L1 Node Setup with Docker", component: AvalancheGoDockerL1 },
-        { key: "managed-testnet-l1-nodes", label: "Managed Testnet L1 Nodes", component: ManagedTestnetNodes },
       ],
     },
     {
       type: "single",
       key: "convert-to-l1",
       title: "Convert to L1",
-      component: ConvertToL1,
+      component: ConvertSubnetToL1,
     },
 ];

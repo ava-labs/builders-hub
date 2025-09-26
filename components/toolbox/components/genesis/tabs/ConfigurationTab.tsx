@@ -21,6 +21,10 @@ interface ConfigurationTabProps {
     // Chain parameters
     evmChainId: number;
     setEvmChainId: (id: SetStateAction<number>) => void;
+    tokenName: string;
+    setTokenName: (name: SetStateAction<string>) => void;
+    tokenSymbol: string;
+    setTokenSymbol: (symbol: SetStateAction<string>) => void;
     
     // Token allocations
     tokenAllocations: AllocationEntry[];
@@ -63,6 +67,10 @@ interface ConfigurationTabProps {
 export function ConfigurationTab({
     evmChainId,
     setEvmChainId,
+    tokenName,
+    setTokenName,
+    tokenSymbol,
+    setTokenSymbol,
     tokenAllocations,
     setTokenAllocations,
     contractDeployerAllowListConfig,
@@ -96,9 +104,15 @@ export function ConfigurationTab({
             <ChainParamsSection
                 evmChainId={evmChainId}
                 setEvmChainId={setEvmChainId}
+                tokenName={tokenName}
+                setTokenName={setTokenName}
+                tokenSymbol={tokenSymbol}
+                setTokenSymbol={setTokenSymbol}
                 isExpanded={isSectionExpanded('chainParams')}
                 toggleExpand={() => toggleSection('chainParams')}
                 validationError={validationMessages.errors.chainId}
+                tokenNameError={validationMessages.errors.tokenName}
+                tokenSymbolError={validationMessages.errors.tokenSymbol}
             />
 
             <PermissionsSection

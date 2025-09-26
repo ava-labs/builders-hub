@@ -4,16 +4,16 @@ import { useCreateChainStore } from "@/components/toolbox/stores/createChainStor
 import { useState } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
-import { Container } from "@/components/toolbox/components/Container";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import GenesisBuilder from '@/components/toolbox/console/layer-1/create/GenesisBuilder';
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import generateName from 'boring-name-generator'
-import { Success } from "@/components/toolbox/components/Success";
 import { RadioGroup } from "@/components/toolbox/components/RadioGroup";
 import InputSubnetId from "@/components/toolbox/components/InputSubnetId";
 import { SUBNET_EVM_VM_ID } from "@/constants/console";
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 
 const generateRandomName = () => {
@@ -26,9 +26,15 @@ const generateRandomName = () => {
     throw new Error("Could not generate a name with a dash after 1000 attempts");
 }
 
+const metadata: ConsoleToolMetadata = {
+    title: "Create Chain",
+    description: "Create a subnet and add a new blockchain with custom parameters and genesis data",
+    walletRequirements: [
+        WalletRequirementsConfigKey.PChainBalance
+    ]
+};
 
-export default function CreateChain() {
-    const [criticalError, setCriticalError] = useState<Error | null>(null);
+function CreateChain({ onSuccess }: BaseConsoleToolProps) {
     const {
         subnetId,
         setChainID,
@@ -36,13 +42,12 @@ export default function CreateChain() {
         genesisData,
         setChainName,
     } = useCreateChainStore()();
-    const { coreWalletClient, pChainAddress } = useWalletStore();
+
+    const { pChainAddress } = useWalletStore();
+    const { coreWalletClient } = useConnectedWallet();
 
     const [isCreatingSubnet, setIsCreatingSubnet] = useState(false);
-    const [createdSubnetId, setCreatedSubnetId] = useState("");
-
     const [isCreatingChain, setIsCreatingChain] = useState(false);
-    const [createdChainId, setCreatedChainId] = useState("");
 
     const [localGenesisData, setLocalGenesisData] = useState<string>(genesisData);
     const [localChainName, setLocalChainName] = useState<string>(generateRandomName());
@@ -50,78 +55,58 @@ export default function CreateChain() {
     const [showVMIdInput, setShowVMIdInput] = useState<boolean>(false);
     const [vmId, setVmId] = useState<string>(SUBNET_EVM_VM_ID);
 
-    // Throw critical errors during render
-    if (criticalError) {
-        throw criticalError;
-    }
+    const { notify, sendCoreWalletNotSetNotification } = useConsoleNotifications();
+
 
     // Wrapper function to handle subnet ID changes properly
     const handleSubnetIdChange = (newSubnetId: string) => {
         setSubnetID(newSubnetId);
     };
 
-
     async function handleCreateSubnet() {
-        if (!coreWalletClient) {
-            setCriticalError(new Error('Core wallet not found'));
-            return;
-        }
-
         setIsCreatingSubnet(true);
 
-        try {
-            const txID = await coreWalletClient.createSubnet({
-                subnetOwners: [pChainAddress]
-            });
+        const createSubnetTx = coreWalletClient.createSubnet({
+            subnetOwners: [pChainAddress]
+        });
 
+        notify('createSubnet', createSubnetTx);
+
+        try {
+            const txID = await createSubnetTx;
             setSubnetID(txID);
-            setCreatedSubnetId(txID);
-        } catch (error) {
-            setCriticalError(error instanceof Error ? error : new Error(String(error)));
         } finally {
             setIsCreatingSubnet(false);
         }
     }
 
     async function handleCreateChain() {
-        if (!coreWalletClient) {
-            setCriticalError(new Error('Core wallet not found'));
-            return;
-        }
-
         setIsCreatingChain(true);
 
-        try {
-            const txID = await coreWalletClient.createChain({
-                chainName: localChainName,
-                subnetId: subnetId,
-                vmId,
-                fxIds: [],
-                genesisData: localGenesisData,
-                subnetAuth: [0],
-            })
+        const createChainTx = coreWalletClient.createChain({
+            chainName: localChainName,
+            subnetId: subnetId,
+            vmId,
+            fxIds: [],
+            genesisData: localGenesisData,
+            subnetAuth: [0],
+        })
 
+        notify('createChain', createChainTx);
+
+        try {
+            const txID = await createChainTx;
             setChainID(txID);
             setChainName(localChainName);
-
-            setCreatedChainId(txID);
-
             setLocalChainName(generateRandomName());
-        } catch (error) {
-            setCriticalError(error instanceof Error ? error : new Error(String(error)));
+
         } finally {
             setIsCreatingChain(false);
         }
     }
 
     return (
-        <CheckWalletRequirements configKey={[
-            WalletRequirementsConfigKey.PChainBalance
-        ]}>
-            <Container
-                title="Create Chain"
-                description="Create a subnet and add a new blockchain with custom parameters and genesis data."
-            >
+        <>
                 <Steps>
                     <Step>
                         <h2 className="text-lg font-semibold">Step 1: Create a Subnet</h2>
@@ -144,14 +129,6 @@ export default function CreateChain() {
                                 Create Subnet
                             </Button>
                         </div>
-                        {createdSubnetId && (
-                            <div className="mt-4">
-                                <Success
-                                    label="Subnet Created Successfully"
-                                    value={createdSubnetId}
-                                />
-                            </div>
-                        )}
                     </Step>
                     <Step>
                         <h2 className="text-lg font-semibold">Step 2: Create a Chain</h2>
@@ -218,11 +195,8 @@ export default function CreateChain() {
                         </Button>
                     </Step>
                 </Steps>
-                {createdChainId && <Success
-                    label="Chain Created Successfully"
-                    value={createdChainId}
-                />}
-            </Container>
-        </CheckWalletRequirements>
+        </>
     );
-};
+}
+
+export default withConsoleToolMetadata(CreateChain, metadata);

@@ -523,12 +523,12 @@ func setGreeting(accessibleState contract.AccessibleState, caller common.Address
 	}
 
 	// Emit the event
-	stateDB.AddLog(
-		ContractAddress,
-		topics,
-		data,
-		accessibleState.GetBlockContext().Number().Uint64(),
-	)
+	stateDB.AddLog(&types.Log{
+		Address:     ContractAddress,
+		Topics:      topics,
+		Data:        data,
+		BlockNumber: accessibleState.GetBlockContext().Number().Uint64(),
+	})
 
 	// setGreeting is the execution function
 	// "SetGreeting(name string)" and sets the storageKey

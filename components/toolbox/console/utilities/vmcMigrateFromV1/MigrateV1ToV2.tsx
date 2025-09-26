@@ -6,15 +6,24 @@ import { useViemChainStore, useToolboxStore } from "@/components/toolbox/stores/
 import { Chain } from "viem";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
-import { Container } from "@/components/toolbox/components/Container";
 import { ResultField } from "@/components/toolbox/components/ResultField";
 import { ExternalLink } from "lucide-react";
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 
-export default function MigrateV1ToV2() {
-  const { coreWalletClient, publicClient } = useWalletStore();
+const metadata: ConsoleToolMetadata = {
+  title: "Migrate Validator from V1 to V2",
+  description: "Migrate validators from the Validator Manager contract v1 to v2",
+  walletRequirements: [
+    WalletRequirementsConfigKey.EVMChainBalance
+  ]
+};
+
+function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
+  const { publicClient } = useWalletStore();
+  const { coreWalletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const { validatorManagerAddress, setValidatorManagerAddress } = useToolboxStore();
 
@@ -89,7 +98,6 @@ export default function MigrateV1ToV2() {
 
     try {
       if (!viemChain) throw new Error("Chain not selected");
-      if (!coreWalletClient) throw new Error("Wallet not connected");
 
       // Ensure we are on the correct chain
       await coreWalletClient.addChain({ chain: viemChain });
@@ -112,6 +120,7 @@ export default function MigrateV1ToV2() {
 
       if (receipt.status === 'success') {
         setTxHash(hash);
+        onSuccess?.();
       } else {
         setError("Transaction failed. Please check the console for more details.");
         console.error("Transaction failed:", receipt);
@@ -124,13 +133,7 @@ export default function MigrateV1ToV2() {
   };
 
   return (
-    <CheckWalletRequirements configKey={[
-      WalletRequirementsConfigKey.EVMChainBalance,
-    ]}>
-      <Container
-        title="Migrate Validator from V1 to V2"
-        description="Migrate validators from the Validator Manager contract v1 to v2"
-      >
+    <>
         <div className="space-y-6">
           <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md text-sm mb-4">
             <p className="mb-2"><strong>Note:</strong> This tool is only required if your L1 has the Validator Manager contract version 1 deployed. If you have deployed the Validator Manager contract with this Toolbox, it is already the version 2. In this case you don't need to do this!</p>
@@ -224,7 +227,8 @@ export default function MigrateV1ToV2() {
             )}
           </form>
         </div>
-      </Container>
-    </CheckWalletRequirements>
+    </>
   );
 }
+
+export default withConsoleToolMetadata(MigrateV1ToV2, metadata);

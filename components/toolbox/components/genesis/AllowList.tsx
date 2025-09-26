@@ -90,6 +90,14 @@ export default function AllowList({
           onAddAddresses={(newAddresses) => addAddresses(role, newAddresses)}
           onDeleteAddress={(id) => deleteAddress(role, id)}
           precompileAction={precompileAction}
+          checkDuplicate={(address) => {
+            const roles: Role[] = ['Admin', 'Manager', 'Enabled'];
+            return roles.some(r => 
+              addresses[r].some(entry => 
+                entry.address.toLowerCase() === address.toLowerCase()
+              )
+            );
+          }}
         />
       ))}
     </div>

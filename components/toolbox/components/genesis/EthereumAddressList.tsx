@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { RawInput } from "../Input"
 import { Trash2, AlertCircle, Plus, Lock } from 'lucide-react'
-import { AddressEntry, Role } from './types'
+import { AddressEntry, Role, AddressRoles } from './types'
 import { isAddress } from 'viem'
+import { AddConnectedWalletButtonSimple } from '@/components/toolbox/components/ConnectWallet/AddConnectedWalletButton'
 
 interface EthereumAddressListProps {
   role: Role;
@@ -12,6 +13,7 @@ interface EthereumAddressListProps {
   onAddAddresses: (newAddresses: string[]) => void;
   onDeleteAddress: (id: string) => void;
   precompileAction: string;
+  checkDuplicate?: (address: string) => boolean;
 }
 
 const isValidInput = (input: string): boolean => {
@@ -37,7 +39,8 @@ export default function EthereumAddressList({
   addresses,
   onAddAddresses,
   onDeleteAddress,
-  precompileAction
+  precompileAction,
+  checkDuplicate
 }: EthereumAddressListProps) {
   const [newAddress, setNewAddress] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -124,6 +127,11 @@ export default function EthereumAddressList({
             >
               Add
             </button>
+            <AddConnectedWalletButtonSimple 
+              onAddAddress={(address) => onAddAddresses([address])} 
+              checkDuplicate={checkDuplicate}
+              addressSource={!checkDuplicate ? addresses : undefined}
+            />
           </div>
         </div>
       </div>

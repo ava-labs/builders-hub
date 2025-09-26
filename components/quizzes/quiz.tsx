@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { saveQuizResponse, getQuizResponse, resetQuizResponse } from '@/utils/quizzes/indexedDB';
+import { parseTextWithLinks } from '../../utils/safeHtml';
 import Image from 'next/image';
 import { cn } from '@/utils/cn';
 import { buttonVariants } from '@/components/ui/button';
@@ -108,7 +109,9 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
               </svg>
               <span className="font-semibold text-sm">Correct</span>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300 m-0">{quizInfo.explanation}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300 m-0">
+              {parseTextWithLinks(quizInfo.explanation)}
+            </p>
           </div>
         );
       } else {
@@ -120,7 +123,9 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
               </svg>
               <span className="font-semibold text-sm">Not Quite</span>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300 m-0"><b>Hint:</b> {quizInfo.hint}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300 m-0">
+              <b>Hint:</b> {parseTextWithLinks(quizInfo.hint)}
+            </p>
           </div>
         );
       }
@@ -153,7 +158,9 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
       </div>
       <div className="px-6 py-4">
         <div className="text-center mb-4">
-          <h2 className="text-lg font-medium text-gray-800 dark:text-white" style={{marginTop: '0'}}>{quizInfo.question}</h2>
+          <h2 className="text-lg font-medium text-gray-800 dark:text-white" style={{marginTop: '0'}}>
+            {parseTextWithLinks(quizInfo.question)}
+          </h2>
         </div>
         <div className="space-y-3">
           {quizInfo.options.map((option, index) => (
@@ -187,7 +194,9 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
                   ? String.fromCharCode(65 + index)
                   : (selectedAnswers.includes(index) ? '✓' : '')}
               </span>
-              <span className="text-sm text-gray-600 dark:text-gray-300">{option}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-300">
+                {parseTextWithLinks(option)}
+              </span>
             </div>
           ))}
         </div>

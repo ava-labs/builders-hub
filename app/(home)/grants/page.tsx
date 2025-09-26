@@ -193,6 +193,18 @@ export default function Page() {
                 icon={<Shield className="w-6 h-6 text-foreground" />}
               />
             </a>
+            <a
+              href="https://areta.market/avalanche"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block hover:no-underline"
+            >
+              <ProgramCard
+                title="Security Audit Marketplace"
+                description="Explore 20+ trusted auditing providers and find the right partner to review, test, and strengthen your smart contracts."
+                icon={<Shield className="w-6 h-6 text-foreground" />}
+              />
+            </a>
           </div>
         </section>
 

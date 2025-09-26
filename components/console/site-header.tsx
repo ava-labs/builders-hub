@@ -9,12 +9,15 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Button } from "@/components/ui/button"
 import dynamic from "next/dynamic";
 import { ThemeToggle } from "fumadocs-ui/components/layout/theme-toggle";
 import { Fragment } from "react";
 import { useBreadcrumbs } from "@/hooks/use-breadcrumbs";
 import { pathToBreadcrumb } from "./breadcrumbs-mapping";
 import { BuilderHubAccountButton } from "./builder-hub-account-button";
+import { History } from "lucide-react";
+import Link from "next/link";
 
 const TestnetMainnetSwitch = dynamic(() => import("@/components/toolbox/components/console-header/testnet-mainnet-switch").then(m => m.TestnetMainnetSwitch), { ssr: false });
 const WalletPChain = dynamic(() => import("@/components/toolbox/components/console-header/pchain-wallet").then(m => m.WalletPChain), { ssr: false });
@@ -57,7 +60,15 @@ export function SiteHeader() {
           <TestnetMainnetSwitch />
           <EvmNetworkWallet />
           <WalletPChain />
-          <Separator orientation="vertical" className="h-4!" />
+          <Separator
+            orientation="vertical"
+            className="h-4!"
+          />
+          <Link href="/console/history">
+            <Button variant="ghost" size="icon" title="Transaction History">
+              <History className="h-4 w-4" />
+            </Button>
+          </Link>
           <BuilderHubAccountButton />
           <ThemeToggle />
         </div>

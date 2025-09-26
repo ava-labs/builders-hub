@@ -5,6 +5,7 @@ import { Input } from '@/components/toolbox/components/Input';
 import { AlertCircle } from 'lucide-react';
 import { Success } from '@/components/toolbox/components/Success';
 import { useAvaCloudSDK } from '@/components/toolbox/stores/useAvaCloudSDK';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 interface SubmitPChainTxChangeWeightProps {
   subnetIdL1: string;
@@ -28,6 +29,7 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
 }) => {
   const { coreWalletClient, pChainAddress, publicClient } = useWalletStore();
   const { aggregateSignature } = useAvaCloudSDK();
+  const { notify } = useConsoleNotifications();
   const [evmTxHash, setEvmTxHash] = useState(initialEvmTxHash || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -202,20 +204,26 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
     setIsProcessing(true);
     try {
       // Step 1: Sign the warp message
-      const { signedMessage } = await aggregateSignature({
+      const aggregateSignaturePromise = aggregateSignature({
         message: unsignedWarpMessage,
         signingSubnetId: signingSubnetId || subnetIdL1,
         quorumPercentage: 67,
       });
+      notify({
+        type: 'local',
+        name: 'Aggregate Signatures'
+      }, aggregateSignaturePromise);
+      const { signedMessage } = await aggregateSignaturePromise;
 
       setSignedWarpMessage(signedMessage);
 
       // Step 2: Submit to P-Chain
-      const pChainTxId = await coreWalletClient.setL1ValidatorWeight({
+      const pChainTxIdPromise = coreWalletClient.setL1ValidatorWeight({
         pChainAddress: pChainAddress!,
         signedWarpMessage: signedMessage,
       });
-
+      notify('setL1ValidatorWeight', pChainTxIdPromise);
+      const pChainTxId = await pChainTxIdPromise;
       setTxSuccess(`P-Chain transaction successful! ID: ${pChainTxId}`);
       onSuccess(pChainTxId, eventData);
     } catch (err: any) {

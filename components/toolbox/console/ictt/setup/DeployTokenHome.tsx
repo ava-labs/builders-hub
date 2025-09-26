@@ -16,6 +16,7 @@ import { Container } from "@/components/toolbox/components/Container";
 import TeleporterRegistryAddressInput from "@/components/toolbox/components/TeleporterRegistryAddressInput";
 import { RadioGroup } from "@/components/toolbox/components/RadioGroup";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 export default function DeployTokenHome() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
@@ -29,6 +30,7 @@ export default function DeployTokenHome() {
     } = useToolboxStore();
     const selectedL1 = useSelectedL1()();
     const { coreWalletClient, walletEVMAddress, walletChainId } = useWalletStore();
+    const { notify } = useConsoleNotifications();
     const viemChain = useViemChainStore();
     const [isDeploying, setIsDeploying] = useState(false);
     const [teleporterManager, setTeleporterManager] = useState("");
@@ -118,7 +120,7 @@ export default function DeployTokenHome() {
                 args.push(parseInt(tokenDecimals));
             }
 
-            const hash = await coreWalletClient.deployContract({
+            const deployPromise = coreWalletClient.deployContract({
                 abi: (tokenType === "erc20" ? ERC20TokenHome.abi : NativeTokenHome.abi) as any,
                 bytecode: tokenType === "erc20" ? ERC20TokenHome.bytecode.object as `0x${string}` : NativeTokenHome.bytecode.object as `0x${string}`,
                 args,
@@ -126,7 +128,11 @@ export default function DeployTokenHome() {
                 account: walletEVMAddress as `0x${string}`,
             });
 
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            notify({
+                type: 'deploy',
+                name: 'TokenHome'
+            }, deployPromise, viemChain ?? undefined);
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: await deployPromise });
 
             if (!receipt.contractAddress) {
                 throw new Error('No contract address in receipt');

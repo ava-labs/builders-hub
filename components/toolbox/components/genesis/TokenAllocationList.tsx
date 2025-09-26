@@ -5,6 +5,7 @@ import { RawInput } from "../Input"
 import { Trash2, Plus } from 'lucide-react'
 import { AllocationEntry } from './types'
 import { isAddress, Address } from 'viem'
+import { AddConnectedWalletButtonSimple } from '@/components/toolbox/components/ConnectWallet/AddConnectedWalletButton'
 
 export interface TokenAllocationListProps {
   allocations: AllocationEntry[];
@@ -174,6 +175,13 @@ export default function TokenAllocationList({
             >
               Add
             </button>
+            <AddConnectedWalletButtonSimple 
+              onAddAddress={(address) => handleAddAllocations([{ 
+                address: address as Address, 
+                amount: 1_000_000 
+              }])}
+              addressSource={allocations}
+            />
           </div>
         </div>
       </div>

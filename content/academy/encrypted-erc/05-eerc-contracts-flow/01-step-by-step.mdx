@@ -1,0 +1,193 @@
+---
+title: eERC Contracts Flow
+description: Step-by-step process to create, configure, and use eERC on Avalanche.
+updated: 2025-09-02
+authors: [alejandro99so]
+icon: GitBranch
+---
+
+The **eERC (Encrypted ERC)** standard on Avalanche provides privacy-preserving tokens while remaining EVM-compatible.  
+This section walks through the full lifecycle of an eERC, from deployment to interaction, including key considerations for developers.
+
+---
+
+## 1. Creating Your eERC
+
+### Step 1: Select Deployment Mode
+- **Standalone Mode**: Fully private token from creation, optional hidden total supply.
+- **Converter Mode**: Wrap an existing ERC-20 into an encrypted format using a TokenTracker.
+
+### Step 2: Deploy the Core Contracts
+- **encryptedERC**: Stores encrypted balances.
+- **Registrar Contract**: Manages auditor keys and permissions.
+- **Proof Verifier**: Validates zk-SNARK proofs for transfers.
+
+### Step 3: Configure Auditor Access (Optional)
+- Register auditors in the **Registrar Contract**.
+- Provide them with decryption permissions for compliance scenarios.
+
+---
+
+## 2. About the zk-Proof Type
+
+In the current **EncryptedERC** implementation, the proving system is **not chosen by the end-user**.  
+By default, the official Avalanche eERC contracts use **Groth16** for proof generation and verification.
+
+If a developer wants to change the proving system (e.g., to PLONK or Halo2), they must:
+1. Modify the Circom circuits.
+2. Regenerate the zk verifiers.
+3. Deploy new contract versions using those verifiers.
+
+| Proof System | Why it Matters | Current Status in eERC |
+|--------------|---------------|------------------------|
+| **Groth16** | Fast verification, small proof size, low gas cost | ✅ Default in official repo |
+| **PLONK** | Universal setup, flexibility for new circuits | ❌ Requires custom build |
+| **Halo2** | No trusted setup, recursion support | ❌ Requires major changes |
+
+> **Avalanche Tip:** Groth16 is optimal for most L1 and C-Chain deployments due to its low gas cost and existing integration in the eERC stack.
+
+---
+
+## 3. Encryption & Hashing Details
+- **Curve**: BabyJubJub for zk-friendliness.
+- **ElGamal**: ElGamal for balance and transfer amounts.
+- **Poseidon**: Poseidon Cipher Text for proof inputs and Merkle trees.
+
+---
+
+## 4. Backend Deployment Flow
+
+### Step 1: Set Up Environment
+```bash
+git clone https://github.com/alejandro99so/eerc-backend-converter.git
+cd eerc-backend-converter
+```
+
+### Step 2: Configure `.env` variables in Hardhat
+
+- This step is VERY important because you need those private keys to run `zkit` files.
+
+- Create `.env` file:
+- Add to `.env` file: RPC_URL = YOUR_RPC_URL // If you are using Fuji C-Chain (https://api.avax-test.network/ext/bc/C/rpc)
+- Add to `.env` file: PRIVATE_KEY = PRIVATE_KEY_1
+- Add to `.env` file: PRIVATE_KEY_2 = PRIVATE_KEY_2
+
+### Step 3: Install dependencies and create `zkit` files
+
+```bash
+npm install
+```
+
+### Step 4: Choose your way (Converter way) and deploy main contracts
+
+```bash
+npm run converter:init
+npm run converter:core
+```
+
+### Step 5: Register Users
+
+```bash
+npm run converter:register
+```
+ 
+- Change `WALLET_NUMBER = 1;` to `WALLET_NUMBER = 2;` to register PRIVATE_KEY_2 in the `scripts/converter/03_register-user.ts` file
+
+```bash
+npm run converter:register
+```
+
+### Step 6: Set auditor
+
+```bash
+npm run converter:auditor
+```
+
+### Step 7: Get faucet tokens for PRIVATE_KEY_2
+
+- Let's check our first balance (PRIVATE_KEY_2)
+```bash
+npm run converter:balance
+```
+
+- Let's get faucet tokens for PRIVATE_KEY_2
+```bash
+npm run converter:faucet
+```
+
+### Step 8: Deposit tokens
+
+#### To PRIVATE_KEY_1 
+
+- Change `WALLET_NUMBER = 2;` to `WALLET_NUMBER = 1;` to get token balance from PRIVATE_KEY_1 in `scripts/converter/08_check_balance.ts` file
+- Let's check our first balance
+```bash
+npm run converter:balance
+```
+- Let's deposit some ERC20 tokens to get eERC20 tokens
+```bash
+npm run converter:deposit
+```
+- Let's check our new balance
+```bash
+npm run converter:balance
+```
+
+#### To PRIVATE_KEY_2
+
+- Change `WALLET_NUMBER = 1;` to `WALLET_NUMBER = 2;` to get token balance from PRIVATE_KEY_2 in `scripts/converter/08_check_balance.ts` file
+- Let's check our first balance
+```bash
+npm run converter:balance
+```
+- Change `WALLET_NUMBER = 1;` to `WALLET_NUMBER = 2;` to deposit tokens from PRIVATE_KEY_2 in the `scripts/converter/06_deposittx.ts` file
+- Let's deposit some ERC20 tokens to get eERC20 tokens
+```bash
+npm run converter:deposit
+```
+- Let's check our new balance
+```bash
+npm run converter:balance
+```
+
+### Step 9: Transfer tokens
+- Let's transfer encrypted tokens from PRIVATE_KEY_1 to PRIVATE_KEY_2
+```bash
+npm run converter:transfer
+```
+
+### Step 10: Withdraw tokens from `PRIVATE_KEY_2`
+
+#### To PRIVATE_KEY_1
+
+- Let's transfer encrypted tokens from PRIVATE_KEY_1 to PRIVATE_KEY_2
+```bash
+npm run converter:transfer
+```
+- Change `WALLET_NUMBER = 2;` to `WALLET_NUMBER = 1;` to get token balance from PRIVATE_KEY_1 in `scripts/converter/08_check_balance.ts` file
+- Let's check our new balance after transferring tokens
+```bash
+npm run converter:balance
+```
+
+#### To PRIVATE_KEY_2
+
+- Let's withdraw encrypted tokens (eERC20) from PRIVATE_KEY_2 to get tokens (ERC20)
+```bash
+npm run converter:withdraw
+```
+- Change `WALLET_NUMBER = 1;` to `WALLET_NUMBER = 2;` to get token balance from PRIVATE_KEY_2 in `scripts/converter/08_check_balance.ts` file
+- Let's check our new balance for `PRIVATE_KEY_2` after transferring tokens
+```bash
+npm run converter:balance
+```
+
+### Step 11:  Choose your way (Standalone way)
+
+- Follow the flow by yourself and reach out to us at https://t.me/avalancheacademy
+
+## 6. Considerations for Production
+
+- **Gas Costs**: Proof verification adds overhead; optimize circuits.  
+- **Auditor Key Rotation**: Plan for secure revocation and re-assignment.  
+- **Compliance**: Align privacy settings with jurisdictional requirements.
