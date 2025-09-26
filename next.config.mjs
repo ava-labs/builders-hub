@@ -75,6 +75,16 @@ const config = {
         permanent: true,
       },
       {
+        source: '/docs/api-reference/:path*',
+        destination: '/docs/apis/:path*',
+        permanent: true,
+      },
+      {
+        source: '/docs/virtual-machines/:path*',
+        destination: '/docs/avalanche-l1s/:path*',
+        permanent: true,
+      },
+      {
         source: '/tools/:path*',
         destination: '/console',
         permanent: true,

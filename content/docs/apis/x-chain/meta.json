@@ -1,0 +1,10 @@
+{
+    "title": "X-Chain API",
+    "description": "API methods for the Exchange Chain (X-Chain).",
+    "icon": "Exchange",
+    "root": false,
+    "pages": [
+        "txn-format",
+        "api"
+    ]
+}

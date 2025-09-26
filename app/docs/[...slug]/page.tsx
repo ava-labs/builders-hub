@@ -29,9 +29,43 @@ import type { MDXComponents } from 'mdx/types';
 import YouTube from '@/components/content-design/youtube';
 import { Feedback } from '@/components/ui/feedback';
 import posthog from 'posthog-js';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper"
+import CrossChainTransfer from "@/components/toolbox/console/primary-network/CrossChainTransfer"
+import AvalancheGoDocker from '@/components/toolbox/console/layer-1/AvalancheGoDockerL1';
+import AvalancheGoDockerPrimaryNetwork from '@/components/toolbox/console/primary-network/AvalancheGoDockerPrimaryNetwork';
+import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain"
+import ConvertSubnetToL1 from "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1"
+import GenesisBuilder from '@/components/toolbox/console/layer-1/create/GenesisBuilder';
+import DeployExampleERC20 from '@/components/toolbox/console/ictt/setup/DeployExampleERC20';
+import DeployTokenHome from '@/components/toolbox/console/ictt/setup/DeployTokenHome';
+import DeployERC20TokenRemote from '@/components/toolbox/console/ictt/setup/DeployERC20TokenRemote';
+import RegisterWithHome from '@/components/toolbox/console/ictt/setup/RegisterWithHome';
+import TestSend from '@/components/toolbox/console/ictt/token-transfer/TestSend';
+import TeleporterRegistry from '@/components/toolbox/console/icm/setup/TeleporterRegistry';
+import ICMRelayer from '@/components/toolbox/console/icm/setup/ICMRelayer';
+import Faucet from '@/components/toolbox/console/primary-network/Faucet';
+import CreateManagedTestnetNode from '@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/CreateManagedTestnetNode';
 
 export const dynamicParams = false;
 export const revalidate = false;
+const toolboxComponents = {
+  ToolboxMdxWrapper,
+  CrossChainTransfer,
+  GenesisBuilder,
+  CreateChain,
+  AvalancheGoDocker,
+  AvalancheGoDockerPrimaryNetwork,
+  CreateManagedTestnetNode,
+  ConvertToL1: ConvertSubnetToL1,
+  DeployExampleERC20,
+  DeployTokenHome,
+  DeployERC20TokenRemote,
+  RegisterWithHome,
+  TestSend,
+  TeleporterRegistry,
+  ICMRelayer,
+  Faucet
+}
 
 export default async function Page(props: {
   params: Promise<{ slug: string[] }>;
@@ -67,6 +101,7 @@ export default async function Page(props: {
         <MDX
           components={{
             ...defaultComponents,
+            ...toolboxComponents,
             ...((await import('lucide-react')) as unknown as MDXComponents),
 
             Popup,
