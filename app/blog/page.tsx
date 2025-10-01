@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { blog } from '@/lib/source';
 import { HeroBackground } from '@/components/landing/hero';
-import { ArrowRight, Twitter } from 'lucide-react';
+import { ArrowRight, X } from 'lucide-react';
 import { createMetadata } from '@/utils/metadata';
 import type { Metadata } from 'next';
 
@@ -81,7 +81,7 @@ export default function Page(): React.ReactElement {
                                     <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                                         {featured.data.authors.map((author: string) => (
                                             <span key={author} className="inline-flex items-center gap-2">
-                                                <Twitter size={12} />
+                                                <X size={12} />
                                                 <span className="truncate">{author}</span>
                                             </span>
                                         ))}
@@ -127,7 +127,7 @@ export default function Page(): React.ReactElement {
                                         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                                             {g.data.authors.map((author: string) => (
                                                 <span key={author} className="inline-flex items-center gap-2">
-                                                    <Twitter size={12} />
+                                                    <X size={12} />
                                                     <span className="truncate">{author}</span>
                                                 </span>
                                             ))}

@@ -21,7 +21,7 @@ While deploying the wrapped exchange contract, you will need to send two constru
 - The second argument is the Trader Joe's (or any other Uniswap V2-like dapp) Factory V1 contract address on the destination chain (Fuji), which is: [`0xF5c7d9733e5f53abCC1695820c4818C59B457C2C`](https://testnet.snowtrace.io/address/0xF5c7d9733e5f53abCC1695820c4818C59B457C2C). Deployed contracts of TraderJoe can be found [here](https://docs.traderjoexyz.com/deployment-addresses/fuji).
 
 ```bash
-forge create --rpc-url local-c --private-key $PK contracts/interchain-token-transfer/cross-chain-token-swaps/DexERC20Wrapper.sol:DexERC20Wrapper --broadcast --constructor-args 0xd00ae08403B9bbb9124bB305C09058E32C39A48c 0xF5c7d9733e5f53abCC1695820c4818C59B457C2C
+forge create --rpc-url local-c --private-key $PK --broadcast --constructor-args 0xd00ae08403B9bbb9124bB305C09058E32C39A48c 0xF5c7d9733e5f53abCC1695820c4818C59B457C2C contracts/interchain-token-transfer/cross-chain-token-swaps/DexERC20Wrapper.sol:DexERC20Wrapper
 ```
 
 ```bash 

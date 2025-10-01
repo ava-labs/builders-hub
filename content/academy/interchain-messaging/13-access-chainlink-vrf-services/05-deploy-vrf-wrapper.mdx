@@ -24,7 +24,7 @@ Before deployment, make sure you have:
 Using the `forge create` command, deploy the `CrossChainVRFWrapper` contract to the supported L1 (e.g., Avalanche Fuji).
 
 ```bash
-forge create --rpc-url <RPC_URL> --private-key <PRIVATE_KEY> src/CrossChainVRFWrapper.sol:CrossChainVRFWrapper --constructor-args <TELEPORTER_MESSENGER_ADDRESS> --broadcast
+forge create --rpc-url <RPC_URL> --private-key <PRIVATE_KEY> --broadcast --constructor-args <TELEPORTER_MESSENGER_ADDRESS> src/CrossChainVRFWrapper.sol:CrossChainVRFWrapper
 ```
 
 Replace the following:

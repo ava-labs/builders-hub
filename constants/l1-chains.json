@@ -140,6 +140,13 @@
     "slug": "demol1"
   },
   {
+    "chainId": "20250320",
+    "chainName": "Dera Chain",
+    "chainLogoURI": "",
+    "subnetId": "B7hA9WibSJu2fKdHT2XZs2RYg1rZTtxwg6cMYBKYjvcJjbqsp",
+    "slug": "deraalpha"
+  },
+  {
     "chainId": "432204",
     "chainName": "Dexalot",
     "chainLogoURI": "",

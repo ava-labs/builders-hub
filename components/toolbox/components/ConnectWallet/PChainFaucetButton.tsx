@@ -1,7 +1,7 @@
 "use client"
 import { useState } from "react"
 import { useWalletStore } from "@/components/toolbox/stores/walletStore"
-import { consoleToast } from "../../lib/console-toast"
+import useConsoleNotifications from "@/hooks/useConsoleNotifications"
 
 const LOW_BALANCE_THRESHOLD = 0.5
 
@@ -13,6 +13,7 @@ interface PChainFaucetButtonProps {
 
 export const PChainFaucetButton = ({ className, buttonProps, children }: PChainFaucetButtonProps = {}) => {
   const { pChainAddress, isTestnet, pChainBalance, updatePChainBalance } = useWalletStore();
+  const { notify } = useConsoleNotifications();
 
   const [isRequestingPTokens, setIsRequestingPTokens] = useState(false);
 
@@ -50,52 +51,18 @@ export const PChainFaucetButton = ({ className, buttonProps, children }: PChainF
       return data;
     };
 
-    consoleToast.promise(faucetRequest(), {
-      loading: "Requesting P-Chain AVAX tokens...",
-      success: (data) => {
-        const successMessage = data.txID ? `P-Chain AVAX tokens sent! TX: ${data.txID.substring(0, 10)}...` : "P-Chain AVAX tokens sent successfully!";
-        if (data.txID) {
-          const explorerUrl = `https://subnets.avax.network/p-chain/tx/${data.txID}`;
-          setTimeout(() => {
-            consoleToast.action(`View P-Chain transaction on explorer`, {
-              action: {
-                label: "Open Explorer",
-                onClick: () => window.open(explorerUrl, '_blank')
-              }
-            });
-          }, 2000);
-        }
-        setTimeout(() => {
-          updatePChainBalance();
-          consoleToast.info("Your P-Chain balance has been refreshed");
-        }, 2000);
+    const faucetPromise = faucetRequest();
 
-        return successMessage;
+    notify(
+      {
+        type: "local",
+        name: "P-Chain AVAX Faucet Claim",
       },
-      error: (error) => {
-        console.error("P-Chain token request error:", error);
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        if (errorMessage.includes("login") || errorMessage.includes("401")) {
-          const currentUrl = window.location.href;
-          const loginUrl = `/login?callbackUrl=${encodeURIComponent(currentUrl)}`;
-          setTimeout(() => {
-            consoleToast.action("Please Login/Signup to request free tokens from the P-Chain Faucet.",
-              { action: { label: "Login", onClick: () => (window.location.href = loginUrl) } });
-          }, 2000);
-          return "Authentication required";
-        } else if (errorMessage.includes("rate limit") || errorMessage.includes("429")) {
-          setTimeout(() => {
-            const timestampMatch = errorMessage.match(/You can try again after (.+?)\./);
-            const timeInfo = timestampMatch ? timestampMatch[1] : "24 hours";
-            consoleToast.warning(`Rate Limited: You can request P-Chain tokens again after ${timeInfo}. Each address can only request tokens once per day.`);
-          }, 500);
-          return "Rate limited";
-        } else { return `P-Chain Faucet Error: ${errorMessage}` }
-      },
-    });
+      faucetPromise
+    );
 
-    try {
-      await faucetRequest();
+    try { 
+      await faucetPromise;
     } catch (error) {
     } finally {
       setIsRequestingPTokens(false);

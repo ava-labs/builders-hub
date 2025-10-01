@@ -28,6 +28,7 @@ import Mermaid from "@/components/content-design/mermaid";
 import type { MDXComponents } from 'mdx/types';
 import YouTube from '@/components/content-design/youtube';
 import { Feedback } from '@/components/ui/feedback';
+import { SidebarActions } from '@/components/ui/sidebar-actions';
 import posthog from 'posthog-js';
 
 export const dynamicParams = false;
@@ -54,7 +55,15 @@ export default async function Page(props: {
         style: 'clerk',
         single: false,
         footer: (
-          <BackToTop />
+          <>
+            <SidebarActions 
+              editUrl={editUrl}
+              title={page.data.title}
+              pagePath={`/${params.slug.join('/')}`}
+              pageType="docs"
+            />
+            <BackToTop />
+          </>
         ),
       }}
       article={{
@@ -95,7 +104,6 @@ export default async function Page(props: {
         path={path}
         title={page.data.title}
         pagePath={`/docs/${page.slugs.join('/')}`}
-        editUrl={editUrl}
         onRateAction={async (url, feedback) => {
           'use server';
           await posthog.capture('on_rate_document', feedback);

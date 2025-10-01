@@ -48,7 +48,7 @@ Copy this code into a new file `src/my-contracts/TokenReceiver.sol`
 Let's deploy this ERC20receiver contract
 
 ```bash
-forge create --rpc-url myblockchain --private-key $PK src/my-contracts/TokenReceiver.sol:TokenReceiver --broadcast --constructor-args $ERC20_CONTRACT_L1 
+forge create --rpc-url myblockchain --private-key $PK --broadcast --constructor-args $ERC20_CONTRACT_L1 src/my-contracts/TokenReceiver.sol:TokenReceiver
 ```
 
 ```

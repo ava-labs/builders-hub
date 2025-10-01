@@ -27,6 +27,7 @@ import {
   Earth,
   ArrowLeftRight,
   Shield,
+  Triangle,
 } from 'lucide-react';
 import Image from 'next/image';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
@@ -229,37 +230,41 @@ export const academyMenu: LinkItemType = {
         className: 'md:row-span-2',
       },
       icon: <Sprout />,
+      text: 'Avalanche Developer Academy',
+      description:
+        'Master blockchain development with comprehensive courses on Avalanche fundamentals, L1s, and advanced topics',
+      url: '/academy',
+    },
+    {
+      menu: {
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase-Entrepreneur-Academy-banner.png"}
+              alt='Codebase Entrepreneur Academy'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-2 lg:col-start-2',
+      },
+      icon: <BriefcaseBusiness />,
+      text: 'Codebase Entrepreneur Academy',
+      description:
+        'Transform from builder to founder with courses on business fundamentals, fundraising, and go-to-market strategies',
+      url: '/codebase-entrepreneur-academy',
+    },
+    {
+      icon: <Triangle />,
       text: 'Avalanche Fundamentals',
       description:
         'Get a high level overview of Avalanche Consensus, L1s and VMs',
       url: '/academy/avalanche-fundamentals',
-    },
-    {
-      icon: <SendHorizontal />,
-      text: 'Avalanche Interchain Messaging',
-      description:
-        'Utilize Avalanche Interchain Messaging to build cross-chain dApps in the Avalanche ecosystem.',
-      url: '/academy/interchain-messaging',
-      menu: {
-        className: 'lg:col-start-2 lg:row-start-1',
-      },
-    },
-    {
-      icon: <ArrowLeftRight />,
-      text: 'Avalanche Interchain Token Transfer',
-      description:
-        'Bridge tokens between Avalanche L1s using the Interchain Token Transfer protocol.',
-      url: '/academy/interchain-token-transfer',
-      menu: {
-        className: 'lg:col-start-2 lg:row-start-2',
-      },
-    },
-    {
-      icon: <Cpu />,
-      text: 'Customizing the EVM',
-      description:
-        'Learn how to customize the Ethereum Virtual Machine and add your own custom precompiles.',
-      url: '/academy/customizing-evm',
       menu: {
         className: 'lg:col-start-3 lg:row-start-1',
       },

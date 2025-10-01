@@ -16,8 +16,8 @@ export const steps: StepDefinition[] = [
       key: "node-setup",
       title: "Set Up a Node",
       options: [
-        { key: "l1-node-setup", label: "L1 Node Setup with Docker", component: AvalancheGoDockerL1 },
         { key: "managed-testnet-l1-nodes", label: "Managed Testnet L1 Nodes", component: CreateManagedTestnetNode },
+        { key: "l1-node-setup", label: "L1 Node Setup with Docker", component: AvalancheGoDockerL1 },
       ],
     },
     {

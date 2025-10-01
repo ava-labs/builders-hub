@@ -34,6 +34,7 @@ import {
 } from "fumadocs-ui/components/codeblock";
 import Mermaid from "@/components/content-design/mermaid";
 import { Feedback } from '@/components/ui/feedback';
+import { SidebarActions } from '@/components/ui/sidebar-actions';
 import posthog from 'posthog-js';
 
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper"
@@ -50,6 +51,7 @@ import TestSend from '@/components/toolbox/console/ictt/token-transfer/TestSend'
 import TeleporterRegistry from '@/components/toolbox/console/icm/setup/TeleporterRegistry';
 import ICMRelayer from '@/components/toolbox/console/icm/setup/ICMRelayer';
 import Faucet from '@/components/toolbox/console/primary-network/Faucet';
+import CreateManagedTestnetNode from '@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/CreateManagedTestnetNode';
 
 export const dynamicParams = false;
 
@@ -59,6 +61,7 @@ const toolboxComponents = {
   GenesisBuilder,
   CreateChain,
   AvalancheGoDocker,
+  CreateManagedTestnetNode,
   ConvertToL1: ConvertSubnetToL1,
   DeployExampleERC20,
   DeployTokenHome,
@@ -90,15 +93,23 @@ export default async function Page(props: {
         single: false,
         enabled: true,
         footer: (
-          <div className="flex flex-col gap-6">
-            <div className='flex flex-col gap-y-4 text-sm text-muted-foreground'>
-              <div>Instructors:</div>
-              <Instructors names={course?.instructors || []} />
+          <>
+            <SidebarActions 
+              editUrl={editUrl}
+              title={page.data.title}
+              pagePath={`/academy/${params.slug?.join('/')}`}
+              pageType="academy"
+            />
+            <div className="flex flex-col gap-6">
+              <div className='flex flex-col gap-y-4 text-sm text-muted-foreground'>
+                <div>Instructors:</div>
+                <Instructors names={course?.instructors || []} />
+              </div>
+              <Link href="https://t.me/avalancheacademy" target='_blank' className={cn(buttonVariants({ size: 'lg', variant: 'secondary' }))}>
+                Join Telegram Course Chat
+              </Link>
             </div>
-            <Link href="https://t.me/avalancheacademy" target='_blank' className={cn(buttonVariants({ size: 'lg', variant: 'secondary' }))}>
-              Join Telegram Course Chat
-            </Link>
-          </div>
+          </>
         ),
       }}
     >
@@ -127,7 +138,6 @@ export default async function Page(props: {
         path={path}
         title={page.data.title}
         pagePath={`/academy/${page.slugs.join('/')}`}
-        editUrl={editUrl}
         onRateAction={async (url, feedback) => {
           'use server';
           await posthog.capture('on_rate_document', feedback);
