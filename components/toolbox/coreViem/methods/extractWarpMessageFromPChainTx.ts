@@ -120,15 +120,15 @@ export async function getSubnetIdFromChainId(network: "fuji" | "mainnet", blockc
         });
 
         if (!response.ok) {
-            throw new Error(`Glacier API returned ${response.status}: ${response.statusText}`);
+            throw new Error(`Data API returned ${response.status}: ${response.statusText}`);
         }
 
         const data = await response.json();
-        
+
         if (!data.subnetId) {
             throw new Error('No subnetId found in response');
         }
-        
+
         return data.subnetId;
     } catch (error) {
         console.error('Error fetching subnet info from Glacier:', error);

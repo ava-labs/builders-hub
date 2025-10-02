@@ -78,11 +78,16 @@ export async function convertToL1(client: WalletClient<any, any, any, CoreWallet
         context,
     );
 
+    const manager = utils.getManagerForVM(tx.getVM());
+    const [codec] = manager.getCodecFromBuffer(tx.toBytes());
+    const utxoHexes = tx.utxos.map(utxo => utils.bufferToHex(utxo.toBytes(codec)));
+
     const transactionID = await window.avalanche!.request({
         method: 'avalanche_sendTransaction',
         params: {
             transactionHex: utils.bufferToHex(tx.toBytes()),
             chainAlias: 'P',
+            utxos: utxoHexes,
         }
     }) as string;
 

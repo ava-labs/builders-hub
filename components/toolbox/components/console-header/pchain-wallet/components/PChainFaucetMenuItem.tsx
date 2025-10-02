@@ -1,23 +1,16 @@
 'use client'
-
 import { useState } from "react";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Droplet } from "lucide-react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from "@/components/toolbox/components/AlertDialog";
+import { AlertDialog,AlertDialogAction,AlertDialogContent,AlertDialogDescription,AlertDialogFooter,AlertDialogHeader,AlertDialogTitle } from "@/components/toolbox/components/AlertDialog";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 export function PChainFaucetMenuItem() {
   const pChainAddress = useWalletStore((s) => s.pChainAddress);
   const updatePChainBalance = useWalletStore((s) => s.updatePChainBalance);
   const isTestnet = useWalletStore((s) => s.isTestnet);
+  const { notify } = useConsoleNotifications();
 
   // Faucet state
   const [isRequestingPTokens, setIsRequestingPTokens] = useState(false);
@@ -34,7 +27,7 @@ export function PChainFaucetMenuItem() {
     if (isRequestingPTokens || !pChainAddress) return;
     setIsRequestingPTokens(true);
 
-    try {
+    const faucetRequest = async () => {
       const response = await fetch(`/api/pchain-faucet?address=${pChainAddress}`);
       const rawText = await response.text();
       let data;
@@ -56,11 +49,25 @@ export function PChainFaucetMenuItem() {
       }
 
       if (data.success) {
-        console.log('Token request successful, txID:', data.txID);
         setTimeout(() => updatePChainBalance(), 3000);
+        return data;
       } else {
         throw new Error(data.message || "Failed to get tokens");
       }
+    };
+
+    const faucetPromise = faucetRequest();
+
+    notify(
+      {
+        type: "local",
+        name: "P-Chain AVAX Faucet Claim",
+      },
+      faucetPromise
+    );
+
+    try {
+      await faucetPromise;
     } catch (error) {
       console.error("P-Chain token request error:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";

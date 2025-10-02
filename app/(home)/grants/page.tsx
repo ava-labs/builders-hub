@@ -12,6 +12,7 @@ import {
   Gamepad2,
   CreditCard,
   Shield,
+  BadgeDollarSign,
 } from "lucide-react";
 import Link from "next/link";
 import { HeroBackground } from "@/components/landing/hero";
@@ -109,6 +110,16 @@ export default function Page() {
                 title="Retro9000"
                 description="Build innovative projects on Avalanche and get rewarded for your creativity and impact."
                 icon={<Zap className="w-6 h-6 text-foreground" />}
+              />
+            </a>
+            <a
+              href="https://grants.team1.network/"
+              className="block hover:no-underline"
+            >
+              <ProgramCard
+                title="Team1 Mini Grants"
+                description="Supporting early stage Avalanche projects with capital, mentorship, and guidance."
+                icon={<BadgeDollarSign className="w-6 h-6 text-foreground" />}
               />
             </a>
             <a href="/grants/infrabuidl" className="block hover:no-underline">

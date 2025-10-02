@@ -24,7 +24,7 @@ export async function middleware(req: NextRequest) {
   const isLoginPage = pathname === "/login";
   const isShowCase = pathname.startsWith("/showcase");
   const custom_attributes = token?.custom_attributes as string[] ?? []
-  
+
   // If not authenticated and trying to access protected routes,
   // preserve the complete URL (including UTM) as callbackUrl
   if (!isAuthenticated && !isLoginPage) {
@@ -35,9 +35,9 @@ export async function middleware(req: NextRequest) {
       "/showcase",
       "/profile"
     ];
-    
+
     const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
-    
+
     if (isProtectedPath) {
       const currentUrl = req.url;
       const loginUrl = new URL("/login", req.url);
@@ -45,7 +45,7 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
   }
-  
+
   if (isAuthenticated) {
 
     if (isLoginPage)
@@ -82,5 +82,6 @@ export const config = {
     "/profile/:path*",
     "/academy/:path*/get-certificate",
     "/academy/:path*/certificate",
+    "/console/utilities/data-api-keys",
   ],
 };

@@ -133,6 +133,10 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
         throw new Error("Avalanche wallet extension not found. Please ensure it's installed and enabled.")
       }
 
+      const manager = utils.getManagerForVM(unsignedTx.getVM());
+      const [codec] = manager.getCodecFromBuffer(unsignedTx.toBytes());
+      const utxoHexes = unsignedTx.utxos.map(utxo => utils.bufferToHex(utxo.toBytes(codec)));
+
       // Send the transaction to the wallet for signing and broadcasting
       console.log("Sending transaction to wallet:", unsignedTxHex)
       const response = await window.avalanche.request({
@@ -140,6 +144,7 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
         params: {
           transactionHex: unsignedTxHex,
           chainAlias: "P",
+          utxos: utxoHexes,
         },
       }) as AvalancheResponse
 
