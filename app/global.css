@@ -137,6 +137,72 @@ nav a:not(:first-child) {
   background-color: #e84142;
 }
 
+.text-avax-red {
+  --tw-text-opacity: 1;
+  color: #e84142;
+}
+
+/* Avax red opacity variants */
+.bg-avax-red\/5 {
+  background-color: rgba(232, 65, 66, 0.05);
+}
+
+.bg-avax-red\/10 {
+  background-color: rgba(232, 65, 66, 0.1);
+}
+
+.bg-avax-red\/20 {
+  background-color: rgba(232, 65, 66, 0.2);
+}
+
+.border-avax-red\/30 {
+  border-color: rgba(232, 65, 66, 0.3);
+}
+
+.border-avax-red\/40 {
+  border-color: rgba(232, 65, 66, 0.4);
+}
+
+.border-avax-red\/60 {
+  border-color: rgba(232, 65, 66, 0.6);
+}
+
+.shadow-avax-red\/25 {
+  --tw-shadow-color: rgba(232, 65, 66, 0.25);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+
+.shadow-avax-red\/40 {
+  --tw-shadow-color: rgba(232, 65, 66, 0.4);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+
+/* Additional hover background variants */
+.hover\:bg-avax-red\/5:hover {
+  background-color: rgba(232, 65, 66, 0.05) !important;
+}
+
+.hover\:bg-avax-red\/10:hover {
+  background-color: rgba(232, 65, 66, 0.1) !important;
+}
+
+.hover\:shadow-avax-red\/25:hover {
+  --tw-shadow-color: rgba(232, 65, 66, 0.25);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+
+.group:hover .group-hover\:bg-avax-red\/10 {
+  background-color: rgba(232, 65, 66, 0.1) !important;
+}
+
+.group:hover .group-hover\:bg-avax-red\/20 {
+  background-color: rgba(232, 65, 66, 0.2) !important;
+}
+
+.hover\:bg-avax-red\/10:hover {
+  background-color: rgba(232, 65, 66, 0.1) !important;
+}
+
 .border-avax-green {
   --tw-border-opacity: 1;
   border-color: #0b7f54;

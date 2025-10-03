@@ -68,12 +68,17 @@ export async function registerL1Validator(client: WalletClient<any, any, any, Co
     const unsignedRegisterValidatorTxBytes = unsignedRegisterValidatorTx.toBytes();
     const unsignedRegisterValidatorTxHex = bytesToHex(unsignedRegisterValidatorTxBytes);
 
+    const manager = utils.getManagerForVM(unsignedRegisterValidatorTx.getVM());
+    const [codec] = manager.getCodecFromBuffer(unsignedRegisterValidatorTx.toBytes());
+    const utxoHexes = unsignedRegisterValidatorTx.utxos.map(utxo => utils.bufferToHex(utxo.toBytes(codec)));
+
     // Submit the transaction to the P-Chain using Core Wallet
     const txID = await window.avalanche!.request({
         method: "avalanche_sendTransaction",
         params: {
             transactionHex: unsignedRegisterValidatorTxHex,
             chainAlias: "P",
+            utxos: utxoHexes,
         },
     }) as string;
 

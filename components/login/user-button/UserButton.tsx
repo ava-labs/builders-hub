@@ -76,35 +76,35 @@ export function UserButton() {
               </div>
               <Separator className="h-px bg-zinc-200 dark:bg-zinc-600 my-1" />
 
-              <DropdownMenuItem asChild className='cursor-pointer'>
-                <Link href='/profile'>Profile</Link>
-              </DropdownMenuItem>
-              {/*     <DropdownMenuItem asChild className='cursor-pointer'>
+            <DropdownMenuItem asChild className='cursor-pointer'>
+              <Link href='/profile'>Profile</Link>
+            </DropdownMenuItem>
+           <DropdownMenuItem asChild className='cursor-pointer'>
               <Link href='/profile/rewards-board'>Reward Board</Link>
             </DropdownMenuItem>
-            */}
-              <DropdownMenuItem
-                onClick={() => setIsDialogOpen(true)}
-                className='cursor-pointer'
-              >
-                Sign Out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : (
-          <Button
-            size='icon'
-            variant='ghost'
-            className='rounded-full ml-1 h-9 w-9 cursor-pointer p-0'
-          >
-            <Link href='/login'>
-              <CircleUserRound
-                className='h-8! w-8! stroke-muted-foreground dark:stroke-white'
-                strokeWidth={0.85}
-              />
-            </Link>
-          </Button>
-        )}
+           
+            <DropdownMenuItem
+              onClick={() => setIsDialogOpen(true)}
+              className='cursor-pointer'
+            >
+              Sign Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        <Button
+          size='icon'
+          variant='ghost'
+          className='rounded-full h-10 w-10 ml-4 cursor-pointer p-0'
+        >
+          <Link href='/login'>
+            <CircleUserRound
+              className='!h-8 !w-8 stroke-zinc-900 dark:stroke-white'
+              strokeWidth={0.85}
+            />
+          </Link>
+        </Button>
+      )}
 
         <SignOutComponent
           isOpen={isDialogOpen}

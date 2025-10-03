@@ -57,12 +57,17 @@ export async function createChain(client: WalletClient<any, any, any, CoreWallet
         throw new Error(`Chain ID collision detected. The generated chain ID "${chainID}" already exists.`);
     }
 
+    const manager = utils.getManagerForVM(tx.getVM());
+    const [codec] = manager.getCodecFromBuffer(tx.toBytes());
+    const utxoHexes = tx.utxos.map(utxo => utils.bufferToHex(utxo.toBytes(codec)));
+
     // If no collision, proceed with sending the transaction
     const txID = await window.avalanche!.request({
         method: 'avalanche_sendTransaction',
         params: {
             transactionHex: utils.bufferToHex(tx.toBytes()),
             chainAlias: 'P',
+            utxos: utxoHexes,
         }
     }) as string;
 

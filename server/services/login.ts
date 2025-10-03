@@ -24,6 +24,17 @@ export async function sendOTP(email: string) {
     name: "Avalanche Builder's Hub"
   };
 
+  if (process.env.NODE_ENV === 'development') {
+    console.log('\n' + '='.repeat(50));
+    console.log('📧 \x1b[36m%s\x1b[0m', 'OTP EMAIL (DEVELOPMENT MODE)');
+    console.log('='.repeat(50));
+    console.log('📬 To: \x1b[33m%s\x1b[0m', email);
+    console.log('🔑 Code: \x1b[1m\x1b[32m%s\x1b[0m', code);
+    console.log('⏰ Expires: \x1b[31m%s\x1b[0m', '3 minutes');
+    console.log('='.repeat(50) + '\n');
+    return;
+  }
+
   const msg = {
     to: email,
     from: from,

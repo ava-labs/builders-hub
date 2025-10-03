@@ -29,7 +29,8 @@ import {
   SquareMinus,
   SquarePlus,
   HandCoins,
-  ExternalLink
+  ExternalLink,
+  BookKey
 } from "lucide-react";
 
 import {
@@ -283,6 +284,11 @@ const data = {
           title: "Migrate VMC From V1 to V2",
           url: "/console/utilities/vmcMigrateFromV1",
           icon: Wrench,
+        },
+        {
+          title: "Data API Keys",
+          url: "/console/utilities/data-api-keys",
+          icon: BookKey,
         },
       ],
     },

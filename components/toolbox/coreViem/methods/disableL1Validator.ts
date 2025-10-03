@@ -53,12 +53,18 @@ export async function disableL1Validator(client: WalletClient<any, any, any, Cor
     const disableTxBytes = disableValidatorTx.toBytes();
     const disableTxHex = bytesToHex(disableTxBytes);
 
+
+    const manager = utils.getManagerForVM(disableValidatorTx.getVM());
+    const [codec] = manager.getCodecFromBuffer(disableValidatorTx.toBytes());
+    const utxoHexes = disableValidatorTx.utxos.map(utxo => utils.bufferToHex(utxo.toBytes(codec)));
+
     // Submit the transaction to the P-Chain using Core Wallet
     const txID = (await client.request({
         method: "avalanche_sendTransaction",
         params: {
             transactionHex: disableTxHex,
             chainAlias: "P",
+            utxos: utxoHexes,
         },
     })) as string;
 

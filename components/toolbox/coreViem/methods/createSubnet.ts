@@ -32,12 +32,18 @@ export async function createSubnet(client: WalletClient<any, any, any, CoreWalle
         subnetOwners: params.subnetOwners.map(utils.bech32ToBytes),
     }, context);
 
+
+    const manager = utils.getManagerForVM(tx.getVM());
+    const [codec] = manager.getCodecFromBuffer(tx.toBytes());
+    const utxoHexes = tx.utxos.map(utxo => utils.bufferToHex(utxo.toBytes(codec)));
+
     const txID = await client.request({
         method: 'avalanche_sendTransaction',
         params: {
             transactionHex: utils.bufferToHex(tx.toBytes()),
             chainAlias: 'P',
-        }
+            utxos: utxoHexes,
+        },
     }) as string;
 
     return txID;
