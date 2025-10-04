@@ -15,7 +15,6 @@ const toolboxInitialState = {
     teleporterRegistryAddress: "",
     icmReceiverAddress: "",
     exampleErc20Address: "",
-    wrappedNativeTokenAddress: "",
     erc20TokenHomeAddress: "",
     erc20TokenRemoteAddress: "",
     nativeTokenHomeAddress: "",
@@ -26,7 +25,7 @@ const toolboxInitialState = {
 
 export const getToolboxStore = (chainId: string) => create(
     persist(
-        combine(toolboxInitialState, (set) => ({
+        combine(toolboxInitialState, (set, get) => ({
             setValidatorMessagesLibAddress: (validatorMessagesLibAddress: string) => set({ validatorMessagesLibAddress }),
             setValidatorManagerAddress: (validatorManagerAddress: string) => set({ validatorManagerAddress }),
             setRewardCalculatorAddress: (rewardCalculatorAddress: string) => set({ rewardCalculatorAddress }),
@@ -34,7 +33,6 @@ export const getToolboxStore = (chainId: string) => create(
             setTeleporterRegistryAddress: (address: string) => set({ teleporterRegistryAddress: address }),
             setIcmReceiverAddress: (address: string) => set({ icmReceiverAddress: address }),
             setExampleErc20Address: (address: string) => set({ exampleErc20Address: address }),
-            setWrappedNativeTokenAddress: (address: string) => set({ wrappedNativeTokenAddress: address }),
             setErc20TokenHomeAddress: (address: string) => set({ erc20TokenHomeAddress: address }),
             setNativeTokenHomeAddress: (address: string) => set({ nativeTokenHomeAddress: address }),
             setErc20TokenRemoteAddress: (address: string) => set({ erc20TokenRemoteAddress: address }),
@@ -88,3 +86,4 @@ export function useViemChainStore() {
 
     return viemChain;
 }
+

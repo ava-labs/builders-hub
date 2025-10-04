@@ -22,6 +22,12 @@ export type L1ListItem = {
     hasBuilderHubFaucet?: boolean;
     dripAmount?: number;
     features?: string[];
+    // Native currency cache - extended info beyond just coinName
+    nativeCurrency?: {
+        name: string;
+        symbol: string;
+        decimals: number;
+    };
 };
 
 const l1ListInitialStateFuji = {
@@ -57,7 +63,7 @@ const l1ListInitialStateFuji = {
             coinName: "ECH",
             isTestnet: true,
             subnetId: "i9gFpZQHPLcGfZaQLiwFAStddQD7iTKBpFfurPFJsXm1CkTZK",
-            wrappedTokenAddress: "",
+            wrappedTokenAddress: "0xc85a1b7876eabbacf1d6551c58e0759788cf8d02",
             validatorManagerAddress: "0x0646263a231b4fde6f62d4de63e18df7e6ad94d6",
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/7kyTY75fdtnO6mh7f0osix/4c92c93dd688082bfbb43d5d910cbfeb/Echo_Subnet_Logo.png",
             wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
@@ -79,7 +85,7 @@ const l1ListInitialStateFuji = {
             coinName: "DIS",
             isTestnet: true,
             subnetId: "7WtoAMPhrmh5KosDUsFL9yTcvw7YSxiKHPpdfs4JsgW47oZT5",
-            wrappedTokenAddress: "",
+            wrappedTokenAddress: "0x8d4dfb65e48a464d6fca2b297776da77e01db34b",
             validatorManagerAddress: "",
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/60XrKdf99PqQKrHiuYdwTE/908622f5204311dbb11be9c6008ead44/Dispatch_Subnet_Logo.png",
             wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
@@ -132,9 +138,22 @@ export const getL1ListStore = (isTestnet: boolean) => {
         if (!testnetStoreSingleton) {
             testnetStoreSingleton = create(
                 persist(
-                    combine(l1ListInitialStateFuji, (set) => ({
+                    combine(l1ListInitialStateFuji, (set, get) => ({
                         addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, l1] })),
                         removeL1: (l1Id: string) => set((state) => ({ l1List: state.l1List.filter((l) => l.id !== l1Id) })),
+                        setNativeCurrencyInfo: (chainId: number, info: { name: string; symbol: string; decimals: number }) => {
+                            set((state) => ({
+                                l1List: state.l1List.map((l1) =>
+                                    l1.evmChainId === chainId
+                                        ? { ...l1, nativeCurrency: info }
+                                        : l1
+                                )
+                            }));
+                        },
+                        getNativeCurrencyInfo: (chainId: number) => {
+                            const l1 = get().l1List.find((l1) => l1.evmChainId === chainId);
+                            return l1?.nativeCurrency;
+                        },
                         reset: () => {
                             window?.localStorage.removeItem(`${STORE_VERSION}-l1-list-store-testnet`);
                         },
@@ -151,9 +170,22 @@ export const getL1ListStore = (isTestnet: boolean) => {
         if (!mainnetStoreSingleton) {
             mainnetStoreSingleton = create(
                 persist(
-                    combine(l1ListInitialStateMainnet, (set) => ({
+                    combine(l1ListInitialStateMainnet, (set, get) => ({
                         addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, l1] })),
                         removeL1: (l1Id: string) => set((state) => ({ l1List: state.l1List.filter((l) => l.id !== l1Id) })),
+                        setNativeCurrencyInfo: (chainId: number, info: { name: string; symbol: string; decimals: number }) => {
+                            set((state) => ({
+                                l1List: state.l1List.map((l1) =>
+                                    l1.evmChainId === chainId
+                                        ? { ...l1, nativeCurrency: info }
+                                        : l1
+                                )
+                            }));
+                        },
+                        getNativeCurrencyInfo: (chainId: number) => {
+                            const l1 = get().l1List.find((l1) => l1.evmChainId === chainId);
+                            return l1?.nativeCurrency;
+                        },
                         reset: () => {
                             window?.localStorage.removeItem(`${STORE_VERSION}-l1-list-store-mainnet`);
                         },
@@ -212,3 +244,43 @@ export function useL1ByChainId(chainId: string) {
         [chainId, l1ListStore]
     );
 }
+
+// Native currency hooks for L1 store
+export const useSetNativeCurrencyInfo = () => {
+    const l1ListStore = useL1ListStore();
+    
+    return (chainId: number, info: { name: string; symbol: string; decimals: number }) => {
+        l1ListStore.getState().setNativeCurrencyInfo(chainId, info);
+    };
+};
+
+export const useNativeCurrencyInfo = (chainId?: number) => {
+    const { walletChainId } = useWalletStore();
+    const l1ListStore = useL1ListStore();
+    const effectiveChainId = chainId || walletChainId;
+    
+    return useMemo(() => {
+        return l1ListStore.getState().getNativeCurrencyInfo(effectiveChainId);
+    }, [l1ListStore, effectiveChainId]);
+};
+
+// Wrapped native token hooks
+export const useWrappedNativeToken = () => {
+    const selectedL1 = useSelectedL1()();
+    return selectedL1?.wrappedTokenAddress || "";
+};
+
+export const useSetWrappedNativeToken = () => {
+    const { walletChainId } = useWalletStore();
+    const l1ListStore = useL1ListStore();
+    
+    return (address: string) => {
+        const currentL1List = l1ListStore.getState().l1List;
+        const updatedL1List = currentL1List.map((l1: L1ListItem) => 
+            l1.evmChainId === walletChainId 
+                ? { ...l1, wrappedTokenAddress: address }
+                : l1
+        );
+        l1ListStore.setState({ l1List: updatedL1List });
+    };
+};
