@@ -28,6 +28,9 @@ import {
   ArrowLeftRight,
   Shield,
   Triangle,
+  GraduationCap,
+  BookOpen,
+  Users,
 } from 'lucide-react';
 import Image from 'next/image';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
@@ -415,6 +418,12 @@ export const grantsMenu: LinkItemType = {
   ],
 };
 
+export const universityMenu: LinkItemType = {
+  type: 'main',
+  text: 'University',
+  url: '/university',
+};
+
 export const eventsMenu: LinkItemType = {
   type: 'menu',
   text: 'Events',
@@ -516,6 +525,7 @@ export const baseOptions: BaseLayoutProps = {
     consoleMenu,
     eventsMenu,
     grantsMenu,
+    universityMenu,
     integrationsMenu,
     userMenu,
     blogMenu,
