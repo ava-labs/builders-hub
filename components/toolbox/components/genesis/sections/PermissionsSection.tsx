@@ -8,9 +8,8 @@ type PermissionsSectionProps = {
     setDeployerConfig: Dispatch<SetStateAction<AllowlistPrecompileConfig>>;
     txConfig: AllowlistPrecompileConfig;
     setTxConfig: Dispatch<SetStateAction<AllowlistPrecompileConfig>>;
-    isExpanded: boolean;
-    toggleExpand: () => void;
     validationErrors: { [key: string]: string };
+    compact?: boolean;
 };
 
 export const PermissionsSection = ({
@@ -18,17 +17,15 @@ export const PermissionsSection = ({
     setDeployerConfig,
     txConfig,
     setTxConfig,
-    isExpanded,
-    toggleExpand,
-    validationErrors
+    validationErrors,
+    compact
 }: PermissionsSectionProps) => {
     return (
         <SectionWrapper
             title="Permissions"
-            description="By design, blockchain networks are fully permissionless, allowing anyone to transact and deploy smart contracts. However, certain use cases require permissioning to control who can participate in transactions or deploy contracts. On Avalanche, permissioning is an optional feature for Layer 1 blockchains that may or may not be activated, depending on the network's needs."
-            isExpanded={isExpanded}
-            toggleExpand={toggleExpand}
+            description={compact ? "" : "Optional permissioning for transaction submitters and contract deployers."}
             sectionId="permissions"
+            compact={compact}
         >
             <div className="space-y-6">
 
@@ -36,7 +33,7 @@ export const PermissionsSection = ({
 
                 <AllowlistPrecompileConfigurator
                     title="Contract Deployer Allowlist"
-                    description="You can optionally restrict which addresses may deploy smart contracts on this blockchain."
+                    description={compact ? "" : "Restrict which addresses can deploy smart contracts. Configure Admin, Manager, and Enabled roles with different permission levels."}
                     precompileAction="deploy contracts"
                     config={deployerConfig}
                     onUpdateConfig={setDeployerConfig}
@@ -50,7 +47,7 @@ export const PermissionsSection = ({
 
                 <AllowlistPrecompileConfigurator
                     title="Transaction Allowlist"
-                    description="Configure which addresses can submit transactions."
+                    description={compact ? "" : "Control which addresses can submit transactions. Assign Admin, Manager, and Enabled roles with varying permissions."}
                     precompileAction="submit transactions"
                     config={txConfig}
                     onUpdateConfig={setTxConfig}

@@ -22,9 +22,8 @@ type TransactionFeesSectionProps = {
     setRewardManagerEnabled: Dispatch<SetStateAction<boolean>>;
     rewardManagerAdmins: Address[];
     setRewardManagerAdmins: Dispatch<SetStateAction<Address[]>>;
-    isExpanded: boolean;
-    toggleExpand: () => void;
     validationMessages: ValidationMessages;
+    compact?: boolean;
 };
 
 export const TransactionFeesSection = ({
@@ -42,9 +41,8 @@ export const TransactionFeesSection = ({
     setRewardManagerEnabled,
     rewardManagerAdmins,
     setRewardManagerAdmins,
-    isExpanded,
-    toggleExpand,
-    validationMessages
+    validationMessages,
+    compact
 }: TransactionFeesSectionProps) => {
 
     // Combine specific errors/warnings for FeeConfig component
@@ -72,47 +70,12 @@ export const TransactionFeesSection = ({
         }
     }), [validationMessages]);
 
-    // Memoize manager objects to prevent unnecessary renders
-    const feeManagerState = useMemo(() => ({
-        enabled: feeManagerEnabled,
-        adminAddresses: feeManagerAdmins
-    }), [feeManagerEnabled, feeManagerAdmins]);
-
-    const rewardManagerState = useMemo(() => ({
-        enabled: rewardManagerEnabled,
-        adminAddresses: rewardManagerAdmins
-    }), [rewardManagerEnabled, rewardManagerAdmins]);
-
-    // Create a stable handler for manager state updates
-    const handleFeeManagerChange = useMemo(() => (newState: { enabled: boolean; adminAddresses: Address[] }) => {
-        if (newState.enabled !== feeManagerEnabled) {
-            setFeeManagerEnabled(newState.enabled);
-        }
-        
-        // Only update if there's actually a change to avoid loops
-        if (JSON.stringify(newState.adminAddresses) !== JSON.stringify(feeManagerAdmins)) {
-            setFeeManagerAdmins(newState.adminAddresses);
-        }
-    }, [feeManagerEnabled, feeManagerAdmins, setFeeManagerEnabled, setFeeManagerAdmins]);
-
-    const handleRewardManagerChange = useMemo(() => (newState: { enabled: boolean; adminAddresses: Address[] }) => {
-        if (newState.enabled !== rewardManagerEnabled) {
-            setRewardManagerEnabled(newState.enabled);
-        }
-        
-        // Only update if there's actually a change to avoid loops
-        if (JSON.stringify(newState.adminAddresses) !== JSON.stringify(rewardManagerAdmins)) {
-            setRewardManagerAdmins(newState.adminAddresses);
-        }
-    }, [rewardManagerEnabled, rewardManagerAdmins, setRewardManagerEnabled, setRewardManagerAdmins]);
-
     return (
         <SectionWrapper
             title="Transaction Fees & Gas"
-            description="In addition to the native token, you can also configure the transaction fees (also known as gas fees). This allows Avalanche L1s to define the desired or maximal throughput of the blockchain differently."
-            isExpanded={isExpanded}
-            toggleExpand={toggleExpand}
+            description={compact ? "" : "Configure fee parameters and optional dynamic managers."}
             sectionId="transactionFees"
+            compact={compact}
         >
             {/* Pass all necessary props to FeeConfig */}
             <FeeConfig
@@ -120,10 +83,6 @@ export const TransactionFeesSection = ({
                 setGasLimit={setGasLimit}
                 targetBlockRate={targetBlockRate}
                 setTargetBlockRate={setTargetBlockRate}
-                feeManager={feeManagerState}
-                setFeeManager={handleFeeManagerChange}
-                rewardManager={rewardManagerState}
-                setRewardManager={handleRewardManagerChange}
                 feeConfig={feeConfig}             
                 onFeeConfigChange={setFeeConfig} 
                 validationMessages={feeConfigValidation} 

@@ -9,7 +9,7 @@ import { type EVMNotificationOptions } from './useEVMNotifications';
 type ConsoleAction = PChainAction | EVMNotificationOptions;
 
 const useConsoleNotifications = () => {
-    const { logs, loading, getExplorerUrl } = useConsoleLog();
+    const { logs, loading, getExplorerUrl } = useConsoleLog(false); // Don't auto-fetch logs
     const notifyP = usePChainNotifications();
     const notifyE = useEVMNotifications();
 
