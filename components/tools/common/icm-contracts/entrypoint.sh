@@ -2,7 +2,7 @@
 
 set -eu -o pipefail
 
-# downlaod source code if not already present
+# download source code if not already present
 if [ ! -d "/teleporter_src/contracts" ]; then
     git clone https://github.com/ava-labs/icm-contracts /teleporter_src 
     cd /teleporter_src && git submodule update --init --recursive
