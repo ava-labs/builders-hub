@@ -1,0 +1,24 @@
+{
+  "title": "API References",
+  "description": "Avalanche API References",
+  "icon": "Webhook",
+  "root": true,
+  "pages": [
+    "index",
+    "---AvalancheGo---",
+    "c-chain/",
+    "p-chain/",
+    "x-chain/",
+    "---Other AvalancheGo References---",
+    "admin-api",
+    "health-api",
+    "index-api",
+    "info-api",
+    "metrics-api",
+    "---Avalanche L1s---",
+    "subnet-evm-api",
+    "---Miscellaneous---",
+    "standards",
+    "guides"
+  ]
+}

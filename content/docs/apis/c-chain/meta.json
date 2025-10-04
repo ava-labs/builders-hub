@@ -1,0 +1,10 @@
+{
+    "title": "C-Chain API",
+    "description": "API methods for the Contract Chain (C-Chain).",
+    "icon": "Contract",
+    "root": false,
+    "pages": [
+        "txn-format",
+        "api"
+    ]
+}
