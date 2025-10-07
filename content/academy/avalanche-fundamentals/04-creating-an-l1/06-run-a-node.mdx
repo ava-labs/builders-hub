@@ -6,7 +6,8 @@ authors: [owenwahlgren]
 icon: Terminal
 ---
 
-import AvalancheGoDocker from "@/components/toolbox/console/layer-1/AvalancheGoDockerL1";
+import ManagedTestnetNodes from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes";
+import AvalancheGoDockerL1 from "@/components/toolbox/console/layer-1/L1NodeSetupDocker";
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
 
 Now that the P-Chain records are set up, you can start syncing the node with your Subnet.
@@ -35,6 +36,6 @@ intended for running on production environments. They are shut down automaticall
 using Docker:
 
 <ToolboxMdxWrapper walletMode="testnet-mainnet">
-    <AvalancheGoDocker />
+    <AvalancheGoDockerL1 />
 </ToolboxMdxWrapper>
 
