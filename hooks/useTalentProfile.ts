@@ -3,23 +3,21 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { useFileUploadMutation, useUpdateTalentProfileMutation } from "@/services/ambassador-dao/requests/onboard";
-import { UseFormSetValue, UseFormWatch } from "react-hook-form";
+import { useFileUploadMutation } from "@/services/ambassador-dao/requests/onboard";
+import { UseFormSetValue, UseFormWatch, UseFormGetValues } from "react-hook-form";
 import { IUpdateTalentProfileBody } from "@/services/ambassador-dao/interfaces/onbaord";
 
 interface UseTalentProfileProps {
   setValue: UseFormSetValue<IUpdateTalentProfileBody>;
   watch: UseFormWatch<IUpdateTalentProfileBody>;
-  selectedSkills: string[];
-  socialLinks: string[];
+  getValues: UseFormGetValues<IUpdateTalentProfileBody>;
   setIsDataFetched: (value: boolean) => void;
 }
 
 export const useTalentProfile = ({
   setValue,
   watch,
-  selectedSkills,
-  socialLinks,
+  getValues,
   setIsDataFetched,
 }: UseTalentProfileProps) => {
   const router = useRouter();
@@ -31,7 +29,6 @@ export const useTalentProfile = ({
   const [profileImageSize, setProfileImageSize] = useState<number>();
 
   const { mutateAsync: uploadFile, isPending: isUploading } = useFileUploadMutation("image");
-  const { mutate: updateTalentProfile } = useUpdateTalentProfileMutation();
 
   // Fetch local profile data to get bio, image, etc.
   useEffect(() => {
@@ -90,7 +87,7 @@ export const useTalentProfile = ({
   };
 
   // Save to local User table
-  const saveToLocalProfile = async (formData: any) => {
+  const saveToLocalProfile = async (formData: any, socialLinks?: string[]) => {
     if (session?.user?.id && session?.user?.email) {
       try {
         await axios.put(`/api/profile/${session.user.id}`, {
@@ -112,37 +109,14 @@ export const useTalentProfile = ({
     }
   };
 
-  // Skip function
+  // Skip function - Only saves to local User table, NOT to Ambassador API
   const onSkip = async () => {
-    // Validate that first_name is filled before allowing skip
-    const currentFirstName = watch("first_name");
-    if (!currentFirstName || currentFirstName.trim() === "") {
-      toast.error("First name is required to continue.");
-      return;
-    }
-
-    // Save the current form data before skipping
+    // Save the current form data before skipping (no validation required)
     setIsDataFetched(false); // Show loading
     try {
-      const formData = watch();
+      const formData = getValues();
 
-      // Save to Ambassador API
-      await new Promise((resolve, reject) => {
-        updateTalentProfile(
-          {
-            ...formData,
-            skill_ids: selectedSkills,
-            social_links: socialLinks,
-            years_of_experience: formData.years_of_experience,
-          },
-          {
-            onSuccess: () => resolve(true),
-            onError: (error: any) => reject(error),
-          }
-        );
-      });
-
-      // Save to local User table
+      // Only save to local User table - save whatever data is available
       await saveToLocalProfile(formData);
 
       toast.success("Profile saved successfully!");

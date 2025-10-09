@@ -64,33 +64,25 @@ function RedirectIfNewUser() {
           await axios.post("/api/t1-token", {}, {
             withCredentials: true,
           });
-          
-          console.log("✅ External token obtained and cookie set");
-          // Clear any previous errors
+
           if (typeof window !== "undefined") {
             localStorage.removeItem("t1_token_error");
           }
         } catch (error: any) {
           console.error("❌ Failed to get external token:", error);
-        
-          // Save error state to prevent infinite loops
           if (error.response?.status === 404) {
             setAuthError("User not found in Ambassador DAO");
             if (typeof window !== "undefined") {
               localStorage.setItem("t1_token_error", "user_not_found");
             }
-            toast.error("Please complete Ambassador DAO onboarding");
           } else {
             setAuthError("Failed to authenticate with Ambassador DAO");
             if (typeof window !== "undefined") {
               localStorage.setItem("t1_token_error", "server_error");
             }
-            toast.error("Authentication error. Please try again.");
           }
         }
       } else {
-        console.log("✅ External token cookie already exists");
-        // Clear any previous errors when token exists
         if (typeof window !== "undefined") {
           localStorage.removeItem("t1_token_error");
         }
@@ -100,14 +92,16 @@ function RedirectIfNewUser() {
     fetchExternalToken();
   }, [status, session?.user?.email]);
 
-  // useEffect #2: Handle new user redirect (original logic)
+  
   useEffect(() => {
+    const errorLocalStorage = localStorage.getItem("t1_token_error");
     if (
       status === "authenticated" &&
       session.user.is_new_user &&
       (pathname !== "/profile" && pathname !== "/ambassador-dao/onboard")
+      && errorLocalStorage != ""
     ) {
-      // Store the original URL with search params (including UTM) in localStorage
+      
       const originalUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
       if (typeof window !== "undefined") {
         localStorage.setItem("redirectAfterProfile", originalUrl);

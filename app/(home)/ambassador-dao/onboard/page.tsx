@@ -196,6 +196,7 @@ const TalentForm = () => {
     setValue,
     watch,
     reset,
+    getValues,
   } = useForm<IUpdateTalentProfileBody>({
     defaultValues: {
       first_name: "",
@@ -249,8 +250,7 @@ const TalentForm = () => {
   } = useTalentProfile({
     setValue,
     watch,
-    selectedSkills,
-    socialLinks,
+    getValues,
     setIsDataFetched,
   });
 
@@ -369,7 +369,22 @@ const TalentForm = () => {
     setValue("social_links", updated);
   };
 
+  const handleSkip = () => {
+    onSkip();
+  };
+
   const onSubmit = (data: any) => {
+    // Validate skills and social links manually
+    if (!selectedSkills.length) {
+      toast.error("Please select at least one skill");
+      return;
+    }
+    
+    if (!socialLinks.length || !socialLinks.some(link => link.trim() !== "")) {
+      toast.error("Please add at least one social link");
+      return;
+    }
+
     updateTalentProfile(
       {
         ...data,
@@ -381,7 +396,7 @@ const TalentForm = () => {
         onSuccess: async () => {
           // Save to local User table
           try {
-            await saveToLocalProfile(data);
+            await saveToLocalProfile(data, socialLinks);
           } catch (error) {
             // No bloqueamos el flujo
           }
@@ -406,7 +421,7 @@ const TalentForm = () => {
           // Update local User table with final data
           try {
             const formData = watch();
-            await saveToLocalProfile(formData);
+            await saveToLocalProfile(formData, socialLinks);
             console.log("✅ Local profile updated with wallet");
           } catch (error) {
             console.error("❌ Error updating local profile:", error);
@@ -476,15 +491,15 @@ const TalentForm = () => {
               id="firstName"
               label="First Name"
               placeholder="First Name"
-              required
-              {...register("first_name")}
+              error={errors.first_name}
+              {...register("first_name", { required: "First name is required" })}
             />
             <CustomInput
               id="lastName"
               label="Last Name"
               placeholder="Last Name"
-              required
-              {...register("last_name")}
+              error={errors.last_name}
+              {...register("last_name", { required: "Last name is required" })}
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
@@ -492,8 +507,8 @@ const TalentForm = () => {
               id="bio"
               label="Bio"
               placeholder="Tell others about yourself in a few words"
-              required
-              {...register("bio")}
+              error={errors.bio}
+              {...register("bio", { required: "Bio is required" })}
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -501,16 +516,16 @@ const TalentForm = () => {
               id="job_title"
               label="Job Title"
               placeholder="Job Title"
-              required
-              {...register("job_title")}
+              error={errors.job_title}
+              {...register("job_title", { required: "Job title is required" })}
             />
             <CustomInput
               id="years_of_experience"
               label="Years of experience"
               type="number"
               placeholder="3"
-              required
-              {...register("years_of_experience")}
+              error={errors.years_of_experience}
+              {...register("years_of_experience", { required: "Years of experience is required" })}
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -519,8 +534,8 @@ const TalentForm = () => {
                 id="userName"
                 label="User Name"
                 placeholder="User Name"
-                required
-                {...register("username")}
+                error={errors.username}
+                {...register("username", { required: "Username is required" })}
                 className="relative"
                 icon={
                   <>
@@ -563,8 +578,7 @@ const TalentForm = () => {
             <CustomSelect
               id="location"
               label="Location"
-              required
-              {...register("location")}
+              {...register("location", { required: "Location is required" })}
             >
               <option value="">Select location</option>
               {countries.map((country, idx) => (
@@ -736,21 +750,23 @@ const TalentForm = () => {
               type="submit"
               isFullWidth={false}
               className="px-6"
-              disabled={!socialLinks.length || !selectedSkills.length}
+              disabled={isUpdatingProfile}
             >
               {isEditProfilePage ? "Submit Updated Details" : "Create Profile"}
             </CustomButton>
 
-            <CustomButton
-              variant="outlined"
-              type="button"
-              isFullWidth={false}
-              className="px-6"
-              onClick={onSkip}
-              disabled={isUpdatingProfile}
-            >
-              Skip
-            </CustomButton>
+            {!isEditProfilePage && (
+              <CustomButton
+                variant="outlined"
+                type="button"
+                isFullWidth={false}
+                className="px-6"
+                onClick={handleSkip}
+                disabled={isUpdatingProfile}
+              >
+                Skip
+              </CustomButton>
+            )}
           </div>
         </form>
       )}

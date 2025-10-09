@@ -27,7 +27,7 @@ const AmbasssadorDaoOnboardLayout = ({
       } else if (tokenError === "server_error") {
         // Server error - redirect to home to avoid loop
         toast.error("Cannot connect to Ambassador DAO. Please try again later.");
-        router.push("/");
+        return;
       } else {
         // Normal case: user not authenticated, redirect to main ambassador-dao page
         router.push("/ambassador-dao");
