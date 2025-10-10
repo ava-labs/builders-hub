@@ -32,10 +32,23 @@ export function ValidatorItem({
     insufficientBalanceError = `Validator balance (${(Number(validator.validatorBalance) / 1e9).toFixed(2)} AVAX) exceeds your P-Chain balance (${(Number(userPChainBalanceNavax) / 1e9).toFixed(2)} AVAX).`
   }
 
+  const hasWeightError = l1TotalInitializedWeight && l1TotalInitializedWeight > 0n && validator.validatorWeight > 0n &&
+    (validator.validatorWeight * 100n / l1TotalInitializedWeight) >= 20n
+
+  const hasError = !!insufficientBalanceError || !!hasWeightError
+
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden shadow-sm hover:shadow transition-shadow duration-200">
+    <div className={cn(
+      "bg-white dark:bg-zinc-900 rounded-lg border overflow-hidden shadow-sm hover:shadow transition-shadow duration-200",
+      hasError ? "border-red-500 dark:border-red-500" : "border-zinc-200 dark:border-zinc-700"
+    )}>
       <div
-        className="flex items-center justify-between p-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700"
+        className={cn(
+          "flex items-center justify-between p-3 cursor-pointer transition-colors",
+          hasError
+            ? "bg-red-50/50 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20"
+            : "hover:bg-zinc-50 dark:hover:bg-zinc-700"
+        )}
         onClick={() => onToggle(index)}
       >
         <div className="flex-1 font-mono text-sm truncate">{validator.nodeID}</div>
@@ -93,8 +106,7 @@ export function ValidatorItem({
                   "shadow-sm focus:ring focus:ring-primary/30 focus:ring-opacity-50",
                 )}
               />
-              {l1TotalInitializedWeight && l1TotalInitializedWeight > 0n && validator.validatorWeight > 0n &&
-               (validator.validatorWeight * 100n / l1TotalInitializedWeight) >= 20n && (
+              {hasWeightError && (
                 <p className="text-xs mt-1 text-red-500 dark:text-red-400">
                   Warning: This validator's weight is 20% or more of the current L1 total stake ({ Number(validator.validatorWeight * 10000n / l1TotalInitializedWeight / 100n).toFixed(2) }%). Recommended to be less than 20%.
                 </p>
