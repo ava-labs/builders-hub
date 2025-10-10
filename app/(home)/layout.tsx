@@ -9,6 +9,8 @@ import { useEffect, Suspense, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner";
+import Modal from "@/components/ui/Modal";
+import { Button } from "@/components/ui/button";
 
 export default function Layout({
   children,
@@ -30,15 +32,15 @@ export default function Layout({
 
 // Helper function to check if a cookie exists
 function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  
+  if (typeof document === "undefined") return null;
+
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
-  
+
   if (parts.length === 2) {
-    return parts.pop()?.split(';').shift() || null;
+    return parts.pop()?.split(";").shift() || null;
   }
-  
+
   return null;
 }
 
@@ -48,6 +50,7 @@ function RedirectIfNewUser() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [authError, setAuthError] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
   // useEffect #1: Handle external token authentication
   useEffect(() => {
@@ -56,14 +59,18 @@ function RedirectIfNewUser() {
 
       // Check if the external token cookie already exists
       const externalToken = getCookie("access_token");
-      
+
       if (!externalToken) {
         console.log("🔵 External token not found, obtaining...");
-        
+
         try {
-          await axios.post("/api/t1-token", {}, {
-            withCredentials: true,
-          });
+          await axios.post(
+            "/api/t1-token",
+            {},
+            {
+              withCredentials: true,
+            }
+          );
 
           if (typeof window !== "undefined") {
             localStorage.removeItem("t1_token_error");
@@ -92,23 +99,51 @@ function RedirectIfNewUser() {
     fetchExternalToken();
   }, [status, session?.user?.email]);
 
-  
   useEffect(() => {
     const errorLocalStorage = localStorage.getItem("t1_token_error");
     if (
       status === "authenticated" &&
       session.user.is_new_user &&
-      (pathname !== "/profile" && pathname !== "/ambassador-dao/onboard")
-      && errorLocalStorage != ""
+      pathname !== "/profile" &&
+      pathname !== "/ambassador-dao/onboard" &&
+      errorLocalStorage != ""
     ) {
-      
-      const originalUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+      const originalUrl = `${pathname}${
+        searchParams.toString() ? `?${searchParams.toString()}` : ""
+      }`;
       if (typeof window !== "undefined") {
         localStorage.setItem("redirectAfterProfile", originalUrl);
       }
+
+      // Show confirmation modal and redirect immediately
+
       router.replace("/ambassador-dao/onboard");
+      setShowModal(true);
     }
   }, [session, status, pathname, router, searchParams]);
 
-  return null;
+  const handleContinue = () => {
+    setShowModal(false);
+  };
+
+  return (
+    <>
+      {showModal && (
+        <Modal
+          className="border border-red-500"
+          isOpen={showModal}
+          onOpenChange={setShowModal}
+          title="Complete your profile"
+          description="Please fill your profile information to continue. This will help us provide you with a better experience."
+          footer={
+            <div className="flex gap-3 w-full">
+              <Button onClick={handleContinue} className="flex-1">
+                Continue
+              </Button>
+            </div>
+          }
+        />
+      )}
+    </>
+  );
 }
