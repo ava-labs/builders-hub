@@ -427,7 +427,17 @@ const TalentForm = () => {
             console.error("❌ Error updating local profile:", error);
           }
 
-          router.push("/ambassador-dao");
+          // Check for stored redirect URL and navigate there, otherwise go to ambassador-dao
+          const redirectUrl = typeof window !== "undefined" 
+            ? localStorage.getItem("redirectAfterProfile") 
+            : null;
+          
+          if (redirectUrl) {
+            localStorage.removeItem("redirectAfterProfile");
+            router.push(redirectUrl);
+          } else {
+            router.push("/ambassador-dao");
+          }
         },
       }
     );
