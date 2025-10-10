@@ -52,7 +52,7 @@ function RedirectIfNewUser() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  // useEffect #1: Handle external token authentication
+
   useEffect(() => {
     const fetchExternalToken = async () => {
       if (status !== "authenticated" || !session?.user?.email) return;
@@ -61,8 +61,7 @@ function RedirectIfNewUser() {
       const externalToken = getCookie("access_token");
 
       if (!externalToken) {
-        console.log("🔵 External token not found, obtaining...");
-
+ 
         try {
           await axios.post(
             "/api/t1-token",
@@ -76,7 +75,6 @@ function RedirectIfNewUser() {
             localStorage.removeItem("t1_token_error");
           }
         } catch (error: any) {
-          console.error("❌ Failed to get external token:", error);
           if (error.response?.status === 404) {
             setAuthError("User not found in Ambassador DAO");
             if (typeof window !== "undefined") {
@@ -114,9 +112,6 @@ function RedirectIfNewUser() {
       if (typeof window !== "undefined") {
         localStorage.setItem("redirectAfterProfile", originalUrl);
       }
-
-      // Show confirmation modal and redirect immediately
-
       router.replace("/ambassador-dao/onboard");
       setShowModal(true);
     }
