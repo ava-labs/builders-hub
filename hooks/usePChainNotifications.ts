@@ -4,6 +4,7 @@ import { useConsoleLog } from './use-console-log';
 import { PChainClient, createPChainClient } from '@avalanche-sdk/client';
 import { avalanche, avalancheFuji } from '@avalanche-sdk/client/chains';
 import { usePathname } from 'next/navigation';
+import { showCustomErrorToast } from '@/components/ui/custom-error-toast';
 
 const getPChainTxExplorerURL = (txID: string, isTestnet: boolean) => {
     return `https://${isTestnet ? "subnets-test" : "subnets"}.avax.network/p-chain/tx/${txID}`;
@@ -125,7 +126,11 @@ const usePChainNotifications = () => {
                         data
                     });
                 } catch (error) {
-                    toast.error(config.errorMessagePrefix + (error as Error).message, { id: toastId });
+                    const errorMessage = config.errorMessagePrefix + (error as Error).message;
+
+                    toast.dismiss(toastId);
+                    showCustomErrorToast(errorMessage);
+
                     addLog({
                         status: 'error',
                         actionPath,
@@ -134,7 +139,11 @@ const usePChainNotifications = () => {
                 }
             })
             .catch((error) => {
-                toast.error(config.errorMessagePrefix + error.message, { id: toastId });
+                const errorMessage = config.errorMessagePrefix + error.message;
+
+                toast.dismiss(toastId);
+                showCustomErrorToast(errorMessage);
+
                 addLog({
                     status: 'error',
                     actionPath,
