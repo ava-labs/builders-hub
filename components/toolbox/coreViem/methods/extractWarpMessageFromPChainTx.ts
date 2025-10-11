@@ -1,8 +1,7 @@
-import { WalletClient } from "viem";
+import type { AvalancheWalletClient } from "@avalanche-sdk/client";
+import { getTx, PChainTransactionType } from "@avalanche-sdk/client/methods/pChain";
 import { packL1ConversionMessage, PackL1ConversionMessageArgs } from "../utils/convertWarp";
-import { getRPCEndpoint } from "../utils/rpc";
 import { isTestnet } from "./isTestnet";
-import { CoreWalletRpcSchema } from "../rpcSchema";
 import { networkIDs, utils } from "@avalabs/avalanchejs";
 
 interface AddressObject {
@@ -137,41 +136,30 @@ async function getSubnetIdFromChainId(network: "fuji" | "mainnet", blockchainId:
 }
 
 //TODO: rename
-export async function extractWarpMessageFromPChainTx(client: WalletClient<any, any, any, CoreWalletRpcSchema>, { txId }: ExtractWarpMessageFromTxParams): Promise<ExtractWarpMessageFromTxResponse> {
+export async function extractWarpMessageFromPChainTx(client: AvalancheWalletClient, { txId }: ExtractWarpMessageFromTxParams): Promise<ExtractWarpMessageFromTxResponse> {
     const isTestnetMode = await isTestnet(client);
-    const rpcEndpoint = getRPCEndpoint(isTestnetMode);
     const networkId = isTestnetMode ? networkIDs.FujiID : networkIDs.MainnetID;
 
-    //Fixme: here we do a direct call instead of using avalanchejs, because we need to get the raw response from the node
-    const response = await fetch(rpcEndpoint + "/ext/bc/P", {
-        method: 'POST',
-        headers: {
-            'content-type': 'application/json'
-        },
-        body: JSON.stringify({
-            jsonrpc: '2.0',
-            method: 'platform.getTx',
-            params: {
-                txID: txId,
-                encoding: 'json'
-            },
-            id: 1
-        })
+    // Use SDK's getTx method to fetch the transaction
+    const txData = await getTx(client.pChainClient, {
+        txID: txId,
+        encoding: 'json'
     });
 
-    const data = await response.json() as ConversionDataResponse
+    // The SDK returns the transaction data
+    const data = txData as any; // Type as any since the SDK types may not match the exact structure we need
 
-    if (!data?.result?.tx?.unsignedTx?.subnetID || !data?.result?.tx?.unsignedTx?.chainID || !data?.result?.tx?.unsignedTx?.address || !data?.result?.tx?.unsignedTx?.validators) {
+    if (!data?.tx?.unsignedTx?.subnetID || !data?.tx?.unsignedTx?.chainID || !data?.tx?.unsignedTx?.address || !data?.tx?.unsignedTx?.validators) {
         console.log('txId', txId)
         console.log('data', data)
         throw new Error("Invalid transaction data, are you sure this is a conversion transaction?");
     }
 
     const conversionArgs: PackL1ConversionMessageArgs = {
-        subnetId: data.result.tx.unsignedTx.subnetID,
-        managerChainID: data.result.tx.unsignedTx.chainID,
-        managerAddress: data.result.tx.unsignedTx.address,
-        validators: data.result.tx.unsignedTx.validators.map((validator) => {
+        subnetId: data.tx.unsignedTx.subnetID,
+        managerChainID: data.tx.unsignedTx.chainID,
+        managerAddress: data.tx.unsignedTx.address,
+        validators: data.tx.unsignedTx.validators.map((validator: any) => {
             return {
                 nodeID: validator.nodeID,
                 nodePOP: validator.signer,
@@ -180,17 +168,17 @@ export async function extractWarpMessageFromPChainTx(client: WalletClient<any, a
         })
     };
 
-    const [message, justification] = packL1ConversionMessage(conversionArgs, networkId, data.result.tx.unsignedTx.blockchainID);
+    const [message, justification] = packL1ConversionMessage(conversionArgs, networkId, data.tx.unsignedTx.blockchainID);
     const network = networkId === networkIDs.FujiID ? "fuji" : "mainnet";
-    const signingSubnetId = await getSubnetIdFromChainId(network, data.result.tx.unsignedTx.chainID);
+    const signingSubnetId = await getSubnetIdFromChainId(network, data.tx.unsignedTx.chainID);
     return {
         message: utils.bufferToHex(message),
         justification: utils.bufferToHex(justification),
-        subnetId: data.result.tx.unsignedTx.subnetID,
+        subnetId: data.tx.unsignedTx.subnetID,
         signingSubnetId: signingSubnetId,
         networkId,
-        validators: data.result.tx.unsignedTx.validators,
-        chainId: data.result.tx.unsignedTx.chainID,
-        managerAddress: data.result.tx.unsignedTx.address,
+        validators: data.tx.unsignedTx.validators,
+        chainId: data.tx.unsignedTx.chainID,
+        managerAddress: data.tx.unsignedTx.address,
     }
 }

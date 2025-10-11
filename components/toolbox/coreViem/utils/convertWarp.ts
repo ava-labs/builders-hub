@@ -694,7 +694,7 @@ export function packL1ValidatorWeightMessage(
  * Unpacks the payload of a L1ValidatorWeightMessage.
  * Returns the L1ValidatorWeight interface fields.
  */
-function unpackL1ValidatorWeightPayload(payload: Uint8Array): L1ValidatorWeight {
+export function unpackL1ValidatorWeightPayload(payload: Uint8Array): L1ValidatorWeight {
     const EXPECTED_LENGTH = 54; // 2 + 4 + 32 + 8 + 8
     if (payload.length !== EXPECTED_LENGTH) {
         throw new Error(`Invalid L1ValidatorWeight payload length. Expected ${EXPECTED_LENGTH} bytes, got ${payload.length}`);
@@ -886,4 +886,95 @@ export function packL1ConversionMessage(args: PackL1ConversionMessageArgs, netwo
     return [unsignedMessage, utils.base58check.decode(args.subnetId)];
 }
 
-// Removed duplicate parsing helpers from the end of the file as they were moved up
+/**
+ * Extracts the payload from a WarpMessage (UnsignedMessage structure)
+ * UnsignedMessage structure:
+ * - codecVersion (uint16 - 2 bytes)
+ * - networkID (uint32 - 4 bytes) 
+ * - sourceChainID (32 bytes)
+ * - message length (uint32 - 4 bytes)
+ * - message (the variable-length bytes we want)
+ * @param warpMessageBytes - The complete WarpMessage bytes
+ * @returns The payload bytes
+ */
+export function extractPayloadFromWarpMessage(warpMessageBytes: Buffer): Buffer {
+    if (warpMessageBytes.length < 42) { // 2 + 4 + 32 + 4 = minimum 42 bytes
+        throw new Error('WarpMessage too short');
+    }
+
+    // Skip codecVersion (2 bytes) + networkID (4 bytes) + sourceChainID (32 bytes) = 38 bytes
+    // Then read message length (4 bytes)
+    const messageLength = (warpMessageBytes[38] << 24) |
+        (warpMessageBytes[39] << 16) |
+        (warpMessageBytes[40] << 8) |
+        warpMessageBytes[41];
+
+    if (messageLength <= 0 || 42 + messageLength > warpMessageBytes.length) {
+        throw new Error('Invalid message length or message extends beyond WarpMessage data bounds');
+    }
+
+    // Extract the message payload starting at byte 42
+    return warpMessageBytes.slice(42, 42 + messageLength);
+}
+
+/**
+ * Extracts the payload bytes from an AddressedCall byte array.
+ * Assumes AddressedCall structure:
+ * - TypeID (4 bytes, starting at index 2)
+ * - Source Address Length (4 bytes, starting at index 6)
+ * - Source Address (variable)
+ * - Payload Length (4 bytes, starting after source address)
+ * - Payload (variable)
+ *
+ * @param addressedCall - The AddressedCall bytes.
+ * @returns The extracted payload as a Buffer, or null if parsing fails or data is insufficient.
+ */
+export function extractPayloadFromAddressedCall(addressedCall: Buffer): Buffer | null {
+    try {
+        // Need at least 10 bytes for TypeID and Source Address Length.
+        if (addressedCall.length < 10) {
+            return null;
+        }
+
+        // Source Address Length starts at index 6
+        const sourceAddrLen = (addressedCall[6] << 24) | (addressedCall[7] << 16) | (addressedCall[8] << 8) | addressedCall[9];
+        if (sourceAddrLen < 0) {
+            return null;
+        }
+
+        // Position where Payload Length starts
+        const payloadLenPos = 10 + sourceAddrLen;
+
+        // Check if we have enough bytes to read Payload Length
+        if (payloadLenPos + 4 > addressedCall.length) {
+            return null;
+        }
+
+        // Read Payload Length
+        const payloadLen = (addressedCall[payloadLenPos] << 24) |
+            (addressedCall[payloadLenPos + 1] << 16) |
+            (addressedCall[payloadLenPos + 2] << 8) |
+            addressedCall[payloadLenPos + 3];
+
+        // Check if payload length is valid
+        if (payloadLen <= 0) {
+            return null;
+        }
+
+        const payloadStartPos = payloadLenPos + 4;
+        const payloadEndPos = payloadStartPos + payloadLen;
+
+        // Check if payload extends beyond data bounds
+        if (payloadEndPos > addressedCall.length) {
+            return null;
+        }
+
+        // Extract Payload
+        const payloadBytes = addressedCall.slice(payloadStartPos, payloadEndPos);
+        return payloadBytes;
+
+    } catch (error) {
+        console.error('Error extracting payload from AddressedCall:', error);
+        return null;
+    }
+}

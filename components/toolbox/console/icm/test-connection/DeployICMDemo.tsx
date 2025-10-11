@@ -63,6 +63,7 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
             const deployPromise = coreWalletClient.deployContract({
                 abi: ICMDemoABI.abi as any,
                 bytecode: ICMDemoABI.bytecode.object as `0x${string}`,
+                args: [],
                 account: walletEVMAddress as `0x${string}`,
                 chain: viemChain
             });

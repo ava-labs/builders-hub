@@ -8,7 +8,6 @@ import {
   useToolboxStore,
   useViemChainStore,
 } from "@/components/toolbox/stores/toolboxStore";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
@@ -23,6 +22,7 @@ import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchain
 import { Container } from "@/components/toolbox/components/Container";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 
 export default function RegisterWithHome() {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
@@ -131,7 +131,7 @@ export default function RegisterWithHome() {
   async function handleRegister() {
     setLocalError("");
 
-    if (!coreWalletClient) {
+    if (!coreWalletClient || !coreWalletClient.account) {
       setLocalError("Core wallet not found");
       return;
     }
@@ -169,6 +169,7 @@ export default function RegisterWithHome() {
         functionName: "registerWithHome",
         args: [feeInfo],
         chain: viemChain,
+        account: coreWalletClient.account,
       });
 
       // Send the transaction

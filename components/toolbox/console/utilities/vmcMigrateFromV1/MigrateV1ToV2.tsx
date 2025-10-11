@@ -30,7 +30,7 @@ const metadata: ConsoleToolMetadata = {
 };
 
 function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
-  const { publicClient } = useWalletStore();
+  const { publicClient, walletEVMAddress } = useWalletStore();
   const { coreWalletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const { validatorManagerAddress, setValidatorManagerAddress } =
@@ -133,6 +133,7 @@ function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
         functionName: "migrateFromV1",
         args: [validationID as `0x${string}`, parseInt(receivedNonce)],
         chain: viemChain as Chain,
+        account: walletEVMAddress as `0x${string}`,
       });
 
       // Wait for the transaction to complete

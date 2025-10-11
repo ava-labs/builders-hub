@@ -10,8 +10,6 @@ import InputChainId from "@/components/toolbox/components/InputChainId";
 import SelectSubnet, { SubnetSelection } from "@/components/toolbox/components/SelectSubnet";
 import { Callout } from "fumadocs-ui/components/callout";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
-import { getPChainBalance } from "@/components/toolbox/coreViem/methods/getPChainbalance";
-import { Success } from "@/components/toolbox/components/Success";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
@@ -44,32 +42,12 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
     const [validators, setValidators] = useState<ConvertToL1Validator[]>([]);
 
     const { pChainAddress, isTestnet } = useWalletStore();
+    const pChainBalance = useWalletStore((s) => s.balances.pChain);
     const { coreWalletClient } = useConnectedWallet();
 
     const [isConverting, setIsConverting] = useState(false);
     
     const { sendCoreWalletNotSetNotification, notify } = useConsoleNotifications();
-
-    // TO-DO do we need this?
-    const [rawPChainBalanceNavax, setRawPChainBalanceNavax] = useState<bigint | null>(null);
-    useEffect(() => {
-        const isMounted = { current: true };
-
-        const fetchBalance = async () => {
-            if (!pChainAddress) return;
-            try {
-                const balanceValue = await getPChainBalance(coreWalletClient);
-                if (isMounted.current) {
-                    setRawPChainBalanceNavax(balanceValue);
-                }
-            } catch (error) {
-                console.error("Error fetching P-Chain balance in ConvertToL1:", error);
-            }
-        };
-
-        fetchBalance();
-        return () => { isMounted.current = false; };
-    }, [pChainAddress, coreWalletClient]);
 
     async function handleConvertToL1() {
         setConvertToL1TxId("");
@@ -132,7 +110,7 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
                         defaultAddress={pChainAddress}
                         label="Initial Validators"
                         description="Specify the initial validator set for the L1 below. You need to add at least one validator. If converting a pre-existing Subnet with validators, you must establish a completely new validator set for the L1 conversion. The existing Subnet validators cannot be transferred. For each new validator, you need to specify NodeID, the consensus weight, the initial balance and an address or a multi-sig that can deactivate the validator and that receives its remaining balance. The sum of the initial balances of the validators needs to be paid when issuing this transaction."
-                        userPChainBalanceNavax={rawPChainBalanceNavax}
+                        userPChainBalanceNavax={BigInt(pChainBalance * 1e9)}
                         selectedSubnetId={selection.subnetId}
                         isTestnet={isTestnet}
                     />

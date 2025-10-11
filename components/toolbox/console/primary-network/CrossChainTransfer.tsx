@@ -67,7 +67,7 @@ function CrossChainTransfer({
         throw criticalError;
     }
 
-    const { avalancheWalletClient } = useConnectedWallet();
+    const { coreWalletClient } = useConnectedWallet();
     const { updateCChainBalance, updatePChainBalance } = useWalletStore();
 
     const isTestnet = useWalletStore((s) => s.isTestnet);
@@ -162,7 +162,7 @@ function CrossChainTransfer({
     useEffect(() => {
         fetchUTXOs();
         onBalanceChanged();
-    }, [avalancheWalletClient, walletEVMAddress, pChainAddress, fetchUTXOs, onBalanceChanged])
+    }, [coreWalletClient, walletEVMAddress, pChainAddress, fetchUTXOs, onBalanceChanged])
 
     // Persistent polling for pending export UTXOs
     useEffect(() => {
@@ -224,7 +224,7 @@ function CrossChainTransfer({
         try {
             if (sourceChain === "c-chain") {
                 // C-Chain to P-Chain export using the evmExport function
-                const txnRequest = await avalancheWalletClient.cChain.prepareExportTxn({
+                const txnRequest = await coreWalletClient.cChain.prepareExportTxn({
                     destinationChain: "P",
                     exportedOutput: {
                         addresses: [pChainAddress],
@@ -232,8 +232,8 @@ function CrossChainTransfer({
                     },
                     fromAddress: walletEVMAddress as `0x${string}`
                 });
-                const txnResponse = await avalancheWalletClient.sendXPTransaction(txnRequest);
-                await avalancheWalletClient.waitForTxn(txnResponse);
+                const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
+                await coreWalletClient.waitForTxn(txnResponse);
 
                 console.log("P-Chain Export transaction sent:", txnResponse);
                 // Store the export transaction ID to trigger import
@@ -244,15 +244,15 @@ function CrossChainTransfer({
             } else {
                 // P-Chain to C-Chain export using the pvmExport function
                 console.log("Preparing P-Chain Export transaction", pChainAddress, amount);
-                const txnRequest = await avalancheWalletClient.pChain.prepareExportTxn({
+                const txnRequest = await coreWalletClient.pChain.prepareExportTxn({
                     exportedOutputs: [{
                         addresses: [coreEthAddress],
                         amount: Number(amount),
                     }],
                     destinationChain: "C"
                 });
-                const txnResponse = await avalancheWalletClient.sendXPTransaction(txnRequest);
-                await avalancheWalletClient.waitForTxn(txnResponse);
+                const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
+                await coreWalletClient.waitForTxn(txnResponse);
 
                 console.log("P-Chain Export transaction sent:", txnResponse,);
                 const txId = txnResponse.txHash;
@@ -282,25 +282,25 @@ function CrossChainTransfer({
         try {
             if (destinationChain === "p-chain") {
                 // Import to P-Chain using pvmImport function
-                const txnRequest = await avalancheWalletClient.pChain.prepareImportTxn({
+                const txnRequest = await coreWalletClient.pChain.prepareImportTxn({
                     sourceChain: "C",
                     importedOutput: {
                         addresses: [pChainAddress],
                     }
                 });
-                const txnResponse = await avalancheWalletClient.sendXPTransaction(txnRequest);
-                await avalancheWalletClient.waitForTxn(txnResponse);
+                const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
+                await coreWalletClient.waitForTxn(txnResponse);
                 console.log("P-Chain Import transaction sent:", txnResponse.txHash);
                 setImportTxId(String(txnResponse.txHash));
                 setCompletedImportXPChain("P");
             } else {
                 // Import to C-Chain using evmImportTx function
-                const txnRequest = await avalancheWalletClient.cChain.prepareImportTxn({
+                const txnRequest = await coreWalletClient.cChain.prepareImportTxn({
                     sourceChain: "P",
                     toAddress: walletEVMAddress as `0x${string}`,
                 });
-                const txnResponse = await avalancheWalletClient.sendXPTransaction(txnRequest);
-                await avalancheWalletClient.waitForTxn(txnResponse);
+                const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
+                await coreWalletClient.waitForTxn(txnResponse);
                 console.log("C-Chain Import transaction sent:", txnResponse.txHash);
                 setImportTxId(String(txnResponse.txHash));
                 setCompletedImportXPChain("C");

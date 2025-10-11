@@ -66,7 +66,7 @@ export function EvmNetworkWallet() {
       }
 
       const account = accounts[0] as `0x${string}`
-      const client = createCoreWalletClient(account)
+      const client = await createCoreWalletClient(account)
       if (!client) return
 
       setCoreWalletClient(client)

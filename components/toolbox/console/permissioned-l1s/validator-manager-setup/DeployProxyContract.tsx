@@ -50,6 +50,7 @@ function DeployProxyContract({ onSuccess }: BaseConsoleToolProps) {
         const deployPromise = coreWalletClient.deployContract({
             abi: ProxyAdminABI.abi as any,
             bytecode: ProxyAdminABI.bytecode.object as `0x${string}`,
+            args: [],
             chain: viemChain ?? undefined,
             account: walletEVMAddress as `0x${string}`
         });

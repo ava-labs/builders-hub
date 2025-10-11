@@ -318,7 +318,7 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
     }))
     try {
       if (!validatorManagerAddress) throw new Error('Validator Manager address not found')
-      if (!coreWalletClient || !viemChain) throw new Error('Wallet/chain not initialized')
+      if (!coreWalletClient || !viemChain || !coreWalletClient.account) throw new Error('Wallet/chain not initialized')
       if (!subnetId) throw new Error('Subnet ID required')
 
       const useMultisig = ownerType === 'PoAManager'

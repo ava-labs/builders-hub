@@ -1,21 +1,11 @@
-import { WalletClient, bytesToHex } from "viem";
-import {
-    utils,
-    pvm,
-    Context
-} from "@avalabs/avalanchejs";
-import { CoreWalletRpcSchema } from "../rpcSchema";
-import { isTestnet } from "./isTestnet";
-import { getRPCEndpoint } from "../utils/rpc";
+import type { AvalancheWalletClient } from "@avalanche-sdk/client";
 
 /**
  * Parameters for setting the L1 validator weight on the P-Chain.
  * This is used for both changing weight and removing (setting weight to 0 implicitly).
  */
 export type SetL1ValidatorWeightParams = {
-    /** The P-Chain address initiating the transaction. */
-    pChainAddress: string;
-    /** The signed Warp message from the C-Chain as a hex string (without "0x" prefix). */
+    /** The signed Warp message from the C-Chain as a hex string (with or without "0x" prefix). */
     signedWarpMessage: string;
 }
 
@@ -23,51 +13,23 @@ export type SetL1ValidatorWeightParams = {
  * Sends a transaction to the P-Chain to set the weight of an L1 validator.
  * This is used by both ChangeWeight and RemoveValidator components.
  *
- * @param client The Core WalletClient instance.
+ * @param client The Avalanche WalletClient instance.
  * @param params The parameters required for the transaction.
  * @returns A promise that resolves to the P-Chain transaction ID.
  */
-export async function setL1ValidatorWeight(client: WalletClient<any, any, any, CoreWalletRpcSchema>, params: SetL1ValidatorWeightParams): Promise<string> {
-    const { pChainAddress, signedWarpMessage } = params;
+export async function setL1ValidatorWeight(client: AvalancheWalletClient, params: SetL1ValidatorWeightParams): Promise<string> {
+    const { signedWarpMessage } = params;
 
-    const rpcEndpoint = getRPCEndpoint(await isTestnet(client));
-    const pvmApi = new pvm.PVMApi(rpcEndpoint);
-    const context = await Context.getContextFromURI(rpcEndpoint);
+    // Ensure signedWarpMessage has '0x' prefix for SDK
+    const message = signedWarpMessage.startsWith('0x') ? signedWarpMessage : `0x${signedWarpMessage}`;
 
-    // Get fee state and UTXOs from P-Chain
-    const feeState = await pvmApi.getFeeState();
-    const { utxos } = await pvmApi.getUTXOs({ addresses: [pChainAddress] });
+    // Prepare the transaction using Avalanche SDK
+    const txnRequest = await client.pChain.prepareSetL1ValidatorWeightTxn({
+        message,
+    });
 
-    // Ensure signedWarpMessage does not start with '0x' and convert to Uint8Array
-    const messageHex = signedWarpMessage.startsWith('0x') ? signedWarpMessage.slice(2) : signedWarpMessage;
-    const messageBytes = new Uint8Array(Buffer.from(messageHex, "hex"));
+    // Send the transaction
+    const result = await client.sendXPTransaction(txnRequest);
 
-    const setWeightTx = pvm.e.newSetL1ValidatorWeightTx(
-        {
-            message: messageBytes,
-            feeState,
-            fromAddressesBytes: [utils.bech32ToBytes(pChainAddress)],
-            utxos,
-        },
-        context,
-    );
-
-    const setWeightTxBytes = setWeightTx.toBytes();
-    const setWeightTxHex = bytesToHex(setWeightTxBytes);
-
-    const manager = utils.getManagerForVM(setWeightTx.getVM());
-    const [codec] = manager.getCodecFromBuffer(setWeightTx.toBytes());
-    const utxoHexes = setWeightTx.utxos.map(utxo => utils.bufferToHex(utxo.toBytes(codec)));
-
-    // Submit the transaction to the P-Chain using Core Wallet
-    const txID = await window.avalanche!.request({
-        method: "avalanche_sendTransaction",
-        params: {
-            transactionHex: setWeightTxHex,
-            chainAlias: "P",
-            utxos: utxoHexes,
-        },
-    }) as string;
-
-    return txID;
+    return result.txHash;
 } 

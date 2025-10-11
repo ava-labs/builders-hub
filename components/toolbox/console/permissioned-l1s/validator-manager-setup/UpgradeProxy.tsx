@@ -34,7 +34,7 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
     const { validatorManagerAddress } = useToolboxStore();
     const [proxyAdminAddress, setProxyAdminAddress] = useState<`0x${string}` | null>(null);
     const selectedL1 = useSelectedL1()();
-    const { publicClient, walletChainId } = useWalletStore();
+    const { publicClient, walletChainId, walletEVMAddress } = useWalletStore();
     const { coreWalletClient } = useConnectedWallet();
     const [isUpgrading, setIsUpgrading] = useState(false);
     const [currentImplementation, setCurrentImplementation] = useState<string | null>(null);
@@ -157,6 +157,7 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
             functionName: 'upgrade',
             args: [proxyAddress, desiredImplementation as `0x${string}`],
             chain: viemChain ?? undefined,
+            account: walletEVMAddress as `0x${string}`
         });
 
         notify({

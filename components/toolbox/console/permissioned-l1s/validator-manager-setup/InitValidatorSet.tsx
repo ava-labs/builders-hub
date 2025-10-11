@@ -38,7 +38,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
     const [conversionTxID, setConversionTxID] = useState<string>("");
     const [L1ConversionSignature, setL1ConversionSignature] = useState<string>("");
     const viemChain = useViemChainStore();
-    const { publicClient } = useWalletStore();
+    const { publicClient, walletEVMAddress } = useWalletStore();
     const { coreWalletClient } = useConnectedWallet();
     const { aggregateSignature } = useAvaCloudSDK();
     const [isInitializing, setIsInitializing] = useState(false);
@@ -151,6 +151,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                 accessList,
                 gas: BigInt(2_000_000),
                 chain: viemChain || undefined,
+                account: walletEVMAddress as `0x${string}`
             });
 
             notify({

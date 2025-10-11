@@ -129,13 +129,13 @@ export default function DeployTokenHome() {
 
       const args = [
         teleporterRegistryAddress as `0x${string}`,
-        teleporterManager || coreWalletClient.account.address,
+        teleporterManager || walletEVMAddress,
         BigInt(minTeleporterVersion),
         tokenAddress as `0x${string}`,
       ];
 
       if (tokenType === "erc20") {
-        args.push(parseInt(tokenDecimals));
+        args.push(BigInt(tokenDecimals));
       }
 
       const deployPromise = coreWalletClient.deployContract({

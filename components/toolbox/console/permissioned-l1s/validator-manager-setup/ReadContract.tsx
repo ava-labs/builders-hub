@@ -169,7 +169,7 @@ function ReadContract({ onSuccess }: BaseConsoleToolProps) {
         {Object.keys(viewData).length > 0 && (
           <div className="mt-6">
             <h3 className="text-base font-semibold mb-3 text-zinc-800 dark:text-zinc-200">Contract Data</h3>
-            <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm">
+            <div className="rounded-lg">
               <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
                 <thead className="bg-zinc-50 dark:bg-zinc-800/50">
                   <tr>

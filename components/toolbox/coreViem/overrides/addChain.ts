@@ -1,15 +1,16 @@
-import { numberToHex, Account, Transport, Chain, Client } from "viem"
+import { numberToHex, Chain } from "viem"
+import type { AvalancheWalletClient } from "@avalanche-sdk/client"
 
 //original: https://github.com/wevm/viem/blob/6931cb5d840642673fc6f34774d9acf5b115d87b/src/actions/wallet/addChain.ts
 
 type CoreWalletChain = Chain & { isTestnet: boolean }
 export type CoreWalletAddChainParameters = { chain: CoreWalletChain }
 
-export async function addChain<
-    chain extends Chain | undefined,
-    account extends Account | undefined,
->(client: Client<Transport, chain, account>, { chain }: CoreWalletAddChainParameters) {
-    const { id, name, nativeCurrency, rpcUrls, blockExplorers } = chain
+export async function addChain(
+    client: AvalancheWalletClient, 
+    { chain }: CoreWalletAddChainParameters
+) {
+    const { id, name, nativeCurrency, rpcUrls, blockExplorers } = chain;
     await client.request(
         {
             method: 'wallet_addEthereumChain',
@@ -27,6 +28,6 @@ export async function addChain<
             ],
         },
         { dedupe: true, retryCount: 0 },
-    )
+    );
 }
 

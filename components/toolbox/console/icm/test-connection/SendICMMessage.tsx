@@ -118,12 +118,10 @@ function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
                     destinationBlockchainIDHex as `0x${string}`
                 ],
                 account: coreWalletClient.account,
-            });
-
-            const writePromise = coreWalletClient.writeContract({
-                ...request,
                 chain: viemChain,
             });
+
+            const writePromise = coreWalletClient.writeContract(request);
 
             notify({
                 type: 'call',

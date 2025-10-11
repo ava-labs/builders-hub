@@ -76,6 +76,7 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
         const deployPromise = coreWalletClient.deployContract({
             abi: ValidatorMessagesABI.abi as any,
             bytecode: ValidatorMessagesABI.bytecode.object as `0x${string}`,
+            args: [],
             chain: viemChain,
             account: walletEVMAddress as `0x${string}`
         });

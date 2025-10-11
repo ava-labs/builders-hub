@@ -5,7 +5,6 @@ import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { AlertCircle } from 'lucide-react';
 import { Success } from '@/components/toolbox/components/Success';
-import { extractRegisterL1ValidatorMessage } from '@/components/toolbox/coreViem/methods/extractRegisterL1ValidatorMessage';
 import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/justification';
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp';
 import { hexToBytes, bytesToHex } from 'viem';
@@ -101,7 +100,7 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
       onError("PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager.");
       return;
     }
-    if (!coreWalletClient || !publicClient || !viemChain) {
+    if (!coreWalletClient || !publicClient || !viemChain || !coreWalletClient.account) {
       setErrorState("Wallet or chain configuration is not properly initialized.");
       onError("Wallet or chain configuration is not properly initialized.");
       return;
@@ -110,7 +109,7 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
     setIsProcessing(true);
     try {
       // Step 1: Extract RegisterL1ValidatorMessage from P-Chain transaction
-      const registrationMessageData = await extractRegisterL1ValidatorMessage(coreWalletClient, {
+      const registrationMessageData = await coreWalletClient.extractRegisterL1ValidatorMessage({
         txId: pChainTxIdState
       });
 

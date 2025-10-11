@@ -41,7 +41,7 @@ const TopUpComponent = ({
     const [isSending, setIsSending] = useState(false);
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const viemChain = useViemChainStore();
-    const { publicClient } = useWalletStore();
+    const { publicClient, walletEVMAddress } = useWalletStore();
     const { coreWalletClient } = useConnectedWallet();
 
     // Throw critical errors during render
@@ -55,7 +55,8 @@ const TopUpComponent = ({
             const hash = await coreWalletClient.sendTransaction({
                 to: deployerAddress as `0x${string}`,
                 value: parseEther(amount),
-                chain: viemChain
+                chain: viemChain,
+                account: walletEVMAddress as `0x${string}`,
             });
 
             await publicClient.waitForTransactionReceipt({ hash });

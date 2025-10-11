@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { getActiveRulesAt } from "../coreViem/methods/getActiveRulesAt";
 import { useWalletStore } from "../stores/walletStore";
 
 type PrecompileConfigKey =
@@ -47,7 +46,7 @@ export const CheckPrecompile = ({
             setState(prev => ({ ...prev, isLoading: true, error: null }));
 
             try {
-                const data = await getActiveRulesAt(coreWalletClient);
+                const data = await coreWalletClient.getActiveRulesAt();
                 const isActive = Boolean(data.precompiles?.[configKey]?.timestamp);
                 setState({ isLoading: false, isActive, error: null });
             } catch (err) {

@@ -62,7 +62,7 @@ interface WalletActions {
   setLoading: (type: 'pChain' | 'cChain' | string, loading: boolean) => void;
 
   // Legacy individual setters for backward compatibility
-  setCoreWalletClient: (coreWalletClient: ReturnType<typeof createCoreWalletClient>) => void;
+  setCoreWalletClient: (coreWalletClient: CoreWalletClientType | null) => void;
   setWalletChainId: (walletChainId: number) => void;
   setWalletEVMAddress: (walletEVMAddress: string) => void;
   setAvalancheNetworkID: (avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID) => void;
@@ -105,7 +105,7 @@ export const useWalletStore = create<WalletStore>((set, get) => {
   // Initialize balance service with callbacks
   const store = {
     // Initial state
-    coreWalletClient: createCoreWalletClient(zeroAddress),
+    coreWalletClient: null,
     publicClient: createPublicClient({
       transport: typeof window !== 'undefined' && window.avalanche
         ? custom(window.avalanche)
@@ -131,7 +131,7 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     bootstrapped: false,
 
     // Actions
-    updateWalletConnection: (data: { coreWalletClient?: ReturnType<typeof createCoreWalletClient>; walletEVMAddress?: string; walletChainId?: number; pChainAddress?: string; coreEthAddress?: string; }) => {
+    updateWalletConnection: (data: { coreWalletClient?: CoreWalletClientType | null; walletEVMAddress?: string; walletChainId?: number; pChainAddress?: string; coreEthAddress?: string; }) => {
       set((state) => ({ ...state, ...data }));
     },
 
@@ -193,7 +193,7 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     },
 
     // Legacy individual setters for backward compatibility
-    setCoreWalletClient: (coreWalletClient: ReturnType<typeof createCoreWalletClient>) => set({ coreWalletClient }),
+    setCoreWalletClient: (coreWalletClient: CoreWalletClientType | null) => set({ coreWalletClient }),
     setWalletChainId: (walletChainId: number) => set({ walletChainId }),
     setWalletEVMAddress: (walletEVMAddress: string) => set({ walletEVMAddress }),
     setAvalancheNetworkID: (avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID) => set({ avalancheNetworkID }),

@@ -1,16 +1,4 @@
-import { WalletClient } from "viem";
-import {
-    L1Validator,
-    PChainOwner,
-    pvmSerial,
-    utils,
-} from "@avalabs/avalanchejs";
-import { CoreWalletRpcSchema } from "../rpcSchema";
-import { isTestnet } from "./isTestnet";
-import { getPChainAddress } from "./getPChainAddress";
-import { getRPCEndpoint } from "../utils/rpc";
-import { pvm } from "@avalabs/avalanchejs";
-import { Context } from "@avalabs/avalanchejs";
+import type { AvalancheWalletClient } from "@avalanche-sdk/client";
 
 export type ConvertToL1Params = {
     managerAddress: string;
@@ -20,7 +8,7 @@ export type ConvertToL1Params = {
     validators: ConvertToL1Validator[];
 }
 
-type ConvertToL1Validator = {
+export type ConvertToL1Validator = {
     nodeID: string;
     nodePOP: {
         publicKey: string;
@@ -37,59 +25,38 @@ type ConvertToL1PChainOwner = {
     threshold: number;
 }
 
-export async function convertToL1(client: WalletClient<any, any, any, CoreWalletRpcSchema>, params: ConvertToL1Params): Promise<string> {
-    const rpcEndpoint = getRPCEndpoint(await isTestnet(client));
-    const pvmApi = new pvm.PVMApi(rpcEndpoint);
-    const feeState = await pvmApi.getFeeState();
-    const context = await Context.getContextFromURI(rpcEndpoint);
+export async function convertToL1(client: AvalancheWalletClient, params: ConvertToL1Params): Promise<string> {
+    // Convert validators from our format to SDK format
+    const sdkValidators = params.validators.map(validator => ({
+        nodeId: validator.nodeID,
+        nodePoP: {
+            publicKey: validator.nodePOP.publicKey,
+            proofOfPossession: validator.nodePOP.proofOfPossession,
+        },
+        weight: validator.validatorWeight,
+        // SDK expects initialBalanceInAvax (number in AVAX), we have validatorBalance (bigint in nanoAVAX)
+        initialBalanceInAvax: Number(validator.validatorBalance) / 1e9,
+        remainingBalanceOwner: {
+            addresses: validator.remainingBalanceOwner.addresses,
+            threshold: validator.remainingBalanceOwner.threshold,
+        },
+        deactivationOwner: {
+            addresses: validator.deactivationOwner.addresses,
+            threshold: validator.deactivationOwner.threshold,
+        },
+    }));
 
-    const pChainAddress = await getPChainAddress(client);
-
-    const { utxos } = await pvmApi.getUTXOs({
-        addresses: [pChainAddress]
+    // Prepare the transaction using Avalanche SDK
+    const txnRequest = await client.pChain.prepareConvertSubnetToL1Txn({
+        subnetId: params.subnetId,
+        blockchainId: params.chainId,
+        managerContractAddress: params.managerAddress,
+        validators: sdkValidators,
+        subnetAuth: params.subnetAuth,
     });
 
-    const validators: L1Validator[] = params.validators.map(validator => L1Validator.fromNative(
-        validator.nodeID,
-        BigInt(validator.validatorWeight),
-        BigInt(validator.validatorBalance),
-        new pvmSerial.ProofOfPossession(utils.hexToBuffer(validator.nodePOP.publicKey), utils.hexToBuffer(validator.nodePOP.proofOfPossession)),
-        PChainOwner.fromNative(
-            validator.remainingBalanceOwner.addresses.map(utils.bech32ToBytes),
-            validator.remainingBalanceOwner.threshold
-        ),
-        PChainOwner.fromNative(
-            validator.deactivationOwner.addresses.map(utils.bech32ToBytes),
-            validator.deactivationOwner.threshold
-        )
-    ));
+    // Send the transaction
+    const result = await client.sendXPTransaction(txnRequest);
 
-    const tx = pvm.e.newConvertSubnetToL1Tx(
-        {
-            feeState,
-            fromAddressesBytes: [utils.bech32ToBytes(pChainAddress)],
-            subnetId: params.subnetId,
-            utxos,
-            chainId: params.chainId,
-            validators,
-            subnetAuth: params.subnetAuth,
-            address: utils.hexToBuffer(params.managerAddress.replace('0x', '')),
-        },
-        context,
-    );
-
-    const manager = utils.getManagerForVM(tx.getVM());
-    const [codec] = manager.getCodecFromBuffer(tx.toBytes());
-    const utxoHexes = tx.utxos.map(utxo => utils.bufferToHex(utxo.toBytes(codec)));
-
-    const transactionID = await window.avalanche!.request({
-        method: 'avalanche_sendTransaction',
-        params: {
-            transactionHex: utils.bufferToHex(tx.toBytes()),
-            chainAlias: 'P',
-            utxos: utxoHexes,
-        }
-    }) as string;
-
-    return transactionID;
+    return result.txHash;
 }

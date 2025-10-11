@@ -2,10 +2,7 @@
 import { useEffect, useState } from "react"
 import { AlertCircle, Loader2, CheckCircle2, ArrowUpRight, RefreshCw } from "lucide-react"
 import { Button } from "../../components/Button"
-import { Context, pvm, utils } from "@avalabs/avalanchejs"
 import { useWalletStore } from "@/components/toolbox/stores/walletStore"
-import { bytesToHex } from "viem"
-import { getRPCEndpoint } from "../../coreViem/utils/rpc"
 import { Input } from "../../components/Input"
 import SelectValidationID, { ValidationSelection } from "../../components/SelectValidationID"
 import SelectSubnetId from "../../components/SelectSubnetId"
@@ -16,12 +13,6 @@ import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-
 
 // Helper function for delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Define the type for window.avalanche response
-interface AvalancheResponse {
-  txID?: string;
-  [key: string]: any;
-}
 
 const metadata: ConsoleToolMetadata = {
   title: "Validator Balance Increase",
@@ -37,7 +28,6 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
   const [amount, setAmount] = useState<string>("")
   const [subnetId, setSubnetId] = useState<string>("")
   const [validatorSelection, setValidatorSelection] = useState<ValidationSelection>({ validationId: "", nodeId: "" })
-  const [pChainBalance, setPChainBalance] = useState<number>(0)
   const [loading, setLoading] = useState<boolean>(false)
   const [showConfetti, setShowConfetti] = useState<boolean>(false)
   const [operationSuccessful, setOperationSuccessful] = useState<boolean>(false)
@@ -46,28 +36,17 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
   const [validatorTxId, setValidatorTxId] = useState<string>("")
 
   // Use nullish coalescing to safely access store values
-  const { pChainAddress, isTestnet } = useWalletStore()
+  const { pChainAddress, updatePChainBalance, isTestnet } = useWalletStore()
+  const pChainBalance = useWalletStore((s) => s.balances.pChain);
   const { coreWalletClient } = useConnectedWallet()
-
-  // Fetch P-Chain balance
-  const fetchPChainBalance = async () => {
-    if (coreWalletClient && pChainAddress) {
-      try {
-        const balance = await coreWalletClient.getPChainBalance()
-        const balanceNumber = Number(balance) / 1e9
-        setPChainBalance(balanceNumber)
-      } catch (error) {
-        console.error("Error fetching P-Chain balance:", error)
-      }
-    }
-  }
 
   // Fetch P-Chain balance periodically
   useEffect(() => {
     if (coreWalletClient && pChainAddress) {
-      fetchPChainBalance()
-      const interval = setInterval(fetchPChainBalance, 10000)
-      return () => clearInterval(interval)
+      // todo: check here
+      // updatePChainBalance()
+      // const interval = setInterval(updatePChainBalance, 10000)
+      // return () => clearInterval(interval)
     }
   }, [coreWalletClient, pChainAddress])
 
@@ -102,70 +81,24 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
     setStatusMessage("Increasing validator balance...")
 
     try {
-      const platformEndpoint = getRPCEndpoint(isTestnet ?? false)
-      const pvmApi = new pvm.PVMApi(platformEndpoint)
-      const context = await Context.getContextFromURI(platformEndpoint)
-      const feeState = await pvmApi.getFeeState()
-
-      const { utxos } = await pvmApi.getUTXOs({ addresses: [pChainAddress] })
-      if (utxos.length === 0) {
-        setError('No UTXOs found on your P-chain address. Make sure you have funds.')
-        setLoading(false)
-        return;
+      if (!coreWalletClient) {
+        throw new Error("Wallet client not initialized")
       }
 
-      const amountNAvax = BigInt(Math.floor(Number(amount) * 1e9))
+      const txHash = await coreWalletClient.increaseL1ValidatorBalance({
+        validationId: validatorSelection.validationId,
+        balanceInAvax: amountNumber,
+      })
 
-      const unsignedTx = pvm.e.newIncreaseL1ValidatorBalanceTx(
-        {
-          balance: amountNAvax,
-          feeState,
-          fromAddressesBytes: [utils.bech32ToBytes(pChainAddress)],
-          utxos,
-          validationId: validatorSelection.validationId,
-        },
-        context,
-      )
-
-      const unsignedTxBytes = unsignedTx.toBytes()
-      const unsignedTxHex = bytesToHex(unsignedTxBytes)
-
-      // Check if wallet extension is available
-      if (typeof window === 'undefined' || !window.avalanche) {
-        throw new Error("Avalanche wallet extension not found. Please ensure it's installed and enabled.")
-      }
-
-      const manager = utils.getManagerForVM(unsignedTx.getVM());
-      const [codec] = manager.getCodecFromBuffer(unsignedTx.toBytes());
-      const utxoHexes = unsignedTx.utxos.map(utxo => utils.bufferToHex(utxo.toBytes(codec)));
-
-      // Send the transaction to the wallet for signing and broadcasting
-      console.log("Sending transaction to wallet:", unsignedTxHex)
-      const response = await window.avalanche.request({
-        method: "avalanche_sendTransaction",
-        params: {
-          transactionHex: unsignedTxHex,
-          chainAlias: "P",
-          utxos: utxoHexes,
-        },
-      }) as AvalancheResponse
-
-      console.log("Validator balance increase transaction sent:", response)
-
-      if (response?.txID) {
-        setValidatorTxId(response.txID)
-      } else if (typeof response === 'string') {
-        setValidatorTxId(response)
-      } else {
-        throw new Error("Unexpected response format from wallet.")
-      }
+      console.log("Validator balance increase transaction sent:", txHash)
+      setValidatorTxId(txHash)
 
       setShowConfetti(true)
       setOperationSuccessful(true)
       onSuccess?.()
 
       await delay(2000)
-      await fetchPChainBalance()
+      await updatePChainBalance()
 
     } catch (error) {
       console.error("Error increasing validator balance:", error)
@@ -295,7 +228,7 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
                       role="button"
                       tabIndex={0}
                       title="Refresh balance"
-                      onClick={loading ? undefined : fetchPChainBalance}
+                      onClick={loading ? undefined : updatePChainBalance}
                       className={`ml-1 flex items-center cursor-pointer transition text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 ${loading ? "opacity-50 pointer-events-none" : ""}`}
                     >
                       <RefreshCw className="w-5 h-5" />
@@ -307,9 +240,9 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
                 </div>
               </div>
 
-              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
-                <div className="flex gap-3">
-                  <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+              <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
+                <div className="flex gap-2 items-center">
+                  <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
                   <p>This action will use AVAX from your P-Chain address ({pChainAddress ? `${pChainAddress.substring(0, 10)}...${pChainAddress.substring(pChainAddress.length - 4)}` : 'Loading...'}) to increase the balance of the specified L1 validator. Ensure the Validation ID is correct.</p>
                 </div>
               </div>

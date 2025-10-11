@@ -219,7 +219,6 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
 
       // Step 2: Submit to P-Chain
       const pChainTxIdPromise = coreWalletClient.setL1ValidatorWeight({
-        pChainAddress: pChainAddress!,
         signedWarpMessage: signedMessage,
       });
       notify('setL1ValidatorWeight', pChainTxIdPromise);

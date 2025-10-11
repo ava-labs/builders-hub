@@ -48,8 +48,6 @@ function FeeManager({ onSuccess }: BaseConsoleToolProps) {
   const [txHash, setTxHash] = useState<string | null>(null);
 
   const handleSetFeeConfig = async () => {
-    if (!coreWalletClient) throw new Error("Wallet client not found");
-
     setIsSettingConfig(true);
 
     try {
