@@ -30,7 +30,6 @@ const metadata: ConsoleToolMetadata = {
 };
 
 function Initialize({ onSuccess }: BaseConsoleToolProps) {
-    const [proxyAddress, setProxyAddress] = useState<string>("");
     const { walletEVMAddress, publicClient } = useWalletStore();
     const { coreWalletClient } = useConnectedWallet();
     const [isChecking, setIsChecking] = useState(false);
@@ -44,6 +43,8 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
     const selectedL1 = useSelectedL1()();
     const [subnetId, setSubnetId] = useState("");
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
+    const managerAddress = useCreateChainStore()(state => state.managerAddress);
+    const setManagerAddress = useCreateChainStore()(state => state.setManagerAddress);
 
     const { sendCoreWalletNotSetNotification, notify } = useConsoleNotifications();
 
@@ -70,7 +71,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
 
 
     async function checkIfInitialized() {
-        if (!proxyAddress || !window.avalanche) return;
+        if (!managerAddress || !window.avalanche) return;
 
         setIsChecking(true);
         try {
@@ -86,7 +87,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
             try {
                 // Try to call a read-only method that would fail if not initialized
                 const isInit = await publicClient.readContract({
-                    address: proxyAddress as `0x${string}`,
+                    address: managerAddress as `0x${string}`,
                     abi: ValidatorManagerABI.abi,
                     functionName: 'admin'
                 });
@@ -111,7 +112,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
             const fromBlock = latestBlock > 2000n ? latestBlock - 2000n : 0n;
 
             const logs = await publicClient.getLogs({
-                address: proxyAddress as `0x${string}`,
+                address: managerAddress as `0x${string}`,
                 event: initializedEvent as AbiEvent,
                 fromBlock: fromBlock,
                 toBlock: 'latest'
@@ -144,7 +145,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
         };
 
         const initPromise = coreWalletClient.writeContract({
-            address: proxyAddress as `0x${string}`,
+            address: managerAddress as `0x${string}`,
             abi: ValidatorManagerABI.abi,
             functionName: 'initialize',
             args: [settings],
@@ -176,8 +177,8 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
 
                         <EVMAddressInput
                             label="Proxy Address of ValidatorManager"
-                            value={proxyAddress}
-                            onChange={setProxyAddress}
+                            value={managerAddress}
+                            onChange={setManagerAddress}
                             disabled={isInitializing}
                         />
 
@@ -185,7 +186,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
                         <Button
                             onClick={checkIfInitialized}
                             loading={isChecking}
-                            disabled={!proxyAddress}
+                            disabled={!managerAddress}
                             size="sm"
                         >
                             Check Status
