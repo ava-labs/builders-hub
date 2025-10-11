@@ -211,7 +211,7 @@ const officialCourses: Course[] = [
     },
     {
         name: "Web3 Community Architect",
-        description: "Build engaged communities, amplifiy growth through media and events, and design impactful token economies.",
+        description: "Build engaged communities, amplify growth through media and events, and design impactful token economies.",
         slug: "web3-community-architect",
         icon: <SquareStackIcon />,
         status: "featured",
