@@ -1,5 +1,5 @@
 
-import { put, del, head, type HeadBlobResult } from '@vercel/blob';
+import { put, del, head, list, type HeadBlobResult } from '@vercel/blob';
 
 export class BlobService {
   private token: string;
@@ -46,6 +46,18 @@ export class BlobService {
       return blob;
     } catch (error) {
       throw new Error(`Failed to fetch file: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  }
+
+  async listFiles(prefix: string): Promise<any[]> {
+    try {
+      const { blobs } = await list({
+        prefix,
+        token: this.token,
+      });
+      return blobs;
+    } catch (error) {
+      throw new Error(`Failed to list files: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
 }
