@@ -149,7 +149,6 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
             functionName: 'initialize',
             args: [settings],
             chain: viemChain ?? undefined,
-            account: walletEVMAddress as `0x${string}`
         });
 
         notify({

@@ -185,7 +185,7 @@ export default function DeployERC20TokenRemote() {
         {
           teleporterRegistryAddress: teleporterRegistryAddress as `0x${string}`,
           teleporterManager:
-            teleporterManager || walletEVMAddress,
+            teleporterManager || coreWalletClient.account.address,
           minTeleporterVersion: BigInt(minTeleporterVersion),
           tokenHomeBlockchainID: tokenHomeBlockchainIDHex as `0x${string}`,
           tokenHomeAddress: homeAddress as `0x${string}`,

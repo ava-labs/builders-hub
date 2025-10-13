@@ -150,7 +150,7 @@ export default function DeployNativeTokenRemote() {
             const constructorArgs = [
                 {
                     teleporterRegistryAddress: teleporterRegistryAddress as `0x${string}`,
-                    teleporterManager: teleporterManager || walletEVMAddress,
+                    teleporterManager: teleporterManager || coreWalletClient.account.address,
                     minTeleporterVersion: BigInt(minTeleporterVersion),
                     tokenHomeBlockchainID: tokenHomeBlockchainIDHex as `0x${string}`,
                     tokenHomeAddress: homeAddress as `0x${string}`,

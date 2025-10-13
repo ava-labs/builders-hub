@@ -38,6 +38,8 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
   const [txHash, setTxHash] = useState<string | null>(null);
 
   const handleMint = async () => {
+    if (!coreWalletClient) throw new Error("Wallet client not found");
+
     setIsMinting(true);
 
     try {

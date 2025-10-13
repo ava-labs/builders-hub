@@ -209,6 +209,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
 
       // Submit to P-Chain using registerL1Validator with all required parameters
       const registerL1ValidatorPromise = coreWalletClient.registerL1Validator({
+        pChainAddress: pChainAddress!,
         balance: validatorBalance.trim(),
         blsProofOfPossession: blsProofOfPossession.trim(),
         signedWarpMessage: signedMessage,

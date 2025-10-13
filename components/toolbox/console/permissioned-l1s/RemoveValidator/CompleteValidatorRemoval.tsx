@@ -11,6 +11,7 @@ import poaManagerAbi from '@/contracts/icm-contracts/compiled/PoAManager.json';
 import { GetRegistrationJustification } from '../ValidatorManager/justification';
 import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { packWarpIntoAccessList } from '../ValidatorManager/packWarp';
+import { extractL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/methods/extractL1ValidatorWeightMessage';
 import { useAvaCloudSDK } from '@/components/toolbox/stores/useAvaCloudSDK';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
@@ -46,7 +47,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   isLoadingOwnership,
   ownerType,
 }) => {
-  const { coreWalletClient, publicClient, avalancheNetworkID, walletEVMAddress } = useWalletStore();
+  const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
   const { aggregateSignature } = useAvaCloudSDK();
   const viemChain = useViemChainStore();
   const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || '');
@@ -112,7 +113,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     setIsProcessing(true);
     try {
       // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
-      const weightMessageData = await coreWalletClient.extractL1ValidatorWeightMessage({
+      const weightMessageData = await extractL1ValidatorWeightMessage(coreWalletClient, {
         txId: pChainTxId
       });
 
@@ -166,7 +167,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         functionName: "completeValidatorRemoval",
         args: [0], // As per original, arg is 0
         accessList,
-        account: walletEVMAddress as `0x${string}`,
+        account: coreWalletClient.account,
         chain: viemChain,
       });
       notify({

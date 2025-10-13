@@ -103,16 +103,12 @@ function TransferOwnership({ onSuccess }: BaseConsoleToolProps) {
 
     async function handleTransferOwnership() {
         setIsTransferring(true);
-        if (!coreWalletClient.account) {
-            throw new Error('No wallet account connected');
-        }
         try {
             const transferPromise = coreWalletClient.writeContract({
-                address: validatorManagerAddress,
+                to: validatorManagerAddress,
                 abi: ValidatorManagerABI.abi,
                 functionName: 'transferOwnership',
                 args: [newOwnerAddress],
-                account: coreWalletClient.account,
                 chain: viemChain ?? undefined,
             });
 

@@ -1,12 +1,10 @@
-import type { AvalancheWalletClient } from "@avalanche-sdk/client";
-import type { CoreWalletRpcSchema } from "../rpcSchema";
+import { CoreWalletRpcSchema } from "../rpcSchema";
+import { WalletClient } from "viem";
 
-export async function isTestnet(client: AvalancheWalletClient) {
-    const chain = await client.request<
-        Extract<CoreWalletRpcSchema[number], { Method: 'wallet_getEthereumChain' }>
-    >({
+export async function isTestnet(client: WalletClient<any, any, any, CoreWalletRpcSchema>) {
+    const chain = await client.request({
         method: "wallet_getEthereumChain",
         params: []
-    });
+    })
     return chain.isTestnet;
 }

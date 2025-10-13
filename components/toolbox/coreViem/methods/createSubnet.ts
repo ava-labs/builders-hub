@@ -1,20 +1,51 @@
-import type { AvalancheWalletClient } from "@avalanche-sdk/client";
+import { WalletClient } from "viem";
+import {
+    utils,
+} from "@avalabs/avalanchejs";
+import { CoreWalletRpcSchema } from "../rpcSchema";
+import { isTestnet } from "./isTestnet";
+import { getPChainAddress } from "./getPChainAddress";
+import { getRPCEndpoint } from "../utils/rpc";
+import { pvm } from "@avalabs/avalanchejs";
+import { Context } from "@avalabs/avalanchejs";
 
 export type CreateSubnetParams = {
     subnetOwners: string[];
 }
 
-export async function createSubnet(client: AvalancheWalletClient, params: CreateSubnetParams): Promise<string> {
-    // Prepare the transaction using Avalanche SDK
-    const txnRequest = await client.pChain.prepareCreateSubnetTxn({
-        subnetOwners: {
-            addresses: params.subnetOwners,
-            threshold: 1, // Default threshold, can be made configurable if needed
-        },
+export async function createSubnet(client: WalletClient<any, any, any, CoreWalletRpcSchema>, params: CreateSubnetParams): Promise<string> {
+    const rpcEndpoint = getRPCEndpoint(await isTestnet(client));
+    const pvmApi = new pvm.PVMApi(rpcEndpoint);
+    const feeState = await pvmApi.getFeeState();
+    const context = await Context.getContextFromURI(rpcEndpoint);
+
+    const pChainAddress = await getPChainAddress(client);
+
+    const { utxos } = await pvmApi.getUTXOs({
+        addresses: [pChainAddress]
     });
 
-    // Send the transaction using Avalanche SDK's sendXPTransaction
-    const result = await client.sendXPTransaction(txnRequest);
+    const tx = pvm.e.newCreateSubnetTx({
+        feeState,
+        fromAddressesBytes: [utils.bech32ToBytes(pChainAddress)],
+        utxos,
+        subnetOwners: params.subnetOwners.map(utils.bech32ToBytes),
+    }, context);
 
-    return result.txHash;
+
+    const manager = utils.getManagerForVM(tx.getVM());
+    const [codec] = manager.getCodecFromBuffer(tx.toBytes());
+    const utxoHexes = tx.utxos.map(utxo => utils.bufferToHex(utxo.toBytes(codec)));
+
+    const txID = await client.request({
+        method: 'avalanche_sendTransaction',
+        params: {
+            transactionHex: utils.bufferToHex(tx.toBytes()),
+            chainAlias: 'P',
+            utxos: utxoHexes,
+        },
+    }) as string;
+
+    return txID;
+
 }
