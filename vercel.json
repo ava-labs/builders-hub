@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api-reference",
+      "destination": "https://developers.avacloud.io"
+    },
+    {
+      "source": "/api-reference/:path*",
+      "destination": "https://developers.avacloud.io/:path*"
+    }
+  ]
+}
