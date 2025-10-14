@@ -171,7 +171,7 @@ async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> 
     const destinationAddress = searchParams.get('address')!;
     const chainId = parseInt(searchParams.get('chainId')!);
     const supportedChain = findSupportedChain(chainId);
-    const dripAmount = (supportedChain?.dripAmount || 3).toString();
+    const dripAmount = (supportedChain?.faucetThresholds?.dripAmount || 3).toString();
 
     const tx = await transferEVMTokens(
       FAUCET_ADDRESS!,

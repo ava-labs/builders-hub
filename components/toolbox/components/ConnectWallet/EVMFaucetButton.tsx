@@ -1,9 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useBuilderHubFaucet } from "../../hooks/useBuilderHubFaucet";
 import { useL1List, type L1ListItem } from "../../stores/l1ListStore";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { useTestnetFaucet } from "@/hooks/useTestnetFaucet";
 
 const LOW_BALANCE_THRESHOLD = 1;
 
@@ -27,11 +26,8 @@ export const EVMFaucetButton = ({
     updateL1Balance,
     updateCChainBalance,
   } = useWalletStore();
-  const { requestTokens } = useBuilderHubFaucet();
   const l1List = useL1List();
-  const { notify } = useConsoleNotifications();
-
-  const [isRequestingTokens, setIsRequestingTokens] = useState(false);
+  const { claimEVMTokens, isClaimingEVM } = useTestnetFaucet();
 
   const chainConfig = l1List.find(
     (chain: L1ListItem) =>
@@ -42,31 +38,23 @@ export const EVMFaucetButton = ({
     return null;
   }
 
+  const isRequestingTokens = isClaimingEVM[chainId] || false;
+
   const handleTokenRequest = async () => {
     if (isRequestingTokens || !walletEVMAddress) return;
-    setIsRequestingTokens(true);
-    const faucetRequest = requestTokens(chainId);
-
-    notify(
-      {
-        type: "local",
-        name: `${chainConfig.coinName} Faucet Claim`,
-      },
-      faucetRequest
-    );
 
     try {
-      await faucetRequest;
+      await claimEVMTokens(chainId, false);
     } catch (error) {
-    } finally {
-      setIsRequestingTokens(false);
+      // handle error via notifications
     }
   };
 
-  const defaultClassName = `px-2 py-1 text-xs font-medium text-white rounded transition-colors ${cChainBalance < LOW_BALANCE_THRESHOLD
+  const defaultClassName = `px-2 py-1 text-xs font-medium text-white rounded transition-colors ${
+    cChainBalance < LOW_BALANCE_THRESHOLD
       ? "bg-blue-500 hover:bg-blue-600 shimmer"
       : "bg-zinc-600 hover:bg-zinc-700"
-    } ${isRequestingTokens ? "opacity-50 cursor-not-allowed" : ""}`;
+  } ${isRequestingTokens ? "opacity-50 cursor-not-allowed" : ""}`;
 
   return (
     <button
@@ -76,7 +64,9 @@ export const EVMFaucetButton = ({
       className={className || defaultClassName}
       title={`Get free ${chainConfig.coinName} tokens`}
     >
-      {isRequestingTokens ? "Requesting..." : children || `${chainConfig.coinName} Faucet`}
+      {isRequestingTokens
+        ? "Requesting..."
+        : children || `${chainConfig.coinName} Faucet`}
     </button>
   );
 };

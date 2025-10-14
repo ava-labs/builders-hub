@@ -7,8 +7,12 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";
+import { AutomatedFaucetConfetti } from "@/components/ui/automated-faucet-confetti";
+import { useAutomatedFaucet } from "@/hooks/useAutomatedFaucet";
 
 export default function Layout({ children }: { children: ReactNode }) {
+  useAutomatedFaucet();
+
   return (
     <SessionProvider>
       <WalletProvider>
@@ -29,7 +33,8 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
           </SidebarInset>
         </SidebarProvider>
-        <Toaster position="bottom-right" richColors expand={true} visibleToasts={5} />
+        <AutomatedFaucetConfetti />
+        <Toaster position="bottom-right" richColors expand={true} visibleToasts={5}/>
       </WalletProvider>
     </SessionProvider>
   );
