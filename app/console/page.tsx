@@ -7,7 +7,8 @@ import { ChevronRight, Layers, Users, MessagesSquare, ArrowUpDown, Settings, Dro
 import Link from "next/link";
 
 function RedirectLogic() {
-  const { data: session, status } = useSession();
+  const sessionResult = useSession();
+  const { data: session, status } = sessionResult || { data: null, status: 'loading' };
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();

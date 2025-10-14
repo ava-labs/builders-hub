@@ -13,7 +13,8 @@ const P_CHAIN_THRESHOLDS = {
 };
 
 export const useAutomatedFaucet = () => {
-  const { data: session } = useSession();
+  const sessionResult = useSession();
+  const session = sessionResult?.data;
   const { 
     walletEVMAddress, 
     pChainAddress, 

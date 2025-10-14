@@ -23,7 +23,8 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/cn';
 
 export default function ConsoleHistoryPage() {
-  const { data: session, status } = useSession();
+  const sessionResult = useSession();
+  const { data: session, status } = sessionResult || { data: null, status: 'loading' };
   const { logs: fullHistory, getExplorerUrl, loading } = useConsoleNotifications();
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
