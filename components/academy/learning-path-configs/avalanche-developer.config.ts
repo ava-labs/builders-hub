@@ -47,10 +47,10 @@ export const avalancheLearningPaths: CourseNode[] = [
         mobileOrder: 7
     },
     {
-        id: "l1-tokenomics",
-        name: "L1 Tokenomics",
-        description: "Design L1 economics with transaction fees and staking",
-        slug: "l1-tokenomics",
+        id: "l1-native-tokenomics",
+        name: "L1 Native Tokenomics",
+        description: "Design L1 economics with custom token, native minting rights and transaction fees",
+        slug: "l1-native-tokenomics",
         category: "L1 Tokenomics",
         dependencies: ["avalanche-fundamentals"],
         position: { x: 65, y: 350 },

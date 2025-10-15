@@ -17,7 +17,7 @@ import { sha256 } from '@noble/hashes/sha256'; // Import sha256
  * @param messageBytes - The raw unsignedWarpMessage bytes
  * @returns The extracted message (addressedCall)
  */
-export function extractAddressedCall(messageBytes: Uint8Array): Uint8Array {
+function extractAddressedCall(messageBytes: Uint8Array): Uint8Array {
   try {
     // console.log(`Parsing UnsignedMessage of length: ${messageBytes.length} bytes`);
 
@@ -210,7 +210,7 @@ function marshalConvertSubnetToL1TxDataJustification(subnetIDBytes: Uint8Array, 
  * @param addressedCall - The AddressedCall bytes.
  * @returns The extracted payload as a Uint8Array, or null if parsing fails or data is insufficient.
  */
-export function extractPayloadFromAddressedCall(addressedCall: Uint8Array): Uint8Array | null {
+function extractPayloadFromAddressedCall(addressedCall: Uint8Array): Uint8Array | null {
   try {
     // Need at least 10 bytes for TypeID and Source Address Length.
     if (addressedCall.length < 10) {

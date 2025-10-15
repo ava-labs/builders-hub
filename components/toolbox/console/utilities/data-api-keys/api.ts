@@ -5,16 +5,15 @@ import {
     ApiKeyDetailsResponse,
 } from './types';
 
-const DATA_API_ENDPOINT = process.env.VERCEL_ENV === "production" ? 'https://data-api.avax.network/v1' : 'https://data-api-dev.avax.network/v1';
 
 export class GlacierApiClient {
-    constructor(private jwt: string) { }
+    constructor(private jwt: string, private endpoint: string) { }
 
     private async makeRequest<T>(
         endpoint: string,
         options: RequestInit = {}
     ): Promise<T> {
-        const response = await fetch(`${DATA_API_ENDPOINT}${endpoint}`, {
+        const response = await fetch(`${this.endpoint}${endpoint}`, {
             ...options,
             headers: {
                 'Authorization': `Bearer ${this.jwt}`,

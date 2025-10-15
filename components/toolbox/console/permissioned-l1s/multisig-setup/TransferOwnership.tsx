@@ -16,13 +16,15 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 const metadata: ConsoleToolMetadata = {
     title: "Transfer Validator Manager Ownership",
     description: "Transfer the ownership of the Validator Manager to a new address (EOA, StakingManager, or PoAManager)",
     walletRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
-    ]
+    ],
+    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
 function TransferOwnership({ onSuccess }: BaseConsoleToolProps) {
@@ -101,12 +103,16 @@ function TransferOwnership({ onSuccess }: BaseConsoleToolProps) {
 
     async function handleTransferOwnership() {
         setIsTransferring(true);
+        if (!coreWalletClient.account) {
+            throw new Error('No wallet account connected');
+        }
         try {
             const transferPromise = coreWalletClient.writeContract({
-                to: validatorManagerAddress,
+                address: validatorManagerAddress,
                 abi: ValidatorManagerABI.abi,
                 functionName: 'transferOwnership',
                 args: [newOwnerAddress],
+                account: coreWalletClient.account,
                 chain: viemChain ?? undefined,
             });
 

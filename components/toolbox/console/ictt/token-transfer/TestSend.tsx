@@ -480,6 +480,7 @@ export default function TokenBridge() {
         <Container
             title="Cross-Chain Token Bridge"
             description={`Send tokens from the current chain (${selectedL1?.name}) to another chain.`}
+            githubUrl="https://github.com/ava-labs/builders-hub/edit/master/components/toolbox/console/ictt/token-transfer/TestSend.tsx"
         >
 
             <SelectBlockchain

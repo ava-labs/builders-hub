@@ -331,6 +331,7 @@ export default function BlockScout() {
       <Container
         title="Self-hosted Explorer Setup"
         description="This will set up a self-hosted explorer with its own RPC Node leveraging Docker Compose."
+        githubUrl="https://github.com/ava-labs/builders-hub/edit/master/components/toolbox/console/layer-1/create/SelfHostedExplorer.tsx"
       >
         <Steps>
           <Step>

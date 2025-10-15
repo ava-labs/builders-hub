@@ -22,9 +22,30 @@ export async function generateMetadata({
 
   if (!currentChain) { return notFound(); }
 
+  const title = `${currentChain.chainName} L1 Metrics`;
+  const description = `Track ${currentChain.chainName} L1 activity with real-time metrics including active addresses, transactions, gas usage, fees, and network performance data.`;
+
+  const imageParams = new URLSearchParams();
+  imageParams.set("title", title);
+  imageParams.set("description", description);
+
+  const image = {
+    alt: `${currentChain.chainName} L1 Metrics`,
+    url: `/api/og/stats/${slug}?${imageParams.toString()}`,
+    width: 1280,
+    height: 720,
+  };
+
   return {
-    title: `${currentChain.chainName} L1 Metrics`,
-    description: `Track ${currentChain.chainName} L1 activity with real-time metrics including active addresses, transactions, gas usage, fees, and network performance data.`,
+    title,
+    description,
+    openGraph: {
+      url: `/stats/l1/${slug}`,
+      images: image,
+    },
+    twitter: {
+      images: image,
+    },
   };
 }
 

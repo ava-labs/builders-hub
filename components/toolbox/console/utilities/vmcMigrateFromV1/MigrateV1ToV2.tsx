@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useViemChainStore, useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
+import {
+  useViemChainStore,
+  useToolboxStore,
+} from "@/components/toolbox/stores/toolboxStore";
 import { Chain } from "viem";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
@@ -10,32 +13,43 @@ import { ResultField } from "@/components/toolbox/components/ResultField";
 import { ExternalLink } from "lucide-react";
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
+import {
+  BaseConsoleToolProps,
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 const metadata: ConsoleToolMetadata = {
   title: "Migrate Validator from V1 to V2",
-  description: "Migrate validators from the Validator Manager contract v1 to v2",
-  walletRequirements: [
-    WalletRequirementsConfigKey.EVMChainBalance
-  ]
+  description:
+    "Migrate validators from the Validator Manager contract v1 to v2",
+  walletRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
-  const { publicClient } = useWalletStore();
+  const { publicClient, walletEVMAddress } = useWalletStore();
   const { coreWalletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
-  const { validatorManagerAddress, setValidatorManagerAddress } = useToolboxStore();
+  const { validatorManagerAddress, setValidatorManagerAddress } =
+    useToolboxStore();
 
   // State variables
-  const [localValidatorManagerAddress, setLocalValidatorManagerAddress] = useState<string>(validatorManagerAddress || "");
+  const [localValidatorManagerAddress, setLocalValidatorManagerAddress] =
+    useState<string>(validatorManagerAddress || "");
   const [validationID, setValidationID] = useState<string>("");
   const [receivedNonce, setReceivedNonce] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [validationIDError, setValidationIDError] = useState<string | null>(null);
-  const [receivedNonceError, setReceivedNonceError] = useState<string | null>(null);
+  const [validationIDError, setValidationIDError] = useState<string | null>(
+    null
+  );
+  const [receivedNonceError, setReceivedNonceError] = useState<string | null>(
+    null
+  );
   const [addressError, setAddressError] = useState<string | null>(null);
 
   // Validation functions
@@ -47,7 +61,9 @@ function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
       setValidationIDError("Validation ID is required");
       isValid = false;
     } else if (!/^0x[0-9a-fA-F]{64}$/.test(validationID)) {
-      setValidationIDError("Validation ID must be a valid bytes32 hex string (0x followed by 64 hex characters)");
+      setValidationIDError(
+        "Validation ID must be a valid bytes32 hex string (0x followed by 64 hex characters)"
+      );
       isValid = false;
     } else {
       setValidationIDError(null);
@@ -57,8 +73,13 @@ function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
     if (!receivedNonce) {
       setReceivedNonceError("Received nonce is required");
       isValid = false;
-    } else if (!/^\d+$/.test(receivedNonce) || parseInt(receivedNonce) > 4294967295) {
-      setReceivedNonceError("Received nonce must be a valid uint32 value (0 to 4294967295)");
+    } else if (
+      !/^\d+$/.test(receivedNonce) ||
+      parseInt(receivedNonce) > 4294967295
+    ) {
+      setReceivedNonceError(
+        "Received nonce must be a valid uint32 value (0 to 4294967295)"
+      );
       isValid = false;
     } else {
       setReceivedNonceError(null);
@@ -69,7 +90,9 @@ function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
       setAddressError("Validator Manager address is required");
       isValid = false;
     } else if (!/^0x[0-9a-fA-F]{40}$/.test(localValidatorManagerAddress)) {
-      setAddressError("Validator Manager address must be a valid Ethereum address");
+      setAddressError(
+        "Validator Manager address must be a valid Ethereum address"
+      );
       isValid = false;
     } else {
       setAddressError(null);
@@ -108,21 +131,21 @@ function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
         address: localValidatorManagerAddress as `0x${string}`,
         abi: ValidatorManagerABI.abi,
         functionName: "migrateFromV1",
-        args: [
-          validationID as `0x${string}`,
-          parseInt(receivedNonce)
-        ],
-        chain: viemChain as Chain
+        args: [validationID as `0x${string}`, parseInt(receivedNonce)],
+        chain: viemChain as Chain,
+        account: walletEVMAddress as `0x${string}`,
       });
 
       // Wait for the transaction to complete
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
-      if (receipt.status === 'success') {
+      if (receipt.status === "success") {
         setTxHash(hash);
         onSuccess?.();
       } else {
-        setError("Transaction failed. Please check the console for more details.");
+        setError(
+          "Transaction failed. Please check the console for more details."
+        );
         console.error("Transaction failed:", receipt);
       }
     } catch (error: any) {
@@ -134,99 +157,111 @@ function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
 
   return (
     <>
-        <div className="space-y-6">
-          <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md text-sm mb-4">
-            <p className="mb-2"><strong>Note:</strong> This tool is only required if your L1 has the Validator Manager contract version 1 deployed. If you have deployed the Validator Manager contract with this Toolbox, it is already the version 2. In this case you don't need to do this!</p>
-          </div>
-          <div>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-              This tool allows you to migrate a validator from the V1 contract to the V2 contract. Before using this tool, ensure that you have the following:
-              <ul>
-                <li>Deploy the  Messages Library and Validator Manager v2 using the tools in this toolbox</li>
-                <li>Upgrade the Proxy to point to the Validator Manager v2 contract address</li>
-                <li>Use this tool to migrate every validator using the validationID</li>
-              </ul>
-              You need to provide the validation ID, the latest nonce received from the P-Chain,
-              and the address of the Validator Manager contract.
-            </p>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-              For full details about the migration process, see the{" "}
+      <div className="space-y-6">
+        <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md text-sm mb-4">
+          <p className="mb-2">
+            <strong>Note:</strong> This tool is only required if your L1 has the
+            Validator Manager contract version 1 deployed. If you have deployed
+            the Validator Manager contract with this Toolbox, it is already the
+            version 2. In this case you don't need to do this!
+          </p>
+        </div>
+        <div>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+            This tool allows you to migrate a validator from the V1 contract to
+            the V2 contract. Before using this tool, ensure that you have the
+            following:
+            <ul>
+              <li>
+                Deploy the Messages Library and Validator Manager v2 using the
+                tools in this toolbox
+              </li>
+              <li>
+                Upgrade the Proxy to point to the Validator Manager v2 contract
+                address
+              </li>
+              <li>
+                Use this tool to migrate every validator using the validationID
+              </li>
+            </ul>
+            You need to provide the validation ID, the latest nonce received
+            from the P-Chain, and the address of the Validator Manager contract.
+          </p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+            For full details about the migration process, see the{" "}
+            <a
+              href="https://github.com/ava-labs/icm-contracts/blob/validator-manager-v2.1.0/contracts/validator-manager/MigratingFromV1.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:underline inline-flex items-center gap-1"
+            >
+              official migration guide
+              <ExternalLink className="h-3 w-3" />
+            </a>
+            .
+          </p>
+        </div>
+
+        <form className="space-y-4">
+          <Input
+            id="validatorManagerAddress"
+            label="Validator Manager Address"
+            placeholder="0x..."
+            value={localValidatorManagerAddress}
+            onChange={handleAddressChange}
+            error={addressError}
+          />
+
+          <Input
+            id="validationID"
+            label="Validation ID"
+            placeholder="0x..."
+            value={validationID}
+            onChange={setValidationID}
+            helperText="The bytes32 ID of the validation period to migrate"
+            error={validationIDError}
+          />
+
+          <Input
+            id="receivedNonce"
+            label="Received Nonce"
+            value={receivedNonce}
+            onChange={setReceivedNonce}
+            helperText="The latest nonce received from the P-Chain (typically 0)"
+            error={receivedNonceError}
+          />
+
+          <Button
+            onClick={handleMigrate}
+            loading={isProcessing}
+            loadingText="Migrating..."
+            disabled={isProcessing}
+          >
+            Migrate Validator
+          </Button>
+
+          {error && (
+            <div className="text-red-500 text-sm p-3 bg-red-50 dark:bg-red-900/30 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          {txHash && (
+            <div className="space-y-2">
+              <ResultField label="Transaction Hash" value={txHash} showCheck />
               <a
-                href="https://github.com/ava-labs/icm-contracts/blob/validator-manager-v2.1.0/contracts/validator-manager/MigratingFromV1.md"
+                href={`https://subnets.avax.network/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-500 hover:underline inline-flex items-center gap-1"
+                className="text-sm text-blue-500 hover:underline flex items-center gap-1"
               >
-                official migration guide
+                View on Explorer
                 <ExternalLink className="h-3 w-3" />
-              </a>.
-            </p>
-          </div>
-
-          <form className="space-y-4">
-            <Input
-              id="validatorManagerAddress"
-              label="Validator Manager Address"
-              placeholder="0x..."
-              value={localValidatorManagerAddress}
-              onChange={handleAddressChange}
-              error={addressError}
-            />
-
-            <Input
-              id="validationID"
-              label="Validation ID"
-              placeholder="0x..."
-              value={validationID}
-              onChange={setValidationID}
-              helperText="The bytes32 ID of the validation period to migrate"
-              error={validationIDError}
-            />
-
-            <Input
-              id="receivedNonce"
-              label="Received Nonce"
-              value={receivedNonce}
-              onChange={setReceivedNonce}
-              helperText="The latest nonce received from the P-Chain (typically 0)"
-              error={receivedNonceError}
-            />
-
-            <Button
-              onClick={handleMigrate}
-              loading={isProcessing}
-              loadingText="Migrating..."
-              disabled={isProcessing}
-            >
-              Migrate Validator
-            </Button>
-
-            {error && (
-              <div className="text-red-500 text-sm p-3 bg-red-50 dark:bg-red-900/30 rounded-lg">
-                {error}
-              </div>
-            )}
-
-            {txHash && (
-              <div className="space-y-2">
-                <ResultField
-                  label="Transaction Hash"
-                  value={txHash}
-                  showCheck
-                />
-                <a
-                  href={`https://subnets.avax.network/tx/${txHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-500 hover:underline flex items-center gap-1"
-                >
-                  View on Explorer
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              </div>
-            )}
-          </form>
-        </div>
+              </a>
+            </div>
+          )}
+        </form>
+      </div>
     </>
   );
 }

@@ -13,6 +13,7 @@ import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 // Default Native Minter address
 const DEFAULT_NATIVE_MINTER_ADDRESS =
@@ -23,7 +24,8 @@ const metadata: ConsoleToolMetadata = {
   description: "Mint native tokens (AVAX) to any address on your L1",
   walletRequirements: [
     WalletRequirementsConfigKey.EVMChainBalance
-  ]
+  ],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
 function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
@@ -36,8 +38,6 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
   const [txHash, setTxHash] = useState<string | null>(null);
 
   const handleMint = async () => {
-    if (!coreWalletClient) throw new Error("Wallet client not found");
-
     setIsMinting(true);
 
     try {

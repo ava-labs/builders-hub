@@ -5,18 +5,21 @@
         "pages": [
                 "index",
                 "dappVsL1",
-                "---Token 101---",
-                "...01-tokens101",
-                "---Custom Tokens---",
+                "token-ownership",
+                "---Token Fundamentals---",
+                "...01-tokens-fundamentals",
+                "---Native vs ERC20 Tokens---",
+                "...01b-native-vs-erc20",
+                "---Custom Native Tokens---",
                 "...02-custom-tokens",
                 "---Precompiles---",
                 "...03-precompiles",
                 "---Native Minter---",
                 "...04-native-minter",
                 "---Distribution---",
-                "...09-distribution",
+                "...07-token-distribution",
                 "---Governance---",
-                "...10-governance",
-                "More coming soon..."
+                "...08-governance",
+                "Certificate Coming Soon..."
         ]
 }

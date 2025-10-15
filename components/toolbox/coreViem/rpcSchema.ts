@@ -66,3 +66,22 @@ export type CoreWalletRpcSchema = [
         }
     }
 ]
+
+export type PChainRpcSchema = [
+    {
+        Method: 'platform.getBalance',
+        Parameters: {
+            addresses: string[]
+        }
+        ReturnType: {
+            balance: string;
+            unlocked: string;
+            lockedStakeable: string;
+            lockedNotStakeable: string;
+            utxoIDs: Array<{
+                txID: string;
+                outputIndex: number;
+            }>;
+        }
+    }
+]

@@ -33,7 +33,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     PopupTrigger,
     pre: ({ title, className, icon, allowCopy, ...props }: CodeBlockProps) => (
       <CodeBlock title={title} icon={icon} allowCopy={allowCopy}>
-        <Pre className={cn("max-h-[1200px]", className)} {...props} />
+        <Pre className={cn("max-h-[1200px]", className)} {...(props as any)} />
       </CodeBlock>
     ),
     Tabs,

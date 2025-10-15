@@ -1,4 +1,4 @@
-import algoliasearch from 'algoliasearch';
+import { algoliasearch } from 'algoliasearch';
 import { sync, DocumentRecord } from '../node_modules/fumadocs-core/dist/search/algolia.js';
 import * as fs from 'node:fs';
 

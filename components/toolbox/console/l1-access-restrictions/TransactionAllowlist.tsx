@@ -4,6 +4,7 @@ import { AllowlistComponent } from "@/components/toolbox/components/AllowListCom
 import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 // Default Transaction AllowList address
 const DEFAULT_TRANSACTION_ALLOWLIST_ADDRESS =
@@ -14,7 +15,8 @@ const metadata: ConsoleToolMetadata = {
   description: "Manage addresses allowed to send transactions on your L1",
   walletRequirements: [
     WalletRequirementsConfigKey.EVMChainBalance
-  ]
+  ],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
 function TransactionAllowlist({ onSuccess }: BaseConsoleToolProps) {

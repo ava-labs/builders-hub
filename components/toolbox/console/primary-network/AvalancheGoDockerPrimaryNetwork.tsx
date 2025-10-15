@@ -54,6 +54,7 @@ export default function AvalancheGoDockerPrimaryNetwork() {
             <Container
                 title="Primary Network Node Setup with Docker"
                 description="Set up a Docker container running a validator or RPC node for the Avalanche Primary Network (P-Chain, X-Chain, and C-Chain)."
+                githubUrl="https://github.com/ava-labs/builders-hub/edit/master/components/toolbox/console/primary-network/AvalancheGoDockerPrimaryNetwork.tsx"
             >
                 <Steps>
                     <Step>

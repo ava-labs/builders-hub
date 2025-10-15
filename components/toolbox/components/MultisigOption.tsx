@@ -10,7 +10,7 @@ import validatorManagerAbi from '../../../contracts/icm-contracts/compiled/Valid
 import poaManagerAbi from '../../../contracts/icm-contracts/compiled/PoAManager.json';
 import { useWalletStore } from '../stores/walletStore';
 import { useViemChainStore } from '../stores/toolboxStore';
-import { useSafeAPI, SafeInfo, NonceResponse, AshWalletUrlResponse } from '../hooks';
+import { useSafeAPI, SafeInfo, NonceResponse, AshWalletUrlResponse } from '../hooks/useSafeAPI';
 
 
 
@@ -91,7 +91,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [ashWalletUrl, setAshWalletUrl] = useState('');
 
-  const { coreWalletClient, publicClient } = useWalletStore();
+  const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { callSafeAPI } = useSafeAPI();
 
@@ -116,7 +116,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
       }
 
       // Get current wallet address
-      const address = coreWalletClient.account.address;
+      const address = walletEVMAddress;
       setWalletAddress(address);
 
       // Get PoAManager address by calling owner() on ValidatorManager
@@ -167,7 +167,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
         throw new Error('PoAManager or Safe address not determined');
       }
 
-      const address = coreWalletClient.account.address;
+      const address = walletEVMAddress;
       const currentChainId = getChainId();
       setChainId(currentChainId);
 

@@ -1,0 +1,46 @@
+---
+title: Custom Token vs ERC20
+description: Understanding your options for native tokens on Avalanche L1s
+updated: 2025-01-15
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+Every Avalanche L1 blockchain has its own native token used for paying for transactions (gas). This isolates the fee to use the blockchain from any activity on other chains in the ecosystem.
+
+For example, if there is high usage of the primary network, it does not affect the fees on another Avalanche L1.
+
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/multi-chain-architecture/gas-comparison-6CHcnngJHLqW9ZluUv60SzpiIdUjo2.png)
+
+Having their own blockchain with a custom native token in the Avalanche network can open up a wide range of new use cases for companies, ranging from financial institutions to gaming platforms. By having control over their gas token, these companies can revolutionize the blockchain landscape and enable innovative applications.
+
+When designing your Avalanche L1, you have two options for what will be the native token of your chain. In this section we outline which one will create the right tokenomics for your use case.
+
+## Option 1 - *Custom Native Token*
+
+Creating a **custom native token** gives you complete control over your blockchain's gas token. This approach offers several advantages:
+
+- **Custom Tokenomics**: Design token distribution, inflation, and utility to match your project's needs
+- **Business Model Flexibility**: Avoid the high costs of sponsoring transaction fees on other chains. You can make the native token intentionally valueless to deliver gas-free experiences, eliminate fee sponsorship burdens, and create Web2-like UX that removes barriers for mainstream users
+- **Fee Control**: Set predictable, isolated transaction costs independent of other chains' activity and token price volatility
+- **Economic Design**: Create token utility, reward mechanisms, and incentive structures that align with your application's goals
+
+## Option 2 - *Existing ERC20 as Native Token*
+
+You can also tie your native token's value to an **existing ERC20 token** (like USDC). This approach offers:
+
+- **Price Stability** (if you chose a stablecoin): It will ensure predictable gas costs for users; say 0.001 AVAX is the gas cost, AVAX might it be worth more in November than in January. During high congestion moments on your Stablecoin-based L1 gas price will still increase, just the underlying asset to pay it will always remain constant.
+- **Familiar Asset**: Users already understand and trust the underlying asset
+
+## L1 Native Tokenomics Decision Outline
+
+This **L1 Native Tokenomics** course focuses on implementing and creating an L1 with a **custom native token**. You'll learn how to:
+
+- Create custom token
+- Assign Initial Allocation
+- Use Wrapped Native Token pre-deployed contract
+- Configure Native Minting Rights
+- Configure Fee Configuration for Transactions
+
+*Using existing ERC20 tokens* or **another chain's native token** as your L1's native token will be covered in the **Cross-Chain L1 Native** course*.
+

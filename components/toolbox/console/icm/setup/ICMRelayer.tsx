@@ -19,13 +19,15 @@ import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalle
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DockerInstallation } from '@/components/toolbox/components/DockerInstallation';
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 const metadata: ConsoleToolMetadata = {
     title: "ICM Relayer",
     description: "Configure the ICM Relayer for cross-chain message delivery",
     walletRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
-    ]
+    ],
+    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
 function ICMRelayer({ onSuccess }: BaseConsoleToolProps) {
@@ -185,7 +187,6 @@ function ICMRelayer({ onSuccess }: BaseConsoleToolProps) {
                     decimals: 18,
                 },
             };
-            console.log('viemChain', viemChain);
 
             const publicClient = createPublicClient({
                 transport: http(chain.rpcUrl),
@@ -199,8 +200,8 @@ function ICMRelayer({ onSuccess }: BaseConsoleToolProps) {
             const transactionPromise = coreWalletClient.sendTransaction({
                 to: relayerAddress as `0x${string}`,
                 value: parseEther(amount),
+                account: walletEVMAddress as `0x${string}`,
                 chain: viemChain,
-                gas: 21000n,
                 nonce: nextNonce,
             });
             notify({

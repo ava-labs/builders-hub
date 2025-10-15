@@ -5,11 +5,11 @@ import type React from "react"
 import { useState, type InputHTMLAttributes } from "react"
 import { cn } from "../lib/utils"
 
-export interface RawInputProps extends InputHTMLAttributes<HTMLInputElement> {
+interface RawInputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string | null | React.ReactNode
 }
 
-export function RawInput({ className, error, ...props }: RawInputProps) {
+function RawInput({ className, error, ...props }: RawInputProps) {
   return (
     <input
       className={cn(
@@ -33,7 +33,7 @@ export function RawInput({ className, error, ...props }: RawInputProps) {
   )
 }
 
-export interface AmountInputProps extends Omit<RawInputProps, "onChange"> {
+interface AmountInputProps extends Omit<RawInputProps, "onChange"> {
   label: string
   unit?: string
   onChange?: (newValue: string) => void

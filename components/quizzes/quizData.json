@@ -20,7 +20,11 @@
         "114",
         "115",
         "116",
-        "117"
+        "117",
+        "1201",
+        "1202",
+        "1203",
+        "1204"
       ]
     },
     "l1-tokenomics": {
@@ -144,20 +148,68 @@
     }
   },
   "quizzes": {
-    "901": {
-      "question": "What is the primary focus of Avalanche Foundation grants?",
+    "1201": {
+      "question": "Following the highway analogy, what would one want in a highway/blockchain?",
       "options": [
-        "Monetary returns for the foundation",
-        "Creating ecosystem impact",
-        "Supporting only DeFi projects",
-        "Short-term growth metrics"
+        "Many lanes, meaning multiple cars/transactions can go at the same time, meaning high throughput, and that the highway is the shortest possible, meaning cars/transactions reach faster to their destination, meaning least time to finality",
+        "Many lanes, meaning cars/transactions can go faster, meaning low throughput, and that the highway is the shortest possible, meaning cars/transactions go fast enough to their destination such that they don’t collide, meaning least time to finality.",
+        "Many lanes, meaning cars/transactions can go faster, meaning high throughput, and that the highway is the shortest possible, meaning cars/transactions go fast enough to their destination such that they don’t collide, meaning greatest time to finality",
+        "Few lanes, meaning there will be no bottlenecks between cars/transactions going to the same place, meaning high throughput, and the highway is the longest possible, meaning cars/transactions will have to pay more tolls, meaning more profit."
       ],
       "correctAnswers": [
-        1
+        0 
       ],
-      "hint": "Grants prioritize ecosystem value over ROI.",
-      "explanation": "Avalanche Foundation grants prioritize creating ecosystem impact rather than financial returns.",
-      "chapter": "Grants Process"
+      "hint": "We want as many transactions in the least amount oftime possible.",
+      "explanation": "We build L1s (which function as different lanes) as a way to achieve high throughput, and we use a fast consensus protocol (a short route) to achieve low time to finality.",
+      "chapter": "Avalanche Fundamentals"
+    },
+    "1202": {
+      "question": "What were the main changes the Avalanche9000 upgrade brought? (Select all that apply)",
+      "options": [
+        "Subnets are now called L1s",
+        "Now each node has to stake more AVAX to become a validator, thus making the network more secure",
+        "Now L1 validators don’t need to validate the Primary Network and they only need to abide by the staking requirements defined by the L1 they wish to validate",
+        "Now the C-Chain, P-Chain and X-Chain no longer exists and all the L1s combined form the Avalanche Primary Network",
+        "Now all L1s are public and permissionless as all blockchains should be",
+        "Now L1s can be private"
+      ],
+      "correctAnswers": [
+        0,
+        2
+      ],
+      "hint": "Think about the changes we talked about and who they benefit.",
+      "explanation": "The Avalanche9000 upgrade brought many changes to the Avalanche network. Subnets are now called L1s, and the main idea was to make L1s more accessible to everyone, so L1s now don't need to validate the Primary Network. Subnets could also be private pre-Avalanche9000.",
+      "chapter": "Avalanche Fundamentals"
+    },
+    "1203": {
+      "question": "How does BLS compare to other aggregated signature schemes?",
+      "options": [
+        "Its signature aggregation maintains a small size for the aggregated signature",
+        "Its signature aggregation only uses 64 bytes",
+        "Its signature aggregation enables the aggregation of thousands of signatures",
+        "Its signature aggregation let us aggregate both signatures and public keys"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about the data size efficiency of BLS compared to other aggregated signature schemes.",
+      "explanation": "BLS is more efficient than other aggregated signature schemes because it uses a shorter aggregated signature and a smaller aggregated public key, but its size still varies. The other options are common characteristics for aggregated signature schemes.",
+      "chapter": "Avalanche Fundamentals"
+    },
+    "1204": {
+      "question": "What’s the P-Chain’s main purpose?",
+      "options": [
+        "Provide a backup for the C-Chain and X- Chain",
+        "Keep record of all transactions on both the Primary Network and all L1s",
+        "Have a registry of all validators in the Avalanche network",
+        "Manage the validator set of all L1s"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about what would one need in a network of networks.",
+      "explanation": "The P-Chain's main purpose is to have a registry of all validators in the Avalanche network, that includes both the Primary Network and all L1s.",
+      "chapter": "Avalanche Fundamentals"
     },
     "902": {
       "question": "Which of these is NOT one of the four key areas the foundation evaluates in applications?",

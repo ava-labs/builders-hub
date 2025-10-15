@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-export interface SafeAPIParams {
+interface SafeAPIParams {
   chainId?: string;
   safeAddress?: string;
   ownerAddress?: string;
@@ -10,7 +10,7 @@ export interface SafeAPIParams {
   [key: string]: any;
 }
 
-export interface SafeAPIResponse<T = any> {
+interface SafeAPIResponse<T = any> {
   success: boolean;
   data: T;
   error?: string;
@@ -38,7 +38,7 @@ export interface SafeAPIResponse<T = any> {
  */
 export const useSafeAPI = () => {
   const callSafeAPI = useCallback(async <T = any>(
-    action: string, 
+    action: string,
     params: SafeAPIParams = {}
   ): Promise<T> => {
     const response = await fetch('/api/safe', {
@@ -91,18 +91,18 @@ export interface AllSafesInfoResponse {
   errors?: Record<string, string>;
 }
 
-export interface ProposeTransactionResponse {
+interface ProposeTransactionResponse {
   proposed: boolean;
 }
 
-export interface PendingTransactionsResponse {
+interface PendingTransactionsResponse {
   count: number;
   next: string | null;
   previous: string | null;
   results: any[];
 }
 
-export interface TransactionResponse {
+interface TransactionResponse {
   safe: string;
   to: string;
   value: string;

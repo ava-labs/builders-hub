@@ -70,7 +70,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
     setErrorState(null);
     setTxSuccess(null);
 
-    if (!coreWalletClient) {
+    if (!coreWalletClient || !coreWalletClient.account) {
       setErrorState("Core wallet not found");
       return;
     }

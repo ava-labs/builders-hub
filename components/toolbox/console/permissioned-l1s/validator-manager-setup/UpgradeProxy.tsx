@@ -15,6 +15,7 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 // Storage slot with the admin of the proxy (following EIP1967)
 const ADMIN_SLOT = "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103";
@@ -24,7 +25,8 @@ const metadata: ConsoleToolMetadata = {
     description: "Upgrade the proxy implementation to the desired implementation",
     walletRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
-    ]
+    ],
+    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
 function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
@@ -32,7 +34,7 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
     const { validatorManagerAddress } = useToolboxStore();
     const [proxyAdminAddress, setProxyAdminAddress] = useState<`0x${string}` | null>(null);
     const selectedL1 = useSelectedL1()();
-    const { publicClient, walletChainId } = useWalletStore();
+    const { publicClient, walletChainId, walletEVMAddress } = useWalletStore();
     const { coreWalletClient } = useConnectedWallet();
     const [isUpgrading, setIsUpgrading] = useState(false);
     const [currentImplementation, setCurrentImplementation] = useState<string | null>(null);
@@ -155,6 +157,7 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
             functionName: 'upgrade',
             args: [proxyAddress, desiredImplementation as `0x${string}`],
             chain: viemChain ?? undefined,
+            account: walletEVMAddress as `0x${string}`
         });
 
         notify({

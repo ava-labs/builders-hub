@@ -7,11 +7,11 @@ import { cn } from "../lib/utils"
 import { RefreshCcw } from "lucide-react"
 import { formatEther } from "viem"
 
-export interface RawInputProps extends InputHTMLAttributes<HTMLInputElement> {
+interface RawInputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string | null | React.ReactNode
 }
 
-export function RawInput({ className, error, ...props }: RawInputProps) {
+function RawInput({ className, error, ...props }: RawInputProps) {
   return (
     <input
       className={cn(
@@ -52,7 +52,7 @@ export interface Suggestion {
   }
 }
 
-export interface TokenInputProps extends Omit<RawInputProps, "onChange"> {
+interface TokenInputProps extends Omit<RawInputProps, "onChange"> {
   label: string
   unit?: string
   onChange?: (newValue: string) => void
@@ -106,13 +106,13 @@ export function TokenInput({
         <label htmlFor={id} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
           {label}
         </label>
-        { selected && <div className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
+        {selected && <div className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
           Balance: {Number(formatEther(selected?.balance || 0n)).toFixed(2)}
           <button
             type="button"
             className="p-1 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition cursor-pointer"
             aria-label="Refresh balance"
-            onClick={() => {/* your refresh logic here */}}
+            onClick={() => {/* your refresh logic here */ }}
           >
             <RefreshCcw className="w-3 h-3" />
           </button>
@@ -171,9 +171,9 @@ export function TokenInput({
                           {suggestion.token.symbol[0]}
                           {suggestion.token.chain?.logoUrl && (
                             <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full overflow-hidden border border-white bg-white/80 dark:border-zinc-800 dark:bg-zinc-800/80 flex items-center justify-center">
-                              <img 
-                                src={suggestion.token.chain.logoUrl} 
-                                alt={suggestion.token.chain.name || 'Chain logo'} 
+                              <img
+                                src={suggestion.token.chain.logoUrl}
+                                alt={suggestion.token.chain.name || 'Chain logo'}
                                 className="w-full h-full object-contain p-0.5 block rounded-full"
                               />
                             </div>

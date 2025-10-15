@@ -18,23 +18,21 @@ export function WalletBootstrap() {
   const setBootstrapped = useWalletStore((s) => s.setBootstrapped)
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.avalanche) return
+    if (typeof window === 'undefined' || !window.avalanche) return;
 
-    const onChainChanged = (chainId: string | number) => {
+    const onChainChanged = async (chainId: string | number) => {
       const numericId = typeof chainId === 'string' ? Number.parseInt(chainId, 16) : chainId
       setWalletChainId(numericId)
 
       // Update network metadata
       try {
-        // @ts-ignore
-        const client = createCoreWalletClient(useWalletStore.getState().walletEVMAddress as any)
+        const client = await createCoreWalletClient(useWalletStore.getState().walletEVMAddress as `0x${string}`)
         if (client) {
-          client.getEthereumChain().then((data: { isTestnet: boolean; chainName: string }) => {
-            const { isTestnet, chainName } = data
-            setAvalancheNetworkID(isTestnet ? networkIDs.FujiID : networkIDs.MainnetID)
-            setIsTestnet(isTestnet)
-            setEvmChainName(chainName)
-          }).catch(() => { })
+          const data = await client.getEthereumChain()
+          const { isTestnet, chainName } = data
+          setAvalancheNetworkID(isTestnet ? networkIDs.FujiID : networkIDs.MainnetID)
+          setIsTestnet(isTestnet)
+          setEvmChainName(chainName)
         }
       } catch { }
 
@@ -58,7 +56,7 @@ export function WalletBootstrap() {
       }
 
       const account = accounts[0] as `0x${string}`
-      const client = createCoreWalletClient(account)
+      const client = await createCoreWalletClient(account)
       if (!client) return
 
       setCoreWalletClient(client)
@@ -95,12 +93,6 @@ export function WalletBootstrap() {
         window.avalanche.on('accountsChanged', handleAccountsChanged)
         window.avalanche.on('chainChanged', onChainChanged)
       }
-
-      if (window.avalanche.request) {
-        window.avalanche.request<string[]>({ method: 'eth_accounts' })
-          .then(handleAccountsChanged)
-          .catch(() => { })
-      }
     } catch { }
 
     return () => {
@@ -115,6 +107,4 @@ export function WalletBootstrap() {
 
   return null
 }
-
-export default WalletBootstrap
 

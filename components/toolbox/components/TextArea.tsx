@@ -3,7 +3,7 @@
 import type { TextareaHTMLAttributes } from "react"
 import { cn } from "../lib/utils"
 
-export interface TextareaProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange"> {
+interface TextareaProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange"> {
     label: string
     onChange?: (newValue: string) => void
     helperText?: string

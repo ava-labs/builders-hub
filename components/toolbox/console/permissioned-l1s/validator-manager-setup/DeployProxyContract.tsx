@@ -8,12 +8,13 @@ import ProxyAdminABI from "@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json
 import TransparentUpgradeableProxyABI from "@/contracts/openzeppelin-4.9/compiled/TransparentUpgradeableProxy.json";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
-import { Callout } from "fumadocs-ui/components/callout";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
-import { Checkbox } from "@/components/toolbox/components/Checkbox";
+import { AcknowledgementCallout } from "@/components/toolbox/components/AcknowledgementCallout";
+import { LockedContent } from "@/components/toolbox/components/LockedContent";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 const PROXYADMIN_SOURCE_URL = "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.0/contracts/proxy/transparent/ProxyAdmin.sol";
 const TRANSPARENT_PROXY_SOURCE_URL = "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.0/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
@@ -23,7 +24,8 @@ const metadata: ConsoleToolMetadata = {
     description: "Deploy ProxyAdmin and TransparentUpgradeableProxy contracts to the EVM network",
     walletRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
-    ]
+    ],
+    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
 function DeployProxyContract({ onSuccess }: BaseConsoleToolProps) {
@@ -48,6 +50,7 @@ function DeployProxyContract({ onSuccess }: BaseConsoleToolProps) {
         const deployPromise = coreWalletClient.deployContract({
             abi: ProxyAdminABI.abi as any,
             bytecode: ProxyAdminABI.bytecode.object as `0x${string}`,
+            args: [],
             chain: viemChain ?? undefined,
             account: walletEVMAddress as `0x${string}`
         });
@@ -108,96 +111,90 @@ function DeployProxyContract({ onSuccess }: BaseConsoleToolProps) {
 
                 <p className="mb-3"><strong>How It Works:</strong> The proxy contract stores state and forwards function calls, while the implementation contract contains only the logic. The proxy admin manages implementation upgrades securely.</p>
 
-                {!warningDismissed && (
-                    <div className="relative">
-                        <div className="absolute -inset-1 bg-red-500/20 dark:bg-red-500/10 rounded-lg blur-sm" />
-                        <Callout type="warn" className="relative mb-8 border-2 border-red-500 dark:border-red-400">
-                            <div className="space-y-3">
-                                <div className="flex items-start gap-2">
-                                    <div className="space-y-2">
-                                        <p>
-                                            If you created your L1 using the <strong>Builder Console</strong>, a proxy contract is <strong>already pre-deployed</strong> at address <code className="bg-red-100 dark:bg-red-900/30 px-1 py-0.5 rounded">0xfacade0000000000000000000000000000000000</code>
-                                        </p>
-                                        <p className="text-sm">
-                                            You only need this tool if:
-                                        </p>
-                                        <ul className="list-disc list-inside text-sm ml-2 space-y-1">
-                                            <li>You want to deploy the Validator Manager on a different L1</li>
-                                            <li>You need to deploy a new proxy contract for a specific reason</li>
-                                            <li>You're working with an L1 not created through Builder Console (AvaCloud, Gelato, alt BaaS provider)</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                                <div className="pt-2 border-t border-red-300 dark:border-red-700">
-                                    <Checkbox
-                                        label="I understand and need to deploy a new proxy contract"
-                                        checked={acknowledged}
-                                        onChange={(checked) => {
-                                            setAcknowledged(checked);
-                                            if (checked) {
-                                                setWarningDismissed(true);
-                                            }
-                                        }}
-                                    />
-                                </div>
-                            </div>
-                        </Callout>
-                    </div>
-                )}
+                <AcknowledgementCallout
+                    title="Do You Need to Deploy a New Proxy?"
+                    type="warn"
+                    checkboxLabel="I understand and need to deploy a new proxy contract"
+                    checked={acknowledged}
+                    onCheckedChange={(checked: boolean) => {
+                        setAcknowledged(checked);
+                        if (checked) {
+                            setWarningDismissed(true);
+                        }
+                    }}
+                    visible={!warningDismissed}
+                >
+                    <p>
+                        If you created your L1 using the <strong>Builder Console</strong>, a proxy contract is <strong>already pre-deployed</strong> at address <code className="bg-amber-100 dark:bg-amber-900/30 px-1 py-0.5 rounded">0xfacade0000000000000000000000000000000000</code>
+                    </p>
+                    <p>
+                        You only need this tool if:
+                    </p>
+                    <ul className="list-disc list-inside ml-2 space-y-1">
+                        <li>You want to deploy the Validator Manager on a different L1</li>
+                        <li>You need to deploy a new proxy contract for a specific reason</li>
+                        <li>You're working with an L1 not created through Builder Console (AvaCloud, Gelato, alt BaaS provider)</li>
+                    </ul>
+                </AcknowledgementCallout>
 
-                <Steps>
-                    <Step>
-                        <h2 className="text-lg font-semibold">Deploy Proxy Admin Contract</h2>
-                        <p className="text-sm text-gray-500">
-                            This will deploy the <code>ProxyAdmin</code> contract to the EVM network <code>{viemChain?.id}</code>. <code>ProxyAdmin</code> is used to manage upgrades to the implementation for the proxy contract. For production L1s this should be a multisig wallet, since it can take full control over the L1 validator set by arbitrarily changing the implementation of the ValidatorManager contract.
-                        </p>
-                        <p className="text-sm text-gray-500">
-                            Contract source: <a href={PROXYADMIN_SOURCE_URL} target="_blank" rel="noreferrer">ProxyAdmin.sol</a> @ <code>v4.9.0</code>
-                        </p>
+                <LockedContent
+                    isUnlocked={warningDismissed}
+                    lockedMessage="Please acknowledge the proxy deployment warning above to continue"
+                >
+                    <Steps>
+                        <Step>
+                            <h2 className="text-lg font-semibold">Deploy Proxy Admin Contract</h2>
+                            <p className="text-sm text-gray-500">
+                                This will deploy the <code>ProxyAdmin</code> contract to the EVM network <code>{viemChain?.id}</code>. <code>ProxyAdmin</code> is used to manage upgrades to the implementation for the proxy contract. For production L1s this should be a multisig wallet, since it can take full control over the L1 validator set by arbitrarily changing the implementation of the ValidatorManager contract.
+                            </p>
+                            <p className="text-sm text-gray-500">
+                                Contract source: <a href={PROXYADMIN_SOURCE_URL} target="_blank" rel="noreferrer">ProxyAdmin.sol</a> @ <code>v4.9.0</code>
+                            </p>
 
-                        <Button
-                            variant="primary"
-                            onClick={deployProxyAdmin}
-                            loading={isDeployingProxyAdmin}
-                            disabled={isDeployingProxyAdmin || !!proxyAdminAddress || (!acknowledged && !warningDismissed)}
-                            className="mt-4"
-                        >
-                            Deploy Proxy Admin
-                        </Button>
+                            <Button
+                                variant="primary"
+                                onClick={deployProxyAdmin}
+                                loading={isDeployingProxyAdmin}
+                                disabled={isDeployingProxyAdmin || !!proxyAdminAddress}
+                                className="mt-4"
+                            >
+                                Deploy Proxy Admin
+                            </Button>
 
-                        <p>Deployment Status: <code>{proxyAdminAddress || "Not deployed"}</code></p>
-                    </Step>
-                    <Step>
-                        <h2 className="text-lg font-semibold">Deploy Transparent Proxy Contract</h2>
-                        <p className="text-sm text-gray-500">
-                            The proxy requires the <code>ProxyAdmin</code> contract at address: <code>{proxyAdminAddress || "Not deployed"}</code>
-                        </p>
-                        <p className="text-sm text-gray-500">
-                            Contract source: <a href={TRANSPARENT_PROXY_SOURCE_URL} target="_blank" rel="noreferrer">TransparentUpgradeableProxy.sol</a> @ <code>v4.9.0</code>
-                        </p>
+                            <p>Deployment Status: <code>{proxyAdminAddress || "Not deployed"}</code></p>
+                        </Step>
+                        <Step>
+                            <h2 className="text-lg font-semibold">Deploy Transparent Proxy Contract</h2>
+                            <p className="text-sm text-gray-500">
+                                The proxy requires the <code>ProxyAdmin</code> contract at address: <code>{proxyAdminAddress || "Not deployed"}</code>
+                            </p>
+                            <p className="text-sm text-gray-500">
+                                Contract source: <a href={TRANSPARENT_PROXY_SOURCE_URL} target="_blank" rel="noreferrer">TransparentUpgradeableProxy.sol</a> @ <code>v4.9.0</code>
+                            </p>
 
 
-                        <EVMAddressInput
-                            label="Implementation Address"
-                            value={implementationAddress}
-                            onChange={setImplementationAddress}
-                            placeholder="Enter implementation contract address (e.g. ValidatorManager or StakingManager)"
-                            disabled={isDeployingProxy}
-                        />
+                            <EVMAddressInput
+                                label="Implementation Address"
+                                value={implementationAddress}
+                                onChange={setImplementationAddress}
+                                placeholder="Enter implementation contract address (e.g. ValidatorManager or StakingManager)"
+                                disabled={isDeployingProxy}
+                            />
 
-                        <Button
-                            variant="primary"
-                            onClick={deployTransparentProxy}
-                            loading={isDeployingProxy}
-                            disabled={isDeployingProxy || !proxyAdminAddress || !implementationAddress || (!acknowledged && !warningDismissed)}
-                            className="mt-4"
-                        >
-                            Deploy Proxy Contract
-                        </Button>
-                        <p>Deployment Status: <code>{proxyAddress || "Not deployed"}</code></p>
+                            <Button
+                                variant="primary"
+                                onClick={deployTransparentProxy}
+                                loading={isDeployingProxy}
+                                disabled={isDeployingProxy || !proxyAdminAddress || !implementationAddress}
+                                className="mt-4"
+                            >
+                                Deploy Proxy Contract
+                            </Button>
+                            <p>Deployment Status: <code>{proxyAddress || "Not deployed"}</code></p>
 
-                    </Step>
-                </Steps>
+                        </Step>
+                    </Steps>
+                </LockedContent>
         </>
     );
 }

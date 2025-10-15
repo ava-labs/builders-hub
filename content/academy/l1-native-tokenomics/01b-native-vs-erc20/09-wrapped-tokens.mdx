@@ -1,0 +1,59 @@
+---
+title: Wrapped Native Tokens
+description: Learn about wrapped tokens and their role in blockchain ecosystems.
+updated: 2025-09-15
+authors: [0xstt]
+icon: BookOpen
+---
+
+Now that we understand the key differences between native tokens and ERC20s, we can explore **native token wrapping** - what it is and why it's necessary for blockchain ecosystems.
+
+**Wrapped tokens** are blockchain assets that represent a native cryptocurrency (e.g., AVAX, ALOT, ETH) in a tokenized form, typically conforming to the **ERC-20 token standard**. Wrapping a native token allows it to be used in decentralized applications (dApps) and protocols that require ERC-20 tokens.
+
+---
+
+### What Are Wrapped Tokens?
+
+Wrapped tokens are created through a process where the native cryptocurrency is locked in a smart contract, and an equivalent amount of the wrapped token is minted. These wrapped tokens are backed 1:1 by the underlying native asset, ensuring that the value of the wrapped token mirrors that of the original native cryptocurrency.
+
+This **ERC-20 compatibility** is crucial for enabling the native asset to interact with dApps, decentralized exchanges (DEXs), and smart contracts within the EVM ecosystem, where ERC-20 tokens are the standard. As we learned in the previous section, this solves the fundamental limitation where protocols cannot "pull" native tokens using `transferFrom()`.
+
+---
+
+### Why Are Wrapped Tokens Important?
+
+Wrapped tokens play an essential role in **interoperability** within the EVM ecosystem, facilitating seamless use across decentralized applications and protocols. They directly address the limitations we discussed about native tokens:
+
+- **DeFi Integration**: Wrapped tokens enable native assets to participate in DeFi protocols that require ERC-20 tokens. Remember our Aave example? Native ETH needs to be wrapped to WETH before it can be supplied to lending protocols.
+- **Protocol Compatibility**: They solve the `transferFrom()` limitation by allowing protocols to "pull" tokens from user wallets, which is impossible with native tokens.
+- **Liquidity**: Wrapped tokens increase liquidity in DeFi by enabling users to participate in protocols that require ERC-20 tokens, even when their original asset is a native token.
+- **Cross-Chain Compatibility**: Wrapped tokens allow assets from one blockchain (e.g., Bitcoin) to be used on another chain, enhancing cross-chain functionality.
+
+---
+
+### Wrapped Token Contract Interface
+
+A **wrapped token contract** is typically an implementation of the ERC-20 token standard, with added functions for minting and burning tokens to facilitate the wrapping and unwrapping process. Here's a basic contract interface for a wrapped token:
+
+```solidity
+interface IWrappedToken {
+    function deposit() external payable;
+    function withdraw(uint256 amount) external;
+    
+    function totalSupply() external view returns (uint256);
+    function balanceOf(address account) external view returns (uint256);
+    function transfer(address recipient, uint256 amount) external returns (bool);
+    function allowance(address owner, address spender) external view returns (uint256);
+    function approve(address spender, uint256 amount) external returns (bool);
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+}
+```
+
+<Accordions>
+<Accordion title="deposit()">
+This function is used to wrap native tokens. When a user calls deposit(), they send the native cryptocurrency (e.g., AVAX, ETH) to the contract, which then mints an equivalent amount of the wrapped token.
+</Accordion>
+<Accordion title="withdraw()">
+This function is used to unwrap the tokens. It burns the specified amount of wrapped tokens and returns the equivalent amount of native cryptocurrency to the user.
+</Accordion>
+</Accordions>

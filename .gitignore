@@ -142,7 +142,38 @@ package-lock.json
 
 
 
+
 # Remote content output paths
+content/docs/acps/103-dynamic-fees.mdx
+content/docs/acps/108-evm-event-importing.mdx
+content/docs/acps/113-provable-randomness.mdx
+content/docs/acps/118-warp-signature-request.mdx
+content/docs/acps/125-basefee-reduction.mdx
+content/docs/acps/13-subnet-only-validators.mdx
+content/docs/acps/131-cancun-eips.mdx
+content/docs/acps/151-use-current-block-pchain-height-as-context.mdx
+content/docs/acps/176-dynamic-evm-gas-limit-and-price-discovery-updates.mdx
+content/docs/acps/181-p-chain-epoched-views.mdx
+content/docs/acps/191-seamless-l1-creation.mdx
+content/docs/acps/194-streaming-asynchronous-execution.mdx
+content/docs/acps/20-ed25519-p2p.mdx
+content/docs/acps/204-precompile-secp256r1.mdx
+content/docs/acps/209-eip7702-style-account-abstraction.mdx
+content/docs/acps/224-dynamic-gas-limit-in-subnet-evm.mdx
+content/docs/acps/226-dynamic-minimum-block-times.mdx
+content/docs/acps/23-p-chain-native-transfers.mdx
+content/docs/acps/24-shanghai-eips.mdx
+content/docs/acps/25-vm-application-errors.mdx
+content/docs/acps/30-avalanche-warp-x-evm.mdx
+content/docs/acps/31-enable-subnet-ownership-transfer.mdx
+content/docs/acps/41-remove-pending-stakers.mdx
+content/docs/acps/62-disable-addvalidatortx-and-adddelegatortx.mdx
+content/docs/acps/75-acceptance-proofs.mdx
+content/docs/acps/77-reinventing-subnets.mdx
+content/docs/acps/83-dynamic-multidimensional-fees.mdx
+content/docs/acps/84-table-preamble.mdx
+content/docs/acps/99-validatorsetmanager-contract.mdx
+content/docs/acps/index.mdx
 content/docs/api-reference/admin-api.mdx
 content/docs/api-reference/c-chain/api.mdx
 content/docs/api-reference/health-api.mdx
@@ -164,11 +195,9 @@ content/docs/cross-chain/teleporter/overview.mdx
 content/docs/cross-chain/teleporter/upgradeability.mdx
 content/docs/nodes/chain-configs/c-chain.mdx
 content/docs/nodes/chain-configs/p-chain.mdx
-content/docs/nodes/chain-configs/x-chain.mdx
 content/docs/nodes/chain-configs/subnet-evm.mdx
+content/docs/nodes/chain-configs/x-chain.mdx
 content/docs/nodes/configure/avalanche-l1-configs.mdx
-content/docs/nodes/configure/chain-configs/p-chain.mdx
-content/docs/nodes/configure/chain-configs/x-chain.mdx
 content/docs/nodes/configure/configs-flags.mdx
 content/docs/tooling/cli-commands.mdx
 

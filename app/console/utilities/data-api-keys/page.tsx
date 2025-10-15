@@ -18,10 +18,14 @@ export default async function Page() {
     email: session.user.email!,
   });
 
+  const DATA_API_ENDPOINT = process.env.VERCEL_ENV === "production" ? 'https://data-api.avax.network/v1' : 'https://data-api-dev.avax.network/v1';
+
+
   // Pass authenticated user data to the component
   return (
     <TokenManagement
       glacierJwt={glacierJwt}
+      endpoint={DATA_API_ENDPOINT}
     />
   );
 }

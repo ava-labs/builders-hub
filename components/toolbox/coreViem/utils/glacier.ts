@@ -161,7 +161,7 @@ interface PChainChainInfo {
     network: string; // e.g., "fuji", "mainnet"
 }
 
-export interface PChainBalanceResponse {
+interface PChainBalanceResponse {
     balances: Balances;
     chainInfo: PChainChainInfo;
 }
@@ -200,7 +200,7 @@ interface NetworkTokenInfo {
     description: string;
 }
 
-export interface ChainDetails {
+interface ChainDetails {
     chainId: string;
     status: string;
     chainName: string;

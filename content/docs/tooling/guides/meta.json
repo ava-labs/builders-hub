@@ -1,0 +1,8 @@
+{
+  "title": "Miscellaneous Guides",
+  "description": "General guides for Avalanche CLI.",
+  "pages": [
+    "import-avalanche-l1",
+    "run-with-docker"
+  ]
+}

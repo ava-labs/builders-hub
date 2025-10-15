@@ -119,9 +119,7 @@ export default function AvalancheForBuildersPage() {
         <div className="container relative max-w-7xl mx-auto px-6 py-8 lg:py-20">
           {/* Hero Section */}
           <section className="text-center space-y-8 pt-16 pb-32 lg:pt-24 lg:pb-40">
-            <div
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-avax-red/10 border border-avax-red/20 text-sm font-medium mb-6 text-avax-red"
-            >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-avax-red/10 border border-avax-red/20 text-sm font-medium mb-6 text-avax-red">
               <span className="w-2 h-2 rounded-full bg-avax-red animate-pulse" />
               Avalanche For Builders
             </div>
@@ -136,12 +134,18 @@ export default function AvalancheForBuildersPage() {
             </p>
 
             <p className="text-sm md:text-base text-muted-foreground leading-relaxed max-w-2xl mx-auto text-pretty">
-              Stop waiting for the perfect moment. Join the most successful builders who are already funded and shipping. From breakthrough
-              infrastructure to viral consumer apps - we're backing the teams that will define Web3's next chapter.
+              Stop waiting for the perfect moment. Join the most successful
+              builders who are already funded and shipping. From breakthrough
+              infrastructure to viral consumer apps - we're backing the teams
+              that will define Web3's next chapter.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <Link href="https://4h8ew.share.hsforms.com/2DhyJTNzhRXmMMDebQMY1QQ" target="_blank" rel="noopener noreferrer">
+              <Link
+                href="https://4h8ew.share.hsforms.com/2DhyJTNzhRXmMMDebQMY1QQ"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Button
                   size="lg"
                   className="bg-avax-red hover:bg-avax-red/90 text-white px-8 h-12 rounded-xl font-medium text-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-avax-red/25"
@@ -173,7 +177,8 @@ export default function AvalancheForBuildersPage() {
                 Momentum is Everything
               </h2>
               <p className="text-base md:text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed text-pretty">
-                September 2025 proves it: builders who choose Avalanche see explosive growth and real adoption
+                September 2025 proves it: builders who choose Avalanche see
+                explosive growth and real adoption
               </p>
             </div>
 
@@ -340,7 +345,7 @@ export default function AvalancheForBuildersPage() {
               </p>
               <div className="pt-4">
                 <Link
-                  href="https://build.avax.network/grants"
+                  href="https://4h8ew.share.hsforms.com/2DhyJTNzhRXmMMDebQMY1QQ"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

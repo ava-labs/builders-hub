@@ -140,12 +140,13 @@ export default function ConsoleHistoryPage() {
           type: 'address'
         });
       }
-      if (toolboxStore.wrappedNativeTokenAddress && toolboxStore.wrappedNativeTokenAddress !== '') {
+      // Get wrapped native token address from L1 store
+      if (selectedL1?.wrappedTokenAddress && selectedL1.wrappedTokenAddress !== '') {
         items.push({
           id: 'tb-wrapped-native',
           title: 'Wrapped Native Token',
           description: 'Token Contract',
-          address: toolboxStore.wrappedNativeTokenAddress,
+          address: selectedL1.wrappedTokenAddress,
           chainId,
           type: 'address'
         });

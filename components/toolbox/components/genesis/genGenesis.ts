@@ -1,6 +1,5 @@
 import { parseEther } from 'viem'
-import { AllowlistPrecompileConfig, AllocationEntry } from './types';
-import { PreinstallConfig } from './PreinstalledContractsSection';
+import { AllowlistPrecompileConfig, AllocationEntry, PreinstallConfig } from './types';
 import TransparentUpgradeableProxy from "../../../../contracts/openzeppelin-4.9/compiled/TransparentUpgradeableProxy.json"
 import ProxyAdmin from "../../../../contracts/openzeppelin-4.9/compiled/ProxyAdmin.json"
 import TeleporterMessenger from "../../../../contracts/icm-contracts/compiled/TeleporterMessenger.json"
@@ -8,16 +7,16 @@ import WrappedNativeToken from "../../../../contracts/icm-contracts/compiled/Wra
 import Create2Deployer from "../../../../contracts/create2-contracts/compiled/Create2Deployer.json"
 import Multicall3 from "../../../../contracts/multicall3-contracts/compiled/Multicall3.json"
 
-export const PROXY_ADDRESS = "0xfacade0000000000000000000000000000000000"
-export const PROXY_ADMIN_ADDRESS = "0xdad0000000000000000000000000000000000000"
+const PROXY_ADDRESS = "0xfacade0000000000000000000000000000000000"
+const PROXY_ADMIN_ADDRESS = "0xdad0000000000000000000000000000000000000"
 import { addressEntryArrayToAddressArray } from './types';
 
-export const SAFE_SINGLETON_FACTORY_ADDRESS = "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7"
-export const UNITIALIZED_PROXY_ADDRESS = "0x1212121212121212121212121212121212121212"
-export const MULTICALL3_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11"
-export const ICM_MESSENGER_ADDRESS = "0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf"
-export const WRAPPED_NATIVE_TOKEN_ADDRESS = "0x1111111111111111111111111111111111111111"
-export const CREATE2_DEPLOYER_ADDRESS = "0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2"
+const SAFE_SINGLETON_FACTORY_ADDRESS = "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7"
+const UNITIALIZED_PROXY_ADDRESS = "0x1212121212121212121212121212121212121212"
+const MULTICALL3_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11"
+const ICM_MESSENGER_ADDRESS = "0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf"
+const WRAPPED_NATIVE_TOKEN_ADDRESS = "0x1111111111111111111111111111111111111111"
+const CREATE2_DEPLOYER_ADDRESS = "0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2"
 
 
 const currentTimestamp = Math.floor(Date.now() / 1000);

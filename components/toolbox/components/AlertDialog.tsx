@@ -166,7 +166,7 @@ function AlertDialogAction({
   className,
   variant = "primary",
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Action> & { 
+}: React.ComponentProps<typeof AlertDialogPrimitive.Action> & {
   variant?: "primary" | "secondary" | "outline" | "danger" | "outline-danger" | "light-danger"
 }) {
   return (
@@ -191,9 +191,6 @@ function AlertDialogCancel({
 
 export {
   AlertDialog,
-  AlertDialogPortal,
-  AlertDialogOverlay,
-  AlertDialogTrigger,
   AlertDialogContent,
   AlertDialogHeader,
   AlertDialogFooter,

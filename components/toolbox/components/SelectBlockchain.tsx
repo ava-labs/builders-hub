@@ -6,7 +6,7 @@ import { useWalletStore } from "../stores/walletStore";
 import { networkIDs } from "@avalabs/avalanchejs";
 
 // API Response type from AvaCloud - matches the official API response
-export type BlockchainApiResponse = {
+type BlockchainApiResponse = {
     createBlockTimestamp: number;
     createBlockNumber: string;
     blockchainId: string;

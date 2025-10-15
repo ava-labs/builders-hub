@@ -1,0 +1,53 @@
+---
+title: Stateful Precompiles
+description: Understanding Stateful Precompiles and their role in blockchain optimization
+updated: 2025-01-15
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+First of all we will start by saying the notion of precompiles contracts, or "*Precompiles*" as we are calling them, is something inherited from the Ethereum community. The EVM, while very robust and efficient for handling thousands of simple transactions like token minting, swapping or so, has a series of limitations:
+
+### Lack of Libraries
+
+Solidity is a relatively new language, hence it doesn't have as many powerful and battle-tested libraries as other languages like *Go*, *Typescript* or *Rust*
+
+### Expensive Computation
+
+Solidity code is compiled into EVM opcodes—low-level instructions designed for simple operations like addition, storage reads, and basic logic. 
+
+When performing complex mathematical operations (like elliptic curve cryptography or modular exponentiation), these simple opcodes must be chained together, requiring many steps and frequent use of expensive operations like `SSTORE` (storage writes) which cost 20,000 gas or more. This makes advanced cryptography impractically expensive in pure Solidity
+
+## Basic Precompiles 
+
+Given these limitations - many developer teams/communities have proposed creating programs written in more efficient languages (Go/Rust) for well-known or frequently used operations that may temporarily by-pass the limitations of the smart contract language of that blockchain. These "programs" are then wrapped in a interface (solidity/move) and deployed to a pre-defined address so they can be called from other smart contracts in the application layer.
+
+<img src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/precompile_strucutre.png" alt="Precompiles Structure" style={{ maxWidth: '60%', height: 'auto', margin: '0 auto', display: 'block' }} />
+
+Instances of these Precompiles exists across most major blockchain platforms:
+- Ethereum has standard precompiles at fixed addresses
+- Solana uses "Native Programs" written in Rust
+- Aptos and Sui have "Native Functions" exposed through Move modules
+
+For Avalanche, these precompiles are especially important because you are the **owner** of your L1. Rather than having to go through several community approvals (the case for single-chain environments like Ethereum and Solana) and executing a network upgrade to implement them, you can directly define them in the genesis block! (*or add them as well through a network upgrade*)
+
+### Common Precompiles
+
+Here are some of the most widely used precompiles across EVM-compatible blockchains:
+
+**Cryptographic Operations:**
+- `ecRecover` (0x01): Recover Ethereum address from ECDSA signature
+- `SHA256` (0x02): SHA-256 hash function
+
+## Stateful Precompiles
+
+The basic precompiles we've discussed so far (like ecRecover and SHA256) are **stateless**—they perform computations and return results without modifying the blockchain state. However, Avalanche introduces a more powerful concept: **Stateful Precompiles**.
+
+Stateful precompiles go a step further by **injecting state access** through the `PrecompileAccessibleState` interface. This gives them the ability to:
+- Read and modify account balances
+- Read and write to contract storage
+- Access the full EVM state during execution
+
+This state access makes stateful precompiles far more powerful than their stateless counterparts. Instead of just performing calculations, they can directly manipulate blockchain state at the protocol level—enabling use cases like native token minting, fee configuration, and transaction/contract deployer permissioning.
+
+Through stateful precompiles, Avalanche provides a level of EVM customization that goes beyond what's possible with the original precompile interface, making it ideal for building highly customized L1 blockchains.

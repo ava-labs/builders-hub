@@ -1,5 +1,6 @@
 {
-  "title": "Intro to Solidity with Foundry",
+  "title": "Intro to Solidity",
+  "icon": "Anvil",
   "root": true,
   "pages": [
     "index",

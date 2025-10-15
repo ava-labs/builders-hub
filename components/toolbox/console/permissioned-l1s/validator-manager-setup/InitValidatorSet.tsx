@@ -20,6 +20,7 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 const cb58ToHex = (cb58: string) => utils.bufferToHex(utils.base58check.decode(cb58));
 const add0x = (hex: string): `0x${string}` => hex.startsWith('0x') ? hex as `0x${string}` : `0x${hex}`;
@@ -29,14 +30,15 @@ const metadata: ConsoleToolMetadata = {
     description: "Initialize the ValidatorManager contract with the initial validator set",
     walletRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
-    ]
+    ],
+    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
 function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
     const [conversionTxID, setConversionTxID] = useState<string>("");
     const [L1ConversionSignature, setL1ConversionSignature] = useState<string>("");
     const viemChain = useViemChainStore();
-    const { publicClient } = useWalletStore();
+    const { publicClient, walletEVMAddress } = useWalletStore();
     const { coreWalletClient } = useConnectedWallet();
     const { aggregateSignature } = useAvaCloudSDK();
     const [isInitializing, setIsInitializing] = useState(false);
@@ -149,6 +151,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                 accessList,
                 gas: BigInt(2_000_000),
                 chain: viemChain || undefined,
+                account: walletEVMAddress as `0x${string}`
             });
 
             notify({

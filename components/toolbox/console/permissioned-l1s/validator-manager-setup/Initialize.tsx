@@ -18,13 +18,15 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 const metadata: ConsoleToolMetadata = {
     title: "Initial Validator Manager Configuration",
     description: "Initialize the ValidatorManager contract with the initial configuration",
     walletRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
-    ]
+    ],
+    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
 function Initialize({ onSuccess }: BaseConsoleToolProps) {
@@ -147,6 +149,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
             functionName: 'initialize',
             args: [settings],
             chain: viemChain ?? undefined,
+            account: walletEVMAddress as `0x${string}`
         });
 
         notify({

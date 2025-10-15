@@ -18,11 +18,13 @@ import { useManagedTestnetNodes } from "@/hooks/useManagedTestnetNodes";
 import { toast } from "@/hooks/use-toast";
 import TestnetOnly from "./TestnetOnly";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 const metadata: ConsoleToolMetadata = {
     title: "Managed Testnet Nodes",
     description: "Manage your hosted testnet nodes.",
-    walletRequirements: []
+    walletRequirements: [],
+    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
 function ManagedTestnetNodesBase() {

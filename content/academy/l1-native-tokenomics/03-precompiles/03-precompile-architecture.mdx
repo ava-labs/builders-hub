@@ -1,0 +1,39 @@
+---
+title: Protocol Integration
+description: How precompiles integrate with the VM stack and optimize execution
+updated: 2025-01-15
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+Blockchains are organized into three distinct layers, each with specific responsibilities:
+
+![Blockchain Layers](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Precompiles_Layers1.png)
+
+1. **Application Layer**: Where smart contracts and user applications run
+2. **Execution Layer**: Where the EVM processes transactions and executes code
+3. **Consensus Layer**: Where validators agree on the blockchain state
+
+Precompiles live in the **Execution Layer**, directly integrated into the EVM itself:
+
+![Precompiles in Execution Layer](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Precompiles_Layers2.png)
+
+## Why Aren't Precompiles in the Application Layer?
+
+You might wonder: if precompiles can be called like smart contracts, why aren't they stored with other smart contracts in the application layer?
+
+The answer comes down to **performance and access**:
+
+**1. Direct State Access**  
+Smart contracts in the application layer must go through the EVM interpreter to access blockchain state. Precompiles, living in the execution layer, have **direct access** to the EVM state—they can read and modify balances, storage, and consensus data without the overhead of bytecode interpretation.
+
+**2. Native Code Execution**  
+Application layer contracts are compiled to EVM bytecode and executed opcode-by-opcode. Precompiles are written in Go (Avalanche's client language) and execute as **native code**, making them orders of magnitude faster for complex operations.
+
+**3. Protocol-Level Operations**  
+Precompiles need to perform operations that regular smart contracts cannot or should not do—like minting native tokens, configuring transaction fees, or managing validator permissions. These are **protocol-level concerns** that require execution layer access.
+
+**4. Security Boundaries**  
+By keeping precompiles in the execution layer, we maintain a clear security boundary. User-deployed contracts can't interfere with protocol operations, and protocol operations benefit from the stability and security of the client software itself.
+
+This architectural separation is what makes stateful precompiles so powerful: they bridge the gap between user applications and the blockchain protocol, enabling customizations that would be impossible in the application layer alone.

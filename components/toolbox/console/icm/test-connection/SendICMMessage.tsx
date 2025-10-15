@@ -15,6 +15,7 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 const predeployedDemos: Record<string, string> = {
     //fuji
@@ -26,7 +27,8 @@ const metadata: ConsoleToolMetadata = {
     description: "Send a test message between L1s using Avalanche's Inter-Chain Messaging (ICM) protocol",
     walletRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
-    ]
+    ],
+    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
 function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
@@ -116,12 +118,10 @@ function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
                     destinationBlockchainIDHex as `0x${string}`
                 ],
                 account: coreWalletClient.account,
-            });
-
-            const writePromise = coreWalletClient.writeContract({
-                ...request,
                 chain: viemChain,
             });
+
+            const writePromise = coreWalletClient.writeContract(request);
 
             notify({
                 type: 'call',

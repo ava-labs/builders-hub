@@ -16,6 +16,7 @@ import { useCreateChainStore } from '@/components/toolbox/stores/createChainStor
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../components/WithConsoleToolMetadata';
 import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 const metadata: ConsoleToolMetadata = {
   title: "Change Consensus Weight of Validators",
@@ -23,7 +24,8 @@ const metadata: ConsoleToolMetadata = {
   walletRequirements: [
     WalletRequirementsConfigKey.EVMChainBalance,
     WalletRequirementsConfigKey.PChainBalance
-  ]
+  ],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
 const ChangeWeightStateless: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {

@@ -11,6 +11,8 @@ export interface ConsoleToolMetadata {
     description: string;
     /** Wallet requirements including if the tool is only available on testnet */
     walletRequirements: WalletRequirementsConfigKey[];
+    /** GitHub URL for editing the tool source code */
+    githubUrl?: string;
 }
 
 // Props interface for console tools
@@ -23,7 +25,7 @@ export interface BaseConsoleToolProps {
 type BaseConsoleToolComponent = React.ComponentType<BaseConsoleToolProps>;
 
 // Console Tool with Metadata
-export type ConsoleToolComponent = BaseConsoleToolComponent & {
+type ConsoleToolComponent = BaseConsoleToolComponent & {
     /** Required metadata for all console tools */
     metadata: ConsoleToolMetadata;
 };
@@ -51,7 +53,7 @@ export function withConsoleToolMetadata(
 ): ConsoleToolComponent {
     const WrappedComponent = (props: BaseConsoleToolProps) => {
         const ContainerContent = () => (
-            <Container title={metadata.title} description={metadata.description}>
+            <Container title={metadata.title} description={metadata.description} githubUrl={metadata.githubUrl}>
                 <BaseComponent {...props} />
             </Container>
         );

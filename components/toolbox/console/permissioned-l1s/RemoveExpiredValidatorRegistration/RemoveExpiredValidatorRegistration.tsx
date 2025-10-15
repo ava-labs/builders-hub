@@ -318,7 +318,7 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
     }))
     try {
       if (!validatorManagerAddress) throw new Error('Validator Manager address not found')
-      if (!coreWalletClient || !viemChain) throw new Error('Wallet/chain not initialized')
+      if (!coreWalletClient || !viemChain || !coreWalletClient.account) throw new Error('Wallet/chain not initialized')
       if (!subnetId) throw new Error('Subnet ID required')
 
       const useMultisig = ownerType === 'PoAManager'
@@ -393,6 +393,7 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
     <Container
       title="Remove Expired Validator Registration"
       description="Fetch InitiatedValidatorRegistration logs and show only expired PendingAdded registrations."
+      githubUrl="https://github.com/ava-labs/builders-hub/edit/master/components/toolbox/console/permissioned-l1s/RemoveExpiredValidatorRegistration/RemoveExpiredValidatorRegistration.tsx"
     >
       <div className="space-y-6">
         {error && (

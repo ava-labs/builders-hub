@@ -38,7 +38,7 @@ export const formSchema = z.object({
   milestone_1_description: z.string().min(10, "Please provide a more detailed milestone description"),
   milestone_1_deliverables_kpi: z.string().min(10, "Please provide more detailed deliverables and KPIs"),
   milestone_1_completion_date: z.date({
-    required_error: "Completion date is required",
+    message: "Completion date is required",
   }),
   milestone_1_amount_requested: z.number().min(1, "Amount must be greater than 0"),
   
@@ -46,7 +46,7 @@ export const formSchema = z.object({
   milestone_2_description: z.string().min(10, "Please provide a more detailed milestone description"),
   milestone_2_deliverables_kpi: z.string().min(10, "Please provide more detailed deliverables and KPIs"),
   milestone_2_completion_date: z.date({
-    required_error: "Completion date is required",
+    message: "Completion date is required",
   }),
   milestone_2_amount_requested: z.number().min(1, "Amount must be greater than 0"),
   

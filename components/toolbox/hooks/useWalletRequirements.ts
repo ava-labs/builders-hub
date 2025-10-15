@@ -128,7 +128,7 @@ interface WalletRequirement extends Omit<WalletRequirementConfig, 'action'> {
 }
 
 // Constants for each requirement type
-export const WALLET_REQUIREMENTS: Record<WalletRequirementsConfigKey, WalletRequirementConfig> = {
+const WALLET_REQUIREMENTS: Record<WalletRequirementsConfigKey, WalletRequirementConfig> = {
     [WalletRequirementsConfigKey.HasCoreWallet]: {
         id: 'has-core-wallet',
         title: 'Core wallet that is installed',
@@ -136,7 +136,7 @@ export const WALLET_REQUIREMENTS: Record<WalletRequirementsConfigKey, WalletRequ
         icon: Wallet,
         action: ACTIONS.DOWNLOAD_CORE_WALLET,
         getStatus: (walletState: WalletState) => ({
-            met: !!walletState.coreWalletClient,
+            met: walletState.bootstrapped,
             waiting: false // Core wallet detection is immediate
         })
     },
@@ -246,7 +246,7 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
     const walletChainId = useWalletStore((s) => s.walletChainId);
     const selectedL1Balance = useWalletStore((s) => s.balances.l1Chains[walletChainId.toString()]);
     const bootstrapped = useWalletStore((s) => s.getBootstrapped());
-    
+
     const { safelySwitch } = useWalletSwitch();
 
     // Create wallet state object to pass to requirement status functions (memoized to prevent excessive re-renders)
@@ -343,30 +343,30 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
     const collectAllRequirements = useCallback((keys: WalletRequirementsConfigKey[]): WalletRequirementsConfigKey[] => {
         const result: WalletRequirementsConfigKey[] = [];
         const visited = new Set<WalletRequirementsConfigKey>();
-        
+
         const collectRecursive = (key: WalletRequirementsConfigKey) => {
             if (visited.has(key)) return; // Prevent infinite loops
             visited.add(key);
-            
+
             const requirement = WALLET_REQUIREMENTS[key];
             if (!requirement) return;
-            
+
             // First, recursively add prerequisites (they come first)
             if (requirement.prerequisites) {
                 for (const prereqKey of requirement.prerequisites) {
                     collectRecursive(prereqKey);
                 }
             }
-            
+
             // Then add current requirement (after its prerequisites)
             result.push(key);
         };
-        
+
         // Collect all requirements starting from the requested keys
         for (const key of keys) {
             collectRecursive(key);
         }
-        
+
         return result;
     }, []);
 
@@ -374,7 +374,7 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
     const requirements = useMemo(() => {
         const requestedKeys = Array.isArray(configKey) ? configKey : [configKey];
         const allKeys = collectAllRequirements(requestedKeys);
-        
+
         return allKeys.map(key => {
             const requirement = WALLET_REQUIREMENTS[key];
 
@@ -389,7 +389,7 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
                 for (const prereqKey of requirement.prerequisites) {
                     const prereqRequirement = WALLET_REQUIREMENTS[prereqKey];
                     const prereqStatus = prereqRequirement.getStatus(walletState);
-                    
+
                     if (!prereqStatus.met || prereqStatus.waiting) {
                         prerequisiteNotMet = prereqKey;
                         met = false;
@@ -404,7 +404,7 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
                 const status = requirement.getStatus(walletState);
                 met = status.met;
                 waiting = status.waiting;
-                
+
                 // Resolve conditional actions for display
                 if (requirement.action.type === 'conditional') {
                     const resolved = resolveConditionalAction(requirement.action);

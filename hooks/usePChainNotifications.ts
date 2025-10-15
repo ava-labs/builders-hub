@@ -4,6 +4,7 @@ import { useConsoleLog } from './use-console-log';
 import { PChainClient, createPChainClient } from '@avalanche-sdk/client';
 import { avalanche, avalancheFuji } from '@avalanche-sdk/client/chains';
 import { usePathname } from 'next/navigation';
+import { showCustomErrorToast } from '@/components/ui/custom-error-toast';
 
 const getPChainTxExplorerURL = (txID: string, isTestnet: boolean) => {
     return `https://${isTestnet ? "subnets-test" : "subnets"}.avax.network/p-chain/tx/${txID}`;
@@ -73,7 +74,7 @@ const waitForTransaction = async (client: PChainClient, txID: string, maxAttempt
 
 const usePChainNotifications = () => {
     const isTestnet = typeof window !== 'undefined' ? useWalletStore((s) => s.isTestnet) : false;
-    const { addLog } = useConsoleLog();
+    const { addLog } = useConsoleLog(false); // Don't auto-fetch logs
     const pathname = usePathname();
 
     const client: PChainClient = createPChainClient({ chain: isTestnet ? avalancheFuji : avalanche, transport: { type: 'http' } });
@@ -107,7 +108,10 @@ const usePChainNotifications = () => {
                 toast.loading('Waiting for transaction confirmation...', { id: toastId });
 
                 try {
-                    await waitForTransaction(client, txID);
+                    if (typeof txID !== 'string' && txID && 'txHash' in txID) {
+                        txID = (txID as { txHash: string }).txHash;
+                    }
+                    await waitForTransaction(client, txID as string);
                     toast.success(`${config.successMessage}`, {
                         id: toastId,
                         action: {
@@ -125,7 +129,11 @@ const usePChainNotifications = () => {
                         data
                     });
                 } catch (error) {
-                    toast.error(config.errorMessagePrefix + (error as Error).message, { id: toastId });
+                    const errorMessage = config.errorMessagePrefix + (error as Error).message;
+
+                    toast.dismiss(toastId);
+                    showCustomErrorToast(errorMessage);
+
                     addLog({
                         status: 'error',
                         actionPath,
@@ -134,7 +142,11 @@ const usePChainNotifications = () => {
                 }
             })
             .catch((error) => {
-                toast.error(config.errorMessagePrefix + error.message, { id: toastId });
+                const errorMessage = config.errorMessagePrefix + error.message;
+
+                toast.dismiss(toastId);
+                showCustomErrorToast(errorMessage);
+
                 addLog({
                     status: 'error',
                     actionPath,

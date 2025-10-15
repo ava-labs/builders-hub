@@ -1,0 +1,9 @@
+{
+  "title": "Cross Chain",
+  "description": "CLI commands for Teleporter operations.",
+  "pages": [
+    "teleporter-devnet",
+    "teleporter-local-network",
+    "teleporter-token-bridge"
+  ]
+}

@@ -1,0 +1,26 @@
+---
+title: Create Custom Token
+description: Understanding token symbol conventions and their importance in blockchain ecosystems
+updated: 2025-08-21
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+In this course, we'll use the [Developer Console](/console) to create a new L1. While you may have already created an L1 in the Avalanche Fundamentals course, we'll now walk through the process again—this time explaining in detail each tokenomics configuration option available. The goal of this first step is simple: create your Subnet and set your blockchain's token name and token symbol.
+
+## Create Subnet and Chose Token name
+
+Use the tool below to create a Subnet and then add a blockchain to it. In the Genesis configuration, only set the token name and token symbol for now (you can ignore the other sections).
+
+<Callout type="info">
+**Token Name**: The token name is purely cosmetic and not recorded anywhere in the blockchain code (except for the wrapped native token contract). It's mainly used for display purposes in wallets and explorers.
+</Callout>
+
+<Callout type="warning" type="warn">
+Don't hit **create chain** yet, we will configure other tokenomics (supply, allocation, fees, etc.) in later steps of this course.
+</Callout>
+
+<ToolboxMdxWrapper walletMode="c-chain">
+  <CreateChain initiallyExpandedSections={['ChainParamsSection']} />
+</ToolboxMdxWrapper>
+

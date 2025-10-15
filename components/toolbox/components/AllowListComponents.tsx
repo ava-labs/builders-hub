@@ -10,7 +10,7 @@ import allowListAbi from "../../../contracts/precompiles/AllowList.json";
 import { useConnectedWallet } from "../contexts/ConnectedWalletContext";
 
 // Component for setting Enabled permissions
-export function SetEnabledComponent({
+function SetEnabledComponent({
   precompileAddress,
   precompileType = "precompiled contract",
   abi = allowListAbi.abi,
@@ -115,7 +115,7 @@ export function SetEnabledComponent({
 };
 
 // Component for setting Manager permissions
-export function SetManagerComponent({
+function SetManagerComponent({
   precompileAddress,
   precompileType = "precompiled contract",
   abi = allowListAbi.abi,
@@ -220,7 +220,7 @@ export function SetManagerComponent({
 }
 
 // Component for setting Admin permissions
-export function SetAdminComponent({
+function SetAdminComponent({
   precompileAddress,
   precompileType = "precompiled contract",
   abi = allowListAbi.abi,
@@ -326,7 +326,7 @@ export function SetAdminComponent({
 }
 
 // Component for setting None permissions
-export function RemoveAllowListComponent({
+function RemoveAllowListComponent({
   precompileAddress,
   precompileType = "precompiled contract",
   abi = allowListAbi.abi,
@@ -431,7 +431,7 @@ export function RemoveAllowListComponent({
 }
 
 // Component for reading permissions
-export function ReadAllowListComponent({
+function ReadAllowListComponent({
   precompileAddress,
   precompileType = "precompiled contract",
   abi = allowListAbi.abi,
