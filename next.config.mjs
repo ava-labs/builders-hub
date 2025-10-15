@@ -40,10 +40,30 @@ const config = {
         protocol: 'https',
         hostname: 'cdn.prod.website-files.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'developers.avacloud.io',
+      },
     ],
   },
   async rewrites() {
     return [
+      {
+        source: '/mintlify-assets/:path*',
+        destination: 'https://developers.avacloud.io/mintlify-assets/:path*',
+      },
+      {
+        source: '/_mintlify/:path*',
+        destination: 'https://developers.avacloud.io/_mintlify/:path*',
+      },
+      {
+        source: '/api-reference',
+        destination: 'https://developers.avacloud.io',
+      },
+      {
+        source: '/api-reference/:path*',
+        destination: 'https://developers.avacloud.io/:path*',
+      },
       {
         source: '/docs/:path*.mdx',
         destination: '/llms.mdx/docs/:path*',
@@ -64,6 +84,41 @@ const config = {
   },
   async redirects() {
     return [
+      {
+        source: '/introduction',
+        destination: '/api-reference/introduction',
+        permanent: false,
+      },
+      {
+        source: '/data-api/:path*',
+        destination: '/api-reference/data-api/:path*',
+        permanent: false,
+      },
+      {
+        source: '/webhooks-api/:path*',
+        destination: '/api-reference/webhooks-api/:path*',
+        permanent: false,
+      },
+      {
+        source: '/metrics-api/:path*',
+        destination: '/api-reference/metrics-api/:path*',
+        permanent: false,
+      },
+      {
+        source: '/rpc-api/:path*',
+        destination: '/api-reference/rpc-api/:path*',
+        permanent: false,
+      },
+      {
+        source: '/avalanche-sdk/:path*',
+        destination: '/api-reference/avalanche-sdk/:path*',
+        permanent: false,
+      },
+      {
+        source: '/changelog/:path*',
+        destination: '/api-reference/changelog/:path*',
+        permanent: false,
+      },
       {
         source: '/codebase-entrepreneur',
         destination: '/codebase-entrepreneur-academy',
