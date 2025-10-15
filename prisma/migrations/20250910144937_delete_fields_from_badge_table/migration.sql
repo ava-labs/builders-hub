@@ -11,6 +11,7 @@ ALTER TABLE "Badge" DROP COLUMN "points";
 -- AlterTable
 ALTER TABLE "UserBadge" DROP COLUMN "requirements_snapshot";
 
+/*
 -- CreateTable
 CREATE TABLE "NodeRegistration" (
     "id" TEXT NOT NULL,
@@ -45,3 +46,4 @@ CREATE UNIQUE INDEX "NodeRegistration_user_id_subnet_id_node_index_key" ON "Node
 
 -- AddForeignKey
 ALTER TABLE "NodeRegistration" ADD CONSTRAINT "NodeRegistration_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+*/
