@@ -23,7 +23,7 @@ import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-
 const metadata: ConsoleToolMetadata = {
     title: "Initial Validator Manager Configuration",
     description: "Initialize the ValidatorManager contract with the initial configuration",
-    walletRequirements: [
+    toolRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

@@ -23,7 +23,7 @@ import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-
 const metadata: ConsoleToolMetadata = {
     title: "Managed Testnet Nodes",
     description: "Manage your hosted testnet nodes.",
-    walletRequirements: [],
+    toolRequirements: [],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 

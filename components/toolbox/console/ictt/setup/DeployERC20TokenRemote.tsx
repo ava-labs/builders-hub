@@ -33,7 +33,7 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 const metadata: ConsoleToolMetadata = {
   title: "Deploy ERC20 Token Remote Contract",
   description: "Deploy the ERC20TokenRemote contract for your ERC20 token.",
-  walletRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 

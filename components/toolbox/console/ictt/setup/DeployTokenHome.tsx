@@ -27,7 +27,7 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 const metadata: ConsoleToolMetadata = {
   title: "Deploy Token Home Contract",
   description: "Deploy the TokenHome contract for your token.",
-  walletRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
