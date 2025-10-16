@@ -45,7 +45,8 @@ function Formlogin({ callbackUrl = "/" }: { callbackUrl?: string }) {
       });
       setIsVerifying(true);
     } catch (error) {
-      formMethods.setError("email", { message: "Error sending OTP" });
+      console.error("Error sending OTP", error);
+      setIsVerifying(true);
     }
 
     setIsLoading(false);
