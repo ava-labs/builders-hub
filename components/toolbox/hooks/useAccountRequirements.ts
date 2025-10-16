@@ -54,10 +54,11 @@ export function useAccountRequirements(configKey: AccountRequirementsConfigKey |
     unmetRequirements: Requirement[];
     handleAction: (requirement: Requirement) => void;
 } {
-    const { data: session, status } = useSession();
+    const session = useSession();
+    const status = session?.status || 'loading';
     
     const isAuthenticated: boolean = status === 'authenticated';
-    const isLoading: boolean = status === 'loading';
+    const isLoading: boolean = status === 'loading'
 
     // Create account state object
     const accountState: AccountState = useMemo(() => ({
