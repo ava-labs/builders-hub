@@ -110,7 +110,10 @@ export function VerifyEmail({
       setExpired(false);
       setSentTries(0);
     } catch (error) {
-      setMessage("Error sending OTP. Please try again.");
+      setResendCooldown(60);
+      setExpired(false);
+      setSentTries(0);
+      console.error("Error sending OTP. Please try again.", error);
     } finally {
       setIsResending(false);
     }

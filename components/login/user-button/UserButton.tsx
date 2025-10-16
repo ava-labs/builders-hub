@@ -12,12 +12,15 @@ import Image from 'next/image';
 import Link from 'next/link';
 import SignOutComponent from '../sign-out/SignOut';
 import { useState } from 'react';
-import { CircleUserRound, UserRound } from 'lucide-react';
+import { CircleUserRound, UserRound, UserCheck2, User2Icon, ListIcon, LogOut } from 'lucide-react';
 import { Separator } from '@radix-ui/react-dropdown-menu';
+import DefaultAvatar from '@/public/ambassador-dao-images/Avatar.svg';
+import { useRouter } from 'next/navigation';
 export function UserButton() {
   const { data: session, status } = useSession() ?? {};
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const isAuthenticated = status === 'authenticated';
+  const router = useRouter();
   const handleSignOut = (): void => {
     // Clean up any stored redirect URLs before logout
     if (typeof window !== "undefined") {
@@ -33,7 +36,6 @@ export function UserButton() {
     
     signOut();
   };
-  console.debug('session', session, isAuthenticated);
   return (
     <>
       {isAuthenticated ? (
@@ -53,10 +55,7 @@ export function UserButton() {
                   className='rounded-full'
                 />
               ) : (
-                <CircleUserRound
-                  className='!h-8 !w-8 stroke-zinc-900 dark:stroke-white'
-                  strokeWidth={0.85}
-                />
+                 DefaultAvatar
               )}
             </Button>
           </DropdownMenuTrigger>
@@ -76,13 +75,45 @@ export function UserButton() {
             </div>
             <Separator className="h-px bg-zinc-200 dark:bg-zinc-600 my-1" />
 
-            <DropdownMenuItem asChild className='cursor-pointer'>
-              <Link href='/profile'>Profile</Link>
-            </DropdownMenuItem>
+            {/* Onboard option for new users */}
+            {session.user.is_new_user && (
+              <>
+                <DropdownMenuItem 
+                  onClick={() => router.push("/ambassador-dao/onboard")}
+                  className='cursor-pointer flex items-center gap-2'
+                >
+                  <UserCheck2 size={16} />
+                  Onboard
+                </DropdownMenuItem>
+                <Separator className="h-px bg-zinc-200 dark:bg-zinc-600 my-1" />
+              </>
+            )}
+
+            {/* Role-based navigation */}
+            {session.user.role === "SPONSOR" ? (
+              <DropdownMenuItem 
+                onClick={() => router.push("/ambassador-dao/sponsor")}
+                className='cursor-pointer flex items-center gap-2'
+              >
+                <ListIcon size={16} />
+                Listings
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem asChild className='cursor-pointer flex items-center gap-2'>
+                <Link href='/ambassador-dao/profile' className="flex items-center gap-2">
+                  <User2Icon size={16} />
+                  Profile
+                </Link>
+              </DropdownMenuItem>
+            )}
+
+            <Separator className="h-px bg-zinc-200 dark:bg-zinc-600 my-1" />
+
             <DropdownMenuItem
               onClick={() => setIsDialogOpen(true)}
-              className='cursor-pointer'
+              className='cursor-pointer flex items-center gap-2 text-red-500'
             >
+              <LogOut size={16} />
               Sign Out
             </DropdownMenuItem>
           </DropdownMenuContent>
