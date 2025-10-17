@@ -30,7 +30,7 @@ export function BuilderHubAccountButton() {
             });
         }
         
-        signOut({ callbackUrl: '/login' });
+        signOut({ redirect: false });
     };
 
     const handleLoginClick = () => {
