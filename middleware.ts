@@ -33,7 +33,8 @@ export async function middleware(req: NextRequest) {
       "/hackathons/registration-form",
       "/hackathons/project-submission",
       "/showcase",
-      "/profile"
+      "/profile",
+      "/student-launchpad"
     ];
 
     const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));

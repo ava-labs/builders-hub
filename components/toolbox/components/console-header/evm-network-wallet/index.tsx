@@ -129,7 +129,8 @@ export function EvmNetworkWallet() {
         onClick={handlePrimaryButtonClick}
         size="sm"
       >
-        <img src="/core-logo-dark.svg" alt="Core logo" className="mr-2 h-4 w-4 object-contain" />
+        <img src="/core-logo-dark.svg" alt="Core logo" className="mr-2 h-4 w-4 object-contain dark:hidden" />
+        <img src="/core-logo.svg" alt="Core logo" className="mr-2 h-4 w-4 object-contain hidden dark:block" />
         <span className="text-sm">{buttonLabel}</span>
       </Button>
     )
