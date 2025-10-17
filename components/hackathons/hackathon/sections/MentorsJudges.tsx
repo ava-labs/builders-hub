@@ -19,13 +19,23 @@ function MentorsJudges({ hackathon }: { hackathon: HackathonHeader }) {
             <div className="flex gap-10 justify-center sm:justify-start flex-wrap">
           {hackathon.content.speakers.map((speaker, index) => (
             <div key={index} className="flex flex-col gap-4 mt-4">
-              <Image
-                src={speaker.picture}
-                alt="speaker picture"
-                width={160}
-                height={160}
-                className="rounded-md w-32 md:w-40 h-32 md:h-40"
-              />
+              {speaker.picture && speaker.picture.trim() !== "" ? (
+                <Image
+                  src={speaker.picture}
+                  alt="speaker picture"
+                  width={160}
+                  height={160}
+                  className="rounded-md w-32 md:w-40 h-32 md:h-40"
+                />
+              ) : (
+                <div className="w-32 md:w-40 h-32 md:h-40 bg-zinc-700 rounded-md flex items-center justify-center">
+                  <DynamicIcon
+                    name="user-circle"
+                    size={48}
+                    color="#9CA3AF"
+                  />
+                </div>
+              )}
               <div>
                 <h3 className="text-md font-bold text-zinc-100">
                   {speaker.name}
