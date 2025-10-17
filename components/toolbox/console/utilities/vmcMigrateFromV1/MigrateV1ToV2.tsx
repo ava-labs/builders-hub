@@ -25,7 +25,7 @@ const metadata: ConsoleToolMetadata = {
   title: "Migrate Validator from V1 to V2",
   description:
     "Migrate validators from the Validator Manager contract v1 to v2",
-  walletRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 

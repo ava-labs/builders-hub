@@ -2,6 +2,16 @@ import { useMemo, useCallback } from "react";
 import { useWalletStore } from "../stores/walletStore";
 import { Wallet, Coins, Network } from "lucide-react";
 import { useWalletSwitch } from "./useWalletSwitch";
+import { useWalletConnect } from "./useWalletConnect";
+import type { 
+    RequirementAction, 
+    Requirement, 
+    ConditionalAction, 
+    RedirectAction, 
+    ConnectAction, 
+    NetworkAction, 
+    LoginAction 
+} from "../types/requirements";
 
 export enum WalletRequirementsConfigKey {
     HasCoreWallet = "hasCoreWallet",
@@ -11,40 +21,6 @@ export enum WalletRequirementsConfigKey {
     PChainBalance = "pChainBalance",
     EVMChainBalance = "evmChainBalance"
 }
-
-type ActionType = 'redirect' | 'connect' | 'faucet' | 'network' | 'conditional';
-
-interface BaseAction {
-    type: ActionType;
-    label: string;
-    title: string;
-    description: string;
-}
-
-interface RedirectAction extends BaseAction {
-    type: 'redirect';
-    link: string;
-    target?: string;
-}
-
-interface ConnectAction extends BaseAction {
-    type: 'connect';
-}
-
-interface NetworkAction extends BaseAction {
-    type: 'network';
-}
-
-interface ConditionalAction extends BaseAction {
-    type: 'conditional';
-    conditions: {
-        condition: (walletState: any) => boolean;
-        action: RedirectAction | ConnectAction | NetworkAction;
-    }[];
-    fallback?: RedirectAction | ConnectAction | NetworkAction;
-}
-
-type WalletAction = RedirectAction | ConnectAction | NetworkAction | ConditionalAction;
 
 // Reusable action constants
 const ACTIONS = {
@@ -114,17 +90,10 @@ interface WalletRequirementConfig {
     title: string;
     description: string;
     icon: any;
-    action: WalletAction;
-    alternativeActions?: WalletAction[]; // Alternative ways to meet this requirement
-    prerequisites?: WalletRequirementsConfigKey[]; // Prerequisites that must be met first
+    action: RequirementAction;
+    alternativeActions?: RequirementAction[];
+    prerequisites?: WalletRequirementsConfigKey[];
     getStatus: (walletState: WalletState) => { met: boolean; waiting: boolean };
-}
-
-interface WalletRequirement extends Omit<WalletRequirementConfig, 'action'> {
-    met: boolean;
-    waiting: boolean;
-    prerequisiteNotMet?: WalletRequirementsConfigKey; // Which prerequisite is not met (if any)
-    action: WalletAction | null; // Override to allow null when no action is available
 }
 
 // Constants for each requirement type
@@ -234,7 +203,14 @@ const WALLET_REQUIREMENTS: Record<WalletRequirementsConfigKey, WalletRequirement
     }
 };
 
-export function useWalletRequirements(configKey: WalletRequirementsConfigKey | WalletRequirementsConfigKey[]) {
+export function useWalletRequirements(configKey: WalletRequirementsConfigKey | WalletRequirementsConfigKey[]): {
+    requirements: Requirement[];
+    allRequirementsMet: boolean;
+    unmetRequirements: Requirement[];
+    handleAction: (requirement: Requirement) => void;
+    connectWallet: () => Promise<void>;
+    handleSwitchToTestnet: () => Promise<void>;
+} {
     // Subscribe to each state individually to ensure reactivity
     const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
     const isLoading = useWalletStore((s) => s.isLoading);
@@ -248,6 +224,7 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
     const bootstrapped = useWalletStore((s) => s.getBootstrapped());
 
     const { safelySwitch } = useWalletSwitch();
+    const { connectWallet } = useWalletConnect();
 
     // Create wallet state object to pass to requirement status functions (memoized to prevent excessive re-renders)
     const walletState: WalletState = useMemo(() => ({
@@ -263,35 +240,12 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
         isLoading,
     }), [coreWalletClient, isTestnet, walletEVMAddress, walletChainId, pChainAddress, pChainBalance, cChainBalance, selectedL1Balance, bootstrapped]);
 
-    // Action functions for each requirement
-    const handleConnectWallet = async () => {
-        if (typeof window === 'undefined') return;
-
-        try {
-            if (!window.avalanche?.request) {
-                console.error('Core wallet not found');
-                return;
-            }
-
-            const accounts = await window.avalanche.request<string[]>({
-                method: 'eth_requestAccounts',
-            });
-
-            if (!accounts || accounts.length === 0) {
-                throw new Error('No accounts returned from wallet');
-            }
-
-        } catch (error) {
-            console.error('Error connecting wallet:', error);
-        }
-    };
-
     const handleSwitchToTestnet = async () => {
         await safelySwitch(43113, true); // Fuji testnet chain ID and testnet flag
     };
 
     // Resolve conditional actions based on current wallet state
-    const resolveConditionalAction = useCallback((conditionalAction: ConditionalAction): RedirectAction | ConnectAction | NetworkAction | null => {
+    const resolveConditionalAction = useCallback((conditionalAction: ConditionalAction): RedirectAction | ConnectAction | NetworkAction | LoginAction | null => {
         // Check conditions in order
         for (const condition of conditionalAction.conditions) {
             if (condition.condition(walletState)) {
@@ -304,7 +258,7 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
     }, [walletState]);
 
     // Action handler dispatcher
-    const handleAction = (requirement: WalletRequirement) => {
+    const handleAction = (requirement: Requirement) => {
         if (!requirement.action) {
             console.log('No action available for requirement:', requirement.id);
             return;
@@ -329,10 +283,14 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
                 }
                 break;
             case 'connect':
-                handleConnectWallet();
+                connectWallet();
                 break;
             case 'network':
                 handleSwitchToTestnet();
+                break;
+            case 'login':
+                // Login actions are handled by account requirements
+                console.log('Login action should be handled by account requirements');
                 break;
             default:
                 console.log('Unknown action:', actionToExecute);
@@ -382,7 +340,7 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
             let prerequisiteNotMet: WalletRequirementsConfigKey | undefined;
             let met = false;
             let waiting = false;
-            let resolvedAction: WalletAction | null = requirement.action;
+            let resolvedAction: RequirementAction | null = requirement.action;
 
             if (requirement.prerequisites) {
                 // Check if any prerequisite is not met
@@ -406,7 +364,7 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
                 waiting = status.waiting;
 
                 // Resolve conditional actions for display
-                if (requirement.action.type === 'conditional') {
+                if (requirement.action && requirement.action.type === 'conditional') {
                     const resolved = resolveConditionalAction(requirement.action);
                     if (!resolved) {
                         // Show requirement but with no action available
@@ -419,11 +377,11 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
 
             return {
                 ...requirement,
-                action: resolvedAction as WalletAction | null,
+                action: resolvedAction,
                 met,
                 waiting,
                 prerequisiteNotMet
-            };
+            } as Requirement;
         });
     }, [configKey, walletState, resolveConditionalAction, collectAllRequirements]);
 
@@ -443,7 +401,7 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
         unmetRequirements,
         handleAction,
         // Individual action handlers for direct use
-        handleConnectWallet,
+        connectWallet,
         handleSwitchToTestnet,
     };
 }

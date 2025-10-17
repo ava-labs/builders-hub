@@ -18,7 +18,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const metadata: ConsoleToolMetadata = {
   title: "Validator Balance Increase",
   description: "Increase the balance of a validator to extend its validation period and maintain network participation",
-  walletRequirements: [
+  toolRequirements: [
     WalletRequirementsConfigKey.PChainBalance
   ],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

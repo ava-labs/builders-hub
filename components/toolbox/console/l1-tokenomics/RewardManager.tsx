@@ -49,7 +49,7 @@ const StatusBadge = ({ status, loadingText, isLoading }: StatusBadgeProps) => {
 const metadata: ConsoleToolMetadata = {
   title: "Reward Manager",
   description: "Manage reward settings for the network including fee recipients and reward addresses",
-  walletRequirements: [
+  toolRequirements: [
     WalletRequirementsConfigKey.EVMChainBalance
   ],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

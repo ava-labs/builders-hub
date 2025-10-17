@@ -29,7 +29,7 @@ function calculateLibraryHash(libraryPath: string) {
 const metadata: ConsoleToolMetadata = {
     title: "Deploy Validator Contracts",
     description: "Deploy the ValidatorMessages library and ValidatorManager contract to the EVM network",
-    walletRequirements: [
+    toolRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

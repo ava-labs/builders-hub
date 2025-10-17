@@ -29,7 +29,7 @@ export function useConnectedWallet(): ConnectedWalletContextValue {
     if (!context) {
         throw new Error(
             'useConnectedWallet must be used within a ConnectedWalletProvider. ' +
-            'Make sure your component is wrapped with CheckWalletRequirements.'
+            'Make sure your component is wrapped with CheckRequirements.'
         );
     }
 

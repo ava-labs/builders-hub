@@ -13,7 +13,7 @@ const DEFAULT_TRANSACTION_ALLOWLIST_ADDRESS =
 const metadata: ConsoleToolMetadata = {
   title: "Transaction Allowlist",
   description: "Manage addresses allowed to send transactions on your L1",
-  walletRequirements: [
+  toolRequirements: [
     WalletRequirementsConfigKey.EVMChainBalance
   ],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

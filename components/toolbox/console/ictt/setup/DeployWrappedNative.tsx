@@ -27,7 +27,7 @@ const PREDEPLOYED_WRAPPED_NATIVE_ADDRESS = '0x1111111111111111111111111111111111
 const metadata: ConsoleToolMetadata = {
     title: "Wrapped Native Token",
     description: "Deploy a wrapped native token or use the pre-deployed one to wrap/unwrap native tokens.",
-    walletRequirements: [
+    toolRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

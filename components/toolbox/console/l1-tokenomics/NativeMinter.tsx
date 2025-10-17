@@ -22,7 +22,7 @@ const DEFAULT_NATIVE_MINTER_ADDRESS =
 const metadata: ConsoleToolMetadata = {
   title: "Native Minter",
   description: "Mint native tokens (AVAX) to any address on your L1",
-  walletRequirements: [
+  toolRequirements: [
     WalletRequirementsConfigKey.EVMChainBalance
   ],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

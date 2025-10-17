@@ -22,7 +22,7 @@ import { Alert } from "@/components/toolbox/components/Alert";
 const metadata: ConsoleToolMetadata = {
     title: "Transfer Validator Manager Ownership",
     description: "Transfer the ownership of the Validator Manager to a new address (EOA, StakingManager, or PoAManager)",
-    walletRequirements: [
+    toolRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

@@ -22,7 +22,7 @@ const TRANSPARENT_PROXY_SOURCE_URL = "https://github.com/OpenZeppelin/openzeppel
 const metadata: ConsoleToolMetadata = {
     title: "Deploy Proxy Contracts",
     description: "Deploy ProxyAdmin and TransparentUpgradeableProxy contracts to the EVM network",
-    walletRequirements: [
+    toolRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

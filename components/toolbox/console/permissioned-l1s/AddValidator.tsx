@@ -42,7 +42,7 @@ const STORAGE_KEY = 'addValidator_validators';
 const metadata: ConsoleToolMetadata = {
   title: "Add New Validator",
   description: "Add a validator to your L1 by following these steps in order",
-  walletRequirements: [
+  toolRequirements: [
     WalletRequirementsConfigKey.EVMChainBalance,
     WalletRequirementsConfigKey.PChainBalance
   ],

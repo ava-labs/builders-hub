@@ -28,7 +28,7 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 const metadata: ConsoleToolMetadata = {
   title: "Register Remote Contract with Home",
   description: "Register the remote contract with the home contract.",
-  walletRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 

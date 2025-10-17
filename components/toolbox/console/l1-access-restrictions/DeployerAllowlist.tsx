@@ -13,7 +13,7 @@ const DEFAULT_DEPLOYER_ALLOWLIST_ADDRESS =
 const metadata: ConsoleToolMetadata = {
   title: "Deployer Allowlist",
   description: "Control which addresses can deploy smart contracts on your L1",
-  walletRequirements: [
+  toolRequirements: [
     WalletRequirementsConfigKey.EVMChainBalance
   ],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

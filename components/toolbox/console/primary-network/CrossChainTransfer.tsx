@@ -22,7 +22,7 @@ interface CrossChainTransferProps extends BaseConsoleToolProps {
 const metadata: ConsoleToolMetadata = {
     title: "Cross-Chain Transfer",
     description: "Transfer AVAX between Platform (P) and Contract (C) chains.",
-    walletRequirements: [
+    toolRequirements: [
         WalletRequirementsConfigKey.CoreWalletConnected
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

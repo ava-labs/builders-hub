@@ -22,7 +22,7 @@ const TELEPORTER_REGISTRY_SOURCE_URL = `https://github.com/ava-labs/icm-contract
 const metadata: ConsoleToolMetadata = {
     title: "Deploy ICM Registry",
     description: "Deploy the ICM Registry contract to your L1",
-    walletRequirements: [
+    toolRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
