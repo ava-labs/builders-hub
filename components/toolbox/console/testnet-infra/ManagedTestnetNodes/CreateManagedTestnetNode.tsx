@@ -14,11 +14,15 @@ import SelectSubnet from "@/components/toolbox/components/SelectSubnet";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { AccountRequirementsConfigKey } from "@/components/toolbox/hooks/useAccountRequirements";
 
 const metadata: ConsoleToolMetadata = {
     title: "Create Managed Testnet Node",
     description: "An L1 is a network of Avalanche nodes. To make it easy to play around with L1s, we created this tool to spin up a free testnet node. These nodes will shut down after 3 days. They are suitable for quick testing. For production settings or extended testing, see the self-hosted below. You need a Builder Hub Account to use this tool.",
-    toolRequirements: [WalletRequirementsConfigKey.TestnetRequired],
+    toolRequirements: [
+        WalletRequirementsConfigKey.TestnetRequired,
+        AccountRequirementsConfigKey.UserLoggedIn
+    ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 

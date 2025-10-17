@@ -7,23 +7,24 @@ import {
     Plus,
 } from "lucide-react";
 
-import {
-    NodeRegistration,
-    RegisterSubnetResponse
-} from "./types";
+import { NodeRegistration } from "./types";
 import CreateNodeForm from "./CreateNodeForm";
 import NodesList from "./NodesList";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { useManagedTestnetNodes } from "@/hooks/useManagedTestnetNodes";
 import { toast } from "@/hooks/use-toast";
-import TestnetOnly from "./TestnetOnly";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { AccountRequirementsConfigKey } from "@/components/toolbox/hooks/useAccountRequirements";
+import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 
 const metadata: ConsoleToolMetadata = {
     title: "Managed Testnet Nodes",
     description: "Manage your hosted testnet nodes.",
-    toolRequirements: [],
+    toolRequirements: [
+        WalletRequirementsConfigKey.TestnetRequired,
+        AccountRequirementsConfigKey.UserLoggedIn
+    ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
@@ -33,7 +34,7 @@ function ManagedTestnetNodesBase() {
         fetchNodes();
     }, []);
     
-    const { avalancheNetworkID, isTestnet } = useWalletStore();
+    const { avalancheNetworkID } = useWalletStore();
     const {
         nodes,
         isLoadingNodes,
@@ -100,12 +101,6 @@ function ManagedTestnetNodesBase() {
             }
         }
     };
-    // If not on testnet, show disabled message
-    if (!isTestnet) {
-        return (
-            <TestnetOnly />
-        );
-    }
 
     return (
         <>
