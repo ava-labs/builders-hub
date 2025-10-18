@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import * as RadixDialog from "@radix-ui/react-dialog";
 import { X } from 'lucide-react';
+import { cn } from '@/lib/cn';
 
 // Custom Dialog Root component that handles pointer-events cleanup
 interface DialogRootProps {
@@ -59,12 +60,15 @@ interface DialogContentProps extends React.ComponentProps<typeof RadixDialog.Con
 export const DialogContent: React.FC<DialogContentProps> = ({ 
   children, 
   showCloseButton = true,
-  className = "",
+  className,
   ...props 
 }) => {
   return (
     <Dialog.Content 
-      className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-lg focus:outline-none w-[90vw] max-w-md max-h-[80vh] overflow-y-auto z-[10000] ${className}`}
+      className={cn(
+        "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-lg focus:outline-none w-[90vw] max-w-md max-h-[80vh] overflow-y-auto z-[10000]",
+        className
+      )}
       {...props}
     >
       {children}
@@ -92,12 +96,12 @@ export const DialogOverlay: React.FC<React.ComponentProps<typeof RadixDialog.Ove
 };
 
 export const DialogTitle: React.FC<React.ComponentProps<typeof RadixDialog.Title>> = ({ 
-  className = "", 
+  className, 
   ...props 
 }) => {
   return (
     <Dialog.Title 
-      className={`text-xl font-bold mb-6 text-zinc-800 dark:text-zinc-100 ${className}`} 
+      className={cn("text-xl font-bold mb-6 text-zinc-800 dark:text-zinc-100", className)} 
       {...props} 
     />
   );
