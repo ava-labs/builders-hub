@@ -1,0 +1,143 @@
+---
+title: Avalanche Granite Upgrade - Enhancing ICM, Unlocking Biometric Use Cases, and Enabling Dynamic Block Times
+description: The Avalanche Granite upgrade activates on Mainnet on [DATE_TBD], bringing major improvements including P-Chain epoched views for ICM, secp256r1 support for biometric authentication, and dynamic minimum block times for faster transactions.
+date: 2025-10-18
+authors: [AvaxDevelopers]
+topics: [Granite Upgrade, ICM, Biometric, Block Time, ACP, Performance]
+comments: true
+---
+
+## Introducing Avalanche Granite
+
+The latest upgrade to the Avalanche Network, dubbed "Avalanche Granite", is scheduled to activate on the **Mainnet on [DATE_TBD]**. This upgrade builds upon the successful activation and testing on the Avalanche Fuji Testnet, which took place on [DATE_TBD].
+
+The Granite upgrade is driven by three Avalanche Community Proposals that significantly enhance the network's capabilities:
+
+- **ACP-181**: P-Chain Epoched Views
+- **ACP-204**: Precompile for secp256r1 Curve Support
+- **ACP-226**: Dynamic Minimum Block Times
+
+---
+
+## Node Operator Requirements
+
+### Mainnet Node Operators
+
+**Action Required**: All Mainnet node operators must upgrade their nodes to **v1.xx [TBD]** before the activation time on [DATE_TBD].
+
+The Avalanche Granite Upgrade includes protocol optimizations that are not compatible with AvalancheGo versions < v1.xx [TBD]. If you run a node on Mainnet, you must upgrade your software to AvalancheGo >= v1.xx [TBD] before the scheduled activation time. Ensure your node is running with the correct plugin version as specified in the [release notes](https://github.com/ava-labs/avalanchego/releases).
+
+**Important**: Failure to upgrade before the scheduled activation time will result in your node being unable to participate in consensus.
+
+### Fuji Testnet Node Operators
+
+Fuji node operators must upgrade their nodes to **v1.xx-fuji [TBD]** prior to the activation time on [DATE_TBD]. The pre-release includes protocol optimizations that are not compatible with AvalancheGo versions < v1.xx.x-fuji [TBD]. The plugin version is unchanged at 39 and is compatible with version v1.xx.x [TBD].
+
+**Please note**: This Fuji pre-release is unable to run on mainnet and will display "mainnet is not supported" if attempted with a mainnet configuration.
+
+---
+
+## Enhancing ICM Verification with P-Chain Epoched Views
+
+This upgrade activates **ACP-181**, which significantly improves the robustness and cost-effectiveness of Interchain Messaging (ICM) verification on Avalanche's L1 chains.
+
+### The Challenge
+
+Previously, the P-Chain pointers were updated with every block, leading to validation uncertainty and potential invalidation of ICM messages due to continuous changes in the validator set. This created inefficiencies and increased costs for cross-chain message verification.
+
+### The Solution
+
+With ACP-181, the P-Chain height is fixed for an entire epoch period (approximately 5-10 minutes), providing a stable validator set view. This ensures ICM messages are verified against a consistent P-Chain height, reducing invalidation risk and lowering costs.
+
+### Benefits for Developers
+
+By allowing L1 chains to maintain a consistent view of the P-Chain, ACP-181 enhances the efficiency and reliability of ICM message handling across the network. Developers building cross-chain applications can now rely on:
+
+- **Cheaper message verification** - Reduced computational overhead
+- **More reliable cross-chain messaging** - Lower invalidation risk
+- **Predictable validator set views** - Stable reference points for verification
+
+[Watch the ACP-181 community call](https://www.youtube.com/watch?v=1c6Qa1sobQg) to learn more about the technical details.
+
+---
+
+## Unlocking New Biometric Use Cases with secp256r1
+
+This upgrade introduces support for signature verifications using the **secp256r1 elliptic curve** via **ACP-204**, enabling innovative biometric data signing on the Avalanche network.
+
+### New Capabilities
+
+With secp256r1 curve support, developers can now implement biometric data signing, unlocking a range of new use cases:
+
+- **Secure identity verification** through fingerprint or facial recognition
+- **Enhanced user authentication** processes without traditional passwords
+- **FaceID/TouchID-style logins** integrated directly into dApps
+- **Seamless, secure transactions** with biometric confirmation
+
+### Enterprise Applications
+
+The integration of biometric data signing facilitates the development of decentralized applications that require high-security standards, such as:
+
+- Digital identity platforms
+- Secure access control systems
+- Healthcare applications with HIPAA compliance
+- Financial services with enhanced KYC/AML processes
+
+ACP-204 expands the possibilities for biometric implementations, positioning Avalanche at the forefront of blockchain innovation. Developers can now deliver stronger security and a smoother user experience by integrating modern biometric authentication methods into their applications.
+
+---
+
+## Enabling Faster Transactions with Dynamic Minimum Block Times
+
+This upgrade activates **ACP-226**, introducing a dynamic adjustment mechanism for block times on the Avalanche network, which enhances user experience by reducing latency.
+
+### How It Works
+
+ACP-226 allows validators to dynamically adjust block times in response to network improvements, such as the upcoming Streaming Asynchronous Execution (SAE) and Firewood features. This flexibility enables:
+
+- **Sub-second block times** - Significantly faster than the previous fixed intervals
+- **Continuous optimization** - Validators can adjust block times without network upgrades
+- **Stake-weighted preferences** - Network converges around validator consensus
+
+### The Impact
+
+Previously, block rates could only be changed during network upgrades, creating rigid constraints on performance improvements. With ACP-226, validators can continuously optimize block times to match the network's evolving capabilities.
+
+This upgrade ensures that users benefit from:
+
+- **Quicker transaction finality** - Reduced time to confirmation
+- **Lower end-user latency** - More responsive applications
+- **Improved network efficiency** - Better resource utilization
+- **Future-proof scalability** - Ready for upcoming performance enhancements
+
+[Watch the ACP-226 community call](https://www.youtube.com/watch?v=v792NyX58sI) to learn more about the technical implementation.
+
+---
+
+## Looking Ahead
+
+The Granite upgrade represents another significant step forward in Avalanche's evolution as a high-performance blockchain platform. By improving ICM reliability, enabling biometric authentication, and allowing dynamic block time adjustments, Avalanche continues to deliver the speed, flexibility, and scalability that developers need.
+
+As the network continues to evolve with upcoming features like Streaming Asynchronous Execution (SAE) and Firewood Database integration, these Granite improvements lay the foundation for even greater performance enhancements.
+
+---
+
+## Resources
+
+- [ACP-181: P-Chain Epoched Views](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/181-p-chain-epoched-views)
+- [ACP-204: secp256r1 Curve Support](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/204-precompile-secp256r1)
+- [ACP-226: Dynamic Minimum Block Times](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/226-dynamic-minimum-block-times)
+- [AvalancheGo Releases](https://github.com/ava-labs/avalanchego/releases)
+- [Join the discussion on GitHub](https://github.com/avalanche-foundation/ACPs/discussions)
+
+---
+
+## About Avalanche
+
+Avalanche is a high-performance blockchain platform designed for builders who need to scale. Engineered with a revolutionary three-part Layer 1 (L1) architecture, Avalanche is anchored by its Avalanche Consensus Mechanism, ensuring near-instant finality for transactions. The platform also features an open-source Layer 0 (L0) framework, enabling the seamless creation of interoperable Layer 1 blockchains with high throughput on both public and private networks.
+
+Supported by a global community of developers and validators, Avalanche offers a fast, low-cost environment for building the next generation of decentralized applications (dApps). With its unique blend of speed, flexibility, and scalability, Avalanche is the preferred choice for innovators pushing the boundaries of blockchain technology.
+
+---
+
+**Follow [@AvaxDevelopers](https://x.com/AvaxDevelopers) for updates and join our developer community to stay informed about future upgrades and tooling improvements.**
