@@ -58,16 +58,22 @@ const gweiToWei = (gwei: number): number => gwei * 1000000000;
 // --- Main Component --- 
 
 type GenesisBuilderProps = {
-    genesisData: string;
-    setGenesisData: (data: string) => void;
+    genesisData?: string;
+    setGenesisData?: (data: string) => void;
     initiallyExpandedSections?: SectionId[];
 };
 
 function GenesisBuilderInner({
-    genesisData,
-    setGenesisData,
+    genesisData: externalGenesisData,
+    setGenesisData: externalSetGenesisData,
     initiallyExpandedSections = ["chainParams"]
 }: GenesisBuilderProps) {
+    // Internal state for when used standalone (e.g., in MDX files)
+    const [internalGenesisData, setInternalGenesisData] = useState<string>("");
+    
+    // Use external state if provided, otherwise use internal state
+    const genesisData = externalGenesisData !== undefined ? externalGenesisData : internalGenesisData;
+    const setGenesisData = externalSetGenesisData || setInternalGenesisData;
     const { walletEVMAddress } = useWalletStore();
     const { setHighlightPath, clearHighlight } = useGenesisHighlight();
 
