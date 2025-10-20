@@ -4,7 +4,7 @@ import { createCoreWalletClient, CoreWalletClientType } from '../coreViem';
 import { createPublicClient, custom, http } from 'viem';
 import { avalancheFuji } from 'viem/chains';
 import { zeroAddress } from 'viem';
-import { GlobalParamNetwork } from "@avalabs/avacloud-sdk/models/components";
+// import { GlobalParamNetwork } from "@avalabs/avacloud-sdk/models/components";
 import { balanceService } from '../services/balanceService';
 import { useMemo } from 'react';
 
@@ -79,7 +79,7 @@ interface WalletActions {
   updateAllBalancesWithAllL1s: (l1List?: Array<{ evmChainId: number }>) => Promise<void>;
 
   // Utility getters
-  getNetworkName: () => GlobalParamNetwork;
+  // getNetworkName: () => GlobalParamNetwork;
 
   // Legacy balance getters for backward compatibility
   pChainBalance: number;
@@ -209,10 +209,10 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     updateAllBalances: async () => balanceService.updateAllBalances(),
     updateAllBalancesWithAllL1s: async (l1List?: Array<{ evmChainId: number }>) => balanceService.updateAllBalancesWithAllL1s(l1List),
 
-    getNetworkName: (): GlobalParamNetwork => {
-      const { avalancheNetworkID } = get();
-      return avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji";
-    },
+    // getNetworkName: (): GlobalParamNetwork => {
+    //   const { avalancheNetworkID } = get();
+    //   return avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji";
+    // },
 
     // Legacy balance getters for backward compatibility
     get pChainBalance() { return get().balances.pChain; },
@@ -284,7 +284,7 @@ export const useNetworkInfo = () => {
     return {
       isTestnet,
       chainId,
-      networkName: networkName as GlobalParamNetwork,
+      networkName: networkName,
       avalancheNetworkID,
       evmChainName,
     };

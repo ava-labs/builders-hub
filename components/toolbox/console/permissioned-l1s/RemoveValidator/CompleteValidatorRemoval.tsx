@@ -11,7 +11,8 @@ import poaManagerAbi from '@/contracts/icm-contracts/compiled/PoAManager.json';
 import { GetRegistrationJustification } from '../ValidatorManager/justification';
 import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { packWarpIntoAccessList } from '../ValidatorManager/packWarp';
-import { useAvaCloudSDK } from '@/components/toolbox/stores/useAvaCloudSDK';
+//import { useAvaCloudSDK } from '@/components/toolbox/stores/useAvaCloudSDK';
+import { useAvalancheSDK } from '@/components/toolbox/stores/useAvalancheSDK';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 interface CompleteValidatorRemovalProps {
@@ -47,7 +48,8 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   ownerType,
 }) => {
   const { coreWalletClient, publicClient, avalancheNetworkID, walletEVMAddress } = useWalletStore();
-  const { aggregateSignature } = useAvaCloudSDK();
+  // const { aggregateSignature } = useAvaCloudSDK();
+  const { aggregateSignature } = useAvalancheSDK();
   const viemChain = useViemChainStore();
   const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || '');
   const { notify } = useConsoleNotifications();
