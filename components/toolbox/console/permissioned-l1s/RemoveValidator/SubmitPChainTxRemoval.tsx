@@ -4,8 +4,7 @@ import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
-//import { useAvaCloudSDK } from '@/components/toolbox/stores/useAvaCloudSDK';
-import { useAvalancheSDK } from '@/components/toolbox/stores/useAvalancheSDK';
+import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 interface SubmitPChainTxRemovalProps {
@@ -29,8 +28,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
   onError,
 }) => {
   const { coreWalletClient, pChainAddress, publicClient } = useWalletStore();
-  // const { aggregateSignature } = useAvaCloudSDK();
-  const { aggregateSignature } = useAvalancheSDK();
+  const { aggregateSignature } = useAvalancheSDKChainkit();
   const { notify } = useConsoleNotifications();
   const [evmTxHash, setEvmTxHash] = useState(initialEvmTxHash || '');
   const [isProcessing, setIsProcessing] = useState(false);
