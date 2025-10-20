@@ -1,10 +1,6 @@
 import { useMemo, useCallback } from "react";
-import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
-import { GlobalParamNetwork } from "@avalabs/avacloud-sdk/models/components";
+import { Avalanche } from "@avalanche-sdk/chainkit";
 import { useWalletStore } from "./walletStore";
-
-// Note: This file is deprecated and will be removed in favor of useAvalancheSDK.ts
-// Please use useAvalancheSDK for new implementations
 
 // Types for signature aggregation
 interface SignatureAggregationParams {
@@ -31,22 +27,26 @@ interface GetSubnetByIdParams {
     subnetId: string;
 }
 
-export const useAvaCloudSDK = (customNetwork?: GlobalParamNetwork) => {
-    const { isTestnet, getNetworkName } = useWalletStore();
+/**
+ * Custom hook for interacting with the Avalanche SDK
+ * Replaces useAvaCloudSDK with the new avalanche-sdk-typescript implementation
+ */
+export const useAvalancheSDKChainkit = (customNetwork?: "mainnet" | "fuji") => {
+    const { isTestnet } = useWalletStore();
 
-    // Determine network name
+    // Determine network name - follow the same pattern as existing avalanche-sdk usage
     const networkName = useMemo(() => {
         if (customNetwork) return customNetwork;
-        return getNetworkName();
-    }, [customNetwork, getNetworkName]);
+        // return getNetworkName()
+        return isTestnet ? "fuji" : "mainnet";
+    }, [customNetwork, isTestnet]); // [customNetwork, getNetworkName]);
 
-    // Create SDK instance
+    // Create SDK instance using avalanche-sdk-typescript
     const sdk = useMemo(() => {
-        return new AvaCloudSDK({
-            serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
+        return new Avalanche({
             network: networkName,
         });
-    }, [isTestnet, networkName]);
+    }, [networkName]);
 
     // Signature aggregation method
     const aggregateSignature = useCallback(async ({
@@ -114,4 +114,4 @@ export const useAvaCloudSDK = (customNetwork?: GlobalParamNetwork) => {
         getSubnetById,
         listL1Validators,
     };
-}; 
+};
