@@ -46,7 +46,7 @@ const createRegisterSchema = (isOnline: boolean) => z.object({
   dietary: z.string().optional().default(""),
   github_portfolio: z.string().optional(),
   terms_event_conditions: z.boolean().optional(),
-  newsletter_subscription: z.boolean().optional(),
+  newsletter_subscription: z.boolean().default(false).optional(),
   prohibited_items: z.boolean().optional(),
 });
 
@@ -265,13 +265,6 @@ export function RegisterForm({
         };
       }
       
-      if (!data.newsletter_subscription) {
-        errors.newsletter_subscription = {
-          type: "custom", 
-          message: "Subscribe to newsletters and promotional materials. You can opt out anytime. Avalanche Privacy Policy."
-        };
-      }
-      
       if (!isOnlineHackathon && !data.prohibited_items) {
         errors.prohibited_items = {
           type: "custom",
@@ -337,6 +330,45 @@ export function RegisterForm({
         "role",
         "city",
       ];
+      
+      // Custom validation for Step 1 required fields (same pattern as Step 3)
+      const formValues = form.getValues();
+      const errors: any = {};
+      
+      if (!formValues.name || formValues.name.trim() === "") {
+        errors.name = {
+          type: "custom",
+          message: "Name is required"
+        };
+      }
+      
+      if (!formValues.email || formValues.email.trim() === "") {
+        errors.email = {
+          type: "custom",
+          message: "Invalid email"
+        };
+      }
+      
+      if (!formValues.telegram_user || formValues.telegram_user.trim() === "") {
+        errors.telegram_user = {
+          type: "custom",
+          message: "Telegram username is required"
+        };
+      }
+      
+      if (!formValues.city || formValues.city.trim() === "") {
+        errors.city = {
+          type: "custom",
+          message: "City is required"
+        };
+      }
+      
+      if (Object.keys(errors).length > 0) {
+        Object.keys(errors).forEach(field => {
+          form.setError(field as keyof RegisterFormValues, errors[field]);
+        });
+        return;
+      }
     } else if (step === 2) {
       fieldsToValidate = [
         "web3_proficiency",
@@ -349,7 +381,6 @@ export function RegisterForm({
       ];
     } else if (step === 3) {
       fieldsToValidate = [
-        "newsletter_subscription",
         "terms_event_conditions",
       ];
       // Only validate prohibited_items if it's not an online hackathon
@@ -368,12 +399,6 @@ export function RegisterForm({
         };
       }
       
-      if (!formValues.newsletter_subscription) {
-        errors.newsletter_subscription = {
-          type: "custom", 
-          message: "Subscribe to newsletters and promotional materials. You can opt out anytime. Avalanche Privacy Policy."
-        };
-      }
       
       if (!isOnlineHackathon && !formValues.prohibited_items) {
         errors.prohibited_items = {
