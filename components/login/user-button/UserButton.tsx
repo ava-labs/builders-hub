@@ -14,7 +14,6 @@ import SignOutComponent from '../sign-out/SignOut';
 import { useState } from 'react';
 import { CircleUserRound, UserRound, UserCheck2, User2Icon, ListIcon, LogOut } from 'lucide-react';
 import { Separator } from '@radix-ui/react-dropdown-menu';
-import DefaultAvatar from '@/public/ambassador-dao-images/Avatar.svg';
 import { useRouter } from 'next/navigation';
 export function UserButton() {
   const { data: session, status } = useSession() ?? {};
@@ -55,7 +54,7 @@ export function UserButton() {
                   className='rounded-full'
                 />
               ) : (
-                 DefaultAvatar
+                <UserRound size={16} />
               )}
             </Button>
           </DropdownMenuTrigger>
