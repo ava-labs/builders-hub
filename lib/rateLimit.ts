@@ -31,8 +31,11 @@ const DEFAULT_OPTIONS: RateLimitOptions = {
 async function defaultIdentifier(): Promise<string> {
     const session = await import('@/lib/auth/authSession').then(mod => mod.getAuthSession());
     if (!session) throw new Error('Authentication required');
-    const userId = session.user.id;
-    return userId;
+
+    const email = session.user.email;
+    if (!email || email === '') throw new Error('email required for rate limiting');
+    
+    return email;
 }
 
 function getResetTime(timestamp: number): string {

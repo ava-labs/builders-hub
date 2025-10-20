@@ -217,8 +217,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     identifier: async (_req: NextRequest) => {
       const session = await import('@/lib/auth/authSession').then(mod => mod.getAuthSession());
       if (!session) throw new Error('Authentication required');
-      const userId = session.user.id;
-      return `${userId}-${chainId}`;
+      const email = session.user.email;
+      if (!email) throw new Error('email required for rate limiting');
+      return `${email}-${chainId}`;
     }
   });
 
