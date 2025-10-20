@@ -1,4 +1,4 @@
-import { BookOpen, ArrowLeftRight, Layers, Coins, Code } from 'lucide-react';
+import { BookOpen, ArrowLeftRight, Layers, Coins, Code, Shield } from 'lucide-react';
 import type { CourseNode } from '../learning-tree';
 
 export const avalancheLearningPaths: CourseNode[] = [
@@ -33,7 +33,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "interchain-messaging",
         category: "Interoperability",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 15, y: 350 },
+        position: { x: 50, y: 550 },
         mobileOrder: 3
     },
     {
@@ -43,7 +43,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "permissioned-l1s",
         category: "L1 Development",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 40, y: 350 },
+        position: { x: 25, y: 550 },
         mobileOrder: 7
     },
     {
@@ -53,7 +53,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "l1-native-tokenomics",
         category: "L1 Tokenomics",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 65, y: 350 },
+        position: { x: 75, y: 550 },
         mobileOrder: 6
     },
     {
@@ -63,10 +63,19 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "customizing-evm",
         category: "VM Customization",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 90, y: 350 },
+        position: { x: 80, y: 300 },
         mobileOrder: 8
     },
-
+    {
+        id: "encrypted-erc",
+        name: "Encrypted ERC",
+        description: "Learn about eERC tokens to add privacy to your applications",
+        slug: "encrypted-erc",
+        category: "Privacy",
+        dependencies: ["avalanche-fundamentals"],
+        position: { x: 20, y: 300 },
+        mobileOrder: 9
+    },
     // Fourth Layer - Advanced topics (adjusted for no overlap)
     {
         id: "interchain-token-transfer",
@@ -75,7 +84,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "interchain-token-transfer",
         category: "Interoperability",
         dependencies: ["interchain-messaging"],
-        position: { x: 5, y: 550 },
+        position: { x: 35, y: 750 },
         mobileOrder: 4
     },
     {
@@ -85,7 +94,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "icm-chainlink",
         category: "Interoperability",
         dependencies: ["interchain-messaging"],
-        position: { x: 35, y: 550 },
+        position: { x: 65, y: 750 },
         mobileOrder: 5
     },
 ];
@@ -120,5 +129,11 @@ export const avalancheCategoryStyles = {
         icon: Code,
         lightBg: "bg-orange-50",
         darkBg: "dark:bg-orange-950/30"
+    },
+    "Privacy": {
+        gradient: "from-indigo-500 to-indigo-600",
+        icon: Shield,
+        lightBg: "bg-indigo-50",
+        darkBg: "dark:bg-indigo-950/30"
     }
 };
