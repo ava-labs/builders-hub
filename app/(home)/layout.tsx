@@ -8,7 +8,6 @@ import { SessionProvider, useSession } from "next-auth/react";
 import { useEffect, Suspense, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
-import { toast } from "sonner";
 import Modal from "@/components/ui/Modal";
 import { Button } from "@/components/ui/button";
 
@@ -103,6 +102,7 @@ function RedirectIfNewUser() {
       status === "authenticated" &&
       session.user.is_new_user &&
       pathname !== "/profile" &&
+      pathname !== "/login" &&
       pathname !== "/ambassador-dao/onboard" &&
       errorLocalStorage != ""
     ) {
