@@ -308,7 +308,7 @@ const TalentForm = () => {
   ]);
 
   useEffect(() => {
-    if (username && username.length > 3) {
+    if (username && username.length >= 3 && username.length <= 30) {
       if (userData?.username === username) {
         setUsernameStatus("available");
         return;
@@ -374,24 +374,21 @@ const TalentForm = () => {
   };
 
   const onSubmit = (data: any) => {
-    // Validate skills and social links manually
-    if (!selectedSkills.length) {
-      toast.error("Please select at least one skill");
-      return;
-    }
+    // Filter out empty social links
+    const validSocialLinks = socialLinks.filter(link => link.trim() !== '');
     
-    if (!socialLinks.length || !socialLinks.some(link => link.trim() !== "")) {
-      toast.error("Please add at least one social link");
-      return;
-    }
-
-    updateTalentProfile(
-      {
-        ...data,
-        skill_ids: selectedSkills,
-        social_links: socialLinks,
-        years_of_experience: +data.years_of_experience,
-      },
+    // Set default profile image URL if no image is provided
+    const submitData = {
+      ...data,
+      profile_image: previewImage && previewImage.startsWith('data:image') 
+        ? 'https://ava.com/profile.png' 
+        : data.profile_image || 'https://ava.com/profile.png',
+      skill_ids: selectedSkills,
+      social_links: validSocialLinks,
+      years_of_experience: +data.years_of_experience,
+    };
+    
+    updateTalentProfile(submitData,
       {
         onSuccess: async () => {
           // Save to local User table
@@ -502,14 +499,14 @@ const TalentForm = () => {
               label="First Name"
               placeholder="First Name"
               error={errors.first_name}
-              {...register("first_name", { required: "First name is required" })}
+              {...register("first_name")}
             />
             <CustomInput
               id="lastName"
               label="Last Name"
               placeholder="Last Name"
               error={errors.last_name}
-              {...register("last_name", { required: "Last name is required" })}
+              {...register("last_name")}
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
@@ -518,7 +515,7 @@ const TalentForm = () => {
               label="Bio"
               placeholder="Tell others about yourself in a few words"
               error={errors.bio}
-              {...register("bio", { required: "Bio is required" })}
+              {...register("bio")}
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -527,7 +524,7 @@ const TalentForm = () => {
               label="Job Title"
               placeholder="Job Title"
               error={errors.job_title}
-              {...register("job_title", { required: "Job title is required" })}
+              {...register("job_title")}
             />
             <CustomInput
               id="years_of_experience"
@@ -535,7 +532,7 @@ const TalentForm = () => {
               type="number"
               placeholder="3"
               error={errors.years_of_experience}
-              {...register("years_of_experience", { required: "Years of experience is required" })}
+              {...register("years_of_experience")}
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -545,7 +542,7 @@ const TalentForm = () => {
                 label="User Name"
                 placeholder="User Name"
                 error={errors.username}
-                {...register("username", { required: "Username is required" })}
+                {...register("username")}
                 className="relative"
                 icon={
                   <>
@@ -588,7 +585,7 @@ const TalentForm = () => {
             <CustomSelect
               id="location"
               label="Location"
-              {...register("location", { required: "Location is required" })}
+              {...register("location")}
             >
               <option value="">Select location</option>
               {countries.map((country, idx) => (
@@ -602,7 +599,6 @@ const TalentForm = () => {
             <div className="my-2">
               <p className="block text-sm mb-2">
                 Your skills
-                <span className="text-[#FB2C36]">*</span>
               </p>
             </div>
             <div className="w-full h-12 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[var(--default-background-color)] border border-[var(--default-border-color)] text-[var(--primary-text-color)] focus:outline-none focus:border-[#FB2C36] overflow-x-auto">
@@ -652,7 +648,6 @@ const TalentForm = () => {
                   label={`Social Link ${idx + 1}`}
                   placeholder="Enter social link"
                   type="url"
-                  required={idx === 0}
                   value={link}
                   onChange={(e) => {
                     const updatedLinks = [...socialLinks];
@@ -790,7 +785,6 @@ const TalentForm = () => {
             id="wallet_address"
             label="Enter Wallet Address"
             placeholder="Enter Wallet Address"
-            required
             defaultValue={userData?.wallet_address || ""}
             {...register("wallet_address")}
           />
@@ -913,7 +907,7 @@ const SponsorForm = () => {
   }, [localProfileData, isEditProfilePage, setValue]);
 
   useEffect(() => {
-    if (username && username.length > 3) {
+    if (username && username.length >= 3 && username.length <= 30) {
       setUsernameStatus("checking");
       const timer = setTimeout(() => {
         checkUsername(username, {
@@ -937,7 +931,7 @@ const SponsorForm = () => {
   }, [username, checkUsername]);
 
   useEffect(() => {
-    if (company_username && company_username.length > 3) {
+    if (company_username && company_username.length >= 3 && company_username.length <= 30) {
       setCompanyUsernameStatus("checking");
       const timer = setTimeout(() => {
         checkCompanyUsername(company_username, {
