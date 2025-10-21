@@ -115,7 +115,7 @@ export default function StepFlow({
 
   return (
     <div className={className}>
-      <nav className="mb-6">
+      <nav className="console-step-nav mb-6">
         <ol className="flex flex-wrap items-center justify-center gap-3 text-sm">
           {steps.map((s, stepIdx) => {
             const isDoneStep = stepIdx < currentIndex;
