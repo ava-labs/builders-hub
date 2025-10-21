@@ -11,6 +11,7 @@ import { useNetworkActions } from './hooks/useNetworkActions'
 import { NetworkList } from './components/NetworkList'
 import { NetworkActions } from './components/NetworkActions'
 import { WalletInfo } from './components/WalletInfo'
+import { ChainLogo } from './components/ChainLogo'
 
 export function EvmNetworkWallet() {
   const [isEditMode, setIsEditMode] = useState(false)
@@ -79,16 +80,11 @@ export function EvmNetworkWallet() {
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm">
             <div className="flex items-center gap-3">
-              <div className="flex-shrink-0 w-5 h-5 rounded-md overflow-hidden flex items-center justify-start">
-                {currentNetwork && (currentNetwork as any).logoUrl ? (
-                  <img
-                    src={(currentNetwork as any).logoUrl}
-                    alt={`${currentNetwork.name} logo`}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-5 h-5 rounded bg-gray-200" />
-                )}
+              <div className="flex-shrink-0 w-5 h-5 flex items-center justify-start">
+                <ChainLogo
+                  logoUrl={(currentNetwork as any)?.logoUrl}
+                  chainName={currentNetwork.name}
+                />
               </div>
               <div className="flex gap-2 items-center">
                 <span className="text-sm font-medium leading-none">{currentNetwork.name}</span>
