@@ -1,7 +1,7 @@
 ---
 title: Avalanche Granite Upgrade - Enhancing ICM, Unlocking Biometric Use Cases, and Enabling Dynamic Block Times
-description: The Avalanche Granite upgrade activates on Mainnet on [DATE_TBD], bringing major improvements including P-Chain epoched views for ICM, secp256r1 support for biometric authentication, and dynamic minimum block times for faster transactions.
-date: 2025-10-18
+description: The Avalanche Granite upgrade activates on Fuji Testnet on October 29th, 2025, bringing major improvements including P-Chain epoched views for ICM, secp256r1 support for biometric authentication, and dynamic minimum block times for faster transactions.
+date: 2025-10-21
 authors: [AvaxDevelopers]
 topics: [Granite Upgrade, ICM, Biometric, Block Time, ACP, Performance]
 comments: true
@@ -9,7 +9,7 @@ comments: true
 
 ## Introducing Avalanche Granite
 
-The latest upgrade to the Avalanche Network, dubbed "Avalanche Granite", is scheduled to activate on the **Mainnet on [DATE_TBD]**. This upgrade builds upon the successful activation and testing on the Avalanche Fuji Testnet, which took place on [DATE_TBD].
+A pre-release for the latest upgrade to the Avalanche Network, dubbed "Avalanche Granite", has been published. The upgrade is scheduled to activate on the **Fuji Testnet at 11 AM ET (3 PM UTC) on Wednesday, October 29th, 2025**. Following successful activation and testing on the Avalanche Fuji Testnet, an Avalanche Mainnet release will be published, with a set future activation time.
 
 The Granite upgrade is driven by three Avalanche Community Proposals that significantly enhance the network's capabilities:
 
@@ -31,7 +31,7 @@ The Avalanche Granite Upgrade includes protocol optimizations that are not compa
 
 ### Fuji Testnet Node Operators
 
-Fuji node operators must upgrade their nodes to **v1.xx-fuji [TBD]** prior to the activation time on [DATE_TBD]. The pre-release includes protocol optimizations that are not compatible with AvalancheGo versions < v1.xx.x-fuji [TBD]. The plugin version is unchanged at 39 and is compatible with version v1.xx.x [TBD].
+Fuji node operators must upgrade their nodes to **v1.xx-fuji [TBD]** prior to **11 AM ET (3 PM UTC) on Wednesday, October 29th, 2025**. The pre-release includes protocol optimizations that are not compatible with AvalancheGo versions < v1.xx.x-fuji [TBD]. The plugin version is unchanged at 39 and is compatible with version v1.xx.x [TBD].
 
 **Please note**: This Fuji pre-release is unable to run on mainnet and will display "mainnet is not supported" if attempted with a mainnet configuration.
 
@@ -119,6 +119,65 @@ This upgrade ensures that users benefit from:
 The Granite upgrade represents another significant step forward in Avalanche's evolution as a high-performance blockchain platform. By improving ICM reliability, enabling biometric authentication, and allowing dynamic block time adjustments, Avalanche continues to deliver the speed, flexibility, and scalability that developers need.
 
 As the network continues to evolve with upcoming features like Streaming Asynchronous Execution (SAE) and Firewood Database integration, these Granite improvements lay the foundation for even greater performance enhancements.
+
+---
+
+## Summary of Changes
+
+This section provides a technical overview of the changes introduced in the Granite upgrade for developers and node operators.
+
+### New Block Headers (ACP-226)
+
+Two new headers have been introduced as part of ACP-226 for dynamic block time management:
+
+1. **`timestampMilliseconds`** (uint64) - Timestamp in milliseconds for more precise block timing
+2. **`minDelayExcess`** (uint64) - Tracks the excess delay for dynamic block time adjustments
+
+See the [full changelog](https://github.com/ava-labs/coreth/blob/master/RELEASES.md#pending-release) for implementation details.
+
+### New Data Structures (ACP-181)
+
+A new struct has been added as part of ACP-181 to support epoched P-Chain views:
+
+- **`Epoch`** struct - Provides stable P-Chain height references for ICM message verification
+  - [View implementation](https://github.com/ava-labs/avalanchego/blob/master/vms/proposervm/block/block.go#L58)
+
+### New API Methods
+
+Three new API methods have been added to support the Granite upgrade features:
+
+1. **`proposervm.GetProposedHeight`** - Returns this node's current proposer VM height.
+   - [Documentation](https://github.com/ava-labs/avalanchego/blob/7fd85c437985a57731a271c28ea5ed3d25c089e6/vms/proposervm/service.md#proposervmgetproposedheight)
+
+2. **`proposervm.GetCurrentEpoch`** - Returns the current epoch information.
+   - [Documentation](https://github.com/ava-labs/avalanchego/blob/7fd85c437985a57731a271c28ea5ed3d25c089e6/vms/proposervm/service.md#proposervmgetcurrentepoch)
+
+3. **`platform.GetAllValidatorsAt`** - Get the validators and their weights of all Subnets and the Primary Network at a given P-Chain height.
+   - [Documentation](https://github.com/ava-labs/avalanchego/blob/master/vms/platformvm/service.md#platformgetallvalidatorsat)
+
+**Note**: While `platform.getProposedHeight` will not be immediately deprecated, you should switch to using `proposervm.getProposedHeight` for future compatibility.
+
+### Node Configuration Changes
+
+#### For L1 (Subnet) Operators
+
+Add the `--min-delay-target` parameter to your subnet-evm chain config to enable sub-second minimum block times:
+
+```json
+{
+  "min-delay-target": <uint64_value>
+}
+```
+
+#### For Primary Network Node Operators
+
+Add the `--min-delay-target` parameter to your C-Chain config to vote on the target minimum block time enforced by the proposerVM on the C-Chain:
+
+```json
+{
+  "min-delay-target": <uint64_value>
+}
+```
 
 ---
 
