@@ -1,0 +1,69 @@
+---
+title: Native Tokenomics Review
+description: A review of native tokenomics in blockchain systems
+updated: 2025-03-13
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+## What are L1 Native Tokenomics?
+
+L1 Native Tokenomics refers to the economic design and management of native tokens on Layer 1 blockchains. Unlike ERC20 tokens that exist on top of a blockchain, native tokens are the fundamental gas token of the blockchain itself, used for transaction fees and network security.
+
+## Custom Native Token Capabilities
+
+**Custom native tokens** give you complete control over your blockchain's economic model, offering several powerful capabilities:
+
+### Economic Design Control:
+- **Custom Tokenomics**: Design token distribution, inflation, and utility to match your project's needs
+- **Fee Control**: Set predictable, isolated transaction costs independent of other chains' activity
+- **Business Model Flexibility**: Create valueless gas tokens for gas-free experiences or design complex incentive structures
+
+### Native Token Management:
+- **Initial Allocation**: Specify how the initial token supply is distributed
+- **Minting Rights**: Define who can mint new tokens (hard-capped vs. flexible supply)
+- **Fee Configuration**: Configure how transaction fees are calculated and distributed
+
+## Precompiles for Tokenomics
+
+Avalanche L1s use **precompiles** (protocol-level smart contracts) to enable powerful tokenomics features:
+
+### Native Minter Precompile:
+- **Supply Management**: Control whether your blockchain has a fixed token supply or can mint additional tokens
+- **Minting Rights**: Configure who can mint new tokens and under what conditions
+- **Economic Flexibility**: Enable gas-free experiences by minting tokens as needed
+
+### Fee Config Precompile:
+- **Transaction Fees**: Configure how transaction fees are calculated
+- **Fee Distribution**: Control where fees go (burn, treasury, validators)
+- **Dynamic Pricing**: Implement complex fee structures based on network conditions
+
+## Relevance to Proof of Stake
+
+Custom native tokens are **essential for Proof of Stake (PoS) systems** because they provide the economic foundation for validator incentives:
+
+### Staking Token Requirements:
+- **Validator Rewards**: Native tokens are distributed as rewards to validators for securing the network
+- **Slashing Mechanisms**: Validators can lose their staked native tokens for malicious behavior
+- **Economic Security**: The value of the native token directly impacts network security
+
+### PoS Integration:
+- **Staking Logic**: Define how nodes become validators through token staking
+- **Reward Distribution**: Configure how validator rewards are calculated and distributed
+- **Governance Rights**: Native token holders can participate in network governance
+
+## Key Advantages
+
+### Isolated Economics:
+- **Independent Fee Markets**: Your chain's gas costs aren't affected by other chains' activity
+- **Custom Incentive Structures**: Design token utility that aligns with your application's goals
+- **Economic Sovereignty**: Full control over your blockchain's monetary policy
+
+### Business Model Innovation:
+- **Gas-Free Experiences**: Create valueless native tokens for seamless user experiences
+- **Fee Sponsorship**: Eliminate the burden of sponsoring transaction fees on other chains
+- **Web2-like UX**: Remove barriers for mainstream users while maintaining blockchain benefits
+
+## Summary
+
+L1 Native Tokenomics with custom native tokens provides the economic foundation for sophisticated blockchain applications. The ability to design custom tokenomics, control minting rights, and configure fee structures makes these tokens essential for Proof of Stake systems, where validator incentives and network security depend on well-designed economic mechanisms.

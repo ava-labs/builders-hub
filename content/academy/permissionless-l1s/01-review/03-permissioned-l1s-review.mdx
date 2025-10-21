@@ -1,0 +1,78 @@
+---
+title: Permissioned L1s Review
+description: A review of permissioned Layer 1 blockchains
+updated: 2025-03-13
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+## What are Permissioned L1s?
+
+Permissioned L1s are Layer 1 blockchains where validator participation is controlled by a central authority rather than being open to anyone. Unlike permissionless networks where anyone can become a validator by staking tokens, permissioned L1s use **Proof of Authority (PoA)** as their sybil protection mechanism.
+
+## Proof of Authority (PoA)
+
+**Proof of Authority** is a sybil protection mechanism that centralizes control over who can validate the network to one account (EoA or multi-sig). Instead of requiring validators to stake tokens (like Proof of Stake), PoA leverages real-world identity and reputation.
+
+### Key Characteristics:
+- **Known Entities**: Validators are operated by trusted organizations
+- **Reputation-Based**: Validators risk damaging real-world reputation if they misbehave
+- **Weight-Based Influence**: Validators can have different voting weights
+- **No Economic Incentives**: Validators don't receive rewards or face on-chain penalties
+
+### When to Use PoA:
+- Known participants that can be identified and vetted
+- Existing trust relationships or legal frameworks
+- Regulatory compliance requiring known validator identities
+- Private networks for specific consortia
+- High throughput requirements over decentralization
+
+## Validator Manager Contract
+
+The **Validator Manager Contract** is the smart contract system that manages validator operations in permissioned L1s. It follows a two-phase commit pattern for all validator changes.
+
+### Core Functions:
+
+**Initialization:**
+- `initializeValidatorSet()`: Establishes initial validator set when converting Subnet to L1
+
+**Validator Lifecycle Management:**
+- `initiateValidatorRegistration()`: Starts adding a new validator
+- `completeValidatorRegistration()`: Finalizes validator addition after P-Chain confirmation
+- `initiateValidatorRemoval()`: Begins removing a validator
+- `completeValidatorRemoval()`: Finalizes removal after P-Chain confirmation
+- `initiateValidatorWeightUpdate()`: Changes validator voting weight
+- `completeValidatorWeightUpdate()`: Finalizes weight changes
+
+### Key Features:
+- All functions protected with `onlyOwner` modifier
+- Two-phase commit pattern: initiate → complete
+- Churn rate limiting to prevent rapid validator set changes
+- Warp message construction and verification
+
+## P-Chain Integration
+
+The **Platform Chain (P-Chain)** is the backbone for Avalanche's native interoperability. It serves as a registry of all validators in the network, including L1 validators.
+
+### How P-Chain Calls Work:
+
+1. **Validator Registration**: When adding a validator, the contract initiates a P-Chain transaction
+2. **Warp Messages**: Cross-chain communication uses Warp messages to interact with P-Chain
+3. **Confirmation Process**: P-Chain processes the request and sends confirmation back
+4. **State Updates**: The validator manager contract updates its state based on P-Chain confirmation
+
+### P-Chain Transaction Types:
+- `CreateSubnetTx`: Creates new subnet for L1
+- `CreateChainTx`: Creates new blockchain within subnet
+- Validator registration/removal transactions
+- Weight update transactions
+
+### Key Points:
+- P-Chain is **not EVM-based** - requires compatible wallet like Core wallet
+- L1 validators sync P-Chain but don't participate in its consensus
+- All validator changes must be confirmed by P-Chain before taking effect
+- P-Chain maintains the authoritative record of all validators across the network
+
+## Summary
+
+Permissioned L1s use Proof of Authority to control validator participation, managed through Validator Manager contracts that interact with the P-Chain for validator lifecycle operations. This creates enterprise-ready blockchains suitable for regulated industries where validator identities must be known and trusted.
