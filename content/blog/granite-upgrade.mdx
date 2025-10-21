@@ -25,7 +25,7 @@ The Granite upgrade is driven by three Avalanche Community Proposals that signif
 
 **Action Required**: All Mainnet node operators must upgrade their nodes to **v1.14** before the activation time.
 
-The Avalanche Granite Upgrade includes protocol optimizations that are not compatible with AvalancheGo versions < v1.14. If you run a node on Mainnet, you must upgrade your software to AvalancheGo >= v1.14 before the scheduled activation time. Ensure your node is running with the correct plugin version as specified in the [release notes](https://github.com/ava-labs/avalanchego/releases).
+The Avalanche Granite Upgrade includes protocol optimizations that are not compatible with AvalancheGo versions < v1.14. If you run a node on Mainnet, you must upgrade your software to AvalancheGo >= v1.14 before the scheduled activation time. The plugin version is updated to 44. All plugins must update to be compatible. Ensure your node is running with the correct plugin version as specified in the [release notes](https://github.com/ava-labs/avalanchego/releases).
 
 **Important**: Failure to upgrade before the scheduled activation time will result in your node being unable to participate in consensus.
 
@@ -147,7 +147,7 @@ A new struct has been added as part of ACP-181 to support epoched P-Chain views:
 Three new API methods have been added to support the Granite upgrade features:
 
 1. **`proposervm.GetProposedHeight`** - Returns this node's current proposer VM height.
-   - [Documentation](https://build.avax.network/docs/api-reference/p-chain/api#platformgetproposedheight)
+   - [Documentation](https://github.com/ava-labs/avalanchego/blob/7fd85c437985a57731a271c28ea5ed3d25c089e6/vms/proposervm/service.md#proposervmgetproposedheight)
 
 2. **`proposervm.GetCurrentEpoch`** - Returns the current epoch information.
    - [Documentation](https://github.com/ava-labs/avalanchego/blob/7fd85c437985a57731a271c28ea5ed3d25c089e6/vms/proposervm/service.md#proposervmgetcurrentepoch)
