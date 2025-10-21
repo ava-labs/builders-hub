@@ -9,13 +9,13 @@ comments: true
 
 ## Introducing Avalanche Granite
 
-A pre-release for the latest upgrade to the Avalanche Network, dubbed "Avalanche Granite", has been published. The upgrade is scheduled to activate on the **Fuji Testnet at 11 AM ET (3 PM UTC) on Wednesday, October 29th, 2025**. Following successful activation and testing on the Avalanche Fuji Testnet, an Avalanche Mainnet release will be published, with a set future activation time.
+A [pre-release](https://github.com/ava-labs/avalanchego/releases/tag/v1.14.0-fuji) for the latest upgrade to the Avalanche Network, dubbed "Avalanche Granite", has been published. The upgrade is scheduled to activate on the **Fuji Testnet at 11 AM ET (3 PM UTC) on Wednesday, October 29th, 2025**. Following successful activation and testing on the Avalanche Fuji Testnet, an Avalanche Mainnet release will be published, with a set future activation time.
 
 The Granite upgrade is driven by three Avalanche Community Proposals that significantly enhance the network's capabilities:
 
-- **ACP-181**: P-Chain Epoched Views
-- **ACP-204**: Precompile for secp256r1 Curve Support
-- **ACP-226**: Dynamic Minimum Block Times
+- [ACP-181: P-Chain Epoched Views](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/181-p-chain-epoched-views)
+- [ACP-204: Precompile for secp256r1 Curve Support](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/204-precompile-secp256r1)
+- [ACP-226: Dynamic Minimum Block Times](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/226-dynamic-minimum-block-times)
 
 ---
 
@@ -31,7 +31,7 @@ The Avalanche Granite Upgrade includes protocol optimizations that are not compa
 
 ### Fuji Testnet Node Operators
 
-Fuji node operators must upgrade their nodes to **v1.14-fuji** prior to **11 AM ET (3 PM UTC) on Wednesday, October 29th, 2025**. The pre-release includes protocol optimizations that are not compatible with AvalancheGo versions < v1.14-fuji. The plugin version is updated to 44 and is compatible with version v1.13.0.
+Fuji node operators must upgrade their nodes to **[v1.14-fuji](https://github.com/ava-labs/avalanchego/releases/tag/v1.14.0-fuji)** prior to **11 AM ET (3 PM UTC) on Wednesday, October 29th, 2025**. The pre-release includes protocol optimizations that are not compatible with AvalancheGo versions < v1.14-fuji. The plugin version is updated to 44 and is compatible with version v1.13.0.
 
 **Please note**: This Fuji pre-release is unable to run on mainnet and will display "mainnet is not supported" if attempted with a mainnet configuration.
 
@@ -57,7 +57,7 @@ By allowing L1 chains to maintain a consistent view of the P-Chain, ACP-181 enha
 - **More reliable cross-chain messaging** - Lower invalidation risk
 - **Predictable validator set views** - Stable reference points for verification
 
-[Watch the ACP-181 community call](https://www.youtube.com/watch?v=1c6Qa1sobQg) to learn more about the technical details.
+[Watch the ACP-181 community call](https://youtu.be/1c6Qa1sobQg?si=eeTSG3pdPPNcAW_o) to learn more about the technical details.
 
 ---
 
@@ -110,7 +110,7 @@ This upgrade ensures that users benefit from:
 - **Improved network efficiency** - Better resource utilization
 - **Future-proof scalability** - Ready for upcoming performance enhancements
 
-[Watch the ACP-226 community call](https://www.youtube.com/watch?v=v792NyX58sI) to learn more about the technical implementation.
+[Watch the ACP-226 community call](https://youtu.be/v792NyX58sI?si=2TfJpRg1Ju0AePs6) to learn more about the technical implementation.
 
 ---
 
@@ -161,7 +161,7 @@ Three new API methods have been added to support the Granite upgrade features:
 
 #### For L1 (Subnet) Operators
 
-Add the `--min-delay-target` parameter to your subnet-evm chain config to enable sub-second minimum block times:
+Add the `--min-delay-target` parameter to your [subnet-evm chain config](https://build.avax.network/docs/nodes/chain-configs/subnet-evm) to enable sub-second minimum block times:
 
 ```json
 {
@@ -171,7 +171,7 @@ Add the `--min-delay-target` parameter to your subnet-evm chain config to enable
 
 #### For Primary Network Node Operators
 
-Add the `--min-delay-target` parameter to your C-Chain config to vote on the target minimum block time enforced by the proposerVM on the C-Chain:
+Add the `--min-delay-target` parameter to your [C-Chain config](https://build.avax.network/docs/nodes/chain-configs/c-chain) to vote on the target minimum block time enforced by the proposerVM on the C-Chain:
 
 ```json
 {
