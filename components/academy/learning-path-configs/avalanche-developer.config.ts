@@ -33,7 +33,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "interchain-messaging",
         category: "Interoperability",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 15, y: 350 },
+        position: { x: 70, y: 350 },
         mobileOrder: 3
     },
     {
@@ -43,7 +43,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "permissioned-l1s",
         category: "L1 Development",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 40, y: 350 },
+        position: { x: 5, y: 350 },
         mobileOrder: 7
     },
     {
@@ -53,7 +53,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "l1-native-tokenomics",
         category: "L1 Tokenomics",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 65, y: 350 },
+        position: { x: 35, y: 350 },
         mobileOrder: 6
     },
     {
@@ -63,7 +63,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "customizing-evm",
         category: "VM Customization",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 90, y: 350 },
+        position: { x: 100, y: 350 },
         mobileOrder: 8
     },
 
@@ -75,7 +75,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "interchain-token-transfer",
         category: "Interoperability",
         dependencies: ["interchain-messaging"],
-        position: { x: 5, y: 550 },
+        position: { x: 55, y: 550 },
         mobileOrder: 4
     },
     {
@@ -85,8 +85,18 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "icm-chainlink",
         category: "Interoperability",
         dependencies: ["interchain-messaging"],
-        position: { x: 35, y: 550 },
+        position: { x: 85, y: 550 },
         mobileOrder: 5
+    },
+    {
+        id: "permissionless-l1s",
+        name: "Permissionless L1s",
+        description: "Create and manage permissionless blockchains with Proof of Stake",
+        slug: "permissionless-l1s",
+        category: "L1 Development",
+        dependencies: ["permissioned-l1s", "l1-native-tokenomics"],
+        position: { x: 20, y: 550 },
+        mobileOrder: 7
     },
 ];
 
