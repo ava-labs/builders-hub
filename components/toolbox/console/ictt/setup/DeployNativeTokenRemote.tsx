@@ -27,7 +27,7 @@ import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-
 const metadata: ConsoleToolMetadata = {
     title: "Deploy Native Token Remote Contract",
     description: "Deploy the NativeTokenRemote contract for your native token.",
-    walletRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+    toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 function DeployNativeTokenRemote() {

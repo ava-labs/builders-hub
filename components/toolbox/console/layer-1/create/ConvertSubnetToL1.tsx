@@ -19,7 +19,7 @@ import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-
 const metadata: ConsoleToolMetadata = {
     title: "Convert Subnet to L1",
     description: "Convert your existing Subnet to an L1 with validator management",
-    walletRequirements: [
+    toolRequirements: [
         WalletRequirementsConfigKey.PChainBalance
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

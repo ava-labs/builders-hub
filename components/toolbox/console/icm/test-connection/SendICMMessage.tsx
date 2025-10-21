@@ -25,7 +25,7 @@ const predeployedDemos: Record<string, string> = {
 const metadata: ConsoleToolMetadata = {
     title: "Send ICM Message",
     description: "Send a test message between L1s using Avalanche's Inter-Chain Messaging (ICM) protocol",
-    walletRequirements: [
+    toolRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

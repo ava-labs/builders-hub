@@ -28,7 +28,7 @@ const add0x = (hex: string): `0x${string}` => hex.startsWith('0x') ? hex as `0x$
 const metadata: ConsoleToolMetadata = {
     title: "Initialize Validator Set",
     description: "Initialize the ValidatorManager contract with the initial validator set",
-    walletRequirements: [
+    toolRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

@@ -49,7 +49,7 @@ const BUFFER_MINUTES = 5
 const metadata: ConsoleToolMetadata = {
   title: "Stake on Primary Network",
   description: "Stake AVAX as a validator on Avalanche's Primary Network to secure the network and earn rewards",
-  walletRequirements: [
+  toolRequirements: [
     WalletRequirementsConfigKey.PChainBalance
   ],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
