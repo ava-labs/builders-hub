@@ -1,4 +1,4 @@
-import { BookOpen, ArrowLeftRight, Layers, Coins, Code } from 'lucide-react';
+import { BookOpen, ArrowLeftRight, Layers, Coins, Code, Shield } from 'lucide-react';
 import type { CourseNode } from '../learning-tree';
 
 export const avalancheLearningPaths: CourseNode[] = [
@@ -23,6 +23,16 @@ export const avalancheLearningPaths: CourseNode[] = [
         dependencies: ["blockchain-fundamentals"],
         position: { x: 50, y: 150 },
         mobileOrder: 2
+    },
+    {
+        id: "encrypted-erc",
+        name: "Encrypted ERC",
+        description: "Learn about eERC tokens to add privacy to your applications",
+        slug: "encrypted-erc",
+        category: "Privacy",
+        dependencies: ["blockchain-fundamentals"],
+        position: { x: 20, y: 150 },
+        mobileOrder: 9
     },
 
     // Third Layer - Branching paths
@@ -130,5 +140,11 @@ export const avalancheCategoryStyles = {
         icon: Code,
         lightBg: "bg-orange-50",
         darkBg: "dark:bg-orange-950/30"
-    }
+    },
+    "Privacy": {
+    gradient: "from-indigo-500 to-indigo-600",
+        icon: Shield,
+            lightBg: "bg-indigo-50",
+                darkBg: "dark:bg-indigo-950/30"
+    },
 };
