@@ -272,6 +272,7 @@ export function RegisterForm({
         };
       }
       
+      
       if (Object.keys(errors).length > 0) {
         Object.keys(errors).forEach(field => {
           form.setError(field as keyof RegisterFormValues, errors[field]);
