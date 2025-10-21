@@ -33,7 +33,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "interchain-messaging",
         category: "Interoperability",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 70, y: 350 },
+        position: { x: 65, y: 350 },
         mobileOrder: 3
     },
     {
@@ -63,7 +63,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "customizing-evm",
         category: "VM Customization",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 100, y: 350 },
+        position: { x: 95, y: 350 },
         mobileOrder: 8
     },
 
@@ -75,7 +75,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "interchain-token-transfer",
         category: "Interoperability",
         dependencies: ["interchain-messaging"],
-        position: { x: 55, y: 550 },
+        position: { x: 50, y: 550 },
         mobileOrder: 4
     },
     {
@@ -85,7 +85,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "icm-chainlink",
         category: "Interoperability",
         dependencies: ["interchain-messaging"],
-        position: { x: 85, y: 550 },
+        position: { x: 80, y: 550 },
         mobileOrder: 5
     },
     {
