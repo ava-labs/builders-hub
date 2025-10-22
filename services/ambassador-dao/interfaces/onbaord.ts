@@ -24,6 +24,10 @@ export interface IUpdateTalentProfileBody {
   social_links: string[];
   wallet_address: string;
   years_of_experience: string;
+  bio: string;
+  telegram_user: string;
+  profile_privacy: string;
+  notifications: boolean;
 }
 
 export interface ISkillsResponse {
