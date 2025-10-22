@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
-import { Container } from "@/components/toolbox/components/Container";
 import { AllowlistComponent } from "@/components/toolbox/components/AllowListComponents";
 import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from '../../../../components/WithConsoleToolMetadata';
@@ -50,12 +49,6 @@ function EnableStakingManagerMinting() {
           )}
         </Callout>
 
-        <Callout type="warn">
-          <p className="font-semibold mb-2">Skip this step if using ERC20 Token Staking</p>
-          <p>This step is only required for Native Token Staking Manager. If you deployed an ERC20 Token Staking Manager,
-            you can skip this step as the ERC20 token should handle its own minting permissions.</p>
-        </Callout>
-
         {!nativeStakingManagerAddress && (
           <Callout>
             <p>No native staking manager address found. Please deploy and initialize a Native Token Staking Manager first.</p>
@@ -74,6 +67,7 @@ function EnableStakingManagerMinting() {
       <AllowlistComponent
         precompileAddress={DEFAULT_NATIVE_MINTER_ADDRESS}
         precompileType="Minter"
+        defaultEnabledAddress={nativeStakingManagerAddress}
       />
     </CheckPrecompile>
   );
