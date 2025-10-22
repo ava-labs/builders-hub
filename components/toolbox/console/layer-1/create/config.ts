@@ -12,7 +12,7 @@ export const C_CHAIN_ID = "C";
  * @param pruningEnabled Whether to enable pruning
  * @returns VM configuration object
  */
-export const generateVMConfig = (debugEnabled: boolean, pruningEnabled: boolean) => {
+const generateVMConfig = (debugEnabled: boolean, pruningEnabled: boolean) => {
   return debugEnabled ? {
     "pruning-enabled": pruningEnabled,
     "log-level": "debug",

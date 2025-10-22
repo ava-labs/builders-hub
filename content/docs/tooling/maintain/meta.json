@@ -1,0 +1,11 @@
+{
+  "title": "Manage Avalanche L1s",
+  "description": "CLI instructions for managing Avalanche L1s.",
+  "pages": [
+    "add-validator-l1",
+    "delete-avalanche-l1",
+    "remove-validator-l1",
+    "troubleshooting",
+    "view-avalanche-l1s"
+  ]
+}

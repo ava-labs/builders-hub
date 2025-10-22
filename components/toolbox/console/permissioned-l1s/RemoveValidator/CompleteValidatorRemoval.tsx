@@ -3,16 +3,15 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
-import { AlertCircle } from 'lucide-react';
 import { Success } from '@/components/toolbox/components/Success';
+import { Alert } from '@/components/toolbox/components/Alert';
 import { bytesToHex, hexToBytes } from 'viem';
 import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import poaManagerAbi from '@/contracts/icm-contracts/compiled/PoAManager.json';
 import { GetRegistrationJustification } from '../ValidatorManager/justification';
 import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { packWarpIntoAccessList } from '../ValidatorManager/packWarp';
-import { extractL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/methods/extractL1ValidatorWeightMessage';
-import { useAvaCloudSDK } from '@/components/toolbox/stores/useAvaCloudSDK';
+import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 interface CompleteValidatorRemovalProps {
@@ -47,8 +46,8 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   isLoadingOwnership,
   ownerType,
 }) => {
-  const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
-  const { aggregateSignature } = useAvaCloudSDK();
+  const { coreWalletClient, publicClient, avalancheNetworkID, walletEVMAddress } = useWalletStore();
+  const { aggregateSignature } = useAvalancheSDKChainkit();
   const viemChain = useViemChainStore();
   const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || '');
   const { notify } = useConsoleNotifications();
@@ -113,7 +112,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     setIsProcessing(true);
     try {
       // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
-      const weightMessageData = await extractL1ValidatorWeightMessage(coreWalletClient, {
+      const weightMessageData = await coreWalletClient.extractL1ValidatorWeightMessage({
         txId: pChainTxId
       });
 
@@ -167,7 +166,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         functionName: "completeValidatorRemoval",
         args: [0], // As per original, arg is 0
         accessList,
-        account: coreWalletClient.account,
+        account: walletEVMAddress as `0x${string}`,
         chain: viemChain,
       });
       notify({
@@ -206,12 +205,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   return (
     <div className="space-y-4">
       {error && (
-        <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
-          <div className="flex items-center">
-            <AlertCircle className="h-4 w-4 text-red-500 mr-2 flex-shrink-0" />
-            <span>{error}</span>
-          </div>
-        </div>
+        <Alert variant="error">{error}</Alert>
       )}
 
       <Input

@@ -25,6 +25,7 @@ export function EVMAddressInput({
   button,
 }: EVMAddressInputProps) {
   const [validationError, setValidationError] = useState<string | undefined>();
+  const [touched, setTouched] = useState(false);
 
   const validateAddress = (address: string) => {
     if (!address) {
@@ -59,17 +60,27 @@ export function EVMAddressInput({
   };
 
   useEffect(() => {
-    validateAddress(value);
-  }, [value]);
+    // Only validate if the field has been touched or if there's a value
+    if (touched || value) {
+      validateAddress(value);
+    }
+  }, [value, touched]);
+
+  const handleChange = (newValue: string) => {
+    if (!touched) {
+      setTouched(true);
+    }
+    onChange(newValue);
+  };
 
   return (
     <div className="space-y-1">
       <Input
         label={label}
         value={value}
-        onChange={onChange}
+        onChange={handleChange}
         disabled={disabled}
-        error={validationError}
+        error={touched ? validationError : undefined}
         helperText={helperText}
         placeholder={placeholder}
         suggestions={suggestions}

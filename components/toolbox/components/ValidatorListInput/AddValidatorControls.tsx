@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs"
 import { Input } from "../ui/input"
 import type { ConvertToL1Validator } from "../ValidatorListInput"
 
-export type ManagedTestnetNodeSuggestion = {
+type ManagedTestnetNodeSuggestion = {
   id: string;
   node_id: string;
   chain_name: string | null;
@@ -26,10 +26,10 @@ interface Props {
   isTestnet?: boolean
 }
 
-export function AddValidatorControls({ 
-  defaultAddress = "", 
-  canAddMore, 
-  onAddValidator, 
+export function AddValidatorControls({
+  defaultAddress = "",
+  canAddMore,
+  onAddValidator,
   selectedSubnetId = null,
   existingNodeIds = [],
   isTestnet = false
@@ -202,67 +202,67 @@ export function AddValidatorControls({
 
         {isTestnet && (
           <TabsContent value="managed" className="space-y-4">
-          {!managedNodesLoaded ? (
-            <div className="text-sm text-zinc-600 dark:text-zinc-400">Loading managed testnet nodes...</div>
-          ) : filteredManagedNodes.length === 0 ? (
-            <div className="space-y-3">
-              <div className="text-sm text-zinc-600 dark:text-zinc-400">
-                No managed testnet nodes found for the selected Subnet.
-              </div>
-              <div className="text-sm text-zinc-600 dark:text-zinc-400">
-                Need a managed testnet node? Visit{" "}
-                <a 
-                  href="/console/testnet-infra/nodes" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  Free Testnet Infrastructure
-                </a>
-                {" "}to set one up.
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {filteredManagedNodes.map((node) => (
-                <div key={node.id} className="flex items-center justify-between bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-md p-3">
-                  <div className="min-w-0 space-y-0.5">
-                    <div className="font-mono text-sm text-zinc-900 dark:text-zinc-100 truncate leading-tight">{node.node_id}</div>
-                    <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate leading-tight">
-                      {(node.chain_name ? `${node.chain_name} — ` : "")}Subnet: {node.subnet_id || "unknown"}
-                    </div>
-                    {(node.public_key && node.proof_of_possession) ? (
-                      <div className="text-xs text-green-600 dark:text-green-400 leading-tight">BLS PoP available</div>
-                    ) : (
-                      <div className="text-xs text-amber-600 dark:text-amber-400 leading-tight">BLS info not available; paste JSON or enter manually</div>
-                    )}
-                  </div>
-                  <Button
-                    onClick={() => handleAutofillFromManaged(node)}
-                    variant="primary"
-                    className="shrink-0 !w-auto"
-                    size="sm"
-                    disabled={!canAddMore}
-                  >
-                    Add
-                  </Button>
+            {!managedNodesLoaded ? (
+              <div className="text-sm text-zinc-600 dark:text-zinc-400">Loading managed testnet nodes...</div>
+            ) : filteredManagedNodes.length === 0 ? (
+              <div className="space-y-3">
+                <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                  No managed testnet nodes found for the selected Subnet.
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                  Need a managed testnet node? Visit{" "}
+                  <a
+                    href="/console/testnet-infra/nodes"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Free Testnet Infrastructure
+                  </a>
+                  {" "}to set one up.
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {filteredManagedNodes.map((node) => (
+                  <div key={node.id} className="flex items-center justify-between bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-md p-3">
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="font-mono text-sm text-zinc-900 dark:text-zinc-100 truncate leading-tight">{node.node_id}</div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate leading-tight">
+                        {(node.chain_name ? `${node.chain_name} — ` : "")}Subnet: {node.subnet_id || "unknown"}
+                      </div>
+                      {(node.public_key && node.proof_of_possession) ? (
+                        <div className="text-xs text-green-600 dark:text-green-400 leading-tight">BLS PoP available</div>
+                      ) : (
+                        <div className="text-xs text-amber-600 dark:text-amber-400 leading-tight">BLS info not available; paste JSON or enter manually</div>
+                      )}
+                    </div>
+                    <Button
+                      onClick={() => handleAutofillFromManaged(node)}
+                      variant="primary"
+                      className="shrink-0 !w-auto"
+                      size="sm"
+                      disabled={!canAddMore}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </TabsContent>
         )}
 
         <TabsContent value="json" className="space-y-4">
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
-           Click the copy button to copy the command and run it in your node's terminal to get the node credentials.
+            Click the copy button to copy the command and run it in your node's terminal to get the node credentials.
           </p>
           <DynamicCodeBlock
             code={rpcCommand}
             lang="zsh"
           />
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
-           Paste the JSON response below:
+            Paste the JSON response below:
           </p>
           <textarea
             value={jsonInput}

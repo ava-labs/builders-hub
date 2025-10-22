@@ -21,7 +21,7 @@ export interface PackL1ConversionMessageArgs {
 }
 
 // Existing interface from original TS file
-export interface SubnetToL1ConversionValidatorData {
+interface SubnetToL1ConversionValidatorData {
     nodeID: string;
     nodePOP: {
         publicKey: string;
@@ -31,13 +31,13 @@ export interface SubnetToL1ConversionValidatorData {
 }
 
 // Existing interface from original TS file (modified slightly by user before?)
-export interface PChainOwner {
+interface PChainOwner {
     threshold: number; // Note: Solidity uses uint32
     addresses: `0x${string}`[];
 }
 
 // Existing interface from original TS file (modified slightly by user before?)
-export interface ValidationPeriod {
+interface ValidationPeriod {
     subnetId: string; // Note: Solidity uses bytes32 (Uint8Array)
     nodeID: string; // Note: Solidity uses bytes (Uint8Array)
     blsPublicKey: `0x${string}`; // Note: Solidity uses bytes (Uint8Array, 48 len)
@@ -61,14 +61,14 @@ export interface SolidityValidationPeriod {
 }
 
 // Mirrors Solidity's ValidatorData struct used within ConversionData
-export interface SolidityValidatorData {
+interface SolidityValidatorData {
     nodeID: Uint8Array; // bytes
     blsPublicKey: Uint8Array; // bytes (expected length 48)
     weight: bigint; // uint64
 }
 
 // Mirrors Solidity's ConversionData struct
-export interface SolidityConversionData {
+interface SolidityConversionData {
     subnetID: Uint8Array; // bytes32
     validatorManagerBlockchainID: Uint8Array; // bytes32
     validatorManagerAddress: `0x${string}`; // address (20 bytes)
@@ -79,20 +79,20 @@ export interface SolidityConversionData {
 // Mirrors Solidity's L1ValidatorRegistrationMessage data
 // (already somewhat represented by existing L1ValidatorRegistration interface)
 // Existing interface from original TS file:
-export interface L1ValidatorRegistration {
+interface L1ValidatorRegistration {
     validationID: Uint8Array; // bytes32
     registered: boolean;
 }
 
 // For L1ValidatorWeightMessage
-export interface L1ValidatorWeight {
+interface L1ValidatorWeight {
     validationID: Uint8Array; // bytes32
     nonce: bigint; // uint64
     weight: bigint; // uint64
 }
 
 // For ValidationUptimeMessage
-export interface ValidationUptime {
+interface ValidationUptime {
     validationID: Uint8Array; // bytes32
     uptime: bigint; // uint64
 }
@@ -158,7 +158,7 @@ function parseUint16(input: Uint8Array, offset: number): number {
 }
 
 function parseUint32(input: Uint8Array, offset: number): number {
-     if (offset + 4 > input.length) throw new Error("parseUint32: Offset out of bounds");
+    if (offset + 4 > input.length) throw new Error("parseUint32: Offset out of bounds");
     let result = 0;
     for (let i = 0; i < 4; i++) {
         result = (result << 8) | input[offset + i];
@@ -168,7 +168,7 @@ function parseUint32(input: Uint8Array, offset: number): number {
 }
 
 function parseUint64(input: Uint8Array, offset: number): bigint {
-     if (offset + 8 > input.length) throw new Error("parseUint64: Offset out of bounds");
+    if (offset + 8 > input.length) throw new Error("parseUint64: Offset out of bounds");
     let result = 0n;
     for (let i = 0; i < 8; i++) {
         result = (result << 8n) | BigInt(input[offset + i]);
@@ -196,7 +196,7 @@ function parseVarBytes(input: Uint8Array, offset: number): { bytes: Uint8Array; 
  * Format: codecID (uint16), typeID (uint32), conversionID (bytes32)
  * Total Length: 2 + 4 + 32 = 38 bytes
  */
-export function packSubnetToL1ConversionMessage(conversionID: Uint8Array): Uint8Array {
+function packSubnetToL1ConversionMessage(conversionID: Uint8Array): Uint8Array {
     if (conversionID.length !== 32) {
         throw new Error('ConversionID must be exactly 32 bytes');
     }
@@ -211,7 +211,7 @@ export function packSubnetToL1ConversionMessage(conversionID: Uint8Array): Uint8
  * Unpacks a byte array as a SubnetToL1ConversionMessage message.
  * Format: codecID (uint16), typeID (uint32), conversionID (bytes32)
  */
-export function unpackSubnetToL1ConversionMessage(input: Uint8Array): Uint8Array {
+function unpackSubnetToL1ConversionMessage(input: Uint8Array): Uint8Array {
     const EXPECTED_LENGTH = 38;
     if (input.length !== EXPECTED_LENGTH) {
         throw new Error(`Invalid message length. Expected ${EXPECTED_LENGTH} bytes, got ${input.length}`);
@@ -236,7 +236,7 @@ export function unpackSubnetToL1ConversionMessage(input: Uint8Array): Uint8Array
  * Packs ConversionData into a byte array (pre-image for conversionID hash).
  * Mirrors Solidity's packConversionData logic using SolidityConversionData interface.
  */
-export function packConversionData(conversionData: SolidityConversionData): Uint8Array {
+function packConversionData(conversionData: SolidityConversionData): Uint8Array {
     const parts: Uint8Array[] = [];
 
     parts.push(encodeUint16(CODEC_ID)); // 2 bytes
@@ -258,16 +258,16 @@ export function packConversionData(conversionData: SolidityConversionData): Uint
     // Note: Solidity version doesn't explicitly sort. Kept sorting for consistency with original TS marshal function.
     // If strict adherence to Solidity is needed, remove sorting.
     const sortedValidators = [...conversionData.initialValidators].sort((a, b) => {
-         // Simple lexicographical comparison for byte arrays
-         const aBytes = a.nodeID;
-         const bBytes = b.nodeID;
-         const minLen = Math.min(aBytes.length, bBytes.length);
-         for (let i = 0; i < minLen; i++) {
-             if (aBytes[i] !== bBytes[i]) {
-                 return aBytes[i] < bBytes[i] ? -1 : 1;
-             }
-         }
-         return aBytes.length - bBytes.length;
+        // Simple lexicographical comparison for byte arrays
+        const aBytes = a.nodeID;
+        const bBytes = b.nodeID;
+        const minLen = Math.min(aBytes.length, bBytes.length);
+        for (let i = 0; i < minLen; i++) {
+            if (aBytes[i] !== bBytes[i]) {
+                return aBytes[i] < bBytes[i] ? -1 : 1;
+            }
+        }
+        return aBytes.length - bBytes.length;
     });
 
 
@@ -283,7 +283,7 @@ export function packConversionData(conversionData: SolidityConversionData): Uint
 }
 
 // Function to calculate the conversionID hash using the Solidity-like structure
-export function calculateConversionID(conversionData: SolidityConversionData): Uint8Array {
+function calculateConversionID(conversionData: SolidityConversionData): Uint8Array {
     const packedData = packConversionData(conversionData);
     return sha256(packedData);
 }
@@ -329,11 +329,11 @@ export function marshalSubnetToL1ConversionData(args: PackL1ConversionMessageArg
         // Ensure this publicKey corresponds to the expected BLS key if used for similar purposes.
         // Assuming nodePOP.publicKey is the BLS key here based on context.
         const blsPublicKeyBytes = utils.hexToBuffer(validator.nodePOP.publicKey);
-         if (blsPublicKeyBytes.length !== 48) {
-             console.warn(`Expected BLS public key (nodePOP.publicKey) to be 48 bytes, got ${blsPublicKeyBytes.length}`);
-             // Decide whether to throw or allow based on requirements
-             // throw new Error(`Invalid BLS public key length from nodePOP.publicKey: ${blsPublicKeyBytes.length}`);
-         }
+        if (blsPublicKeyBytes.length !== 48) {
+            console.warn(`Expected BLS public key (nodePOP.publicKey) to be 48 bytes, got ${blsPublicKeyBytes.length}`);
+            // Decide whether to throw or allow based on requirements
+            // throw new Error(`Invalid BLS public key length from nodePOP.publicKey: ${blsPublicKeyBytes.length}`);
+        }
 
         parts.push(encodeVarBytes(nodeIDBytes));
         parts.push(blsPublicKeyBytes); // Packing the publicKey as if it's the BLS key
@@ -357,7 +357,7 @@ export function subnetToL1ConversionID(args: PackL1ConversionMessageArgs): Uint8
 
 // Function to pack *only* the payload using the SolidityValidationPeriod interface.
 function packRegisterL1ValidatorPayload(validationPeriod: SolidityValidationPeriod): Uint8Array {
-     if (validationPeriod.blsPublicKey.length !== 48) {
+    if (validationPeriod.blsPublicKey.length !== 48) {
         throw new Error('Invalid BLS public key length, expected 48 bytes');
     }
 
@@ -387,7 +387,7 @@ function packRegisterL1ValidatorPayload(validationPeriod: SolidityValidationPeri
     parts.push(encodeUint32(validationPeriod.disableOwner.addresses.length));
     for (const address of validationPeriod.disableOwner.addresses) {
         const addrBytes = utils.hexToBuffer(address);
-         if (addrBytes.length !== 20) throw new Error("Owner address must be 20 bytes hex string");
+        if (addrBytes.length !== 20) throw new Error("Owner address must be 20 bytes hex string");
         parts.push(addrBytes);
     }
 
@@ -413,7 +413,7 @@ export function calculateValidationID(validationPeriod: SolidityValidationPeriod
  */
 // ... existing packRegisterL1ValidatorMessage function ...
 // Modify it to use CODEC_ID and ensure consistency
-export function packRegisterL1ValidatorMessage(
+function packRegisterL1ValidatorMessage(
     validationPeriod: ValidationPeriod, // Using existing TS interface
     networkID: number,
     sourceChainID: string
@@ -452,9 +452,9 @@ export function packRegisterL1ValidatorMessage(
     payloadParts.push(encodeUint32(validationPeriod.disableOwner.threshold));
     payloadParts.push(encodeUint32(validationPeriod.disableOwner.addresses.length));
     for (const address of validationPeriod.disableOwner.addresses) {
-         const addrBytes = utils.hexToBuffer(address);
-         if (addrBytes.length !== 20) throw new Error("Owner address must be 20 bytes hex string");
-         payloadParts.push(addrBytes);
+        const addrBytes = utils.hexToBuffer(address);
+        if (addrBytes.length !== 20) throw new Error("Owner address must be 20 bytes hex string");
+        payloadParts.push(addrBytes);
     }
     payloadParts.push(encodeUint64(validationPeriod.weight));
 
@@ -547,11 +547,11 @@ export function unpackRegisterL1ValidatorPayload(input: Uint8Array): SolidityVal
 
     // Validate total length by comparing the final index with input length
     if (index !== input.length) {
-         // Calculate expected length based on parsed variable fields for better error message
-         const expectedLength = 2 + 4 + 32 + (4 + validation.nodeID.length) + 48 + 8 +
-                               (4 + 4 + remainingBalanceOwnerAddressesLength * 20) +
-                               (4 + 4 + disableOwnerAddressesLength * 20) + 8;
-         throw new Error(`Invalid message length: parsed ${index} bytes, expected ${expectedLength}, total length ${input.length}`);
+        // Calculate expected length based on parsed variable fields for better error message
+        const expectedLength = 2 + 4 + 32 + (4 + validation.nodeID.length) + 48 + 8 +
+            (4 + 4 + remainingBalanceOwnerAddressesLength * 20) +
+            (4 + 4 + disableOwnerAddressesLength * 20) + 8;
+        throw new Error(`Invalid message length: parsed ${index} bytes, expected ${expectedLength}, total length ${input.length}`);
     }
 
     return validation as SolidityValidationPeriod;
@@ -561,7 +561,7 @@ export function unpackRegisterL1ValidatorPayload(input: Uint8Array): SolidityVal
 // Existing parseRegisterL1ValidatorMessage returns the TS ValidationPeriod interface.
 // Let's update it to use the new unpack function and convert the result.
 // ... existing parseRegisterL1ValidatorMessage ...
-export function parseRegisterL1ValidatorMessage(input: Uint8Array): ValidationPeriod {
+function parseRegisterL1ValidatorMessage(input: Uint8Array): ValidationPeriod {
     const parsedPayload = unpackRegisterL1ValidatorPayload(input);
 
     // Convert SolidityValidationPeriod back to ValidationPeriod (bytes to strings/hex)
@@ -623,7 +623,7 @@ export function packL1ValidatorRegistration(
  * Format: codecID (uint16), typeID (uint32), validationID (bytes32), valid (bool)
  * Returns the L1ValidatorRegistration interface fields.
  */
-export function unpackL1ValidatorRegistrationPayload(payload: Uint8Array): L1ValidatorRegistration {
+function unpackL1ValidatorRegistrationPayload(payload: Uint8Array): L1ValidatorRegistration {
     const EXPECTED_LENGTH = 39; // 2 + 4 + 32 + 1 bytes
     if (payload.length !== EXPECTED_LENGTH) {
         throw new Error(`Invalid L1ValidatorRegistration payload length. Expected ${EXPECTED_LENGTH} bytes, got ${payload.length}`);
@@ -651,7 +651,7 @@ export function unpackL1ValidatorRegistrationPayload(payload: Uint8Array): L1Val
 
 // Existing parseL1ValidatorRegistration - Update to use the unpack function
 // ... existing parseL1ValidatorRegistration ...
-export function parseL1ValidatorRegistration(bytes: Uint8Array): L1ValidatorRegistration {
+function parseL1ValidatorRegistration(bytes: Uint8Array): L1ValidatorRegistration {
     // This function already expected the payload bytes based on its original implementation.
     return unpackL1ValidatorRegistrationPayload(bytes);
 }
@@ -665,7 +665,7 @@ export function parseL1ValidatorRegistration(bytes: Uint8Array): L1ValidatorRegi
  * Total Length: 54 bytes
  */
 function packL1ValidatorWeightPayload(args: L1ValidatorWeight): Uint8Array {
-     if (args.validationID.length !== 32) {
+    if (args.validationID.length !== 32) {
         throw new Error('ValidationID must be exactly 32 bytes');
     }
     return concatenateUint8Arrays(
@@ -715,9 +715,9 @@ export function unpackL1ValidatorWeightPayload(payload: Uint8Array): L1Validator
     const nonce = parseUint64(payload, offset); offset += 8;
     const weight = parseUint64(payload, offset); offset += 8;
 
-     if (offset !== payload.length) {
-         throw new Error("Did not consume entire payload buffer during L1ValidatorWeight unpack");
-     }
+    if (offset !== payload.length) {
+        throw new Error("Did not consume entire payload buffer during L1ValidatorWeight unpack");
+    }
 
     return { validationID, nonce, weight };
 }
@@ -731,7 +731,7 @@ export function unpackL1ValidatorWeightPayload(payload: Uint8Array): L1Validator
  * Total Length: 46 bytes
  */
 function packValidationUptimePayload(args: ValidationUptime): Uint8Array {
-     if (args.validationID.length !== 32) {
+    if (args.validationID.length !== 32) {
         throw new Error('ValidationID must be exactly 32 bytes');
     }
     return concatenateUint8Arrays(
@@ -745,7 +745,7 @@ function packValidationUptimePayload(args: ValidationUptime): Uint8Array {
 /**
  * Packs a ValidationUptimeMessage for sending (wrapped in unsigned message structure).
  */
-export function packValidationUptimeMessage(
+function packValidationUptimeMessage(
     args: ValidationUptime,
     networkID: number,
     sourceChainID: string
@@ -760,7 +760,7 @@ export function packValidationUptimeMessage(
  * Unpacks the payload of a ValidationUptimeMessage.
  * Returns the ValidationUptime interface fields.
  */
-export function unpackValidationUptimePayload(payload: Uint8Array): ValidationUptime {
+function unpackValidationUptimePayload(payload: Uint8Array): ValidationUptime {
     const EXPECTED_LENGTH = 46; // 2 + 4 + 32 + 8
     if (payload.length !== EXPECTED_LENGTH) {
         throw new Error(`Invalid ValidationUptime payload length. Expected ${EXPECTED_LENGTH} bytes, got ${payload.length}`);
@@ -773,18 +773,18 @@ export function unpackValidationUptimePayload(payload: Uint8Array): ValidationUp
     }
 
     const typeID = parseUint32(payload, offset); offset += 4;
-     // Note: typeID 0 is reused. Ensure context distinguishes this from SubnetToL1Conversion
+    // Note: typeID 0 is reused. Ensure context distinguishes this from SubnetToL1Conversion
     if (typeID !== VALIDATION_UPTIME_MESSAGE_TYPE_ID) {
-       throw new Error(`Invalid message type: ${typeID}, expected ${VALIDATION_UPTIME_MESSAGE_TYPE_ID}`);
-       // Or potentially allow SUBNET_TO_L1_CONVERSION_MESSAGE_TYPE_ID if context is ambiguous?
+        throw new Error(`Invalid message type: ${typeID}, expected ${VALIDATION_UPTIME_MESSAGE_TYPE_ID}`);
+        // Or potentially allow SUBNET_TO_L1_CONVERSION_MESSAGE_TYPE_ID if context is ambiguous?
     }
 
     const validationID = parseBytes(payload, offset, 32); offset += 32;
     const uptime = parseUint64(payload, offset); offset += 8;
 
     if (offset !== payload.length) {
-         throw new Error("Did not consume entire payload buffer during ValidationUptime unpack");
-     }
+        throw new Error("Did not consume entire payload buffer during ValidationUptime unpack");
+    }
 
     return { validationID, uptime };
 }
@@ -805,7 +805,7 @@ export function newAddressedCall(sourceAddress: Uint8Array, payload: Uint8Array)
 }
 
 export function newSubnetToL1Conversion(subnetConversionID: Uint8Array): Uint8Array {
-     if (subnetConversionID.length !== 32) {
+    if (subnetConversionID.length !== 32) {
         throw new Error('subnetConversionID must be exactly 32 bytes');
     }
     const parts: Uint8Array[] = [];
@@ -886,4 +886,95 @@ export function packL1ConversionMessage(args: PackL1ConversionMessageArgs, netwo
     return [unsignedMessage, utils.base58check.decode(args.subnetId)];
 }
 
-// Removed duplicate parsing helpers from the end of the file as they were moved up
+/**
+ * Extracts the payload from a WarpMessage (UnsignedMessage structure)
+ * UnsignedMessage structure:
+ * - codecVersion (uint16 - 2 bytes)
+ * - networkID (uint32 - 4 bytes) 
+ * - sourceChainID (32 bytes)
+ * - message length (uint32 - 4 bytes)
+ * - message (the variable-length bytes we want)
+ * @param warpMessageBytes - The complete WarpMessage bytes
+ * @returns The payload bytes
+ */
+export function extractPayloadFromWarpMessage(warpMessageBytes: Buffer): Buffer {
+    if (warpMessageBytes.length < 42) { // 2 + 4 + 32 + 4 = minimum 42 bytes
+        throw new Error('WarpMessage too short');
+    }
+
+    // Skip codecVersion (2 bytes) + networkID (4 bytes) + sourceChainID (32 bytes) = 38 bytes
+    // Then read message length (4 bytes)
+    const messageLength = (warpMessageBytes[38] << 24) |
+        (warpMessageBytes[39] << 16) |
+        (warpMessageBytes[40] << 8) |
+        warpMessageBytes[41];
+
+    if (messageLength <= 0 || 42 + messageLength > warpMessageBytes.length) {
+        throw new Error('Invalid message length or message extends beyond WarpMessage data bounds');
+    }
+
+    // Extract the message payload starting at byte 42
+    return warpMessageBytes.slice(42, 42 + messageLength);
+}
+
+/**
+ * Extracts the payload bytes from an AddressedCall byte array.
+ * Assumes AddressedCall structure:
+ * - TypeID (4 bytes, starting at index 2)
+ * - Source Address Length (4 bytes, starting at index 6)
+ * - Source Address (variable)
+ * - Payload Length (4 bytes, starting after source address)
+ * - Payload (variable)
+ *
+ * @param addressedCall - The AddressedCall bytes.
+ * @returns The extracted payload as a Buffer, or null if parsing fails or data is insufficient.
+ */
+export function extractPayloadFromAddressedCall(addressedCall: Buffer): Buffer | null {
+    try {
+        // Need at least 10 bytes for TypeID and Source Address Length.
+        if (addressedCall.length < 10) {
+            return null;
+        }
+
+        // Source Address Length starts at index 6
+        const sourceAddrLen = (addressedCall[6] << 24) | (addressedCall[7] << 16) | (addressedCall[8] << 8) | addressedCall[9];
+        if (sourceAddrLen < 0) {
+            return null;
+        }
+
+        // Position where Payload Length starts
+        const payloadLenPos = 10 + sourceAddrLen;
+
+        // Check if we have enough bytes to read Payload Length
+        if (payloadLenPos + 4 > addressedCall.length) {
+            return null;
+        }
+
+        // Read Payload Length
+        const payloadLen = (addressedCall[payloadLenPos] << 24) |
+            (addressedCall[payloadLenPos + 1] << 16) |
+            (addressedCall[payloadLenPos + 2] << 8) |
+            addressedCall[payloadLenPos + 3];
+
+        // Check if payload length is valid
+        if (payloadLen <= 0) {
+            return null;
+        }
+
+        const payloadStartPos = payloadLenPos + 4;
+        const payloadEndPos = payloadStartPos + payloadLen;
+
+        // Check if payload extends beyond data bounds
+        if (payloadEndPos > addressedCall.length) {
+            return null;
+        }
+
+        // Extract Payload
+        const payloadBytes = addressedCall.slice(payloadStartPos, payloadEndPos);
+        return payloadBytes;
+
+    } catch (error) {
+        console.error('Error extracting payload from AddressedCall:', error);
+        return null;
+    }
+}

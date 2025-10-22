@@ -1,34 +1,30 @@
-import type { Metadata } from 'next';
+import type { Metadata } from "next";
 import {
   DocsPage,
   DocsBody,
   DocsTitle,
   DocsDescription,
-  DocsCategory,
-} from 'fumadocs-ui/page';
-import { notFound } from 'next/navigation';
-import {
-  type ComponentProps,
-  type FC,
-  type ReactElement,
-} from 'react';
-import defaultComponents from 'fumadocs-ui/mdx';
-import { Popup, PopupContent, PopupTrigger } from 'fumadocs-twoslash/ui';
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
-import { Step, Steps } from 'fumadocs-ui/components/steps';
-import { Callout } from 'fumadocs-ui/components/callout';
-import { TypeTable } from 'fumadocs-ui/components/type-table';
-import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
-import { createMetadata } from '@/utils/metadata';
-import { documentation } from '@/lib/source';
-import { AutoTypeTable } from '@/components/content-design/type-table';
-import { BackToTop } from '@/components/ui/back-to-top';
-import { File, Folder, Files } from 'fumadocs-ui/components/files';
+} from "fumadocs-ui/page";
+import { notFound } from "next/navigation";
+import { type ComponentProps, type FC, type ReactElement } from "react";
+import defaultComponents from "fumadocs-ui/mdx";
+import { Popup, PopupContent, PopupTrigger } from "fumadocs-twoslash/ui";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Callout } from "fumadocs-ui/components/callout";
+import { TypeTable } from "fumadocs-ui/components/type-table";
+import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
+import { createMetadata } from "@/utils/metadata";
+import { documentation } from "@/lib/source";
+import { AutoTypeTable } from "@/components/content-design/type-table";
+import { BackToTop } from "@/components/ui/back-to-top";
+import { File, Folder, Files } from "fumadocs-ui/components/files";
 import Mermaid from "@/components/content-design/mermaid";
-import type { MDXComponents } from 'mdx/types';
-import YouTube from '@/components/content-design/youtube';
-import { Feedback } from '@/components/ui/feedback';
-import posthog from 'posthog-js';
+import type { MDXComponents } from "mdx/types";
+import YouTube from "@/components/content-design/youtube";
+import { Feedback } from "@/components/ui/feedback";
+import { SidebarActions } from "@/components/ui/sidebar-actions";
+import posthog from "posthog-js";
 
 export const dynamicParams = false;
 export const revalidate = false;
@@ -41,33 +37,43 @@ export default async function Page(props: {
   if (!page) notFound();
 
   const { body: MDX, toc } = await page.data.load();
-  const path = `content/docs/${page.file.path}`;
+  const path = `content/docs/${page.file?.path || page.url}`;
 
   // Use custom edit URL if provided in frontmatter, otherwise use default path
-  const editUrl = page.data.edit_url || `https://github.com/ava-labs/builders-hub/edit/master/${path}`;
+  const editUrl =
+    (page.data.edit_url as string) ||
+    `https://github.com/ava-labs/builders-hub/edit/master/${path}`;
 
   return (
     <DocsPage
       toc={toc}
       full={page.data.full}
       tableOfContent={{
-        style: 'clerk',
+        style: "clerk",
         single: false,
         footer: (
-          <BackToTop />
+          <>
+            <SidebarActions
+              editUrl={editUrl}
+              title={(page.data.title as string) || "Untitled"}
+              pagePath={`/${params.slug.join("/")}`}
+              pageType="docs"
+            />
+            <BackToTop />
+          </>
         ),
       }}
       article={{
-        className: 'max-sm:pb-16',
+        className: "max-sm:pb-16",
       }}
     >
-      <DocsTitle>{page.data.title}</DocsTitle>
+      <DocsTitle>{page.data.title || "Untitled"}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
       <DocsBody className="text-fd-foreground/80">
         <MDX
           components={{
             ...defaultComponents,
-            ...((await import('lucide-react')) as unknown as MDXComponents),
+            ...((await import("lucide-react")) as unknown as MDXComponents),
 
             Popup,
             PopupContent,
@@ -85,21 +91,17 @@ export default async function Page(props: {
             File,
             Folder,
             Files,
-            blockquote: Callout as unknown as FC<ComponentProps<'blockquote'>>,
-            DocsCategory: () => <DocsCategory page={page} from={documentation} />,
+            blockquote: Callout as unknown as FC<ComponentProps<"blockquote">>,
           }}
         />
-        {page.data.index ? <DocsCategory page={page} from={documentation} /> : null}
       </DocsBody>
       <Feedback
         path={path}
-        title={page.data.title}
-        pagePath={`/docs/${page.slugs.join('/')}`}
-        editUrl={editUrl}
-        pageType="docs"
+        title={page.data.title || "Untitled"}
+        pagePath={`/docs/${page.slugs.join("/")}`}
         onRateAction={async (url, feedback) => {
-          'use server';
-          await posthog.capture('on_rate_document', feedback);
+          "use server";
+          await posthog.capture("on_rate_document", feedback);
         }}
       />
     </DocsPage>
@@ -121,24 +123,25 @@ export async function generateMetadata(props: {
   if (!page) notFound();
 
   const description =
-    page.data.description ?? 'Developer documentation for everything related to the Avalanche ecosystem.';
+    page.data.description ??
+    "Developer documentation for everything related to the Avalanche ecosystem.";
 
   const imageParams = new URLSearchParams();
-  imageParams.set('title', page.data.title);
-  imageParams.set('description', description);
+  imageParams.set("title", page.data.title || "Untitled");
+  imageParams.set("description", description);
 
   const image = {
-    alt: 'Banner',
+    alt: "Banner",
     url: `/api/og/docs/${params.slug[0]}?${imageParams.toString()}`,
     width: 1200,
     height: 630,
   };
 
   return createMetadata({
-    title: page.data.title,
+    title: page.data.title || "Untitled",
     description,
     openGraph: {
-      url: `/docs/${page.slugs.join('/')}`,
+      url: `/docs/${page.slugs.join("/")}`,
       images: image,
     },
     twitter: {

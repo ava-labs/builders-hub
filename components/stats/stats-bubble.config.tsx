@@ -5,9 +5,9 @@ import type { BubbleNavigationConfig } from '@/components/navigation/bubble-navi
 
 export const statsBubbleConfig: BubbleNavigationConfig = {
     items: [
-        { id: "validators", label: "Validators", href: "/stats/primary-network/validators" },
-        { id: "c-chain", label: "C-Chain", href: "/stats/primary-network/c-chain" },
         { id: "avalanche-l1s", label: "Avalanche L1s", href: "/stats/overview" },
+        { id: "c-chain", label: "C-Chain", href: "/stats/primary-network/c-chain" },
+        { id: "validators", label: "Validators", href: "/stats/primary-network/validators" },
     ],
     activeColor: "bg-blue-600",
     darkActiveColor: "dark:bg-blue-500",

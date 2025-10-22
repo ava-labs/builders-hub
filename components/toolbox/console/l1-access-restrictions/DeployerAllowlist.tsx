@@ -4,6 +4,7 @@ import { AllowlistComponent } from "@/components/toolbox/components/AllowListCom
 import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 // Default Deployer AllowList address
 const DEFAULT_DEPLOYER_ALLOWLIST_ADDRESS =
@@ -12,9 +13,10 @@ const DEFAULT_DEPLOYER_ALLOWLIST_ADDRESS =
 const metadata: ConsoleToolMetadata = {
   title: "Deployer Allowlist",
   description: "Control which addresses can deploy smart contracts on your L1",
-  walletRequirements: [
+  toolRequirements: [
     WalletRequirementsConfigKey.EVMChainBalance
-  ]
+  ],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
 function DeployerAllowlist({ onSuccess }: BaseConsoleToolProps) {

@@ -1,0 +1,47 @@
+---
+title: Token Symbol
+description: Understanding token symbol conventions and their importance in blockchain ecosystems
+updated: 2025-08-21
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+When creating a custom native token for your Avalanche L1, choosing the right token symbol is more important than it might initially seem. A token symbol serves as the shorthand identifier for your token across wallets, exchanges, and applications.
+
+## Symbol Conventions
+
+Token symbols typically follow these conventions:
+- **Length**: 3-5 characters (ETH, AVAX, USDC, BTC)
+- **Format**: All uppercase letters
+- **Uniqueness**: Should be distinct from existing popular tokens
+- **Relevance**: Often relates to the project name or purpose
+
+## Native Token Symbol in Code
+
+In Solidity and other EVM-based smart contracts, there's an important convention to understand. The native token is always referred to as **"ether"** in the code, regardless of what the actual token symbol is on your blockchain.
+
+For example:
+```solidity
+// This always refers to the native token, whether it's ETH, AVAX, or your custom token
+msg.value // Amount of native token sent
+address.balance // Native token balance
+payable(recipient).transfer(1 ether) // Transfer 1 unit of native token
+```
+
+This convention exists because Solidity was originally designed for Ethereum, where the native token is Ether. The keyword "ether" became a unit denomination in the language itself.
+
+## Custom L1 Considerations
+
+When launching your Avalanche L1:
+- Your chosen symbol (e.g., "GAME", "DEFI") is what users see in wallets and explorers
+- But in smart contract code, you'll still use "ether" as the unit
+- This separation between display symbol and code convention helps maintain compatibility
+
+## Best Practices
+
+1. **Research existing symbols** to avoid conflicts
+2. **Keep it memorable** and easy to type
+3. **Consider your brand** - the symbol becomes part of your identity
+4. **Check trademark considerations** for your chosen symbol
+
+Your token symbol is often the first thing users encounter, so choose wisely!

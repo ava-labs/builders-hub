@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useMemo } from 'react'
-import { AlertCircle } from "lucide-react"
 import { Button } from "@/components/toolbox/components/Button"
+import { Alert } from '@/components/toolbox/components/Alert'
 import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId"
 import { ValidatorManagerDetails } from "@/components/toolbox/components/ValidatorManagerDetails"
 import { Success } from "@/components/toolbox/components/Success"
@@ -17,14 +17,16 @@ import { Step, Steps } from "fumadocs-ui/components/steps"
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements"
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata"
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext"
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 const metadata: ConsoleToolMetadata = {
   title: "Remove Validator",
   description: "Remove a validator from an Avalanche L1 by following these steps in order",
-  walletRequirements: [
+  toolRequirements: [
     WalletRequirementsConfigKey.EVMChainBalance,
     WalletRequirementsConfigKey.PChainBalance
-  ]
+  ],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 }
 
 const RemoveValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
@@ -105,12 +107,7 @@ const RemoveValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
     <>
         <div className="space-y-6">
           {globalError && (
-            <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
-              <div className="flex items-center">
-                <AlertCircle className="h-4 w-4 text-red-500 mr-2 flex-shrink-0" />
-                <span>Error: {globalError}</span>
-              </div>
-            </div>
+            <Alert variant="error">Error: {globalError}</Alert>
           )}
 
           <Steps>

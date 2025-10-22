@@ -2,7 +2,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/toolbox/components/Button';
-import { AlertCircle } from 'lucide-react';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
 import { useValidatorManagerDetails } from '@/components/toolbox/hooks/useValidatorManagerDetails';
@@ -15,10 +14,11 @@ import CompleteValidatorRegistration from '@/components/toolbox/console/permissi
 import { ValidatorListInput, ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { getPChainBalance } from '@/components/toolbox/coreViem/methods/getPChainbalance';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../components/WithConsoleToolMetadata';
 import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 // Helper functions for BigInt serialization
 const serializeValidators = (validators: ConvertToL1Validator[]) => {
@@ -42,10 +42,11 @@ const STORAGE_KEY = 'addValidator_validators';
 const metadata: ConsoleToolMetadata = {
   title: "Add New Validator",
   description: "Add a validator to your L1 by following these steps in order",
-  walletRequirements: [
+  toolRequirements: [
     WalletRequirementsConfigKey.EVMChainBalance,
     WalletRequirementsConfigKey.PChainBalance
-  ]
+  ],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
 const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
@@ -61,7 +62,6 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
 
   // Form state with local persistence
   const { walletEVMAddress, pChainAddress, isTestnet } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
   const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
   const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
   const [resetKey, setResetKey] = useState<number>(0);
@@ -111,22 +111,6 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
     ownerType,
     isDetectingOwnerType
   } = useValidatorManagerDetails({ subnetId: subnetIdL1 });
-
-  // Fetch P-Chain balance when component mounts so we can pass it to the ValidatorListInput to check if the validator balance is greater than the user's current P-Chain balance
-  useEffect(() => {
-    const fetchBalance = async () => {
-      if (!pChainAddress) return;
-
-      try {
-        const balanceValue = await getPChainBalance(coreWalletClient);
-        setUserPChainBalanceNavax(balanceValue);
-      } catch (balanceError) {
-        console.error("Error fetching P-Chain balance:", balanceError);
-      }
-    };
-
-    fetchBalance();
-  }, [pChainAddress, coreWalletClient]);
 
   // Restore intermediate state from persisted validators data when available
   useEffect(() => {
@@ -195,12 +179,7 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
     <>
         <div className="space-y-6">
           {globalError && (
-            <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
-              <div className="flex items-center">
-                <AlertCircle className="h-4 w-4 text-red-500 mr-2 flex-shrink-0" />
-                <span>Error: {globalError}</span>
-              </div>
-            </div>
+            <Alert variant="error">Error: {globalError}</Alert>
           )}
 
           <Steps>

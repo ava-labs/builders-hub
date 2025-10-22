@@ -1,0 +1,86 @@
+---
+title: Native Safe Multisig Support for Avalanche L1s in Builder Console
+description: Learn how Builder Console now supports Safe, the leading account abstraction and smart wallet platform.
+date: 2025-10-01
+authors: [owenwahlgren]
+topics: [Avalanche L1, Safe, Builder Console]
+---
+
+[Avalanche Builder Console](/console) now pre-deploys the [**Safe Singleton**](https://github.com/safe-global/safe-singleton-factory/tree/main) into your L1’s genesis at a canonical address. Normally, the Safe Singleton has to be deployed directly by the Safe team. By including it at genesis, Avalanche enables you to **self-service your Safe setup**—no need to wait for the Safe team to deploy it. To complete integration, you still need to deploy the additional Safe contracts and make a PR with your chain metadata to the Safe repositories. Alternatively, you can use the Safe deployments managed by the Ash team at [wallet.ash.center](https://wallet.ash.center/welcome).
+
+---
+
+## What You Get at Chain Launch
+
+* **Pre-deployed Safe Singleton** in genesis
+* **Address (canonical):** `0x914d7fec6aac8cd542e72bca78b30650d45643d7`
+* **Availability:** Present from block 0; no post-launch deployment required for the singleton
+
+Because the singleton is included in genesis, you don’t need to coordinate with the Safe team to deploy it. This makes it possible to move forward independently with setting up Safe on your chain.
+
+![image](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builder-console-safe-genesis)
+---
+
+## What Else You Need to Set Up
+
+The genesis deployment includes **only the Safe Singleton**. To enable full Safe functionality and UI support, you must:
+
+1. **Deploy the supporting contracts** from the [safe-deployments repository](https://github.com/safe-global/safe-deployments):
+
+   * Safe ProxyFactory
+   * MultiSend and MultiSendCallOnly
+   * FallbackHandler or CompatibilityFallbackHandler (depending on your version)
+2. **Verify contracts** on your block explorer so tools and SDKs can interact correctly.
+3. **Ensure RPC endpoints and explorer APIs** are stable and publicly available for indexing.
+
+---
+
+## How to Get Your Chain in the Safe UI
+
+To be recognized by the **official Safe Web App**, your chain must be added to the Safe **Transaction Service** (TS). This is done by opening a PR to the relevant Safe repositories with your chain’s metadata and contract addresses.
+
+### Drafting the PR
+
+Follow the contribution process in [safe-deployments](https://github.com/safe-global/safe-deployments). At a minimum, you’ll need to provide:
+
+* **Chain metadata**: chainId, name, shortName, native token details
+* **Public RPC endpoints** (HTTPS and optionally WebSocket)
+* **Block explorer URL and API details**
+* **Safe contract addresses** deployed on your chain:
+
+  * Safe Singleton (pre-deployed by Builder Console)
+  * ProxyFactory
+  * MultiSend / MultiSendCallOnly
+  * FallbackHandler
+* **Gas/fee settings**: details on EIP-1559 support, native currency symbol/decimals
+
+Once reviewed and merged, your chain can be supported natively in the Safe Web App via the official TS.
+
+---
+
+## Alternative: Use Ash Team’s Deployments
+
+If you don’t want to manage the deployments or PR process yourself, you can leverage the Safe deployments and infrastructure managed by the **Ash team**. Their UI and service are available at:
+
+➡️ [wallet.ash.center](https://wallet.ash.center/welcome)
+
+This provides an out-of-the-box option for interacting with Safes on Avalanche L1s without running your own Transaction Service.
+
+---
+
+## Key Takeaways
+
+* **Normally**: the Safe Singleton is deployed by the Safe team.
+* **With Builder Console**: the Safe Singleton is included at genesis, so you can self-service your Safe setup.
+* **Still required**: deploy additional Safe contracts (ProxyFactory, MultiSend, FallbackHandler) and submit a PR with your chain’s metadata and addresses to [safe-deployments](https://github.com/safe-global/safe-deployments).
+* **Alternative option**: use the Ash team’s Safe deployments and UI at [wallet.ash.center](https://wallet.ash.center/welcome).
+
+---
+
+## Get Started
+
+* Launch your L1: **[https://build.avax.network/console](https://build.avax.network/console)**
+* Safe contracts and deployment repo: **[https://github.com/safe-global/safe-deployments](https://github.com/safe-global/safe-deployments)**
+* Alternative Safe UI: **[https://wallet.ash.center/welcome](https://wallet.ash.center/welcome)**
+
+Start your project with secure multisig primitives from genesis, then complete your setup by deploying the remaining contracts and registering your chain for UI support.

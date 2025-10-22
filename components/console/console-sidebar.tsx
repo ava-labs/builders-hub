@@ -29,7 +29,8 @@ import {
   SquareMinus,
   SquarePlus,
   HandCoins,
-  ExternalLink
+  ExternalLink,
+  BookKey
 } from "lucide-react";
 
 import {
@@ -288,6 +289,11 @@ const data = {
           url: "/console/utilities/vmcMigrateFromV1",
           icon: Wrench,
         },
+        {
+          title: "Data API Keys",
+          url: "/console/utilities/data-api-keys",
+          icon: BookKey,
+        },
       ],
     },
   ],
@@ -344,7 +350,7 @@ export function ConsoleSidebar({
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => {
-                  const isActive = pathname === item.url;
+                  const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
                   const isComingSoon = 'comingSoon' in item && (item as any).comingSoon;
                   return (
                     <SidebarMenuItem key={item.title}>

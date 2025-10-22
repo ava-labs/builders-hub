@@ -11,18 +11,21 @@ import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId";
 import { useValidatorManagerDetails } from "@/components/toolbox/hooks/useValidatorManagerDetails";
 import { ValidatorManagerDetails } from "@/components/toolbox/components/ValidatorManagerDetails";
 import { TransactionReceipt } from "viem";
-import { AlertCircle, Info } from "lucide-react";
+import { Info } from "lucide-react";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { Alert } from "@/components/toolbox/components/Alert";
 
 const metadata: ConsoleToolMetadata = {
     title: "Transfer Validator Manager Ownership",
     description: "Transfer the ownership of the Validator Manager to a new address (EOA, StakingManager, or PoAManager)",
-    walletRequirements: [
+    toolRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
-    ]
+    ],
+    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
 function TransferOwnership({ onSuccess }: BaseConsoleToolProps) {
@@ -101,12 +104,16 @@ function TransferOwnership({ onSuccess }: BaseConsoleToolProps) {
 
     async function handleTransferOwnership() {
         setIsTransferring(true);
+        if (!coreWalletClient.account) {
+            throw new Error('No wallet account connected');
+        }
         try {
             const transferPromise = coreWalletClient.writeContract({
-                to: validatorManagerAddress,
+                address: validatorManagerAddress,
                 abi: ValidatorManagerABI.abi,
                 functionName: 'transferOwnership',
                 args: [newOwnerAddress],
+                account: coreWalletClient.account,
                 chain: viemChain ?? undefined,
             });
 
@@ -169,12 +176,9 @@ function TransferOwnership({ onSuccess }: BaseConsoleToolProps) {
 
                     {/* Minimal ownership error display */}
                     {showOwnershipError && (
-                        <div className="p-3 rounded-lg border bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-200 flex items-start space-x-2">
-                            <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                            <div>
-                                <p className="text-sm">You are not the owner of this Validator Manager. Only the current owner can transfer ownership.</p>
-                            </div>
-                        </div>
+                        <Alert variant="error">
+                            You are not the owner of this Validator Manager. Only the current owner can transfer ownership.
+                        </Alert>
                     )}
 
                     <EVMAddressInput

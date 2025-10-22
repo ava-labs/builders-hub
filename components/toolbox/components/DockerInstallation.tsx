@@ -1,7 +1,7 @@
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 
-export const dockerOnlyInstructions: Record<string, string> = {
+const dockerOnlyInstructions: Record<string, string> = {
     'Ubuntu/Debian': `# Install Docker using convenience script
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
@@ -41,7 +41,7 @@ docker run -it --rm hello-world
 `,
 } as const;
 
-export const dockerInstallInstructions: Record<string, string> = {
+const dockerInstallInstructions: Record<string, string> = {
     'Ubuntu/Debian': `# Install Docker using convenience script
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
@@ -91,7 +91,7 @@ docker compose version
 `,
 } as const;
 
-export type OS = keyof typeof dockerInstallInstructions;
+type OS = keyof typeof dockerInstallInstructions;
 
 interface DockerInstallationProps {
     title?: string;

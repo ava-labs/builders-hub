@@ -16,12 +16,14 @@ export default function SelectBlockchainId({
     value,
     onChange,
     error,
-    label = "Select Avalanche Blockchain ID"
+    label = "Select Avalanche Blockchain ID",
+    disabled = false
 }: {
     value: string,
     onChange: (value: string) => void,
     error?: string | null,
-    label?: string
+    label?: string,
+    disabled?: boolean
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const createChainStorechainID = useCreateChainStore()(state => state.chainID);
@@ -63,7 +65,8 @@ export default function SelectBlockchainId({
                 <button
                     id={selectId}
                     type="button"
-                    onClick={() => setIsOpen(!isOpen)}
+                    onClick={() => !disabled && setIsOpen(!isOpen)}
+                    disabled={disabled}
                     className={cn(
                         "w-full rounded-md px-3 py-2.5 text-left",
                         "bg-white dark:bg-zinc-900",
@@ -75,6 +78,7 @@ export default function SelectBlockchainId({
                         "shadow-sm",
                         "transition-colors duration-200",
                         "focus:outline-none focus:ring-2",
+                        disabled && "bg-zinc-100 dark:bg-zinc-800 cursor-not-allowed opacity-75"
                     )}
                 >
                     {selectedOption ? (
@@ -94,7 +98,7 @@ export default function SelectBlockchainId({
                     )}
                 </button>
 
-                {isOpen && (
+                {isOpen && !disabled && (
                     <div className="z-50 mt-1 w-full bg-white dark:bg-zinc-800 rounded-md border border-zinc-200 dark:border-zinc-700 max-h-60 overflow-auto absolute">
                         <div className="py-1">
                             {options.map((option) => (

@@ -23,7 +23,7 @@ export interface NodeRegistration {
     proof_of_possession?: string;
 }
 
-export interface NodeStatusResponse {
+interface NodeStatusResponse {
     jsonrpc: string;
     result?: {
         nodes: NodeRegistration[];

@@ -137,6 +137,72 @@ nav a:not(:first-child) {
   background-color: #e84142;
 }
 
+.text-avax-red {
+  --tw-text-opacity: 1;
+  color: #e84142;
+}
+
+/* Avax red opacity variants */
+.bg-avax-red\/5 {
+  background-color: rgba(232, 65, 66, 0.05);
+}
+
+.bg-avax-red\/10 {
+  background-color: rgba(232, 65, 66, 0.1);
+}
+
+.bg-avax-red\/20 {
+  background-color: rgba(232, 65, 66, 0.2);
+}
+
+.border-avax-red\/30 {
+  border-color: rgba(232, 65, 66, 0.3);
+}
+
+.border-avax-red\/40 {
+  border-color: rgba(232, 65, 66, 0.4);
+}
+
+.border-avax-red\/60 {
+  border-color: rgba(232, 65, 66, 0.6);
+}
+
+.shadow-avax-red\/25 {
+  --tw-shadow-color: rgba(232, 65, 66, 0.25);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+
+.shadow-avax-red\/40 {
+  --tw-shadow-color: rgba(232, 65, 66, 0.4);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+
+/* Additional hover background variants */
+.hover\:bg-avax-red\/5:hover {
+  background-color: rgba(232, 65, 66, 0.05) !important;
+}
+
+.hover\:bg-avax-red\/10:hover {
+  background-color: rgba(232, 65, 66, 0.1) !important;
+}
+
+.hover\:shadow-avax-red\/25:hover {
+  --tw-shadow-color: rgba(232, 65, 66, 0.25);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+
+.group:hover .group-hover\:bg-avax-red\/10 {
+  background-color: rgba(232, 65, 66, 0.1) !important;
+}
+
+.group:hover .group-hover\:bg-avax-red\/20 {
+  background-color: rgba(232, 65, 66, 0.2) !important;
+}
+
+.hover\:bg-avax-red\/10:hover {
+  background-color: rgba(232, 65, 66, 0.1) !important;
+}
+
 .border-avax-green {
   --tw-border-opacity: 1;
   border-color: #0b7f54;
@@ -407,8 +473,8 @@ html body[data-scroll-locked] {
   --sidebar-foreground: oklch(0.129 0.042 264.695);
   --sidebar-primary: oklch(0.208 0.042 265.755);
   --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
+  --sidebar-accent: oklch(0.90 0.007 247.896);
+  --sidebar-accent-foreground: oklch(0.15 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
 }
@@ -441,8 +507,8 @@ html body[data-scroll-locked] {
   --sidebar-foreground: oklch(0.95 0 0);
   --sidebar-primary: oklch(0.9 0 0);
   --sidebar-primary-foreground: oklch(0.1 0 0);
-  --sidebar-accent: oklch(0.12 0 0);
-  --sidebar-accent-foreground: oklch(0.9 0 0);
+  --sidebar-accent: oklch(0.20 0 0);
+  --sidebar-accent-foreground: oklch(1 0 0);
   --sidebar-border: oklch(0.18 0 0);
   --sidebar-ring: oklch(0.7 0 0);
 }

@@ -1,0 +1,12 @@
+{
+  "title": "Deploy Avalanche L1s",
+  "description": "CLI instructions for deploying Avalanche L1s.",
+  "pages": [
+    "deploy-locally",
+    "deploy-on-fuji-testnet",
+    "deploy-on-mainnet",
+    "deploy-on-production-infra",
+    "deploy-with-custom-vm",
+    "deploy-with-multisig-auth"
+  ]
+}

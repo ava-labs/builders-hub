@@ -2,10 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { RawInput } from "../Input"
-import { Trash2, AlertCircle, Plus, Lock } from 'lucide-react'
+import { Trash2, AlertCircle, Plus, Lock, Info } from 'lucide-react'
 import { AddressEntry, Role, AddressRoles } from './types'
 import { isAddress } from 'viem'
 import { AddConnectedWalletButtonSimple } from '@/components/toolbox/components/ConnectWallet/AddConnectedWalletButton'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface EthereumAddressListProps {
   role: Role;
@@ -71,36 +72,39 @@ export default function EthereumAddressList({
   }, []);
 
   return (
-    <div className="space-y-5">
-      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-        <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex flex-col">
-          <div className="flex items-center">
-            <div className="text-base font-medium text-zinc-800 dark:text-white">
-              {role} Addresses
-            </div>
-          </div>
-          <div className="text-xs font-normal text-zinc-500 dark:text-zinc-400 leading-relaxed mt-1">
-            {getRoleDescription(role, precompileAction)}
+    <div className="space-y-3 text-[12px]">
+      <div className="bg-white dark:bg-zinc-950 rounded-md border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+        <div className="px-3 py-2 border-b border-zinc-200 dark:border-zinc-800">
+          <div className="flex items-center gap-1.5">
+            <div className="font-medium text-zinc-800 dark:text-white">{role} Addresses</div>
+            <Tooltip>
+              <TooltipTrigger className="inline-flex">
+                <Info className="h-3.5 w-3.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-xs">{getRoleDescription(role, precompileAction)}</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
 
         <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
           {addresses.map((entry) => (
-            <div key={entry.id} className="flex justify-between items-center p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors">
-              <div className={`font-mono text-sm ${entry.error ? 'text-red-500 dark:text-red-400' : 'text-zinc-700 dark:text-zinc-300'}`}>
+            <div key={entry.id} className="flex justify-between items-center px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors">
+              <div className={`font-mono text-[12px] ${entry.error ? 'text-red-500 dark:text-red-400' : 'text-zinc-700 dark:text-zinc-300'}`}>
                 <span className="inline-flex items-center">
                   {entry.address}
                   {entry.error && <AlertCircle className="h-4 w-4 ml-2 flex-shrink-0" />}
                 </span>
-                {entry.error && <p className="text-xs text-red-500 dark:text-red-400 mt-1.5">{entry.error}</p>}
-                {entry.requiredReason && <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 italic">{entry.requiredReason}</p>}
+                {entry.error && <p className="text-[11px] text-red-500 dark:text-red-400 mt-1">{entry.error}</p>}
+                {entry.requiredReason && <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 italic">{entry.requiredReason}</p>}
               </div>
               <div>
                 {entry.requiredReason ?
                   <Lock className="h-4 w-4 text-zinc-400" /> :
                   <button
                     onClick={() => onDeleteAddress(entry.id)}
-                    className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+                    className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
                     aria-label="Delete address"
                   >
                     <Trash2 className="h-4 w-4 text-zinc-500 dark:text-zinc-400 hover:text-red-500 transition-colors" />
@@ -110,20 +114,20 @@ export default function EthereumAddressList({
             </div>
           ))}
 
-          <div className="flex items-center p-4 gap-3 bg-zinc-50/80 dark:bg-zinc-800/50">
-            <Plus className="h-4 w-4 text-blue-500 shrink-0" />
+          <div className="flex items-center px-3 py-2 gap-3 bg-zinc-50/80 dark:bg-zinc-900/40">
+            <Plus className="h-3.5 w-3.5 text-blue-500 shrink-0" />
             <RawInput
               type="text"
               placeholder={`Add one or more addresses for ${role}`}
               value={newAddress}
               onChange={(e) => handleInputChange(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="flex-1 border-none bg-transparent shadow-none focus:ring-0 p-0 font-mono text-sm"
+              className="flex-1 border-none bg-transparent shadow-none focus:ring-0 p-0 font-mono text-[12px]"
             />
             <button
               onClick={handleAddAddress}
               disabled={!isValidInput(newAddress)}
-              className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-md disabled:opacity-50 transition-colors font-medium"
+              className="px-2.5 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md disabled:opacity-50 transition-colors font-medium"
             >
               Add
             </button>

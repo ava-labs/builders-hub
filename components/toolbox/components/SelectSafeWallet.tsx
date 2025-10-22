@@ -2,7 +2,7 @@ import { Input, type Suggestion } from "./Input";
 import { useMemo, useState, useEffect } from "react";
 import { useWalletStore } from "../stores/walletStore";
 import { useViemChainStore } from "../stores/toolboxStore";
-import { useSafeAPI, SafesByOwnerResponse, AllSafesInfoResponse } from "../hooks";
+import { useSafeAPI, SafesByOwnerResponse, AllSafesInfoResponse } from "../hooks/useSafeAPI";
 
 export type SafeSelection = {
   safeAddress: string;

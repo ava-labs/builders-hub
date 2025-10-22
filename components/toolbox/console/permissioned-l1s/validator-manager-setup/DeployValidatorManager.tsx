@@ -13,6 +13,7 @@ import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } fr
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import versions from '@/scripts/versions.json';
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 const VALIDATOR_MANAGER_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`;
@@ -28,9 +29,10 @@ function calculateLibraryHash(libraryPath: string) {
 const metadata: ConsoleToolMetadata = {
     title: "Deploy Validator Contracts",
     description: "Deploy the ValidatorMessages library and ValidatorManager contract to the EVM network",
-    walletRequirements: [
+    toolRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
-    ]
+    ],
+    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
 function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
@@ -74,6 +76,7 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
         const deployPromise = coreWalletClient.deployContract({
             abi: ValidatorMessagesABI.abi as any,
             bytecode: ValidatorMessagesABI.bytecode.object as `0x${string}`,
+            args: [],
             chain: viemChain,
             account: walletEVMAddress as `0x${string}`
         });

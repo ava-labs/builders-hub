@@ -155,6 +155,7 @@ export default function AvalanchegoDocker() {
             <Container
                 title="L1 Node Setup with Docker"
                 description="This will start a Docker container running an RPC or validator node that tracks your L1."
+                githubUrl="https://github.com/ava-labs/builders-hub/edit/master/components/toolbox/console/layer-1/AvalancheGoDockerL1.tsx"
             >
                 <Steps>
                     <Step>
