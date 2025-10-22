@@ -4,10 +4,9 @@ import { useState } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
-import { Container } from "@/components/toolbox/components/Container";
 import { Success } from "@/components/toolbox/components/Success";
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import { ConsoleToolMetadata, withConsoleToolMetadata } from '../../../../components/WithConsoleToolMetadata';
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url"; import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import NativeTokenStakingManager from "@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json";
 import versions from '@/scripts/versions.json';
 import { keccak256 } from 'viem';
@@ -24,10 +23,19 @@ function calculateLibraryHash(libraryPath: string) {
     return hash.slice(0, 34);
 }
 
-export default function DeployNativeStakingManager() {
+const metadata: ConsoleToolMetadata = {
+    title: "Deploy Native Token Staking Manager",
+    description: "Deploy the Native Token Staking Manager contract to the EVM network.",
+    toolRequirements: [
+        WalletRequirementsConfigKey.EVMChainBalance,
+    ],
+    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+};
+
+function DeployNativeStakingManager() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const [isDeploying, setIsDeploying] = useState(false);
-    
+
     const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
     const viemChain = useViemChainStore();
     const { nativeStakingManagerAddress, setNativeStakingManagerAddress, validatorMessagesLibAddress } = useToolboxStore();
@@ -65,12 +73,12 @@ export default function DeployNativeStakingManager() {
             if (!viemChain) throw new Error("Viem chain not found");
             if (!coreWalletClient) throw new Error("Wallet not connected");
             if (!walletEVMAddress) throw new Error("Wallet address not available");
-            
+
             // Check for library first
             if (!validatorMessagesLibAddress) {
                 throw new Error('ValidatorMessages library must be deployed first. Please go to Validator Manager Setup and deploy the library.');
             }
-            
+
             // Follow exact pattern from ValidatorManager deployment
             await coreWalletClient.addChain({ chain: viemChain });
             await coreWalletClient.switchChain({ id: viemChain!.id });
@@ -104,64 +112,57 @@ export default function DeployNativeStakingManager() {
     }
 
     return (
-        <CheckWalletRequirements configKey={[
-            WalletRequirementsConfigKey.EVMChainBalance,
-        ]}>
-            <Container
-                title="Deploy Native Token Staking Manager"
-                description="Deploy the Native Token Staking Manager contract to the EVM network."
-            >
-                <div className="space-y-4">
-                    <p className="text-sm text-gray-500">
-                        This will deploy the <code>NativeTokenStakingManager</code> contract to the EVM network <code>{viemChain?.id}</code>. 
-                        The Native Token Staking Manager enables permissionless staking on your L1 using the native token.
+        <div className="space-y-4">
+            <p className="text-sm text-gray-500">
+                This will deploy the <code>NativeTokenStakingManager</code> contract to the EVM network <code>{viemChain?.id}</code>.
+                The Native Token Staking Manager enables permissionless staking on your L1 using the native token.
+            </p>
+            <p className="text-sm text-gray-500">
+                Contract source: <a href={NATIVE_TOKEN_STAKING_MANAGER_SOURCE_URL} target="_blank" rel="noreferrer">NativeTokenStakingManager.sol</a> @ <code>{ICM_COMMIT.slice(0, 7)}</code>
+            </p>
+            {walletEVMAddress && (
+                <p className="text-sm text-gray-500">
+                    Connected wallet: <code>{walletEVMAddress}</code>
+                </p>
+            )}
+
+            {/* Library requirement notice */}
+            {!validatorMessagesLibAddress ? (
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-md">
+                    <p className="text-sm text-red-800 dark:text-red-200">
+                        <strong>Required:</strong> ValidatorMessages library must be deployed first.
+                        Please go to the <strong>Validator Manager Setup</strong> section and deploy the ValidatorMessages library.
                     </p>
-                    <p className="text-sm text-gray-500">
-                        Contract source: <a href={NATIVE_TOKEN_STAKING_MANAGER_SOURCE_URL} target="_blank" rel="noreferrer">NativeTokenStakingManager.sol</a> @ <code>{ICM_COMMIT.slice(0, 7)}</code>
-                    </p>
-                    {walletEVMAddress && (
-                        <p className="text-sm text-gray-500">
-                            Connected wallet: <code>{walletEVMAddress}</code>
-                        </p>
-                    )}
-
-                    {/* Library requirement notice */}
-                    {!validatorMessagesLibAddress ? (
-                        <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-md">
-                            <p className="text-sm text-red-800 dark:text-red-200">
-                                <strong>Required:</strong> ValidatorMessages library must be deployed first. 
-                                Please go to the <strong>Validator Manager Setup</strong> section and deploy the ValidatorMessages library.
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
-                            <p className="text-sm text-green-800 dark:text-green-200">
-                                <strong>Ready:</strong> ValidatorMessages library found at: <code>{validatorMessagesLibAddress}</code>
-                            </p>
-                        </div>
-                    )}
-
-                    <Button
-                        variant="primary"
-                        onClick={deployNativeTokenStakingManager}
-                        loading={isDeploying}
-                        disabled={isDeploying || !!nativeStakingManagerAddress || !validatorMessagesLibAddress}
-                    >
-                        {!validatorMessagesLibAddress 
-                            ? "Deploy ValidatorMessages Library First" 
-                            : "Deploy Native Token Staking Manager"}
-                    </Button>
-
-                    <p>Deployment Status: <code>{nativeStakingManagerAddress || "Not deployed"}</code></p>
-
-                    {nativeStakingManagerAddress && (
-                        <Success
-                            label="Native Token Staking Manager Address"
-                            value={nativeStakingManagerAddress}
-                        />
-                    )}
                 </div>
-            </Container>
-        </CheckWalletRequirements>
+            ) : (
+                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
+                    <p className="text-sm text-green-800 dark:text-green-200">
+                        <strong>Ready:</strong> ValidatorMessages library found at: <code>{validatorMessagesLibAddress}</code>
+                    </p>
+                </div>
+            )}
+
+            <Button
+                variant="primary"
+                onClick={deployNativeTokenStakingManager}
+                loading={isDeploying}
+                disabled={isDeploying || !!nativeStakingManagerAddress || !validatorMessagesLibAddress}
+            >
+                {!validatorMessagesLibAddress
+                    ? "Deploy ValidatorMessages Library First"
+                    : "Deploy Native Token Staking Manager"}
+            </Button>
+
+            <p>Deployment Status: <code>{nativeStakingManagerAddress || "Not deployed"}</code></p>
+
+            {nativeStakingManagerAddress && (
+                <Success
+                    label="Native Token Staking Manager Address"
+                    value={nativeStakingManagerAddress}
+                />
+            )}
+        </div>
     );
 }
+
+export default withConsoleToolMetadata(DeployNativeStakingManager, metadata);

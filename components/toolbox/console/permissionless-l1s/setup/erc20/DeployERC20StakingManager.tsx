@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
-import { Container } from "@/components/toolbox/components/Container";
 import { Success } from "@/components/toolbox/components/Success";
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
+import { ConsoleToolMetadata, withConsoleToolMetadata } from '../../../../components/WithConsoleToolMetadata';
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import ERC20TokenStakingManager from "@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json";
 import versions from '@/scripts/versions.json';
@@ -24,7 +24,16 @@ function calculateLibraryHash(libraryPath: string) {
     return hash.slice(0, 34);
 }
 
-export default function DeployERC20StakingManager() {
+const metadata: ConsoleToolMetadata = {
+    title: "Deploy ERC20 Token Staking Manager",
+    description: "Deploy the ERC20 Token Staking Manager contract to the EVM network.",
+    toolRequirements: [
+        WalletRequirementsConfigKey.EVMChainBalance,
+    ],
+    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+};
+
+function DeployERC20StakingManager() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const [isDeploying, setIsDeploying] = useState(false);
     
@@ -104,13 +113,7 @@ export default function DeployERC20StakingManager() {
     }
 
     return (
-        <CheckWalletRequirements configKey={[
-            WalletRequirementsConfigKey.EVMChainBalance,
-        ]}>
-            <Container
-                title="Deploy ERC20 Token Staking Manager"
-                description="Deploy the ERC20 Token Staking Manager contract to the EVM network."
-            >
+        
                 <div className="space-y-4">
                     <p className="text-sm text-gray-500">
                         This will deploy the <code>ERC20TokenStakingManager</code> contract to the EVM network <code>{viemChain?.id}</code>. 
@@ -160,7 +163,7 @@ export default function DeployERC20StakingManager() {
                         />
                     )}
                 </div>
-            </Container>
-        </CheckWalletRequirements>
     );
 }
+
+export default withConsoleToolMetadata(DeployERC20StakingManager, metadata);
