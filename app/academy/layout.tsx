@@ -3,6 +3,7 @@ import { HomeLayout } from 'fumadocs-ui/layouts/home';
 import type { ReactNode } from 'react';
 import { baseOptions } from '@/app/layout.config';
 import { academy } from '@/lib/source';
+import './styles.css';
 
 const academyOptions: DocsLayoutProps = {
   tree: academy.pageTree,

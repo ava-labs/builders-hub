@@ -10,7 +10,7 @@
 
 @media (min-width: 768px) {
   #nd-sidebar > div:first-child {
-    padding-top: calc(var(--spacing) * 3.5);
+    padding-top: calc(var(--spacing) * 7.5);
   }
 }
 /* @plugin "@tailwindcss/typography"; */

@@ -12,6 +12,9 @@ body > div > nav[aria-label="Main"],
   margin-left: 0 !important;
   width: 100vw !important;
   max-width: 100vw !important;
+  /* Remove thin separator line from library defaults */
+  border-bottom: 0 !important;
+  box-shadow: none !important;
 }
 
 /* Container gets the padding instead - only for main nav */
@@ -39,5 +42,18 @@ nav[role="tablist"],
 /* Add padding to the main content container */
 main .nd-layout-notebook > div:first-child {
   padding-top: 1rem !important;
+}
+
+/* Remove any top border drawn directly under the navbar */
+nav[aria-label="Main"] + *,
+header + * {
+  border-top: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Fumadocs DocsNavbar adds border-b on internal containers; remove it */
+#nd-subnav .border-b {
+  border-bottom: 0 !important;
+  box-shadow: none !important;
 }
 
