@@ -3,7 +3,7 @@ import { useMemo, useState, useEffect } from "react";
 import { cb58ToHex, hexToCB58 } from "../console/utilities/format-converter/FormatConverter";
 import { L1ValidatorDetailsFull } from "@avalabs/avacloud-sdk/models/components";
 import { formatAvaxBalance } from "../coreViem/utils/format";
-import { useAvaCloudSDK } from "../stores/useAvaCloudSDK";
+import { useAvalancheSDKChainkit } from "../stores/useAvalancheSDKChainkit";
 
 export type ValidationSelection = {
   validationId: string;
@@ -55,7 +55,8 @@ export default function SelectValidationID({
   subnetId?: string,
   format?: "cb58" | "hex"
 }) {
-  const { listL1Validators } = useAvaCloudSDK();
+  //const { listL1Validators } = useAvaCloudSDK();
+  const { listL1Validators } = useAvalancheSDKChainkit();
   const [validators, setValidators] = useState<L1ValidatorDetailsFull[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [validationIdToNodeId, setValidationIdToNodeId] = useState<Record<string, string>>({});

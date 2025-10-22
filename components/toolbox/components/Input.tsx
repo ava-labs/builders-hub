@@ -97,6 +97,7 @@ export function Input({
       <div className="relative">
         <div className="flex">
           <RawInput
+            {...props}
             id={id}
             value={inputValue}
             onChange={handleChange}
@@ -109,7 +110,6 @@ export function Input({
               className
             )}
             error={error}
-            {...props}
           />
           {button}
         </div>

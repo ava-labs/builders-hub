@@ -21,7 +21,7 @@ const DEFAULT_FEE_MANAGER_ADDRESS =
 const metadata: ConsoleToolMetadata = {
   title: "Fee Manager",
   description: "Configure dynamic fee parameters and manage allowlist for your L1",
-  walletRequirements: [
+  toolRequirements: [
     WalletRequirementsConfigKey.EVMChainBalance
   ],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

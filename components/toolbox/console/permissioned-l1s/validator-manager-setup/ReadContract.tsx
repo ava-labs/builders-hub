@@ -33,7 +33,7 @@ const serializeValue = (value: any): any => {
 const metadata: ConsoleToolMetadata = {
   title: "Read Contract",
   description: "Read and view contract data from the ValidatorManager",
-  walletRequirements: [
+  toolRequirements: [
     WalletRequirementsConfigKey.CoreWalletConnected
   ],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

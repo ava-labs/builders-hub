@@ -143,6 +143,7 @@ package-lock.json
 
 
 
+
 # Remote content output paths
 content/docs/acps/103-dynamic-fees.mdx
 content/docs/acps/108-evm-event-importing.mdx
@@ -181,6 +182,7 @@ content/docs/api-reference/index-api.mdx
 content/docs/api-reference/info-api.mdx
 content/docs/api-reference/metrics-api.mdx
 content/docs/api-reference/p-chain/api.mdx
+content/docs/api-reference/proposervm-api.mdx
 content/docs/api-reference/subnet-evm-api.mdx
 content/docs/api-reference/x-chain/api.mdx
 content/docs/avalanche-l1s/evm-configuration/warpmessenger.mdx

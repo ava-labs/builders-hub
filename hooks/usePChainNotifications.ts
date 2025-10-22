@@ -74,7 +74,7 @@ const waitForTransaction = async (client: PChainClient, txID: string, maxAttempt
 
 const usePChainNotifications = () => {
     const isTestnet = typeof window !== 'undefined' ? useWalletStore((s) => s.isTestnet) : false;
-    const { addLog } = useConsoleLog();
+    const { addLog } = useConsoleLog(false); // Don't auto-fetch logs
     const pathname = usePathname();
 
     const client: PChainClient = createPChainClient({ chain: isTestnet ? avalancheFuji : avalanche, transport: { type: 'http' } });
@@ -108,7 +108,10 @@ const usePChainNotifications = () => {
                 toast.loading('Waiting for transaction confirmation...', { id: toastId });
 
                 try {
-                    await waitForTransaction(client, txID);
+                    if (typeof txID !== 'string' && txID && 'txHash' in txID) {
+                        txID = (txID as { txHash: string }).txHash;
+                    }
+                    await waitForTransaction(client, txID as string);
                     toast.success(`${config.successMessage}`, {
                         id: toastId,
                         action: {

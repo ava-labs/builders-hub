@@ -19,9 +19,12 @@ import { SetL1ValidatorWeightParams } from './methods/setL1ValidatorWeight'
 import { increaseL1ValidatorBalance, IncreaseL1ValidatorBalanceParams } from './methods/increaseL1ValidatorBalance'
 import { extractL1ValidatorWeightMessage, ExtractL1ValidatorWeightMessageParams, ExtractL1ValidatorWeightMessageResponse } from './methods/extractL1ValidatorWeightMessage'
 import { extractRegisterL1ValidatorMessage, ExtractRegisterL1ValidatorMessageParams, ExtractRegisterL1ValidatorMessageResponse } from './methods/extractRegisterL1ValidatorMessage'
-import { getActiveRulesAt, GetActiveRulesAtResponse } from './methods/getActiveRulesAt'
 import { ExtractWarpMessageFromTxResponse } from './methods/extractWarpMessageFromPChainTx'
 import { ExtractChainInfoResponse } from './methods/extractChainInfo'
+
+// Re-export custom Avalanche EVM RPC methods that should be called on publicClient
+export { getActiveRulesAt } from './methods/getActiveRulesAt'
+export type { GetActiveRulesAtResponse } from './methods/getActiveRulesAt'
 
 // Type for the Avalanche wallet client with custom methods at root level
 export type CoreWalletClientType = Omit<AvalancheWalletClient, 'addChain'> & {
@@ -41,7 +44,6 @@ export type CoreWalletClientType = Omit<AvalancheWalletClient, 'addChain'> & {
     extractL1ValidatorWeightMessage: (args: ExtractL1ValidatorWeightMessageParams) => Promise<ExtractL1ValidatorWeightMessageResponse>;
     extractRegisterL1ValidatorMessage: (args: ExtractRegisterL1ValidatorMessageParams) => Promise<ExtractRegisterL1ValidatorMessageResponse>;
     getEthereumChain: () => Promise<GetEthereumChainResponse>;
-    getActiveRulesAt: () => Promise<GetActiveRulesAtResponse>;
     extractChainInfo: (args: ExtractChainInfoParams) => Promise<ExtractChainInfoResponse>;
     getPChainBalance: () => Promise<bigint>;
 };
@@ -94,7 +96,6 @@ export async function createCoreWalletClient(_account: `0x${string}`): Promise<C
         extractL1ValidatorWeightMessage: (args: ExtractL1ValidatorWeightMessageParams) => extractL1ValidatorWeightMessage(baseClient, args),
         extractRegisterL1ValidatorMessage: (args: ExtractRegisterL1ValidatorMessageParams) => extractRegisterL1ValidatorMessage(baseClient, args),
         getEthereumChain: () => getEthereumChain(baseClient),
-        getActiveRulesAt: () => getActiveRulesAt(baseClient),
         extractChainInfo: (args: ExtractChainInfoParams) => extractChainInfo(baseClient, args),
         getPChainBalance: () => getPChainBalance(baseClient),
     } as CoreWalletClientType;

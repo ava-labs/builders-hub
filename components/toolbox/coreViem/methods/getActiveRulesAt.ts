@@ -1,22 +1,31 @@
-import type { AvalancheWalletClient } from "@avalanche-sdk/client";
+import type { Client, Transport, Chain, Account } from "viem";
 import type { CoreWalletRpcSchema } from "../rpcSchema";
 
 export type GetActiveRulesAtResponse = Extract<CoreWalletRpcSchema[number], { Method: 'eth_getActiveRulesAt' }>['ReturnType'];
 
-export async function getActiveRulesAt(client: AvalancheWalletClient): Promise<GetActiveRulesAtResponse> {
+export async function getActiveRulesAt(
+    client: Client<Transport, Chain | undefined, Account | undefined>
+): Promise<GetActiveRulesAtResponse> {
     try {
-        // Try to call eth_getActiveRulesAt directly through the client
-        const result = await client.request<
-            Extract<CoreWalletRpcSchema[number], { Method: 'eth_getActiveRulesAt' }>
-        >({
+        const result = await client.transport.request({
             method: 'eth_getActiveRulesAt',
             params: [],
-        });
+        }) as GetActiveRulesAtResponse;
 
         return result;
     } catch (error: any) {
-        // If the method doesn't exist, return an empty response
-        if (error?.message?.includes('method') || error?.message?.includes('Method') || error?.message?.includes('not supported')) {
+        console.error('eth_getActiveRulesAt error:', error);
+        
+        const isMethodNotFound = 
+            error?.code === -32601 || // JSON-RPC method not found error code
+            (error?.message && (
+                error.message.toLowerCase().includes('method not found') ||
+                error.message.toLowerCase().includes('does not exist') ||
+                error.message.toLowerCase().includes('is not available')
+            ));
+        
+        if (isMethodNotFound) {
+            console.warn('eth_getActiveRulesAt is not supported by this RPC endpoint, returning default (inactive) rules');
             return {
                 ethRules: {
                     IsHomestead: false,
@@ -40,7 +49,7 @@ export async function getActiveRulesAt(client: AvalancheWalletClient): Promise<G
             };
         }
 
-        // For other types of errors, re-throw
+        // For other types of errors, re-throw so we can see what's actually wrong
         throw error;
     }
 } 
