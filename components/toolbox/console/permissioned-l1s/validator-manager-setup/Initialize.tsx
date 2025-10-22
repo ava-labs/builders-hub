@@ -44,8 +44,9 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
     const selectedL1 = useSelectedL1()();
     const [subnetId, setSubnetId] = useState("");
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
+    const createChainStoreManagerAddress = useCreateChainStore()(state => state.managerAddress);
 
-    const { sendCoreWalletNotSetNotification, notify } = useConsoleNotifications();
+    const { notify } = useConsoleNotifications();
 
     useEffect(() => {
         if (walletEVMAddress && !adminAddress) {
@@ -61,6 +62,12 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
         }
     }, [createChainStoreSubnetId, selectedL1, subnetId]);
 
+    useEffect(() => {
+        if (createChainStoreManagerAddress && !proxyAddress) {
+            setProxyAddress(createChainStoreManagerAddress);
+        }
+    }, [selectedL1, proxyAddress]);
+    
     let subnetIDHex = "";
     try {
         subnetIDHex = utils.bufferToHex(utils.base58check.decode(subnetId || ""));
