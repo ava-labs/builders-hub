@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { useWalletStore } from "../stores/walletStore";
+import { useViemChainStore } from "../stores/toolboxStore";
 import { Alert } from "./Alert";
+import { getActiveRulesAt } from "../coreViem";
+import { createPublicClient, http } from "viem";
 
 type PrecompileConfigKey =
     | "warpConfig"
@@ -33,7 +36,8 @@ export const CheckPrecompile = ({
     docsLink,
     docsLinkText = "Learn how to activate this precompile"
 }: CheckPrecompileProps) => {
-    const { coreWalletClient, walletChainId } = useWalletStore();
+    const { walletChainId } = useWalletStore();
+    const viemChain = useViemChainStore();
     const [state, setState] = useState<PrecompileState>({
         isActive: false,
         isLoading: false,
@@ -41,13 +45,20 @@ export const CheckPrecompile = ({
     });
 
     useEffect(() => {
-        if (!coreWalletClient) return;
+        if (!viemChain?.rpcUrls?.default?.http?.[0]) return;
 
         const checkPrecompileStatus = async () => {
             setState(prev => ({ ...prev, isLoading: true, error: null }));
 
             try {
-                const data = await coreWalletClient.getActiveRulesAt();
+                // Create a dedicated publicClient using the chain's RPC URL
+                // This is necessary because Core wallet provider doesn't support eth_getActiveRulesAt
+                const rpcPublicClient = createPublicClient({
+                    transport: http(viemChain.rpcUrls.default.http[0]),
+                    chain: viemChain as any,
+                });
+
+                const data = await getActiveRulesAt(rpcPublicClient);
                 const isActive = Boolean(data.precompiles?.[configKey]?.timestamp);
                 setState({ isLoading: false, isActive, error: null });
             } catch (err) {
@@ -61,7 +72,7 @@ export const CheckPrecompile = ({
         };
 
         checkPrecompileStatus();
-    }, [coreWalletClient, configKey, walletChainId]);
+    }, [viemChain, configKey, walletChainId]);
 
     if (state.isLoading) {
         return (
