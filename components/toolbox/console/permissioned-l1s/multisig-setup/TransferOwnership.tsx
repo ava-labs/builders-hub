@@ -28,18 +28,29 @@ const metadata: ConsoleToolMetadata = {
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
-function TransferOwnership({ onSuccess }: BaseConsoleToolProps) {
+export interface TransferOwnershipProps extends BaseConsoleToolProps {
+    defaultNewOwnerAddress?: string;
+}
+
+function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwnershipProps) {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const { publicClient, walletEVMAddress } = useWalletStore();
     const { coreWalletClient } = useConnectedWallet();
     const [isTransferring, setIsTransferring] = useState(false);
     const [selectedSubnetId, setSelectedSubnetId] = useState<string>('');
-    const [newOwnerAddress, setNewOwnerAddress] = useState<string>('');
+    const [newOwnerAddress, setNewOwnerAddress] = useState<string>(defaultNewOwnerAddress || '');
     const [receipt, setReceipt] = useState<TransactionReceipt | null>(null);
     const [isDetailsExpanded, setIsDetailsExpanded] = useState(true);
     const [isNewOwnerContract, setIsNewOwnerContract] = useState(false);
     const [isCheckingNewOwner, setIsCheckingNewOwner] = useState(false);
     const viemChain = useViemChainStore();
+
+    // Update newOwnerAddress when defaultNewOwnerAddress prop changes
+    useEffect(() => {
+        if (defaultNewOwnerAddress && !newOwnerAddress) {
+            setNewOwnerAddress(defaultNewOwnerAddress);
+        }
+    }, [defaultNewOwnerAddress, newOwnerAddress]);
 
     // Throw critical errors during render
     if (criticalError) {
@@ -228,5 +239,6 @@ function TransferOwnership({ onSuccess }: BaseConsoleToolProps) {
     );
 }
 
+export { TransferOwnership };
 export default withConsoleToolMetadata(TransferOwnership, metadata);
 

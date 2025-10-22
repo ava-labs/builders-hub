@@ -15,18 +15,20 @@ function SetEnabledComponent({
   precompileType = "precompiled contract",
   abi = allowListAbi.abi,
   onSuccess,
+  defaultAddress,
 }: {
   precompileAddress: string;
   precompileType?: string;
   abi?: any;
   onSuccess?: () => void;
+  defaultAddress?: string;
 }) {
   const { publicClient, walletEVMAddress, walletChainId } =
     useWalletStore();
   const { coreWalletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [enabledAddress, setEnabledAddress] = useState<string>("");
+  const [enabledAddress, setEnabledAddress] = useState<string>(defaultAddress || "");
   const [txHash, setTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -523,11 +525,13 @@ export function AllowlistComponent({
   precompileType = "precompiled contract",
   abi = allowListAbi.abi,
   onSuccess,
+  defaultEnabledAddress,
 }: {
   precompileAddress: string;
   precompileType?: string;
   abi?: any;
   onSuccess?: () => void;
+  defaultEnabledAddress?: string;
 }) {
   return (
     <div className="space-y-6">
@@ -538,6 +542,7 @@ export function AllowlistComponent({
             precompileType={precompileType}
             abi={abi}
             onSuccess={onSuccess}
+            defaultAddress={defaultEnabledAddress}
           />
           <SetManagerComponent
             precompileAddress={precompileAddress}

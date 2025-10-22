@@ -29,6 +29,7 @@ interface ValidatorListInputProps {
   maxValidators?: number;
   selectedSubnetId?: string | null;
   isTestnet?: boolean;
+  hideConsensusWeight?: boolean;
 }
 
 export function ValidatorListInput({
@@ -42,6 +43,7 @@ export function ValidatorListInput({
   maxValidators,
   selectedSubnetId = null,
   isTestnet = false,
+  hideConsensusWeight = false,
 }: ValidatorListInputProps) {
 
   const [error, setError] = useState<string | null>(null)
@@ -85,6 +87,7 @@ export function ValidatorListInput({
           onChange={onChange}
           l1TotalInitializedWeight={l1TotalInitializedWeight}
           userPChainBalanceNavax={userPChainBalanceNavax}
+          hideConsensusWeight={hideConsensusWeight}
         />
       </div>
     </div>
