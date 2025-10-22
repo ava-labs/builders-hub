@@ -5,7 +5,7 @@ import InitializeNativeTokenStakingManager from "@/components/toolbox/console/pe
 import DeployERC20StakingManager from "@/components/toolbox/console/permissionless-l1s/setup/erc20/DeployERC20StakingManager";
 import InitializeERC20StakingManager from "@/components/toolbox/console/permissionless-l1s/setup/erc20/InitializeERC20StakingManager";
 import DeployExampleRewardCalculator from "@/components/toolbox/console/permissionless-l1s/setup/DeployExampleRewardCalculator";
-import TransferOwnership from "@/components/toolbox/console/permissioned-l1s/multisig-setup/TransferOwnership";
+import TransferOwnershipToStakingManager from "@/components/toolbox/console/permissionless-l1s/setup/TransferOwnershipToStakingManager";
 import EnableStakingManagerMinting from "@/components/toolbox/console/permissionless-l1s/setup/native/EnableStakingManagerMinting";
 
 export const steps: StepDefinition[] = [
@@ -23,6 +23,6 @@ export const steps: StepDefinition[] = [
         component: InitializeNativeTokenStakingManager,
     },
     { type: "single", key: "enable-staking-minting", title: "Enable StakingManager in Native Minter", component: EnableStakingManagerMinting },
-    { type: "single", key: "transfer-ownership", title: "Transfer Ownership", component: TransferOwnership },
+    { type: "single", key: "transfer-ownership", title: "Transfer Ownership to Staking Manager", component: TransferOwnershipToStakingManager },
     { type: "single", key: "read-contract", title: "Read Contract", component: ReadContract },
 ];
