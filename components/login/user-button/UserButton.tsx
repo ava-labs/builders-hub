@@ -15,6 +15,7 @@ import { useState } from 'react';
 import { CircleUserRound, UserRound, UserCheck2, User2Icon, ListIcon, LogOut } from 'lucide-react';
 import { Separator } from '@radix-ui/react-dropdown-menu';
 import { useRouter } from 'next/navigation';
+import { cookies } from 'next/headers';
 export function UserButton() {
   const { data: session, status } = useSession() ?? {};
   const [isDialogOpen, setIsDialogOpen] = useState(false);
