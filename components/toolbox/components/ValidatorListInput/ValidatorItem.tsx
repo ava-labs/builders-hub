@@ -14,6 +14,7 @@ interface Props {
   onUpdate: (index: number, updated: Partial<ConvertToL1Validator>) => void
   l1TotalInitializedWeight?: bigint | null
   userPChainBalanceNavax?: bigint | null
+  hideConsensusWeight?: boolean
 }
 
 export function ValidatorItem({
@@ -25,6 +26,7 @@ export function ValidatorItem({
   onUpdate,
   l1TotalInitializedWeight = null,
   userPChainBalanceNavax = null,
+  hideConsensusWeight = false,
 }: Props) {
 
   let insufficientBalanceError: string | null = null
@@ -89,29 +91,31 @@ export function ValidatorItem({
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Consensus Weight
-              </label>
-              <input
-                type="number"
-                value={validator.validatorWeight.toString()}
-                onChange={(e) => onUpdate(index, { validatorWeight: BigInt(e.target.value || 0) })}
-                className={cn(
-                  "w-full rounded p-2",
-                  "bg-zinc-50 dark:bg-zinc-900",
-                  "border border-zinc-200 dark:border-zinc-700",
-                  "text-zinc-900 dark:text-zinc-100",
-                  "shadow-sm focus:ring focus:ring-primary/30 focus:ring-opacity-50",
+          <div className={cn("grid gap-3", hideConsensusWeight ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2")}>
+            {!hideConsensusWeight && (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Consensus Weight
+                </label>
+                <input
+                  type="number"
+                  value={validator.validatorWeight.toString()}
+                  onChange={(e) => onUpdate(index, { validatorWeight: BigInt(e.target.value || 0) })}
+                  className={cn(
+                    "w-full rounded p-2",
+                    "bg-zinc-50 dark:bg-zinc-900",
+                    "border border-zinc-200 dark:border-zinc-700",
+                    "text-zinc-900 dark:text-zinc-100",
+                    "shadow-sm focus:ring focus:ring-primary/30 focus:ring-opacity-50",
+                  )}
+                />
+                {hasWeightError && (
+                  <p className="text-xs mt-1 text-red-500 dark:text-red-400">
+                    Warning: This validator's weight is 20% or more of the current L1 total stake ({ Number(validator.validatorWeight * 10000n / l1TotalInitializedWeight / 100n).toFixed(2) }%). Recommended to be less than 20%.
+                  </p>
                 )}
-              />
-              {hasWeightError && (
-                <p className="text-xs mt-1 text-red-500 dark:text-red-400">
-                  Warning: This validator's weight is 20% or more of the current L1 total stake ({ Number(validator.validatorWeight * 10000n / l1TotalInitializedWeight / 100n).toFixed(2) }%). Recommended to be less than 20%.
-                </p>
-              )}
-            </div>
+              </div>
+            )}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Validator Balance (P-Chain AVAX)

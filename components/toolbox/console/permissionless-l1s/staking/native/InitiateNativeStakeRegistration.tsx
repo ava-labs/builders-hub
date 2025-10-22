@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useL1ListStore } from '@/components/toolbox/stores/l1ListStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
@@ -39,15 +40,22 @@ const InitiateNativeStakeRegistration: React.FC<InitiateNativeStakeRegistrationP
   onError,
   contractTotalWeight,
 }) => {
-  const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
+  const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } = useWalletStore();
   const { notify } = useConsoleNotifications();
   const viemChain = useViemChainStore();
+  const l1List = useL1ListStore()((state: any) => state.l1List);
+  
+  const tokenSymbol = useMemo(() => {
+    const currentL1 = l1List.find((l1: any) => l1.evmChainId === walletChainId);
+    return currentL1?.coinName || 'AVAX';
+  }, [l1List, walletChainId]);
+  
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
   
   // Staking-specific fields
-  const [stakeAmountAVAX, setStakeAmountAVAX] = useState<string>('');
+  const [stakeAmount, setStakeAmount] = useState<string>('');
   const [delegationFeeBips, setDelegationFeeBips] = useState<string>('200'); // 2% default
   const [minStakeDuration, setMinStakeDuration] = useState<string>('0'); // 0 seconds default
   const [rewardRecipient, setRewardRecipient] = useState<string>('');
@@ -87,8 +95,8 @@ const InitiateNativeStakeRegistration: React.FC<InitiateNativeStakeRegistrationP
         // Update defaults based on fetched settings (only if current values are below minimum)
         
         // Set default stake amount to minimum if not set
-        if (!stakeAmountAVAX) {
-          setStakeAmountAVAX(formatEther(settings.minimumStakeAmount));
+        if (!stakeAmount) {
+          setStakeAmount(formatEther(settings.minimumStakeAmount));
         }
         
         const currentFeeBips = parseInt(delegationFeeBips) || 0;
@@ -126,23 +134,23 @@ const InitiateNativeStakeRegistration: React.FC<InitiateNativeStakeRegistrationP
     }
 
     // Validate stake amount
-    const stakeNum = parseFloat(stakeAmountAVAX);
+    const stakeNum = parseFloat(stakeAmount);
     if (isNaN(stakeNum) || stakeNum <= 0) {
       setErrorState("Please enter a valid stake amount");
       return false;
     }
 
-    const stakeAmount = parseEther(stakeAmountAVAX);
+    const stakeAmountWei = parseEther(stakeAmount);
 
     // Validate stake amount against staking manager settings
     if (stakingSettings) {
-      if (stakeAmount < stakingSettings.minimumStakeAmount) {
-        setErrorState(`Stake amount (${formatEther(stakeAmount)} AVAX) is below the minimum required stake (${formatEther(stakingSettings.minimumStakeAmount)} AVAX)`);
+      if (stakeAmountWei < stakingSettings.minimumStakeAmount) {
+        setErrorState(`Stake amount (${formatEther(stakeAmountWei)} ${tokenSymbol}) is below the minimum required stake (${formatEther(stakingSettings.minimumStakeAmount)} ${tokenSymbol})`);
         return false;
       }
 
-      if (stakeAmount > stakingSettings.maximumStakeAmount) {
-        setErrorState(`Stake amount (${formatEther(stakeAmount)} AVAX) exceeds the maximum allowed stake (${formatEther(stakingSettings.maximumStakeAmount)} AVAX)`);
+      if (stakeAmountWei > stakingSettings.maximumStakeAmount) {
+        setErrorState(`Stake amount (${formatEther(stakeAmountWei)} ${tokenSymbol}) exceeds the maximum allowed stake (${formatEther(stakingSettings.maximumStakeAmount)} ${tokenSymbol})`);
         return false;
       }
     }
@@ -234,7 +242,7 @@ const InitiateNativeStakeRegistration: React.FC<InitiateNativeStakeRegistrationP
       ];
 
       // Calculate stake amount in wei
-      const stakeAmount = parseEther(stakeAmountAVAX);
+      const stakeAmountWei = parseEther(stakeAmount);
 
       let receipt;
 
@@ -244,7 +252,7 @@ const InitiateNativeStakeRegistration: React.FC<InitiateNativeStakeRegistrationP
           abi: nativeTokenStakingManagerAbi.abi,
           functionName: "initiateValidatorRegistration",
           args,
-          value: stakeAmount,
+          value: stakeAmountWei,
           account,
           chain: viemChain
         });
@@ -272,7 +280,7 @@ const InitiateNativeStakeRegistration: React.FC<InitiateNativeStakeRegistrationP
           validationId: validationIdHex,
           weight: '0', // Weight is calculated by staking manager, not needed here
           unsignedWarpMessage: unsignedWarpMessage,
-          validatorBalance: stakeAmountAVAX, // Use the actual stake amount entered
+          validatorBalance: stakeAmount, // Use the actual stake amount entered
           blsProofOfPossession: validator.nodePOP.proofOfPossession,
         });
 
@@ -330,21 +338,6 @@ const InitiateNativeStakeRegistration: React.FC<InitiateNativeStakeRegistrationP
 
   return (
     <div className="space-y-4">
-      {/* Display staking manager requirements */}
-      {stakingSettings && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-          <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
-            Staking Manager Requirements
-          </h3>
-          <div className="space-y-1 text-xs text-blue-700 dark:text-blue-300">
-            <p><strong>Minimum Stake:</strong> {formatEther(stakingSettings.minimumStakeAmount)} AVAX</p>
-            <p><strong>Maximum Stake:</strong> {formatEther(stakingSettings.maximumStakeAmount)} AVAX</p>
-            <p><strong>Minimum Delegation Fee:</strong> {stakingSettings.minimumDelegationFeeBips} bips ({(stakingSettings.minimumDelegationFeeBips / 100).toFixed(2)}%)</p>
-            <p><strong>Minimum Stake Duration:</strong> {stakingSettings.minimumStakeDuration.toString()} seconds</p>
-          </div>
-        </div>
-      )}
-
       <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
         <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
           Staking Parameters
@@ -352,14 +345,14 @@ const InitiateNativeStakeRegistration: React.FC<InitiateNativeStakeRegistrationP
         
         <div className="space-y-3">
           <Input
-            label="Stake Amount (AVAX)"
-            value={stakeAmountAVAX}
-            onChange={setStakeAmountAVAX}
+            label={`Stake Amount (${tokenSymbol})`}
+            value={stakeAmount}
+            onChange={setStakeAmount}
             placeholder={stakingSettings ? formatEther(stakingSettings.minimumStakeAmount) : "1.0"}
             disabled={isProcessing || txSuccess !== null}
             helperText={stakingSettings 
-              ? `Amount to stake (min: ${formatEther(stakingSettings.minimumStakeAmount)} AVAX, max: ${formatEther(stakingSettings.maximumStakeAmount)} AVAX)`
-              : "Amount to stake in AVAX"}
+              ? `Amount to stake (min: ${formatEther(stakingSettings.minimumStakeAmount)} ${tokenSymbol}, max: ${formatEther(stakingSettings.maximumStakeAmount)} ${tokenSymbol})`
+              : `Amount to stake in ${tokenSymbol}`}
             type="number"
             step="0.01"
           />
@@ -405,7 +398,7 @@ const InitiateNativeStakeRegistration: React.FC<InitiateNativeStakeRegistrationP
           isProcessing || 
           validators.length === 0 || 
           !stakingManagerAddress || 
-          !stakeAmountAVAX ||
+          !stakeAmount ||
           txSuccess !== null ||
           isLoadingSettings
         }

@@ -236,8 +236,8 @@ const data = {
           icon: GitMerge,
         },
         {
-          title: "Stake",
-          url: "/console/permissionless-l1s/stake",
+          title: "Stake Native Token",
+          url: "/console/permissionless-l1s/stake-native-token",
           icon: Hexagon,
         },
       ],

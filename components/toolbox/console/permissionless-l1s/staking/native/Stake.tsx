@@ -207,16 +207,8 @@ const StakeValidator: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
             <Step>
               <h2 className="text-lg font-semibold">Add Validator Details</h2>
               <p className="text-sm text-gray-500 mb-4">
-                Add the validator details including node credentials and stake amount.
+                Add the validator details including node credentials. Your stake amount will be entered in the next step.
               </p>
-              
-              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  <strong>Note:</strong> For staking, the "Consensus Weight" field in the validator form is not used. 
-                  The actual validator weight will be automatically calculated by the staking manager based on your stake amount 
-                  using the configured weight-to-value factor. You can leave the weight at its default value.
-                </p>
-              </div>
 
               <ValidatorListInput
                 key={`validator-input-${resetKey}`}
@@ -227,6 +219,7 @@ const StakeValidator: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
                 l1TotalInitializedWeight={!l1WeightError && contractTotalWeight > 0n ? contractTotalWeight : null}
                 userPChainBalanceNavax={userPChainBalanceNavax}
                 maxValidators={1}
+                hideConsensusWeight={true}
               />
             </Step>
 
@@ -238,26 +231,8 @@ const StakeValidator: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
 
               {ownerType && ownerType !== 'StakingManager' && (
                 <Alert variant="error" className="mb-4">
-                  This L1 is not using a Staking Manager. The validator manager owner is a {ownerType}. 
-                  This tool is only for L1s with Native Token Staking Managers.
+                  This L1 is not using a Staking Manager. This tool is only for L1s with Native Token Staking Managers.
                 </Alert>
-              )}
-
-              {isLoadingOwnership && (
-                <Alert variant="info" className="mb-4">
-                  Detecting staking manager configuration...
-                </Alert>
-              )}
-
-              {contractOwner && ownerType === 'StakingManager' && (
-                <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
-                  <p className="text-sm text-green-800 dark:text-green-200">
-                    <strong>Staking Manager Found:</strong> {contractOwner}
-                  </p>
-                  <p className="text-xs text-green-700 dark:text-green-300 mt-1">
-                    Transactions will be sent to the Staking Manager contract (the owner of the Validator Manager).
-                  </p>
-                </div>
               )}
 
               <InitiateNativeStakeRegistration
