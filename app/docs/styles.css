@@ -1,0 +1,43 @@
+/* Force ONLY main navbar to extend to left edge - DOCS PAGE ONLY */
+body {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
+
+/* Target only the main navbar, NOT the tabs nav */
+body > div > nav[aria-label="Main"],
+.nd-layout-home > nav:not([role="tablist"]):not(.nd-tabs-nav),
+.nd-layout-home > header:not([role="tablist"]):not(.nd-tabs-nav) {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+}
+
+/* Container gets the padding instead - only for main nav */
+nav[aria-label="Main"] > div,
+.nd-layout-home > nav:not([role="tablist"]):not(.nd-tabs-nav) > div,
+.nd-layout-home > header:not([role="tablist"]):not(.nd-tabs-nav) > div {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+/* Preserve normal styling for tabs nav */
+.nd-tabs-nav,
+nav[role="tablist"],
+[role="tablist"] {
+  width: auto !important;
+  max-width: none !important;
+  padding-left: 0 !important;
+}
+
+/* Add padding at top of docs content area */
+.nd-layout-notebook {
+  padding-top: 2rem !important;
+}
+
+/* Add padding to the main content container */
+main .nd-layout-notebook > div:first-child {
+  padding-top: 1rem !important;
+}
+

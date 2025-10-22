@@ -26,6 +26,49 @@ div.group\/accordion h3  {
   margin-top: 0 !important;
 }
 
+/* Remove ALL left whitespace from navbar to fill screen edge */
+body > div > nav,
+body > div > header,
+nav[aria-label="Main"],
+header nav,
+.nd-nav,
+.nd-layout-home > nav,
+.nd-layout-home > header {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+  padding-right: 0 !important;
+  margin-right: 0 !important;
+  max-width: 100% !important;
+}
+
+/* Remove container padding/margin */
+nav > div,
+header > div,
+nav[aria-label="Main"] > div,
+.nd-nav > div {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  max-width: 100% !important;
+}
+
+/* Force the navbar to be full width */
+body > div:first-child,
+body > div > main {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Specifically target fumadocs nav container */
+.nd-layout-home,
+.nd-layout-docs {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
 /* .light .prose :where(a:not([data-card])):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
   color: #18181B; 
 }

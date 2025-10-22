@@ -1,32 +1,19 @@
 import { DocsLayout, type DocsLayoutProps } from 'fumadocs-ui/layouts/notebook';
+import { HomeLayout } from 'fumadocs-ui/layouts/home';
 import type { ReactNode } from 'react';
-import { baseOptions, docsMenu, consoleMenu, integrationsMenu, userMenu } from '@/app/layout.config';
+import { baseOptions } from '@/app/layout.config';
 import { academy } from '@/lib/source';
-import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 
 const academyOptions: DocsLayoutProps = {
-  ...baseOptions,
-  nav: {
-    mode: "top" as const,
-    title: (
-      <>
-        {<AvalancheLogo className="size-7" fill="currentColor" />}
-        <span style={{ fontSize: "large" }}>Academy</span>
-      </>
-    ),
-    url: '/academy',
-  },
   tree: academy.pageTree,
-  links: [
-    consoleMenu,
-    docsMenu,
-    integrationsMenu,
-    userMenu
-  ],
+  nav: {
+    enabled: false,
+  },
 };
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
+    <HomeLayout {...baseOptions}>
       <DocsLayout {...academyOptions}>
         <span
           className="absolute inset-0 z-[-1] h-[64rem] max-h-screen overflow-hidden"
@@ -123,5 +110,6 @@ export default function Layout({ children }: { children: ReactNode }) {
         </span>
         {children}
       </DocsLayout>
+    </HomeLayout>
   );
 }
