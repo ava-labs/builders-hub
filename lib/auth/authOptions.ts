@@ -101,7 +101,7 @@ export const AuthOptions: NextAuthOptions = {
         let user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
           user = {
-            email, notification_email: email, name: '', image: '', last_login: new Date(), authentication_mode: '', bio: '',
+            email, notification_email: email, name: '', image: '', last_login: new Date(), authentication_mode: '', bio: '',accepted_terms: false,
             custom_attributes: [], id: '', integration: '', notifications: null, profile_privacy: null, social_media: [], telegram_user: '', user_name: '', created_at: new Date()
           }
         }

@@ -12,6 +12,8 @@ import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
 import FullScreenLoader from "@/components/ambassador-dao/full-screen-loader";
 import { AmbassadorCard } from "@/components/ambassador-dao/dashboard/SideContent";
 import { AuthModal } from "@/components/ambassador-dao/sections/auth-modal";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 const WelcomeSection = ({ user }: { user: any }) => {
   return (
@@ -71,10 +73,18 @@ const WelcomeSection = ({ user }: { user: any }) => {
 const AmbasssadorDao = () => {
   const { data: user, isLoading } = useFetchUserDataQuery();
   const [openAuthModal, setOpenAuthModal] = useState(false);
+  const { data: session } = useSession();
+  const router = useRouter();
   if (isLoading) {
     return <FullScreenLoader />;
   }
-
+  const handleBecomeClient = () => {
+    if (!session) {
+      const currentUrl = window.location.pathname + window.location.search;
+      router.push(`/login?callbackUrl=${encodeURIComponent(currentUrl)}`);
+      
+    } 
+  };
   return (
     <div className='bg-[#fff] dark:bg-[#000] text-[var(--white-text-color)] min-h-screen'>
       <WelcomeSection user={user} />
@@ -97,7 +107,7 @@ const AmbasssadorDao = () => {
             <AmbassadorCard
               title='Become a Client'
               description='Post projects and hire top talent for your business needs'
-              onClick={() => setOpenAuthModal(true)}
+              onClick={handleBecomeClient}
             />
           )}
         </div>

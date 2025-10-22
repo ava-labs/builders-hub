@@ -9,7 +9,7 @@ import { useEffect, Suspense, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import Modal from "@/components/ui/Modal";
-import { Button } from "@/components/ui/button";
+import { Terms } from "@/components/login/terms";
 
 export default function Layout({
   children,
@@ -112,7 +112,6 @@ function RedirectIfNewUser() {
       if (typeof window !== "undefined") {
         localStorage.setItem("redirectAfterProfile", originalUrl);
       }
-      router.replace("/ambassador-dao/onboard");
       setShowModal(true);
     }
   }, [session, status, pathname, router, searchParams]);
@@ -128,15 +127,8 @@ function RedirectIfNewUser() {
           className="border border-red-500"
           isOpen={showModal}
           onOpenChange={setShowModal}
-          title="Complete your profile"
-          description="Please fill your profile information to continue. This will help us provide you with a better experience."
-          footer={
-            <div className="flex gap-3 w-full">
-              <Button onClick={handleContinue} className="flex-1">
-                Continue
-              </Button>
-            </div>
-          }
+          title=""
+          content={<Terms userId={session?.user?.id ?? ""} onSuccess={handleContinue} onDecline={handleContinue} />}
         />
       )}
     </>
