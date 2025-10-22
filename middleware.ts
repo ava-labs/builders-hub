@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
-  if (pathname.startsWith('/api-reference')) {
+  if (pathname.startsWith('/docs/api-reference')) {
     const response = NextResponse.next();
     response.headers.set('X-Forwarded-Host', req.headers.get('host') || '');
     response.headers.set('X-Forwarded-Proto', 'https');
@@ -77,7 +77,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/api-reference/:path*",
+    "/docs/api-reference/:path*",
     "/hackathons/registration-form/:path*",
     "/hackathons/project-submission/:path*",
     "/showcase/:path*",

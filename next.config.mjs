@@ -57,11 +57,11 @@ const config = {
         destination: 'https://developers.avacloud.io/_mintlify/:path*',
       },
       {
-        source: '/api-reference',
+        source: '/docs/api-reference',
         destination: 'https://developers.avacloud.io',
       },
       {
-        source: '/api-reference/:path*',
+        source: '/docs/api-reference/:path*',
         destination: 'https://developers.avacloud.io/:path*',
       },
       {
@@ -86,37 +86,37 @@ const config = {
     return [
       {
         source: '/introduction',
-        destination: '/api-reference/introduction',
+        destination: '/docs/api-reference/introduction',
         permanent: false,
       },
       {
         source: '/data-api/:path*',
-        destination: '/api-reference/data-api/:path*',
+        destination: '/docs/api-reference/data-api/:path*',
         permanent: false,
       },
       {
         source: '/webhooks-api/:path*',
-        destination: '/api-reference/webhooks-api/:path*',
+        destination: '/docs/api-reference/webhooks-api/:path*',
         permanent: false,
       },
       {
         source: '/metrics-api/:path*',
-        destination: '/api-reference/metrics-api/:path*',
+        destination: '/docs/api-reference/metrics-api/:path*',
         permanent: false,
       },
       {
         source: '/rpc-api/:path*',
-        destination: '/api-reference/rpc-api/:path*',
+        destination: '/docs/api-reference/rpc-api/:path*',
         permanent: false,
       },
       {
         source: '/avalanche-sdk/:path*',
-        destination: '/api-reference/avalanche-sdk/:path*',
+        destination: '/docs/api-reference/avalanche-sdk/:path*',
         permanent: false,
       },
       {
         source: '/changelog/:path*',
-        destination: '/api-reference/changelog/:path*',
+        destination: '/docs/api-reference/changelog/:path*',
         permanent: false,
       },
       {
