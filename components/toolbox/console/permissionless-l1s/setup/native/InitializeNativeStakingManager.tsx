@@ -18,6 +18,7 @@ import { parseEther } from "viem";
 import versions from '@/scripts/versions.json';
 import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { toast } from 'sonner';
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 const INITIALIZE_FUNCTION_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/NativeTokenStakingManager.sol#L43`;
@@ -86,33 +87,38 @@ function InitializeNativeStakingManager() {
     }, [storedRewardCalculatorAddress, rewardCalculatorAddress]);
 
     async function checkIfInitialized() {
-        if (!stakingManagerAddressInput) return;
+        if (!stakingManagerAddressInput) {
+            toast.error('Please enter a staking manager address');
+            return;
+        }
+
+        if (!publicClient) {
+            toast.error('Wallet not connected or public client not available');
+            return;
+        }
 
         setIsChecking(true);
         try {
-            // Try to check initialization by reading a setting that would be 0 if not initialized
-            const data = await publicClient.readContract({
+            // Try to check initialization by reading the settings
+            const settings = await publicClient.readContract({
                 address: stakingManagerAddressInput as `0x${string}`,
                 abi: NativeTokenStakingManager.abi,
-                functionName: 'minimumStakeAmount',
-            });
+                functionName: 'getStakingManagerSettings',
+            }) as any;
 
-            const initialized = BigInt(data as string) > 0n;
+            const initialized = BigInt(settings.minimumStakeAmount) > 0n;
             setIsInitialized(initialized);
 
             if (initialized) {
-                // If initialized, get more details
-                const [settings] = await Promise.all([
-                    publicClient.readContract({
-                        address: stakingManagerAddressInput as `0x${string}`,
-                        abi: NativeTokenStakingManager.abi,
-                        functionName: 'minimumStakeAmount',
-                    })
-                ]);
-                setInitEvent({ minimumStakeAmount: settings });
+                setInitEvent({ settings });
+                toast.success('Contract is already initialized');
+            } else {
+                toast.info('Contract is not initialized yet');
             }
         } catch (error) {
+            console.error('Error checking initialization status:', error);
             setIsInitialized(false);
+            toast.error(error instanceof Error ? error.message : 'Failed to check initialization status');
         } finally {
             setIsChecking(false);
         }
