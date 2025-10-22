@@ -66,7 +66,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
         if (createChainStoreVMCAddress && !proxyAddress) {
             setProxyAddress(createChainStoreVMCAddress);
         }
-    }, [proxyAddress]);
+    }, [createChainStoreVMCAddress]);
     
     let subnetIDHex = "";
     try {
