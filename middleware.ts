@@ -6,11 +6,11 @@ import { NextRequest, NextResponse } from "next/server";
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
-  if (pathname.startsWith('/docs/api-reference')) {
-    const response = NextResponse.next();
-    response.headers.set('X-Forwarded-Host', req.headers.get('host') || '');
-    response.headers.set('X-Forwarded-Proto', 'https');
-    return response;
+  // Proxy Mintlify-powered API Reference through our domain in production
+  if (pathname === '/docs/api-reference' || pathname.startsWith('/docs/api-reference/')) {
+    const suffix = pathname === '/docs/api-reference' ? '' : pathname.replace('/docs/api-reference', '');
+    const target = new URL(`https://developers.avacloud.io${suffix}${req.nextUrl.search}`);
+    return NextResponse.rewrite(target);
   }
 
   const response = NextResponse.next();
@@ -77,6 +77,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
+    "/docs/api-reference",
     "/docs/api-reference/:path*",
     "/hackathons/registration-form/:path*",
     "/hackathons/project-submission/:path*",
