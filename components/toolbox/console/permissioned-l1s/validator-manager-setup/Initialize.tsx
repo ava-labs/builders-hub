@@ -44,7 +44,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
     const selectedL1 = useSelectedL1()();
     const [subnetId, setSubnetId] = useState("");
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
-    const createChainStoreManagerAddress = useCreateChainStore()(state => state.managerAddress);
+    const createChainStoreVMCAddress = useCreateChainStore()(state => state.managerAddress);
 
     const { notify } = useConsoleNotifications();
 
@@ -63,10 +63,10 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
     }, [createChainStoreSubnetId, selectedL1, subnetId]);
 
     useEffect(() => {
-        if (createChainStoreManagerAddress && !proxyAddress) {
-            setProxyAddress(createChainStoreManagerAddress);
+        if (createChainStoreVMCAddress && !proxyAddress) {
+            setProxyAddress(createChainStoreVMCAddress);
         }
-    }, [selectedL1, proxyAddress]);
+    }, [proxyAddress]);
     
     let subnetIDHex = "";
     try {
