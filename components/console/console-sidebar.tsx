@@ -236,10 +236,9 @@ const data = {
           icon: GitMerge,
         },
         {
-          title: "Stake & Unstake",
-          url: "/console/permissionless-l1s/manage-validators",
+          title: "Stake",
+          url: "/console/permissionless-l1s/stake",
           icon: Hexagon,
-          comingSoon: true,
         },
       ],
     },
