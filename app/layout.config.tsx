@@ -770,7 +770,7 @@ export const connectMenu: LinkItemType = {
   text: 'Connect',
   url: '/hackathons',
   items: [
-    {
+    { /* Hackathons */  
       menu: {
         banner: (
           <div className='-mx-3 -mt-3'>
@@ -794,25 +794,54 @@ export const connectMenu: LinkItemType = {
         'The hackathons aims to harness the potential of Avalanche´s robust technology stack to address pressing issues and create scalable, practical solutions.',
       url: '/hackathons',
     },
-    {
+    { /* University */  
+      menu: {
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/University-Slideshow/DSC_3473%20%281%29.jpg"}
+              alt='Preview'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-2',
+      },
       icon: <GraduationCap />,
       text: 'University',
       description:
         'Join the Avalanche University to deepen your knowledge.',
       url: '/university',
-      menu: {
-        className: 'lg:col-start-2',
-      },
+      
     },
-    {
+    { /* Events */  
+      menu: {
+      banner: (
+        <div className='-mx-3 -mt-3'>
+          <Image
+            src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/Avalanche-Event-TnQovuFzkt8CGHyF0wfiSYTrGVtuPU.jpg"}
+            alt='Preview'
+            width={900}
+            height={400}
+            className='rounded-t-lg object-cover w-full h-auto'
+            style={{
+              maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+            }}
+          />
+        </div>
+      ),
+      className: 'md:row-span-2',
+    },
       icon: <Earth />,
       text: 'Events',
       description:
         'Explore upcoming Avalanche events, meetups, and community gatherings. Stay connected with the latest happenings in the ecosystem.',
       url: '/events',
-      menu: {
-        className: 'lg:col-start-3 lg:row-start-1',
-      },
     },
   ],
 };
