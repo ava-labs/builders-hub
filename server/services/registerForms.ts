@@ -81,12 +81,6 @@ export const registerValidations: Validation[] = [
       registerForm.terms_event_conditions === true,
   },
   {
-    field: "newsletter_subscription",
-    message: "You must agree to the newsletter subscription.",
-    validation: (registerForm: RegistrationForm) =>
-      registerForm.newsletter_subscription === true,
-  },
-  {
     field: "prohibited_items",
     message: "You must agree not to bring prohibited items to continue.",
     validation: (registerForm: RegistrationForm) =>

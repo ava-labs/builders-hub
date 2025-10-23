@@ -48,7 +48,7 @@ export default function RegisterFormStep1({ user }: Step1Props) {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Full Name or Nickname</FormLabel>
+                <FormLabel>Full Name or Nickname *</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Enter your full name or preferred display name"
@@ -69,7 +69,7 @@ export default function RegisterFormStep1({ user }: Step1Props) {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email Address</FormLabel>
+                <FormLabel>Email Address *</FormLabel>
                 <FormControl>
                   <Input
                     type="email"
@@ -143,7 +143,7 @@ export default function RegisterFormStep1({ user }: Step1Props) {
             name="city"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Country of Residence</FormLabel>
+                <FormLabel>Country of Residence *</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="text-zinc-600">
@@ -171,7 +171,7 @@ export default function RegisterFormStep1({ user }: Step1Props) {
             name="telegram_user"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Telegram Username</FormLabel>
+                <FormLabel>Telegram Username *</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Enter your Telegram username (without @)"

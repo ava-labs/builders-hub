@@ -2,12 +2,11 @@
 import type React from "react";
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowUpDown, ArrowUp, ArrowDown, Activity, Users, BarChart3, Search, ExternalLink } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Activity, Users, BarChart3, Search, ArrowUpRight } from "lucide-react";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { Area, AreaChart, XAxis, YAxis, CartesianGrid } from "recharts";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
@@ -845,9 +844,6 @@ export default function AvalancheMetrics() {
                   <TableHead className="font-medium text-center min-w-[80px] sm:min-w-[100px] text-muted-foreground text-xs sm:text-sm">
                     Activity
                   </TableHead>
-                  <TableHead className="font-medium text-center min-w-[80px] sm:min-w-[100px] text-muted-foreground text-xs sm:text-sm">
-                    Details
-                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -859,10 +855,19 @@ export default function AvalancheMetrics() {
                   return (
                     <TableRow
                       key={chain.chainId}
-                      className="border-b border-border/50 hover:bg-muted/30 transition-colors"
+                      className={`border-b border-border/50 transition-colors ${
+                        chainSlug
+                          ? "hover:bg-muted/50 cursor-pointer"
+                          : "hover:bg-muted/30"
+                      }`}
+                      onClick={() => {
+                        if (chainSlug) {
+                          window.location.href = `/stats/l1/${chainSlug}`;
+                        }
+                      }}
                     >
                       <TableCell className="py-2 sm:py-4 px-3 sm:px-6">
-                        <div className="flex items-center gap-2 sm:gap-4">
+                        <div className="flex items-center gap-2 sm:gap-4 group">
                           <div className="relative">
                             {chain.chainLogoURI ? (
                               <Image
@@ -881,10 +886,15 @@ export default function AvalancheMetrics() {
                               </div>
                             )}
                           </div>
-                          <div className="min-w-0 flex-1">
+                          <div className="min-w-0 flex-1 flex items-center gap-2">
                             <div className="font-semibold text-foreground text-sm sm:text-base truncate">
                               {chain.chainName}
                             </div>
+                            {chainSlug && (
+                              <div className="relative overflow-hidden w-4 h-4 flex-shrink-0">
+                                <ArrowUpRight className="h-3 w-3 sm:h-4 sm:w-4 text-primary absolute transition-all duration-300 ease-out transform translate-y-4 translate-x-4 opacity-0 group-hover:translate-y-0 group-hover:translate-x-0 group-hover:opacity-100" />
+                              </div>
+                            )}
                           </div>
                         </div>
                       </TableCell>
@@ -950,23 +960,6 @@ export default function AvalancheMetrics() {
                       </TableCell>
                       <TableCell className="text-center px-2 sm:px-4">
                         <ActivityIndicator count={getActivityDots(chain)} />
-                      </TableCell>
-                      <TableCell className="text-center px-2 sm:px-4">
-                        {chainSlug ? (
-                          <Link href={`/stats/l1/${chainSlug}`}>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 sm:h-8 sm:w-8 p-0 hover:bg-primary/10"
-                            >
-                              <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4" />
-                            </Button>
-                          </Link>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">
-                            —
-                          </span>
-                        )}
                       </TableCell>
                     </TableRow>
                   );

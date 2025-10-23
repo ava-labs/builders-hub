@@ -15,7 +15,7 @@ import { Input } from "@/components/toolbox/components/Input";
 import { utils } from '@avalabs/avalanchejs';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
-import { useAvaCloudSDK } from "@/components/toolbox/stores/useAvaCloudSDK";
+import { useAvalancheSDKChainkit } from "@/components/toolbox/stores/useAvalancheSDKChainkit";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
@@ -28,7 +28,7 @@ const add0x = (hex: string): `0x${string}` => hex.startsWith('0x') ? hex as `0x$
 const metadata: ConsoleToolMetadata = {
     title: "Initialize Validator Set",
     description: "Initialize the ValidatorManager contract with the initial validator set",
-    walletRequirements: [
+    toolRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
@@ -40,7 +40,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
     const viemChain = useViemChainStore();
     const { publicClient, walletEVMAddress } = useWalletStore();
     const { coreWalletClient } = useConnectedWallet();
-    const { aggregateSignature } = useAvaCloudSDK();
+    const { aggregateSignature } = useAvalancheSDKChainkit();
     const [isInitializing, setIsInitializing] = useState(false);
     const [txHash, setTxHash] = useState<string | null>(null);
     const [simulationWentThrough, _] = useState(false);

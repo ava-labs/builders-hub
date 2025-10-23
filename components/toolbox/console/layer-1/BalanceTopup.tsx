@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
-import { AlertCircle, Loader2, CheckCircle2, ArrowUpRight, RefreshCw } from "lucide-react"
+import { Loader2, CheckCircle2, ArrowUpRight, RefreshCw } from "lucide-react"
 import { Button } from "../../components/Button"
 import { useWalletStore } from "@/components/toolbox/stores/walletStore"
 import { Input } from "../../components/Input"
@@ -10,6 +10,7 @@ import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { Alert } from "../../components/Alert";
 
 // Helper function for delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -17,7 +18,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const metadata: ConsoleToolMetadata = {
   title: "Validator Balance Increase",
   description: "Increase the balance of a validator to extend its validation period and maintain network participation",
-  walletRequirements: [
+  toolRequirements: [
     WalletRequirementsConfigKey.PChainBalance
   ],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
@@ -36,19 +37,19 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
   const [validatorTxId, setValidatorTxId] = useState<string>("")
 
   // Use nullish coalescing to safely access store values
-  const { pChainAddress, updatePChainBalance, isTestnet } = useWalletStore()
+  const { pChainAddress, isTestnet } = useWalletStore()
+  const updatePChainBalance = useWalletStore((s) => s.updatePChainBalance);
   const pChainBalance = useWalletStore((s) => s.balances.pChain);
   const { coreWalletClient } = useConnectedWallet()
 
   // Fetch P-Chain balance periodically
   useEffect(() => {
-    if (coreWalletClient && pChainAddress) {
-      // todo: check here
-      // updatePChainBalance()
-      // const interval = setInterval(updatePChainBalance, 10000)
-      // return () => clearInterval(interval)
+    if (pChainAddress) {
+      updatePChainBalance()
+      const interval = setInterval(updatePChainBalance, 10000)
+      return () => clearInterval(interval)
     }
-  }, [coreWalletClient, pChainAddress])
+  }, [pChainAddress, updatePChainBalance])
 
   // Handle confetti timeout
   useEffect(() => {
@@ -81,10 +82,6 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
     setStatusMessage("Increasing validator balance...")
 
     try {
-      if (!coreWalletClient) {
-        throw new Error("Wallet client not initialized")
-      }
-
       const txHash = await coreWalletClient.increaseL1ValidatorBalance({
         validationId: validatorSelection.validationId,
         balanceInAvax: amountNumber,
@@ -240,20 +237,12 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
                 </div>
               </div>
 
-              <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
-                <div className="flex gap-2 items-center">
-                  <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
-                  <p>This action will use AVAX from your P-Chain address ({pChainAddress ? `${pChainAddress.substring(0, 10)}...${pChainAddress.substring(pChainAddress.length - 4)}` : 'Loading...'}) to increase the balance of the specified L1 validator. Ensure the Validation ID is correct.</p>
-                </div>
-              </div>
+              <Alert variant="error">
+                This action will use AVAX from your P-Chain address ({pChainAddress ? `${pChainAddress.substring(0, 10)}...${pChainAddress.substring(pChainAddress.length - 4)}` : 'Loading...'}) to increase the balance of the specified L1 validator. Ensure the Validation ID is correct.
+              </Alert>
 
               {error && !error.toLowerCase().includes("amount") && !error.toLowerCase().includes("balance") && !error.toLowerCase().includes("utxo") && !error.toLowerCase().includes("validation") && !error.toLowerCase().includes("subnet") && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
-                  <div className="flex gap-3">
-                    <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
-                    <p>{error}</p>
-                  </div>
-                </div>
+                <Alert variant="error">{error}</Alert>
               )}
 
               <Button
