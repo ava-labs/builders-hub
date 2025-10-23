@@ -20,7 +20,7 @@ import { ChainConfigStep, generateRandomChainName } from "@/components/toolbox/c
 const metadata: ConsoleToolMetadata = {
     title: "Create Chain",
     description: "Create a subnet and add a new blockchain with custom parameters and genesis data",
-    walletRequirements: [
+    toolRequirements: [
         WalletRequirementsConfigKey.PChainBalance
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

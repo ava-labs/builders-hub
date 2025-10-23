@@ -25,7 +25,7 @@ import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-
 const metadata: ConsoleToolMetadata = {
     title: "Deploy PoA Manager",
     description: "Deploy and initialize the PoAManager contract to manage Proof of Authority validators",
-    walletRequirements: [
+    toolRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

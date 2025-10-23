@@ -1,0 +1,73 @@
+---
+title: Allbridge Core
+category: ["Crosschain Solutions"]
+available: ["C-Chain"]
+description: Allbridge Core enables native stablecoin transfers across blockchains without wrapping — powering frictionless DeFi and multi-chain liquidity.
+logo: /images/allbridge-core.svg
+developer: Allbridge
+website: https://core.allbridge.io/
+documentation: https://docs-core.allbridge.io/
+---
+
+## Overview
+
+[Allbridge Core](https://core.allbridge.io) is a **cross-chain liquidity protocol** designed for **native stablecoin transfers** between major ecosystems such as Avalanche, Ethereum, Solana, and Tron.
+
+Unlike traditional bridges that rely on wrapped or synthetic assets, Allbridge Core maintains liquidity pools of native stablecoins on each chain.
+When users transfer funds, the value is transmitted via a messaging protocol and redeemed in the target network - **securely and with native tokens**.
+
+Key features include:
+- **Native Transfers**: Move native stablecoins (USDT, USDC, USDe, etc.) across chains without wrapping.
+- **Messaging-Agnostic Design**: Integrate using Allbridge Messaging, Circle’s CCTP, and LayerZero OFT
+- **Flexible Fee Options**: Pay bridge fees in stablecoins or gas tokens for a smoother UX.
+- **Optional Gas Top-Up**: Users can receive AVAX on the destination chain to cover initial transactions.
+- **Developer Tools**: Full SDK and REST API for quick integration into dApps, wallets, and exchanges.
+
+## Getting Started
+
+Allbridge Core SDK enables you to onboard cross-chain functionality into your protocol. Follow these instructions to get started using our SDK.
+
+1. **Installation**:
+    * **Using npm**
+        ```txt
+         $ npm install @allbridge/bridge-core-sdk
+        ```
+    * **Using yarn**
+        ```txt
+         $ yarn add @allbridge/bridge-core-sdk
+        ```
+    * **Using pnpm**
+        ```txt
+         $ pnpm add @allbridge/bridge-core-sdk
+        ```
+2. **Initialize the SDK instance with your node RPC URLs**:
+    ```tsx
+        import { AllbridgeCoreSdk, nodeRpcUrlsDefault } from "@allbridge/bridge-core-sdk";
+        // Connections to blockchains will be made through your rpc-urls passed during initialization
+        const sdk = new AllbridgeCoreSdk({
+            ...nodeRpcUrlsDefault,
+            TRX: "your trx-rpc-url",
+            ETH: "your eth-rpc-url"
+        });
+    ```
+
+## Documentation
+
+For detailed guides, API references, and advanced integration examples, visit the [Allbridge Core Documentation](https://docs-core.allbridge.io/sdk/get-started)
+
+## Use Cases
+
+1. **Stablecoin Swaps**:
+    Transfer your stables between EVM and non-EVM compatible chains.
+2. **Seamless User Onboarding**:
+    By enabling the optional gas top-up, Allbridge Core reduces the barriers to entry into the Avalanche ecosystem.
+3. **dApp and Wallet Integrations**:
+    Integrate cross-chain swaps directly into wallets, DEXs, or other dApps via our SDK/REST API.
+4. **Flexible Transfers**:
+    Choose between multiple supported messaging protocols to match your bridging needs.
+
+## Conclusion
+
+Allbridge Core enhances the Avalanche ecosystem by enabling seamless stablecoin transfers from other major blockchains.
+By simplifying the bridging experience, it expands Avalanche’s accessibility and utility across the broader DeFi landscape.
+It also empowers developers on the Avalanche C-Chain with tools to integrate cross-chain access into their applications easily.

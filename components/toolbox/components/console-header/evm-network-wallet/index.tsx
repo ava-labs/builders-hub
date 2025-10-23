@@ -4,15 +4,14 @@ import { useEffect, useState } from 'react'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu'
 import { useL1ListStore } from '@/components/toolbox/stores/l1ListStore'
 import { Button } from '@/components/ui/button'
-import { useWalletStore } from '@/components/toolbox/stores/walletStore'
-import { createCoreWalletClient } from '@/components/toolbox/coreViem'
-import { networkIDs } from '@avalabs/avalanchejs'
+import { useWalletConnect } from '@/components/toolbox/hooks/useWalletConnect'
 
 import { useNetworkData } from './hooks/useNetworkData'
 import { useNetworkActions } from './hooks/useNetworkActions'
 import { NetworkList } from './components/NetworkList'
 import { NetworkActions } from './components/NetworkActions'
 import { WalletInfo } from './components/WalletInfo'
+import { ChainLogo } from './components/ChainLogo'
 
 export function EvmNetworkWallet() {
   const [isEditMode, setIsEditMode] = useState(false)
@@ -37,67 +36,7 @@ export function EvmNetworkWallet() {
     updateAllBalances,
   } = useNetworkActions()
 
-  // Wallet connection functions
-  const {
-    setWalletEVMAddress,
-    setWalletChainId,
-    setPChainAddress,
-    setCoreEthAddress,
-    setCoreWalletClient,
-    setAvalancheNetworkID,
-    setIsTestnet,
-    setEvmChainName,
-  } = useWalletStore()
-
-  const handleConnect = async () => {
-    if (typeof window === 'undefined') return
-
-    try {
-      if (!window.avalanche?.request) {
-        return
-      }
-
-      const accounts = await window.avalanche.request<string[]>({
-        method: 'eth_requestAccounts',
-      })
-
-      if (!accounts || accounts.length === 0) {
-        throw new Error('No accounts returned from wallet')
-      }
-
-      const account = accounts[0] as `0x${string}`
-      const client = await createCoreWalletClient(account)
-      if (!client) return
-
-      setCoreWalletClient(client)
-      setWalletEVMAddress(account)
-
-      try {
-        const [pAddr, cAddr, chainInfo, chainId] = await Promise.all([
-          client.getPChainAddress().catch(() => ''),
-          client.getCorethAddress().catch(() => ''),
-          client.getEthereumChain().catch(() => ({ isTestnet: undefined as any, chainName: '' } as any)),
-          client.getChainId().catch(() => 0),
-        ])
-        if (pAddr) setPChainAddress(pAddr)
-        if (cAddr) setCoreEthAddress(cAddr)
-        if (chainId) {
-          const numericId = typeof chainId === 'string' ? parseInt(chainId as any, 16) : chainId
-          setWalletChainId(numericId)
-        }
-        if (typeof chainInfo?.isTestnet === 'boolean') {
-          setIsTestnet(chainInfo.isTestnet)
-          setAvalancheNetworkID(chainInfo.isTestnet ? networkIDs.FujiID : networkIDs.MainnetID)
-          setEvmChainName(chainInfo.chainName)
-        }
-      } catch { }
-
-      // Initial balance refresh after connecting
-      try { updateAllBalances() } catch { }
-    } catch (error) {
-      console.error('Error connecting wallet:', error)
-    }
-  }
+  const { connectWallet } = useWalletConnect()
 
   useEffect(() => {
     const isCoreWalletInjected = (): boolean => (
@@ -109,7 +48,7 @@ export function EvmNetworkWallet() {
 
   const handlePrimaryButtonClick = (): void => {
     if (isCoreWalletAvailable) {
-      void handleConnect()
+      void connectWallet()
       return
     }
     if (typeof window !== 'undefined') {
@@ -141,16 +80,11 @@ export function EvmNetworkWallet() {
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm">
             <div className="flex items-center gap-3">
-              <div className="flex-shrink-0 w-5 h-5 rounded-md overflow-hidden flex items-center justify-start">
-                {currentNetwork && (currentNetwork as any).logoUrl ? (
-                  <img
-                    src={(currentNetwork as any).logoUrl}
-                    alt={`${currentNetwork.name} logo`}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-5 h-5 rounded bg-gray-200" />
-                )}
+              <div className="flex-shrink-0 w-5 h-5 flex items-center justify-start">
+                <ChainLogo
+                  logoUrl={(currentNetwork as any)?.logoUrl}
+                  chainName={currentNetwork.name}
+                />
               </div>
               <div className="flex gap-2 items-center">
                 <span className="text-sm font-medium leading-none">{currentNetwork.name}</span>

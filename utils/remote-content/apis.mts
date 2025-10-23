@@ -69,6 +69,13 @@ export function getApisConfigs(): FileConfig[] {
       description: "This page describes the API endpoints available for Subnet-EVM based blockchains.",
       contentUrl: "https://github.com/ava-labs/subnet-evm/blob/master/plugin/evm/",
     },
+    {
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/vms/proposervm/service.md",
+      outputPath: "content/docs/api-reference/proposervm-api.mdx",
+      title: "ProposerVM API",
+      description: "This page is an overview of the ProposerVM API associated with AvalancheGo.",
+      contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/proposervm/",
+    },
   ];
 }
 

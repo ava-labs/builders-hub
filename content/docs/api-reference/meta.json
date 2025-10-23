@@ -15,6 +15,7 @@
     "index-api",
     "info-api",
     "metrics-api",
+    "proposervm-api",
     "---Avalanche L1s---",
     "subnet-evm-api",
     "---Miscellaneous---",

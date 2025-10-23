@@ -1,0 +1,110 @@
+---
+title: Chronicle
+category: Oracles
+available: ["C-Chain"]
+description: Chronicle Oracles enable you to access verifiable data onchain.
+logo: /images/chronicle.png
+developer: Chronicle Labs
+website: https://chroniclelabs.org/
+documentation: https://docs.chroniclelabs.org/
+---
+
+## Overview
+[Chronicle Protocol](https://chroniclelabs.org/) is a novel Oracle solution that overcomes the current limitations of transferring data onchain by developing scalable, cost-efficient, decentralized, and verifiable Oracles.
+For the data feeds addresses, please check out the [Chronicle Dashboard](https://chroniclelabs.org/dashboard) under **Oracles** section. Select either **Mainnets** or **Testnets**, then **Avalanche C-Chain Oracles**.
+
+### Data Feeds Types
+Chronicle provides two categories of Oracles: [DeFi Oracles](https://docs.chroniclelabs.org/Products/DeFiOracle/) and [Verified Asset Oracles (VAO)](https://docs.chroniclelabs.org/Products/DeFiOracle/).
+
+DeFi Oracles include:
+- Cryptocurrency Oracles
+- Fiat Currency Oracles
+- Yield Rate Oracles
+
+[The Verified Asset Oracle (VAO)](https://docs.chroniclelabs.org/Products/VerifiedAssetOracle/) — formerly known as the RWA Oracle — securely and transparently verifies the integrity and quality of any offchain asset, transports the resulting data onchain, and makes it directly available to smart contracts and onchain products.
+
+### Check the Chronicle Oracles on the Chronicle Dashboard
+
+- [Avalanche C-Chain Oracles](https://chroniclelabs.org/dashboard/oracles#blockchain=AVAX)
+- [Avalanche Fuji Testnet Oracles](https://chroniclelabs.org/dashboard/oracles#testnet=true&blockchain=FUJI)
+
+## Using Chronicle DeFi Oracles on Avalanche Fuji Testnet
+
+The following example showcases how to integrate the AVAX/USD oracle on Avalanche Fuji Testnet.
+
+Chronicle contracts are read-protected by a whitelist, meaning you won't be able to read them onchain without your address being added to the whitelist. 
+On the Testnet networks, users can add themselves to the whitelist through the SelfKisser contract; a process playfully referred to as "kissing" themselves. 
+**To get access to production Oracles on the Mainnet, please open a support ticket in [Discord](https://discord.com/invite/CjgvJ9EspJ) in the 🆘 ｜ support channel.**
+
+For oracle addresses, please check out the [Dashboard](https://chroniclelabs.org/dashboard/oracles).
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.16;
+
+/**
+ * @title OracleReader
+ * @notice A simple contract to read from Chronicle oracles
+ * @dev To see the full repository, visit https://github.com/chronicleprotocol/OracleReader-Example.
+ * @dev Addresses in this contract are hardcoded for Avalanche Fuji Testnet.
+ * For other supported networks, check the https://chroniclelabs.org/dashboard/oracles.
+ */
+contract OracleReader {
+    /**
+    * @notice The Chronicle oracle to read from.
+    * Chronicle_AVAX_USD - 0x8b3328b27436263e0BfE7597a0D97B1BEE9cC576
+    * Network: Avalanche Fuji Testnet
+    */
+
+    IChronicle public chronicle = IChronicle(address(0x8b3328b27436263e0BfE7597a0D97B1BEE9cC576));
+
+    /**
+    * @notice The SelfKisser granting access to Chronicle oracles.
+    * SelfKisser_1:0x371A53bB4203Ad5D7e60e220BaC1876FF3Ddda5B
+    * Network: Avalanche Fuji Testnet
+    */
+    ISelfKisser public selfKisser = ISelfKisser(address(0x371A53bB4203Ad5D7e60e220BaC1876FF3Ddda5B));
+
+    constructor() {
+        // Note to add address(this) to chronicle oracle's whitelist.
+        // This allows the contract to read from the chronicle oracle.
+        selfKisser.selfKiss(address(chronicle));
+    }
+
+    /**
+    * @notice Function to read the latest data from the Chronicle oracle.
+    * @return val The current value returned by the oracle.
+    * @return age The timestamp of the last update from the oracle.
+    */
+    function read() external view returns (uint256 val, uint256 age) {
+        (val, age) = chronicle.readWithAge();
+    }
+}
+
+// Copied from [chronicle-std](https://github.com/chronicleprotocol/chronicle-std/blob/main/src/IChronicle.sol).
+interface IChronicle {
+    /**
+    * @notice Returns the oracle's current value.
+    * @dev Reverts if no value set.
+    * @return value The oracle's current value.
+    */
+    function read() external view returns (uint256 value);
+
+    /**
+    * @notice Returns the oracle's current value and its age.
+    * @dev Reverts if no value set.
+    * @return value The oracle's current value using 18 decimals places.
+    * @return age The value's age as a Unix Timestamp .
+    * */
+    function readWithAge() external view returns (uint256 value, uint256 age);
+}
+
+// Copied from [self-kisser](https://github.com/chronicleprotocol/self-kisser/blob/main/src/ISelfKisser.sol).
+interface ISelfKisser {
+    /// @notice Kisses caller on oracle `oracle`.
+    function selfKiss(address oracle) external;
+}
+```
+
+## Documentation Link
+For more examples, check out the [Chronicle Documentation](https://docs.chroniclelabs.org/Developers/tutorials/Remix).

@@ -12,7 +12,7 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore"
 import { useValidatorManagerDetails } from "@/components/toolbox/hooks/useValidatorManagerDetails"
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json"
 import PoAManagerABI from "@/contracts/icm-contracts/compiled/PoAManager.json"
-import { useAvaCloudSDK } from "@/components/toolbox/stores/useAvaCloudSDK"
+import { useAvalancheSDKChainkit } from "@/components/toolbox/stores/useAvalancheSDKChainkit"
 import { cb58ToHex } from "@/components/toolbox/console/utilities/format-converter/FormatConverter"
 import { GetRegistrationJustification } from "@/components/toolbox/console/permissioned-l1s/ValidatorManager/justification"
 import { packL1ValidatorRegistration } from "@/components/toolbox/coreViem/utils/convertWarp"
@@ -49,8 +49,8 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
     evmTxHash?: string | null
   }>>({})
 
-  const { listL1Validators } = useAvaCloudSDK()
-  const { aggregateSignature } = useAvaCloudSDK()
+  const {listL1Validators } = useAvalancheSDKChainkit()
+  const { aggregateSignature } = useAvalancheSDKChainkit()
 
   const {
     validatorManagerAddress,
