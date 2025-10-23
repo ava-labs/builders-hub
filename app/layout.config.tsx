@@ -504,6 +504,310 @@ export const eventsMenu: LinkItemType = {
   ],
 };
 
+// Learn section - Developer Academy and Entrepreneur Academy
+export const learnMenu: LinkItemType = {
+  type: 'menu',
+  text: 'Learn',
+  url: '/academy',
+  items: [
+    {
+      menu: {
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/avalanche-fundamentals-skz9GZ84gSJ7MPvkSrbiNlnK5F7suB.jpg"}
+              alt='Preview'
+              width={450}
+              height={200}
+              className='rounded-t-lg object-cover w-full h-auto'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-3 lg:col-span-1 lg:col-start-1 lg:row-start-1',
+      },
+      icon: <Sprout />,
+      text: 'Developer Academy',
+      description:
+        'Master blockchain development with comprehensive courses on Avalanche fundamentals, L1s, and advanced topics',
+      url: '/academy',
+    },
+    {
+      menu: {
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase-Entrepreneur-Academy-banner.png"}
+              alt='Codebase Entrepreneur Academy'
+              width={450}
+              height={200}
+              className='rounded-t-lg object-cover w-full h-auto'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-3 lg:col-start-1',
+      },
+      icon: <BriefcaseBusiness />,
+      text: 'Entrepreneur Academy',
+      description:
+        'Transform from builder to founder with courses on business fundamentals, fundraising, and go-to-market strategies',
+      url: '/codebase-entrepreneur-academy',
+    },
+    {
+      icon: <Triangle />,
+      text: 'Avalanche Fundamentals',
+      description:
+        'Get a high level overview of Avalanche Consensus, L1s and VMs',
+      url: '/academy/avalanche-fundamentals',
+      menu: {
+        className: 'lg:col-start-2 lg:row-start-1',
+      },
+    },
+    {
+      icon: <Triangle />,
+      text: 'Cross-Chain Interoperability',
+      description:
+        'Build cross-chain dApps on Avalanche',
+      url: '/academy/interchain-messaging',
+      menu: {
+        className: 'lg:col-start-2 lg:row-start-2 lg:col-span-1 lg:row-span-1',
+      },
+    },
+    {
+      icon: <Triangle />,
+      text: 'L1 Tokenomics',
+      description:
+        'Design and deploy tokenomics for your Avalanche L1',
+      url: '/academy/l1-tokenomics',
+      menu: {
+        className: 'lg:col-start-2 lg:row-start-3 lg:col-span-1 lg:row-span-1',
+      },
+    },
+    {
+      icon: <Triangle />,
+      text: 'Go-To-Market Strategy',
+      description:
+        'Master go-to-market strategies, sales, and pricing for your Web3 startup',
+      url: '/academy/go-to-market',
+      menu: {
+        className: 'lg:col-start-2 lg:row-start-4 lg:col-span-1 lg:row-span-1',
+      },
+    },
+    {
+      icon: <Triangle />,
+      text: 'Fundraising & Finance',
+      description:
+        'Master fundraising strategies and financial management in Web3',
+      url: '/academy/fundraising-finance',
+      menu: {
+        className: 'lg:col-start-2 lg:row-start-5 lg:col-span-1 lg:row-span-1',
+      },
+    },
+    {
+      icon: <ArrowUpRight />,
+      text: 'Check All Courses',
+      description:
+        'Supercharge your learning journey with expert-curated courses offered by Avalanche Academy and earn certificates.',
+      url: '/academy',
+      menu: {
+        className: 'lg:col-start-2 lg:row-start-6',
+      },
+    },
+  ],
+};
+
+// Build section - Docs, Console, Integrations
+export const buildMenu: LinkItemType = {
+  type: 'menu',
+  text: 'Build',
+  url: '/docs/quick-start',
+  items: [
+    {
+      menu: {
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
+               src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/customizing-evm-DkMcINMgCwhkuHuumtAZtrPzROU74M.jpg"
+               alt='Preview'
+               width={900}
+               height={400}
+              className='rounded-t-lg object-cover  w-full h-auto'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-2',
+      },
+      icon: <Sprout />,
+      text: 'Docs',
+      description: 'Explore our in-depth documentation, guides, and resources to bring your ideas to life.',
+      url: '/docs/quick-start',
+    },
+    {
+      menu: {
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
+              src="/builderhub-console.png"
+              alt='L1 Launcher Preview'
+              width={500}
+              height={140}
+              className='rounded-t-lg object-cover'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-2 lg:col-start-2',
+      },
+      icon: <Waypoints />,
+      text: 'Console',
+      description: 'Manage your L1 with a highly granular set of tools.',
+      url: '/console',
+    },
+    {
+      icon: <Wallet />,
+      text: 'Integrations',
+      description:
+        'Discover all available integrations in the Avalanche ecosystem.',
+      url: '/integrations',
+      menu: {
+        className: 'lg:col-start-3 lg:row-start-1',
+      },
+    },
+  ],
+};
+
+// Programs section - Grants and Codebase
+export const programsMenu: LinkItemType = {
+  type: 'menu',
+  text: 'Programs',
+  url: '/grants',
+  items: [
+    {
+      menu: {
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/codebase-banner-VKmQyN5sPojnIOU09p0lCkUgR6YTpQ.png"}
+              alt='Preview'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-2',
+      },
+      icon: <BriefcaseBusiness />,
+      text: 'Grants',
+      description:
+        'We help transform good ideas into great web3 companies & ambitious builders into extraordinary founders.',
+      url: '/grants',
+    },
+    {
+      icon: <BriefcaseBusiness />,
+      text: 'Codebase',
+      description:
+        'We help transform good ideas into great web3 companies & ambitious builders into extraordinary founders.',
+      url: '/codebase',
+      menu: {
+        className: 'lg:col-start-2',
+      },
+    },
+  ],
+};
+
+// Connect section - Hackathons, University, Events
+export const connectMenu: LinkItemType = {
+  type: 'menu',
+  text: 'Connect',
+  url: '/hackathons',
+  items: [
+    {
+      menu: {
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/hackathons-banner-nyqtkzooc3tJ4qcLjfLJijXz6uJ6oH.png"}
+              alt='Preview'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-2',
+      },
+      icon: <Ticket />,
+      text: 'Hackathons',
+      description:
+        'The hackathons aims to harness the potential of Avalanche´s robust technology stack to address pressing issues and create scalable, practical solutions.',
+      url: '/hackathons',
+    },
+    {
+      icon: <GraduationCap />,
+      text: 'University',
+      description:
+        'Join the Avalanche University to deepen your knowledge.',
+      url: '/university',
+      menu: {
+        className: 'lg:col-start-2',
+      },
+    },
+    {
+      icon: <Earth />,
+      text: 'Events',
+      description:
+        'Explore upcoming Avalanche events, meetups, and community gatherings. Stay connected with the latest happenings in the ecosystem.',
+      url: '/events',
+      menu: {
+        className: 'lg:col-start-3 lg:row-start-1',
+      },
+    },
+  ],
+};
+
+// News section - Stats and Blog
+export const newsMenu: LinkItemType = {
+  type: 'menu',
+  text: 'News',
+  url: '/stats/overview',
+  items: [
+    {
+      icon: <Logs />,
+      text: 'Stats',
+      description:
+        'View the latest metrics for all Avalanche L1s in the network.',
+      url: '/stats/overview',
+    },
+    {
+      icon: <BookOpen />,
+      text: 'Blog',
+      description:
+        'Read the latest news and updates from the Avalanche ecosystem.',
+      url: '/guides',
+      menu: {
+        className: 'lg:col-start-2',
+      },
+    },
+  ],
+};
+
 export const userMenu: LinkItemType = {
   type: 'custom',
   children: <UserButtonWrapper />,
@@ -520,15 +824,11 @@ export const baseOptions: BaseLayoutProps = {
     ),
   },
   links: [
-    academyMenu,
-    docsMenu,
-    consoleMenu,
-    eventsMenu,
-    grantsMenu,
-    universityMenu,
-    integrationsMenu,
+    learnMenu,
+    buildMenu,
+    programsMenu,
+    connectMenu,
+    newsMenu,
     userMenu,
-    blogMenu,
-    stats
   ],
 };
