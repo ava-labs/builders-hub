@@ -132,6 +132,19 @@ const officialCourses: Course[] = [
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
+        name: "Permissionless L1s",
+        description: "Learn how to transition from permissioned blockchains with PoA to permissionless blockchains with PoS",
+        slug: "permissionless-l1s",
+        icon: <SquareStackIcon />,
+        duration: "2 hours",
+        status: "featured",
+        tools: ["Validator Manager", "P-Chain", "ICM"],
+        languages: ["Solidity"],
+        instructors: ["Martin Eckardt", "Owen Wahlgren", "Nicolas Arnedo"],
+        category: "L1 Development",
+        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
+    },
+    {
         name: "AvaCloud APIs",
         description: "Learn how to leverage AvaCloud APIs to build web apps on Avalanche",
         slug: "avacloudapis",
