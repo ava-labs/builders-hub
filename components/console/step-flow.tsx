@@ -114,7 +114,7 @@ export default function StepFlow({
   }, [atLast, currentIndex, steps, basePath]);
 
   return (
-    <div className={`flex flex-col h-full ${className || ''}`}>
+    <div className={className}>
       <nav className="mb-6">
         <ol className="flex flex-wrap items-center justify-center gap-3 text-sm">
           {steps.map((s, stepIdx) => {
@@ -212,58 +212,56 @@ export default function StepFlow({
         </ol>
       </nav>
 
-      <div className="flex-1 flex flex-col gap-4 p-8 overflow-y-auto">
-        <div className="border-t py-8">
-          <div className="min-h-[200px]">
-            <CurrentComponent />
-          </div>
+      <div className="border-t py-8">
+        <div className="min-h-[200px]">
+          <CurrentComponent />
+        </div>
 
-          <div className="mt-6 flex items-center justify-between">
-            {prevLink ? (
+        <div className="mt-6 flex items-center justify-between">
+          {prevLink ? (
+            <Link
+              href={prevLink}
+              className="rounded-md border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm"
+            >
+              Back
+            </Link>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="rounded-md border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm disabled:opacity-50"
+            >
+              Back
+            </button>
+          )}
+
+          <div className="flex items-center gap-2">
+            {"optional" in currentStep && currentStep.optional && nextLink && (
               <Link
-                href={prevLink}
+                href={nextLink}
                 className="rounded-md border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm"
               >
-                Back
+                Skip
               </Link>
-            ) : (
+            )}
+            {atLast ? (
               <button
                 type="button"
-                disabled
-                className="rounded-md border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm disabled:opacity-50"
+                onClick={onFinish}
+                className="rounded-md bg-blue-600 text-white px-4 py-2 text-sm"
               >
-                Back
+                Finish
               </button>
-            )}
-
-            <div className="flex items-center gap-2">
-              {"optional" in currentStep && currentStep.optional && nextLink && (
+            ) : (
+              nextLink && (
                 <Link
                   href={nextLink}
-                  className="rounded-md border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm"
-                >
-                  Skip
-                </Link>
-              )}
-              {atLast ? (
-                <button
-                  type="button"
-                  onClick={onFinish}
                   className="rounded-md bg-blue-600 text-white px-4 py-2 text-sm"
                 >
-                  Finish
-                </button>
-              ) : (
-                nextLink && (
-                  <Link
-                    href={nextLink}
-                    className="rounded-md bg-blue-600 text-white px-4 py-2 text-sm"
-                  >
-                    Next
-                  </Link>
-                )
-              )}
-            </div>
+                  Next
+                </Link>
+              )
+            )}
           </div>
         </div>
       </div>
