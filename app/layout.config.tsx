@@ -4,6 +4,7 @@ import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 import {
   Sprout,
   Logs,
+  SquareIcon,
   MonitorCheck,
   ArrowUpRight,
   SendHorizontal,
@@ -37,7 +38,7 @@ import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrap
 
 export const integrationsMenu: LinkItemType = {
   type: 'menu',
-  text: 'Integrations',
+  text: 'Solutions',
   url: '/integrations',
   items: [
     {
@@ -559,7 +560,6 @@ export const learnMenu: LinkItemType = {
       url: '/codebase-entrepreneur-academy',
     },
     {
-      icon: <Triangle />,
       text: 'Avalanche Fundamentals',
       description:
         'Get a high level overview of Avalanche Consensus, L1s and VMs',
@@ -569,7 +569,6 @@ export const learnMenu: LinkItemType = {
       },
     },
     {
-      icon: <Triangle />,
       text: 'Cross-Chain Interoperability',
       description:
         'Build cross-chain dApps on Avalanche',
@@ -579,7 +578,6 @@ export const learnMenu: LinkItemType = {
       },
     },
     {
-      icon: <Triangle />,
       text: 'L1 Tokenomics',
       description:
         'Design and deploy tokenomics for your Avalanche L1',
@@ -589,7 +587,6 @@ export const learnMenu: LinkItemType = {
       },
     },
     {
-      icon: <Triangle />,
       text: 'Go-To-Market Strategy',
       description:
         'Master go-to-market strategies, sales, and pricing for your Web3 startup',
@@ -599,7 +596,6 @@ export const learnMenu: LinkItemType = {
       },
     },
     {
-      icon: <Triangle />,
       text: 'Fundraising & Finance',
       description:
         'Master fundraising strategies and financial management in Web3',
@@ -627,11 +623,12 @@ export const buildMenu: LinkItemType = {
   text: 'Build',
   url: '/docs/quick-start',
   items: [
-    {
+    { /* Docs */
       menu: {
         banner: (
           <div className='-mx-3 -mt-3'>
-            <Image
+          {/* TODO: Add banner image 
+            {/* <Image
                src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/customizing-evm-DkMcINMgCwhkuHuumtAZtrPzROU74M.jpg"
                alt='Preview'
                width={900}
@@ -640,21 +637,48 @@ export const buildMenu: LinkItemType = {
               style={{
                 maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}
-            />
+            />*/}
           </div>
         ),
-        className: 'md:row-span-2',
+        className: 'md:row-span-3 lg:col-span-1 lg:col-start-1 lg:row-start-1',
       },
       icon: <Sprout />,
       text: 'Docs',
       description: 'Explore our in-depth documentation, guides, and resources to bring your ideas to life.',
       url: '/docs/quick-start',
     },
-    {
+    { 
+        text: 'Build dApps',
+        description:
+          'Build dApps on Avalanche',
+        url: '/docs/dapps',
+        menu: {
+          className: 'lg:col-start-2 lg:row-start-1',
+        },
+      },
+      { 
+          text: 'Custom Virtual Machines',
+          description:
+            'Customize the EVM or build new VMs from scratch',
+          url: '/docs/virtual-machines',
+          menu: {
+            className: 'lg:col-start-2 lg:row-start-2',
+          },
+        },
+        { 
+            text: 'Interoperability',
+            description:
+              'Connect and transfer assets between L1s',
+            url: '/docs/cross-chain',
+            menu: {
+              className: 'lg:col-start-2 lg:row-start-3',
+            },
+          },
+    { /* Console */
       menu: {
         banner: (
           <div className='-mx-3 -mt-3'>
-            <Image
+            {/*  <Image
               src="/builderhub-console.png"
               alt='L1 Launcher Preview'
               width={500}
@@ -663,69 +687,80 @@ export const buildMenu: LinkItemType = {
               style={{
                 maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}
-            />
+            /> */}
           </div>
         ),
-        className: 'md:row-span-2 lg:col-start-2',
+        className: 'md:row-span-3 lg:col-span-1 lg:col-start-1 lg:row-start-4',
       },
       icon: <Waypoints />,
       text: 'Console',
       description: 'Manage your L1 with a highly granular set of tools.',
       url: '/console',
     },
-    {
+    { 
+      text: 'Primary Network Console',
+      description:
+        'Interact with for X, C and P chains for Bridging, Staking and Node setups',
+      url: 'https://build.avax.network/console/primary-network/node-setup',
+      menu: {
+        className: 'lg:col-start-2 lg:row-start-4',
+      },
+    },
+    { 
+      text: 'Layer 1 console',
+      description:
+        'Tools to create and manage your Layer 1 and resources',
+      url: '/console/layer-1/create/create-chain',
+      menu: {
+        className: 'lg:col-start-2 lg:row-start-5',
+      },
+    },
+    { 
+      text: 'Interoperability Console',
+      description:
+        'Tools to setup and use Interchain Messaging and Interchain Token Transfer',
+      url: '/console/icm/setup/icm-messenger',
+      menu: {
+        className: 'lg:col-start-2 lg:row-start-6',
+      },
+    },
+    /* { Integrations 
       icon: <Wallet />,
       text: 'Integrations',
       description:
         'Discover all available integrations in the Avalanche ecosystem.',
       url: '/integrations',
       menu: {
-        className: 'lg:col-start-3 lg:row-start-1',
+        className: 'md:row-span-3 lg:col-span-1 lg:col-start-1 lg:row-start-7',
       },
     },
-  ],
-};
-
-// Programs section - Grants and Codebase
-export const programsMenu: LinkItemType = {
-  type: 'menu',
-  text: 'Programs',
-  url: '/grants',
-  items: [
-    {
-      menu: {
-        banner: (
-          <div className='-mx-3 -mt-3'>
-            <Image
-              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/codebase-banner-VKmQyN5sPojnIOU09p0lCkUgR6YTpQ.png"}
-              alt='Preview'
-              width={900}
-              height={400}
-              className='rounded-t-lg object-cover w-full h-auto'
-              style={{
-                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
-              }}
-            />
-          </div>
-        ),
-        className: 'md:row-span-2',
-      },
-      icon: <BriefcaseBusiness />,
-      text: 'Grants',
+    { 
+      text: 'Account Abstraction Solutions',
       description:
-        'We help transform good ideas into great web3 companies & ambitious builders into extraordinary founders.',
-      url: '/grants',
-    },
-    {
-      icon: <BriefcaseBusiness />,
-      text: 'Codebase',
-      description:
-        'We help transform good ideas into great web3 companies & ambitious builders into extraordinary founders.',
-      url: '/codebase',
+        'Gasless transactions and smart account solutions',
+      url: '/integrations#Account%20Abstraction',
       menu: {
-        className: 'lg:col-start-2',
+        className: 'md:row-span-1 lg:col-span-1 lg:col-start-2 lg:row-start-7',
       },
     },
+    { 
+      text: 'Block Explorers',
+      description:
+        'Tools to analyze and track blockchain transactions and activities',
+      url: '/integrations#Block%20Explorers',
+      menu: {
+        className: 'md:row-span-1 lg:col-span-1 lg:col-start-2 lg:row-start-8',
+      },
+    },
+    { 
+      text: 'Blockchain as a Service',
+      description:
+        'Managed solutions for deploying and managing your Avalanche L1s',
+      url: '/integrations#Blockchain%20as%20a%20Service',
+      menu: {
+        className: 'md:row-span-1 lg:col-span-1 lg:col-start-2 lg:row-start-9',
+      },
+    },*/
   ],
 };
 
@@ -826,7 +861,8 @@ export const baseOptions: BaseLayoutProps = {
   links: [
     learnMenu,
     buildMenu,
-    programsMenu,
+    integrationsMenu,
+    grantsMenu,
     connectMenu,
     newsMenu,
     userMenu,
