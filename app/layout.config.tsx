@@ -621,7 +621,6 @@ export const learnMenu: LinkItemType = {
 export const buildMenu: LinkItemType = {
   type: 'menu',
   text: 'Build',
-  url: '/docs/quick-start',
   items: [
     { /* Docs */
       menu: {
