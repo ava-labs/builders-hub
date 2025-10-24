@@ -267,7 +267,12 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
       {!allQuizzesCompleted && (
         <div className="mt-12 bg-muted rounded-lg shadow-lg p-8">
           <Share2 className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
-          Complete all quizzes to unlock your certificate and share your achievement!
+          <p className="text-center text-gray-600 dark:text-gray-300 mb-2">
+            There are several quizzes throughout this course. Complete them all to get your certificate.
+          </p>
+          <p className="text-center text-gray-500 dark:text-gray-400">
+            So far you have completed {correctlyAnsweredQuizzes} out of {totalQuizzes} quizzes.
+          </p>
         </div>
       )}
     </div>
