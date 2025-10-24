@@ -80,41 +80,15 @@ const officialCourses: Course[] = [
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
-        name: "Layer 1 Tokenomics",
-        description: "Learn how to design and deploy tokenomics for your Avalanche L1",
-        slug: "l1-tokenomics",
-        icon: <Coins />,
-        duration: "2 hours",
-        status: "featured",
-        tools: ["Avalanche CLI", "ICM"],
-        languages: ["Solidity"],
-        instructors: ["Sarp", "Owen Wahlgren"],
-        category: "L1 Development",
-        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
-    },
-    {
         name: "L1 Native Tokenomics",
         description: "Learn how to design and deploy tokenomics for your Avalanche L1",
-        slug: "l1-tokenomics",
+        slug: "l1-native-tokenomics",
         icon: <Coins />,
         duration: "2 hours",
         status: "featured",
         tools: ["Avalanche CLI", "ICM"],
         languages: ["Solidity"],
         instructors: ["Martin Eckardt", "Owen Wahlgren", "Sarp", "Nicolas Arnedo"],
-        category: "L1 Development",
-        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
-    },
-    {
-        name: "L1 Validator Management",
-        description: "Learn how to manage your Avalanche L1 Validators",
-        slug: "l1-validator-management",
-        icon: <UserPen />,
-        duration: "1 hour",
-        status: "normal",
-        tools: ["Warp"],
-        languages: ["Solidity"],
-        instructors: ["Owen Wahlgren", "Martin Eckardt"],
         category: "L1 Development",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
