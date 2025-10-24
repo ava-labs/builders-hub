@@ -221,6 +221,13 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                 onAddValidator={setValidator}
                 isTestnet={false}
               />
+              <Alert variant="info" className="mt-4">
+                  <strong>Note:</strong> This step queries your <code>info.getNodeID</code> endpoint at <code>127.0.0.1:9650</code>.
+                  Make sure you have an AvalancheGo node running locally before proceeding.
+                  <br />
+                  If your node runs on a remote server, replace <code>127.0.0.1</code> with your node’s public IP in the command.
+              </Alert>
+
 
               {validator && (
                 <div className="mt-4 p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
