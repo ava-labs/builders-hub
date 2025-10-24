@@ -31,7 +31,7 @@ function GenesisWizardContent({ children, genesisData, onGenesisDataChange, foot
     }, [embedded]);
 
     if (isMobile) {
-        // Mobile/Embedded layout - stacked view with collapsible JSON preview
+        // Mobile/Embedded layout - stacked view with always-visible JSON preview and scroll-to-highlight
         return (
             <div className="space-y-6">
                 <div className="bg-white dark:bg-zinc-950 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
@@ -39,22 +39,21 @@ function GenesisWizardContent({ children, genesisData, onGenesisDataChange, foot
                 </div>
 
                 {genesisData && genesisData.length > 0 && !genesisData.startsWith("Error:") && (
-                    <details className="bg-white dark:bg-zinc-950 rounded-lg border border-zinc-200 dark:border-zinc-800" open={embedded}>
-                        <summary className="p-4 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900/50 flex items-center justify-between">
-                            <span className="text-sm font-medium">View Genesis JSON</span>
+                    <div className="bg-white dark:bg-zinc-950 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                        <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50 dark:bg-zinc-900/50">
+                            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Genesis JSON Preview</span>
                             <span className="text-xs text-zinc-500 dark:text-zinc-400">
                                 {(new Blob([genesisData]).size / 1024).toFixed(2)} KiB
                             </span>
-                        </summary>
-                        <div className="border-t border-zinc-200 dark:border-zinc-800">
-                            <div className="p-3 max-h-[400px] overflow-y-auto">
-                                <SyntaxHighlightedJSON
-                                    code={genesisData}
-                                    highlightedLine={null}
-                                />
-                            </div>
                         </div>
-                    </details>
+                        <div className="w-full overflow-x-auto">
+                            <JsonPreviewPanel
+                                jsonData={genesisData}
+                                onJsonUpdate={onGenesisDataChange}
+                                highlightPath={highlightPath || undefined}
+                            />
+                        </div>
+                    </div>
                 )}
             </div>
         );
