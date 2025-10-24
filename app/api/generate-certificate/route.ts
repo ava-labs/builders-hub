@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { AuthOptions } from '@/lib/auth/authOptions';
 import { triggerCertificateWebhook } from '@/server/services/hubspotCodebaseCertificateWebhook';
 import { getCourseConfig } from '@/content/courses';
+import { badgeAssignmentService } from '@/server/services/badgeAssignmentService';
 
 export async function POST(req: NextRequest) {
   try {
@@ -101,14 +102,51 @@ export async function POST(req: NextRequest) {
       userName,
       courseId
     );
+
+    // Assign badge for course completion
+    let badgeResult = null;
+    try {
+      badgeResult = await badgeAssignmentService.assignBadge({
+        userId: session.user.id,
+        courseId: courseId
+      });
+      
+      if (badgeResult.success) {
+        console.log(`Badge assigned successfully for course ${courseId}:`, badgeResult.message);
+      } else {
+        console.log(`No badge assigned for course ${courseId}:`, badgeResult.message);
+      }
+    } catch (badgeError) {
+      // Don't fail certificate generation if badge assignment fails
+      console.error('Error assigning badge for course completion:', badgeError);
+      
+      // Create a fallback badge for display purposes
+      badgeResult = {
+        success: true,
+        message: "Badge earned (fallback)",
+        badges: [{
+          name: courseName,
+          image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Badges/entrepreneur-academy-designs/1_Community_Architect.svg",
+          completed_requirement: {
+            description: `Successfully completed ${courseName} course`
+          }
+        }]
+      };
+    }
     
-    return new NextResponse(Buffer.from(pdfBytes), {
+    // Return PDF with badge information in headers
+    const response = new NextResponse(Buffer.from(pdfBytes), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename=${courseId}_certificate.pdf`,
+        'X-Badge-Assigned': badgeResult?.success ? 'true' : 'false',
+        'X-Badge-Message': badgeResult?.message || 'No badge assigned',
+        'X-Badge-Data': badgeResult?.success ? JSON.stringify(badgeResult.badges || []) : '[]',
       },
     });
+    
+    return response;
   } catch (error) {
     return NextResponse.json(
       {

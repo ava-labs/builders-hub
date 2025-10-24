@@ -11,6 +11,7 @@ import { AwardBadgeWrapper } from '@/components/quizzes/components/awardBadgeWra
 import { useRouter } from 'next/navigation';
 import { useCertificates } from '@/hooks/useCertificates';
 import { toast } from '@/hooks/use-toast';
+import { BadgePopup } from '@/components/quizzes/BadgePopup';
 
 interface CertificatePageProps {
   courseId: string;
@@ -49,13 +50,14 @@ const quizData = quizDataImport as QuizDataStructure;
 
 const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
   const router = useRouter();
-  const { isGenerating, certificatePdfUrl, generateCertificate } = useCertificates();
+  const { isGenerating, certificatePdfUrl, earnedBadges, generateCertificate } = useCertificates();
   const [completedQuizzes, setCompletedQuizzes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [quizzes, setQuizzes] = useState<QuizInfo[]>([]);
   const [totalQuizzes, setTotalQuizzes] = useState(0);
   const [correctlyAnsweredQuizzes, setCorrectlyAnsweredQuizzes] = useState(0);
   const [shouldShowCertificate, setShouldShowCertificate] = useState(false);
+  const [showBadgePopup, setShowBadgePopup] = useState(false);
 
   useEffect(() => {
     const fetchQuizzes = () => {
@@ -122,6 +124,13 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
       description: "Please wait while we create your certificate...",
     });
     await generateCertificate(courseId);
+    
+    // Show badge popup if badges were earned
+    if (earnedBadges.length > 0) {
+      setTimeout(() => {
+        setShowBadgePopup(true);
+      }, 1000); // Small delay to let the success toast show first
+    }
   };
 
   const chapters = [...new Set(quizzes.map(quiz => quiz.chapter))];
@@ -200,6 +209,37 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
           <p className="text-center text-gray-600 dark:text-gray-300 mb-8">
             You've completed all quizzes for the {quizData.courses[courseId].title} course. Claim your certificate now!
           </p>
+          
+          {/* Display earned badges */}
+          {earnedBadges.length > 0 && (
+            <div className="mb-8 p-6 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-4 text-center">
+                🎉 New Badge Earned!
+              </h3>
+              <div className="flex flex-wrap justify-center gap-4">
+                {earnedBadges.map((badge, index) => (
+                  <div key={index} className="flex flex-col items-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-yellow-200 dark:border-yellow-700">
+                    <img 
+                      src={badge.image_path} 
+                      alt={badge.name}
+                      className="w-16 h-16 object-contain mb-2"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                    <h4 className="font-semibold text-gray-800 dark:text-white text-sm text-center">
+                      {badge.name}
+                    </h4>
+                    {badge.completed_requirement && (
+                      <p className="text-xs text-gray-600 dark:text-gray-400 text-center mt-1">
+                        {badge.completed_requirement.description}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <button
             className={cn(
               buttonVariants({ variant: 'default' }),
@@ -268,6 +308,14 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
           Complete all quizzes to unlock your certificate and share your achievement!
         </div>
       )}
+      
+      {/* Badge Popup */}
+      <BadgePopup
+        isOpen={showBadgePopup}
+        onClose={() => setShowBadgePopup(false)}
+        badges={earnedBadges}
+        courseName={quizData.courses[courseId]?.title || courseId}
+      />
     </div>
   );
 };

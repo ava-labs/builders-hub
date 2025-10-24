@@ -5,6 +5,7 @@ import { toast } from '@/hooks/use-toast';
 interface UseCertificatesReturn {
   isGenerating: boolean;
   certificatePdfUrl: string | null;
+  earnedBadges: any[];
   generateCertificate: (courseId: string) => Promise<void>;
 }
 
@@ -12,6 +13,7 @@ export function useCertificates(): UseCertificatesReturn {
   const router = useRouter();
   const [isGenerating, setIsGenerating] = useState(false);
   const [certificatePdfUrl, setCertificatePdfUrl] = useState<string | null>(null);
+  const [earnedBadges, setEarnedBadges] = useState<any[]>([]);
 
   const generateCertificate = async (courseId: string) => {
     setIsGenerating(true);
@@ -81,11 +83,32 @@ export function useCertificates(): UseCertificatesReturn {
       a.click();
       // Don't revoke the URL immediately as we need it for sharing
       
-      // Show success message
-      toast({
-        title: "Certificate Downloaded!",
-        description: "Your certificate has been successfully generated and downloaded.",
-      });
+      // Check for badge assignment in response headers
+      const badgeAssigned = response.headers.get('X-Badge-Assigned') === 'true';
+      const badgeMessage = response.headers.get('X-Badge-Message') || '';
+      const badgeData = response.headers.get('X-Badge-Data') || '[]';
+      
+      // Parse and store earned badges
+      try {
+        const badges = JSON.parse(badgeData);
+        setEarnedBadges(badges);
+      } catch (error) {
+        console.error('Error parsing badge data:', error);
+        setEarnedBadges([]);
+      }
+      
+      // Show success message with badge information
+      if (badgeAssigned) {
+        toast({
+          title: "Certificate & Badge Awarded! 🎉",
+          description: "Your certificate has been downloaded and you've earned a new badge!",
+        });
+      } else {
+        toast({
+          title: "Certificate Downloaded!",
+          description: "Your certificate has been successfully generated and downloaded.",
+        });
+      }
       
       // Redirect after success
       setTimeout(() => {
@@ -113,6 +136,7 @@ export function useCertificates(): UseCertificatesReturn {
   return {
     isGenerating,
     certificatePdfUrl,
+    earnedBadges,
     generateCertificate,
   };
 }
