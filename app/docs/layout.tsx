@@ -1,34 +1,22 @@
 import { DocsLayout, type DocsLayoutProps } from 'fumadocs-ui/layouts/notebook';
+import { HomeLayout } from 'fumadocs-ui/layouts/home';
 import type { ReactNode } from 'react';
-import { baseOptions, academyMenu, consoleMenu, integrationsMenu } from '@/app/layout.config';
+import { baseOptions } from '@/app/layout.config';
 import { documentation } from '@/lib/source';
 import 'fumadocs-twoslash/twoslash.css';
-import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
+import './styles.css';
 
 const docsOptions: DocsLayoutProps = {
-tree: documentation.pageTree,
-tabMode: 'navbar',
-nav: {
-    ...baseOptions.nav,
-    mode: 'top',
-    title: (
-      <>
-        {<AvalancheLogo className="size-7" fill="currentColor" />}
-        <span style={{ fontSize: "large" }}>Documentation</span>
-      </>
-    ),
-    url: '/docs',
+  tree: documentation.pageTree,
+  nav: {
+    enabled: false,
   },
-  links: [
-    academyMenu,
-    consoleMenu,
-    integrationsMenu
-  ]
 };
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <DocsLayout {...docsOptions}>
+    <HomeLayout {...baseOptions}>
+      <DocsLayout {...docsOptions}>
       <span
         className="absolute inset-0 z-[-1] h-[64rem] max-h-screen overflow-hidden"
         style={{
@@ -123,6 +111,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         </svg>
       </span>
       {children}
-    </DocsLayout>
+      </DocsLayout>
+    </HomeLayout>
   );
 }

@@ -140,7 +140,7 @@ export const stats: LinkItemType = {
 
 export const docsMenu: LinkItemType = {
   type: 'menu',
-  text: 'Docs',
+  text: 'Documentation',
   url: '/docs/quick-start',
   items: [
     {

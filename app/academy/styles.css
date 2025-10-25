@@ -1,0 +1,29 @@
+/* Increase spacing between the main navbar and the academy sidebar dropdown */
+@media (min-width: 768px) {
+  #nd-sidebar > div:first-child {
+    padding-top: calc(var(--spacing) * 7.5);
+  }
+}
+
+/* Remove thin separator line from library defaults under navbar */
+body > div > nav[aria-label="Main"],
+.nd-layout-home > nav:not([role="tablist"]):not(.nd-tabs-nav),
+.nd-layout-home > header:not([role="tablist"]):not(.nd-tabs-nav) {
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Remove any top border drawn directly under the navbar */
+nav[aria-label="Main"] + *,
+header + * {
+  border-top: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Fumadocs DocsNavbar adds border-b on internal containers; remove it */
+#nd-subnav .border-b {
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+}
+
+
