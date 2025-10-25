@@ -1,10 +1,10 @@
 "use client";
 
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { GenesisBuilderInner } from '@/components/toolbox/console/layer-1/create/GenesisBuilder';
-import { Step, Steps } from "fumadocs-ui/components/steps";
+import { ProgressSteps as Steps, ProgressStep as Step } from "@/components/toolbox/components/ProgressSteps";
 import { SUBNET_EVM_VM_ID } from "@/constants/console";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
@@ -86,11 +86,29 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
     const canProceedToStep4 = canProceedToStep3 && !!genesisData && genesisData !== "" && !genesisData.startsWith("Error:");
     const canCreateChain = canProceedToStep4;
 
+    // Calculate current step and completed steps
+    const currentStep = useMemo(() => {
+        if (canCreateChain) return 4; // Ready to create chain
+        if (canProceedToStep4) return 4; // On step 4
+        if (canProceedToStep3) return 3; // On step 3
+        if (canProceedToStep2) return 2; // On step 2
+        return 1; // Starting
+    }, [canProceedToStep2, canProceedToStep3, canProceedToStep4, canCreateChain]);
+
+    const completedSteps = useMemo(() => {
+        const completed: number[] = [];
+        if (canProceedToStep2) completed.push(1);
+        if (canProceedToStep3) completed.push(2);
+        if (canProceedToStep4) completed.push(3);
+        // Step 4 is completed when chain is actually created (would need to track that state)
+        return completed;
+    }, [canProceedToStep2, canProceedToStep3, canProceedToStep4]);
+
     return (
         <div className="space-y-6">
-            <Steps>
+            <Steps currentStep={currentStep} completedSteps={completedSteps}>
                 {/* Step 1: Create Subnet */}
-                <Step>
+                <Step stepNumber={1}>
                     <SubnetStep
                         subnetId={subnetId}
                         onSubnetIdChange={setSubnetID}
@@ -98,7 +116,7 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                 </Step>
 
                 {/* Step 2: Chain Configuration */}
-                <Step>
+                <Step stepNumber={2}>
                     <div>
                         <h2 className="text-[14px] font-semibold mb-1">Chain Configuration</h2>
                         <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
@@ -127,7 +145,7 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                 </Step>
 
                 {/* Step 3: Genesis Configuration */}
-                <Step>
+                <Step stepNumber={3}>
                     <div>
                         <h2 className="text-[14px] font-semibold mb-1">Genesis Configuration</h2>
                         <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
@@ -209,7 +227,7 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                 </Step>
 
                 {/* Step 4: Create Chain */}
-                <Step>
+                <Step stepNumber={4}>
                     <div>
                         <h2 className="text-[14px] font-semibold mb-1">Create Chain</h2>
                         <p className="text-[12px] text-zinc-500 dark:text-zinc-400">

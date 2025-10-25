@@ -1,7 +1,7 @@
 "use client";
 
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
 import { ResultField } from "@/components/toolbox/components/ResultField";
@@ -13,12 +13,13 @@ import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
-import { Step, Steps } from "fumadocs-ui/components/steps";
+import { ProgressSteps as Steps, ProgressStep as Step } from "@/components/toolbox/components/ProgressSteps";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { Copy, Check } from "lucide-react";
 
 const metadata: ConsoleToolMetadata = {
     title: "Initial Validator Manager Configuration",
@@ -173,10 +174,27 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
         }
     }
 
+    // Calculate current step and completed steps
+    const currentStep = useMemo(() => {
+        if (isInitialized) return 3; // All done
+        if (subnetId && proxyAddress && isInitialized === false) return 3; // Ready to initialize
+        if (subnetId) return 3; // Has subnet, ready for config
+        if (proxyAddress && isInitialized !== null) return 2; // Checked status, move to subnet
+        return 1; // Starting
+    }, [proxyAddress, isInitialized, subnetId]);
+
+    const completedSteps = useMemo(() => {
+        const completed: number[] = [];
+        if (proxyAddress && isInitialized !== null) completed.push(1);
+        if (subnetId) completed.push(2);
+        if (isInitialized) completed.push(3);
+        return completed;
+    }, [proxyAddress, isInitialized, subnetId]);
+
     return (
         <div>
-                <Steps>
-                    <Step>
+                <Steps currentStep={currentStep} completedSteps={completedSteps}>
+                    <Step stepNumber={1}>
                         <h2 className="text-lg font-semibold">Select the Validator Manager</h2>
                         <p className="text-sm text-gray-500">
                             Select the proxy contract pointing to the ValidatorManager implementation you want to initialize.
@@ -198,8 +216,14 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
                         >
                             Check Status
                         </Button>
+
+                        {isInitialized !== null && (
+                            <p className="mt-2 text-sm text-gray-500">
+                                Status: {isInitialized ? 'Already Initialized' : 'Not Initialized'}
+                            </p>
+                        )}
                     </Step>
-                    <Step>
+                    <Step stepNumber={2}>
                         <h2 className="text-lg font-semibold">Select Subnet/L1 for the Validator Manager</h2>
                         <p className="text-sm text-gray-500">
                             Enter the SubnetID of the Subnet/L1 this Validator Manager contract will manage the validators for. The P-Chain will only accept validator set changes from the Validator Manager contract addresses and blockchainID combination that was indicated in the ConvertSubnetToL1Tx.
@@ -217,7 +241,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
                         />
 
                     </Step>
-                    <Step>
+                    <Step stepNumber={3}>
                         <h2 className="text-lg font-semibold">Set the Validator Manager Configuration</h2>
                         <p className="text-sm text-gray-500">
                             Set the intitial configuration for the Validator Manager contract. The admin address should be a multisig wallet for production L1s, since it can take full control over the L1 validator set by arbitrarily changing the validator set. The churn settings define how rapid changes to the validator set can be made.
@@ -256,16 +280,14 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
 
                     </Step>
                 </Steps>
-                {isInitialized === true && (
+
+                {(isInitialized === true && initEvent) ? (
                     <ResultField
                         label="Initialization Event"
                         value={jsonStringifyWithBigint(initEvent)}
                         showCheck={isInitialized}
                     />
-                )}
-                {isInitialized !== null && (
-                    <p className="mt-4">Initialization Status: {isInitialized ? 'Initialized' : 'Not Initialized'}</p>
-                )}
+                ) : null}
         </div>
 
     );
@@ -273,7 +295,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
 
 export default withConsoleToolMetadata(Initialize, metadata);
 
-function jsonStringifyWithBigint(value: unknown) {
+function jsonStringifyWithBigint(value: unknown): string {
     return JSON.stringify(value, (_, v) =>
         typeof v === 'bigint' ? v.toString() : v
         , 2);

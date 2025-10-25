@@ -2,11 +2,11 @@
 
 import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
 import PoAManagerABI from "@/contracts/icm-contracts/compiled/PoAManager.json";
-import { Steps, Step } from "fumadocs-ui/components/steps";
+import { ProgressSteps as Steps, ProgressStep as Step } from "@/components/toolbox/components/ProgressSteps";
 import { Success } from "@/components/toolbox/components/Success";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 
@@ -155,6 +155,20 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
         }
     }
 
+    // Calculate current step and completed steps
+    const currentStep = useMemo(() => {
+        if (isInitialized === true) return 2; // Both steps done
+        if (poaManagerAddress) return 2; // Deployed, now verifying
+        return 1; // Starting
+    }, [poaManagerAddress, isInitialized]);
+
+    const completedSteps = useMemo(() => {
+        const completed: number[] = [];
+        if (poaManagerAddress) completed.push(1);
+        if (isInitialized === true) completed.push(2);
+        return completed;
+    }, [poaManagerAddress, isInitialized]);
+
     return (
         <>
                 <div className="space-y-4">
@@ -209,8 +223,8 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
                         </div>
                     )}
 
-                    <Steps>
-                        <Step>
+                    <Steps currentStep={currentStep} completedSteps={completedSteps}>
+                        <Step stepNumber={1}>
                             <h2 className="text-lg font-semibold">Configure and Deploy PoA Manager</h2>
                             <p className="text-sm text-gray-500">
                                 Deploy the <code>PoAManager</code> contract with the specified owner and validator manager addresses.
@@ -271,7 +285,7 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
                             )}
                         </Step>
 
-                        <Step>
+                        <Step stepNumber={2}>
                             <h2 className="text-lg font-semibold">Verify Deployment</h2>
                             <p className="text-sm text-gray-500">
                                 Verify that the PoA Manager was deployed and initialized correctly.

@@ -3,14 +3,14 @@
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import ProxyAdminABI from "@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json";
 import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
 import { getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { Input } from "@/components/toolbox/components/Input";
-import { Step, Steps } from "fumadocs-ui/components/steps";
+import { ProgressSteps as Steps, ProgressStep as Step } from "@/components/toolbox/components/ProgressSteps";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
@@ -178,11 +178,25 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
     const isUpgradeNeeded = currentImplementation?.toLowerCase() !== desiredImplementation?.toLowerCase();
     const canUpgrade = !!proxyAddress && !!proxyAdminAddress && !!desiredImplementation && isUpgradeNeeded;
 
+    // Calculate current step and completed steps
+    const currentStep = useMemo(() => {
+        if (!isUpgradeNeeded && currentImplementation) return 2; // Upgrade done
+        if (proxyAddress && currentImplementation) return 2; // Proxy info loaded, on step 2
+        return 1; // Starting
+    }, [proxyAddress, currentImplementation, isUpgradeNeeded]);
+
+    const completedSteps = useMemo(() => {
+        const completed: number[] = [];
+        if (proxyAddress && currentImplementation) completed.push(1);
+        if (!isUpgradeNeeded && currentImplementation) completed.push(2);
+        return completed;
+    }, [proxyAddress, currentImplementation, isUpgradeNeeded]);
+
     return (
         <>
 
-                <Steps>
-                    <Step>
+                <Steps currentStep={currentStep} completedSteps={completedSteps}>
+                    <Step stepNumber={1}>
                         <h2 className="text-lg font-semibold">Select Proxy to Upgrade</h2>
                         <p className="text-sm text-gray-500">
                             Select the proxy contract you want to upgrade.
@@ -209,7 +223,7 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
                             error={contractError}
                         />
                     </Step>
-                    <Step>
+                    <Step stepNumber={2}>
                         <h2 className="text-lg font-semibold">Set new Implementation</h2>
                         <p className="text-sm text-gray-500">
                             Enter the new implementation contract you want the Proxy to point to.

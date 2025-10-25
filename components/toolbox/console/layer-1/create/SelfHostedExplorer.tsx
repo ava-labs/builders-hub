@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Container } from "@/components/toolbox/components/Container";
 import { Input } from "@/components/toolbox/components/Input";
 import { getBlockchainInfo, getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier";
@@ -8,7 +8,7 @@ import InputChainId from "@/components/toolbox/components/InputChainId";
 import InputSubnetId from "@/components/toolbox/components/InputSubnetId";
 import BlockchainDetailsDisplay from "@/components/toolbox/components/BlockchainDetailsDisplay";
 import versions from '@/scripts/versions.json';
-import { Steps, Step } from "fumadocs-ui/components/steps";
+import { ProgressSteps as Steps, ProgressStep as Step } from "@/components/toolbox/components/ProgressSteps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { nodeConfigBase64 } from "./config";
 import { useL1ByChainId } from "@/components/toolbox/stores/l1ListStore";
@@ -326,6 +326,40 @@ export default function BlockScout() {
     }
   }, [domain, subnetId, chainId, networkName, networkShortName, tokenName, tokenSymbol, subnetIdError, rpcOption, existingRpcUrl]);
 
+  // Calculate current step and completed steps
+  const currentStep = useMemo(() => {
+    if (explorerReady) return 11; // All done
+    if (composeYaml && servicesChecked) return 11; // Ready to launch
+    if (composeYaml) return 10; // On access step
+    if (!!domain && !!subnetId && !!networkName && !!networkShortName && !!tokenName && !!tokenSymbol) return 9; // On start step
+    if (!!networkName || !!networkShortName || !!tokenName || !!tokenSymbol) return 6; // On network details
+    if (!!domain) return 5; // On domain step
+    if (rpcOption) return 4; // On RPC setup
+    if (subnetId) return 3; // On L1 selection
+    return 1; // Starting
+  }, [subnetId, rpcOption, domain, networkName, networkShortName, tokenName, tokenSymbol, composeYaml, servicesChecked, explorerReady]);
+
+  const completedSteps = useMemo(() => {
+    const completed: number[] = [];
+    // Step 1 & 2 are informational, mark as complete when moving forward
+    if (chainId || subnetId) {
+      completed.push(1);
+      completed.push(2);
+    }
+    if (subnetId) completed.push(3);
+    if (rpcOption) completed.push(4);
+    if (domain) completed.push(5);
+    if (networkName && networkShortName && tokenName && tokenSymbol) completed.push(6);
+    if (composeYaml) {
+      completed.push(7); // Caddyfile
+      completed.push(8); // Docker Compose
+      completed.push(9); // Start
+    }
+    if (servicesChecked) completed.push(10);
+    if (explorerReady) completed.push(11);
+    return completed;
+  }, [chainId, subnetId, rpcOption, domain, networkName, networkShortName, tokenName, tokenSymbol, composeYaml, servicesChecked, explorerReady]);
+
   return (
     <>
       <Container
@@ -333,18 +367,18 @@ export default function BlockScout() {
         description="This will set up a self-hosted explorer with its own RPC Node leveraging Docker Compose."
         githubUrl="https://github.com/ava-labs/builders-hub/edit/master/components/toolbox/console/layer-1/create/SelfHostedExplorer.tsx"
       >
-        <Steps>
-          <Step>
+        <Steps currentStep={currentStep} completedSteps={completedSteps}>
+          <Step stepNumber={1}>
             <h3 className="text-xl font-bold mb-4">Set up Instance</h3>
             <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. 4 vCPUs, 8GB RAM, 40GB storage is enough to get you started. Choose more storage if the Explorer is for a long-running testnet or mainnet L1.</p>
           </Step>
-          <Step>
+          <Step stepNumber={2}>
             <DockerInstallation />
           </Step>
 
 
 
-          <Step>
+          <Step stepNumber={3}>
             <h3 className="text-xl font-bold mb-4">Select L1</h3>
             <p>Enter the Avalanche Blockchain ID (not EVM chain ID) of the L1 you want to run a node for.</p>
 
@@ -370,7 +404,7 @@ export default function BlockScout() {
 
           {subnetId && (
             <>
-              <Step>
+              <Step stepNumber={4}>
                 <h3 className="text-xl font-bold mb-4">RPC Node Setup</h3>
                 <p>Choose how you want to set up the RPC node for your explorer. We don't recommend running the explorer on the same machine as a validator or public RPC.</p>
 
@@ -404,7 +438,7 @@ export default function BlockScout() {
                 </div>
               </Step>
 
-              <Step>
+              <Step stepNumber={5}>
                 <h3 className="text-xl font-bold mb-4">Domain</h3>
                 <p>Enter your domain name or server's public IP address. For a free domain, use your server's public IP, we will automatically add .sslip.io for the generated files.</p>
 
@@ -420,7 +454,7 @@ export default function BlockScout() {
                 />
               </Step>
 
-              <Step>
+              <Step stepNumber={6}>
                 <h3 className="text-xl font-bold mb-4">Network Details</h3>
                 <p>Configure your network's public display information. These will be shown in the block explorer.</p>
 
@@ -457,7 +491,7 @@ export default function BlockScout() {
             </>)}
 
           {composeYaml && (<>
-            <Step>
+            <Step stepNumber={7}>
               <h3 className="text-xl font-bold mb-4">Caddyfile</h3>
               <p>Create and edit the Caddyfile using the following steps:</p>
 
@@ -479,7 +513,7 @@ export default function BlockScout() {
                 </div>
               </div>
             </Step>
-            <Step>
+            <Step stepNumber={8}>
               <h3 className="text-xl font-bold mb-4">Docker Compose</h3>
               <p>Create and edit the compose.yml file using the following steps:</p>
 
@@ -502,7 +536,7 @@ export default function BlockScout() {
               </div>
             </Step>
 
-            <Step>
+            <Step stepNumber={9}>
               <h3 className="text-xl font-bold mb-4">Start Your Explorer</h3>
               <p>Navigate to the directory containing your <code>Caddyfile</code> and <code>compose.yml</code> files and run these commands:</p>
 
@@ -549,7 +583,7 @@ export default function BlockScout() {
               </div>
             </Step>
 
-            <Step>
+            <Step stepNumber={10}>
               <h3 className="text-xl font-bold mb-4">Access Your Explorer</h3>
               <p>Before launching your BlockScout explorer, please confirm the following:</p>
 

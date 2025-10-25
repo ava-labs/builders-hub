@@ -1,13 +1,13 @@
 "use client";
 
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { networkIDs } from "@avalabs/avalanchejs";
 import { Container } from "../../components/Container";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import InputSubnetId from "../../components/InputSubnetId";
 import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay";
-import { Steps, Step } from "fumadocs-ui/components/steps";
+import { ProgressSteps as Steps, ProgressStep as Step } from "@/components/toolbox/components/ProgressSteps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Button } from "../../components/Button";
@@ -150,6 +150,33 @@ export default function AvalanchegoDocker() {
     // Check if this blockchain uses a custom VM
     const isCustomVM = blockchainInfo && blockchainInfo.vmId !== SUBNET_EVM_VM_ID;
 
+
+    // Calculate current step and completed steps
+    const currentStep = useMemo(() => {
+        if (nodeIsReady && nodeType === "validator") return 9; // All validator steps done
+        if (chainAddedToWallet && nodeType === "public-rpc") return 7; // RPC with wallet done
+        if (domain && nodeType === "public-rpc") return 6; // On reverse proxy
+        if (nodeType && subnetId && blockchainInfo) return 5; // On start node
+        if (subnetId && blockchainInfo) return 4; // On configure node type
+        if (subnetId) return 3; // On L1 selection
+        return 1; // Starting
+    }, [subnetId, blockchainInfo, nodeType, domain, chainAddedToWallet, nodeIsReady]);
+
+    const completedSteps = useMemo(() => {
+        const completed: number[] = [];
+        completed.push(1); // Setup instance (informational)
+        completed.push(2); // Docker installation (informational)
+        if (subnetId) completed.push(3);
+        if (nodeType && blockchainInfo) completed.push(4);
+        if (rpcCommand) completed.push(5);
+        if (nodeType === "public-rpc" && domain) completed.push(6);
+        if (nodeType === "public-rpc" && chainAddedToWallet) completed.push(7);
+        if (nodeType === "validator" && nodeIsReady) {
+            completed.push(8);
+            completed.push(9);
+        }
+        return completed;
+    }, [subnetId, blockchainInfo, nodeType, rpcCommand, domain, chainAddedToWallet, nodeIsReady]);
     return (
         <>
             <Container
@@ -157,15 +184,15 @@ export default function AvalanchegoDocker() {
                 description="This will start a Docker container running an RPC or validator node that tracks your L1."
                 githubUrl="https://github.com/ava-labs/builders-hub/edit/master/components/toolbox/console/layer-1/AvalancheGoDockerL1.tsx"
             >
-                <Steps>
-                    <Step>
+                <Steps currentStep={currentStep} completedSteps={completedSteps}>
+                    <Step stepNumber={1}>
                         <h3 className="text-xl font-bold mb-4">Set up Instance</h3>
                         <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. Low specs (e.g. 2 vCPUs, 4GB RAM,  20GB storage) are sufficient for basic tests. For more extensive test and production L1s use a larger instance with appropriate resources (e.g. 8 vCPUs, 16GB RAM, 1 TB storage).</p>
 
                         <p>If you do not have access to a server, you can also run a node for educational purposes locally. Simply select the "RPC Node (Local)" option in the next step.</p>
 
                     </Step>
-                    <Step>
+                    <Step stepNumber={2}>
                         <DockerInstallation
                             includeCompose={false}
                         />
@@ -184,7 +211,7 @@ export default function AvalanchegoDocker() {
                         </p>
                     </Step>
 
-                    <Step>
+                    <Step stepNumber={3}>
                         <h3 className="text-xl font-bold mb-4">Select L1</h3>
                         <p>Enter the Avalanche Subnet ID of the L1 you want to run a node for.</p>
 
@@ -214,7 +241,7 @@ export default function AvalanchegoDocker() {
 
                     {subnetId && blockchainInfo && (
                         <>
-                            <Step>
+                            <Step stepNumber={4}>
                                 <ConfigureNodeType
                                     nodeType={nodeType}
                                     setNodeType={setNodeType}
@@ -249,7 +276,7 @@ export default function AvalanchegoDocker() {
                                 </ConfigureNodeType>
                             </Step>
 
-                            <Step>
+                            <Step stepNumber={5}>
                                 <h3 className="text-xl font-bold">Start AvalancheGo Node</h3>
                                 <p>Run the following Docker command to start your node:</p>
 
@@ -297,7 +324,7 @@ export default function AvalanchegoDocker() {
 
                             {/* Conditional steps based on nodeType */}
                             {nodeType === "public-rpc" && (
-                                <Step>
+                                <Step stepNumber={6}>
                                     <ReverseProxySetup
                                         domain={domain}
                                         setDomain={setDomain}
@@ -307,7 +334,7 @@ export default function AvalanchegoDocker() {
                                 </Step>
                             )}
                             {((nodeType === "public-rpc" && !!domain)) && (
-                                <Step>
+                                <Step stepNumber={7}>
                                     <AddToWalletStep
                                         chainId={selectedRPCBlockchainId || chainId}
                                         domain={domain}
@@ -318,7 +345,7 @@ export default function AvalanchegoDocker() {
                             )}
 
                             {nodeType === "validator" && (
-                                <Step>
+                                <Step stepNumber={8}>
                                     <h3 className="text-xl font-bold">Wait for the Node to Bootstrap</h3>
                                     <p>Your node will now bootstrap and sync the P-Chain and your L1. This process should take a <strong>few minutes</strong>. You can follow the process by checking the logs with the following command:</p>
 
@@ -355,7 +382,7 @@ export default function AvalanchegoDocker() {
 
                             {/* Show success message when node is ready for validator mode */}
                             {nodeIsReady && nodeType === "validator" && (
-                                <Step>
+                                <Step stepNumber={9}>
                                     <h3 className="text-xl font-bold mb-4">Node Setup Complete</h3>
                                     <p>Your AvalancheGo node is now fully bootstrapped and ready to be used as a validator node.</p>
 

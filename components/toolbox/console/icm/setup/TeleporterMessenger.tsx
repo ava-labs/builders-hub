@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
 import { formatEther, parseEther } from 'viem';
@@ -9,7 +9,7 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import TeleporterMessengerDeploymentTransaction from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Deployment_Transaction_v1.0.0.txt.json';
 import TeleporterMessengerDeployerAddress from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Deployer_Address_v1.0.0.txt.json';
 import TeleporterMessengerAddress from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
-import { Step, Steps } from "fumadocs-ui/components/steps";
+import { ProgressSteps as Steps, ProgressStep as Step } from "@/components/toolbox/components/ProgressSteps";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
@@ -70,7 +70,7 @@ const TopUpComponent = ({
 
     return (
 
-        <Step>
+        <Step stepNumber={1}>
             <h3 className="font-semibold">Top Up Deployer Address</h3>
             <p>The deployer address needs at least {formatEther(MINIMUM_BALANCE)} native coins to send the transaction.</p>
             <div className="flex items-center gap-2">
@@ -161,6 +161,20 @@ function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
 
     const hasEnoughBalance = deployerBalance >= MINIMUM_BALANCE;
 
+
+    // Calculate current step and completed steps
+    const currentStep = useMemo(() => {
+        if (txHash || isDeployed) return 3; // Deployed
+        if (hasEnoughBalance) return 3; // Ready to deploy
+        return 2; // On balance check
+    }, [hasEnoughBalance, txHash, isDeployed]);
+
+    const completedSteps = useMemo(() => {
+        const completed: number[] = [];
+        if (hasEnoughBalance) completed.push(2);
+        if (txHash || isDeployed) completed.push(3);
+        return completed;
+    }, [hasEnoughBalance, txHash, isDeployed]);
     return (
         <>
                 <div>
@@ -169,8 +183,8 @@ function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
                 <p className="text-sm text-gray-500 mb-4">
                     Contract source: <a href={TELEPORTER_MESSENGER_SOURCE_URL} target="_blank" rel="noreferrer">TeleporterMessenger.sol</a> @ <code>{ICM_COMMIT.slice(0, 7)}</code>
                 </p>
-                <Steps>
-                    <Step>
+                <Steps currentStep={currentStep} completedSteps={completedSteps}>
+                    <Step stepNumber={2}>
                         <h2 className="text-lg font-semibold">Check if Deployer Address Balance is sufficient</h2>
                         <p className="text-sm text-gray-500">
                             Enter the parameters for your new chain.
@@ -219,7 +233,7 @@ function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
                             )}
                         </div>
                     </Step>
-                    <Step>
+                    <Step stepNumber={3}>
                         <h2 className="text-lg font-semibold">Deploy ICM Messenger</h2>
                         {isDeployed ? (
                             <div className="py-4">

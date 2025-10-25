@@ -2,11 +2,11 @@
 
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import ProxyAdminABI from "@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json";
 import TransparentUpgradeableProxyABI from "@/contracts/openzeppelin-4.9/compiled/TransparentUpgradeableProxy.json";
-import { Steps, Step } from "fumadocs-ui/components/steps";
+import { ProgressSteps as Steps, ProgressStep as Step } from "@/components/toolbox/components/ProgressSteps";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
@@ -15,6 +15,7 @@ import { AcknowledgementCallout } from "@/components/toolbox/components/Acknowle
 import { LockedContent } from "@/components/toolbox/components/LockedContent";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { Copy, Check } from "lucide-react";
 
 const PROXYADMIN_SOURCE_URL = "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.0/contracts/proxy/transparent/ProxyAdmin.sol";
 const TRANSPARENT_PROXY_SOURCE_URL = "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.0/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
@@ -27,6 +28,42 @@ const metadata: ConsoleToolMetadata = {
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
+
+// Simple component to show deployment status - clickable address to copy
+function DeploymentStatus({ address }: { address: string }) {
+    const [copied, setCopied] = useState(false);
+
+    if (!address) {
+        return <p className="text-sm text-gray-500 mt-2">Deployment Status: Not deployed</p>;
+    }
+
+    const handleCopy = async () => {
+        await navigator.clipboard.writeText(address);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+    };
+
+    return (
+        <button
+            onClick={handleCopy}
+            className="mt-2 w-full p-3 rounded-lg border-2 border-green-500 dark:border-green-500 bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/40 transition-colors cursor-pointer group"
+        >
+            <div className="flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0 text-left">
+                    <p className="text-xs text-green-700 dark:text-green-400 font-medium mb-1">Deployment Status</p>
+                    <code className="text-sm text-green-900 dark:text-green-100 break-all">{address}</code>
+                </div>
+                <div className="flex-shrink-0">
+                    {copied ? (
+                        <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    ) : (
+                        <Copy className="h-4 w-4 text-green-600 dark:text-green-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                </div>
+            </div>
+        </button>
+    );
+}
 
 function DeployProxyContract({ onSuccess }: BaseConsoleToolProps) {
     const [isDeployingProxyAdmin, setIsDeployingProxyAdmin] = useState(false);
@@ -99,6 +136,20 @@ function DeployProxyContract({ onSuccess }: BaseConsoleToolProps) {
         setIsDeployingProxy(false);
     }
 
+    // Calculate current step and completed steps
+    const currentStep = useMemo(() => {
+        if (proxyAddress) return 2; // Both done
+        if (proxyAdminAddress) return 2; // Step 1 done, step 2 is current
+        return 1; // Starting
+    }, [proxyAdminAddress, proxyAddress]);
+
+    const completedSteps = useMemo(() => {
+        const completed: number[] = [];
+        if (proxyAdminAddress) completed.push(1);
+        if (proxyAddress) completed.push(2);
+        return completed;
+    }, [proxyAdminAddress, proxyAddress]);
+
     return (
         <>
                 <p className="my-3">
@@ -141,8 +192,8 @@ function DeployProxyContract({ onSuccess }: BaseConsoleToolProps) {
                     isUnlocked={warningDismissed}
                     lockedMessage="Please acknowledge the proxy deployment warning above to continue"
                 >
-                    <Steps>
-                        <Step>
+                    <Steps currentStep={currentStep} completedSteps={completedSteps}>
+                        <Step stepNumber={1}>
                             <h2 className="text-lg font-semibold">Deploy Proxy Admin Contract</h2>
                             <p className="text-sm text-gray-500">
                                 This will deploy the <code>ProxyAdmin</code> contract to the EVM network <code>{viemChain?.id}</code>. <code>ProxyAdmin</code> is used to manage upgrades to the implementation for the proxy contract. For production L1s this should be a multisig wallet, since it can take full control over the L1 validator set by arbitrarily changing the implementation of the ValidatorManager contract.
@@ -161,9 +212,9 @@ function DeployProxyContract({ onSuccess }: BaseConsoleToolProps) {
                                 Deploy Proxy Admin
                             </Button>
 
-                            <p>Deployment Status: <code>{proxyAdminAddress || "Not deployed"}</code></p>
+                            <DeploymentStatus address={proxyAdminAddress} />
                         </Step>
-                        <Step>
+                        <Step stepNumber={2}>
                             <h2 className="text-lg font-semibold">Deploy Transparent Proxy Contract</h2>
                             <p className="text-sm text-gray-500">
                                 The proxy requires the <code>ProxyAdmin</code> contract at address: <code>{proxyAdminAddress || "Not deployed"}</code>
@@ -190,7 +241,8 @@ function DeployProxyContract({ onSuccess }: BaseConsoleToolProps) {
                             >
                                 Deploy Proxy Contract
                             </Button>
-                            <p>Deployment Status: <code>{proxyAddress || "Not deployed"}</code></p>
+
+                            <DeploymentStatus address={proxyAddress} />
 
                         </Step>
                     </Steps>

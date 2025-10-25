@@ -7,7 +7,7 @@ import { useL1ListStore } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Input, RawInput } from '@/components/toolbox/components/Input';
 import { Button } from '@/components/toolbox/components/Button';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { RefreshCw } from 'lucide-react';
 
 import versions from '@/scripts/versions.json';
@@ -17,7 +17,7 @@ import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalle
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
 import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { Steps, Step } from "fumadocs-ui/components/steps";
+import { ProgressSteps as Steps, ProgressStep as Step } from "@/components/toolbox/components/ProgressSteps";
 import { DockerInstallation } from '@/components/toolbox/components/DockerInstallation';
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
@@ -223,13 +223,28 @@ function ICMRelayer({ onSuccess }: BaseConsoleToolProps) {
         fetchBalances();
     }, []);
 
+
+    // Calculate current step and completed steps
+    const currentStep = useMemo(() => {
+        if (selectedSources.length > 0 && selectedDestinations.length > 0) return 3; // Ready to run
+        if (relayerAddress) return 2; // On configure
+        return 1; // On docker installation
+    }, [relayerAddress, selectedSources, selectedDestinations]);
+
+    const completedSteps = useMemo(() => {
+        const completed: number[] = [];
+        completed.push(1); // Docker installation (informational)
+        if (selectedSources.length > 0 && selectedDestinations.length > 0) completed.push(2);
+        // Step 3 is informational (run command), doesn't need completion tracking
+        return completed;
+    }, [selectedSources, selectedDestinations]);
     return (
-        <Steps>
-            <Step>
+        <Steps currentStep={currentStep} completedSteps={completedSteps}>
+            <Step stepNumber={1}>
                 <DockerInstallation includeCompose={false} />
             </Step>
             
-            <Step>
+            <Step stepNumber={2}>
                 <h3 className="text-xl font-bold mb-4">Configure Relayer</h3>
                 <Input
                     label="Relayer EVM Address"
@@ -350,7 +365,7 @@ function ICMRelayer({ onSuccess }: BaseConsoleToolProps) {
 
             </Step>
             
-            <Step>
+            <Step stepNumber={3}>
                 <h3 className="text-xl font-bold mb-4">Run the Relayer</h3>
                 <p>Start the ICM Relayer using the following Docker command:</p>
                 <DynamicCodeBlock

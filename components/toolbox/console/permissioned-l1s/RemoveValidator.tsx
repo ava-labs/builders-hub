@@ -13,7 +13,7 @@ import { useValidatorManagerDetails } from "@/components/toolbox/hooks/useValida
 import InitiateValidatorRemoval from "@/components/toolbox/console/permissioned-l1s/RemoveValidator/InitiateValidatorRemoval"
 import CompleteValidatorRemoval from "@/components/toolbox/console/permissioned-l1s/RemoveValidator/CompleteValidatorRemoval"
 import SubmitPChainTxRemoval from "@/components/toolbox/console/permissioned-l1s/RemoveValidator/SubmitPChainTxRemoval"
-import { Step, Steps } from "fumadocs-ui/components/steps"
+import { ProgressSteps as Steps, ProgressStep as Step } from "@/components/toolbox/components/ProgressSteps"
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements"
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata"
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext"
@@ -103,6 +103,24 @@ const RemoveValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
     setTimeout(() => setResetInitiateForm(false), 100)
   }
 
+  // Calculate current step and completed steps
+  const currentStep = useMemo(() => {
+    if (globalSuccess) return 4; // All done
+    if (pChainTxId) return 4; // P-Chain tx submitted, on final step
+    if (initiateRemovalTxHash) return 3; // Initiate done, on step 3
+    if (subnetIdL1 && validatorManagerAddress) return 2; // Subnet selected, on step 2
+    return 1; // Starting
+  }, [subnetIdL1, validatorManagerAddress, initiateRemovalTxHash, pChainTxId, globalSuccess]);
+
+  const completedSteps = useMemo(() => {
+    const completed: number[] = [];
+    if (subnetIdL1 && validatorManagerAddress) completed.push(1);
+    if (initiateRemovalTxHash) completed.push(2);
+    if (pChainTxId) completed.push(3);
+    if (globalSuccess) completed.push(4);
+    return completed;
+  }, [subnetIdL1, validatorManagerAddress, initiateRemovalTxHash, pChainTxId, globalSuccess]);
+
   return (
     <>
         <div className="space-y-6">
@@ -110,8 +128,8 @@ const RemoveValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
             <Alert variant="error">Error: {globalError}</Alert>
           )}
 
-          <Steps>
-            <Step>
+          <Steps currentStep={currentStep} completedSteps={completedSteps}>
+            <Step stepNumber={1}>
               <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
               <p className="text-sm text-gray-500 mb-4">
                 Choose the L1 subnet where you want to remove the validator.
@@ -144,7 +162,7 @@ const RemoveValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
               </div>
             </Step>
 
-            <Step>
+            <Step stepNumber={2}>
               <h2 className="text-lg font-semibold">Initiate Validator Removal</h2>
               <p className="text-sm text-gray-500 mb-4">
                 Start the removal process by selecting the validator to remove and calling the <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L508" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">initiateValidatorRemoval</a> function on the Validator Manager contract. This transaction will emit a <a href="https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/77-reinventing-subnets/README.md#l1validatorweightmessage" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorWeightMessage</a> warp message.
@@ -167,7 +185,7 @@ const RemoveValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
               />
             </Step>
 
-            <Step>
+            <Step stepNumber={3}>
               <h2 className="text-lg font-semibold">Sign L1ValidatorWeightMessage & Submit SetL1ValidatorWeightTx P-Chain</h2>
               <p className="text-sm text-gray-500 mb-4">
                 Sign the <a href="https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/77-reinventing-subnets/README.md#l1validatorweightmessage" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorWeightMessage</a> and submit the <a href="https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/77-reinventing-subnets/README.md#setl1validatorweighttx" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">SetL1ValidatorWeightTx</a> to the P-Chain. This transaction will emit a <a href="https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/77-reinventing-subnets/README.md#l1validatorregistrationmessage" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorRegistrationMessage</a> warp message.
@@ -185,7 +203,7 @@ const RemoveValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
               />
             </Step>
 
-            <Step>
+            <Step stepNumber={4}>
               <h2 className="text-lg font-semibold">Sign P-Chain L1ValidatorRegistrationMessage & Submit completeValidatorRemoval on Validator Manager contract</h2>
               <p className="text-sm text-gray-500 mb-4">
                 Complete the validator removal by signing the P-Chain <a href="https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/77-reinventing-subnets/README.md#l1validatorregistrationmessage" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorRegistrationMessage</a> and calling the <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L573" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">completeValidatorRemoval</a> function on the Validator Manager contract.

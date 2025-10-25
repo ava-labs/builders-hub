@@ -1,9 +1,9 @@
 "use client";
 
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Container } from "@/components/toolbox/components/Container";
-import { Steps, Step } from "fumadocs-ui/components/steps";
+import { ProgressSteps as Steps, ProgressStep as Step } from "@/components/toolbox/components/ProgressSteps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { DockerInstallation } from "@/components/toolbox/components/DockerInstallation";
@@ -49,6 +49,28 @@ export default function AvalancheGoDockerPrimaryNetwork() {
         }
     }, [nodeType]);
 
+
+    // Calculate current step and completed steps
+    const currentStep = useMemo(() => {
+        if (nodeIsReady && nodeType === "validator") return 7; // All validator steps done
+        if (domain && nodeType === "public-rpc") return 5; // On reverse proxy
+        if (nodeType) return 4; // On start node
+        return 3; // On configure node type
+    }, [nodeType, domain, nodeIsReady]);
+
+    const completedSteps = useMemo(() => {
+        const completed: number[] = [];
+        completed.push(1); // Setup instance (informational)
+        completed.push(2); // Docker installation (informational)
+        if (nodeType) completed.push(3);
+        if (rpcCommand) completed.push(4);
+        if (nodeType === "public-rpc" && domain) completed.push(5);
+        if (nodeType === "validator" && nodeIsReady) {
+            completed.push(6);
+            completed.push(7);
+        }
+        return completed;
+    }, [nodeType, rpcCommand, domain, nodeIsReady]);
     return (
         <>
             <Container
@@ -56,8 +78,8 @@ export default function AvalancheGoDockerPrimaryNetwork() {
                 description="Set up a Docker container running a validator or RPC node for the Avalanche Primary Network (P-Chain, X-Chain, and C-Chain)."
                 githubUrl="https://github.com/ava-labs/builders-hub/edit/master/components/toolbox/console/primary-network/AvalancheGoDockerPrimaryNetwork.tsx"
             >
-                <Steps>
-                    <Step>
+                <Steps currentStep={currentStep} completedSteps={completedSteps}>
+                    <Step stepNumber={1}>
                         <h3 className="text-xl font-bold mb-4">Set up Instance</h3>
                         <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. For Primary Network nodes, we recommend:</p>
                         <ul className="list-disc pl-5 mt-2 mb-4">
@@ -68,7 +90,7 @@ export default function AvalancheGoDockerPrimaryNetwork() {
                         <p>If you do not have access to a server, you can also run a node for educational purposes locally. Simply select the "RPC Node (Local)" option in the next step.</p>
                     </Step>
 
-                    <Step>
+                    <Step stepNumber={2}>
                         <DockerInstallation includeCompose={false} />
 
                         <p className="mt-4">
@@ -85,7 +107,7 @@ export default function AvalancheGoDockerPrimaryNetwork() {
                         </p>
                     </Step>
 
-                    <Step>
+                    <Step stepNumber={3}>
                         <ConfigureNodeType
                             nodeType={nodeType}
                             setNodeType={setNodeType}
@@ -97,7 +119,7 @@ export default function AvalancheGoDockerPrimaryNetwork() {
                         />
                     </Step>
 
-                    <Step>
+                    <Step stepNumber={4}>
                         <h3 className="text-xl font-bold">Start AvalancheGo Node</h3>
                         <p>Run the following Docker command to start your Primary Network node:</p>
 
@@ -118,7 +140,7 @@ export default function AvalancheGoDockerPrimaryNetwork() {
 
                     {/* Conditional steps based on node type */}
                     {nodeType === "public-rpc" && (
-                        <Step>
+                        <Step stepNumber={5}>
                             <ReverseProxySetup
                                 domain={domain}
                                 setDomain={setDomain}
@@ -131,7 +153,7 @@ export default function AvalancheGoDockerPrimaryNetwork() {
 
 
                     {nodeType === "validator" && (
-                        <Step>
+                        <Step stepNumber={6}>
                             <h3 className="text-xl font-bold">Wait for the Node to Bootstrap</h3>
                             <p>Your node will now bootstrap and sync the Primary Network (P-Chain, X-Chain, and C-Chain). This process can take <strong>several hours to days</strong> depending on your hardware and network connection.</p>
 
@@ -171,7 +193,7 @@ export default function AvalancheGoDockerPrimaryNetwork() {
 
                     {/* Show success message when node is ready for validator mode */}
                     {nodeIsReady && nodeType === "validator" && (
-                        <Step>
+                        <Step stepNumber={7}>
                             <h3 className="text-xl font-bold mb-4">Node Setup Complete</h3>
                             <p>Your AvalancheGo Primary Network node is now fully bootstrapped and ready to be used as a validator node.</p>
 

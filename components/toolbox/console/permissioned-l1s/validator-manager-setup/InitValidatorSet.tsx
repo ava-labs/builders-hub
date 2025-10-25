@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { Step, Steps } from "fumadocs-ui/components/steps";
+import { useEffect, useState, useMemo } from 'react';
+import { ProgressSteps as Steps, ProgressStep as Step } from "@/components/toolbox/components/ProgressSteps";
 
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
@@ -178,10 +178,24 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
         })();
     };
 
+    // Calculate current step and completed steps
+    const currentStep = useMemo(() => {
+        if (txHash) return 2; // Initialization done
+        if (L1ConversionSignature) return 2; // Signature aggregated, on step 2
+        return 1; // Starting
+    }, [L1ConversionSignature, txHash]);
+
+    const completedSteps = useMemo(() => {
+        const completed: number[] = [];
+        if (L1ConversionSignature) completed.push(1);
+        if (txHash) completed.push(2);
+        return completed;
+    }, [L1ConversionSignature, txHash]);
+
     return (
         <>
-                <Steps>
-                    <Step>
+                <Steps currentStep={currentStep} completedSteps={completedSteps}>
+                    <Step stepNumber={1}>
                         <h2 className="text-lg font-semibold">Step 1: Aggregate Signature of Conversion Data</h2>
                         <p>Enter the P-Chain Transaction ID of the ConvertSubnetToL1Tx of the L1 this Validator Manager it is for. It is needed to fetch the conversion data containing the initial validator set. This validator set will be set up in the validator manager contract so the consensus weight of these validators can be changed or they can be removed entirely if desired.</p>
                         <div className="space-y-4">
@@ -194,7 +208,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                             <Button disabled={!conversionTxID || !!L1ConversionSignature} onClick={() => aggSigs()} loading={isAggregating}>Aggregate</Button>
                         </div>
                     </Step>
-                    <Step>
+                    <Step stepNumber={2}>
                         <h2 className="text-lg font-semibold">Step 2: Intialize the Validator Manager Contract State</h2>
                         With the aggregated signature, you can now initialize the Validator Manager contract state. This will set up the initial validator set and allow you to manage validators.
                         <Input
