@@ -60,7 +60,7 @@ export default function ProjectOverview({ project }: Props) {
               projectName={project.project_name}
             />
           )}
-          <TeamBadge Badge={[]} />
+          {/* <TeamBadge Badge={[]} /> */}
           {/* {resources && <Resources resources={resources} />} */}
         </div>
       </div>
