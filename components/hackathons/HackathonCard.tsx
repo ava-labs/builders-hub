@@ -49,11 +49,14 @@ export default function HackathonCard({
         <div className="flex items-center gap-2 dark:text-zinc-300 text-zinc-600 text-sm mt-2">
           <CalendarIcon className="h-4 w-4 dark:stroke-zinc-50 stroke-zinc-900" />
           <span className="font-medium">
-            {new Date(hackathon.start_date).toLocaleDateString("en-US", {
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            })}
+            {hackathon.start_date 
+              ? new Date(hackathon.start_date).toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })
+              : "Date TBD"
+            }
           </span>
         </div>
         <div className="flex items-center gap-2">

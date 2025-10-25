@@ -1,3 +1,5 @@
+"use client";
+
 import { HackathonHeader } from "@/types/hackathons";
 import { Crown } from "lucide-react";
 import React from "react";
@@ -28,7 +30,7 @@ function Tracks({ hackathon }: { hackathon: HackathonHeader }) {
             </div>
             <div className="flex flex-col items-center justify-center">
               <span className="text-xl font-bold text-zinc-900">
-                ${hackathon.total_prizes.toLocaleString("en-US")}
+                ${(hackathon.total_prizes || 0).toLocaleString("en-US")}
               </span>
               <span className="text-sm text-zinc-900">Total price pool</span>
             </div>
@@ -36,44 +38,19 @@ function Tracks({ hackathon }: { hackathon: HackathonHeader }) {
         </Card>
         <div>
           <h4 className="text-4xl font-bold mb-8 text-black">What to build</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 grid-flow-row">
-            {hackathon.content.tracks
-              .filter((track) => track.partner?.includes("Avalanche"))
-              .map((track, index) => (
-                <Dialog key={index}>
-                  <DialogTrigger>
-                    <TrackCard key={index} track={track} />
-                  </DialogTrigger>
-                  <DialogContent className="dark:bg-zinc-900 bg-zinc-50 border-2">
-                    <DialogTitle />
-                    <TrackDialogContent track={track} />
-                  </DialogContent>
-                </Dialog>
-              ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {hackathon.content?.tracks?.map((track, index) => (
+              <Dialog key={index}>
+                <DialogTrigger>
+                  <TrackCard key={index} track={track} />
+                </DialogTrigger>
+                <DialogContent className="dark:bg-zinc-900 bg-zinc-50 border-2">
+                  <DialogTitle />
+                  <TrackDialogContent track={track} />
+                </DialogContent>
+              </Dialog>
+            ))}
           </div>
-          {hackathon.content.tracks.some((track) => !track.partner?.includes("Avalanche")) && (
-            <>
-              <Separator className="my-8 bg-red-500 dark:bg-red-500" />
-              <h4 className="text-4xl font-bold mb-8 text-black">
-                Partners' tracks
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 grid-flow-row">
-                {hackathon.content.tracks
-                  .filter((track) => !track.partner?.includes("Avalanche"))
-                  .map((track, index) => (
-                    <Dialog key={index}>
-                      <DialogTrigger>
-                        <TrackCard key={index} track={track} />
-                      </DialogTrigger>
-                      <DialogContent className="dark:bg-zinc-900 bg-zinc-50">
-                        <DialogTitle />
-                        <TrackDialogContent track={track} />
-                      </DialogContent>
-                    </Dialog>
-                  ))}
-              </div>
-            </>
-          )}
         </div>
       </div>
     </section>
