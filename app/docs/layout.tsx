@@ -1,6 +1,6 @@
 import { DocsLayout, type DocsLayoutProps } from 'fumadocs-ui/layouts/notebook';
 import type { ReactNode } from 'react';
-import { baseOptions, academyMenu, consoleMenu, integrationsMenu } from '@/app/layout.config';
+import { baseOptions, academyMenu, buildMenu, integrationsMenu } from '@/app/layout.config';
 import { documentation } from '@/lib/source';
 import 'fumadocs-twoslash/twoslash.css';
 import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
@@ -21,7 +21,7 @@ nav: {
   },
   links: [
     academyMenu,
-    consoleMenu,
+    buildMenu,
     integrationsMenu
   ]
 };
