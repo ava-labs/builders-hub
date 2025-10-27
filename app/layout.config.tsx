@@ -511,7 +511,7 @@ export const learnMenu: LinkItemType = {
   text: 'Learn',
   url: '/academy',
   items: [
-    {
+    { /* Developer Academy */
       menu: {
         banner: (
           <div className='-mx-3 -mt-3'>
@@ -535,7 +535,7 @@ export const learnMenu: LinkItemType = {
         'Master blockchain development with comprehensive courses on Avalanche fundamentals, L1s, and advanced topics',
       url: '/academy',
     },
-    {
+    { /* Entrepreneur Academy */
       menu: {
         banner: (
           <div className='-mx-3 -mt-3'>
@@ -592,7 +592,7 @@ export const learnMenu: LinkItemType = {
         'Master go-to-market strategies, sales, and pricing for your Web3 startup',
       url: '/academy/go-to-market',
       menu: {
-        className: 'lg:col-start-2 lg:row-start-4 lg:col-span-1 lg:row-span-1',
+        className: 'lg:col-start-2 lg:row-start-5 lg:col-span-1 lg:row-span-1',
       },
     },
     {
@@ -601,7 +601,7 @@ export const learnMenu: LinkItemType = {
         'Master fundraising strategies and financial management in Web3',
       url: '/academy/fundraising-finance',
       menu: {
-        className: 'lg:col-start-2 lg:row-start-5 lg:col-span-1 lg:row-span-1',
+        className: 'lg:col-start-2 lg:row-start-6 lg:col-span-1 lg:row-span-1',
       },
     },
     {
@@ -611,9 +611,25 @@ export const learnMenu: LinkItemType = {
         'Supercharge your learning journey with expert-curated courses offered by Avalanche Academy and earn certificates.',
       url: '/academy',
       menu: {
-        className: 'lg:col-start-2 lg:row-start-6',
+        className: 'lg:col-start-2 lg:row-start-7',
       },
     },
+        // Separator divider between Developer and Entrepreneur Academy sections
+        {
+          text: '',
+          description: '',
+          url: '',
+          menu: {
+            className: 'pointer-events-none bg-transparent lg:col-start-1 lg:col-span-2 lg:row-span-1 lg:row-start-4 py-3',
+            banner: (
+              <div className='relative flex items-center justify-center gap-3 px-4 bg-transparent'>
+                <div className='flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent dark:via-gray-600' />
+                <div className='text-gray-400 dark:text-gray-500 text-xs font-medium uppercase tracking-wider'></div>
+                <div className='flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent dark:via-gray-600' />
+              </div>
+            ),
+          },
+        },
   ],
 };
 
@@ -654,43 +670,46 @@ export const buildMenu: LinkItemType = {
         menu: {
           className: 'lg:col-start-2 lg:row-start-1',
         },
-      },
-      { 
-          text: 'Custom Virtual Machines',
-          description:
-            'Customize the EVM or build new VMs from scratch',
-          url: '/docs/virtual-machines',
-          menu: {
-            className: 'lg:col-start-2 lg:row-start-2',
-          },
+    },
+    { 
+        text: 'Custom Virtual Machines',
+        description:
+          'Customize the EVM or build new VMs from scratch',
+        url: '/docs/virtual-machines',
+        menu: {
+          className: 'lg:col-start-2 lg:row-start-2',
         },
-        { 
-            text: 'Interoperability',
-            description:
-              'Connect and transfer assets between L1s',
-            url: '/docs/cross-chain',
-            menu: {
-              className: 'lg:col-start-2 lg:row-start-3',
-            },
-          },
-    { /* Console */
+    },
+    { 
+      text: 'Interoperability',
+      description:
+        'Connect and transfer assets between L1s',
+      url: '/docs/cross-chain',
       menu: {
+        className: 'lg:col-start-2 lg:row-start-3',
+      },
+    },
+    // Separator divider between Build and Console sections
+    {
+      text: '',
+      description: '',
+      url: '',
+      menu: {
+        className: 'pointer-events-none bg-transparent lg:col-start-1 lg:col-span-2 lg:row-span-1 lg:row-start-4 py-3',
         banner: (
-          <div className='-mx-3 -mt-3'>
-            {/*  <Image
-              src="/builderhub-console.png"
-              alt='L1 Launcher Preview'
-              width={500}
-              height={140}
-              className='rounded-t-lg object-cover'
-              style={{
-                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
-              }}
-            /> */}
+          <div className='relative flex items-center justify-center gap-3 px-4 bg-transparent'>
+            <div className='flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent dark:via-gray-600' />
+            <div className='text-gray-400 dark:text-gray-500 text-xs font-medium uppercase tracking-wider'></div>
+            <div className='flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent dark:via-gray-600' />
           </div>
         ),
-        className: 'md:row-span-3 lg:col-span-1 lg:col-start-1 lg:row-start-4',
       },
+    },
+    { /* Console */
+      menu:
+        {
+          className: 'md:row-span-3 lg:col-span-1 lg:col-start-1 lg:row-start-5',
+        },
       icon: <Waypoints />,
       text: 'Console',
       description: 'Manage your L1 with a highly granular set of tools.',
@@ -702,7 +721,7 @@ export const buildMenu: LinkItemType = {
         'Interact with for X, C and P chains for Bridging, Staking and Node setups',
       url: 'https://build.avax.network/console/primary-network/node-setup',
       menu: {
-        className: 'lg:col-start-2 lg:row-start-4',
+        className: 'lg:col-start-2 lg:row-start-5',
       },
     },
     { 
@@ -711,7 +730,7 @@ export const buildMenu: LinkItemType = {
         'Tools to create and manage your Layer 1 and resources',
       url: '/console/layer-1/create/create-chain',
       menu: {
-        className: 'lg:col-start-2 lg:row-start-5',
+        className: 'lg:col-start-2 lg:row-start-6',
       },
     },
     { 
@@ -720,46 +739,9 @@ export const buildMenu: LinkItemType = {
         'Tools to setup and use Interchain Messaging and Interchain Token Transfer',
       url: '/console/icm/setup/icm-messenger',
       menu: {
-        className: 'lg:col-start-2 lg:row-start-6',
+        className: 'lg:col-start-2 lg:row-start-7',
       },
     },
-    /* { Integrations 
-      icon: <Wallet />,
-      text: 'Integrations',
-      description:
-        'Discover all available integrations in the Avalanche ecosystem.',
-      url: '/integrations',
-      menu: {
-        className: 'md:row-span-3 lg:col-span-1 lg:col-start-1 lg:row-start-7',
-      },
-    },
-    { 
-      text: 'Account Abstraction Solutions',
-      description:
-        'Gasless transactions and smart account solutions',
-      url: '/integrations#Account%20Abstraction',
-      menu: {
-        className: 'md:row-span-1 lg:col-span-1 lg:col-start-2 lg:row-start-7',
-      },
-    },
-    { 
-      text: 'Block Explorers',
-      description:
-        'Tools to analyze and track blockchain transactions and activities',
-      url: '/integrations#Block%20Explorers',
-      menu: {
-        className: 'md:row-span-1 lg:col-span-1 lg:col-start-2 lg:row-start-8',
-      },
-    },
-    { 
-      text: 'Blockchain as a Service',
-      description:
-        'Managed solutions for deploying and managing your Avalanche L1s',
-      url: '/integrations#Blockchain%20as%20a%20Service',
-      menu: {
-        className: 'md:row-span-1 lg:col-span-1 lg:col-start-2 lg:row-start-9',
-      },
-    },*/
   ],
 };
 
