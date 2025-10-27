@@ -252,134 +252,6 @@ export const grantsMenu: LinkItemType = {
   ],
 };
 
-// Learn section - Developer Academy and Entrepreneur Academy
-export const learnMenu: LinkItemType = {
-  type: 'menu',
-  text: 'Learn',
-  url: '/academy',
-  items: [
-    { /* Developer Academy */
-      menu: {
-        banner: (
-          <div className='-mx-3 -mt-3'>
-            <Image
-              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/avalanche-fundamentals-skz9GZ84gSJ7MPvkSrbiNlnK5F7suB.jpg"}
-              alt='Preview'
-              width={450}
-              height={200}
-              className='rounded-t-lg object-cover w-full h-auto'
-              style={{
-                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
-              }}
-            />
-          </div>
-        ),
-        className: 'md:row-span-3 lg:col-span-1 lg:col-start-1 lg:row-start-1',
-      },
-      icon: <Sprout />,
-      text: 'Developer Academy',
-      description:
-        'Master blockchain development with comprehensive courses on Avalanche fundamentals, L1s, and advanced topics',
-      url: '/academy',
-    },
-    { /* Entrepreneur Academy */
-      menu: {
-        banner: (
-          <div className='-mx-3 -mt-3'>
-            <Image
-              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase-Entrepreneur-Academy-banner.png"}
-              alt='Codebase Entrepreneur Academy'
-              width={450}
-              height={200}
-              className='rounded-t-lg object-cover w-full h-auto'
-              style={{
-                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
-              }}
-            />
-          </div>
-        ),
-        className: 'md:row-span-3 lg:col-start-1',
-      },
-      icon: <BriefcaseBusiness />,
-      text: 'Entrepreneur Academy',
-      description:
-        'Transform from builder to founder with courses on business fundamentals, fundraising, and go-to-market strategies',
-      url: '/codebase-entrepreneur-academy',
-    },
-    {
-      text: 'Avalanche Fundamentals',
-      description:
-        'Get a high level overview of Avalanche Consensus, L1s and VMs',
-      url: '/academy/avalanche-fundamentals',
-      menu: {
-        className: 'lg:col-start-2 lg:row-start-1',
-      },
-    },
-    {
-      text: 'Cross-Chain Interoperability',
-      description:
-        'Build cross-chain dApps on Avalanche',
-      url: '/academy/interchain-messaging',
-      menu: {
-        className: 'lg:col-start-2 lg:row-start-2 lg:col-span-1 lg:row-span-1',
-      },
-    },
-    {
-      text: 'L1 Tokenomics',
-      description:
-        'Design and deploy tokenomics for your Avalanche L1',
-      url: '/academy/l1-tokenomics',
-      menu: {
-        className: 'lg:col-start-2 lg:row-start-3 lg:col-span-1 lg:row-span-1',
-      },
-    },
-    {
-      text: 'Go-To-Market Strategy',
-      description:
-        'Master go-to-market strategies, sales, and pricing for your Web3 startup',
-      url: '/academy/go-to-market',
-      menu: {
-        className: 'lg:col-start-2 lg:row-start-5 lg:col-span-1 lg:row-span-1',
-      },
-    },
-    {
-      text: 'Fundraising & Finance',
-      description:
-        'Master fundraising strategies and financial management in Web3',
-      url: '/academy/fundraising-finance',
-      menu: {
-        className: 'lg:col-start-2 lg:row-start-6 lg:col-span-1 lg:row-span-1',
-      },
-    },
-    {
-      icon: <ArrowUpRight />,
-      text: 'Check All Courses',
-      description:
-        'Supercharge your learning journey with expert-curated courses offered by Avalanche Academy and earn certificates.',
-      url: '/academy',
-      menu: {
-        className: 'lg:col-start-2 lg:row-start-7',
-      },
-    },
-        // Separator divider between Developer and Entrepreneur Academy sections
-        {
-          text: '',
-          description: '',
-          url: '',
-          menu: {
-            className: 'pointer-events-none bg-transparent lg:col-start-1 lg:col-span-2 lg:row-span-1 lg:row-start-4 py-3',
-            banner: (
-              <div className='relative flex items-center justify-center gap-3 px-4 bg-transparent'>
-                <div className='flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent dark:via-gray-600' />
-                <div className='text-gray-400 dark:text-gray-500 text-xs font-medium uppercase tracking-wider'></div>
-                <div className='flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent dark:via-gray-600' />
-              </div>
-            ),
-          },
-        },
-  ],
-};
-
 // Build section - Docs, Console, Integrations
 export const buildMenu: LinkItemType = {
   type: 'menu',
@@ -419,19 +291,20 @@ export const buildMenu: LinkItemType = {
         },
     },
     { 
-        text: 'Custom Virtual Machines',
-        description:
-          'Customize the EVM or build new VMs from scratch',
-        url: '/docs/virtual-machines',
-        menu: {
-          className: 'lg:col-start-2 lg:row-start-2',
-        },
-    },
-    { 
       text: 'Interoperability',
       description:
         'Connect and transfer assets between L1s',
       url: '/docs/cross-chain',
+      menu: {
+        className: 'lg:col-start-2 lg:row-start-2',
+      },
+    },
+    {
+      icon: <ArrowUpRight />,
+      text: 'Check All Docs',
+      description:
+        'Find references for all Avalanche SDKs, APIs, and tools.',
+      url: '/docs',
       menu: {
         className: 'lg:col-start-2 lg:row-start-3',
       },
@@ -493,12 +366,13 @@ export const buildMenu: LinkItemType = {
       menu: {
         className: 'lg:col-start-2 lg:row-start-6',
       },
-    },
-    { 
-      text: 'Interoperability Console',
+    },   
+     {
+      icon: <ArrowUpRight />,
+      text: 'Check All Console Features',
       description:
-        'Tools to setup and use Interchain Messaging and Interchain Token Transfer',
-      url: '/console/icm/setup/icm-messenger',
+        'Tools to setup and manage your L1s, bridges and validators on the Avalanche network',
+      url: '/console',
       menu: {
         className: 'lg:col-start-2 lg:row-start-7',
       },
