@@ -233,6 +233,7 @@ export const useAutomatedFaucet = () => {
 
           if (result.success) {
             showAutomatedDripSuccess([result], true);
+            setTimeout(() => { balanceService.updatePChainBalance() }, 2000);
           }
         } catch (error) { 
           if (error instanceof Error && error.message.toLowerCase().includes('rate limit')) {
@@ -244,6 +245,17 @@ export const useAutomatedFaucet = () => {
       
       if (evmResults.length > 0) {
         showAutomatedDripSuccess(evmResults, false);
+        setTimeout(() => {
+          evmResults.forEach(result => {
+            if (result.success && result.chainId) {
+              if (result.chainId === 43113) {
+                balanceService.updateCChainBalance();
+              } else {
+                balanceService.updateL1Balance(result.chainId.toString());
+              }
+            }
+          });
+        }, 2000);
       }
 
       if (checkAllTokensReceived()) {
