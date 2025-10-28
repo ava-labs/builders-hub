@@ -68,8 +68,6 @@ export class ValidationError extends Error {
 }
 
 export async function getHackathonLite(hackathon: any): Promise<HackathonHeader> {
-  if (!hackathon.top_most) delete hackathon.content;
-  
   // Get user information if created_by exists
   if (hackathon.created_by) {
     try {
@@ -143,29 +141,43 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
   const offset = (page - 1) * pageSize;
 
   let filters: any = {};
+  
+  // Build all conditions
+  const conditions: any[] = [];
+  
   if (options.location) {
-    filters.location = options.location;
     if (options.location == "InPerson") {
-      filters = {
-        NOT: {
-          location: "Online",
-        },
-      };
+      conditions.push({ NOT: { location: "Online" } });
+    } else {
+      conditions.push({ location: options.location });
     }
   }
+  
   if (options.created_by) {
     // Show hackathons where user is either creator OR updater
-    filters.OR = [
-      { created_by: options.created_by },
-      { updated_by: options.created_by }
-    ];
+    conditions.push({
+      OR: [
+        { created_by: options.created_by },
+        { updated_by: options.created_by }
+      ]
+    });
   }
-  if (options.date) filters.date = options.date;
+  
+  if (options.date) {
+    conditions.push({ date: options.date });
+  }
   
   // Filter by visibility: only show public hackathons unless include_private is true
+  // Treat null/undefined as public for backwards compatibility
   if (!options.include_private) {
-    filters.is_public = true;
+    conditions.push({
+      OR: [
+        { is_public: true },
+        { is_public: null },
+      ]
+    });
   }
+  
   if (options.search) {
     const searchWords = options.search.split(/\s+/);
     let searchFilters: any[] = [];
@@ -201,11 +213,16 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
       },
     ];
 
-    filters = {
-      ...filters,
-      OR: searchFilters,
-    };
+    conditions.push({ OR: searchFilters });
   }
+  
+  // Combine all conditions with AND
+  if (conditions.length === 1) {
+    filters = conditions[0];
+  } else if (conditions.length > 1) {
+    filters = { AND: conditions };
+  }
+  
   console.log("Filters: ", filters);
 
   const hackathonList = await prisma.hackathon.findMany({
@@ -242,9 +259,41 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
     }
   }
 
-  const totalHackathons = await prisma.hackathon.count({
-    where: filters,
-  });
+  // If status is filtered, we need to count all matching hackathons, not just the page
+  let totalHackathons;
+  if (options.status) {
+    // Fetch all hackathons matching the filters to count by status
+    const allHackathons = await prisma.hackathon.findMany({
+      where: filters,
+    });
+    const allHackathonsLite = await Promise.all(allHackathons.map(getHackathonLite));
+    let filteredByStatus: any[] = [];
+    
+    switch (options.status) {
+      case "ENDED":
+        filteredByStatus = allHackathonsLite.filter(
+          (hackathon) => new Date(hackathon.end_date).getTime() < Date.now()
+        );
+        break;
+      case "ONGOING":
+        filteredByStatus = allHackathonsLite.filter(
+          (hackathon) =>
+            new Date(hackathon.start_date).getTime() <= Date.now() &&
+            new Date(hackathon.end_date).getTime() >= Date.now()
+        );
+        break;
+      case "UPCOMING":
+        filteredByStatus = allHackathonsLite.filter(
+          (hackathon) => new Date(hackathon.start_date).getTime() > Date.now()
+        );
+        break;
+    }
+    totalHackathons = filteredByStatus.length;
+  } else {
+    totalHackathons = await prisma.hackathon.count({
+      where: filters,
+    });
+  }
 
   return {
     hackathons: hackathonsLite.map(

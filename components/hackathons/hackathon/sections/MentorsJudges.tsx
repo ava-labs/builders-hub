@@ -4,6 +4,11 @@ import React from "react";
 import { DynamicIcon } from "lucide-react/dynamic";
 
 function MentorsJudges({ hackathon }: { hackathon: HackathonHeader }) {
+  // Don't render if no speakers
+  if (!hackathon.content.speakers || hackathon.content.speakers.length === 0) {
+    return null;
+  }
+
   return (
     <section id="speakers">
       <div className="bg-zinc-900 p-14 flex flex-col gap-4">
@@ -12,9 +17,11 @@ function MentorsJudges({ hackathon }: { hackathon: HackathonHeader }) {
             <h2 className="text-4xl font-bold mb-8 text-zinc-100">
               Mentors & Judges
             </h2>
-            <p className="text-zinc-100">
-              {hackathon.content.speakers_text}
-            </p>
+            {hackathon.content.speakers_text && (
+              <p className="text-zinc-100">
+                {hackathon.content.speakers_text}
+              </p>
+            )}
           </div>
             <div className="flex gap-10 justify-center sm:justify-start flex-wrap">
           {hackathon.content.speakers.map((speaker, index) => (

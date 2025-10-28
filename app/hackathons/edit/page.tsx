@@ -774,7 +774,6 @@ const HackathonsEdit = () => {
             }
         }
       );
-      
       if (response.data?.hackathons?.length > 0) {
         const currentDate = new Date();
         const unfinishedHackathons = response.data.hackathons.filter((hackathon: any) => {
@@ -821,7 +820,7 @@ const HackathonsEdit = () => {
       address: hackathon.content?.address ?? '',
       partners: hackathon.content?.partners ?? [''],
       schedule: hackathon.content?.schedule ?? [{ url: null, date: '', name: '', category: '', location: '', description: '', duration: 0 }],
-      speakers: (hackathon.content?.speakers ?? [{ icon: '', name: '', category: '', picture: '' }]).map((s: any) => ({ ...s, picture: s.picture ?? '' })),
+      speakers: (hackathon.content?.speakers ?? []).map((s: any) => ({ ...s, picture: s.picture ?? '' })),
       resources: hackathon.content?.resources ?? [{ icon: '', link: '', title: '', description: '' }],
       tracks_text: hackathon.content?.tracks_text ?? '',
       speakers_text: hackathon.content?.speakers_text ?? '',
@@ -2640,6 +2639,7 @@ const HackathonsEdit = () => {
                   tracks: formDataContent.tracks,
                   schedule: formDataContent.schedule,
                   speakers: formDataContent.speakers,
+                  speakers_text: formDataContent.speakers_text,
                   resources: formDataContent.resources,
                   partners: formDataContent.partners.map(p => typeof p === 'string' ? p : p.name).filter(Boolean),
                   join_custom_link: formDataContent.join_custom_link || undefined,

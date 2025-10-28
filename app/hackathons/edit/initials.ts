@@ -110,14 +110,7 @@ export interface IDataMain {
               duration: 0,
             },
           ],
-          speakers: [
-            {
-              icon: '',
-              name: '',
-              category: '',
-              picture: '',
-            },
-          ],
+          speakers: [],
           resources: [
             {
               icon: '',

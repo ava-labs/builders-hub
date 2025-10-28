@@ -97,6 +97,7 @@ interface HackathonPreviewProps {
       tracks?: any[];
       schedule?: any[];
       speakers?: any[];
+      speakers_text?: string;
       resources?: any[];
       partners?: string[];
       join_custom_link?: string;
