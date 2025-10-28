@@ -1902,47 +1902,47 @@
   resolved "https://registry.yarnpkg.com/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.52.4.tgz#5b2dd648a960b8fa00d76f2cc4eea2f03daa80f4"
   integrity sha512-bf9PtUa0u8IXDVxzRToFQKsNCRz9qLYfR/MpECxl4mRoWYjAeFjgxj1XdZr2M/GNVpT05p+LgQOHopYDlUu6/w==
 
-"@safe-global/api-kit@^2.5.11":
-  version "2.5.11"
-  resolved "https://registry.npmjs.org/@safe-global/api-kit/-/api-kit-2.5.11.tgz"
-  integrity sha512-gNrbGI/vHbOplPrytTEe5+CmwOowkEjDoTqGxz6q/rQSEJ7d7z8YzVy8Zdia7ICld1nIymQmkBdXkLr2XrDwfQ==
+"@safe-global/api-kit@^4.0.0":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@safe-global/api-kit/-/api-kit-4.0.0.tgz#7c686258041bc0db5c5eac6a8f33862d679e7b85"
+  integrity sha512-xtLLi6OXguLw8cLoYnzCxqmirzRK4sSORxaiBDXdxJfBXIZLLKvYwQyDjsPL+2W4jKlJVcSLCw5EfolJahNMYg==
   dependencies:
-    "@safe-global/protocol-kit" "^5.2.4"
-    "@safe-global/types-kit" "^1.0.4"
+    "@safe-global/protocol-kit" "^6.1.0"
+    "@safe-global/types-kit" "^3.0.0"
     node-fetch "^2.7.0"
     viem "^2.21.8"
 
-"@safe-global/protocol-kit@^5.2.4":
-  version "5.2.17"
-  resolved "https://registry.yarnpkg.com/@safe-global/protocol-kit/-/protocol-kit-5.2.17.tgz#266beb6906c835e82c78c50629c47a2251d86a25"
-  integrity sha512-hYjwOkQq7sZU1yQtguPVzklv2a+PGCqtKagS+yHCntiuEkQqLCwZhsr+hP5gAV8fiJjJ118SDQPkXpwTBktUqA==
+"@safe-global/protocol-kit@^6.1.0", "@safe-global/protocol-kit@^6.1.1":
+  version "6.1.1"
+  resolved "https://registry.yarnpkg.com/@safe-global/protocol-kit/-/protocol-kit-6.1.1.tgz#f9c262f7b9fbafa0f58e2e9185b3e4cb28d43e26"
+  integrity sha512-SlRosKB52h1CV2gMlKG4UOvh2j4tXuzz1GZ/yQ1HD0Zvm5azUlaytFwKzHun9xNVvfe+vvSNHUEGX2Umy+rQ9A==
   dependencies:
-    "@safe-global/safe-deployments" "^1.37.45"
-    "@safe-global/safe-modules-deployments" "^2.2.16"
-    "@safe-global/types-kit" "^1.0.5"
+    "@safe-global/safe-deployments" "^1.37.42"
+    "@safe-global/safe-modules-deployments" "^2.2.14"
+    "@safe-global/types-kit" "^3.0.0"
     abitype "^1.0.2"
-    semver "^7.6.3"
+    semver "^7.7.2"
     viem "^2.21.8"
   optionalDependencies:
     "@noble/curves" "^1.6.0"
     "@peculiar/asn1-schema" "^2.3.13"
 
-"@safe-global/safe-deployments@^1.37.45":
-  version "1.37.45"
-  resolved "https://registry.yarnpkg.com/@safe-global/safe-deployments/-/safe-deployments-1.37.45.tgz#1e017a5a6a237772b93255ac8cb6ac9ad2024d23"
-  integrity sha512-HLH8nJSVbDlx/p3Yzhspyz9q9pITSGvw2UqlmXfAyrz6VSM8zc9xUWlBeqaUEzvmgon9YUgfstUMz2MElRUCfQ==
+"@safe-global/safe-deployments@^1.37.42":
+  version "1.37.47"
+  resolved "https://registry.yarnpkg.com/@safe-global/safe-deployments/-/safe-deployments-1.37.47.tgz#9343451979d8ec53676ec71eb6ee422732ca1cd8"
+  integrity sha512-abxu9nmvjfDahCIFdrHw4ENZ1CD60z/bgrv5cV3+sygADU1vuh96jFumebo+6PR/Q5qz5glrQuLwEtZ8K/lvJQ==
   dependencies:
     semver "^7.6.2"
 
-"@safe-global/safe-modules-deployments@^2.2.16":
-  version "2.2.17"
-  resolved "https://registry.yarnpkg.com/@safe-global/safe-modules-deployments/-/safe-modules-deployments-2.2.17.tgz#1d5c8da5037ab849be8f00a3f11e1d4199dad5a4"
-  integrity sha512-G5VivmG0+UlTnaJgWJvkkFSQlhMzSXT40IoOTv2A134EtHoq9cs8BsCjXUErKb96KVmDguj6ku5oJmiLp6raNQ==
+"@safe-global/safe-modules-deployments@^2.2.14":
+  version "2.2.18"
+  resolved "https://registry.yarnpkg.com/@safe-global/safe-modules-deployments/-/safe-modules-deployments-2.2.18.tgz#51cf689da2b979d9b0bbccd7d2dbf4741b33b872"
+  integrity sha512-OQwoguGdano/XPMSbzc9cMuRXW84KCSAoG9avKRo5O4AcGLMNDqXTYG993a3k6QeWGpPwpl9LFEpwT0oAZ6UwQ==
 
-"@safe-global/types-kit@^1.0.4", "@safe-global/types-kit@^1.0.5":
-  version "1.0.5"
-  resolved "https://registry.npmjs.org/@safe-global/types-kit/-/types-kit-1.0.5.tgz"
-  integrity sha512-LcAsApV1MDEEymw3ealYjFEoD+PoruPG7Ggt6eF+LX++OGFowMQAS+zK2d5sRReqFjxwUJzMGlS48aQKlQpfZg==
+"@safe-global/types-kit@^3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@safe-global/types-kit/-/types-kit-3.0.0.tgz#b35826af0e417fa02a540b874c109b5ddb5ed086"
+  integrity sha512-AZWIlR5MguDPdGiOj7BB4JQPY2afqmWQww1mu8m8Oi16HHBW99G01kFOu4NEHBwEU1cgwWOMY19hsI5KyL4W2w==
   dependencies:
     abitype "^1.0.2"
 
@@ -6374,7 +6374,7 @@ secure-json-parse@^2.7.0:
   resolved "https://registry.npmjs.org/secure-json-parse/-/secure-json-parse-2.7.0.tgz"
   integrity sha512-6aU+Rwsezw7VR8/nyvKTx8QpWH9FrcYiXXlqC4z5d5XQBDRqtbfsRjnwGyqbi3gddNtWHuEk9OANUotL26qKUw==
 
-semver@^7.3.2, semver@^7.6.2, semver@^7.6.3, semver@^7.7.2:
+semver@^7.3.2, semver@^7.6.2, semver@^7.7.2:
   version "7.7.2"
   resolved "https://registry.npmjs.org/semver/-/semver-7.7.2.tgz"
   integrity sha512-RF0Fw+rO5AMf9MAyaRXI4AV0Ulj5lMHqVxxdSgiVbixSCXoEmmX/jk0CuJw4+3SqroYO9VoUh+HcuJivvtJemA==
