@@ -70,8 +70,8 @@ export function JsonPreviewPanel({
                 'config.contractDeployerAllowListConfig': { section: 'contractDeployerAllowListConfig', offset: 0 },
                 'config.contractNativeMinterConfig': { section: 'contractNativeMinterConfig', offset: 0 },
                 'config.txAllowListConfig': { section: 'txAllowListConfig', offset: 0 },
-                'config.feeManagerAddress': { section: 'feeManagerAddress', offset: 0 },
-                'config.rewardManagerAddress': { section: 'rewardManagerAddress', offset: 0 },
+                'config.feeManagerConfig': { section: 'feeManagerConfig', offset: 0 },
+                'config.rewardManagerConfig': { section: 'rewardManagerConfig', offset: 0 },
                 
                 // Predeploy contracts
                 'predeploy-proxy': { section: 'alloc', offset: 0 },
