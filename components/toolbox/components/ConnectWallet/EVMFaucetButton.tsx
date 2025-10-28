@@ -46,7 +46,7 @@ export const EVMFaucetButton = ({
     try {
       await claimEVMTokens(chainId, false);
     } catch (error) {
-      // handle error via notifications
+      // error handled via notifications from useTestnetFaucet
     }
   };
 
