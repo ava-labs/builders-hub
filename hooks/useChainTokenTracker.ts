@@ -1,5 +1,4 @@
 "use client";
-
 import { useCallback } from 'react';
 
 const STORAGE_KEY = 'builder-hub-faucet-tracker-temp';

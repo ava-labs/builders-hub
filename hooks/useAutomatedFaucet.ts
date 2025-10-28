@@ -7,9 +7,12 @@ import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListSt
 import { useTestnetFaucet, type FaucetClaimResult } from './useTestnetFaucet';
 import { toast } from 'sonner';
 import { balanceService } from '@/components/toolbox/services/balanceService';
+import { useChainTokenTracker } from './useChainTokenTracker';
+import confetti from 'canvas-confetti';
 
 const P_CHAIN_THRESHOLDS = {
-  threshold: 0.5, // defined here as we don't have it in the l1ListStore
+  threshold: 0.5,
+  dripAmount: 0.5
 };
 
 export const useAutomatedFaucet = () => {
@@ -20,6 +23,7 @@ export const useAutomatedFaucet = () => {
     pChainAddress, 
     isTestnet, 
     balances,
+    isLoading,
     bootstrapped 
   } = useWalletStore();
   
@@ -29,6 +33,13 @@ export const useAutomatedFaucet = () => {
     claimPChainAVAX, 
     getChainsWithFaucet 
   } = useTestnetFaucet();
+  
+  const { 
+    getNeededChains, 
+    markChainAsNeeded,
+    markChainAsSatisfied, 
+    cleanupExpiredEntries 
+  } = useChainTokenTracker();
   
   const processedSessionRef = useRef<string | null>(null);
   const lastAttemptRef = useRef<number>(0);
@@ -40,7 +51,7 @@ export const useAutomatedFaucet = () => {
   const checkSufficientBalance = useCallback((chainId: number): boolean => {
     const chain = l1List.find((c: L1ListItem) => c.evmChainId === chainId);
     if (!chain?.faucetThresholds) return true; // assuming sufficient balance if thresholds are not set 
-    const balance = chainId === 43113 ? balances.cChain : (balances.l1Chains[chainId.toString()] || 0);  
+    const balance = chainId === 43113 ? balances.cChain : (balances.l1Chains[chainId.toString()] || 0);
     return balance >= chain.faucetThresholds.threshold;
   }, [l1List, balances.cChain, balances.l1Chains]);
 
@@ -48,24 +59,60 @@ export const useAutomatedFaucet = () => {
     return balances.pChain >= P_CHAIN_THRESHOLDS.threshold;
   }, [balances.pChain]);
 
-  // check if user has sufficient balance on all chains with faucets
+  // check if user has sufficient balance on all needed chains
   const checkAllTokensReceived = useCallback((): boolean => {
+    if (!walletEVMAddress) return true;
+    
+    const neededChainIds = getNeededChains(walletEVMAddress);
     const chainsWithFaucet = getChainsWithFaucet();
-    const hasAllEVMTokens = chainsWithFaucet.every(chain => !walletEVMAddress || checkSufficientBalance(chain.evmChainId));
+    
+    // Check only needed chains, not all chains with faucets
+    const neededChains = chainsWithFaucet.filter(chain => neededChainIds.includes(chain.evmChainId));
+    const hasAllNeededEVMTokens = neededChains.every(chain => checkSufficientBalance(chain.evmChainId));
     const hasPChainTokens = !pChainAddress || checkSufficientPChainBalance();   
-    return hasAllEVMTokens && hasPChainTokens;
-  }, [getChainsWithFaucet, walletEVMAddress, pChainAddress, checkSufficientBalance, checkSufficientPChainBalance]);
+    
+    return hasAllNeededEVMTokens && hasPChainTokens;
+  }, [getChainsWithFaucet, walletEVMAddress, pChainAddress, checkSufficientBalance, checkSufficientPChainBalance, getNeededChains]);
+  
+  // confetti fireworks for successful claim
+  const triggerFireworks = useCallback(() => {
+    const duration = 3000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+    function randomInRange(min: number, max: number) {
+      return Math.random() * (max - min) + min;
+    }
+
+    const interval = setInterval(function() {
+      const timeLeft = animationEnd - Date.now();
+
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+
+      const particleCount = 50 * (timeLeft / duration);
+
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+      });
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+      });
+    }, 250);
+  }, []);
   
   // confetti animation and success toast
   const showAutomatedDripSuccess = useCallback((results: FaucetClaimResult[], isPChain: boolean = false) => {
     const successfulClaims = results.filter(r => r.success);
     
     if (successfulClaims.length > 0) {
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('automated-faucet-success', {
-          detail: { results: successfulClaims, isPChain }
-        }));
-      }
+      // Trigger fireworks animation
+      triggerFireworks();
       
       const chainNames = isPChain ? ['P-Chain'] : successfulClaims.map(r => {
         const chain = l1List.find((c: L1ListItem) => c.evmChainId === r.chainId);
@@ -92,6 +139,43 @@ export const useAutomatedFaucet = () => {
     if (now - lastAttemptRef.current < COOLDOWN_PERIOD) return;
     if (allTokensReceivedRef.current) return;
 
+    try {
+      cleanupExpiredEntries();
+      await balanceService.updateAllBalancesWithAllL1s(getChainsWithFaucet());
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const hasLoadedBalances = walletEVMAddress && (
+        balances.cChain > 0 || 
+        balances.pChain > 0 || 
+        Object.values(balances.l1Chains).some(balance => balance > 0) ||
+        (!isLoading.cChain && !isLoading.pChain)
+      );
+
+      if (!hasLoadedBalances) {
+        return;
+      }
+    } catch (error) {
+      return;
+    }
+
+    if (walletEVMAddress) {
+      const neededChains = getNeededChains(walletEVMAddress);
+      const chainsWithFaucet = getChainsWithFaucet();
+
+      if (neededChains.length === 0) {
+        for (const chain of chainsWithFaucet) {
+          if (!checkSufficientBalance(chain.evmChainId)) {
+            markChainAsNeeded(chain.evmChainId, walletEVMAddress);
+          }
+        }
+      } else {
+        for (const chain of chainsWithFaucet) {
+          if (!neededChains.includes(chain.evmChainId) && !checkSufficientBalance(chain.evmChainId)) {
+            markChainAsNeeded(chain.evmChainId, walletEVMAddress);
+          }
+        }
+      }
+    }
+
     if (checkAllTokensReceived()) {
       allTokensReceivedRef.current = true;
       processedSessionRef.current = sessionKey;
@@ -101,14 +185,13 @@ export const useAutomatedFaucet = () => {
     lastAttemptRef.current = now;
     
     try {
-      await balanceService.updateAllBalancesWithAllL1s(getChainsWithFaucet());
-      await new Promise(resolve => setTimeout(resolve, 1000)); 
-      
       const results: FaucetClaimResult[] = [];
       const chainsWithFaucet = getChainsWithFaucet();
+      const neededChainIds = walletEVMAddress ? getNeededChains(walletEVMAddress) : [];    
       const evmClaimPromises = chainsWithFaucet
         .filter(chain => 
           walletEVMAddress && 
+          neededChainIds.includes(chain.evmChainId) && // we only need to process chains marked as needed in local storage
           !checkSufficientBalance(chain.evmChainId) &&
           !rateLimitedChainsRef.current.has(chain.evmChainId)
         )
@@ -130,6 +213,15 @@ export const useAutomatedFaucet = () => {
       
       const evmResults = (await Promise.all(evmClaimPromises)).filter(Boolean) as FaucetClaimResult[];
       results.push(...evmResults);
+      
+      // Mark successful chains as satisfied
+      if (walletEVMAddress) {
+        evmResults.forEach(result => {
+          if (result.success && result.chainId) {
+            markChainAsSatisfied(result.chainId, walletEVMAddress);
+          }
+        });
+      }
       
       if (pChainAddress && !checkSufficientPChainBalance() && !rateLimitedChainsRef.current.has('pchain')) {
         try {
@@ -168,7 +260,20 @@ export const useAutomatedFaucet = () => {
     bootstrapped,
     walletEVMAddress,
     pChainAddress,
-    checkAllTokensReceived
+    checkAllTokensReceived,
+    getNeededChains,
+    markChainAsNeeded,
+    markChainAsSatisfied,
+    cleanupExpiredEntries,
+    checkSufficientBalance,
+    l1List,
+    balances,
+    isLoading,
+    getChainsWithFaucet,
+    claimEVMTokens,
+    claimPChainAVAX,
+    checkSufficientPChainBalance,
+    showAutomatedDripSuccess
   ]);
   
   const retryOperation = async <T>(
@@ -215,7 +320,8 @@ export const useAutomatedFaucet = () => {
     walletEVMAddress,
     pChainAddress,
     isTestnet,
-    bootstrapped
+    bootstrapped,
+    processAutomatedClaims
   ]);
   
   useEffect(() => {
