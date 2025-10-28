@@ -1,5 +1,7 @@
 import { useWalletStore } from '@/components/toolbox/stores/walletStore'
 import { networkIDs } from '@avalabs/avalanchejs'
+import { useChainTokenTracker } from '@/hooks/useChainTokenTracker'
+import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore'
 
 export function useNetworkActions() {
   const {
@@ -10,7 +12,11 @@ export function useNetworkActions() {
     setIsTestnet,
     isTestnet,
     walletEVMAddress,
+    balances,
   } = useWalletStore()
+  
+  const l1List = useL1List()
+  const { markChainAsNeeded } = useChainTokenTracker()
 
   const handleNetworkChange = async (network: any) => {
     try {
@@ -30,6 +36,23 @@ export function useNetworkActions() {
 
           // Determine if this is C-Chain for appropriate balance update
           const isCChain = network.evmChainId === 43114 || network.evmChainId === 43113
+          
+          // Check if user needs tokens on this chain and mark it for automated faucet
+          if (isTestnet && walletEVMAddress && network.evmChainId) {
+            const chainConfig = l1List.find((chain: L1ListItem) => 
+              chain.evmChainId === network.evmChainId && chain.hasBuilderHubFaucet
+            );
+            
+            if (chainConfig?.faucetThresholds) {
+              const balance = isCChain ? balances.cChain : (balances.l1Chains[network.evmChainId.toString()] || 0);
+              
+              // If balance is below threshold, mark this chain as needed
+              if (balance < chainConfig.faucetThresholds.threshold) {
+                markChainAsNeeded(network.evmChainId, walletEVMAddress);
+              }
+            }
+          }
+          
           setTimeout(() => {
             if (isCChain) {
               updateCChainBalance()
