@@ -8,7 +8,7 @@ icon: Terminal
 
 import UpgradeProxy from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/UpgradeProxy.tsx"
 
-After deploying both the the validator manager contract, we will need to link them by upgrading the proxy to point to your Validator Manager implementation.
+After deploying both the validator manager contract, we will need to link them by upgrading the proxy to point to your Validator Manager implementation.
 
 Since the **ProxyAdmin** contract was deployed through the genesis with the deployer address set to the owner of the contract, we will call the *upgradeToAndCall()* function.
 

@@ -4,7 +4,7 @@ import SelectSubnetId from "./SelectSubnetId";
 import { useState, useCallback, useEffect } from "react";
 import { Subnet } from "@avalabs/avacloud-sdk/models/components";
 import BlockchainDetailsDisplay from "./BlockchainDetailsDisplay";
-import { useAvaCloudSDK } from "../stores/useAvaCloudSDK";
+import { useAvalancheSDKChainkit } from "../stores/useAvalancheSDKChainkit";
 
 export type SubnetSelection = {
     subnetId: string;
@@ -24,7 +24,7 @@ export default function SelectSubnet({
     onlyNotConverted?: boolean,
     hidePrimaryNetwork?: boolean
 }) {
-    const { getSubnetById } = useAvaCloudSDK();
+    const { getSubnetById } = useAvalancheSDKChainkit();
     const [subnetDetails, setSubnetDetails] = useState<Record<string, Subnet>>({});
     const [isLoading, setIsLoading] = useState(false);
 

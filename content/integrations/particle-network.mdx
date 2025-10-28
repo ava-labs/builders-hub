@@ -1,50 +1,72 @@
 ---
 title: Particle Network
-category: Account Abstraction
+category: Chain Abstraction
 available: ["C-Chain"]
-description: Radically simplify user experience. Through its Wallet Abstraction SDKs, developers can enable one-click onboarding into smart accounts through social logins.
+description: Chain abstraction powered by Universal Accounts. One account, one balance, any chain.
 logo: /images/particle-network.png
 developer: Particle Network
 website: https://particle.network/
-documentation: https://developers.particle.network/
+documentation: https://developers.particle.network/intro/introduction
 ---
 
-## Overview
+## **Overview**
 
-Particle Network is a cutting-edge account abstraction platform designed to simplify the user experience by integrating social logins into smart accounts. Through its Wallet Abstraction SDKs, Particle Network enables developers to offer seamless one-click onboarding, making it easier for users to access blockchain applications without the need for traditional wallet setup. This approach significantly reduces friction and enhances user adoption for decentralized applications.
+Particle Network enables **chain abstraction** through its **Universal Accounts** infrastructure, giving users a unified account and balance. This allows them to interact with your Avalanche dApp with assets from any supported chain (EVM chains and Solana) without bridging. 
 
-## Features
+Universal Accounts also abstract away network switching and gas management, allowing users to pay gas with any token. Thanks to this, Particle Network delivers a truly chain-agnostic experience where liquidity can be deployed on any chain, independently of where the user holds funds.
 
-- **Social Login Integration**: Particle Network supports social logins, allowing users to onboard into smart accounts using their existing social media accounts.
-- **Wallet Abstraction SDKs**: Provides comprehensive SDKs for integrating wallet abstraction functionalities into your applications, enabling smoother user experiences.
-- **Enhanced User Experience**: Streamlines the onboarding process by eliminating the need for complex wallet setups, making blockchain applications more accessible to mainstream users.
-- **Customizable Solutions**: Offers flexibility for developers to customize the integration according to their specific use cases and application requirements.
-- **Security and Compliance**: Ensures secure management of user accounts and transactions, adhering to best practices in account abstraction and data protection.
+Within Universal Accounts users’ assets are also automatically combined, allowing them to deposit tokens from multiple chains and spend them as if they were in the same chain.
 
-## Getting Started
+## **Features**
 
-To integrate Particle Network into your application, follow these steps:
+* **Universal Accounts**: One account and one balance across all supported chains—no need to bridge or switch networks.  
+* **Chain Abstraction**: Handle multi-chain logic like transfers, payments, and smart contract interactions at the account level, not the chain level.  
+* **Multi-Chain Support**: Works with nearly all EVM chains and Solana, with new integrations added frequently.  
+* **Developer Flexibility**: Compatible with common tools like ethers, wagmi, and viem.
 
-1. **Visit the Particle Network Website**: Explore the [Particle Network website](https://particle.network/) to understand the platform’s capabilities and offerings.
-2. **Access the SDKs**: Go to the [Particle Network Documentation](https://developers.particle.network/) to obtain the Wallet Abstraction SDKs and integration guides.
-3. **Integrate Social Logins**: Implement social login options using the provided SDKs, enabling users to easily onboard into smart accounts.
-4. **Customize Integration**: Adapt the SDKs to fit your application’s needs, ensuring a smooth and intuitive user experience.
-5. **Test and Deploy**: Thoroughly test the integration in a development environment before deploying your application to production.
+## **Getting Started**
 
-## Documentation
+To integrate **Universal Accounts** into your application:
 
-For detailed integration guides, API references, and customization options, visit the [Particle Network Documentation](https://developers.particle.network/).
+1. **Initialize the Universal Accounts SDK** using your API key from the [Particle Dashboard](https://dashboard.particle.network/).  
+2. **Fetch the user’s universal address and unified balance** – a single address and balance valid across all chains.  
+3. **Build and send UserOperations** using any supported network.  
+4. **Deploy your chain-agnostic app** – users can now transact across ecosystems with a single unified account.
 
-## Use Cases
+[Check out the Quickstart](https://developers.particle.network/universal-accounts/cha/web-quickstart) for more details.
 
-Particle Network is ideal for various applications that aim to simplify user onboarding and enhance accessibility:
+## **Use Cases**
 
-- **Decentralized Applications (dApps)**: Integrate social logins to make it easier for users to access and use your dApp without the need for traditional wallet setups.
-- **Blockchain Games**: Provide a seamless onboarding experience for players by allowing them to use social logins to manage their in-game assets and progress.
-- **NFT Marketplaces**: Enable users to easily interact with NFT platforms using their existing social media accounts, improving user acquisition and engagement.
-- **Fintech Applications**: Enhance the user experience in blockchain-based financial services by simplifying account management and onboarding processes.
+Particle Network empowers developers to create frictionless, multi-chain applications for a wide variety of use cases. These, and the benefits of UAs for them, include: 
 
-## Conclusion
+* **DeFi Platforms**: Multi-chain deposits, cross-chain swaps, paying gas in any currency, and allowing users to combine their liquidity from different chains.  
+* **Blockchain Games**: Web2-like onboarding via social logins, with full on-chain settlement and deposits/withdrawals to/from any chain.  
+* **NFT Marketplaces**: Cross-chain spending (deposit assets from one chain, buy/mint in another) and combined ownership/listing of NFTs from multiple chains.  
+* **Fintech & Payments**: Allowing users to pay gas in any token, simplified stablecoin-centric interfaces.  
+* **Others**: Given Universal Accounts multi-dApp ecosystem, ability for users to use their UAs across a number of apps.
 
-Particle Network offers a revolutionary approach to account abstraction, significantly improving user experience by integrating social logins into smart accounts. Its Wallet Abstraction SDKs simplify the onboarding process, making blockchain applications more accessible and user-friendly. Whether you're developing a dApp, a blockchain game, or a fintech application, Particle Network provides the tools and solutions needed to enhance user adoption and engagement.
+## **Supported Chains**
 
+Universal Accounts currently support most **EVM chains and Solana**, and will soon support all major Avalanche L1s.
+
+View the full list: [Network Coverage](https://developers.particle.network/universal-accounts/cha/chains)
+
+## **Community**
+
+* **Universal Accounts on Avalanche**: [Retail-friendly UX: Accepting stablecoins from any chain on Avalanche dapps](https://blog.particle.network/retail-friendly-ux-accepting-stablecoins-from-any-chain-on-avalanche-dapps/)  
+* **Slack**: [Join Particle’s Slack](https://join.slack.com/t/particlenetworkhq/shared_invite/zt-3blxdzcd2-7skD8MNWUn_20eOrp9SICA)  
+* **GitHub**: [Particle Network GitHub](https://github.com/particle-network)
+
+## **TL;DR for Developers**
+
+If you want your users to:
+
+* Log in once  
+* Use a single account and balance across all chains  
+* Skip network switching, bridging, and gas management
+
+Then you’re looking for **chain abstraction**.
+
+You’re looking for **Universal Accounts**.
+
+Start building → [Universal Accounts SDK](https://developers.particle.network/universal-accounts/cha/overview)

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import {
-  AlertCircle,
   Info,
   CheckCircle,
   Clock,
@@ -12,6 +11,7 @@ import {
 } from "lucide-react"
 import { Container } from "../../components/Container"
 import SelectSubnet, { SubnetSelection } from "../../components/SelectSubnet"
+import { Alert } from "../../components/Alert"
 
 export default function QueryL1Details() {
   const [selection, setSelection] = useState<SubnetSelection>({ subnetId: '', subnet: null })
@@ -38,11 +38,8 @@ export default function QueryL1Details() {
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 to-transparent dark:from-blue-900/10 dark:to-cyan-900/5 pointer-events-none"></div>
         <div className="relative">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
-              <div className="flex items-center">
-                <AlertCircle className="h-4 w-4 text-red-500 mr-2 flex-shrink-0" />
-                <span>{error}</span>
-              </div>
+            <div className="mb-4">
+              <Alert variant="error">{error}</Alert>
             </div>
           )}
 

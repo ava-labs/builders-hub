@@ -19,12 +19,20 @@ import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput
 import { utils } from "@avalabs/avalanchejs";
 import { ListContractEvents } from "@/components/toolbox/components/ListContractEvents";
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
-import { Container } from "@/components/toolbox/components/Container";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
+import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 
-export default function RegisterWithHome() {
+const metadata: ConsoleToolMetadata = {
+  title: "Register Remote Contract with Home",
+  description: "Register the remote contract with the home contract.",
+  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+};
+
+function RegisterWithHome() {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const { erc20TokenRemoteAddress, nativeTokenRemoteAddress } =
     useToolboxStore();
@@ -221,11 +229,7 @@ export default function RegisterWithHome() {
   }, [erc20TokenRemoteAddress, nativeTokenRemoteAddress]);
 
   return (
-    <Container
-      title="Register Remote Contract with Home"
-      description="Register the remote contract with the home contract."
-      githubUrl={generateConsoleToolGitHubUrl(import.meta.url)}
-    >
+    <>
       <div>
         <p className="mt-2">
           This will call the `registerWithHome` function on the remote contract
@@ -315,6 +319,8 @@ export default function RegisterWithHome() {
           />
         </div>
       )}
-    </Container>
+    </>
   );
 }
+
+export default withConsoleToolMetadata(RegisterWithHome, metadata);

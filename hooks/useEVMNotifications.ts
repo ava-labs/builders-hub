@@ -54,7 +54,7 @@ const getMessages = (type: EVMTransactionType, name: string) => {
 
 const useEVMNotifications = () => {
     const isTestnet = typeof window !== 'undefined' ? useWalletStore((s) => s.isTestnet) : false;
-    const { addLog } = useConsoleLog();
+    const { addLog } = useConsoleLog(false); // Don't auto-fetch logs
     const pathname = usePathname();
 
 

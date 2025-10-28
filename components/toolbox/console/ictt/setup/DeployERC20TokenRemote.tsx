@@ -22,12 +22,22 @@ import { utils } from "@avalabs/avalanchejs";
 import ERC20TokenHomeABI from "@/contracts/icm-contracts/compiled/ERC20TokenHome.json";
 import ExampleERC20 from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
-import { Container } from "@/components/toolbox/components/Container";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import TeleporterRegistryAddressInput from "@/components/toolbox/components/TeleporterRegistryAddressInput";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { AcknowledgementCallout } from "@/components/toolbox/components/AcknowledgementCallout";
+import { LockedContent } from "@/components/toolbox/components/LockedContent";
+import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
+import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 
-export default function DeployERC20TokenRemote() {
+const metadata: ConsoleToolMetadata = {
+  title: "Deploy ERC20 Token Remote Contract",
+  description: "Deploy the ERC20TokenRemote contract for your ERC20 token.",
+  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+};
+
+function DeployERC20TokenRemote() {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const { erc20TokenRemoteAddress, setErc20TokenRemoteAddress } =
     useToolboxStore();
@@ -46,6 +56,9 @@ export default function DeployERC20TokenRemote() {
   const [tokenHomeAddress, setTokenHomeAddress] = useState("");
   const [teleporterRegistryAddress, setTeleporterRegistryAddress] =
     useState("");
+  const [acknowledged, setAcknowledged] = useState(false);
+  const [workflowDismissed, setWorkflowDismissed] = useState(false);
+  
   // Throw critical errors during render
   if (criticalError) {
     throw criticalError;
@@ -237,11 +250,7 @@ export default function DeployERC20TokenRemote() {
   }
 
   return (
-    <Container
-      title="Deploy ERC20 Token Remote Contract"
-      description="Deploy the ERC20TokenRemote contract for your ERC20 token."
-      githubUrl={generateConsoleToolGitHubUrl(import.meta.url)}
-    >
+    <>
       <div>
         <p className="mt-2">
           This deploys an `ERC20TokenRemote` contract to the current network (
@@ -250,7 +259,37 @@ export default function DeployERC20TokenRemote() {
         </p>
       </div>
 
-      <TeleporterRegistryAddressInput
+      <AcknowledgementCallout
+        title="Have You Switched to the Destination Chain?"
+        type="info"
+        checkboxLabel="I have switched to the destination chain and am ready to deploy"
+        checked={acknowledged}
+        onCheckedChange={(checked: boolean) => {
+          setAcknowledged(checked);
+          if (checked) {
+            setWorkflowDismissed(true);
+          }
+        }}
+        visible={!workflowDismissed}
+      >
+        <p>
+          <strong>Important:</strong> The Token Remote contract must be deployed on the <strong>destination chain</strong> (where you want to receive bridged tokens).
+        </p>
+        <p>
+          Before proceeding, make sure you have:
+        </p>
+        <ul className="list-disc list-inside ml-2 space-y-1">
+          <li>Already deployed the <strong>Token Home</strong> contract on the source chain</li>
+          <li>Switched to the <strong>destination chain</strong> using the chain selector in Builder Console</li>
+          <li>Verified that <code className="bg-blue-100 dark:bg-blue-900/30 px-1 py-0.5 rounded">{selectedL1?.name}</code> is your intended destination chain</li>
+        </ul>
+      </AcknowledgementCallout>
+
+      <LockedContent
+        isUnlocked={workflowDismissed}
+        lockedMessage="Please acknowledge the chain switching workflow above to continue."
+      >
+        <TeleporterRegistryAddressInput
         value={teleporterRegistryAddress}
         onChange={setTeleporterRegistryAddress}
         disabled={isDeploying}
@@ -303,13 +342,15 @@ export default function DeployERC20TokenRemote() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Input label="Token Name" value={tokenName} disabled />
+      {tokenHomeAddress && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Input label="Token Name" value={tokenName} disabled />
 
-        <Input label="Token Symbol" value={tokenSymbol} disabled />
+          <Input label="Token Symbol" value={tokenSymbol} disabled />
 
-        <Input label="Token Decimals" value={tokenDecimals} disabled />
-      </div>
+          <Input label="Token Decimals" value={tokenDecimals} disabled />
+        </div>
+      )}
 
       <EVMAddressInput
         label="Teleporter Manager Address"
@@ -350,6 +391,9 @@ export default function DeployERC20TokenRemote() {
           ? "Re-Deploy ERC20 Token Remote"
           : "Deploy ERC20 Token Remote"}
       </Button>
-    </Container>
+      </LockedContent>
+    </>
   );
 }
+
+export default withConsoleToolMetadata(DeployERC20TokenRemote, metadata);

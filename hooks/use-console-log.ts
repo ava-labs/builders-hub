@@ -5,10 +5,11 @@ import type { ConsoleLog } from '@/types/console-log';
  * Hook for managing console log/history
  * Handles fetching and adding console events to the history
  * History is persisted server-side for logged-in users
+ * @param autoFetch - Whether to automatically fetch logs on mount (default: false)
  */
-export const useConsoleLog = () => {
+export const useConsoleLog = (autoFetch: boolean = false) => {
   const [logs, setLogs] = useState<ConsoleLog[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Fetch logs from API
   const fetchLogs = useCallback(async () => {
@@ -30,7 +31,7 @@ export const useConsoleLog = () => {
         }));
         setLogs(transformedLogs);
       } else if (response.status === 401) {
-        // User not authenticated - this is expected
+        // User not authenticated - this is expected, don't log error
         setLogs([]);
       } else {
         console.error('Error loading console logs:', response.statusText);
@@ -44,11 +45,11 @@ export const useConsoleLog = () => {
     }
   }, []);
 
-  // Load logs on mount
+  // Only load logs on mount if autoFetch is true
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !autoFetch) return;
     fetchLogs();
-  }, [fetchLogs]);
+  }, [fetchLogs, autoFetch]);
 
   // Add a new log entry
   const addLog = async (item: Omit<ConsoleLog, 'id' | 'timestamp'>) => {

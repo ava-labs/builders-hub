@@ -8,38 +8,35 @@ type Props = {
 };
 
 export default function TrackCard(props: Props) {
-  const highlighted = props.track.partner?.includes("Avalanche");
   return (
     <Card
-      className={`min-h-40 h-full bg-zinc-50 dark:bg-zinc-900 cursor-pointer rounded-xl ${
-        highlighted ? "border-2 border-red-500" : ""
-      }`}
+      className={`min-h-48 h-full bg-zinc-900 dark:bg-zinc-900 cursor-pointer rounded-lg border-2 border-red-500 hover:shadow-lg transition-shadow duration-200`}
     >
-      <CardHeader>
+      <CardHeader className="pb-3">
         <CardTitle>
           <div className="flex justify-between items-center gap-2">
-            <h2
-              className={`${
-                highlighted ? "text-red-500" : "text-zinc-900 dark:text-zinc-50"
-              } text-xl font-bold`}
-            >
+            <h2 className="text-red-500 text-lg font-bold">
               {props.track.name}
             </h2>
-            <DynamicIcon
-              name={props.track.icon as any}
-              size={16}
-              className={
-                highlighted
-                  ? "!text-red-500"
-                  : `dark:!text-zinc-400 !text-zinc-600`
-              }
-            />
+            {props.track.icon && props.track.icon.trim() !== "" ? (
+              <DynamicIcon
+                name={props.track.icon as any}
+                size={20}
+                className="!text-red-500"
+              />
+            ) : (
+              <DynamicIcon
+                name="wrench"
+                size={20}
+                className="!text-red-500"
+              />
+            )}
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="dark:bg-zinc-900 bg-zinc-50">
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 text-left">
-          {props.track.short_description}
+      <CardContent className="pt-0">
+        <p className="text-sm text-white text-left leading-relaxed">
+          {props.track.short_description || 'No description available'}
         </p>
       </CardContent>
     </Card>

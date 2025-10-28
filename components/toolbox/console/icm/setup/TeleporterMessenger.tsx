@@ -24,7 +24,7 @@ const TELEPORTER_MESSENGER_SOURCE_URL = `https://github.com/ava-labs/icm-contrac
 const metadata: ConsoleToolMetadata = {
     title: "Deploy ICM Messenger",
     description: "Deploy the ICM messenger contract to your L1 to enable cross-L1 messaging and applications like ICTT",
-    walletRequirements: [
+    toolRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

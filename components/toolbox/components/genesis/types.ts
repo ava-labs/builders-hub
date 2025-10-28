@@ -65,12 +65,36 @@ export type FeeConfigType = {
   targetGas: number;
 };
 
-export type SectionId = 'chainParams' | 'tokenomics' | 'permissions' | 'transactionFees' | 'warpMessenger';
+export type SectionId = 'chainParams' | 'tokenomics' | 'permissioning' | 'feeConfiguration' | 'predeploys' | 'warpMessenger';
 
+export const ALL_SECTIONS: SectionId[] = ['chainParams', 'tokenomics', 'permissioning', 'feeConfiguration', 'predeploys']; // Removed warpMessenger for now
 
 export type ValidationMessages = {
   errors: { [key: string]: string };
   warnings: { [key: string]: string };
 };
 
+export interface PreinstallConfig {
+  proxy: boolean;
+  proxyAdmin: boolean;
+  safeSingletonFactory: boolean;
+  multicall3: boolean;
+  icmMessenger: boolean;
+  wrappedNativeToken: boolean;
+  create2Deployer: boolean;
+}
 
+// Consolidated state type (example, adjust as needed during refactoring)
+export type GenesisConfigState = {
+  evmChainId: number;
+  gasLimit: number;
+  targetBlockRate: number;
+  tokenAllocations: AllocationEntry[];
+  contractDeployerAllowListConfig: AllowlistPrecompileConfig;
+  contractNativeMinterConfig: AllowlistPrecompileConfig;
+  txAllowListConfig: AllowlistPrecompileConfig;
+  feeConfig: FeeConfigType;
+  // Removed simpler precompile states (use Config objects)
+  // Removed warpMessenger state for simplicity
+  // Removed ownerAddress/ownerBalance (derive from allocations if needed)
+};

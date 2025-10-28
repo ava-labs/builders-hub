@@ -11,6 +11,7 @@ import {
 } from "../../components/WithConsoleToolMetadata";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { useTestnetFaucet } from "@/hooks/useTestnetFaucet";
+import { AccountRequirementsConfigKey } from "../../hooks/useAccountRequirements";
 
 function EVMFaucetCard({ chain }: { chain: L1ListItem }) {
   const getFeatures = () => {
@@ -61,8 +62,11 @@ function EVMFaucetCard({ chain }: { chain: L1ListItem }) {
 const metadata: ConsoleToolMetadata = {
   title: "Testnet Faucet",
   description: "Request free test tokens for Fuji testnet and Avalanche L1s",
-  walletRequirements: [WalletRequirementsConfigKey.TestnetRequired],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
+  toolRequirements: [
+    WalletRequirementsConfigKey.TestnetRequired,
+    AccountRequirementsConfigKey.UserLoggedIn
+  ],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
 function Faucet({ onSuccess }: BaseConsoleToolProps) {

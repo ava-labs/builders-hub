@@ -105,6 +105,13 @@
     "slug": "cloudverse"
   },
   {
+    "chainId": "235235",
+    "chainName": "CodeNekt",
+    "chainLogoURI": "https://f005.backblazeb2.com/file/tracehawk-prod/logo/codenekt/Light.png",
+    "subnetId": "o4Eariv2Cx1fTvPFXYofpJfS9KgwFaiGN8KFGcCeZM9t87GJr",
+    "slug": "codenekt"
+  },
+  {
     "chainId": "42069",
     "chainName": "Coqnet",
     "chainLogoURI": "",
@@ -124,6 +131,13 @@
     "chainLogoURI": "",
     "subnetId": "yD6k6gVKmzFbefPcdYjsJz17KVQFSivTR1emJ5cTBvq2d8MRg",
     "slug": "cxchain"
+  },
+  {
+    "chainId": "326663",
+    "chainName": "DComm",
+    "chainLogoURI": "https://f005.backblazeb2.com/file/tracehawk-prod/logo/dcomm/Light.png",
+    "subnetId": "fmmMAGwEYQZMGN7BC4b86gqmukSMEc6rAkG1SXapq3cz1W7y7",
+    "slug": "dcomm"
   },
   {
     "chainId": "96786",
@@ -229,6 +243,13 @@
     "chainLogoURI": "",
     "subnetId": "VzsCkPm6MjStgT2v5Qmcn5ycgMhj68rxPN4gX9eMgBbBXHYEu",
     "slug": "greendot"
+  },
+  {
+    "chainId": "7084",
+    "chainName": "Growfitter",
+    "chainLogoURI": "https://f005.backblazeb2.com/file/tracehawk-prod/logo/GrowFitter/Light.png",
+    "subnetId": "BCDGWbjqYBJLsXEzHNc2qy9VYPTrF3aGaSMbTGyjn7qJ7RxH8",
+    "slug": "growfitter"
   },
   {
     "chainId": "43419",
@@ -399,6 +420,13 @@
     "slug": "oumla"
   },
   {
+    "chainId": "7776",
+    "chainName": "PandaSea",
+    "chainLogoURI": "https://f005.backblazeb2.com/file/tracehawk-prod/logo/Pandasea/Dark.png",
+    "subnetId": "26NzZkCTeUHfqdxRcUXDTAurNxDsT6mYLwSEqTz3s11G1rQV14",
+    "slug": "pandasea"
+  },
+  {
     "chainId": "3011",
     "chainName": "Playa3ull",
     "chainLogoURI": "",
@@ -532,11 +560,25 @@
     "slug": "trx"
   },
   {
+    "chainId": "237007",
+    "chainName": "Ulalo",
+    "chainLogoURI": "https://f005.backblazeb2.com/file/tracehawk-prod/logo/UOLO/Light.png",
+    "subnetId": "sopy3uXvCFVLorg4kmqQfZpqVg9GXzs8GmjSwM18GZJtf66h6",
+    "slug": "ulalo"
+  },
+  {
     "chainId": "40875",
     "chainName": "V1Migrate",
     "chainLogoURI": "",
     "subnetId": "kf1sMrGJSA2x9yZfvjBJCHu3ZdTievrCyrbEEPKXbHMH2tXuA",
     "slug": "v1migrate"
+  },
+  {
+    "chainId": "192",
+    "chainName": "Watr",
+    "chainLogoURI": "https://f005.backblazeb2.com/file/tracehawk-prod/logo/watr/Light.svg",
+    "subnetId": "QL49tBK9T84NSHQYYSP33Ru7h1KcybDR6MGA8dARVWhw1zLB8",
+    "slug": "watr"
   },
   {
     "chainId": "98968",

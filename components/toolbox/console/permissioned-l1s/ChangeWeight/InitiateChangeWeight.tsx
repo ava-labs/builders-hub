@@ -7,8 +7,8 @@ import SelectValidationID, { ValidationSelection } from '@/components/toolbox/co
 import { getValidatorWeight } from '@/components/toolbox/coreViem/hooks/getValidatorWeight';
 import { validateStakePercentage } from '@/components/toolbox/coreViem/hooks/getTotalStake';
 import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
-import { AlertCircle } from 'lucide-react';
 import { Success } from '@/components/toolbox/components/Success';
+import { Alert } from '@/components/toolbox/components/Alert';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
@@ -269,12 +269,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
       )}
 
       {error && (
-        <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
-          <div className="flex items-center">
-            <AlertCircle className="h-4 w-4 text-red-500 mr-2 flex-shrink-0" />
-            <span>{error}</span>
-          </div>
-        </div>
+        <Alert variant="error">{error}</Alert>
       )}
 
       {txSuccess && (

@@ -31,22 +31,29 @@ export async function getRewardBoard(user_id: string): Promise<UserBadge[]> {
     awarded_by: userBadge.awarded_by,
     name: userBadge.badge.name,
     description: userBadge.badge.description,
-    points: userBadge.badge.points,
+    points: (userBadge.badge as any).points || 0,
     image_path: userBadge.badge.image_path,
     category: userBadge.badge.category,
-    metadata: parseBadgeMetadata(userBadge.badge.metadata),
+    metadata: parseBadgeMetadata((userBadge.badge as any).metadata || null),
   }));
 }
 
 export async function getBadgeByCourseId(courseId: string): Promise<Badge> {
-  const badge = await prisma.badge.findFirst({
+  const badges = await prisma.badge.findMany();
+  const badge = badges.find((b: any) => {
+    if (!b.metadata) return false;
+    const metadata = b.metadata as any;
+    return metadata.course_id === courseId;
+  });
+  /*const badge = await prisma.badge.findFirst({
     where: {
       metadata: {
         path: ['course_id'],
         equals: courseId,
       },
     },
-  });
+  });*/
+
 
   if (!badge) {
     throw new Error(`Badge not found for course ID: ${courseId}`);
@@ -56,9 +63,9 @@ export async function getBadgeByCourseId(courseId: string): Promise<Badge> {
     id: badge.id,
     name: badge.name,
     description: badge.description,
-    points: badge.points,
+    points: (badge as any).points || 0,
     image_path: badge.image_path,
     category: badge.category,
-    metadata: parseBadgeMetadata(badge.metadata),
+    metadata: parseBadgeMetadata((badge as any).metadata || null),
   };
 }

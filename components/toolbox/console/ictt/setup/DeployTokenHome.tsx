@@ -16,14 +16,22 @@ import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput
 import ExampleERC20 from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
 import { createPublicClient, http } from "viem";
 import { Note } from "@/components/toolbox/components/Note";
-import { Container } from "@/components/toolbox/components/Container";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import TeleporterRegistryAddressInput from "@/components/toolbox/components/TeleporterRegistryAddressInput";
 import { RadioGroup } from "@/components/toolbox/components/RadioGroup";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
+import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 
-export default function DeployTokenHome() {
+const metadata: ConsoleToolMetadata = {
+  title: "Deploy Token Home Contract",
+  description: "Deploy the TokenHome contract for your token.",
+  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+};
+
+function DeployTokenHome() {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const {
     exampleErc20Address,
@@ -59,7 +67,6 @@ export default function DeployTokenHome() {
       tokenType === "erc20"
         ? exampleErc20Address
         : wrappedNativeTokenAddress || selectedL1?.wrappedTokenAddress;
-    if (!tokenAddress) return;
     setTokenAddress(tokenAddress);
   }, [tokenType, selectedL1, exampleErc20Address]);
 
@@ -190,11 +197,7 @@ export default function DeployTokenHome() {
   };
 
   return (
-    <Container
-      title="Deploy Token Home Contract"
-      description="Deploy the TokenHome contract for your token."
-      githubUrl={generateConsoleToolGitHubUrl(import.meta.url)}
-    >
+    <>
       <div>
         <p className="mt-2">
           This will deploy a TokenHome contract to your connected network (Chain
@@ -300,6 +303,8 @@ export default function DeployTokenHome() {
       >
         {getTokenHomeAddress() ? "Re-Deploy Token Home" : "Deploy Token Home"}
       </Button>
-    </Container>
+    </>
   );
 }
+
+export default withConsoleToolMetadata(DeployTokenHome, metadata);

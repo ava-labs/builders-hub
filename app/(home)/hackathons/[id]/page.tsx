@@ -154,7 +154,7 @@ export default async function HackathonPage({
             <Resources hackathon={hackathon} />
             {hackathon.content.schedule && <Schedule hackathon={hackathon} />}
             <Submission hackathon={hackathon} />
-            {hackathon.content.speakers && (
+            {hackathon.content.speakers && hackathon.content.speakers.length > 0 && (
               <MentorsJudges hackathon={hackathon} />
             )}
             <Community hackathon={hackathon} />

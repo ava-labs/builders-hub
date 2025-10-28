@@ -26,7 +26,10 @@ model Hackathon {
   organizers      String?
   custom_link     String?
   created_by      String?
+  updated_by      String?
+  is_public       Boolean?
   created_by_user User?          @relation(fields: [created_by], references: [id])
+  updated_by_user User?          @relation("HackathonUpdatedBy", fields: [updated_by], references: [id])
   projects        Project[]
   registrations   RegisterForm[]
 }
@@ -48,6 +51,7 @@ model User {
   custom_attributes   String[]
   telegram_user       String?
   created_at          DateTime      @default(now()) @db.Timestamptz(3)
+  updated_hackathons  Hackathon[] @relation("HackathonUpdatedBy")
   memberships         Member[]
   registrations       RegisterForm?
   hackathons          Hackathon[]
@@ -144,12 +148,12 @@ model Badge {
   id          String         @id @default(uuid())
   name        String
   description String
-  points      Int
   image_path  String
   category    String
-  metadata    Json           @default("{}")
   users       UserBadge[]
   projects    ProjectBadge[]
+  requirements    Json[]         @default([])
+  current_version Int            @default(1)
 }
 
 model UserBadge {
@@ -160,6 +164,9 @@ model UserBadge {
   badge_id   String
   awarded_at DateTime @default(now())
   awarded_by String?
+  evidence             Json?
+  requirements_version Int      @default(1)
+  status               Int      @db.SmallInt
 
   @@unique([user_id, badge_id])
 }
@@ -172,6 +179,10 @@ model ProjectBadge {
   badge_id   String
   awarded_at DateTime @default(now())
   awarded_by String?
+  evidence              Json?
+  requirements_snapshot Json     @default("{}")
+  requirements_version  Int      @default(1)
+  status                Int      @db.SmallInt
 
   @@unique([project_id, badge_id])
 }
@@ -206,7 +217,7 @@ model ConsoleLog {
   data        Json?    // Flexible JSON data
   created_at  DateTime @default(now()) @db.Timestamptz(3)
   user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  
+
   @@index([user_id])
   @@index([created_at])
 }

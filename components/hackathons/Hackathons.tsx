@@ -73,7 +73,7 @@ export default function Hackathons({
   totalUpcomingHackathons,
 }: Props) {
   const { data: session, status } = useSession();
-  const isHackathonCreator = session?.user?.custom_attributes.includes("hackathonCreator");
+  const isHackathonCreator = session?.user?.custom_attributes.includes("hackathonCreator") || session?.user?.custom_attributes.includes("team1-admin");
   
   const router = useRouter();
   const pageSize = 4;
@@ -135,8 +135,8 @@ export default function Hackathons({
     if (status === "authenticated" && session?.user) {
       console.log("User ID:", session.user.id);
 
-      if (session.user.custom_attributes?.includes("hackathonCreator")) {
-        console.log("Este usuario es hackathonCreator");
+      if (session.user.custom_attributes?.includes("hackathonCreator") || session.user.custom_attributes?.includes("team1-admin")) {
+        console.log("User is hackathonCreator");
       }
     }
   }, [session, status]);

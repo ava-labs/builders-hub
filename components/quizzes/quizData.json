@@ -27,19 +27,13 @@
         "1204"
       ]
     },
-    "l1-tokenomics": {
-      "title": "L1 Tokenomics",
+    "l1-native-tokenomics": {
+      "title": "L1 Native Tokenomics",
       "quizzes": [
         "201",
         "202",
         "203",
         "204",
-        "205",
-        "206",
-        "207",
-        "208",
-        "209",
-        "210",
         "211",
         "212",
         "213",
@@ -210,6 +204,21 @@
       "hint": "Think about what would one need in a network of networks.",
       "explanation": "The P-Chain's main purpose is to have a registry of all validators in the Avalanche network, that includes both the Primary Network and all L1s.",
       "chapter": "Avalanche Fundamentals"
+    },
+    "901": {
+      "question": "What is the primary focus of Avalanche Foundation grants?",
+      "options": [
+        "Monetary returns for the foundation",
+        "Creating ecosystem impact",
+        "Supporting only DeFi projects",
+        "Short-term growth metrics"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Grants prioritize ecosystem value over ROI.",
+      "explanation": "Avalanche Foundation grants prioritize creating ecosystem impact rather than financial returns.",
+      "chapter": "Grants Process"
     },
     "902": {
       "question": "Which of these is NOT one of the four key areas the foundation evaluates in applications?",
