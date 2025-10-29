@@ -240,6 +240,11 @@ const data = {
           url: "/console/permissionless-l1s/stake-native-token",
           icon: Hexagon,
         },
+        {
+          title: "Delegate Native Token",
+          url: "/console/permissionless-l1s/delegate-native-token",
+          icon: HandCoins,
+        }
       ],
     },
     {
