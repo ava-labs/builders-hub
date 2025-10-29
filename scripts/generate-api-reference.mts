@@ -34,7 +34,7 @@ async function generate() {
   
   // Fix empty titles
   console.log('\n🔧 Fixing empty titles...');
-  execSync('bun run scripts/fix-api-titles.ts', { stdio: 'inherit' });
+  execSync('tsx scripts/fix-api-titles.mts', { stdio: 'inherit' });
 }
 
 void generate();
