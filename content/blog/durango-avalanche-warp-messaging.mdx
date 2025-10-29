@@ -1,0 +1,113 @@
+---
+title: "Durango: Avalanche Warp Messaging Comes to the EVM"
+description: The Durango upgrade brings native cross-chain communication to every EVM Chain in the Avalanche ecosystem through Avalanche Warp Messaging, along with Shanghai EIPs and P-Chain improvements. Activated March 6, 2024.
+date: 2024-02-01
+authors: [AvaxDevelopers]
+topics: [Network Updates, Durango Upgrade, Avalanche Warp Messaging, EVM, Interoperability, P-Chain]
+comments: true
+---
+
+![Durango: Avalanche Warp Messaging Comes to the EVM](https://www.avax.network/_astro/65bc11f33d8a959ccaee46f2_durango_20test4_GXxOE.webp)
+
+The Durango upgrade activates on Avalanche Mainnet on March 6, 2024 at 11 AM ET, bringing native cross-chain communication to the ecosystem. This upgrade includes seven Avalanche Community Proposals (ACPs) that enhance interoperability, developer experience, and network scalability.
+
+**Production Release**: AvalancheGo v1.11.0
+**Mainnet Activation**: March 6, 2024 at 11:00 AM ET
+
+## Avalanche Community Proposals Included
+
+The Durango upgrade incorporates seven ACPs:
+
+- **ACP-23**: P-Chain Native Transfers
+- **ACP-24**: Shanghai EIPs activation on C-Chain
+- **ACP-25**: Virtual Machine Application Errors
+- **ACP-30**: Avalanche Warp Messaging integration into EVM
+- **ACP-31**: Subnet Ownership Transfer capability
+- **ACP-41**: Removal of Pending Stakers
+- **ACP-62**: Disabling AddValidatorTx and AddDelegatorTx
+
+## Cross-Subnet Interoperability with Avalanche Warp Messaging
+
+Avalanche Warp Messaging (AWM) enables **native cross-chain communication to every EVM Chain in the Avalanche Ecosystem** with no third party intermediaries or trust assumptions beyond validator sets. The system uses the P-Chain as a registry for subnet validator sets with BLS public keys.
+
+### How AWM Works
+
+![AWM Architecture Diagram](https://images.ctfassets.net/voq4a5ue459o/4f048dc2a414c1a60bb67c7b299581b3/fe273d73529d1bbff8a3390e37f4eb7c/65bc12b118fad82932fc4693_KLrCXnfqjgHu9ltWr39vbTzOEfiYVFWu4O6GUGiVXll3XMCnAFVROeKf2q625pV0h0YSo7G2UywgsS9cocU3V6gRsoIOrdxoIC3.png?w=1600&q=80&fm=webp)
+
+The messaging process involves untrusted relayers aggregating signatures until threshold stake requirements are met, then constructing BLS Multi-Signatures for verification.
+
+### Key Features
+
+- **Trust-Minimized**: No third-party intermediaries required
+- **Validator-Secured**: Security derived from subnet validator sets
+- **EVM-Native**: Built directly into the EVM execution layer
+- **BLS Signatures**: Efficient signature aggregation for cross-chain verification
+
+## Developer Experience Improvements
+
+### P-Chain Native Transfers (ACP-23)
+
+Users can now transfer assets between P-Chain addresses more efficiently using BaseTx, simplifying P-Chain operations and reducing transaction complexity.
+
+### Subnet Ownership Transfer (ACP-31)
+
+Subnet owners can transfer ownership through TransferSubnetOwnershipTx, enabling periodic control key rotation and improved security practices.
+
+### Ethereum Compatibility (ACP-24)
+
+ACP-24 incorporates Shanghai Upgrade changes, adding the PUSH0 opcode for compatibility with Solidity versions ≥ 0.8.20. This ensures Avalanche C-Chain and Subnets remain compatible with the latest Ethereum development tools and compiler versions.
+
+### VM Application Errors (ACP-25)
+
+ACP-25 allows peers to signal failures early, reducing latency from the network timeout (~2s) to a single network round trip time (~500ms). This improvement significantly enhances application responsiveness and user experience.
+
+## P-Chain Scalability Enhancements
+
+### Removal of Pending Stakers (ACP-41)
+
+ACP-41 removes user-specified StartTime for stakers, having transactions define staking period start instead. This approach **greatly reduces the computation load on the P-Chain** and prepares for future upgrades including continuous staking.
+
+### Impact on Network Performance
+
+- **Reduced Computation**: Eliminates pending staker queue processing overhead
+- **Simplified Staking**: Streamlined validator and delegator onboarding
+- **Future-Ready**: Prepares infrastructure for continuous staking mechanisms
+
+## Path to 100k Subnets
+
+The upgrade supports the "Path to 100k Subnets" through BLS key adoption, enabling:
+
+### Arbitrary Subnet Rewards
+Custom reward curves and conditions for subnet validators, allowing flexible tokenomics and incentive structures.
+
+### Subnet Attestations
+Subnet state verification via BLS Multi-Signature without full synchronization, enabling lightweight validation and cross-chain state proofs.
+
+## Upgrade Requirements
+
+### Node Operators
+
+**IMPORTANT**: Node operators must upgrade to AvalancheGo v1.11.0 or later before March 6, 2024. This upgrade is mandatory for Mainnet participation.
+
+### Validators
+
+Validators who fail to upgrade before the activation deadline will be unable to participate in consensus and may lose rewards.
+
+### Developers
+
+The upgrade includes backward-compatible changes, but developers building cross-chain applications should familiarize themselves with the new AWM APIs and capabilities.
+
+## What This Means for the Ecosystem
+
+The Durango upgrade represents a major milestone in Avalanche's cross-chain vision:
+
+1. **Native Interoperability**: First-class cross-chain communication without bridges
+2. **Enhanced Security**: Trust-minimized messaging secured by validator sets
+3. **Developer Productivity**: Improved error handling and Solidity compatibility
+4. **Subnet Scalability**: Foundation for massive subnet ecosystem growth
+
+## Resources
+
+- **Node Operators**: Upgrade to AvalancheGo v1.11.0+ before March 6, 2024
+- **Developers**: Explore AWM documentation and integration guides
+- **Community**: Join discussions about cross-chain applications in the Avalanche Discord
