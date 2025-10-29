@@ -1,0 +1,170 @@
+---
+title: "Etna: Enhancing the Sovereignty of Avalanche L1 Networks"
+description: The Etna upgrade introduces sovereign L1 networks with 99.9% reduced costs, dynamic P-Chain fees, reduced C-Chain base fees, and standardized Interchain Messaging. Activated December 16, 2024.
+date: 2024-12-02
+authors: [AvaxDevelopers]
+topics: [Network Updates, Etna Upgrade, Avalanche L1, ACP-77, Dynamic Fees, ICM, Sovereignty]
+comments: true
+---
+
+![Etna: Enhancing the Sovereignty of Avalanche L1 Networks](https://www.avax.network/_astro/674e25e0ec7450feaab90afb_Etna_Announce_ZomV8V.webp)
+
+The Avalanche Network released upgrade code for "Etna," activated on Mainnet at 12 PM ET (5 PM UTC) on December 16, 2024. This transformative upgrade incorporates six Avalanche Community Proposals (ACPs) that fundamentally reshape how L1 networks operate on Avalanche.
+
+**Production Release**: AvalancheGo v1.12.0
+**Mainnet Activation**: December 16, 2024 at 12:00 PM ET
+**Testnet Activation**: Successfully tested on Fuji on November 25, 2024
+
+## Avalanche Community Proposals Included
+
+The Etna upgrade incorporates six major ACPs:
+
+- **ACP-77**: Reinventing Subnets as Sovereign L1 Networks
+- **ACP-103**: Dynamic Fees for P-Chain
+- **ACP-118**: Warp Signature Interface Standardization
+- **ACP-125**: Reduced C-Chain Base Fees
+- **ACP-131**: Cancun EIPs Activation
+- **ACP-151**: P-Chain Height Context
+
+## Sovereign L1 Networks: A Paradigm Shift
+
+### Over 99.9% Cost Reduction
+
+ACP-77 introduces mechanisms for creating sovereign Layer 1 blockchains with lightweight, cost-efficient validation. Instead of requiring 2,000 AVAX stakes, L1 validators pay dynamic continuous fees of **approximately 1.3 AVAX per month**.
+
+This represents **over 99.9% reduction in upfront costs** for blockchain creation.
+
+### No Primary Network Synchronization Required
+
+Validators aren't required to sync the Primary Network, unlike Subnet validators. This change:
+
+- **Reduces Resource Requirements**: Lower storage and bandwidth needs
+- **Faster Onboarding**: Validators can start more quickly
+- **True Sovereignty**: L1s operate independently of Primary Network state
+
+### Custom Validator Management
+
+The upgrade enables custom validator management through smart contracts. Projects can:
+
+- Use provided **proof-of-authority** contracts for permissioned networks
+- Deploy **proof-of-stake** contracts for decentralized validation
+- Create **custom validation logic** for unique use cases
+
+This flexibility allows L1 networks to implement governance models that match their specific requirements.
+
+## C-Chain Fees Reduced by 96%
+
+### Minimum Base Fee Reduction
+
+ACP-125 reduces the C-Chain's minimum base fee from 25 nAVAX to 1 nAVAX—**a reduction of nearly 96%**.
+
+### Impact on Users
+
+This change lowers the EIP-1559 fee floor, making transactions significantly cheaper during low network congestion periods. The base fee adjusts dynamically based on demand, while this update establishes a lower minimum threshold.
+
+**Benefits**:
+- **Lower Transaction Costs**: Minimal fees during low-activity periods
+- **Better UX**: More affordable for high-frequency operations
+- **Competitive Positioning**: Attractive fees for developers and users
+
+## Dynamic Fees on P-Chain
+
+### From Fixed to Dynamic
+
+Following ACP-103's specification, dynamic fees now apply to the P-Chain. Previously, fixed fees provided simplicity but didn't account for congestion.
+
+### New Fee Mechanism
+
+The new mechanism:
+- **Reduces transaction costs** during normal operation
+- **Improves resilience** against load spikes
+- **Prepares infrastructure** for increased usage from ACP-77's new validator management capabilities
+
+This adaptive pricing ensures the P-Chain remains efficient and economical while handling variable demand.
+
+## Interchain Messaging Standards
+
+### VM-Agnostic Signature Interface
+
+ACP-118 establishes a VM-agnostic standard for requesting signatures on Avalanche Interchain Messages (ICM).
+
+### Simplifying Cross-Chain Development
+
+Valid signatures require querying a blockchain's validator set to request threshold-majority signature aggregation. This standardization:
+
+- **Centralizes Logic**: Signature logic moves to AvalancheGo instead of individual VM codecs
+- **Simplifies Implementation**: Easier to build signature aggregators
+- **Improves Consistency**: Standard interface across all VMs
+
+## Cancun EIPs Activation
+
+### Ethereum Compatibility
+
+ACP-131 activates Cancun Ethereum Improvement Proposals on the C-Chain, ensuring continued compatibility with the latest Ethereum standards.
+
+**Key Improvements**:
+- **Proto-danksharding (EIP-4844)**: Blob transactions for data availability
+- **Transient Storage (EIP-1153)**: Gas-efficient temporary storage
+- **Additional Opcodes**: Enhanced smart contract capabilities
+
+## P-Chain Height Context
+
+### Enhanced Context Awareness
+
+ACP-151 provides P-Chain height context to validators, enabling:
+
+- **Time-Based Logic**: Smart contracts can reference P-Chain block heights
+- **Coordination**: Better synchronization across chains
+- **Advanced Features**: Foundation for time-locked operations and scheduled upgrades
+
+## Upgrade Requirements
+
+### Node Operators
+
+**CRITICAL**: Node operators must upgrade to AvalancheGo v1.12.0 or later before December 16, 2024. This upgrade is mandatory for Mainnet participation.
+
+### L1 Network Operators
+
+Existing Subnet operators should review the migration path to sovereign L1 networks and assess the benefits of transitioning to the new model.
+
+### Developers
+
+Developers building on Avalanche should familiarize themselves with:
+- New L1 validator management contracts
+- Dynamic fee mechanisms
+- ICM signature interface updates
+- Cancun EIP features
+
+## What This Means for the Ecosystem
+
+The Etna upgrade represents the most significant evolution in Avalanche's architecture:
+
+1. **Democratized L1 Creation**: 99.9% cost reduction makes blockchain creation accessible
+2. **True Sovereignty**: L1s operate independently without Primary Network dependencies
+3. **Flexible Governance**: Custom validator management enables diverse governance models
+4. **Reduced Costs**: Lower fees on both C-Chain and P-Chain improve economics
+5. **Ethereum Alignment**: Cancun EIPs maintain compatibility with Ethereum ecosystem
+6. **Standardized Interoperability**: ICM standards simplify cross-chain development
+
+## Migration Path
+
+### For Existing Subnets
+
+1. **Evaluate Benefits**: Assess cost savings and sovereignty improvements
+2. **Plan Migration**: Review validator requirements and contract options
+3. **Test on Fuji**: Validate migration process on testnet
+4. **Execute Transition**: Move to sovereign L1 model
+
+### For New Projects
+
+1. **Choose Validation Model**: PoA, PoS, or custom contracts
+2. **Deploy L1**: Create sovereign L1 with continuous fee model
+3. **Configure Validators**: Set up validators without Primary Network sync
+4. **Launch**: Begin operations with minimal upfront costs
+
+## Resources
+
+- **Node Operators**: Upgrade to AvalancheGo v1.12.0+ before December 16, 2024
+- **L1 Developers**: Review ACP-77 documentation for validator management
+- **Community**: Join discussions about L1 sovereignty in the Avalanche Discord
+- **Documentation**: Explore L1 creation guides and migration resources
