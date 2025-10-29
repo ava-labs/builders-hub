@@ -1,0 +1,77 @@
+---
+title: "Cortina: X-Chain Linearization"
+description: The Cortina upgrade brings X-Chain linearization, batched delegator rewards, and increased C-Chain gas limits to the Avalanche Network. Activated April 6, 2023.
+date: 2023-03-30
+authors: [AvaxDevelopers]
+topics: [Network Updates, Cortina Upgrade, X-Chain, P-Chain, C-Chain, Consensus]
+comments: true
+---
+
+![Cortina: X-Chain Linearization](https://www.avax.network/_astro/65ce1a58b0011dc1f9a94e7c_1_CCP-46v8qu_epfQ4oH8fpQ_ZIq1nU.webp)
+
+The Cortina upgrade addresses three core improvements: expanding X-Chain adoption potential, enhancing staking UX on the P-Chain, and enabling sophisticated transactions on the C-Chain. Activation occurred April 6, 2023 at 11 A.M. ET.
+
+## X-Chain Linearization
+
+The protocol transitions from DAG-based Avalanche Consensus to Snowman++ chain-based consensus, creating a totally-ordered blockchain. This migration enables Avalanche Warp Messaging integration and exchange compatibility while maintaining existing transaction APIs.
+
+### Key Benefits
+
+- **Exchange Compatibility**: The linearized X-Chain structure aligns with exchange infrastructure expectations
+- **Warp Messaging Ready**: Prepares the X-Chain for future Avalanche Warp Messaging integration
+- **API Consistency**: All existing transaction APIs remain unchanged
+
+## Batched Delegator Rewards
+
+Rather than distributing individual fee UTXOs per delegation period, the system now batches fees throughout validators' entire staking periods, distributing accumulated rewards upon unstaking.
+
+![Delegator Rewards Diagram](https://images.ctfassets.net/voq4a5ue459o/1f3582ac2c0c7e3dc5ba7b3175a67746/fbba1b9d2db4e6f5d28f4f1915627bfe/642610015bdc6509dbf97bbf_1_54JcPIBMZNU1_bkmOapOrQ.png?w=1600&q=80&fm=webp)
+
+### Advantages
+
+- **Reduced UTXO Bloat**: Eliminates creation of thousands of small UTXOs for active validators
+- **Improved Performance**: Streamlines reward distribution process
+- **Better UX**: Delegators receive consolidated rewards at unstaking
+
+## C-Chain Gas Limit Increase
+
+Block gas limit raised from 8M to 15M gas, allowing more complex dApp transactions while preserving network resource requirements.
+
+### Impact
+
+- **Complex Transactions**: Enables more sophisticated smart contract operations per block
+- **DeFi Support**: Better accommodates complex DeFi protocols and batch operations
+- **No Hardware Changes**: Existing validator hardware specifications remain sufficient
+
+## Upgrade Information
+
+### Node Operators
+
+Node upgrade process is identical to standard updates. Validators risk reward jeopardy if not upgraded before mainnet activation.
+
+**Required Version**: AvalancheGo v1.10.0 or later
+
+**Activation Date**: April 6, 2023 at 11:00 AM ET
+
+### API Usage Example
+
+![API Call Screenshot](https://images.ctfassets.net/voq4a5ue459o/3d4db985173559c8152c66d947eaa8c6/a55abcafa1a6a4fc0d82719ce5185ea9/6426100118a8ff0a95f40712_1_2zL1ZrQY8vKffH9fVcy4Ig.png?w=1600&q=80&fm=webp)
+
+### Hardware Requirements
+
+No changes to hardware requirements. Validators can continue operating with existing infrastructure.
+
+## What This Means for the Ecosystem
+
+The Cortina upgrade represents a significant step in Avalanche's evolution:
+
+1. **Broader Exchange Support**: Linearized X-Chain makes integration easier for centralized exchanges
+2. **Foundation for Future Features**: Prepares infrastructure for Avalanche Warp Messaging
+3. **Enhanced Scalability**: Improved reward system and increased gas limits support network growth
+4. **Developer Flexibility**: Higher gas limits enable more complex smart contract interactions
+
+## Resources
+
+- **Node Operators**: Upgrade to AvalancheGo v1.10.0+ before April 6, 2023
+- **Developers**: No API changes required for existing applications
+- **Community**: Join discussions in the Avalanche Discord and developer forums
