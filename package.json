@@ -3,10 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "tsx ./scripts/generate-api-reference.mts && tsc --noEmit && next build",
+    "build": "tsc --noEmit && next build",
     "dev": "next dev --turbopack",
-    "build:remote": "tsx ./utils/remote-content.mts",
-    "generate:openapi": "tsx ./scripts/generate-api-reference.mts",
+    "build:remote": "tsx ./utils/remote-content.mts && tsx ./scripts/generate-api-reference.mts",
     "start": "pnpm build:remote && next build && next start",
     "check-links": "tsx .github/linkChecker.ts",
     "postinstall": "prisma generate && fumadocs-mdx && node ./scripts/update_docker_tags.mjs",
