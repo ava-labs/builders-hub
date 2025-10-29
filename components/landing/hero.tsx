@@ -187,8 +187,8 @@ export function HeroBackground() {
 
 export default function Hero() {
   return (
-    <section className="min-h-[50vh] w-full flex items-center justify-center relative py-8 lg:py-12">
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="min-h-[50vh] w-full flex items-center justify-center relative py-8 lg:py-12 px-4">
+      <div className="relative z-10 w-full max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           
           {/* Content Section */}
