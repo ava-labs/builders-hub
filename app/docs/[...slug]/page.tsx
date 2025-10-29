@@ -25,6 +25,8 @@ import YouTube from "@/components/content-design/youtube";
 import { Feedback } from "@/components/ui/feedback";
 import { SidebarActions } from "@/components/ui/sidebar-actions";
 import posthog from "posthog-js";
+import { APIPage } from "fumadocs-openapi/ui";
+import { dataApi, metricsApi } from "@/lib/openapi";
 
 export const dynamicParams = false;
 export const revalidate = false;
@@ -53,12 +55,12 @@ export default async function Page(props: {
         single: false,
         footer: (
           <>
-            <SidebarActions
-              editUrl={editUrl}
-              title={(page.data.title as string) || "Untitled"}
-              pagePath={`/${params.slug.join("/")}`}
-              pageType="docs"
-            />
+        <SidebarActions
+          editUrl={editUrl}
+          title={(page.data.title as string) || "Untitled"}
+          pagePath={`/${params.slug.join("/")}`}
+          pageType="docs"
+        />
             <BackToTop />
           </>
         ),
@@ -91,6 +93,12 @@ export default async function Page(props: {
             File,
             Folder,
             Files,
+            APIPage: (props: any) => {
+              // Determine which API instance to use based on the document URL
+              const isMetricsApi = props.document?.includes('popsicle-api.avax.network');
+              const apiInstance = isMetricsApi ? metricsApi : dataApi;
+              return <APIPage {...apiInstance.getAPIPageProps(props)} />;
+            },
             blockquote: Callout as unknown as FC<ComponentProps<"blockquote">>,
           }}
         />

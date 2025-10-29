@@ -175,16 +175,27 @@ content/docs/acps/83-dynamic-multidimensional-fees.mdx
 content/docs/acps/84-table-preamble.mdx
 content/docs/acps/99-validatorsetmanager-contract.mdx
 content/docs/acps/index.mdx
-content/docs/api-reference/admin-api.mdx
-content/docs/api-reference/c-chain/api.mdx
-content/docs/api-reference/health-api.mdx
-content/docs/api-reference/index-api.mdx
-content/docs/api-reference/info-api.mdx
-content/docs/api-reference/metrics-api.mdx
-content/docs/api-reference/p-chain/api.mdx
-content/docs/api-reference/proposervm-api.mdx
-content/docs/api-reference/subnet-evm-api.mdx
-content/docs/api-reference/x-chain/api.mdx
+# Generated OpenAPI documentation (auto-generated during build)
+content/docs/api-reference/data-api/**/*.mdx
+content/docs/api-reference/data-api/**/meta.json
+!content/docs/api-reference/data-api/meta.json
+!content/docs/api-reference/data-api/index.mdx
+content/docs/api-reference/metrics-api/**/*.mdx
+content/docs/api-reference/metrics-api/**/meta.json
+!content/docs/api-reference/metrics-api/meta.json
+!content/docs/api-reference/metrics-api/index.mdx
+
+# Generated RPC API docs (remote content)
+content/docs/api-reference/rpc-api/admin-api.mdx
+content/docs/api-reference/rpc-api/c-chain/api.mdx
+content/docs/api-reference/rpc-api/health-api.mdx
+content/docs/api-reference/rpc-api/index-api.mdx
+content/docs/api-reference/rpc-api/info-api.mdx
+content/docs/api-reference/rpc-api/metrics-api.mdx
+content/docs/api-reference/rpc-api/p-chain/api.mdx
+content/docs/api-reference/rpc-api/proposervm-api.mdx
+content/docs/api-reference/rpc-api/subnet-evm-api.mdx
+content/docs/api-reference/rpc-api/x-chain/api.mdx
 content/docs/avalanche-l1s/evm-configuration/warpmessenger.mdx
 content/docs/avalanche-l1s/validator-manager/contract.mdx
 content/docs/cross-chain/avalanche-warp-messaging/deep-dive.mdx

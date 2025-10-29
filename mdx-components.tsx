@@ -19,6 +19,8 @@ import Gallery from "@/components/content-design/gallery";
 import { cn } from "@/utils/cn";
 import { BadgeCheck } from "lucide-react";
 import dynamic from "next/dynamic";
+import { APIPage } from 'fumadocs-openapi/ui';
+import { dataApi, metricsApi } from "./lib/openapi";
 
 const Mermaid = dynamic(() => import("@/components/content-design/mermaid"), {
   ssr: false,
@@ -44,6 +46,12 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     TypeTable,
     Step,
     Steps,
+    APIPage: (props: any) => {
+      // Determine which API instance to use based on the document URL
+      const isMetricsApi = props.document?.includes('popsicle-api.avax.network');
+      const apiInstance = isMetricsApi ? metricsApi : dataApi;
+      return <APIPage {...apiInstance.getAPIPageProps(props)} />;
+    },
     Accordion,
     Accordions,
     YouTube,

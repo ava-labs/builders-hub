@@ -1,3 +1,5 @@
+@import 'fumadocs-openapi/css/preset.css';
+
 /* Force ONLY main navbar to extend to left edge - DOCS PAGE ONLY */
 body {
   padding-left: 0 !important;

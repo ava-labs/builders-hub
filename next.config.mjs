@@ -9,6 +9,7 @@ const config = {
     'ts-morph',
     'typescript',
     'twoslash',
+    'shiki',
   ],
   env: {
     APIKEY: process.env.APIKEY,
@@ -48,22 +49,23 @@ const config = {
   },
   async rewrites() {
     return [
-      {
-        source: '/mintlify-assets/:path*',
-        destination: 'https://developers.avacloud.io/mintlify-assets/:path*',
-      },
-      {
-        source: '/_mintlify/:path*',
-        destination: 'https://developers.avacloud.io/_mintlify/:path*',
-      },
-      {
-        source: '/docs/api-reference',
-        destination: 'https://developers.avacloud.io',
-      },
-      {
-        source: '/docs/api-reference/:path*',
-        destination: 'https://developers.avacloud.io/:path*',
-      },
+      // COMMENTED OUT: Now using native fumadocs OpenAPI implementation
+      // {
+      //   source: '/mintlify-assets/:path*',
+      //   destination: 'https://developers.avacloud.io/mintlify-assets/:path*',
+      // },
+      // {
+      //   source: '/_mintlify/:path*',
+      //   destination: 'https://developers.avacloud.io/_mintlify/:path*',
+      // },
+      // {
+      //   source: '/docs/api-reference',
+      //   destination: 'https://developers.avacloud.io',
+      // },
+      // {
+      //   source: '/docs/api-reference/:path*',
+      //   destination: 'https://developers.avacloud.io/:path*',
+      // },
       {
         source: '/docs/:path*.mdx',
         destination: '/llms.mdx/docs/:path*',

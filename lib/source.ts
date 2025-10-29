@@ -7,6 +7,7 @@ import {
 import { createElement } from 'react';
 import { icons } from 'lucide-react';
 import { meta, docs, blog as blogs, course, courseMeta, integrations, codebaseEntrepreneur, codebaseEntrepreneurMeta } from '@/.source';
+import { openapiPlugin } from 'fumadocs-openapi/server';
 
 export const documentation = loader({
   baseUrl: '/docs',
@@ -14,6 +15,7 @@ export const documentation = loader({
     if (icon && icon in icons)
       return createElement(icons[icon as keyof typeof icons]);
   },
+  plugins: [openapiPlugin() as any],
   source: createMDXSource(docs, meta as any),
 });
 

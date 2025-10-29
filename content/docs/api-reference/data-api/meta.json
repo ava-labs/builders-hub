@@ -1,0 +1,35 @@
+{
+  "title": "Data API",
+  "description": "Glacier Data API for Avalanche blockchain data",
+  "icon": "Database",
+  "root": true,
+  "pages": [
+    "index",
+    "health-check",
+    "---EVM---",
+    "evm-chains",
+    "evm-blocks",
+    "evm-transactions",
+    "evm-balances",
+    "evm-contracts",
+    "nfts",
+    "---Primary Network---",
+    "primary-network",
+    "primary-network-blocks",
+    "primary-network-transactions",
+    "primary-network-balances",
+    "primary-network-utxos",
+    "primary-network-vertices",
+    "primary-network-rewards",
+    "---ICM Services---",
+    "teleporter",
+    "interchain-messaging",
+    "---Utilities---",
+    "webhooks",
+    "operations",
+    "signature-aggregator",
+    "data-api-usage-metrics",
+    "avax-supply"
+  ]
+}
+
