@@ -19,7 +19,8 @@ export default function AvalancheGoDockerPrimaryNetwork() {
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
     const [pruningEnabled, setPruningEnabled] = useState<boolean>(true);
     const [nodeIsReady, setNodeIsReady] = useState<boolean>(false);
-    const [minDelayTarget, setMinDelayTarget] = useState<number>(500);
+    const [minDelayTarget, setMinDelayTarget] = useState<number | null>(null);
+    const [enableMinDelay, setEnableMinDelay] = useState<boolean>(false);
 
     const { avalancheNetworkID } = useWalletStore();
 
@@ -36,19 +37,20 @@ export default function AvalancheGoDockerPrimaryNetwork() {
                 enableDebugTrace,
                 pruningEnabled,
                 true, // isPrimaryNetwork = true
-                isRPC ? null : minDelayTarget // Pass minDelayTarget only for validators
+                isRPC ? null : (enableMinDelay ? minDelayTarget : null) // Pass minDelayTarget only for validators when enabled
             ));
         } catch (error) {
             setRpcCommand((error as Error).message);
         }
-    }, [isRPC, avalancheNetworkID, enableDebugTrace, pruningEnabled, minDelayTarget]);
+    }, [isRPC, avalancheNetworkID, enableDebugTrace, pruningEnabled, minDelayTarget, enableMinDelay]);
 
     useEffect(() => {
         if (nodeType === "validator") {
             setDomain("");
             setEnableDebugTrace(false);
             setPruningEnabled(true);
-            setMinDelayTarget(500); // Reset to default for Primary Network
+            setMinDelayTarget(500); // Default value when enabled
+            setEnableMinDelay(false); // Reset to disabled
         }
     }, [nodeType]);
 
@@ -100,24 +102,46 @@ export default function AvalancheGoDockerPrimaryNetwork() {
                         >
                             {/* Min delay target for validator nodes */}
                             {nodeType === "validator" && (
-                                <div className="mt-6">
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Min Delay Target (ms)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={minDelayTarget}
-                                        onChange={(e) => {
-                                            const value = Math.min(1000, Math.max(0, parseInt(e.target.value) || 0));
-                                            setMinDelayTarget(value);
-                                        }}
-                                        min="0"
-                                        max="1000"
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                                    />
-                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                        The minimum delay between blocks (in milliseconds) that this node will attempt to use when creating blocks. Maximum: 1000ms. Default for Primary Network: 500ms.
-                                    </p>
+                                <div className="mt-6 space-y-4">
+                                    <div className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            id="enableMinDelay"
+                                            checked={enableMinDelay}
+                                            onChange={(e) => {
+                                                setEnableMinDelay(e.target.checked);
+                                                if (e.target.checked && minDelayTarget === null) {
+                                                    setMinDelayTarget(500); // Set default when enabling
+                                                }
+                                            }}
+                                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                        />
+                                        <label htmlFor="enableMinDelay" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Configure Min Delay Target
+                                        </label>
+                                    </div>
+
+                                    {enableMinDelay && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Min Delay Target (ms)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={minDelayTarget || 500}
+                                                onChange={(e) => {
+                                                    const value = Math.min(1000, Math.max(0, parseInt(e.target.value) || 0));
+                                                    setMinDelayTarget(value);
+                                                }}
+                                                min="0"
+                                                max="1000"
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                                            />
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                The minimum delay between blocks (in milliseconds) that this node will attempt to use when creating blocks. Maximum: 1000ms. Leave empty to keep default.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </ConfigureNodeType>
