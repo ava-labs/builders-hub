@@ -44,6 +44,10 @@ async function generate() {
     input: ['./public/openapi/popsicle.json'],
   });
 
+  const pChainApi = createOpenAPI({
+    input: ['./public/openapi/platformvm.yaml'],
+  });
+
   // Generate Data API documentation
   await generateFiles({
     input: dataApi,
@@ -63,6 +67,24 @@ async function generate() {
   });
 
   console.log('✅ Generated Metrics API documentation');
+
+  // Generate P-Chain RPC API documentation
+  await generateFiles({
+    input: pChainApi,
+    output: './content/docs/rpcs/p-chain',
+    includeDescription: true,
+    groupBy: 'tag', // Group endpoints by their OpenAPI tags
+  });
+
+  console.log('✅ Generated P-Chain RPC API documentation');
+  
+  // Move webhooks from data-api to webhook-api
+  console.log('\n🔧 Moving webhooks to webhook-api...');
+  execSync('tsx scripts/move-webhooks.mts', { stdio: 'inherit' });
+  
+  // Reorder Data API sections (move signature-aggregator to ICM Services)
+  console.log('\n🔧 Reordering Data API sections...');
+  execSync('tsx scripts/reorder-data-api-sections.mts', { stdio: 'inherit' });
   
   // Clean up empty sections from meta.json
   console.log('\n🔧 Cleaning up meta.json files...');

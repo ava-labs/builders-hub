@@ -23,10 +23,9 @@
     "primary-network-rewards",
     "---ICM Services---",
     "interchain-messaging",
-    "---Utilities---",
-    "webhooks",
-    "operations",
     "signature-aggregator",
+    "---Utilities---",
+    "operations",
     "data-api-usage-metrics",
     "avax-supply"
   ]

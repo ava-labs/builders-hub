@@ -135,8 +135,11 @@
             "in": "query",
             "description": "A page token, received from a previous list call. Provide this to retrieve the subsequent page.",
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "example": "",
+              "default": ""
+            },
+            "example": ""
           },
           {
             "name": "network",
@@ -433,8 +436,11 @@
             "in": "query",
             "description": "A page token, received from a previous list call. Provide this to retrieve the subsequent page.",
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "example": "",
+              "default": ""
+            },
+            "example": ""
           },
           {
             "name": "pageSize",
@@ -749,8 +755,11 @@
             "in": "query",
             "description": "A page token, received from a previous list call. Provide this to retrieve the subsequent page.",
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "example": "",
+              "default": ""
+            },
+            "example": ""
           },
           {
             "name": "pageSize",
@@ -1097,8 +1106,11 @@
             "in": "query",
             "description": "A page token, received from a previous list call. Provide this to retrieve the subsequent page.",
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "example": "",
+              "default": ""
+            },
+            "example": ""
           },
           {
             "name": "pageSize",
@@ -1859,8 +1871,11 @@
             "in": "query",
             "description": "A page token, received from a previous list call. Provide this to retrieve the subsequent page.",
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "example": "",
+              "default": ""
+            },
+            "example": ""
           },
           {
             "name": "pageSize",
@@ -2053,8 +2068,11 @@
             "in": "query",
             "description": "A page token, received from a previous list call. Provide this to retrieve the subsequent page.",
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "example": "",
+              "default": ""
+            },
+            "example": ""
           },
           {
             "name": "pageSize",
@@ -2225,8 +2243,11 @@
             "in": "query",
             "description": "A page token, received from a previous list call. Provide this to retrieve the subsequent page.",
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "example": "",
+              "default": ""
+            },
+            "example": ""
           },
           {
             "name": "pageSize",
@@ -2389,8 +2410,11 @@
             "in": "query",
             "description": "A page token, received from a previous list call. Provide this to retrieve the subsequent page.",
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "example": "",
+              "default": ""
+            },
+            "example": ""
           },
           {
             "name": "pageSize",
@@ -4127,7 +4151,9 @@
         "properties": {
           "pageToken": {
             "type": "string",
-            "description": "A page token, received from a previous list call. Provide this to retrieve the subsequent page."
+            "description": "A page token, received from a previous list call. Provide this to retrieve the subsequent page.",
+            "example": "",
+            "default": ""
           },
           "pageSize": {
             "type": "integer",

@@ -26,7 +26,7 @@ import { Feedback } from "@/components/ui/feedback";
 import { SidebarActions } from "@/components/ui/sidebar-actions";
 import posthog from "posthog-js";
 import { APIPage } from "fumadocs-openapi/ui";
-import { dataApi, metricsApi } from "@/lib/openapi";
+import { dataApi, metricsApi, pChainApi } from "@/lib/openapi";
 
 export const dynamicParams = false;
 export const revalidate = false;
@@ -94,9 +94,20 @@ export default async function Page(props: {
             Folder,
             Files,
             APIPage: (props: any) => {
-              // Determine which API instance to use based on the document URL
+              // Determine which API instance to use based on the page path
+              const pagePath = params.slug.join('/');
               const isMetricsApi = props.document?.includes('popsicle-api.avax.network');
-              const apiInstance = isMetricsApi ? metricsApi : dataApi;
+              const isPChainApi = pagePath.includes('rpcs/p-chain');
+              
+              let apiInstance;
+              if (isPChainApi) {
+                apiInstance = pChainApi;
+              } else if (isMetricsApi) {
+                apiInstance = metricsApi;
+              } else {
+                apiInstance = dataApi;
+              }
+              
               return <APIPage {...apiInstance.getAPIPageProps(props)} />;
             },
             blockquote: Callout as unknown as FC<ComponentProps<"blockquote">>,

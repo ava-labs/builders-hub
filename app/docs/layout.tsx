@@ -3,6 +3,7 @@ import { baseOptions } from '@/app/layout.config';
 import { 
   getDocumentationTree,
   getApiReferenceTree,
+  getRpcsTree,
   getToolingTree,
   getAcpsTree
 } from '@/lib/source';
@@ -15,6 +16,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   // Generate all filtered trees server-side
   const documentationTree = getDocumentationTree();
   const apiReferenceTree = getApiReferenceTree();
+  const rpcsTree = getRpcsTree();
   const toolingTree = getToolingTree();
   const acpsTree = getAcpsTree();
 
@@ -23,6 +25,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       <DocsLayoutWrapper
         documentationTree={documentationTree}
         apiReferenceTree={apiReferenceTree}
+        rpcsTree={rpcsTree}
         toolingTree={toolingTree}
         acpsTree={acpsTree}
       >

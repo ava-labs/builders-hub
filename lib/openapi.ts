@@ -13,3 +13,8 @@ export const metricsApi = createOpenAPI({
   // Use our proxy to filter out empty query parameters
   proxyUrl: '/api/openapi-proxy',
 });
+
+export const pChainApi = createOpenAPI({
+  // P-Chain RPC API
+  input: ['./public/openapi/platformvm.yaml'],
+});

@@ -44,12 +44,17 @@ async function cleanupGeneratedFiles() {
     'Data API'
   );
 
+  const webhookApiRemoved = cleanupGeneratedEndpoints(
+    'content/docs/api-reference/webhook-api',
+    'Webhook API'
+  );
+
   const metricsApiRemoved = cleanupGeneratedEndpoints(
     'content/docs/api-reference/metrics-api',
     'Metrics API'
   );
 
-  const totalRemoved = dataApiRemoved + metricsApiRemoved;
+  const totalRemoved = dataApiRemoved + webhookApiRemoved + metricsApiRemoved;
   console.log(`\n✅ Cleaned up ${totalRemoved} directories in total!`);
 }
 

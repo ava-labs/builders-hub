@@ -175,6 +175,10 @@ content/docs/acps/83-dynamic-multidimensional-fees.mdx
 content/docs/acps/84-table-preamble.mdx
 content/docs/acps/99-validatorsetmanager-contract.mdx
 content/docs/acps/index.mdx
+# Generated OpenAPI specs (fetched during build)
+public/openapi/glacier.json
+public/openapi/popsicle.json
+
 # Generated OpenAPI documentation (auto-generated during build)
 content/docs/api-reference/data-api/**/*.mdx
 content/docs/api-reference/data-api/**/meta.json
@@ -184,18 +188,30 @@ content/docs/api-reference/metrics-api/**/*.mdx
 content/docs/api-reference/metrics-api/**/meta.json
 !content/docs/api-reference/metrics-api/meta.json
 !content/docs/api-reference/metrics-api/index.mdx
+content/docs/api-reference/webhook-api/**/*.mdx
+content/docs/api-reference/webhook-api/**/meta.json
+!content/docs/api-reference/webhook-api/meta.json
+!content/docs/api-reference/webhook-api/index.mdx
 
 # Generated RPC API docs (remote content)
-content/docs/api-reference/rpc-api/admin-api.mdx
-content/docs/api-reference/rpc-api/c-chain/api.mdx
-content/docs/api-reference/rpc-api/health-api.mdx
-content/docs/api-reference/rpc-api/index-api.mdx
-content/docs/api-reference/rpc-api/info-api.mdx
-content/docs/api-reference/rpc-api/metrics-api.mdx
-content/docs/api-reference/rpc-api/p-chain/api.mdx
-content/docs/api-reference/rpc-api/proposervm-api.mdx
-content/docs/api-reference/rpc-api/subnet-evm-api.mdx
-content/docs/api-reference/rpc-api/x-chain/api.mdx
+content/docs/rpcs/other/admin-api.mdx
+content/docs/rpcs/c-chain/api.mdx
+content/docs/rpcs/other/health-api.mdx
+content/docs/rpcs/other/index-api.mdx
+content/docs/rpcs/other/info-api.mdx
+content/docs/rpcs/other/metrics-api.mdx
+content/docs/rpcs/p-chain/api.mdx
+content/docs/rpcs/other/proposervm-api.mdx
+content/docs/rpcs/other/subnet-evm-api.mdx
+content/docs/rpcs/x-chain/api.mdx
+
+# Generated P-Chain RPC API documentation (auto-generated from OpenAPI)
+content/docs/rpcs/p-chain/**/*.mdx
+content/docs/rpcs/p-chain/**/meta.json
+!content/docs/rpcs/p-chain/meta.json
+!content/docs/rpcs/p-chain/index.mdx
+!content/docs/rpcs/p-chain/txn-format.mdx
+!content/docs/rpcs/p-chain/api.mdx
 content/docs/avalanche-l1s/evm-configuration/warpmessenger.mdx
 content/docs/avalanche-l1s/validator-manager/contract.mdx
 content/docs/cross-chain/avalanche-warp-messaging/deep-dive.mdx

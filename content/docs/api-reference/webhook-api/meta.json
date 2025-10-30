@@ -1,0 +1,11 @@
+{
+  "title": "Webhook API",
+  "description": "Webhook API for real-time blockchain notifications",
+  "icon": "Webhook",
+  "root": true,
+  "pages": [
+    "index",
+    "webhooks"
+  ]
+}
+

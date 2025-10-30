@@ -16,13 +16,15 @@ import {
   Server,
   Database,
   Activity,
-  Network
+  Network,
+  Webhook
 } from 'lucide-react';
 
 interface DocsLayoutWrapperProps {
   children: ReactNode;
   documentationTree: any;
   apiReferenceTree: any;
+  rpcsTree: any;
   toolingTree: any;
   acpsTree: any;
 }
@@ -31,6 +33,7 @@ export function DocsLayoutWrapper({
   children,
   documentationTree,
   apiReferenceTree,
+  rpcsTree,
   toolingTree,
   acpsTree,
 }: DocsLayoutWrapperProps) {
@@ -44,6 +47,8 @@ export function DocsLayoutWrapper({
       document.body.setAttribute('data-docs-section', 'acps');
     } else if (pathname.startsWith('/docs/api-reference')) {
       document.body.setAttribute('data-docs-section', 'api-reference');
+    } else if (pathname.startsWith('/docs/rpcs')) {
+      document.body.setAttribute('data-docs-section', 'rpcs');
     } else {
       document.body.setAttribute('data-docs-section', 'documentation');
     }
@@ -129,10 +134,38 @@ export function DocsLayoutWrapper({
       url: '/docs/api-reference/metrics-api',
     },
     {
-      title: 'RPC API',
-      description: 'Remote procedure calls',
+      title: 'Webhook API',
+      description: 'Real-time blockchain notifications',
+      icon: <Webhook className="w-5 h-5" />,
+      url: '/docs/api-reference/webhook-api',
+    },
+  ];
+
+  // RPCs hamburger menu options
+  const rpcsOptions = [
+    {
+      title: 'C-Chain',
+      description: 'Contract Chain RPC methods',
+      icon: <Code className="w-5 h-5" />,
+      url: '/docs/rpcs/c-chain',
+    },
+    {
+      title: 'P-Chain',
+      description: 'Platform Chain RPC methods',
+      icon: <Server className="w-5 h-5" />,
+      url: '/docs/rpcs/p-chain',
+    },
+    {
+      title: 'X-Chain',
+      description: 'Exchange Chain RPC methods',
       icon: <Network className="w-5 h-5" />,
-      url: '/docs/api-reference/rpc-api',
+      url: '/docs/rpcs/x-chain',
+    },
+    {
+      title: 'Other RPCs',
+      description: 'Additional RPC APIs',
+      icon: <Webhook className="w-5 h-5" />,
+      url: '/docs/rpcs/other',
     },
   ];
 
@@ -144,6 +177,11 @@ export function DocsLayoutWrapper({
     pageTree = apiReferenceTree;
     sidebarOptions = {
       tabs: apiReferenceOptions,
+    };
+  } else if (pathname.startsWith('/docs/rpcs')) {
+    pageTree = rpcsTree;
+    sidebarOptions = {
+      tabs: rpcsOptions,
     };
   } else if (pathname.startsWith('/docs/tooling')) {
     pageTree = toolingTree;
@@ -165,10 +203,10 @@ export function DocsLayoutWrapper({
     nav: {
       enabled: false,
     },
-    sidebar: Object.keys(sidebarOptions).length > 0 ? {
+    sidebar: {
       ...sidebarOptions,
       side: 'left', // Open sidebar from left on mobile
-    } : undefined,
+    },
   };
 
   return (

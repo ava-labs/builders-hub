@@ -1,0 +1,7 @@
+{
+  "title": "C-Chain",
+  "description": "Contract Chain RPC methods",
+  "icon": "Code",
+  "root": true,
+  "pages": ["index", "api", "txn-format"]
+}

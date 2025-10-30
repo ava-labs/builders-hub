@@ -48,6 +48,7 @@ export function getDocumentationTree() {
     // Exclude these top-level sections
     return (
       !url.startsWith('/docs/api-reference') &&
+      !url.startsWith('/docs/rpcs') &&
       !url.startsWith('/docs/tooling') &&
       !url.startsWith('/docs/acps')
     );
@@ -59,6 +60,14 @@ export function getApiReferenceTree() {
   return filterTopLevelSections(fullTree, (url) => {
     // Only include api-reference section
     return url.startsWith('/docs/api-reference');
+  });
+}
+
+export function getRpcsTree() {
+  const fullTree = documentation.pageTree;
+  return filterTopLevelSections(fullTree, (url) => {
+    // Only include rpcs section
+    return url.startsWith('/docs/rpcs');
   });
 }
 

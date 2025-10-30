@@ -12,6 +12,7 @@ const tabs = [
       path === '/docs/quick-start' ||
       (path.startsWith('/docs/') && 
        !path.startsWith('/docs/api-reference') && 
+       !path.startsWith('/docs/rpcs') && 
        !path.startsWith('/docs/tooling') && 
        !path.startsWith('/docs/acps'))
   },
@@ -19,6 +20,11 @@ const tabs = [
     label: 'APIs',
     href: '/docs/api-reference',
     pathMatch: (path: string) => path.startsWith('/docs/api-reference')
+  },
+  {
+    label: 'RPCs',
+    href: '/docs/rpcs',
+    pathMatch: (path: string) => path.startsWith('/docs/rpcs')
   },
   {
     label: 'SDKs',

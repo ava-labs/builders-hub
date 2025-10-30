@@ -1,0 +1,20 @@
+{
+  "title": "Other RPCs",
+  "description": "Additional RPC APIs",
+  "icon": "Webhook",
+  "root": true,
+  "pages": [
+    "index",
+    "admin-api",
+    "health-api",
+    "index-api",
+    "info-api",
+    "metrics-api",
+    "proposervm-api",
+    "keystore-api",
+    "subnet-evm-api",
+    "standards",
+    "guides"
+  ]
+}
+
