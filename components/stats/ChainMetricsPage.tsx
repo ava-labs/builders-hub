@@ -484,7 +484,7 @@ export default function ChainMetricsPage({
               return (
                 <div
                   key={item.key}
-                  className="text-center p-4 sm:p-6 rounded-lg bg-card border"
+                  className="text-center p-4 sm:p-6 rounded-lg bg-card border border-gray-200 dark:border-gray-700"
                 >
                   <div className="flex items-center justify-center gap-2 mb-2 sm:mb-3">
                     <Icon
