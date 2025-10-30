@@ -1,7 +1,14 @@
 // Common configuration for Avalanche node setup
 
-import versions from '@/scripts/versions.json';
+import versionsData from '@/scripts/versions.json';
 import { SUBNET_EVM_VM_ID } from '@/constants/console';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+
+// Helper to get network-specific versions
+export const getNetworkVersions = () => {
+  const isTestnet = useWalletStore.getState().isTestnet;
+  return isTestnet ? versionsData.testnet : versionsData.mainnet;
+};
 
 // Constants
 export const C_CHAIN_ID = "C";
@@ -135,6 +142,7 @@ export const generateDockerCommand = (
   ];
 
   // Add the appropriate image based on whether it's Primary Network or L1
+  const versions = getNetworkVersions();
   if (isPrimaryNetwork) {
     chunks.push(`avaplatform/avalanchego:${versions['avaplatform/avalanchego']}`);
   } else {

@@ -1,4 +1,11 @@
-import versions from '@/scripts/versions.json';
+import versionsData from '@/scripts/versions.json';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+
+// Helper to get network-specific versions
+export const getNetworkVersions = () => {
+    const isTestnet = useWalletStore.getState().isTestnet;
+    return isTestnet ? versionsData.testnet : versionsData.mainnet;
+};
 
 export const genConfigCommand = (
     sources: {
@@ -66,6 +73,7 @@ export const genConfigCommand = (
 };
 
 export const relayerDockerCommand = () => {
+    const versions = getNetworkVersions();
     return `docker run --name relayer -d \\
     --restart on-failure  \\
     --user=root \\
