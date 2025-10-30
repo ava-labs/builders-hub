@@ -16,7 +16,7 @@ import { Success } from "@/components/toolbox/components/Success";
 import { nipify, HostInput } from "@/components/toolbox/components/HostInput";
 import { RadioGroup } from "@/components/toolbox/components/RadioGroup";
 import { RPCURLInput } from "@/components/toolbox/components/RPCURLInput";
-import { useWalletStore, useNetworkInfo } from "@/components/toolbox/stores/walletStore";
+import { useNetworkInfo } from "@/components/toolbox/stores/walletStore";
 import { DockerInstallation } from "@/components/toolbox/components/DockerInstallation";
 import { NodeBootstrapCheck } from "@/components/toolbox/components/NodeBootstrapCheck";
 import { Checkbox } from "@/components/toolbox/components/Checkbox";
