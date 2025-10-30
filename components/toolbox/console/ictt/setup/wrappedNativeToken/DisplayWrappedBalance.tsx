@@ -31,39 +31,41 @@ export default function DisplayWrappedBalance({ wrappedNativeTokenAddress, onErr
     const nativeTokenSymbol = cachedNativeCurrency?.symbol || viemChain?.nativeCurrency?.symbol || 'COIN';
     const wrappedTokenSymbol = `W${nativeTokenSymbol}`;
 
-    // Fetch wrapped token balance
-    const fetchWrappedBalance = async () => {
-        if (!wrappedNativeToken.isReady || !walletEVMAddress) return;
-
-        setIsLoading(true);
-        try {
-            const chainIdStr = walletChainId.toString();
-            
-            // Cache native currency info if not already cached
-            if (!cachedNativeCurrency && viemChain?.nativeCurrency) {
-                setNativeCurrencyInfo(walletChainId, viemChain.nativeCurrency);
-            }
-            
-            // Cache the token address if we found one
-            if (wrappedNativeTokenAddress && !cachedWrappedToken) {
-                setWrappedNativeToken(wrappedNativeTokenAddress);
-            }
-
-            // Use the wrapped native token hook to fetch balance
-            const balance = await wrappedNativeToken.balanceOf(walletEVMAddress);
-            setWrappedBalance(balance);
-        } catch (error) {
-            console.error('Error fetching wrapped balance:', error);
-            onError(error instanceof Error ? error : new Error(String(error)));
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     // Fetch balance on mount and when dependencies change
     useEffect(() => {
+        async function fetchWrappedBalance() {
+            if (!wrappedNativeToken.isReady || !walletEVMAddress) return;
+
+            setIsLoading(true);
+            try {
+                const chainIdStr = walletChainId.toString();
+                
+                // Cache native currency info if not already cached
+                if (!cachedNativeCurrency && viemChain?.nativeCurrency) {
+                    setNativeCurrencyInfo(walletChainId, viemChain.nativeCurrency);
+                }
+                
+                // Cache the token address if we found one
+                if (wrappedNativeTokenAddress && !cachedWrappedToken) {
+                    setWrappedNativeToken(wrappedNativeTokenAddress);
+                }
+
+                // Use the wrapped native token hook to fetch balance
+                const balance = await wrappedNativeToken.balanceOf(walletEVMAddress);
+                setWrappedBalance(balance);
+            } catch (error) {
+                console.error('Error fetching wrapped balance:', error);
+                // Don't propagate error to parent - just show 0 balance
+                // This handles cases where the contract doesn't exist or is invalid
+                setWrappedBalance('0');
+            } finally {
+                setIsLoading(false);
+            }
+        }
+
         fetchWrappedBalance();
-    }, [viemChain, walletEVMAddress, wrappedNativeTokenAddress, walletChainId, cachedWrappedToken, cachedNativeCurrency]);
+    }, [wrappedNativeToken.isReady, walletEVMAddress, viemChain, wrappedNativeTokenAddress, walletChainId]);
+    // Note: setNativeCurrencyInfo and setWrappedNativeToken are stable, cachedWrappedToken and cachedNativeCurrency are not in deps to avoid loops
 
     if (isLoading) {
         return (

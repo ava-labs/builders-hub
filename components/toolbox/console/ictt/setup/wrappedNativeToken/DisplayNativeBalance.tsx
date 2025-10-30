@@ -30,7 +30,8 @@ export default function DisplayNativeBalance({ onError }: DisplayNativeBalancePr
         if (!cachedNativeCurrency && viemChain?.nativeCurrency) {
             setNativeCurrencyInfo(walletChainId, viemChain.nativeCurrency);
         }
-    }, [cachedNativeCurrency, viemChain?.nativeCurrency, walletChainId, setNativeCurrencyInfo]);
+    }, [cachedNativeCurrency, viemChain?.nativeCurrency, walletChainId]);
+    // Note: setNativeCurrencyInfo is a stable function from the store and should not be in dependencies
 
     if (isLoading) {
         return (
