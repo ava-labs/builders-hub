@@ -188,21 +188,32 @@ export default function ChainMetricsPage({
   };
 
   const formatTooltipValue = (value: number, metricKey: string): string => {
+    const roundedValue = [
+      "activeAddresses",
+      "activeSenders",
+      "txCount",
+      "cumulativeAddresses",
+      "cumulativeDeployers",
+      "cumulativeTxCount",
+      "cumulativeContracts",
+      "icmMessages"
+    ].includes(metricKey) ? Math.round(value) : value;
+
     switch (metricKey) {
       case "activeAddresses":
-        return `${formatNumber(value)} Active Addresses`;
+        return `${formatNumber(roundedValue)} Active Addresses`;
       case "activeSenders":
-        return `${formatNumber(value)} Active Senders`;
+        return `${formatNumber(roundedValue)} Active Senders`;
       case "txCount":
-        return `${formatNumber(value)} Transactions`;
+        return `${formatNumber(roundedValue)} Transactions`;
       case "cumulativeAddresses":
-        return `${formatNumber(value)} Total Addresses`;
+        return `${formatNumber(roundedValue)} Total Addresses`;
       case "cumulativeDeployers":
-        return `${formatNumber(value)} Total Deployers`;
+        return `${formatNumber(roundedValue)} Total Deployers`;
       case "cumulativeTxCount":
-        return `${formatNumber(value)} Total Transactions`;
+        return `${formatNumber(roundedValue)} Total Transactions`;
       case "cumulativeContracts":
-        return `${formatNumber(value)} Total Contracts`;
+        return `${formatNumber(roundedValue)} Total Contracts`;
       case "gasUsed":
         return formatGas(value);
       case "avgGps":
@@ -220,7 +231,7 @@ export default function ChainMetricsPage({
       case "feesPaid":
         return formatEther(value);
       case "icmMessages":
-        return `${formatNumber(value)} ICM Messages`;
+        return `${formatNumber(roundedValue)} ICM Messages`;
       default:
         return formatNumber(value);
     }
