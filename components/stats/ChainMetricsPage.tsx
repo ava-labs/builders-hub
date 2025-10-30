@@ -775,7 +775,7 @@ function ChartCard({
                     tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
                   />
                   <Tooltip
-                    cursor={false}
+                    cursor={{ fill: `${config.color}20` }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.[0]) return null;
                       const date = new Date(payload[0].payload.day);
@@ -848,7 +848,7 @@ function ChartCard({
                     tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
                   />
                   <Tooltip
-                    cursor={false}
+                    cursor={{ fill: `${config.color}20` }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.[0]) return null;
                       const date = new Date(payload[0].payload.day);
@@ -903,7 +903,11 @@ function ChartCard({
                     tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
                   />
                   <Tooltip
-                    cursor={false}
+                    cursor={{
+                      stroke: config.color,
+                      strokeWidth: 1,
+                      strokeDasharray: "5 5",
+                    }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.[0]) return null;
                       const date = new Date(payload[0].payload.day);
