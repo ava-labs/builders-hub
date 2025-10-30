@@ -7,7 +7,7 @@ import { getBlockchainInfo, getSubnetInfo } from "@/components/toolbox/coreViem/
 import InputChainId from "@/components/toolbox/components/InputChainId";
 import InputSubnetId from "@/components/toolbox/components/InputSubnetId";
 import BlockchainDetailsDisplay from "@/components/toolbox/components/BlockchainDetailsDisplay";
-import versionsData from '@/scripts/versions.json';
+import { getContainerVersions } from '@/components/toolbox/utils/containerVersions';
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { nodeConfigBase64 } from "./config";
@@ -241,7 +241,7 @@ volumes:
 
 export default function BlockScout() {
   const { isTestnet } = useNetworkInfo();
-  const versions = isTestnet ? versionsData.testnet : versionsData.mainnet;
+  const versions = getContainerVersions(isTestnet);
   const dockerComposePsOutput = getDockerComposePsOutput(versions);
 
   const [chainId, setChainId] = useState("");

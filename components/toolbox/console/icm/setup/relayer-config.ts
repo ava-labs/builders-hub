@@ -1,11 +1,4 @@
-import versionsData from '@/scripts/versions.json';
-import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-
-// Helper to get network-specific versions
-export const getNetworkVersions = () => {
-    const isTestnet = useWalletStore.getState().isTestnet;
-    return isTestnet ? versionsData.testnet : versionsData.mainnet;
-};
+import { getContainerVersions } from '@/components/toolbox/utils/containerVersions';
 
 export const genConfigCommand = (
     sources: {
@@ -72,8 +65,8 @@ export const genConfigCommand = (
     return `mkdir -p ~/.icm-relayer && echo '${configStr}' > ~/.icm-relayer/config.json`;
 };
 
-export const relayerDockerCommand = () => {
-    const versions = getNetworkVersions();
+export const relayerDockerCommand = (isTestnet: boolean) => {
+    const versions = getContainerVersions(isTestnet);
     return `docker run --name relayer -d \\
     --restart on-failure  \\
     --user=root \\
