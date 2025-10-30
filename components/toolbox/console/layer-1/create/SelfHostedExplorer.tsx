@@ -223,7 +223,7 @@ services:
       AVAGO_HTTP_HOST: "0.0.0.0"
       AVAGO_TRACK_SUBNETS: "${config.subnetId}" 
       AVAGO_HTTP_ALLOWED_HOSTS: "*"
-      AVAGO_CHAIN_CONFIG_CONTENT: "${nodeConfigBase64(config.blockchainId, true, false)}"
+      AVAGO_CHAIN_CONFIG_CONTENT: "${nodeConfigBase64(config.blockchainId, true, false, null)}"
     logging:
       driver: json-file
       options:
