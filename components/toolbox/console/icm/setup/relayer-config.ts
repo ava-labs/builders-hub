@@ -1,4 +1,4 @@
-import versions from '@/scripts/versions.json';
+import { getContainerVersions } from '@/components/toolbox/utils/containerVersions';
 
 export const genConfigCommand = (
     sources: {
@@ -65,7 +65,8 @@ export const genConfigCommand = (
     return `mkdir -p ~/.icm-relayer && echo '${configStr}' > ~/.icm-relayer/config.json`;
 };
 
-export const relayerDockerCommand = () => {
+export const relayerDockerCommand = (isTestnet: boolean) => {
+    const versions = getContainerVersions(isTestnet);
     return `docker run --name relayer -d \\
     --restart on-failure  \\
     --user=root \\
