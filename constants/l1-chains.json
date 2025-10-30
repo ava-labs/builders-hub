@@ -18,7 +18,7 @@
   {
     "chainId": "4313",
     "chainName": "Artery",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/7plQHTCA1MePklfF2lDgaE/1f4d00bf534a1ae180b3ea1de76308c8/SLIR8rz7_400x400.jpg",
     "subnetId": "25VdGtdQPejyffNLpTqh4BH2NABXT8Zxup6ee3B4htrMryofUB",
     "slug": "artery",
     "color": "#8B5CF6"
@@ -34,7 +34,7 @@
   {
     "chainId": "43114",
     "chainName": "Avalanche C-Chain",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
     "subnetId": "11111111111111111111111111111111LpoYY",
     "slug": "c-chain",
     "color": "#E57373"
@@ -58,7 +58,7 @@
   {
     "chainId": "4337",
     "chainName": "Beam",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/2ZXZw0POSuXhwoGTiv2fzh/5b9d9e81acb434461da5addb1965f59d/chain-logo.png",
     "subnetId": "eYwmVU67LmSfZb1RwqCMhBYkFyG8ftxn6jAwqzFmxC9STBWLC",
     "slug": "beam",
     "color": "#14B8A6"
@@ -74,7 +74,7 @@
   {
     "chainId": "46975",
     "chainName": "Blaze",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/6Whg7jeebEhQfwGAXEsGVh/ecbb11c6c54af7ff3766b58433580721/2025-04-10_16.28.46.jpg",
     "subnetId": "j6HXQWdpRhX7yHMWLehUyYDjypHa455vP5tuiXZ81nkPgveFV",
     "slug": "blaze",
     "color": "#EF4444"
@@ -82,7 +82,7 @@
   {
     "chainId": "1344",
     "chainName": "Blitz",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5ZhwQeXUwtVZPIRoWXhgrw/03d0ed1c133e59f69bcef52e27d1bdeb/image__2___2_.png",
     "subnetId": "yPUx56ffTBML1QfomcBvwfBxfE3LSgqkBNfxTCpx5dr4NNFGB",
     "slug": "blitz",
     "color": "#A855F7"
@@ -90,7 +90,7 @@
   {
     "chainId": "28530",
     "chainName": "BTIC",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/36pifYYyfEVzkW3jCisM2u/c3479f3502db59f18a2d61c988ae66d1/BC_symbol_logo__teal.png",
     "subnetId": "2Ypm6RVhddu5Ps8DEbb35Y1PgX4uXE76yyxn6JMhnZy8ftAFLW",
     "slug": "btic",
     "color": "#06B6D4"
@@ -130,7 +130,7 @@
   {
     "chainId": "42069",
     "chainName": "Coqnet",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/1r0LuDAKrZv9jgKqaeEBN3/9a7efac3099b861366f9e776e6131617/Isotipo_coq.png",
     "subnetId": "5moznRzaAEhzWkNTQVdT1U4Kb9EU7dbsKZQNmHwtN5MGVQRyT",
     "slug": "coqnet",
     "color": "#D946EF"
@@ -138,18 +138,10 @@
   {
     "chainId": "737373",
     "chainName": "CX",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/3wVuWA4oz9iMadkIpywUMM/377249d5b8243e4dfa3a426a1af5eaa5/14.png",
     "subnetId": "WChFQ1twkXBLxZGo4qojC9AgizFrRdMRnPCK9FZmisY7z6pUs",
     "slug": "cx",
     "color": "#F59E0B"
-  },
-  {
-    "chainId": "707070",
-    "chainName": "CX Chain",
-    "chainLogoURI": "",
-    "subnetId": "yD6k6gVKmzFbefPcdYjsJz17KVQFSivTR1emJ5cTBvq2d8MRg",
-    "slug": "cxchain",
-    "color": "#3B82F6"
   },
   {
     "chainId": "326663",
@@ -186,7 +178,7 @@
   {
     "chainId": "432204",
     "chainName": "Dexalot",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/6tKCXL3AqxfxSUzXLGfN6r/be31715b87bc30c0e4d3da01a3d24e9a/dexalot-subnet.png",
     "subnetId": "wenKDikJWAYQs3f2v9JhV86fC6kHZwkFZsuUBftnmgZ4QXPnu",
     "slug": "dexalot",
     "color": "#F59E0B"
@@ -194,7 +186,7 @@
   {
     "chainId": "202110",
     "chainName": "Dinari Financial Network",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
     "subnetId": "2Ee4oBUute1PV5XaeS4b256eLH98r4NE8YgzX5nSX4cUxvtgre",
     "slug": "dinari-financial-network",
     "color": "#E57373"
@@ -202,7 +194,7 @@
   {
     "chainId": "53935",
     "chainName": "DeFi Kingdoms",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/6ee8eu4VdSJNo93Rcw6hku/2c6c5691e8a7c3b68654e5a4f219b2a2/chain-logo.png",
     "subnetId": "Vn3aX6hNRstj5VHHm63TCgPNaeGnRSqCYXQqemSqDd2TQH4qJ",
     "slug": "defikingdoms",
     "color": "#EC4899"
@@ -218,7 +210,7 @@
   {
     "chainId": "389",
     "chainName": "ETX",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
     "subnetId": "q54cgHa9RN2NFp9qsfpPzVkhgn8xqDgKEQR1G997xZ1P5Dc8o",
     "slug": "etx",
     "color": "#14B8A6"
@@ -226,7 +218,7 @@
   {
     "chainId": "33345",
     "chainName": "Even",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
     "subnetId": "VsxF67NQTACc2fLQL9fD3F8LzJ5eezcSGFNitGsk7VxKbPwcD",
     "slug": "even",
     "color": "#F97316"
@@ -234,7 +226,7 @@
   {
     "chainId": "33311",
     "chainName": "Feature",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/2hWSbxXPv2QTPCtCaEp7Kp/522b520e7e5073f7e7459f9bd581bafa/FTR_LOGO_-_FLAT_BLACK.png",
     "subnetId": "29p4FdSKaXQPyw8sqhzJSK37FXuPHdyECau186qZSUNRhk3QuB",
     "slug": "feature",
     "color": "#EF4444"
@@ -242,7 +234,7 @@
   {
     "chainId": "13322",
     "chainName": "FIFA",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/27QiWdtdwCaIeFbYhA47KG/5b4245767fc39d68b566f215e06c8f3a/FIFA_logo.png",
     "subnetId": "h7egyVb6fKHMDpVaEsTEcy7YaEnXrayxZS4A1AEU4pyBzmwGp",
     "slug": "fifa",
     "color": "#A855F7"
@@ -258,7 +250,7 @@
   {
     "chainId": "62789",
     "chainName": "Frqtalnet",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
     "subnetId": "5vcCHz5fgd1hWyXaKiLnMAVjmh4qW7yFxNbASBjxCXZYE445N",
     "slug": "frqtalnet",
     "color": "#84CC16"
@@ -290,7 +282,7 @@
   {
     "chainId": "43419",
     "chainName": "Gunzilla",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/3z2BVey3D1mak361p87Vu/ca7191fec2aa23dfa845da59d4544784/unnamed.png",
     "subnetId": "2MbQjnTg3yxEtZBfnamboi7K9AajwNq7WExiwReBQSBtwbBVer",
     "slug": "gunzilla",
     "color": "#D946EF"
@@ -304,9 +296,17 @@
     "color": "#F59E0B"
   },
   {
+    "chainId": "7272",
+    "chainName": "Hashfire",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/4TCWxdtzvtZ8iD4255nAgU/e4d12af0a594bcf38b53a27e6beb07a3/FlatIcon_Large_.png",
+    "subnetId": "2LwJgsZLT52eAaxLTMLtBQeiUnEZuMibCqpAzJSQWHvRPs1iWN",
+    "slug": "hashfire",
+    "color": "#F59E0B"
+  },
+  {
     "chainId": "68414",
     "chainName": "Henesys",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/Uu31h98BapTCwbhHGBtFu/6b72f8e30337e4387338c82fa0e1f246/MSU_symbol.png",
     "subnetId": "jmLmezoViv3F72XLzpdmSNk3qLEGb72g5EYkp3ij4wHXPF2KN",
     "slug": "henesys",
     "color": "#3B82F6"
@@ -328,6 +328,14 @@
     "color": "#3B82F6"
   },
   {
+    "chainId": "10036",
+    "chainName": "Innovo Markets Mainnet L1",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5wd9o1kxI1nG0Kb2LrEooJ/9e14075a20dc67c4ba5ab0ca404192b8/1675173474597.png",
+    "subnetId": "oerPWBbtbe13eWbo3AegYUrHuSETeTwyNy7szoHJJ1QQBL9nu",
+    "slug": "innovo",
+    "color": "#3B82F6"
+  },
+  {
     "chainId": "151122",
     "chainName": "Intain Market",
     "chainLogoURI": "",
@@ -346,7 +354,7 @@
   {
     "chainId": "6533",
     "chainName": "Kali Chain",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/r9EB5XcOIS39mZlXrFAsO/9bb66b54f61d0566588056782865aed2/logoKalichain.png",
     "subnetId": "x1C95jnFyLV3x8tiiCW7ZFRoRFgq9SX1Yprwfxx4GCTujggYB",
     "slug": "kalichain",
     "color": "#F59E0B"
@@ -362,18 +370,34 @@
   {
     "chainId": "10849",
     "chainName": "Lamina1",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5KPky47nVRvtHKYV0rQy5X/e0d153df56fd1eac204f58ca5bc3e133/L1-YouTube-Avatar.png",
     "subnetId": "2hoHzxcZktxrTNoqCZhR9bEctc5oCuBqSp6SpRn6uvwxzLkvnD",
     "slug": "lamina1",
     "color": "#EC4899"
   },
   {
+    "chainId": "10850",
+    "chainName": "Lamina1 Identity L1",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/4ihNeP5Qo9diLy0y6ouG3L/8c656592cc45f820188fb647f1a178f2/L1-YouTube-Avatar.png",
+    "subnetId": "2T4gpnissLkoezQ36XKxhrFAH5yynqKGa1u47XxCYTdfvePuNz",
+    "slug": "lamina1id",
+    "color": "#EC4899"
+  },
+  {
     "chainId": "50776",
     "chainName": "LetsbuyHC",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
     "subnetId": "f6ewGNYxGRjQ1SFfhL2tiHCMHzz9AHdTuPe11dRNarGbp3dES",
     "slug": "letsbuyhc",
     "color": "#6366F1"
+  },
+  {
+    "chainId": "72379",
+    "chainName": "Loyal",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "subnetId": "fZu9D9Ldxq9svbgRNdycWCSbLyEZLmTfKNxEnSqF3UXQztHP7",
+    "slug": "loyal",
+    "color": "#F97316"
   },
   {
     "chainId": "62521",
@@ -386,7 +410,7 @@
   {
     "chainId": "17177",
     "chainName": "Lylty",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/B1sZPnAmwB0v26VmFW0oB/80596b43abce7f22384a30ce99e3a6ab/fanhub_thirdweb_icon.png",
     "subnetId": "2iumcj2wiV9BQ96LRHpYNpD1SHhb8Vcvm8YUebZSqcFeJakTo6",
     "slug": "lylty",
     "color": "#F97316"
@@ -442,7 +466,7 @@
   {
     "chainId": "8021",
     "chainName": "Numi",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/411JTIUnbER3rI5dpOR54Y/3c0a8e47d58818a66edd868d6a03a135/numine_main_icon.png",
     "subnetId": "2nCzBViQ5jxLaxkg9TABx6oXu1UGU7chM7G6XzPvW9ehP8RfrJ",
     "slug": "numi",
     "color": "#22C55E"
@@ -490,7 +514,7 @@
   {
     "chainId": "3011",
     "chainName": "Playa3ull",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/27mn0a6a5DJeUxcJnZr7pb/8a28d743d65bf35dfbb2e63ba2af7f61/brandmark_-_square_-_Sam_Thompson.png",
     "subnetId": "2wLe8Ma7YcUmxMJ57JVWETMSHz1mjXmJc5gmssvKm3Pw8GkcFq",
     "slug": "playa3ull",
     "color": "#10B981"
@@ -514,7 +538,7 @@
   {
     "chainId": "16180",
     "chainName": "PLYR",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5K1xUbrhZPhSOEtsHoghux/b64edf007db24d8397613f7d9338260a/logomark_fullorange.svg",
     "subnetId": "axp7DUSPvFghTM883ug2B8btAReBAACxD1VyENmRDStH4Lfed",
     "slug": "plyr",
     "color": "#E57373"
@@ -528,9 +552,17 @@
     "color": "#EC4899"
   },
   {
+    "chainId": "77757",
+    "chainName": "QR0723T1MS",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "subnetId": "TsijYHafTXCUZGoisGnMorh2HGwY9Vg2YzviEo8nrmtZZESp9",
+    "slug": "qr0723t1ms",
+    "color": "#F59E0B"
+  },
+  {
     "chainId": "12150",
     "chainName": "Quboid Chain",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5jRNt6keCaCe0Z35ZQbwtL/94f81aa95f9d9229111693aa6a705437/Quboid_Logo.jpg",
     "subnetId": "26wQKuvA5kjwrKDaje7nmuJAx6Ke2bGvDDr3EiypNr53rH1pMc",
     "slug": "qchain",
     "color": "#6366F1"
@@ -538,7 +570,7 @@
   {
     "chainId": "2044",
     "chainName": "Shrapnel",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/3vru4toe9KAyUXpn5XQthq/714286de3f35ee92426853037e985f77/chain-logo.png",
     "subnetId": "Cv1gyKNUtPNAtFw8YcjbsD4a3HNRbNvinY7t2gnGK4J54rQK3",
     "slug": "shrapnel",
     "color": "#14B8A6"
@@ -546,7 +578,7 @@
   {
     "chainId": "6119",
     "chainName": "SK Planet",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5jmuPVLmmUSDrfXxbIrWwo/4bdbe8d55b775b613156760205d19f9f/symbol_UPTN_-_js_won.png",
     "subnetId": "yDxaSh2hoVxQKRHmacV1xFpuSgHf6Q6cCMu4v3GoLQnqQWk6L",
     "slug": "skplanet",
     "color": "#F97316"
@@ -562,7 +594,7 @@
   {
     "chainId": "8227",
     "chainName": "Space",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/27oUMNb9hSTA7HfFRnqUtZ/2f80e6b277f4b4ee971675b5f73c06bf/Space_Symbol_256X256__v2.svg",
     "subnetId": "hkugVjqegihrQcggCnScNW8yQctyY7Z7oj2Mj5tGxWGXNa5iQ",
     "slug": "space",
     "color": "#A855F7"
@@ -578,7 +610,7 @@
   {
     "chainId": "5566",
     "chainName": "StraitsX",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/3jGGJxIwb3GjfSEJFXkpj9/2ea8ab14f7280153905a29bb91b59ccb/icon.png",
     "subnetId": "2W9sERL7Zf7NrWpz7Bzg3fKSEt46gSQaKAU7ntTMSShLy64yMz",
     "slug": "straitsx",
     "color": "#84CC16"
@@ -602,7 +634,7 @@
   {
     "chainId": "61587",
     "chainName": "TGP",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/76IPuyrLUYnK0VgueFSi7M/aee8e71bbc409578afcb1ab13593da43/TGP_Logo_Short_-_Straight_BG.png",
     "subnetId": "2eq3DtJp4cWzvGd8Q3ZFo8VpZmmD235Xoxgq6CmX8anZ69M54",
     "slug": "tgp",
     "color": "#22C55E"
@@ -610,7 +642,7 @@
   {
     "chainId": "710420",
     "chainName": "Tiltyard",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5iZkicfOvjuwJYQqqCQN4y/9bdb761652d929459610c8b2da862cd5/android-chrome-512x512.png",
     "subnetId": "23LsHpx3wTPtNC4PUaTdtNQkaGbLxwiGimnZjHaUc28qLHs7Dn",
     "slug": "tiltyard",
     "color": "#D946EF"
@@ -618,7 +650,7 @@
   {
     "chainId": "84358",
     "chainName": "Titan",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5m6pgoG1znzD3CA0HEh7D0/6850391f9ba90d9a97e37790b32f89ba/TITAN_mainnet_logo.png",
     "subnetId": "2LbGgyVZE5aMMYPp3h1F2MkKbjefR51nSZWaZzarDZf8GThCcX",
     "slug": "titan",
     "color": "#F59E0B"
@@ -626,7 +658,7 @@
   {
     "chainId": "13790",
     "chainName": "Tixchain",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/3vVAZlWMvseaIUrzOruj87/a75c589d46548fde238ad3a48dc3cbf1/tixbase.jpg",
     "subnetId": "2BLtazsGwYAFEHpvZQGQUPavjQZ2YUqpvfYPdAdTtKpJ1m3eRK",
     "slug": "tixchain",
     "color": "#3B82F6"
@@ -638,6 +670,14 @@
     "subnetId": "JD8MbaUp75twdVJ7A4j2ryk7gFJ8FCgQeNLhvDv3y4up9bExp",
     "slug": "trx",
     "color": "#10B981"
+  },
+  {
+    "chainId": "62334",
+    "chainName": "Turf Network",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/2OGwSmo36iWhvmPfgUUnEb/0812275eac56a8d82907fb96d96002bc/with_green_background.png",
+    "subnetId": "7e3ziXMNuq29Y6nBBvWQZYAWYKyvhN5bhvmoNquNEbvFR51ad",
+    "slug": "turf",
+    "color": "#22C55E"
   },
   {
     "chainId": "237007",
@@ -654,6 +694,14 @@
     "subnetId": "kf1sMrGJSA2x9yZfvjBJCHu3ZdTievrCyrbEEPKXbHMH2tXuA",
     "slug": "v1migrate",
     "color": "#10B981"
+  },
+  {
+    "chainId": "299792",
+    "chainName": "WARP Gaming",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "subnetId": "9L3hT5PtJVhiyJt1FHVqeJKtguyTM7V98KZobBeCUhYCQEHeQ",
+    "slug": "warp",
+    "color": "#F59E0B"
   },
   {
     "chainId": "192",
@@ -680,9 +728,17 @@
     "color": "#E57373"
   },
   {
+    "chainId": "61360",
+    "chainName": "Youmio",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "subnetId": "ZjyoAfPS1qaSzLKkCVCc3koXf7KLqop7G9viy93oSkxJf6odZ",
+    "slug": "youmio",
+    "color": "#F59E0B"
+  },
+  {
     "chainId": "27827",
     "chainName": "Zeroone",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/1lOFyhAJ0JkDkAmpeCznxL/9729fd9e4e75009f38a0e2c564259ead/icon-512.png",
     "subnetId": "nKJuE11HePLrmp391sfoFVqZR7Fw5VJ1XjyznsogsjebxwiAg",
     "slug": "zeroonemainnet",
     "color": "#EC4899"
