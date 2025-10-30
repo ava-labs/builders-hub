@@ -40,7 +40,7 @@ function ICMRelayerInner({ onSuccess }: BaseConsoleToolProps) {
     const { notify } = useConsoleNotifications();
     const { setHighlightPath, clearHighlight, highlightPath } = useGenesisHighlight();
     const { privateKey, relayerAddress } = useRelayerKey();
-    
+
     const [selectedSources, setSelectedSources] = useState<string[]>(() => {
         return [...new Set([selectedL1?.id, l1List[0]?.id].filter(Boolean) as string[])];
     });
@@ -128,7 +128,7 @@ function ICMRelayerInner({ onSuccess }: BaseConsoleToolProps) {
     const configJson = useMemo(() => {
         const sources = getConfigSources();
         const destinations = getConfigDestinations();
-        
+
         if (sources.length === 0 || destinations.length === 0) {
             return '';
         }
@@ -226,27 +226,27 @@ function ICMRelayerInner({ onSuccess }: BaseConsoleToolProps) {
 
     useEffect(() => {
         if (relayerAddress && selectedChains.length > 0) {
-        fetchBalances();
+            fetchBalances();
         }
     }, [relayerAddress, selectedChains.length]);
 
     return (
         <div className="space-y-6">
-        <Steps>
-            <Step>
-                <DockerInstallation includeCompose={false} />
-            </Step>
-            
-            <Step>
-                <h3 className="text-xl font-bold mb-4">Configure Relayer</h3>
-                    
+            <Steps>
+                <Step>
+                    <DockerInstallation includeCompose={false} />
+                </Step>
+
+                <Step>
+                    <h3 className="text-xl font-bold mb-4">Configure Relayer</h3>
+
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-6">
-                {error && (
+                            {error && (
                                 <div className="text-red-500 p-2 bg-red-50 dark:bg-red-900/20 rounded-md text-sm">
-                        {error}
-                    </div>
-                )}
+                                    {error}
+                                </div>
+                            )}
 
                             <NetworkSelector
                                 l1List={l1List}
@@ -254,8 +254,8 @@ function ICMRelayerInner({ onSuccess }: BaseConsoleToolProps) {
                                 onToggle={handleToggleSource}
                                 title="Source Networks"
                                 idPrefix="source"
-                                    onMouseEnter={() => setHighlightPath('sources')}
-                                    onMouseLeave={clearHighlight}
+                                onMouseEnter={() => setHighlightPath('sources')}
+                                onMouseLeave={clearHighlight}
                             />
 
                             <NetworkSelector
@@ -264,8 +264,8 @@ function ICMRelayerInner({ onSuccess }: BaseConsoleToolProps) {
                                 onToggle={handleToggleDestination}
                                 title="Destination Networks"
                                 idPrefix="dest"
-                                    onMouseEnter={() => setHighlightPath('destinations')}
-                                    onMouseLeave={clearHighlight}
+                                onMouseEnter={() => setHighlightPath('destinations')}
+                                onMouseLeave={clearHighlight}
                             />
 
                             <RelayerFunding
@@ -298,10 +298,10 @@ function ICMRelayerInner({ onSuccess }: BaseConsoleToolProps) {
                             />
                         </div>
 
-                        <ConfigPreview 
+                        <ConfigPreview
                             configJson={configJson}
-                                            highlightedLines={highlightedLines}
-                                        />
+                            highlightedLines={highlightedLines}
+                        />
                     </div>
                 </Step>
 
@@ -310,35 +310,35 @@ function ICMRelayerInner({ onSuccess }: BaseConsoleToolProps) {
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                         Run this command to save your relayer configuration to your local machine:
                     </p>
-                <DynamicCodeBlock
+                    <DynamicCodeBlock
                         code={genConfigCommand(
-                            getConfigSources(), 
-                            getConfigDestinations(), 
+                            getConfigSources(),
+                            getConfigDestinations(),
                             isTestnet ?? false,
                             logLevel,
                             storageLocation,
                             processMissedBlocks,
                             apiPort
                         )}
-                    lang="bash"
-                />
+                        lang="bash"
+                    />
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                         This creates the configuration file at <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">~/.icm-relayer/config.json</code>
                     </p>
-            </Step>
-            
-            <Step>
-                <h3 className="text-xl font-bold mb-4">Run the Relayer</h3>
-                <p>Start the ICM Relayer using the following Docker command:</p>
-                <DynamicCodeBlock
-                    code={relayerDockerCommand()}
-                    lang="sh"
-                />
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                    The relayer will monitor the source blockchains for cross-chain messages and deliver them to the destination blockchains.
-                </p>
-            </Step>
-        </Steps>
+                </Step>
+
+                <Step>
+                    <h3 className="text-xl font-bold mb-4">Run the Relayer</h3>
+                    <p>Start the ICM Relayer using the following Docker command:</p>
+                    <DynamicCodeBlock
+                        code={relayerDockerCommand(isTestnet ?? false)}
+                        lang="sh"
+                    />
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                        The relayer will monitor the source blockchains for cross-chain messages and deliver them to the destination blockchains.
+                    </p>
+                </Step>
+            </Steps>
         </div>
     );
 }

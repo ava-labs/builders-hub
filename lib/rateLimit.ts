@@ -6,6 +6,17 @@ interface RateLimitEntry {
 }
 
 const rateLimits = new Map<string, RateLimitEntry>();
+
+setInterval(() => {
+  const now = Date.now();
+  const oneHour = 60 * 60 * 1000;
+  for (const [key, entry] of rateLimits.entries()) {
+    // add 1hr buffer beyond the 24h window
+    if (now - entry.lastRequest > (24 * oneHour + oneHour)) {
+      rateLimits.delete(key);
+    }
+  }
+}, 60 * 60 * 1000);
 export interface RateLimitOptions {
   windowMs: number;
   maxRequests: number;
@@ -20,8 +31,11 @@ const DEFAULT_OPTIONS: RateLimitOptions = {
 async function defaultIdentifier(): Promise<string> {
     const session = await import('@/lib/auth/authSession').then(mod => mod.getAuthSession());
     if (!session) throw new Error('Authentication required');
-    const userId = session.user.id;
-    return userId;
+
+    const email = session.user.email;
+    if (!email || email === '') throw new Error('email required for rate limiting');
+    
+    return email;
 }
 
 function getResetTime(timestamp: number): string {
