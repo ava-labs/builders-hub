@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { BackFace } from "./back-face";
@@ -20,6 +20,14 @@ export function AutoRotateMedal({
   speed?: number;
 }) {
   const groupRef = useRef<THREE.Group | null>(null);
+  const badgeDefaultImage = "/wolfie/wolfie-hack.png";
+  const [badgeImage, setBadgeImage] = useState(badgeDefaultImage);
+
+  useEffect(() => {
+    if (image && image !== '') {
+      setBadgeImage(image);
+    }
+  }, [image]);
 
   useFrame((state, delta) => {
     const g = groupRef.current;
@@ -32,7 +40,7 @@ export function AutoRotateMedal({
   return (
     <group ref={groupRef}>
       <CircularFrame color="#999B9B" />
-      <ImageDisc url={image} isUnlocked={!!is_unlocked} Disc={Disc} />
+      <ImageDisc url={badgeImage} isUnlocked={!!is_unlocked} Disc={Disc} />
       <BackFace name={name} description={description} DISC={Disc} />
     </group>
   );

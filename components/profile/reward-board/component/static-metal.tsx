@@ -1,5 +1,5 @@
 "use client";
-import React, {  } from "react";
+import React, { useEffect, useState } from "react";
 import { CircularFrame } from "./circular-frame";
 import { ImageDisc } from "./image-disc";
 
@@ -13,10 +13,19 @@ export function StaticMedal({
     is_unlocked?: boolean;
     Disc: { radius: number; segments: number }
   }) {
+    const badgeDefaultImage = "/wolfie/wolfie-hack.png";
+    const [badgeImage, setBadgeImage] = useState(badgeDefaultImage);
+
+    useEffect(() => {
+      if (image && image !== '') {
+        setBadgeImage(image);
+      }
+    }, [image]);
+
     return (
       <group rotation={[0,0,0]}>
         <CircularFrame color="#999B9B" />
-        <ImageDisc url={image} isUnlocked={!!is_unlocked} Disc={Disc} />
+        <ImageDisc url={badgeImage} isUnlocked={!!is_unlocked} Disc={Disc} />
       </group>
     );
   }
