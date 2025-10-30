@@ -10,8 +10,7 @@ import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import { LoginModal } from "@/components/login/LoginModal";
 
 export function BuilderHubAccountButton() {
-    const sessionResult = useSession();
-    const { data: session, status } = sessionResult || { data: null, status: 'loading' };
+    const { data: session, status } = useSession();
     const router = useRouter();
     const { openLoginModal } = useLoginModalTrigger();
     
