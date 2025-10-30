@@ -1,0 +1,19 @@
+name: Auto Assign Issues to DevRel Project
+
+on:
+  issues:
+    types: [opened]
+
+env:
+  MY_GITHUB_TOKEN: ${{ secrets.ADMIN_GH_TOKEN }}
+
+jobs:
+  assign_one_project:
+    runs-on: ubuntu-latest
+    name: Assign to Project
+    steps:
+      - name: Add Issue to Project
+        uses: actions/add-to-project@v1.0.2
+        with:
+          github-token: ${{ env.MY_GITHUB_TOKEN }}
+          project-url: https://github.com/orgs/ava-labs/projects/28
