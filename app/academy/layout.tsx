@@ -1,8 +1,9 @@
 import { DocsLayout, type DocsLayoutProps } from 'fumadocs-ui/layouts/notebook';
-import { HomeLayout } from 'fumadocs-ui/layouts/home';
 import type { ReactNode } from 'react';
 import { baseOptions } from '@/app/layout.config';
 import { academy } from '@/lib/source';
+import { LayoutWrapper } from '@/app/layout-wrapper.client';
+import { DocsNavbarToggle } from '@/components/navigation/docs-navbar-toggle';
 import './styles.css';
 
 const academyOptions: DocsLayoutProps = {
@@ -14,7 +15,8 @@ const academyOptions: DocsLayoutProps = {
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <HomeLayout {...baseOptions}>
+    <LayoutWrapper baseOptions={baseOptions}>
+      <DocsNavbarToggle />
       <DocsLayout {...academyOptions}>
         <span
           className="absolute inset-0 z-[-1] h-[64rem] max-h-screen overflow-hidden"
@@ -111,6 +113,6 @@ export default function Layout({ children }: { children: ReactNode }) {
         </span>
         {children}
       </DocsLayout>
-    </HomeLayout>
+    </LayoutWrapper>
   );
 }

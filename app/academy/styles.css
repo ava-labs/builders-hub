@@ -26,4 +26,49 @@ header + * {
   box-shadow: none !important;
 }
 
+/* Mobile styles for academy sidebar */
+@media (max-width: 767px) {
+  /* Hide the original fumadocs sidebar toggle button on mobile since we're using our own */
+  .nd-layout-notebook > div:first-child > button:not([aria-haspopup]):not([role="combobox"]) {
+    display: none !important;
+    visibility: hidden !important;
+    position: absolute !important;
+    opacity: 0 !important;
+    left: -9999px !important;
+    z-index: -1 !important;
+  }
+
+  /* Ensure sidebar opens from left on mobile */
+  [data-sidebar="sidebar"][data-mobile="true"] {
+    left: 0 !important;
+    right: auto !important;
+    transform: translateX(0) !important;
+  }
+  
+  /* Ensure Sheet content is positioned on the left */
+  [data-sidebar="sidebar"][data-mobile="true"] [data-radix-dialog-content] {
+    left: 0 !important;
+    right: auto !important;
+  }
+  
+  /* Temporarily prevent Sheet overlay from closing sidebar immediately after opening */
+  [data-radix-dialog-overlay]:not([data-overlay-enabled]) {
+    pointer-events: none !important;
+  }
+  
+  /* Re-enable overlay clicks after a delay - sidebar should be open by then */
+  [data-sidebar="sidebar"][data-state="open"] ~ [data-radix-dialog-overlay],
+  [data-sidebar="sidebar"][data-state="open"] + [data-radix-dialog-overlay] {
+    animation: enableOverlayClick 0.4s forwards;
+  }
+  
+  @keyframes enableOverlayClick {
+    0% {
+      pointer-events: none !important;
+    }
+    100% {
+      pointer-events: auto !important;
+    }
+  }
+}
 

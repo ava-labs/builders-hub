@@ -59,3 +59,171 @@ header + * {
   box-shadow: none !important;
 }
 
+/* Align subnavbar with content area - match fumadocs article padding */
+/* Mobile: match content padding */
+#docs-subnav > div {
+  padding-left: 1rem !important;
+}
+
+/* Tablet and up: match fumadocs content area padding with zoom scaling */
+@media (min-width: 768px) {
+  #docs-subnav > div {
+    padding-left: calc(var(--sidebar-width, 16rem) + 1rem + 2vw) !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  #docs-subnav > div {
+    padding-left: calc(var(--sidebar-width, 16rem) + 1rem + 4vw) !important;
+  }
+}
+
+/* Mobile navigation: Separate main navbar and docs sidebar menus */
+@media (max-width: 767px) {
+  /* Main navbar should stay on the left - ensure it's accessible */
+  nav[aria-label="Main"],
+  header[aria-label="Main"] {
+    z-index: 55 !important;
+  }
+  
+  /* Main navbar button - keep on left */
+  nav[aria-label="Main"] button,
+  header[aria-label="Main"] button {
+    z-index: 60 !important;
+    position: relative !important;
+  }
+  
+  /* Ensure subnavbar has proper spacing */
+  #docs-subnav {
+    z-index: 51 !important;
+    position: relative !important;
+  }
+  
+  /* Hide the original fumadocs sidebar toggle button on mobile since we're using our own */
+  /* But keep it accessible for programmatic clicks by not using pointer-events: none */
+  .nd-layout-notebook > div:first-child > button:not([aria-haspopup]):not([role="combobox"]) {
+    display: none !important;
+    visibility: hidden !important;
+    position: absolute !important;
+    opacity: 0 !important;
+    /* Don't disable pointer-events so programmatic clicks work */
+    left: -9999px !important;
+    z-index: -1 !important;
+  }
+  
+  /* Also check sidebar header area for toggle button */
+  #nd-sidebar > div:first-child > button:not([aria-haspopup]):not([role="combobox"]) {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 52 !important;
+    pointer-events: auto !important;
+  }
+  
+  /* Ensure sidebar opens from left on mobile */
+  [data-sidebar="sidebar"][data-mobile="true"] {
+    left: 0 !important;
+    right: auto !important;
+    transform: translateX(0) !important;
+  }
+  
+  /* Ensure Sheet content is positioned on the left */
+  [data-sidebar="sidebar"][data-mobile="true"] [data-radix-dialog-content] {
+    left: 0 !important;
+    right: auto !important;
+  }
+  
+  /* Temporarily prevent Sheet overlay from closing sidebar immediately after opening */
+  /* This prevents the click event from bubbling and closing the sidebar */
+  [data-radix-dialog-overlay]:not([data-overlay-enabled]) {
+    pointer-events: none !important;
+  }
+  
+  /* Re-enable overlay clicks after a delay - sidebar should be open by then */
+  [data-sidebar="sidebar"][data-state="open"] ~ [data-radix-dialog-overlay],
+  [data-sidebar="sidebar"][data-state="open"] + [data-radix-dialog-overlay] {
+    animation: enableOverlayClick 0.4s forwards;
+  }
+  
+  @keyframes enableOverlayClick {
+    0% {
+      pointer-events: none !important;
+    }
+    100% {
+      pointer-events: auto !important;
+    }
+  }
+}
+
+/* Desktop: keep normal z-index */
+@media (min-width: 768px) {
+  #docs-subnav {
+    z-index: 10 !important;
+  }
+}
+
+/* Hide sidebar tabs/hamburger menu on Tooling and ACPs pages */
+body[data-docs-section="tooling"] [role="combobox"],
+body[data-docs-section="acps"] [role="combobox"],
+body[data-docs-section="tooling"] aside button[aria-haspopup],
+body[data-docs-section="acps"] aside button[aria-haspopup],
+body[data-docs-section="tooling"] #nd-sidebar > div > button,
+body[data-docs-section="acps"] #nd-sidebar > div > button,
+body[data-docs-section="tooling"] .nd-sidebar-tabs,
+body[data-docs-section="acps"] .nd-sidebar-tabs {
+  display: none !important;
+}
+
+/* Hide subnavbar when search is open */
+body.search-open #docs-subnav {
+  display: none !important;
+}
+
+/* Completely remove "On this page" table of contents on mobile */
+@media (max-width: 767px) {
+  /* Target fumadocs table of contents - comprehensive selectors */
+  /* The TOC is typically in an aside element next to the main article */
+  /* Hide ALL aside elements except the main sidebar */
+  .nd-layout-notebook > div > aside:not(#nd-sidebar):not([data-sidebar]):not([id*="sidebar" i]),
+  .nd-layout-notebook aside:not(#nd-sidebar):not([data-sidebar]):not([id*="sidebar" i]),
+  aside[aria-label*="table" i]:not(#nd-sidebar),
+  aside[aria-label*="On this page" i]:not(#nd-sidebar),
+  aside[aria-label*="Table of contents" i]:not(#nd-sidebar),
+  .nd-toc:not(#nd-sidebar),
+  [data-toc]:not(#nd-sidebar),
+  /* Target aside elements that contain navigation (TOC structure) but exclude sidebar */
+  aside:has(> nav):not(#nd-sidebar):not([data-sidebar]):not([id*="sidebar" i]),
+  /* Target the TOC container more specifically - fumadocs typically uses a grid layout */
+  .nd-layout-notebook > div > div:has(> aside:not(#nd-sidebar)),
+  /* Target sticky TOC elements */
+  [data-sticky]:has(> nav):not(#nd-sidebar),
+  [class*="sticky"]:has(> nav):not(#nd-sidebar) {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    position: absolute !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    z-index: -1 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    top: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+  }
+  
+  /* Ensure article takes full width on mobile when TOC is hidden */
+  .nd-layout-notebook article {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Prevent any TOC from appearing above subnavbar */
+  aside:not(#nd-sidebar):not([data-sidebar]):not([id*="sidebar" i]) {
+    z-index: 0 !important;
+  }
+}
+
