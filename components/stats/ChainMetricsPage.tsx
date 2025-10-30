@@ -670,9 +670,12 @@ function ChartCard({
   }, [displayData]);
 
   const formatXAxis = (value: string) => {
-    if (period === "Q") return value;
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) { return `${parts[1]} '${parts[0].slice(-2)}` }
+      return value;
+    }
     if (period === "Y") return value;
-
     const date = new Date(value);
     if (period === "M") {
       return date.toLocaleDateString("en-US", {
@@ -681,6 +684,64 @@ function ChartCard({
       });
     }
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  const formatBrushXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) { return `${parts[1]} ${parts[0]}` }
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatTooltipDate = (value: string) => {
+    if (period === "Y") { return value }
+    
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) {
+        return `${parts[1]} ${parts[0]}`;
+      }
+      return value;
+    }
+    
+    const date = new Date(value);
+    
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      });
+    }
+    
+    if (period === "W") {
+      const endDate = new Date(date);
+      endDate.setDate(date.getDate() + 6);
+      
+      const startMonth = date.toLocaleDateString("en-US", { month: "long" });
+      const endMonth = endDate.toLocaleDateString("en-US", { month: "long" });
+      const startDay = date.getDate();
+      const endDay = endDate.getDate();
+      const year = endDate.getFullYear();
+      
+      if (startMonth === endMonth) {
+        return `${startMonth} ${startDay}-${endDay}, ${year}`;
+      } else {
+        return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
+      }
+    }
+    
+    return date.toLocaleDateString("en-US", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
   };
 
   const Icon = config.icon;
@@ -778,12 +839,7 @@ function ChartCard({
                     cursor={{ fill: `${config.color}20` }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.[0]) return null;
-                      const date = new Date(payload[0].payload.day);
-                      const formattedDate = date.toLocaleDateString("en-US", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      });
+                      const formattedDate = formatTooltipDate(payload[0].payload.day);
                       return (
                         <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                           <div className="grid gap-2">
@@ -851,12 +907,7 @@ function ChartCard({
                     cursor={{ fill: `${config.color}20` }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.[0]) return null;
-                      const date = new Date(payload[0].payload.day);
-                      const formattedDate = date.toLocaleDateString("en-US", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      });
+                      const formattedDate = formatTooltipDate(payload[0].payload.day);
                       return (
                         <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                           <div className="grid gap-2">
@@ -910,12 +961,7 @@ function ChartCard({
                     }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.[0]) return null;
-                      const date = new Date(payload[0].payload.day);
-                      const formattedDate = date.toLocaleDateString("en-US", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      });
+                      const formattedDate = formatTooltipDate(payload[0].payload.day);
                       return (
                         <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                           <div className="grid gap-2">
@@ -969,7 +1015,7 @@ function ChartCard({
                     }
                   }}
                   travellerWidth={8}
-                  tickFormatter={formatXAxis}
+                  tickFormatter={formatBrushXAxis}
                 >
                   <LineChart>
                     <Line
