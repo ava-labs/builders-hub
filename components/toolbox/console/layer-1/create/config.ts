@@ -17,33 +17,49 @@ export const C_CHAIN_ID = "C";
  * Generates the VM configuration for a blockchain
  * @param debugEnabled Whether to enable debug tracing
  * @param pruningEnabled Whether to enable pruning
+ * @param minDelayTarget The minimum delay between blocks (in milliseconds) that this node will attempt to use when creating blocks
  * @returns VM configuration object
  */
-const generateVMConfig = (debugEnabled: boolean, pruningEnabled: boolean) => {
-  return debugEnabled ? {
-    "pruning-enabled": pruningEnabled,
-    "log-level": "debug",
-    "warp-api-enabled": true,
-    "eth-apis": [
-      "eth",
-      "eth-filter",
-      "net",
-      "admin",
-      "web3",
-      "internal-eth",
-      "internal-blockchain",
-      "internal-transaction",
-      "internal-debug",
-      "internal-account",
-      "internal-personal",
-      "debug",
-      "debug-tracer",
-      "debug-file-tracer",
-      "debug-handler"
-    ]
-  } : {
+const generateVMConfig = (
+  debugEnabled: boolean,
+  pruningEnabled: boolean,
+  minDelayTarget: number | null
+) => {
+  const baseConfig: any = {
     "pruning-enabled": pruningEnabled,
   };
+
+  // Add min-delay-target if provided
+  if (minDelayTarget !== null) {
+    baseConfig["min-delay-target"] = minDelayTarget;
+  }
+
+  if (debugEnabled) {
+    return {
+      ...baseConfig,
+      "log-level": "debug",
+      "warp-api-enabled": true,
+      "eth-apis": [
+        "eth",
+        "eth-filter",
+        "net",
+        "admin",
+        "web3",
+        "internal-eth",
+        "internal-blockchain",
+        "internal-transaction",
+        "internal-debug",
+        "internal-account",
+        "internal-personal",
+        "debug",
+        "debug-tracer",
+        "debug-file-tracer",
+        "debug-handler"
+      ]
+    };
+  }
+
+  return baseConfig;
 };
 
 /**
@@ -51,10 +67,16 @@ const generateVMConfig = (debugEnabled: boolean, pruningEnabled: boolean) => {
  * @param chainId The blockchain ID
  * @param debugEnabled Whether to enable debug tracing
  * @param pruningEnabled Whether to enable pruning
+ * @param minDelayTarget The minimum delay between blocks (in milliseconds) that this node will attempt to use when creating blocks
  * @returns Base64 encoded configuration
  */
-export const nodeConfigBase64 = (chainId: string, debugEnabled: boolean, pruningEnabled: boolean) => {
-  const vmConfig = generateVMConfig(debugEnabled, pruningEnabled);
+export const nodeConfigBase64 = (
+  chainId: string,
+  debugEnabled: boolean,
+  pruningEnabled: boolean,
+  minDelayTarget: number | null
+) => {
+  const vmConfig = generateVMConfig(debugEnabled, pruningEnabled, minDelayTarget);
 
   // First encode the inner config object
   const vmConfigEncoded = btoa(JSON.stringify(vmConfig));
@@ -75,6 +97,7 @@ export const nodeConfigBase64 = (chainId: string, debugEnabled: boolean, pruning
  * @param debugEnabled Whether to enable debug tracing
  * @param pruningEnabled Whether to enable pruning
  * @param isPrimaryNetwork Whether this is for the Primary Network
+ * @param minDelayTarget The minimum delay between blocks (in milliseconds) that this node will attempt to use when creating blocks
  * @returns Docker command string
  */
 export const generateDockerCommand = (
@@ -85,7 +108,8 @@ export const generateDockerCommand = (
   vmId: string = SUBNET_EVM_VM_ID,
   debugEnabled: boolean = false,
   pruningEnabled: boolean = true,
-  isPrimaryNetwork: boolean = false
+  isPrimaryNetwork: boolean = false,
+  minDelayTarget: number | null = null
 ) => {
   const env: Record<string, string> = {
     AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns",
@@ -118,7 +142,7 @@ export const generateDockerCommand = (
   }
 
   // Add chain config
-  env.AVAGO_CHAIN_CONFIG_CONTENT = nodeConfigBase64(chainId, debugEnabled, pruningEnabled);
+  env.AVAGO_CHAIN_CONFIG_CONTENT = nodeConfigBase64(chainId, debugEnabled, pruningEnabled, minDelayTarget);
 
   // Check if this is a custom VM (not the standard subnet-evm)
   const isCustomVM = vmId !== SUBNET_EVM_VM_ID;

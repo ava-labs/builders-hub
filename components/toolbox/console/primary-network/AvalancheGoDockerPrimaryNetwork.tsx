@@ -19,6 +19,7 @@ export default function AvalancheGoDockerPrimaryNetwork() {
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
     const [pruningEnabled, setPruningEnabled] = useState<boolean>(true);
     const [nodeIsReady, setNodeIsReady] = useState<boolean>(false);
+    const [minDelayTarget, setMinDelayTarget] = useState<number>(500);
 
     const { avalancheNetworkID } = useWalletStore();
 
@@ -34,18 +35,20 @@ export default function AvalancheGoDockerPrimaryNetwork() {
                 "", // No custom VM ID for Primary Network
                 enableDebugTrace,
                 pruningEnabled,
-                true // isPrimaryNetwork = true
+                true, // isPrimaryNetwork = true
+                isRPC ? null : minDelayTarget // Pass minDelayTarget only for validators
             ));
         } catch (error) {
             setRpcCommand((error as Error).message);
         }
-    }, [isRPC, avalancheNetworkID, enableDebugTrace, pruningEnabled]);
+    }, [isRPC, avalancheNetworkID, enableDebugTrace, pruningEnabled, minDelayTarget]);
 
     useEffect(() => {
         if (nodeType === "validator") {
             setDomain("");
             setEnableDebugTrace(false);
             setPruningEnabled(true);
+            setMinDelayTarget(500); // Reset to default for Primary Network
         }
     }, [nodeType]);
 
@@ -94,7 +97,30 @@ export default function AvalancheGoDockerPrimaryNetwork() {
                             setEnableDebugTrace={setEnableDebugTrace}
                             pruningEnabled={pruningEnabled}
                             setPruningEnabled={setPruningEnabled}
-                        />
+                        >
+                            {/* Min delay target for validator nodes */}
+                            {nodeType === "validator" && (
+                                <div className="mt-6">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Min Delay Target (ms)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={minDelayTarget}
+                                        onChange={(e) => {
+                                            const value = Math.min(1000, Math.max(0, parseInt(e.target.value) || 0));
+                                            setMinDelayTarget(value);
+                                        }}
+                                        min="0"
+                                        max="1000"
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                                    />
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                        The minimum delay between blocks (in milliseconds) that this node will attempt to use when creating blocks. Maximum: 1000ms. Default for Primary Network: 500ms.
+                                    </p>
+                                </div>
+                            )}
+                        </ConfigureNodeType>
                     </Step>
 
                     <Step>
