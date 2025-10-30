@@ -261,15 +261,15 @@ export default function AvalanchegoDocker() {
                                                 type="number"
                                                 value={minDelayTarget}
                                                 onChange={(e) => {
-                                                    const value = Math.min(1000, Math.max(0, parseInt(e.target.value) || 0));
+                                                    const value = Math.min(2000, Math.max(0, parseInt(e.target.value) || 0));
                                                     setMinDelayTarget(value);
                                                 }}
                                                 min="0"
-                                                max="1000"
+                                                max="2000"
                                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                                             />
                                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                                The minimum delay between blocks (in milliseconds) that this node will attempt to use when creating blocks. Maximum: 1000ms. Default for L1: 250ms.
+                                                The minimum delay between blocks (in milliseconds) that this node will attempt to use when creating blocks. Maximum: 2000ms. Default for L1: 250ms.
                                             </p>
                                         </div>
                                     )}
