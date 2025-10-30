@@ -11,15 +11,18 @@ export const FormSchema = z
   .object({
     project_name: z
       .string()
+      .min(1, { message: 'Project Name is required' })
       .min(2, { message: 'Project Name must be at least 2 characters' })
       .max(60, { message: 'Max 60 characters allowed' }),
     short_description: z
       .string()
-      .min(30, { message: 'short description must be at least 30 characters' })
-      .max(280, { message: 'Max 280 characters allowed' }),
+      .min(1, { message: 'Short Description is required' })
+      .min(30, { message: 'Short description must be at least 30 characters' })
+      .max(280, { message: 'Short description cannot exceed 280 characters' }),
     full_description: z
       .string()
-      .min(30, { message: 'full description must be at least 30 characters' }),
+      .min(1, { message: 'Full Description is required' })
+      .min(30, { message: 'Full description must be at least 30 characters' }),
     tech_stack: z
       .string()
       .min(30, { message: 'tech stack must be at least 30 characters' }),

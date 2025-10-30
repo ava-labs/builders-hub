@@ -113,7 +113,23 @@ const SubmitStep1: FC<projectProps> = (project) => {
                   {...field}
                 />
               </FormControl>
-              <FormMessage />
+              <div className='flex justify-between items-start gap-2'>
+                <FormMessage />
+                <span className={`text-xs ${
+                  shortDescription.length < 30 
+                    ? 'text-red-500' 
+                    : shortDescription.length <= 280 
+                    ? 'text-green-500' 
+                    : 'text-red-500'
+                }`}>
+                  {shortDescription.length}/280
+                </span>
+              </div>
+              {shortDescription.length < 30 && shortDescription.length > 0 && (
+                <p className='text-xs text-amber-600 dark:text-amber-400'>
+                  Add {30 - shortDescription.length} more character{30 - shortDescription.length !== 1 ? 's' : ''} (minimum 30 required)
+                </p>
+              )}
             </FormItem>
           )}
         />
@@ -135,7 +151,21 @@ const SubmitStep1: FC<projectProps> = (project) => {
                   {...field}
                 />
               </FormControl>
-              <FormMessage />
+              <div className='flex justify-between items-start gap-2'>
+                <FormMessage />
+                <span className={`text-xs ${
+                  fullDescription.length < 30 
+                    ? 'text-red-500' 
+                    : 'text-green-500'
+                }`}>
+                  {fullDescription.length} characters
+                </span>
+              </div>
+              {fullDescription.length < 30 && fullDescription.length > 0 && (
+                <p className='text-xs text-amber-600 dark:text-amber-400'>
+                  Add {30 - fullDescription.length} more character{30 - fullDescription.length !== 1 ? 's' : ''} (minimum 30 required)
+                </p>
+              )}
             </FormItem>
           )}
         />
