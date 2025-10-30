@@ -507,4 +507,4 @@ echo "sudo systemctl status avalanchego"
 echo "To follow the log use (ctrl-c to stop):"
 echo "sudo journalctl -u avalanchego -f"
 echo
-echo "Reach us over on https://chat.avax.network if you're having problems."
+echo "Reach us over on https://discord.gg/avax if you're having problems."
