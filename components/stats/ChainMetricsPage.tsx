@@ -484,7 +484,7 @@ export default function ChainMetricsPage({
               return (
                 <div
                   key={item.key}
-                  className="text-center p-4 sm:p-6 rounded-lg bg-card border border-gray-200 dark:border-gray-700"
+                  className="text-center p-4 sm:p-6 rounded-md bg-card border border-gray-200 dark:border-gray-700"
                 >
                   <div className="flex items-center justify-center gap-2 mb-2 sm:mb-3">
                     <Icon
@@ -747,7 +747,7 @@ function ChartCard({
   const Icon = config.icon;
 
   return (
-    <Card className="py-0 border-gray-200 dark:border-gray-700">
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
       <CardContent className="p-0">
         <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2 sm:gap-3">
@@ -761,7 +761,7 @@ function ChartCard({
               />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-semibold mb-0.5">
+              <h3 className="text-base sm:text-lg font-normal">
                 {config.title}
               </h3>
               <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
@@ -774,7 +774,7 @@ function ChartCard({
               <button
                 key={p}
                 onClick={() => onPeriodChange(p)}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors ${
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm  rounded-md transition-colors ${
                   period === p
                     ? "text-white dark:text-white"
                     : "text-muted-foreground hover:bg-muted"
