@@ -2,10 +2,14 @@ import { createOpenAPI } from 'fumadocs-openapi/server';
 
 export const dataApi = createOpenAPI({
   // Glacier Data API
-  input: ['https://glacier-api.avax.network/api-json'],
+  input: ['./public/openapi/glacier.json'],
+  // Use our proxy to filter out empty query parameters
+  proxyUrl: '/api/openapi-proxy',
 });
 
 export const metricsApi = createOpenAPI({
   // Popsicle Metrics API
-  input: ['https://popsicle-api.avax.network/api-json'],
+  input: ['./public/openapi/popsicle.json'],
+  // Use our proxy to filter out empty query parameters
+  proxyUrl: '/api/openapi-proxy',
 });

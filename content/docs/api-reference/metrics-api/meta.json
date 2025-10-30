@@ -9,13 +9,9 @@
     "---Chains---",
     "evm-chains",
     "chain-metrics",
-    "chain-throughput",
-    "cumulative",
     "---Staking & Validators---",
-    "staking-information",
     "l1-validator-metrics",
     "---Advanced---",
     "looking-glass"
   ]
 }
-

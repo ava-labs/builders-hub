@@ -1,0 +1,4729 @@
+{
+  "openapi": "3.1.0",
+  "paths": {
+    "/v2/health-check": {
+      "get": {
+        "operationId": "metrics-health-check",
+        "x-speakeasy-name-override": "healthCheck",
+        "x-execution-weight": "free",
+        "x-speakeasy-group": "metrics",
+        "summary": "Get the health of the service",
+        "description": "Check the health of the service.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The health of the service",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheckResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad requests generally mean the client has passed invalid \n    or malformed parameters. Error messages in the response could help in \n    evaluating the error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "When a client attempts to access resources that require \n    authorization credentials but the client lacks proper authentication \n    in the request, the server responds with 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "When a client attempts to access resources with valid\n    credentials but doesn't have the privilege to perform that action, \n    the server responds with 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The error is mostly returned when the client requests\n    with either mistyped URL, or the passed resource is moved or deleted, \n    or the resource doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "This error is returned when the client has sent too many,\n    and has hit the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The error is a generic server side error that is \n    returned for any uncaught and unexpected issues on the server side. \n    This should be very rare, and you may reach out to us if the problem \n    persists for a longer duration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "This is an internal error indicating invalid response \n      received by the client-facing proxy or gateway from the upstream server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadGateway"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The error is returned for certain routes on a particular\n    Subnet. This indicates an internal problem with our Subnet node, and may \n    not necessarily mean the Subnet is down or affected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailable"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Health Check"
+        ]
+      }
+    },
+    "/v2/chains": {
+      "get": {
+        "operationId": "listChains",
+        "x-speakeasy-name-override": "list",
+        "x-speakeasy-pagination": {
+          "type": "cursor",
+          "inputs": [
+            {
+              "name": "pageToken",
+              "in": "parameters",
+              "type": "cursor"
+            }
+          ],
+          "outputs": {
+            "nextCursor": "$.nextPageToken"
+          }
+        },
+        "x-execution-weight": "free",
+        "x-speakeasy-group": "metrics.chains",
+        "summary": "Get a list of supported blockchains",
+        "description": "Get a list of Metrics API supported blockchains.  This endpoint is paginated and supports a maximum page size of 10000.",
+        "parameters": [
+          {
+            "name": "pageToken",
+            "required": false,
+            "in": "query",
+            "description": "A page token, received from a previous list call. Provide this to retrieve the subsequent page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "network",
+            "required": false,
+            "in": "query",
+            "description": "Either mainnet or testnet/fuji.",
+            "example": "mainnet",
+            "schema": {
+              "$ref": "#/components/schemas/Network"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListChainsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad requests generally mean the client has passed invalid \n    or malformed parameters. Error messages in the response could help in \n    evaluating the error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "When a client attempts to access resources that require \n    authorization credentials but the client lacks proper authentication \n    in the request, the server responds with 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "When a client attempts to access resources with valid\n    credentials but doesn't have the privilege to perform that action, \n    the server responds with 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The error is mostly returned when the client requests\n    with either mistyped URL, or the passed resource is moved or deleted, \n    or the resource doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "This error is returned when the client has sent too many,\n    and has hit the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The error is a generic server side error that is \n    returned for any uncaught and unexpected issues on the server side. \n    This should be very rare, and you may reach out to us if the problem \n    persists for a longer duration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "This is an internal error indicating invalid response \n      received by the client-facing proxy or gateway from the upstream server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadGateway"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The error is returned for certain routes on a particular\n    Subnet. This indicates an internal problem with our Subnet node, and may \n    not necessarily mean the Subnet is down or affected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailable"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "EVM Chains"
+        ]
+      }
+    },
+    "/v2/chains/{chainId}": {
+      "get": {
+        "operationId": "getChain",
+        "x-speakeasy-name-override": "get",
+        "x-execution-weight": "free",
+        "x-speakeasy-group": "metrics.chains",
+        "summary": "Get chain information for supported blockchain",
+        "description": "Get chain information for Metrics API supported blockchain.",
+        "parameters": [
+          {
+            "name": "chainId",
+            "required": true,
+            "in": "path",
+            "description": "A supported evm chain id. Use the `/chains` endpoint to get a list of supported chain ids.",
+            "example": "43114",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Chain"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad requests generally mean the client has passed invalid \n    or malformed parameters. Error messages in the response could help in \n    evaluating the error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "When a client attempts to access resources that require \n    authorization credentials but the client lacks proper authentication \n    in the request, the server responds with 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "When a client attempts to access resources with valid\n    credentials but doesn't have the privilege to perform that action, \n    the server responds with 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The error is mostly returned when the client requests\n    with either mistyped URL, or the passed resource is moved or deleted, \n    or the resource doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "This error is returned when the client has sent too many,\n    and has hit the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The error is a generic server side error that is \n    returned for any uncaught and unexpected issues on the server side. \n    This should be very rare, and you may reach out to us if the problem \n    persists for a longer duration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "This is an internal error indicating invalid response \n      received by the client-facing proxy or gateway from the upstream server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadGateway"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The error is returned for certain routes on a particular\n    Subnet. This indicates an internal problem with our Subnet node, and may \n    not necessarily mean the Subnet is down or affected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailable"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "EVM Chains"
+        ]
+      }
+    },
+    "/v2/chains/{chainId}/metrics/{metric}": {
+      "get": {
+        "operationId": "getEvmChainMetrics",
+        "x-execution-weight": "small",
+        "x-speakeasy-group": "metrics.chains",
+        "x-speakeasy-name-override": "getMetrics",
+        "x-speakeasy-pagination": {
+          "type": "cursor",
+          "inputs": [
+            {
+              "name": "pageToken",
+              "in": "parameters",
+              "type": "cursor"
+            }
+          ],
+          "outputs": {
+            "nextCursor": "$.nextPageToken"
+          }
+        },
+        "summary": "Get metrics for EVM chains",
+        "description": "EVM chain metrics are available for all Avalanche L1s on _Mainnet_ and _Fuji_ (testnet). You can request metrics by EVM chain ID. See the `/chains` endpoint for all supported chains.\n\nAll metrics are updated several times every hour. Each metric data point has a `value` and `timestamp` (Unix timestamp in seconds). All metric values include data within the duration of the associated timestamp plus the requested `timeInterval`. All timestamps are fixed to the hour. When requesting a timeInterval of **day**, **week**, or **month**, the timestamp will be 0:00 UTC of the day, Monday of the week, or first day of the month, respectively. The latest data point in any response may change on each update.\n\n### Metrics\n\n<ins>activeAddresses</ins>: The number of distinct addresses seen within the selected `timeInterval` starting at the timestamp. Addresses counted are those that appear in the “from” and “to” fields of a transaction or ERC20/ERC721/ERC1155 transfer log event.\n\n<ins>activeSenders</ins>: This metric follows the same structure as activeAddresses, but instead only counts addresses that appear in the “from” field of the respective transaction or transfer log event.\n\n<ins>cumulativeTxCount</ins>: The cumulative transaction count from genesis up until 24 hours after the timestamp. This aggregation can be considered a “rolling sum” of the transaction count metric (txCount). Only `timeInterval=day` supported.\n\n<ins>cumulativeAddresses</ins>: The cumulative count of unique addresses from genesis up until 24 hours after the timestamp. Addresses counted are those that appear in the “from” and “to” fields of a transaction or ERC20/ERC721/ERC1155 transfer log event. Only `timeInterval=day` supported.\n\n<ins>cumulativeContracts</ins>: The cumulative count of contracts created from genesis up until the timestamp.  Contracts are counted by looking for the CREATE, CREATE2, and CREATE3 call types in all transaction traces (aka internal transactions). Only `timeInterval=day` supported.\n\n<ins>cumulativeDeployers</ins>: The cumulative count of unique contract deployers from genesis up until 24 hours after the timestamp. Deployers counted are those that appear in the “from” field of transaction traces with the CREATE, CREATE2, and CREATE3 call types. Only `timeInterval=day` supported.\n\n<ins>contracts</ins>: The count of contracts created within the requested timeInterval starting at the timestamp. Contracts are counted by looking for the CREATE, CREATE2, and CREATE3 call types in all transaction traces (aka internal transactions). Only `timeInterval=day` supported.\n\n<ins>deployers</ins>: The count of unique deployers within the requested timeInterval starting at the timestamp. Deployers counted are those that appear in the “from” field of transaction traces with the CREATE, CREATE2, and CREATE3 call types. Only `timeInterval=day` supported.\n\n<ins>gasUsed</ins>: The amount of gas used by transactions within the requested timeInterval starting at the timestamp.\n\n<ins>txCount</ins>: The amount of transactions within the requested timeInterval starting at the timestamp.\n\n<ins>avgGps</ins>: The average Gas used Per Second (GPS) within the day beginning at the timestamp.  The average is calculated by taking the sum of gas used by all blocks within the day and dividing it by the time interval between the last block of the previous day and the last block of the day that begins at the timestamp.  Only `timeInterval=day` supported.\n\n<ins>maxGps</ins>: The max Gas used Per Second (GPS)  measured within the day beginning at the timestamp. Each GPS data point is calculated using the gas used in a single block divided by the time since the last block. Only `timeInterval=day` supported.\n\n<ins>avgTps</ins>: The average Transactions Per Second (TPS) within the day beginning at the timestamp. The average is calculated by taking the sum of transactions within the day and dividing it by the time interval between the last block of the previous day and the last block of the day that begins at the timestamp. Only `timeInterval=day` supported.\n\n<ins>maxTps</ins>: The max Transactions Per Second (TPS) measured within the day beginning at the timestamp. Each TPS data point is calculated by taking the number of transactions in a single block and dividing it by the time since the last block. Only `timeInterval=day` supported.\n\n<ins>avgGasPrice</ins>: The average gas price within the day beginning at the timestamp. The gas price used is the price reported in transaction receipts. Only `timeInterval=day` supported.\n\n<ins>maxGasPrice</ins>: The max gas price seen within the day beginning at the timestamp. The gas price used is the price reported in transaction receipts. Only `timeInterval=day` supported.\n\n<ins>feesPaid</ins>: The sum of transaction fees paid within the day beginning at the timestamp. The fee is calculated as the gas used multiplied by the gas price as reported in all transaction receipts. Only `timeInterval=day` supported.",
+        "parameters": [
+          {
+            "name": "metric",
+            "required": true,
+            "in": "path",
+            "description": "Which chain level metric to fetch.",
+            "example": "activeAddresses",
+            "schema": {
+              "$ref": "#/components/schemas/ChainMetric"
+            }
+          },
+          {
+            "name": "startTimestamp",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items after a specific timestamp.",
+            "example": 1689541049,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "endTimestamp",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items before a specific timestamp.",
+            "example": 1689800249,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "timeInterval",
+            "required": false,
+            "in": "query",
+            "description": "Time interval granularity for data aggregation. Metrics\n    prefixed with \"cumulative\", \"max\", or \"avg\" only support timeInterval equal\n    to \"day\".",
+            "example": "day",
+            "schema": {
+              "$ref": "#/components/schemas/TimeIntervalGranularity"
+            }
+          },
+          {
+            "name": "pageToken",
+            "required": false,
+            "in": "query",
+            "description": "A page token, received from a previous list call. Provide this to retrieve the subsequent page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "The maximum number of items to return. The minimum page size is 1. The maximum pageSize is 2160.",
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "minimum": 1,
+              "maximum": 2160
+            },
+            "example": "10"
+          },
+          {
+            "name": "chainId",
+            "required": true,
+            "in": "path",
+            "description": "A supported EVM chain ID or one of \"total\", \"mainnet\", or \"testnet\". Use the `/chains` endpoint to get a list of supported chain IDs.",
+            "example": "43114",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad requests generally mean the client has passed invalid \n    or malformed parameters. Error messages in the response could help in \n    evaluating the error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "When a client attempts to access resources that require \n    authorization credentials but the client lacks proper authentication \n    in the request, the server responds with 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "When a client attempts to access resources with valid\n    credentials but doesn't have the privilege to perform that action, \n    the server responds with 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The error is mostly returned when the client requests\n    with either mistyped URL, or the passed resource is moved or deleted, \n    or the resource doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "This error is returned when the client has sent too many,\n    and has hit the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The error is a generic server side error that is \n    returned for any uncaught and unexpected issues on the server side. \n    This should be very rare, and you may reach out to us if the problem \n    persists for a longer duration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "This is an internal error indicating invalid response \n      received by the client-facing proxy or gateway from the upstream server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadGateway"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The error is returned for certain routes on a particular\n    Subnet. This indicates an internal problem with our Subnet node, and may \n    not necessarily mean the Subnet is down or affected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailable"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Chain Metrics"
+        ]
+      }
+    },
+    "/v2/chains/{chainId}/rollingWindowMetrics/{metric}": {
+      "get": {
+        "operationId": "getEvmChainRollingWindowMetrics",
+        "x-execution-weight": "small",
+        "x-speakeasy-group": "metrics.chains",
+        "x-speakeasy-name-override": "getRollingWindowMetrics",
+        "summary": "Get rolling window metrics for EVM chains",
+        "description": "Gets the rolling window metrics for an EVM chain for the last hour, day, week, month, 90 days, year, and all time. Active addresses/active senders only support last hour, day, and week.",
+        "parameters": [
+          {
+            "name": "metric",
+            "required": true,
+            "in": "path",
+            "description": "Which chain level metric to fetch for the rolling window.",
+            "example": "txCount",
+            "schema": {
+              "$ref": "#/components/schemas/ChainRollingWindowMetric"
+            }
+          },
+          {
+            "name": "chainId",
+            "required": true,
+            "in": "path",
+            "description": "A supported EVM chain ID or one of \"total\", \"mainnet\", or \"testnet\". Use the `/chains` endpoint to get a list of supported chain IDs.",
+            "example": "43114",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RollingWindowMetricsApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad requests generally mean the client has passed invalid \n    or malformed parameters. Error messages in the response could help in \n    evaluating the error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "When a client attempts to access resources that require \n    authorization credentials but the client lacks proper authentication \n    in the request, the server responds with 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "When a client attempts to access resources with valid\n    credentials but doesn't have the privilege to perform that action, \n    the server responds with 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The error is mostly returned when the client requests\n    with either mistyped URL, or the passed resource is moved or deleted, \n    or the resource doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "This error is returned when the client has sent too many,\n    and has hit the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The error is a generic server side error that is \n    returned for any uncaught and unexpected issues on the server side. \n    This should be very rare, and you may reach out to us if the problem \n    persists for a longer duration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "This is an internal error indicating invalid response \n      received by the client-facing proxy or gateway from the upstream server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadGateway"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The error is returned for certain routes on a particular\n    Subnet. This indicates an internal problem with our Subnet node, and may \n    not necessarily mean the Subnet is down or affected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailable"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Chain Metrics"
+        ]
+      }
+    },
+    "/v2/icm/timeseries": {
+      "get": {
+        "operationId": "getICMTimeseries",
+        "x-execution-weight": "small",
+        "x-speakeasy-group": "metrics.chains",
+        "x-speakeasy-name-override": "getICMTimeseries",
+        "summary": "Get ICM timeseries metrics",
+        "description": "Get historical ICM message counts with flexible grouping.\n\nUse filters (`srcBlockchainId`, `destBlockchainId`, `network`)  to select data, and the `groupBy` parameter for aggregation level.\n\n### Examples:\n\n  - **Specific pair**:   `?srcBlockchainId=...&destBlockchainId=...`\n\n  - **From one source (aggregated)**: `?srcBlockchainId=...`\n\n  - **From one source (by destination)**:   `?srcBlockchainId=...&groupBy=destBlockchainId`\n\n  - **To one destination (aggregated)**: `?destBlockchainId=...`\n\n  - **To one destination (by source)**:   `?destBlockchainId=...&groupBy=srcBlockchainId`\n\n  - **Network total**: `?network=mainnet`\n\n  - **Network breakdown**:   `?network=mainnet&groupBy=srcBlockchainId,destBlockchainId`.",
+        "parameters": [
+          {
+            "name": "startTimestamp",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items after a specific timestamp.",
+            "example": 1689541049,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "endTimestamp",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items before a specific timestamp.",
+            "example": 1689800249,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "srcBlockchainId",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items for a specific source (initiating) blockchain id.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "destBlockchainId",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items for a specific destination (receiving) blockchain id.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timeInterval",
+            "required": false,
+            "in": "query",
+            "description": "Time interval granularity for data aggregation. Metrics\n    prefixed with \"cumulative\", \"max\", or \"avg\" only support timeInterval equal\n    to \"day\".",
+            "example": "day",
+            "schema": {
+              "$ref": "#/components/schemas/TimeIntervalGranularity"
+            }
+          },
+          {
+            "name": "pageToken",
+            "required": false,
+            "in": "query",
+            "description": "A page token, received from a previous list call. Provide this to retrieve the subsequent page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "The maximum number of items to return. The minimum page size is 1. The maximum pageSize is 2160.",
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "minimum": 1,
+              "maximum": 2160
+            },
+            "example": "10"
+          },
+          {
+            "name": "groupBy",
+            "required": false,
+            "in": "query",
+            "description": "Group results by srcBlockchainId, destBlockchainId, or both (comma-separated)",
+            "example": "destBlockchainId",
+            "schema": {
+              "enum": [
+                "srcBlockchainId",
+                "destBlockchainId",
+                "srcBlockchainId,destBlockchainId"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "network",
+            "required": false,
+            "in": "query",
+            "description": "Either mainnet or testnet/fuji.",
+            "example": "mainnet",
+            "schema": {
+              "$ref": "#/components/schemas/Network"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ICMMetricsApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad requests generally mean the client has passed invalid \n    or malformed parameters. Error messages in the response could help in \n    evaluating the error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "When a client attempts to access resources that require \n    authorization credentials but the client lacks proper authentication \n    in the request, the server responds with 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "When a client attempts to access resources with valid\n    credentials but doesn't have the privilege to perform that action, \n    the server responds with 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The error is mostly returned when the client requests\n    with either mistyped URL, or the passed resource is moved or deleted, \n    or the resource doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "This error is returned when the client has sent too many,\n    and has hit the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The error is a generic server side error that is \n    returned for any uncaught and unexpected issues on the server side. \n    This should be very rare, and you may reach out to us if the problem \n    persists for a longer duration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "This is an internal error indicating invalid response \n      received by the client-facing proxy or gateway from the upstream server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadGateway"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The error is returned for certain routes on a particular\n    Subnet. This indicates an internal problem with our Subnet node, and may \n    not necessarily mean the Subnet is down or affected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailable"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Chain Metrics"
+        ]
+      }
+    },
+    "/v2/icm/summary": {
+      "get": {
+        "operationId": "getICMSummary",
+        "x-execution-weight": "small",
+        "x-speakeasy-group": "metrics.chains",
+        "x-speakeasy-name-override": "getICMSummary",
+        "summary": "Get ICM summary metrics",
+        "description": "Get rolling window ICM message counts (last hour, day, month, 90 days, year, all time).\n\nUse filters (`srcBlockchainId`, `destBlockchainId`, `network`)  to select data, and the `groupBy` parameter for aggregation level.\n\n### Examples:\n\n  - **Specific pair**:   `?srcBlockchainId=...&destBlockchainId=...`\n\n  - **From one source (aggregated)**: `?srcBlockchainId=...`\n\n  - **From one source (by destination)**:   `?srcBlockchainId=...&groupBy=destBlockchainId`\n\n  - **To one destination (aggregated)**: `?destBlockchainId=...`\n\n  - **To one destination (by source)**:   `?destBlockchainId=...&groupBy=srcBlockchainId`\n\n  - **Network total**: `?network=mainnet`\n\n  - **Network breakdown**:   `?network=mainnet&groupBy=srcBlockchainId,destBlockchainId`.",
+        "parameters": [
+          {
+            "name": "srcBlockchainId",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items for a specific source (initiating) blockchain id.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "destBlockchainId",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items for a specific destination (receiving) blockchain id.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupBy",
+            "required": false,
+            "in": "query",
+            "description": "Group results by srcBlockchainId, destBlockchainId, or both (comma-separated)",
+            "example": "destBlockchainId",
+            "schema": {
+              "enum": [
+                "srcBlockchainId",
+                "destBlockchainId",
+                "srcBlockchainId,destBlockchainId"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "network",
+            "required": false,
+            "in": "query",
+            "description": "Either mainnet or testnet/fuji.",
+            "example": "mainnet",
+            "schema": {
+              "$ref": "#/components/schemas/Network"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ICMRollingWindowMetricsApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad requests generally mean the client has passed invalid \n    or malformed parameters. Error messages in the response could help in \n    evaluating the error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "When a client attempts to access resources that require \n    authorization credentials but the client lacks proper authentication \n    in the request, the server responds with 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "When a client attempts to access resources with valid\n    credentials but doesn't have the privilege to perform that action, \n    the server responds with 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The error is mostly returned when the client requests\n    with either mistyped URL, or the passed resource is moved or deleted, \n    or the resource doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "This error is returned when the client has sent too many,\n    and has hit the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The error is a generic server side error that is \n    returned for any uncaught and unexpected issues on the server side. \n    This should be very rare, and you may reach out to us if the problem \n    persists for a longer duration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "This is an internal error indicating invalid response \n      received by the client-facing proxy or gateway from the upstream server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadGateway"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The error is returned for certain routes on a particular\n    Subnet. This indicates an internal problem with our Subnet node, and may \n    not necessarily mean the Subnet is down or affected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailable"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Chain Metrics"
+        ]
+      }
+    },
+    "/v2/networks/{network}/metrics/{metric}": {
+      "get": {
+        "operationId": "getStakingMetrics",
+        "x-execution-weight": "small",
+        "x-speakeasy-group": "metrics.networks",
+        "x-speakeasy-pagination": {
+          "type": "cursor",
+          "inputs": [
+            {
+              "name": "pageToken",
+              "in": "parameters",
+              "type": "cursor"
+            }
+          ],
+          "outputs": {
+            "nextCursor": "$.nextPageToken"
+          }
+        },
+        "summary": "Get staking metrics for a given subnet",
+        "description": "Gets staking metrics for a given subnet.",
+        "parameters": [
+          {
+            "name": "metric",
+            "required": true,
+            "in": "path",
+            "description": "Which network level metric to fetch.",
+            "example": "validatorCount",
+            "schema": {
+              "$ref": "#/components/schemas/NetworkMetric"
+            }
+          },
+          {
+            "name": "startTimestamp",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items after a specific timestamp.",
+            "example": 1689541049,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "endTimestamp",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items before a specific timestamp.",
+            "example": 1689800249,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageToken",
+            "required": false,
+            "in": "query",
+            "description": "A page token, received from a previous list call. Provide this to retrieve the subsequent page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "The maximum number of items to return. The minimum page size is 1. The maximum pageSize is 2160.",
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "minimum": 1,
+              "maximum": 2160
+            },
+            "example": "10"
+          },
+          {
+            "name": "network",
+            "required": true,
+            "in": "path",
+            "description": "Either mainnet or testnet/fuji.",
+            "example": "mainnet",
+            "schema": {
+              "$ref": "#/components/schemas/Network"
+            }
+          },
+          {
+            "name": "subnetId",
+            "required": false,
+            "in": "query",
+            "description": "The subnet ID to filter by. If not provided, then all subnets will be returned.",
+            "example": "11111111111111111111111111111111LpoYY",
+            "schema": {
+              "default": "11111111111111111111111111111111LpoYY"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad requests generally mean the client has passed invalid \n    or malformed parameters. Error messages in the response could help in \n    evaluating the error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "When a client attempts to access resources that require \n    authorization credentials but the client lacks proper authentication \n    in the request, the server responds with 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "When a client attempts to access resources with valid\n    credentials but doesn't have the privilege to perform that action, \n    the server responds with 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The error is mostly returned when the client requests\n    with either mistyped URL, or the passed resource is moved or deleted, \n    or the resource doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "This error is returned when the client has sent too many,\n    and has hit the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The error is a generic server side error that is \n    returned for any uncaught and unexpected issues on the server side. \n    This should be very rare, and you may reach out to us if the problem \n    persists for a longer duration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "This is an internal error indicating invalid response \n      received by the client-facing proxy or gateway from the upstream server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadGateway"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The error is returned for certain routes on a particular\n    Subnet. This indicates an internal problem with our Subnet node, and may \n    not necessarily mean the Subnet is down or affected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailable"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Chain Metrics"
+        ]
+      }
+    },
+    "/v2/validators/metrics/{metric}": {
+      "get": {
+        "operationId": "getTotalL1ValidatorMetrics",
+        "x-speakeasy-name-override": "listMetrics",
+        "x-speakeasy-group": "metrics.l1Validators",
+        "summary": "Get given metric for all validators",
+        "description": "Get given metric's value for all validators.",
+        "parameters": [
+          {
+            "name": "metric",
+            "required": true,
+            "in": "path",
+            "description": "Which network level metric to fetch for L1 validator.",
+            "example": "totalValidatorFeesDaily",
+            "schema": {
+              "enum": [
+                "totalCumulativeFeesDaily",
+                "totalValidatorFeesDaily",
+                "totalPayingValidatorsDaily"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "startTimestamp",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items after a specific timestamp.",
+            "example": 1689541049,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "endTimestamp",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items before a specific timestamp.",
+            "example": 1689800249,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad requests generally mean the client has passed invalid \n    or malformed parameters. Error messages in the response could help in \n    evaluating the error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "When a client attempts to access resources that require \n    authorization credentials but the client lacks proper authentication \n    in the request, the server responds with 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "When a client attempts to access resources with valid\n    credentials but doesn't have the privilege to perform that action, \n    the server responds with 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The error is mostly returned when the client requests\n    with either mistyped URL, or the passed resource is moved or deleted, \n    or the resource doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "This error is returned when the client has sent too many,\n    and has hit the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The error is a generic server side error that is \n    returned for any uncaught and unexpected issues on the server side. \n    This should be very rare, and you may reach out to us if the problem \n    persists for a longer duration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "This is an internal error indicating invalid response \n      received by the client-facing proxy or gateway from the upstream server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadGateway"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The error is returned for certain routes on a particular\n    Subnet. This indicates an internal problem with our Subnet node, and may \n    not necessarily mean the Subnet is down or affected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailable"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "L1 Validator Metrics"
+        ]
+      }
+    },
+    "/v2/validation/{l1ValidationId}/metrics/{metric}": {
+      "get": {
+        "operationId": "getMetricsByValidationId",
+        "x-speakeasy-name-override": "getMetricsByValidationId",
+        "x-speakeasy-group": "metrics.l1Validators",
+        "summary": "Get metric values with given validationId and timestamp range",
+        "description": "Get given metric values for a given validationId with or without a timestamp range.",
+        "parameters": [
+          {
+            "name": "l1ValidationId",
+            "required": true,
+            "in": "path",
+            "description": "The L1 Validator's validation ID to filter by",
+            "example": "2YYCZGHjqnbw1MzQ5fGrTp3SjqUu8y1J1xeW4yuhdXe4LoUVVG",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "metric",
+            "required": true,
+            "in": "path",
+            "description": "Which metric to fetch for given L1 validation ID.",
+            "example": "validationFeesDaily",
+            "schema": {
+              "enum": [
+                "validationCumulativeFeesDaily",
+                "validationFeesDaily"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "startTimestamp",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items after a specific timestamp.",
+            "example": 1689541049,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "endTimestamp",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items before a specific timestamp.",
+            "example": 1689800249,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad requests generally mean the client has passed invalid \n    or malformed parameters. Error messages in the response could help in \n    evaluating the error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "When a client attempts to access resources that require \n    authorization credentials but the client lacks proper authentication \n    in the request, the server responds with 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "When a client attempts to access resources with valid\n    credentials but doesn't have the privilege to perform that action, \n    the server responds with 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The error is mostly returned when the client requests\n    with either mistyped URL, or the passed resource is moved or deleted, \n    or the resource doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "This error is returned when the client has sent too many,\n    and has hit the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The error is a generic server side error that is \n    returned for any uncaught and unexpected issues on the server side. \n    This should be very rare, and you may reach out to us if the problem \n    persists for a longer duration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "This is an internal error indicating invalid response \n      received by the client-facing proxy or gateway from the upstream server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadGateway"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The error is returned for certain routes on a particular\n    Subnet. This indicates an internal problem with our Subnet node, and may \n    not necessarily mean the Subnet is down or affected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailable"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "L1 Validator Metrics"
+        ]
+      }
+    },
+    "/v2/validator/{nodeId}/metrics/{metric}": {
+      "get": {
+        "operationId": "getMetricsByNodeId",
+        "x-speakeasy-name-override": "getMetricsByNodeId",
+        "x-speakeasy-group": "metrics.l1Validators",
+        "summary": "Get metric values with given nodeId and timestamp range",
+        "description": "Get given metric values for a given nodeId with or without a timestamp range.",
+        "parameters": [
+          {
+            "name": "metric",
+            "required": true,
+            "in": "path",
+            "description": "Which metric to fetch for given L1 validator(node) ID.",
+            "example": "perNodeDailyFeesPaid",
+            "schema": {
+              "enum": [
+                "perNodeCumulativeFeesPaid",
+                "perNodeDailyFeesPaid"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "startTimestamp",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items after a specific timestamp.",
+            "example": 1689541049,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "endTimestamp",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items before a specific timestamp.",
+            "example": 1689800249,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "nodeId",
+            "required": true,
+            "in": "path",
+            "description": "A primary network (P or X chain) nodeId.",
+            "example": "NodeID-JQPadXEMWtRtJyXrisyDNWuXKSjSf9D36",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad requests generally mean the client has passed invalid \n    or malformed parameters. Error messages in the response could help in \n    evaluating the error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "When a client attempts to access resources that require \n    authorization credentials but the client lacks proper authentication \n    in the request, the server responds with 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "When a client attempts to access resources with valid\n    credentials but doesn't have the privilege to perform that action, \n    the server responds with 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The error is mostly returned when the client requests\n    with either mistyped URL, or the passed resource is moved or deleted, \n    or the resource doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "This error is returned when the client has sent too many,\n    and has hit the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The error is a generic server side error that is \n    returned for any uncaught and unexpected issues on the server side. \n    This should be very rare, and you may reach out to us if the problem \n    persists for a longer duration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "This is an internal error indicating invalid response \n      received by the client-facing proxy or gateway from the upstream server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadGateway"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The error is returned for certain routes on a particular\n    Subnet. This indicates an internal problem with our Subnet node, and may \n    not necessarily mean the Subnet is down or affected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailable"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "L1 Validator Metrics"
+        ]
+      }
+    },
+    "/v2/subnet/{subnetId}/metrics/{metric}": {
+      "get": {
+        "operationId": "getMetricsBySubnetId",
+        "x-speakeasy-name-override": "getMetricsBySubnetId",
+        "x-speakeasy-group": "metrics.l1Validators",
+        "summary": "Get metric values with given subnetId and timestamp range",
+        "description": "Get given metric values for a given subnetId with or without a timestamp range.",
+        "parameters": [
+          {
+            "name": "metric",
+            "required": true,
+            "in": "path",
+            "description": "Which metric to fetch for given subnet ID.",
+            "example": "perSubnetDailyFeesPaid",
+            "schema": {
+              "enum": [
+                "perSubnetDailyFeesPaid",
+                "perSubnetCumulativeFeesPaid",
+                "perSubnetPayingValidators"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "startTimestamp",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items after a specific timestamp.",
+            "example": 1689541049,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "endTimestamp",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items before a specific timestamp.",
+            "example": 1689800249,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "subnetId",
+            "required": true,
+            "in": "path",
+            "description": "The subnet ID to filter by.",
+            "example": "eYwmVU67LmSfZb1RwqCMhBYkFyG8ftxn6jAwqzFmxC9STBWLC",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad requests generally mean the client has passed invalid \n    or malformed parameters. Error messages in the response could help in \n    evaluating the error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "When a client attempts to access resources that require \n    authorization credentials but the client lacks proper authentication \n    in the request, the server responds with 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "When a client attempts to access resources with valid\n    credentials but doesn't have the privilege to perform that action, \n    the server responds with 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The error is mostly returned when the client requests\n    with either mistyped URL, or the passed resource is moved or deleted, \n    or the resource doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "This error is returned when the client has sent too many,\n    and has hit the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The error is a generic server side error that is \n    returned for any uncaught and unexpected issues on the server side. \n    This should be very rare, and you may reach out to us if the problem \n    persists for a longer duration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "This is an internal error indicating invalid response \n      received by the client-facing proxy or gateway from the upstream server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadGateway"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The error is returned for certain routes on a particular\n    Subnet. This indicates an internal problem with our Subnet node, and may \n    not necessarily mean the Subnet is down or affected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailable"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "L1 Validator Metrics"
+        ]
+      }
+    },
+    "/v2/chains/{chainId}/contracts/{address}/nfts:listHolders": {
+      "get": {
+        "operationId": "getNftHoldersByContractAddress",
+        "x-execution-weight": "large",
+        "x-speakeasy-group": "metrics.chains",
+        "x-speakeasy-name-override": "listNftHolders",
+        "x-speakeasy-pagination": {
+          "type": "cursor",
+          "inputs": [
+            {
+              "name": "pageToken",
+              "in": "parameters",
+              "type": "cursor"
+            }
+          ],
+          "outputs": {
+            "nextCursor": "$.nextPageToken"
+          }
+        },
+        "summary": "Get NFT holders by contract address",
+        "description": "Get list of NFT holders and number of NFTs held by contract address.",
+        "parameters": [
+          {
+            "name": "pageToken",
+            "required": false,
+            "in": "query",
+            "description": "A page token, received from a previous list call. Provide this to retrieve the subsequent page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "The maximum number of items to return. The minimum page size is 1. The maximum pageSize is 5000.",
+            "schema": {
+              "type": "integer",
+              "default": 1000,
+              "minimum": 1,
+              "maximum": 5000
+            },
+            "example": "10"
+          },
+          {
+            "name": "chainId",
+            "required": true,
+            "in": "path",
+            "description": "A supported evm chain id. Use the `/chains` endpoint to get a list of supported chain ids.",
+            "example": "43114",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "address",
+            "required": true,
+            "in": "path",
+            "description": "Contract address on the relevant chain.",
+            "example": "0x7a420AEFF902AAa2c85a190D7B91Ce8BEFffFE14",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NftHoldersResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad requests generally mean the client has passed invalid \n    or malformed parameters. Error messages in the response could help in \n    evaluating the error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "When a client attempts to access resources that require \n    authorization credentials but the client lacks proper authentication \n    in the request, the server responds with 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "When a client attempts to access resources with valid\n    credentials but doesn't have the privilege to perform that action, \n    the server responds with 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The error is mostly returned when the client requests\n    with either mistyped URL, or the passed resource is moved or deleted, \n    or the resource doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "This error is returned when the client has sent too many,\n    and has hit the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The error is a generic server side error that is \n    returned for any uncaught and unexpected issues on the server side. \n    This should be very rare, and you may reach out to us if the problem \n    persists for a longer duration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "This is an internal error indicating invalid response \n      received by the client-facing proxy or gateway from the upstream server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadGateway"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The error is returned for certain routes on a particular\n    Subnet. This indicates an internal problem with our Subnet node, and may \n    not necessarily mean the Subnet is down or affected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailable"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Looking Glass"
+        ]
+      }
+    },
+    "/v2/chains/{chainId}/contracts/{address}/balances": {
+      "get": {
+        "operationId": "getAddressesByBalanceOverTime",
+        "x-execution-weight": "xl",
+        "x-speakeasy-group": "metrics.chains",
+        "x-speakeasy-name-override": "listTokenHoldersAboveThreshold",
+        "x-speakeasy-pagination": {
+          "type": "cursor",
+          "inputs": [
+            {
+              "name": "pageToken",
+              "in": "parameters",
+              "type": "cursor"
+            }
+          ],
+          "outputs": {
+            "nextCursor": "$.nextPageToken"
+          }
+        },
+        "summary": "Get addresses by balance over time",
+        "description": "Get list of addresses and their latest balances that have held more than a certain threshold of a given token during the specified time frame.",
+        "parameters": [
+          {
+            "name": "threshold",
+            "required": true,
+            "in": "query",
+            "description": "The minimum balance for which addresses should be considered.",
+            "example": "1000000",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startTimestamp",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items after a specific timestamp.",
+            "example": 1689541049,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "endTimestamp",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items before a specific timestamp.",
+            "example": 1689800249,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageToken",
+            "required": false,
+            "in": "query",
+            "description": "A page token, received from a previous list call. Provide this to retrieve the subsequent page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "The maximum number of items to return. The minimum page size is 1. The maximum pageSize is 5000.",
+            "schema": {
+              "type": "integer",
+              "default": 1000,
+              "minimum": 1,
+              "maximum": 5000
+            },
+            "example": "10"
+          },
+          {
+            "name": "chainId",
+            "required": true,
+            "in": "path",
+            "description": "A supported evm chain id. Use the `/chains` endpoint to get a list of supported chain ids.",
+            "example": "43114",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "address",
+            "required": true,
+            "in": "path",
+            "description": "Contract address on the relevant chain.",
+            "example": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LookingGlassResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad requests generally mean the client has passed invalid \n    or malformed parameters. Error messages in the response could help in \n    evaluating the error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "When a client attempts to access resources that require \n    authorization credentials but the client lacks proper authentication \n    in the request, the server responds with 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "When a client attempts to access resources with valid\n    credentials but doesn't have the privilege to perform that action, \n    the server responds with 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The error is mostly returned when the client requests\n    with either mistyped URL, or the passed resource is moved or deleted, \n    or the resource doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "This error is returned when the client has sent too many,\n    and has hit the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The error is a generic server side error that is \n    returned for any uncaught and unexpected issues on the server side. \n    This should be very rare, and you may reach out to us if the problem \n    persists for a longer duration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "This is an internal error indicating invalid response \n      received by the client-facing proxy or gateway from the upstream server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadGateway"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The error is returned for certain routes on a particular\n    Subnet. This indicates an internal problem with our Subnet node, and may \n    not necessarily mean the Subnet is down or affected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailable"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Looking Glass"
+        ]
+      }
+    },
+    "/v2/chains/43114/btcb/bridged:getAddresses": {
+      "get": {
+        "operationId": "getAddressesByBtcbBridged",
+        "x-execution-weight": "large",
+        "x-speakeasy-group": "metrics.chains",
+        "x-speakeasy-name-override": "listBTCbBridgersAboveThreshold",
+        "x-speakeasy-pagination": {
+          "type": "cursor",
+          "inputs": [
+            {
+              "name": "pageToken",
+              "in": "parameters",
+              "type": "cursor"
+            }
+          ],
+          "outputs": {
+            "nextCursor": "$.nextPageToken"
+          }
+        },
+        "summary": "Get addresses by BTCb bridged balance",
+        "description": "Get list of addresses and their net bridged amounts that have bridged more than a certain threshold.",
+        "parameters": [
+          {
+            "name": "threshold",
+            "required": true,
+            "in": "query",
+            "description": "The minimum balance for which addresses should be considered.",
+            "example": "1000000",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageToken",
+            "required": false,
+            "in": "query",
+            "description": "A page token, received from a previous list call. Provide this to retrieve the subsequent page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "The maximum number of items to return. The minimum page size is 1. The maximum pageSize is 5000.",
+            "schema": {
+              "type": "integer",
+              "default": 1000,
+              "minimum": 1,
+              "maximum": 5000
+            },
+            "example": "10"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LookingGlassResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad requests generally mean the client has passed invalid \n    or malformed parameters. Error messages in the response could help in \n    evaluating the error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "When a client attempts to access resources that require \n    authorization credentials but the client lacks proper authentication \n    in the request, the server responds with 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "When a client attempts to access resources with valid\n    credentials but doesn't have the privilege to perform that action, \n    the server responds with 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The error is mostly returned when the client requests\n    with either mistyped URL, or the passed resource is moved or deleted, \n    or the resource doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "This error is returned when the client has sent too many,\n    and has hit the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The error is a generic server side error that is \n    returned for any uncaught and unexpected issues on the server side. \n    This should be very rare, and you may reach out to us if the problem \n    persists for a longer duration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "This is an internal error indicating invalid response \n      received by the client-facing proxy or gateway from the upstream server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadGateway"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The error is returned for certain routes on a particular\n    Subnet. This indicates an internal problem with our Subnet node, and may \n    not necessarily mean the Subnet is down or affected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailable"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Looking Glass"
+        ]
+      }
+    },
+    "/v2/subnets/{subnetId}/validators:getAddresses": {
+      "get": {
+        "operationId": "getValidatorsByDateRange",
+        "x-execution-weight": "large",
+        "x-speakeasy-group": "metrics.subnets",
+        "x-speakeasy-name-override": "getValidators",
+        "x-speakeasy-pagination": {
+          "type": "cursor",
+          "inputs": [
+            {
+              "name": "pageToken",
+              "in": "parameters",
+              "type": "cursor"
+            }
+          ],
+          "outputs": {
+            "nextCursor": "$.nextPageToken"
+          }
+        },
+        "summary": "Get addresses running validators during a given time frame",
+        "description": "Get list of addresses and AddValidatorTx timestamps set to receive awards for validation periods during the specified time frame.",
+        "parameters": [
+          {
+            "name": "startTimestamp",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items after a specific timestamp.",
+            "example": 1689541049,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "endTimestamp",
+            "required": false,
+            "in": "query",
+            "description": "Query param for retrieving items before a specific timestamp.",
+            "example": 1689800249,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageToken",
+            "required": false,
+            "in": "query",
+            "description": "A page token, received from a previous list call. Provide this to retrieve the subsequent page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "The maximum number of items to return. The minimum page size is 1. The maximum pageSize is 5000.",
+            "schema": {
+              "type": "integer",
+              "default": 1000,
+              "minimum": 1,
+              "maximum": 5000
+            },
+            "example": "10"
+          },
+          {
+            "name": "subnetId",
+            "required": true,
+            "in": "path",
+            "description": "The subnet ID to filter by.",
+            "example": "11111111111111111111111111111111LpoYY",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "network",
+            "required": false,
+            "in": "query",
+            "description": "Either mainnet or testnet/fuji.",
+            "example": "mainnet",
+            "schema": {
+              "$ref": "#/components/schemas/Network"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PChainLookingGlassResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad requests generally mean the client has passed invalid \n    or malformed parameters. Error messages in the response could help in \n    evaluating the error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "When a client attempts to access resources that require \n    authorization credentials but the client lacks proper authentication \n    in the request, the server responds with 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "When a client attempts to access resources with valid\n    credentials but doesn't have the privilege to perform that action, \n    the server responds with 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The error is mostly returned when the client requests\n    with either mistyped URL, or the passed resource is moved or deleted, \n    or the resource doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "This error is returned when the client has sent too many,\n    and has hit the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The error is a generic server side error that is \n    returned for any uncaught and unexpected issues on the server side. \n    This should be very rare, and you may reach out to us if the problem \n    persists for a longer duration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "This is an internal error indicating invalid response \n      received by the client-facing proxy or gateway from the upstream server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadGateway"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The error is returned for certain routes on a particular\n    Subnet. This indicates an internal problem with our Subnet node, and may \n    not necessarily mean the Subnet is down or affected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailable"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Looking Glass"
+        ]
+      }
+    },
+    "/v1/lookingGlass/compositeQuery": {
+      "post": {
+        "operationId": "compositeQueryV1",
+        "x-execution-weight": "xxl",
+        "x-speakeasy-ignore": true,
+        "summary": "Composite query",
+        "description": "Composite query to get list of addresses from multiple subqueries.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompositeQueryRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompositeQueryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad requests generally mean the client has passed invalid \n    or malformed parameters. Error messages in the response could help in \n    evaluating the error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "When a client attempts to access resources that require \n    authorization credentials but the client lacks proper authentication \n    in the request, the server responds with 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "When a client attempts to access resources with valid\n    credentials but doesn't have the privilege to perform that action, \n    the server responds with 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The error is mostly returned when the client requests\n    with either mistyped URL, or the passed resource is moved or deleted, \n    or the resource doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "This error is returned when the client has sent too many,\n    and has hit the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The error is a generic server side error that is \n    returned for any uncaught and unexpected issues on the server side. \n    This should be very rare, and you may reach out to us if the problem \n    persists for a longer duration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "This is an internal error indicating invalid response \n      received by the client-facing proxy or gateway from the upstream server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadGateway"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The error is returned for certain routes on a particular\n    Subnet. This indicates an internal problem with our Subnet node, and may \n    not necessarily mean the Subnet is down or affected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailable"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Looking Glass"
+        ]
+      }
+    },
+    "/v2/lookingGlass/compositeQuery": {
+      "post": {
+        "operationId": "compositeQueryV2",
+        "x-execution-weight": "xxl",
+        "x-speakeasy-name-override": "compositeQuery",
+        "x-speakeasy-pagination": {
+          "type": "cursor",
+          "inputs": [
+            {
+              "name": "pageToken",
+              "in": "requestBody",
+              "type": "cursor"
+            }
+          ],
+          "outputs": {
+            "nextCursor": "$.nextPageToken"
+          }
+        },
+        "summary": "Composite query",
+        "description": "Composite query to get list of addresses from multiple subqueries.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompositeQueryRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompositeQueryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad requests generally mean the client has passed invalid \n    or malformed parameters. Error messages in the response could help in \n    evaluating the error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "When a client attempts to access resources that require \n    authorization credentials but the client lacks proper authentication \n    in the request, the server responds with 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "When a client attempts to access resources with valid\n    credentials but doesn't have the privilege to perform that action, \n    the server responds with 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The error is mostly returned when the client requests\n    with either mistyped URL, or the passed resource is moved or deleted, \n    or the resource doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "This error is returned when the client has sent too many,\n    and has hit the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The error is a generic server side error that is \n    returned for any uncaught and unexpected issues on the server side. \n    This should be very rare, and you may reach out to us if the problem \n    persists for a longer duration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "This is an internal error indicating invalid response \n      received by the client-facing proxy or gateway from the upstream server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadGateway"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The error is returned for certain routes on a particular\n    Subnet. This indicates an internal problem with our Subnet node, and may \n    not necessarily mean the Subnet is down or affected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailable"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Looking Glass"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Metrics API",
+    "description": "The Metrics API provides metrics and analytics of on-chain activity. The API is in Beta and may be subject to change.</br></br>If you have feedback or feature requests for the API, please submit them <a href=\"https://portal.productboard.com/dndv9ahlkdfye4opdm8ksafi/tabs/4-glacier-api\">here</a>. Bug reports can be submitted <a href=\"https://docs.google.com/forms/d/e/1FAIpQLSeJQrcp7QoNiqozMDKrVJGX5wpU827d3cVTgF8qa7t_J1Pb-g/viewform\">here</a>, and any potential security issues can be reported <a href=\"https://hackenproof.com/avalanche\">here</a>.",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "EVM Chains",
+      "description": "Find information about which routes are supported for a given EVM chainID."
+    },
+    {
+      "name": "Chain Metrics",
+      "description": "Get network level staking and usage metrics."
+    },
+    {
+      "name": "L1 Validator Metrics",
+      "description": "Get network level l1 validator metrics."
+    },
+    {
+      "name": "Looking Glass",
+      "description": "Looking Glass is a tool that allows users to look up information for future airdrops."
+    },
+    {
+      "name": "Health Check",
+      "description": ""
+    },
+    {
+      "name": "Chain Throughput",
+      "description": "Get throughput metrics for a given chain."
+    },
+    {
+      "name": "Cumulative",
+      "description": "Get cumulative metrics for a given chain."
+    },
+    {
+      "name": "Staking Information",
+      "description": "Get staking information for a given chain."
+    }
+  ],
+  "servers": [
+    {
+      "url": "https://metrics.avax.network"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "HealthIndicatorResultDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down"
+            ],
+            "description": "Status of the health indicator."
+          }
+        }
+      },
+      "HealthCheckResultDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "error",
+              "ok",
+              "shutting_down"
+            ]
+          },
+          "info": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/HealthIndicatorResultDto",
+              "additionalProperties": true
+            },
+            "examples": [
+              {
+                "database": {
+                  "status": "up"
+                }
+              }
+            ]
+          },
+          "error": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/HealthIndicatorResultDto",
+              "additionalProperties": true
+            },
+            "examples": [
+              {}
+            ]
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/HealthIndicatorResultDto",
+              "additionalProperties": true
+            },
+            "examples": [
+              {
+                "database": {
+                  "status": "up"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "BadRequest": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "description": "The error message describing the reason for the exception",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "statusCode": {
+            "type": "number",
+            "description": "The HTTP status code of the response",
+            "examples": [
+              400
+            ]
+          },
+          "error": {
+            "type": "string",
+            "description": "The type of error",
+            "examples": [
+              "Bad Request"
+            ]
+          }
+        },
+        "required": [
+          "message",
+          "statusCode",
+          "error"
+        ]
+      },
+      "Unauthorized": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "description": "The error message describing the reason for the exception",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "statusCode": {
+            "type": "number",
+            "description": "The HTTP status code of the response",
+            "examples": [
+              401
+            ]
+          },
+          "error": {
+            "type": "string",
+            "description": "The type of error",
+            "examples": [
+              "Unauthorized"
+            ]
+          }
+        },
+        "required": [
+          "message",
+          "statusCode",
+          "error"
+        ]
+      },
+      "Forbidden": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "description": "The error message describing the reason for the exception",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "statusCode": {
+            "type": "number",
+            "description": "The HTTP status code of the response",
+            "examples": [
+              403
+            ]
+          },
+          "error": {
+            "type": "string",
+            "description": "The type of error",
+            "examples": [
+              "Forbidden"
+            ]
+          }
+        },
+        "required": [
+          "message",
+          "statusCode",
+          "error"
+        ]
+      },
+      "NotFound": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "description": "The error message describing the reason for the exception",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "statusCode": {
+            "type": "number",
+            "description": "The HTTP status code of the response",
+            "examples": [
+              404
+            ]
+          },
+          "error": {
+            "type": "string",
+            "description": "The type of error",
+            "examples": [
+              "Not Found"
+            ]
+          }
+        },
+        "required": [
+          "message",
+          "statusCode",
+          "error"
+        ]
+      },
+      "TooManyRequests": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "description": "The error message describing the reason for the exception",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "statusCode": {
+            "type": "number",
+            "description": "The HTTP status code of the response",
+            "examples": [
+              429
+            ]
+          },
+          "error": {
+            "type": "string",
+            "description": "The type of error",
+            "examples": [
+              "Too Many Requests"
+            ]
+          }
+        },
+        "required": [
+          "message",
+          "statusCode",
+          "error"
+        ]
+      },
+      "InternalServerError": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "description": "The error message describing the reason for the exception",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "statusCode": {
+            "type": "number",
+            "description": "The HTTP status code of the response",
+            "examples": [
+              500
+            ]
+          },
+          "error": {
+            "type": "string",
+            "description": "The type of error",
+            "examples": [
+              "Internal Server Error"
+            ]
+          }
+        },
+        "required": [
+          "message",
+          "statusCode",
+          "error"
+        ]
+      },
+      "BadGateway": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "description": "The error message describing the reason for the exception",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "statusCode": {
+            "type": "number",
+            "description": "The HTTP status code of the response",
+            "examples": [
+              502
+            ]
+          },
+          "error": {
+            "type": "string",
+            "description": "The type of error",
+            "examples": [
+              "Bad Gateway"
+            ]
+          }
+        },
+        "required": [
+          "message",
+          "statusCode",
+          "error"
+        ]
+      },
+      "ServiceUnavailable": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "description": "The error message describing the reason for the exception",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "statusCode": {
+            "type": "number",
+            "description": "The HTTP status code of the response",
+            "examples": [
+              503
+            ]
+          },
+          "error": {
+            "type": "string",
+            "description": "The type of error",
+            "examples": [
+              "Service Unavailable"
+            ]
+          }
+        },
+        "required": [
+          "message",
+          "statusCode",
+          "error"
+        ]
+      },
+      "NetworkType": {
+        "type": "string",
+        "description": "Network on which this blockchain or subnet is created on.",
+        "enum": [
+          "mainnet",
+          "testnet"
+        ]
+      },
+      "Chain": {
+        "type": "object",
+        "properties": {
+          "evmChainId": {
+            "type": "number",
+            "examples": [
+              43114
+            ],
+            "description": "EVM ChainID for the blockchain."
+          },
+          "chainName": {
+            "type": "string",
+            "examples": [
+              "c_chain"
+            ],
+            "description": "Blockchain alias for easy identification of blockchains."
+          },
+          "blockchainId": {
+            "type": "string",
+            "examples": [
+              "2q9e4r6Mu3U68nU1fYjgbR6JvwrRx36CohpAX5UQxse55x1Q5"
+            ],
+            "description": "Unique blockchain ID for this blockchain."
+          },
+          "subnetId": {
+            "type": "string",
+            "examples": [
+              "11111111111111111111111111111111LpoYY"
+            ],
+            "description": "Subnet ID this blockchain belongs to."
+          },
+          "network": {
+            "examples": [
+              "mainnet"
+            ],
+            "$ref": "#/components/schemas/NetworkType"
+          }
+        },
+        "required": [
+          "evmChainId",
+          "chainName",
+          "blockchainId",
+          "subnetId",
+          "network"
+        ]
+      },
+      "MetricsListChainsResponse": {
+        "type": "object",
+        "properties": {
+          "nextPageToken": {
+            "type": "string",
+            "description": "A token, which can be sent as `pageToken` to retrieve the next page. If this field is omitted or empty, there are no subsequent pages."
+          },
+          "chains": {
+            "description": "Array of Subnet - EVM Chain ID mappings whose metrics we support.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Chain"
+            }
+          }
+        },
+        "required": [
+          "chains"
+        ]
+      },
+      "Network": {
+        "type": "string",
+        "enum": [
+          "mainnet",
+          "fuji",
+          "testnet"
+        ]
+      },
+      "ListChainsResponse": {
+        "type": "object",
+        "properties": {
+          "nextPageToken": {
+            "type": "string",
+            "description": "A token, which can be sent as `pageToken` to retrieve the next page. If this field is omitted or empty, there are no subsequent pages."
+          },
+          "chains": {
+            "description": "Array of Subnet - EVM Chain ID mappings whose metrics we support.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Chain"
+            }
+          }
+        },
+        "required": [
+          "chains"
+        ]
+      },
+      "ChainMetric": {
+        "type": "string",
+        "enum": [
+          "activeAddresses",
+          "activeSenders",
+          "cumulativeTxCount",
+          "cumulativeAddresses",
+          "cumulativeContracts",
+          "cumulativeDeployers",
+          "contracts",
+          "deployers",
+          "gasUsed",
+          "txCount",
+          "avgGps",
+          "maxGps",
+          "avgTps",
+          "maxTps",
+          "avgGasPrice",
+          "maxGasPrice",
+          "feesPaid"
+        ]
+      },
+      "TimeIntervalGranularity": {
+        "type": "string",
+        "enum": [
+          "hour",
+          "day",
+          "week",
+          "month"
+        ]
+      },
+      "MetricsValue": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "description": "Aggregated value for the current metrics."
+          },
+          "timestamp": {
+            "type": "number",
+            "description": "Unix Epoch timestamp for which metrics are aggregated. Depending on the interval of the metric this can be at the start of the relevant hour, day, month, year, etc."
+          }
+        },
+        "required": [
+          "value",
+          "timestamp"
+        ]
+      },
+      "MetricsApiResponse": {
+        "type": "object",
+        "properties": {
+          "nextPageToken": {
+            "type": "string",
+            "description": "A token, which can be sent as `pageToken` to retrieve the next page. If this field is omitted or empty, there are no subsequent pages."
+          },
+          "results": {
+            "description": "Array of current metrics values at different timestamps.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MetricsValue"
+            }
+          }
+        },
+        "required": [
+          "results"
+        ]
+      },
+      "ChainRollingWindowMetric": {
+        "type": "string",
+        "enum": [
+          "gasUsed",
+          "txCount",
+          "avgGps",
+          "maxGps",
+          "avgTps",
+          "maxTps",
+          "avgGasPrice",
+          "maxGasPrice",
+          "feesPaid",
+          "contracts",
+          "deployers",
+          "activeAddresses",
+          "activeSenders"
+        ]
+      },
+      "ChainRollingWindowMetricsValue": {
+        "type": "object",
+        "properties": {
+          "lastHour": {
+            "type": "number",
+            "description": "Aggregated value for the current metrics in last hour."
+          },
+          "lastDay": {
+            "type": "number",
+            "description": "Aggregated value for the current metrics in last day."
+          },
+          "lastWeek": {
+            "type": "number",
+            "description": "Aggregated value for the current metrics in last week."
+          },
+          "lastMonth": {
+            "type": "number",
+            "description": "Aggregated value for the current metrics in last month."
+          },
+          "last90Days": {
+            "type": "number",
+            "description": "Aggregated value for the current metrics in last 90 days."
+          },
+          "lastYear": {
+            "type": "number",
+            "description": "Aggregated value for the current metrics in last year."
+          },
+          "allTime": {
+            "type": "number",
+            "description": "Aggregated value for the current metrics for all time."
+          }
+        }
+      },
+      "RollingWindowMetricsApiResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "description": "Array of current metrics values for different windows.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChainRollingWindowMetricsValue"
+              }
+            ]
+          }
+        },
+        "required": [
+          "result"
+        ]
+      },
+      "TeleporterMetric": {
+        "type": "string",
+        "enum": [
+          "teleporterSourceTxnCount",
+          "teleporterDestinationTxnCount",
+          "teleporterTotalTxnCount"
+        ]
+      },
+      "TeleporterMetricsValue": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "description": "Aggregated value for the current metrics."
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "TeleporterChainMetricsApiResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "description": "current metrics value for a given teleporter metric.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeleporterMetricsValue"
+              }
+            ]
+          }
+        },
+        "required": [
+          "result"
+        ]
+      },
+      "ICMMetricsValue": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "description": "Aggregated value for the current metrics."
+          },
+          "timestamp": {
+            "type": "number",
+            "description": "Unix Epoch timestamp for which metrics are aggregated. Depending on the interval of the metric this can be at the start of the relevant hour, day, month, year, etc."
+          },
+          "srcBlockchainId": {
+            "type": "string",
+            "description": "Source blockchainId."
+          },
+          "destBlockchainId": {
+            "type": "string",
+            "description": "Destination blockchainId."
+          }
+        },
+        "required": [
+          "value",
+          "timestamp",
+          "srcBlockchainId",
+          "destBlockchainId"
+        ]
+      },
+      "ICMMetricsApiResponse": {
+        "type": "object",
+        "properties": {
+          "nextPageToken": {
+            "type": "string",
+            "description": "A token, which can be sent as `pageToken` to retrieve the next page. If this field is omitted or empty, there are no subsequent pages."
+          },
+          "results": {
+            "description": "Array of current ICM metrics values.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ICMMetricsValue"
+            }
+          }
+        },
+        "required": [
+          "results"
+        ]
+      },
+      "ICMRollingWindowMetricsValue": {
+        "type": "object",
+        "properties": {
+          "lastHour": {
+            "type": "number",
+            "description": "Aggregated value for the current metrics in last hour."
+          },
+          "lastDay": {
+            "type": "number",
+            "description": "Aggregated value for the current metrics in last day."
+          },
+          "lastWeek": {
+            "type": "number",
+            "description": "Aggregated value for the current metrics in last week."
+          },
+          "lastMonth": {
+            "type": "number",
+            "description": "Aggregated value for the current metrics in last month."
+          },
+          "last90Days": {
+            "type": "number",
+            "description": "Aggregated value for the current metrics in last 90 days."
+          },
+          "lastYear": {
+            "type": "number",
+            "description": "Aggregated value for the current metrics in last year."
+          },
+          "allTime": {
+            "type": "number",
+            "description": "Aggregated value for the current metrics for all time."
+          },
+          "srcBlockchainId": {
+            "type": "string",
+            "description": "Source blockchainId."
+          },
+          "destBlockchainId": {
+            "type": "string",
+            "description": "Destination blockchainId."
+          }
+        },
+        "required": [
+          "srcBlockchainId",
+          "destBlockchainId"
+        ]
+      },
+      "ICMRollingWindowMetricsApiResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "description": "Array of current metrics values for different windows.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ICMRollingWindowMetricsValue"
+              }
+            ]
+          }
+        },
+        "required": [
+          "result"
+        ]
+      },
+      "NetworkMetric": {
+        "type": "string",
+        "enum": [
+          "delegatorCount",
+          "delegatorWeight",
+          "validatorCount",
+          "validatorWeight"
+        ]
+      },
+      "AddressDetails": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "examples": [
+              "0x1234567890abcdef1234567890abcdef123456789"
+            ],
+            "description": "An EVM address."
+          },
+          "sortKey": {
+            "type": "string",
+            "examples": [
+              123
+            ],
+            "description": "Route dependent value associated with an address at a given point in time."
+          }
+        },
+        "required": [
+          "address",
+          "sortKey"
+        ]
+      },
+      "NftHoldersResponse": {
+        "type": "object",
+        "properties": {
+          "nextPageToken": {
+            "type": "string",
+            "description": "A token, which can be sent as `pageToken` to retrieve the next page. If this field is omitted or empty, there are no subsequent pages."
+          },
+          "addresses": {
+            "description": "List of addresses that match provided criteria.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AddressDetails"
+            }
+          },
+          "nftCollectionName": {
+            "examples": [
+              "NFT Project"
+            ],
+            "description": "NFT project name.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "nftSymbol": {
+            "examples": [
+              "NFTPROJ"
+            ],
+            "description": "NFT symbol.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "totalHolders": {
+            "type": "number",
+            "examples": [
+              10
+            ],
+            "description": "Total number of holders of a given NFT project."
+          },
+          "totalTokens": {
+            "type": "number",
+            "examples": [
+              10
+            ],
+            "description": "Total number of tokens of a given NFT project."
+          }
+        },
+        "required": [
+          "addresses",
+          "totalHolders",
+          "totalTokens"
+        ]
+      },
+      "LookingGlassResponse": {
+        "type": "object",
+        "properties": {
+          "nextPageToken": {
+            "type": "string",
+            "description": "A token, which can be sent as `pageToken` to retrieve the next page. If this field is omitted or empty, there are no subsequent pages."
+          },
+          "addresses": {
+            "description": "List of addresses that match provided criteria.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AddressDetails"
+            }
+          }
+        },
+        "required": [
+          "addresses"
+        ]
+      },
+      "PChainAddressDetails": {
+        "type": "object",
+        "properties": {
+          "addresses": {
+            "examples": [
+              [
+                "avax1abcdef1234567890abcdef1234567890abcdef"
+              ]
+            ],
+            "description": "A list of P-Chain addresses.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sortKey": {
+            "type": "string",
+            "examples": [
+              123
+            ],
+            "description": "Route dependent value associated with an address at a given point in time."
+          }
+        },
+        "required": [
+          "addresses",
+          "sortKey"
+        ]
+      },
+      "PChainLookingGlassResponse": {
+        "type": "object",
+        "properties": {
+          "nextPageToken": {
+            "type": "string",
+            "description": "A token, which can be sent as `pageToken` to retrieve the next page. If this field is omitted or empty, there are no subsequent pages."
+          },
+          "addresses": {
+            "description": "List of addresses that match provided criteria.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PChainAddressDetails"
+            }
+          }
+        },
+        "required": [
+          "addresses"
+        ]
+      },
+      "DateRangeMinBalanceParam": {
+        "type": "object",
+        "properties": {
+          "firstDate": {
+            "type": "string"
+          },
+          "lastDate": {
+            "type": "string"
+          },
+          "minBalance": {
+            "type": "string"
+          },
+          "evmChainId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "firstDate",
+          "lastDate",
+          "minBalance",
+          "evmChainId"
+        ]
+      },
+      "AllTimeNativeBalanceQueryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "AllTimeNativeBalance"
+            ]
+          },
+          "params": {
+            "$ref": "#/components/schemas/DateRangeMinBalanceParam"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "params"
+        ]
+      },
+      "AnyTimeNativeBalanceQueryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "AnyTimeNativeBalance"
+            ]
+          },
+          "params": {
+            "$ref": "#/components/schemas/DateRangeMinBalanceParam"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "params"
+        ]
+      },
+      "DateRangeErc20MinBalanceParam": {
+        "type": "object",
+        "properties": {
+          "firstDate": {
+            "type": "string"
+          },
+          "lastDate": {
+            "type": "string"
+          },
+          "minBalance": {
+            "type": "string"
+          },
+          "evmChainId": {
+            "type": "string"
+          },
+          "contractAddress": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "firstDate",
+          "lastDate",
+          "minBalance",
+          "evmChainId",
+          "contractAddress"
+        ]
+      },
+      "AllTimeErc20BalanceQueryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "AllTimeErc20Balance"
+            ]
+          },
+          "params": {
+            "$ref": "#/components/schemas/DateRangeErc20MinBalanceParam"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "params"
+        ]
+      },
+      "AnyTimeErc20BalanceQueryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "AnyTimeErc20Balance"
+            ]
+          },
+          "params": {
+            "$ref": "#/components/schemas/DateRangeErc20MinBalanceParam"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "params"
+        ]
+      },
+      "TimestampRangeNftHoldersParam": {
+        "type": "object",
+        "properties": {
+          "evmChainId": {
+            "type": "string"
+          },
+          "contractAddress": {
+            "type": "string"
+          },
+          "startTs": {
+            "type": "number"
+          },
+          "endTs": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "evmChainId",
+          "contractAddress",
+          "startTs",
+          "endTs"
+        ]
+      },
+      "DateRangeNftHoldersParam": {
+        "type": "object",
+        "properties": {
+          "firstDate": {
+            "type": "string"
+          },
+          "lastDate": {
+            "type": "string"
+          },
+          "evmChainId": {
+            "type": "string"
+          },
+          "contractAddress": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "firstDate",
+          "lastDate",
+          "evmChainId",
+          "contractAddress"
+        ]
+      },
+      "AllTimeNftHoldersQueryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "AllTimeNftHolders"
+            ]
+          },
+          "params": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TimestampRangeNftHoldersParam"
+              },
+              {
+                "$ref": "#/components/schemas/DateRangeNftHoldersParam"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "params"
+        ]
+      },
+      "AnyTimeNftHoldersQueryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "AnyTimeNftHolders"
+            ]
+          },
+          "params": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TimestampRangeNftHoldersParam"
+              },
+              {
+                "$ref": "#/components/schemas/DateRangeNftHoldersParam"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "params"
+        ]
+      },
+      "TokenType": {
+        "type": "string",
+        "enum": [
+          "ERC20",
+          "NATIVE"
+        ]
+      },
+      "LatestBalanceParams": {
+        "type": "object",
+        "properties": {
+          "minBalance": {
+            "type": "string"
+          },
+          "evmChainId": {
+            "type": "string"
+          },
+          "tokenType": {
+            "$ref": "#/components/schemas/TokenType"
+          },
+          "contractAddress": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "minBalance",
+          "evmChainId",
+          "tokenType"
+        ]
+      },
+      "LatestBalanceQueryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "LatestBalance"
+            ]
+          },
+          "params": {
+            "$ref": "#/components/schemas/LatestBalanceParams"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "params"
+        ]
+      },
+      "DateRangeStarsArenaMinBalanceParam": {
+        "type": "object",
+        "properties": {
+          "firstDate": {
+            "type": "string"
+          },
+          "lastDate": {
+            "type": "string"
+          },
+          "minBalance": {
+            "type": "string"
+          },
+          "subjectAddress": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "firstDate",
+          "lastDate",
+          "minBalance",
+          "subjectAddress"
+        ]
+      },
+      "AllTimeStarsArenaBalanceQueryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "AllTimeStarsArenaBalance"
+            ]
+          },
+          "params": {
+            "$ref": "#/components/schemas/DateRangeStarsArenaMinBalanceParam"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "params"
+        ]
+      },
+      "AnyTimeStarsArenaBalanceQueryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "AnyTimeStarsArenaBalance"
+            ]
+          },
+          "params": {
+            "$ref": "#/components/schemas/DateRangeStarsArenaMinBalanceParam"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "params"
+        ]
+      },
+      "LatestStarsArenaBalanceParams": {
+        "type": "object",
+        "properties": {
+          "minBalance": {
+            "type": "string"
+          },
+          "subjectAddress": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "minBalance",
+          "subjectAddress"
+        ]
+      },
+      "LatestStarsArenaBalanceQueryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "LatestBalanceStarsArena"
+            ]
+          },
+          "params": {
+            "$ref": "#/components/schemas/LatestStarsArenaBalanceParams"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "params"
+        ]
+      },
+      "Operator": {
+        "type": "string",
+        "enum": [
+          "AND",
+          "OR"
+        ]
+      },
+      "CompositeQueryRequestDto": {
+        "type": "object",
+        "properties": {
+          "pageToken": {
+            "type": "string",
+            "description": "A page token, received from a previous list call. Provide this to retrieve the subsequent page."
+          },
+          "pageSize": {
+            "type": "integer",
+            "default": 1000,
+            "minimum": 1,
+            "maximum": 10000,
+            "description": "The maximum number of items to return."
+          },
+          "queries": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/AllTimeNativeBalanceQueryDto"
+                },
+                {
+                  "$ref": "#/components/schemas/AnyTimeNativeBalanceQueryDto"
+                },
+                {
+                  "$ref": "#/components/schemas/AllTimeErc20BalanceQueryDto"
+                },
+                {
+                  "$ref": "#/components/schemas/AnyTimeErc20BalanceQueryDto"
+                },
+                {
+                  "$ref": "#/components/schemas/AllTimeNftHoldersQueryDto"
+                },
+                {
+                  "$ref": "#/components/schemas/AnyTimeNftHoldersQueryDto"
+                },
+                {
+                  "$ref": "#/components/schemas/LatestBalanceQueryDto"
+                },
+                {
+                  "$ref": "#/components/schemas/AllTimeStarsArenaBalanceQueryDto"
+                },
+                {
+                  "$ref": "#/components/schemas/AnyTimeStarsArenaBalanceQueryDto"
+                },
+                {
+                  "$ref": "#/components/schemas/LatestStarsArenaBalanceQueryDto"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "type",
+                "mapping": {
+                  "AllTimeNativeBalance": "#/components/schemas/AllTimeNativeBalanceQueryDto",
+                  "AnyTimeNativeBalance": "#/components/schemas/AnyTimeNativeBalanceQueryDto",
+                  "AllTimeErc20Balance": "#/components/schemas/AllTimeErc20BalanceQueryDto",
+                  "AnyTimeErc20Balance": "#/components/schemas/AnyTimeErc20BalanceQueryDto",
+                  "AllTimeNftHolders": "#/components/schemas/AllTimeNftHoldersQueryDto",
+                  "AnyTimeNftHolders": "#/components/schemas/AnyTimeNftHoldersQueryDto",
+                  "LatestBalance": "#/components/schemas/LatestBalanceQueryDto",
+                  "AllTimeStarsArenaBalance": "#/components/schemas/AllTimeStarsArenaBalanceQueryDto",
+                  "AnyTimeStarsArenaBalance": "#/components/schemas/AnyTimeStarsArenaBalanceQueryDto",
+                  "LatestBalanceStarsArena": "#/components/schemas/LatestStarsArenaBalanceQueryDto"
+                }
+              }
+            }
+          },
+          "operator": {
+            "$ref": "#/components/schemas/Operator"
+          }
+        },
+        "required": [
+          "queries",
+          "operator"
+        ]
+      },
+      "CompositeQueryResponse": {
+        "type": "object",
+        "properties": {
+          "nextPageToken": {
+            "type": "string",
+            "description": "A token, which can be sent as `pageToken` to retrieve the next page. If this field is omitted or empty, there are no subsequent pages."
+          },
+          "subQueryCounts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            },
+            "examples": [
+              {
+                "1": 1,
+                "2": 2,
+                "3": 2
+              }
+            ],
+            "description": "The number of results for each subquery by query id."
+          },
+          "totalCount": {
+            "type": "number",
+            "examples": [
+              2
+            ],
+            "description": "The total number of addresses returned by the composite query."
+          },
+          "addresses": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "examples": [
+                "0x1234567890abcdef1234567890abcdef123456789"
+              ]
+            }
+          }
+        },
+        "required": [
+          "subQueryCounts",
+          "totalCount",
+          "addresses"
+        ]
+      },
+      "SubnetMapping": {
+        "type": "object",
+        "properties": {
+          "chainID": {
+            "type": "number"
+          },
+          "subnetID": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "number"
+          },
+          "network": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chainID",
+          "subnetID",
+          "timestamp",
+          "network"
+        ]
+      },
+      "SubnetMappingsResponse": {
+        "type": "object",
+        "properties": {
+          "nextPageStartKey": {
+            "type": "string"
+          },
+          "lastRun": {
+            "type": "number",
+            "examples": [
+              1717757617
+            ]
+          },
+          "status": {
+            "type": "number",
+            "examples": [
+              200
+            ]
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubnetMapping"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "results"
+        ]
+      },
+      "LegacyNetworks": {
+        "type": "string",
+        "enum": [
+          "mainnet",
+          "fuji"
+        ]
+      },
+      "ChainInformation": {
+        "type": "object",
+        "properties": {
+          "subnetID": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "number"
+          },
+          "blockchainID": {
+            "type": "string"
+          },
+          "vmID": {
+            "type": "string"
+          },
+          "chainName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subnetID",
+          "timestamp",
+          "blockchainID",
+          "vmID",
+          "chainName"
+        ]
+      },
+      "ChainInformationResponse": {
+        "type": "object",
+        "properties": {
+          "nextPageStartKey": {
+            "type": "string"
+          },
+          "lastRun": {
+            "type": "number",
+            "examples": [
+              1717757617
+            ]
+          },
+          "status": {
+            "type": "number",
+            "examples": [
+              200
+            ]
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChainInformation"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "results"
+        ]
+      },
+      "SubnetInformation": {
+        "type": "object",
+        "properties": {
+          "controlKeys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "threshold": {
+            "type": "number"
+          },
+          "subnetID": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "number"
+          },
+          "validatorCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "controlKeys",
+          "threshold",
+          "subnetID",
+          "timestamp",
+          "validatorCount"
+        ]
+      },
+      "SubnetsResponse": {
+        "type": "object",
+        "properties": {
+          "nextPageStartKey": {
+            "type": "string"
+          },
+          "lastRun": {
+            "type": "number",
+            "examples": [
+              1717757617
+            ]
+          },
+          "status": {
+            "type": "number",
+            "examples": [
+              200
+            ]
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubnetInformation"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "results"
+        ]
+      },
+      "LegacyInterval": {
+        "type": "string",
+        "enum": [
+          "hour",
+          "day",
+          "week",
+          "month"
+        ]
+      },
+      "LegacyEvmMetric": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "number"
+          },
+          "value": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "timestamp",
+          "value"
+        ]
+      },
+      "LegacyEvmMetricsResponse": {
+        "type": "object",
+        "properties": {
+          "nextPageStartKey": {
+            "type": "string"
+          },
+          "lastRun": {
+            "type": "number",
+            "examples": [
+              1717757617
+            ]
+          },
+          "status": {
+            "type": "number",
+            "examples": [
+              200
+            ]
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LegacyEvmMetric"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "results"
+        ]
+      },
+      "RollingWindowResponse": {
+        "type": "object",
+        "properties": {
+          "nextPageStartKey": {
+            "type": "string"
+          },
+          "lastRun": {
+            "type": "number",
+            "examples": [
+              1717757617
+            ]
+          },
+          "status": {
+            "type": "number",
+            "examples": [
+              200
+            ]
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "last_hour": {
+                    "type": "number"
+                  },
+                  "last_day": {
+                    "type": "number"
+                  },
+                  "last_month": {
+                    "type": "number"
+                  },
+                  "last_year": {
+                    "type": "number"
+                  },
+                  "all_time": {
+                    "type": "number"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "properties": {}
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "result"
+        ]
+      },
+      "StakingInformation": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number"
+          },
+          "timestamp": {
+            "type": "number"
+          },
+          "subnetID": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "timestamp",
+          "subnetID"
+        ]
+      },
+      "StakingInformationResponse": {
+        "type": "object",
+        "properties": {
+          "nextPageStartKey": {
+            "type": "string"
+          },
+          "lastRun": {
+            "type": "number",
+            "examples": [
+              1717757617
+            ]
+          },
+          "status": {
+            "type": "number",
+            "examples": [
+              200
+            ]
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StakingInformation"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "results"
+        ]
+      },
+      "ValidatorInformation": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "number"
+          },
+          "subnetID": {
+            "type": "string"
+          },
+          "nodeID": {
+            "type": "string"
+          },
+          "addresses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "delegationFee": {
+            "type": "number"
+          },
+          "delegatorCount": {
+            "type": "number"
+          },
+          "delegatorWeight": {
+            "type": "number"
+          },
+          "endTime": {
+            "type": "number"
+          },
+          "startTime": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string"
+          },
+          "transactionHash": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "timestamp",
+          "subnetID",
+          "nodeID",
+          "addresses",
+          "delegationFee",
+          "delegatorCount",
+          "delegatorWeight",
+          "endTime",
+          "startTime",
+          "status",
+          "transactionHash",
+          "weight"
+        ]
+      },
+      "ValidatorInformationResponse": {
+        "type": "object",
+        "properties": {
+          "nextPageStartKey": {
+            "type": "string"
+          },
+          "lastRun": {
+            "type": "number",
+            "examples": [
+              1717757617
+            ]
+          },
+          "status": {
+            "type": "number",
+            "examples": [
+              200
+            ]
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidatorInformation"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "results"
+        ]
+      }
+    },
+    "parameters": {
+      "GlobalParamChainId": {
+        "name": "chainId",
+        "in": "path",
+        "required": true,
+        "description": "A supported EVM chain id, chain alias, or blockchain id.",
+        "schema": {
+          "type": "string",
+          "examples": [
+            "43114"
+          ]
+        }
+      },
+      "GlobalParamNetwork": {
+        "name": "network",
+        "in": "path",
+        "required": true,
+        "description": "A supported network type mainnet or testnet/fuji.",
+        "schema": {
+          "type": "string",
+          "examples": [
+            "mainnet"
+          ],
+          "enum": [
+            "mainnet",
+            "fuji",
+            "testnet"
+          ]
+        }
+      }
+    }
+  },
+  "x-speakeasy-globals": {
+    "parameters": [
+      {
+        "$ref": "#/components/parameters/GlobalParamChainId"
+      },
+      {
+        "$ref": "#/components/parameters/GlobalParamNetwork"
+      }
+    ]
+  },
+  "x-speakeasy-retries": {
+    "strategy": "backoff",
+    "backoff": {
+      "initialInterval": 500,
+      "maxInterval": 60000,
+      "maxElapsedTime": 120000,
+      "exponent": 1.5
+    },
+    "statusCodes": [
+      "5XX"
+    ],
+    "retryConnectionErrors": true
+  },
+  "x-execution-weight-values": {
+    "free": 1,
+    "large": 50,
+    "medium": 20,
+    "none": 0,
+    "small": 10,
+    "xl": 100,
+    "xxl": 200
+  }
+}
