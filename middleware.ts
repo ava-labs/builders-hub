@@ -60,6 +60,17 @@ export async function middleware(req: NextRequest) {
 
     if (isShowCase && !custom_attributes.includes('showcase'))
       return NextResponse.redirect(new URL("/hackathons", req.url))
+
+    // Protect hackathons/edit route - only team1-admin and hackathonCreator can access
+    if (pathname.startsWith("/hackathons/edit")) {
+      const hasRequiredPermissions = custom_attributes.includes("team1-admin") || 
+                                   custom_attributes.includes("hackathonCreator")  || 
+                                   custom_attributes.includes("devrel");
+      if (!hasRequiredPermissions) {
+        return NextResponse.redirect(new URL("/", req.url));
+      }
+    }
+
   }
   
   return withAuth(
@@ -83,6 +94,7 @@ export const config = {
     // "/docs/api-reference/:path*", // COMMENTED OUT: Now using native fumadocs
     "/hackathons/registration-form/:path*",
     "/hackathons/project-submission/:path*",
+    "/hackathons/edit/:path*",
     "/showcase/:path*",
     "/login/:path*",
     "/profile/:path*",

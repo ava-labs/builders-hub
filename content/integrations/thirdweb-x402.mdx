@@ -1,0 +1,264 @@
+---
+title: Thirdweb x402
+category: x402
+available: ["C-Chain"]
+description: Thirdweb provides an x402 facilitator service that handles verifying and submitting x402 payments on Avalanche.
+logo: /images/thirdweb.png
+developer: Thirdweb
+website: https://thirdweb.com/
+documentation: https://portal.thirdweb.com/payments/x402/facilitator
+---
+
+## Overview
+
+Thirdweb's x402 facilitator is a service that handles verifying and submitting x402 payments on Avalanche's C-Chain. It uses your own server wallet and leverages EIP-7702 to submit transactions gaslessly, making it easy to integrate payment-gated APIs and AI services.
+
+The thirdweb facilitator is compatible with any x402 backend and middleware libraries like `x402-hono`, `x402-next`, `x402-express`, and more.
+
+## How It Works
+
+- **Verification**: Validates payment signatures and requirements
+- **Settlement**: Submits the payment transaction on-chain
+- **Gasless**: Uses EIP-7702 for gasless transactions
+- **Your Wallet**: Uses your own server wallet for receiving payments
+
+You can view all transactions processed by your facilitator in your thirdweb project dashboard.
+
+## Chain and Token Support
+
+The thirdweb facilitator supports payments on **any EVM chain**, including Avalanche C-Chain, as long as the payment token supports either:
+
+- **ERC-2612 permit** (most ERC20 tokens)
+- **ERC-3009 sign with authorization** (USDC on all chains)
+
+## Key Features
+
+- **Multi-Chain Support**: Works on Avalanche C-Chain and all EVM-compatible chains
+- **Gasless Transactions**: Leverages EIP-7702 for user-friendly payment experience
+- **Your Own Wallet**: Use your own server wallet to receive payments directly
+- **Dashboard Monitoring**: Track all facilitator transactions in your thirdweb dashboard
+- **Compatible Middleware**: Works with all x402 middleware libraries
+
+## Getting Started
+
+### Creating a Facilitator
+
+Create a facilitator instance to use with x402 payments:
+
+```typescript
+import { facilitator } from "thirdweb/x402";
+import { createThirdwebClient } from "thirdweb";
+
+const client = createThirdwebClient({
+  secretKey: "your-secret-key",
+});
+
+const thirdwebFacilitator = facilitator({
+  client: client,
+  serverWalletAddress: "0x1234567890123456789012345678901234567890",
+});
+```
+
+### Configuration Options
+
+```typescript
+const thirdwebFacilitator = facilitator({
+  // Required: Your thirdweb client with secret key
+  client: client,
+  
+  // Required: Your server wallet address that will execute transactions
+  // get it from your project dashboard
+  serverWalletAddress: "0x1234567890123456789012345678901234567890",
+  
+  // Optional: Wait behavior for settlements
+  // - "simulated": Only simulate the transaction (fastest)
+  // - "submitted": Wait until transaction is submitted
+  // - "confirmed": Wait for full on-chain confirmation (slowest, default)
+  waitUntil: "confirmed",
+});
+```
+
+## Integration Examples
+
+### Usage with settlePayment()
+
+Use the facilitator with the `settlePayment()` function on Avalanche:
+
+```typescript
+import { settlePayment, facilitator } from "thirdweb/x402";
+import { createThirdwebClient } from "thirdweb";
+import { avalanche } from "thirdweb/chains";
+
+const client = createThirdwebClient({
+  secretKey: process.env.THIRDWEB_SECRET_KEY,
+});
+
+const thirdwebFacilitator = facilitator({
+  client,
+  serverWalletAddress: "0x1234567890123456789012345678901234567890",
+});
+
+export async function GET(request: Request) {
+  const paymentData = request.headers.get("x-payment");
+  
+  const result = await settlePayment({
+    resourceUrl: "https://api.example.com/premium-content",
+    method: "GET",
+    paymentData,
+    payTo: "0x1234567890123456789012345678901234567890",
+    network: avalanche, // Use Avalanche C-Chain
+    price: "$0.10",
+    facilitator: thirdwebFacilitator, // Pass the facilitator here
+  });
+  
+  if (result.status === 200) {
+    return Response.json({ data: "premium content" });
+  } else {
+    return Response.json(result.responseBody, {
+      status: result.status,
+      headers: result.responseHeaders,
+    });
+  }
+}
+```
+
+### Usage with x402-hono Middleware
+
+Use the facilitator with Hono middleware on Avalanche:
+
+```typescript
+import { Hono } from "hono";
+import { paymentMiddleware } from "x402-hono";
+import { facilitator } from "thirdweb/x402";
+import { createThirdwebClient } from "thirdweb";
+
+const client = createThirdwebClient({
+  secretKey: "your-secret-key",
+});
+
+const thirdwebFacilitator = facilitator({
+  client: client,
+  serverWalletAddress: "0x1234567890123456789012345678901234567890",
+});
+
+const app = new Hono();
+
+// Add the facilitator to the x402 middleware
+app.use(
+  paymentMiddleware(
+    "0xYourWalletAddress",
+    {
+      "/api/paywall": {
+        price: "$0.01",
+        network: "avalanche", // Use Avalanche mainnet
+        config: {
+          description: "Access to paid content",
+        },
+      },
+    },
+    thirdwebFacilitator, // Pass the facilitator to the middleware
+  ),
+);
+
+app.get("/api/paywall", (c) => {
+  return c.json({ message: "This is premium content!" });
+});
+
+export default app;
+```
+
+### Usage with x402-express Middleware
+
+Use the facilitator with Express middleware on Avalanche:
+
+```typescript
+import express from "express";
+import { paymentMiddleware } from "x402-express";
+import { facilitator } from "thirdweb/x402";
+import { createThirdwebClient } from "thirdweb";
+
+const client = createThirdwebClient({
+  secretKey: "your-secret-key",
+});
+
+const thirdwebFacilitator = facilitator({
+  client: client,
+  serverWalletAddress: "0x1234567890123456789012345678901234567890",
+});
+
+const app = express();
+
+app.use(
+  paymentMiddleware(
+    "0xYourWalletAddress",
+    {
+      "GET /api/premium": {
+        price: "$0.05",
+        network: "avalanche", // Use Avalanche mainnet
+      },
+    },
+    thirdwebFacilitator,
+  ),
+);
+
+app.get("/api/premium", (req, res) => {
+  res.json({ content: "Premium AI content" });
+});
+
+app.listen(3000);
+```
+
+## Getting Supported Payment Methods
+
+Query which payment methods are supported by the facilitator on Avalanche:
+
+```typescript
+// Get all supported payment methods
+const allSupported = await thirdwebFacilitator.supported();
+
+// Filter by Avalanche C-Chain
+const avalancheSupported = await thirdwebFacilitator.supported({
+  chainId: 43114, // Avalanche C-Chain
+});
+
+// Filter by chain and token (e.g., USDC on Avalanche)
+const usdcOnAvalanche = await thirdwebFacilitator.supported({
+  chainId: 43114,
+  tokenAddress: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", // USDC on Avalanche
+});
+```
+
+## Avalanche C-Chain Integration
+
+When using thirdweb's x402 facilitator on Avalanche's C-Chain:
+
+- **Chain ID**: 43114 for mainnet, 43113 for Fuji testnet
+- **Network String**: Use `"avalanche"` for mainnet or `"avalanche-fuji"` for testnet
+- **Fast Settlement**: Benefit from Avalanche's sub-second transaction finality
+- **Low Costs**: Enable micropayments with minimal gas fees
+- **Dashboard Tracking**: Monitor all Avalanche transactions in your thirdweb dashboard
+
+## Use Cases
+
+### AI Agent Monetization
+Use thirdweb's facilitator to enable AI agents to charge for services on a pay-per-use basis.
+
+### Payment-Gated APIs
+Protect your API endpoints with automatic payment verification and settlement.
+
+### Micropayment Services
+Enable micropayments for content, data, or compute resources with minimal overhead.
+
+### Multi-Chain AI Services
+Build AI services that accept payments across Avalanche and other EVM chains.
+
+## Documentation
+
+For detailed implementation guides and API references:
+- [Thirdweb x402 Facilitator Documentation](https://portal.thirdweb.com/payments/x402/facilitator)
+- [Thirdweb Portal](https://portal.thirdweb.com/)
+
+## Conclusion
+
+Thirdweb's x402 facilitator provides a robust infrastructure for handling payment-gated services on Avalanche's C-Chain. With gasless transactions, automatic payment verification, and seamless integration with popular middleware libraries, it's the perfect solution for developers building monetized AI services and APIs. Whether you're using Express, Hono, Next.js, or custom implementations, thirdweb's facilitator makes it easy to accept x402 payments on Avalanche.
+

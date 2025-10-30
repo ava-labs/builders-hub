@@ -138,7 +138,6 @@ const data = {
           title: "ICM Relayer",
           url: "/console/testnet-infra/icm-relayer",
           icon: Layers,
-          comingSoon: true,
         },
       ],
     },

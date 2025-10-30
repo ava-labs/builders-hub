@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
 import { MultisigInfo } from './MultisigInfo';
 import { AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
-import { Toggle } from './Toggle';
 import Safe from '@safe-global/protocol-kit';
 import { encodeFunctionData, getAddress } from 'viem';
 import { MetaTransactionData } from '@safe-global/types-kit';
@@ -48,23 +47,24 @@ interface MultisigOptionProps {
  * ```
  * 
  * Behavior:
- * - Shows Ash Wallet toggle and multisig interface
- * - When multisig is enabled: Initializes Safe SDK and allows proposing transactions
- * - Children are disabled when multisig is not enabled
+ * - Automatically detects if PoAManager is owned by a multisig
+ * - If user is the owner: Shows direct transaction button
+ * - If multisig-owned: Automatically initializes Ash Wallet and shows proposal interface
+ * - No manual toggle required - multisig is detected and initialized automatically
  * 
  * Requirements:
  * - ValidatorManager contract must have PoAManager as owner
- * - PoAManager must have Safe contract as owner
- * - Current wallet must be a signer of the Safe contract
+ * - PoAManager must have Safe contract as owner (for multisig)
+ * - Current wallet must be a signer of the Safe contract (for multisig)
  * - Chain must be supported by Safe Transaction Service
  * 
  * @param validatorManagerAddress - Address of the ValidatorManager contract
  * @param functionName - Function name to call on PoAManager (e.g., "completeValidatorRegistration")
  * @param args - Arguments array to pass to the function
- * @param onSuccess - Callback when transaction/proposal succeeds, receives success message with Ash Wallet link
+ * @param onSuccess - Callback when transaction/proposal succeeds, receives transaction hash or success message
  * @param onError - Callback when error occurs, receives error message
  * @param disabled - Whether the action should be disabled
- * @param children - Content to render for direct transaction (when user is not using multisig)
+ * @param children - Content to render for direct transaction (when user is the owner)
  */
 
 export const MultisigOption: React.FC<MultisigOptionProps> = ({
@@ -76,7 +76,6 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   disabled,
   children
 }) => {
-  const [useMultisig, setUseMultisig] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [isProposing, setIsProposing] = useState(false);
   const [isExecutingDirect, setIsExecutingDirect] = useState(false);
@@ -100,12 +99,12 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
     checkWalletAndOwnership();
   }, [validatorManagerAddress]);
 
-  // Initialize when user chooses multisig
+  // Automatically initialize multisig when PoAManager is owned by a multisig
   useEffect(() => {
-    if (useMultisig && !protocolKit) {
+    if (isPoaOwner === false && !protocolKit && safeAddress) {
       initializeMultisig();
     }
-  }, [useMultisig]);
+  }, [isPoaOwner, safeAddress]);
 
   const checkWalletAndOwnership = async () => {
     setIsCheckingOwnership(true);
@@ -193,18 +192,44 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
         throw new Error(`Invalid Safe contract at address ${safeAddress}: ${(err as Error).message}`);
       }
 
-      // Initialize Safe Protocol Kit with the Safe address
-      // Note: Safe Protocol Kit still requires window.ethereum for now
-      const protocolKitInstance = await Safe.init({
-        provider: window.ethereum! as any,
-        signer: address,
-        safeAddress: safeAddress
-      });
+      // Try to initialize Safe Protocol Kit normally first
+      let protocolKitInstance;
+      try {
+        protocolKitInstance = await Safe.init({
+          provider: window.ethereum! as any,
+          signer: address,
+          safeAddress: safeAddress
+        });
+      } catch (error) {
+        // If initialization fails due to missing MultiSend addresses, retry with hardcoded deterministic addresses
+        const errorMessage = (error as Error).message;
+        if (errorMessage.includes('multiSend') || errorMessage.includes('MultiSend')) {
+          console.log('MultiSend addresses not found in Safe SDK, using hardcoded deterministic addresses...');
+          
+          // Hardcoded deterministic Safe contract addresses for Avalanche L1s
+          // These are deployed via CREATE2 and have the same addresses across all chains for 1.3 deployments (What Ash Wallet uses)
+          // ideally they are included in safe v1.3 deployments https://github.com/safe-global/safe-deployments/blob/main/src/assets/v1.3.0/multi_send.json
+          protocolKitInstance = await Safe.init({
+            provider: window.ethereum! as any,
+            signer: address,
+            safeAddress: safeAddress,
+            contractNetworks: {
+              [currentChainId]: {
+                multiSendAddress: '0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761',
+                multiSendCallOnlyAddress: '0x40A2aCCbd92BCA938b02010E17A5b8929b49130D',
+              }
+            }
+          });
+        } else {
+          // If it's a different error, rethrow it
+          throw error;
+        }
+      }
+
       setProtocolKit(protocolKitInstance);
 
     } catch (err) {
       onError(`Failed to initialize Ash L1 Multisig: ${(err as Error).message}`);
-      setUseMultisig(false);
     } finally {
       setIsInitializing(false);
     }
@@ -277,13 +302,13 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
         safeAddress: safeAddress
       });
 
-      // Show success UI directly in the component instead of passing a string
-      setIsProposing(false);
+      // Show success UI directly in the component
       setShowSuccessMessage(true);
       setAshWalletUrl(ashWalletResponse.url);
 
-      // Return the safe transaction hash for the parent component
-      onSuccess(safeTxHash);
+      // Note: We don't call onSuccess here because there's no actual transaction hash yet
+      // The transaction is only proposed, not executed. Users will get the tx hash
+      // after it's been approved and executed in Ash Wallet.
     } catch (err) {
       onError(`Failed to propose transaction: ${(err as Error).message}`);
     } finally {
@@ -379,131 +404,89 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
 
       {/* Show multisig interface if user is NOT PoA owner */}
       {isPoaOwner === false && (
-        <>
-          <div className="p-4 rounded-lg border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center space-x-4 flex-1">
-                <AlertCircle className="h-5 w-5 text-yellow-500 flex-shrink-0" />
-                <div className="flex-1 px-1">
-                  <p className="text-yellow-700 dark:text-yellow-300 font-medium text-sm leading-tight">
-                    This PoAManager is owned by a multisig. Enable Ash Wallet to propose transactions.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3 flex-shrink-0">
-                <img
-                  src="/images/ash.png"
-                  alt="Ash"
-                  className="h-5 w-5 flex-shrink-0"
-                />
-                <Toggle
-                  label="Ash Wallet"
-                  checked={useMultisig}
-                  onChange={setUseMultisig}
-                />
-              </div>
+        <div className="space-y-3">
+          <div className="p-4 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
+            <div className="flex items-center space-x-3">
+              <img
+                src="/images/ash.png"
+                alt="Ash Wallet"
+                className="h-5 w-5 flex-shrink-0"
+              />
+              <p className="text-blue-700 dark:text-blue-300 font-medium text-sm">
+                This PoAManager is owned by an Ash L1 Multisig. Transactions will be proposed to the multisig for approval.
+              </p>
             </div>
           </div>
 
-          {useMultisig && (
-            <div className="space-y-3">
-              {!protocolKit && (
-                <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-base">
-                  <div className="flex items-center justify-center">
+          {isInitializing && (
+            <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-base">
+              <div className="flex items-center justify-center">
+                <img
+                  src="/images/ash.png"
+                  alt="Ash"
+                  className="h-6 w-6 mr-3 flex-shrink-0"
+                />
+                <span>Initializing Ash Wallet multisig...</span>
+              </div>
+            </div>
+          )}
+
+          {safeInfo && (
+            <MultisigInfo safeInfo={safeInfo} walletAddress={walletAddress} />
+          )}
+
+          {showSuccessMessage ? (
+            <div className="p-6 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center">
+                  <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+
+                <div className="flex-1 space-y-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                      Transaction Proposed Successfully
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      Your transaction has been submitted to the multisig. Review and approve it in Ash Wallet to complete the process.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Next steps:</p>
+                    <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1 ml-4 list-disc">
+                      <li>Review and approve the transaction</li>
+                      <li>Wait for additional approvals if required</li>
+                      <li>Copy the transaction hash once executed</li>
+                    </ul>
+                  </div>
+
+                  <Button
+                    onClick={() => window.open(ashWalletUrl, '_blank')}
+                    className="inline-flex items-center space-x-2"
+                  >
                     <img
                       src="/images/ash.png"
                       alt="Ash"
-                      className="h-6 w-6 mr-3 flex-shrink-0"
+                      className="h-4 w-4 flex-shrink-0"
                     />
-                    <span>{isInitializing ? 'Initializing Ash Wallet...' : 'Ready to initialize Ash Wallet'}</span>
-                  </div>
-                </div>
-              )}
-
-              {safeInfo && (
-                <MultisigInfo safeInfo={safeInfo} walletAddress={walletAddress} />
-              )}
-
-              {showSuccessMessage ? (
-                <div className="p-6 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
-                  <div className="flex items-start space-x-4">
-                    <div className="flex-shrink-0 w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center">
-                      <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
-                    </div>
-
-                    <div className="flex-1 space-y-4">
-                      <div>
-                        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                          Transaction Proposed Successfully
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          Your transaction has been submitted to the multisig. Review and approve it in Ash Wallet to complete the process.
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Next steps:</p>
-                        <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1 ml-4 list-disc">
-                          <li>Review and approve the transaction</li>
-                          <li>Wait for additional approvals if required</li>
-                          <li>Copy the transaction hash once executed</li>
-                        </ul>
-                      </div>
-
-                      <Button
-                        onClick={() => window.open(ashWalletUrl, '_blank')}
-                        className="inline-flex items-center space-x-2"
-                      >
-                        <img
-                          src="/images/ash.png"
-                          alt="Ash"
-                          className="h-4 w-4 flex-shrink-0"
-                        />
-                        <span>Open Ash Wallet</span>
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <Button
-                    onClick={proposeTransaction}
-                    disabled={disabled || !protocolKit || isProposing}
-                    loading={isProposing}
-                    loadingText="Proposing to Ash Wallet..."
-                  >
-                    Propose Transaction to Ash Wallet
+                    <span>Open Ash Wallet</span>
+                    <ExternalLink className="h-4 w-4" />
                   </Button>
-
-                  <Button
-                    onClick={() => {
-                      setUseMultisig(false);
-                      setProtocolKit(null);
-                      setPoaManagerAddress('');
-                      setSafeAddress('');
-                      setSafeInfo(null);
-                      setChainId('');
-                      setShowSuccessMessage(false);
-                      setAshWalletUrl('');
-                    }}
-                    variant="outline"
-                    size="sm"
-                  >
-                    Cancel Multisig
-                  </Button>
-                </>
-              )}
+                </div>
+              </div>
             </div>
+          ) : (
+            <Button
+              onClick={proposeTransaction}
+              disabled={disabled || !protocolKit || isProposing}
+              loading={isProposing}
+              loadingText="Proposing to Ash Wallet..."
+            >
+              Propose Transaction to Ash Wallet
+            </Button>
           )}
-
-          {!useMultisig && (
-            <div className="opacity-50 pointer-events-none">
-              {children}
-            </div>
-          )}
-        </>
+        </div>
       )}
     </div>
   );

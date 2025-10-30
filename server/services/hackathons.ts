@@ -13,6 +13,7 @@ import {
 import { Prisma, PrismaClient } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getDateWithTimezone } from "./date-parser";
+import { getUserById } from "./getUser";
 
 const prisma = new PrismaClient();
 
@@ -66,8 +67,29 @@ export class ValidationError extends Error {
   }
 }
 
-export function getHackathonLite(hackathon: any): HackathonHeader {
-  if (!hackathon.top_most) delete hackathon.content;
+export async function getHackathonLite(hackathon: any): Promise<HackathonHeader> {
+  // Get user information if created_by exists
+  if (hackathon.created_by) {
+    try {
+      const user = await getUserById(hackathon.created_by);
+      hackathon.created_by_name = user?.name || user?.email || 'Unknown User';
+    } catch (error) {
+      console.error('Error fetching user info:', error);
+      hackathon.created_by_name = 'Unknown User';
+    }
+  }
+
+  // Get user information if updated_by exists
+  if (hackathon.updated_by) {
+    try {
+      const user = await getUserById(hackathon.updated_by);
+      hackathon.updated_by_name = user?.name || user?.email || 'Unknown User';
+    } catch (error) {
+      console.error('Error fetching updated_by user info:', error);
+      hackathon.updated_by_name = 'Unknown User';
+    }
+  }
+  
   return hackathon;
 }
 
@@ -79,6 +101,7 @@ export interface GetHackathonsOptions {
   status?: HackathonStatus | null;
   search?: string;
   created_by?: string | null;
+  include_private?: boolean;
 }
 
 export async function getHackathon(id: string) {
@@ -118,18 +141,43 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
   const offset = (page - 1) * pageSize;
 
   let filters: any = {};
+  
+  // Build all conditions
+  const conditions: any[] = [];
+  
   if (options.location) {
-    filters.location = options.location;
     if (options.location == "InPerson") {
-      filters = {
-        NOT: {
-          location: "Online",
-        },
-      };
+      conditions.push({ NOT: { location: "Online" } });
+    } else {
+      conditions.push({ location: options.location });
     }
   }
-  if (options.created_by) filters.created_by = options.created_by;
-  if (options.date) filters.date = options.date;
+  
+  if (options.created_by) {
+    // Show hackathons where user is either creator OR updater
+    conditions.push({
+      OR: [
+        { created_by: options.created_by },
+        { updated_by: options.created_by }
+      ]
+    });
+  }
+  
+  if (options.date) {
+    conditions.push({ date: options.date });
+  }
+  
+  // Filter by visibility: only show public hackathons unless include_private is true
+  // Treat null/undefined as public for backwards compatibility
+  if (!options.include_private) {
+    conditions.push({
+      OR: [
+        { is_public: true },
+        { is_public: null },
+      ]
+    });
+  }
+  
   if (options.search) {
     const searchWords = options.search.split(/\s+/);
     let searchFilters: any[] = [];
@@ -165,11 +213,16 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
       },
     ];
 
-    filters = {
-      ...filters,
-      OR: searchFilters,
-    };
+    conditions.push({ OR: searchFilters });
   }
+  
+  // Combine all conditions with AND
+  if (conditions.length === 1) {
+    filters = conditions[0];
+  } else if (conditions.length > 1) {
+    filters = { AND: conditions };
+  }
+  
   console.log("Filters: ", filters);
 
   const hackathonList = await prisma.hackathon.findMany({
@@ -181,7 +234,7 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
     },
   });
 
-  const hackathons = hackathonList.map(getHackathonLite);
+  const hackathons = await Promise.all(hackathonList.map(getHackathonLite));
   let hackathonsLite = hackathons;
 
   if (options.status) {
@@ -206,9 +259,41 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
     }
   }
 
-  const totalHackathons = await prisma.hackathon.count({
-    where: filters,
-  });
+  // If status is filtered, we need to count all matching hackathons, not just the page
+  let totalHackathons;
+  if (options.status) {
+    // Fetch all hackathons matching the filters to count by status
+    const allHackathons = await prisma.hackathon.findMany({
+      where: filters,
+    });
+    const allHackathonsLite = await Promise.all(allHackathons.map(getHackathonLite));
+    let filteredByStatus: any[] = [];
+    
+    switch (options.status) {
+      case "ENDED":
+        filteredByStatus = allHackathonsLite.filter(
+          (hackathon) => new Date(hackathon.end_date).getTime() < Date.now()
+        );
+        break;
+      case "ONGOING":
+        filteredByStatus = allHackathonsLite.filter(
+          (hackathon) =>
+            new Date(hackathon.start_date).getTime() <= Date.now() &&
+            new Date(hackathon.end_date).getTime() >= Date.now()
+        );
+        break;
+      case "UPCOMING":
+        filteredByStatus = allHackathonsLite.filter(
+          (hackathon) => new Date(hackathon.start_date).getTime() > Date.now()
+        );
+        break;
+    }
+    totalHackathons = filteredByStatus.length;
+  } else {
+    totalHackathons = await prisma.hackathon.count({
+      where: filters,
+    });
+  }
 
   return {
     hackathons: hackathonsLite.map(
@@ -281,12 +366,18 @@ export async function createHackathon(
 
 export async function updateHackathon(
   id: string,
-  hackathonData: Partial<HackathonHeader>
+  hackathonData: Partial<HackathonHeader>,
+  userId?: string
 ): Promise<HackathonHeader> {
-  const errors = validateHackathon(hackathonData);
-  console.log(errors);
-  if (errors.length > 0) {
-    throw new ValidationError("Validation failed", errors);
+  // Skip validation if we're only updating is_public field
+  const isOnlyPublicUpdate = Object.keys(hackathonData).length === 1 && hackathonData.hasOwnProperty('is_public');
+  
+  if (!isOnlyPublicUpdate) {
+    const errors = validateHackathon(hackathonData);
+    console.log(errors);
+    if (errors.length > 0) {
+      throw new ValidationError("Validation failed", errors);
+    }
   }
 
   const existingHackathon = await prisma.hackathon.findUnique({
@@ -308,34 +399,46 @@ export async function updateHackathon(
     );
     hackathonData.content!.schedule = schedule;
   }
-  const content = { ...hackathonData.content } as Prisma.JsonObject;
+  // Build update data object with only provided fields
+  const updateData: any = {};
+  
+  if (hackathonData.id !== undefined) updateData.id = hackathonData.id;
+  if (hackathonData.title !== undefined) updateData.title = hackathonData.title;
+  if (hackathonData.description !== undefined) updateData.description = hackathonData.description;
+  if (hackathonData.start_date !== undefined) {
+    updateData.start_date = getDateWithTimezone(
+      hackathonData.start_date,
+      hackathonData.timezone ?? existingHackathon.timezone
+    );
+  }
+  if (hackathonData.end_date !== undefined) {
+    updateData.end_date = getDateWithTimezone(
+      hackathonData.end_date,
+      hackathonData.timezone ?? existingHackathon.timezone
+    );
+  }
+  if (hackathonData.location !== undefined) updateData.location = hackathonData.location;
+  if (hackathonData.total_prizes !== undefined) updateData.total_prizes = hackathonData.total_prizes;
+  if (hackathonData.tags !== undefined) updateData.tags = hackathonData.tags;
+  if (hackathonData.timezone !== undefined) updateData.timezone = hackathonData.timezone;
+  if (hackathonData.icon !== undefined) updateData.icon = hackathonData.icon;
+  if (hackathonData.banner !== undefined) updateData.banner = hackathonData.banner;
+  if (hackathonData.small_banner !== undefined) updateData.small_banner = hackathonData.small_banner;
+  if (hackathonData.participants !== undefined) updateData.participants = hackathonData.participants;
+  if (hackathonData.top_most !== undefined) updateData.top_most = hackathonData.top_most;
+  if (hackathonData.organizers !== undefined) updateData.organizers = hackathonData.organizers;
+  if (hackathonData.custom_link !== undefined) updateData.custom_link = hackathonData.custom_link;
+  if (hackathonData.created_by !== undefined) updateData.created_by = hackathonData.created_by;
+  if (hackathonData.is_public !== undefined) updateData.is_public = hackathonData.is_public;
+  if (userId) updateData.updated_by = userId;
+  if (hackathonData.content !== undefined) {
+    const content = { ...hackathonData.content } as unknown as Prisma.JsonObject;
+    updateData.content = content;
+  }
+
   await prisma.hackathon.update({
     where: { id },
-    data: {
-      id: hackathonData.id,
-      title: hackathonData.title!,
-      description: hackathonData.description!,
-      start_date: getDateWithTimezone(
-        hackathonData.start_date!,
-        hackathonData.timezone!
-      ),
-      end_date: getDateWithTimezone(
-        hackathonData.end_date!,
-        hackathonData.timezone!
-      ),
-      location: hackathonData.location!,
-      total_prizes: hackathonData.total_prizes!,
-      tags: hackathonData.tags!,
-      timezone: hackathonData.timezone!,
-      icon: hackathonData.icon!,
-      banner: hackathonData.banner!,
-      small_banner: hackathonData.small_banner!,
-      participants: hackathonData.participants!,
-      top_most: hackathonData.top_most!,
-      organizers: hackathonData.organizers!,
-      custom_link: hackathonData.custom_link,
-      content: content,
-    },
+    data: updateData,
   });
   revalidatePath(`/api/hackathons/${hackathonData.id}`);
   revalidatePath("/api/hackathons/");
