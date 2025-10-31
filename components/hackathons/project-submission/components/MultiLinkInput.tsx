@@ -128,6 +128,15 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
                   </Badge>
                 ))}
               </div>
+              <div className='flex justify-end'>
+                <span className={`text-xs ${
+                  (field.value as string[])?.length > 0
+                    ? 'text-green-500'
+                    : 'text-red-500'
+                }`}>
+                  {(field.value as string[])?.length > 0 ? `${(field.value as string[]).length} link${(field.value as string[]).length !== 1 ? 's' : ''} added` : 'Add at least one'}
+                </span>
+              </div>
             </div>
           </FormControl>
           <FormMessage />

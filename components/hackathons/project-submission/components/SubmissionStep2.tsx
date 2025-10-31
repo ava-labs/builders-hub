@@ -21,6 +21,7 @@ import { MultiLinkInput } from './MultiLinkInput';
 export default function SubmitStep2() {
   const form =  useFormContext<SubmissionForm>();
   const techStack = form.watch('tech_stack');
+  const githubLinks = form.watch('github_repository');
   return (
     <div className="space-y-8">
       {/* Sección: Technical Details */}
