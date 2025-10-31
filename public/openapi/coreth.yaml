@@ -1,0 +1,1166 @@
+openapi: 3.0.0
+info:
+  title: Coreth C-Chain API
+  description: >-
+    JSON-RPC 2.0 API for Avalanche's C-Chain (Coreth EVM). All methods use POST to the same
+    endpoint with the method specified in the request body.
+  version: 1.0.0
+servers:
+  - url: https://api.avax.network
+    description: Mainnet
+  - url: https://api-test.avax.network
+    description: Testnet
+paths:
+  # web3
+  /ext/bc/C/rpc#web3_clientVersion:
+    post:
+      summary: web3_clientVersion
+      description: Returns the client version.
+      operationId: web3_clientVersion
+      tags:
+        - web3
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: web3_clientVersion
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # net
+  /ext/bc/C/rpc#net_version:
+    post:
+      summary: net_version
+      description: Returns the current network ID as a string.
+      operationId: net_version
+      tags:
+        - net
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: net_version
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # eth (subset)
+  /ext/bc/C/rpc#eth_blockNumber:
+    post:
+      summary: eth_blockNumber
+      description: Returns the block number of the chain head.
+      operationId: eth_blockNumber
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_blockNumber
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_gasPrice:
+    post:
+      summary: eth_gasPrice
+      description: Returns a suggestion for a legacy gas price.
+      operationId: eth_gasPrice
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_gasPrice
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_maxPriorityFeePerGas:
+    post:
+      summary: eth_maxPriorityFeePerGas
+      description: Returns a suggestion for a tip cap for dynamic fee transactions.
+      operationId: eth_maxPriorityFeePerGas
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_maxPriorityFeePerGas
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_feeHistory:
+    post:
+      summary: eth_feeHistory
+      description: Returns the fee market history.
+      operationId: eth_feeHistory
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_feeHistory
+                params:
+                  type: array
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_feeHistory
+                  params: [10, 'latest', [10, 50, 90]]
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_getBlockByNumber:
+    post:
+      summary: eth_getBlockByNumber
+      description: Returns the block for a given number. Second param selects full transactions.
+      operationId: eth_getBlockByNumber
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_getBlockByNumber
+                params:
+                  type: array
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_getBlockByNumber
+                  params: ['latest', false]
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_sendRawTransaction:
+    post:
+      summary: eth_sendRawTransaction
+      description: Submits a signed raw transaction.
+      operationId: eth_sendRawTransaction
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_sendRawTransaction
+                params:
+                  type: array
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_sendRawTransaction
+                  params: ['0x...']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_call:
+    post:
+      summary: eth_call
+      description: Executes a call without sending a transaction.
+      operationId: eth_call
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_call
+                params:
+                  type: array
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_call
+                  params: [{}, 'latest']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_estimateGas:
+    post:
+      summary: eth_estimateGas
+      description: Returns the lowest gas limit for a transaction to succeed.
+      operationId: eth_estimateGas
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_estimateGas
+                params:
+                  type: array
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_estimateGas
+                  params: [{}]
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # txpool
+  /ext/bc/C/rpc#txpool_status:
+    post:
+      summary: txpool_status
+      description: Returns transaction pool status.
+      operationId: txpool_status
+      tags:
+        - txpool
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: txpool_status
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # personal
+  /ext/bc/C/rpc#personal_newAccount:
+    post:
+      summary: personal_newAccount
+      description: Creates a new account with the given password.
+      operationId: personal_newAccount
+      tags:
+        - personal
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: personal_newAccount
+                params:
+                  type: array
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: personal_newAccount
+                  params: ['strong_password']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#personal_unlockAccount:
+    post:
+      summary: personal_unlockAccount
+      description: Unlocks an account with the given password and optional duration.
+      operationId: personal_unlockAccount
+      tags:
+        - personal
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: personal_unlockAccount
+                params:
+                  type: array
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: personal_unlockAccount
+                  params: ['0x...', 'strong_password', 300]
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # debug
+  /ext/bc/C/rpc#debug_getRawBlock:
+    post:
+      summary: debug_getRawBlock
+      description: Returns RLP-encoded bytes of a single block by number or hash.
+      operationId: debug_getRawBlock
+      tags:
+        - debug
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: debug_getRawBlock
+                  params: ['latest']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#debug_getRawTransaction:
+    post:
+      summary: debug_getRawTransaction
+      description: Returns the bytes of the transaction for the given hash.
+      operationId: debug_getRawTransaction
+      tags:
+        - debug
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: debug_getRawTransaction
+                  params: ['0x...']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # Avalanche extensions on RPC
+  /ext/bc/C/rpc#eth_suggestPriceOptions:
+    post:
+      summary: eth_suggestPriceOptions
+      description: Returns suggested fee options (Coreth extension).
+      operationId: eth_suggestPriceOptions
+      tags:
+        - Avalanche
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_suggestPriceOptions
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # Avalanche Admin endpoint
+  /ext/bc/C/admin#admin_startCPUProfiler:
+    post:
+      summary: admin_startCPUProfiler
+      description: Starts a CPU profile that writes to the specified file.
+      operationId: admin_startCPUProfiler
+      tags:
+        - Avalanche
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/admin#admin_stopCPUProfiler:
+    post:
+      summary: admin_stopCPUProfiler
+      description: Stops the CPU profile.
+      operationId: admin_stopCPUProfiler
+      tags:
+        - Avalanche
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/admin#admin_memoryProfile:
+    post:
+      summary: admin_memoryProfile
+      description: Runs a memory profile writing to the specified file.
+      operationId: admin_memoryProfile
+      tags:
+        - Avalanche
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/admin#admin_lockProfile:
+    post:
+      summary: admin_lockProfile
+      description: Runs a mutex profile writing to the specified file.
+      operationId: admin_lockProfile
+      tags:
+        - Avalanche
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/admin#admin_setLogLevel:
+    post:
+      summary: admin_setLogLevel
+      description: Sets the log level for the EVM.
+      operationId: admin_setLogLevel
+      tags:
+        - Avalanche
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: admin_setLogLevel
+                params:
+                  type: array
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/admin#admin_getVMConfig:
+    post:
+      summary: admin_getVMConfig
+      description: Returns the current VM configuration.
+      operationId: admin_getVMConfig
+      tags:
+        - Avalanche
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # Avalanche-specific avax namespace
+  /ext/bc/C/avax#avax.getUTXOs:
+    post:
+      summary: avax.getUTXOs
+      description: Gets all UTXOs for the specified addresses.
+      operationId: avax_getUTXOs
+      tags:
+        - Avalanche
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: avax.getUTXOs
+                params:
+                  type: array
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/avax#avax.issueTx:
+    post:
+      summary: avax.issueTx
+      description: Issues a transaction to the network.
+      operationId: avax_issueTx
+      tags:
+        - Avalanche
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: avax.issueTx
+                params:
+                  type: array
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/avax#avax.getAtomicTxStatus:
+    post:
+      summary: avax.getAtomicTxStatus
+      description: Returns the status of the specified atomic transaction.
+      operationId: avax_getAtomicTxStatus
+      tags:
+        - Avalanche
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: avax.getAtomicTxStatus
+                params:
+                  type: array
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/avax#avax.getAtomicTx:
+    post:
+      summary: avax.getAtomicTx
+      description: Returns the specified atomic transaction.
+      operationId: avax_getAtomicTx
+      tags:
+        - Avalanche
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: avax.getAtomicTx
+                params:
+                  type: array
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/avax#avax.version:
+    post:
+      summary: avax.version
+      description: Returns the version of the VM.
+      operationId: avax_version
+      tags:
+        - Avalanche
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+components:
+  schemas:
+    JSONRPCRequest:
+      type: object
+      description: JSON-RPC 2.0 Request
+      properties:
+        jsonrpc:
+          type: string
+          example: '2.0'
+        method:
+          type: string
+        params:
+          type: array
+        id:
+          type: integer
+          example: 1
+      required:
+        - jsonrpc
+        - method
+        - params
+        - id
+    JSONRPCResponse:
+      type: object
+      description: JSON-RPC 2.0 Response
+      properties:
+        jsonrpc:
+          type: string
+          example: '2.0'
+        result:
+          description: The result of the method call
+        error:
+          type: object
+          properties:
+            code:
+              type: integer
+            message:
+              type: string
+            data:
+              description: Additional error data
+        id:
+          type: integer
+          example: 1
+      required:
+        - jsonrpc
+        - id
+    JSONRPCError:
+      type: object
+      description: JSON-RPC 2.0 Error Response
+      properties:
+        jsonrpc:
+          type: string
+          example: '2.0'
+        error:
+          type: object
+          properties:
+            code:
+              type: integer
+            message:
+              type: string
+            data:
+              description: Additional error data
+          required:
+            - code
+            - message
+        id:
+          type: integer
+          example: 1
+      required:
+        - jsonrpc
+        - error
+        - id
+

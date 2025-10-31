@@ -212,6 +212,14 @@ content/docs/rpcs/p-chain/**/meta.json
 !content/docs/rpcs/p-chain/index.mdx
 !content/docs/rpcs/p-chain/txn-format.mdx
 !content/docs/rpcs/p-chain/api.mdx
+
+# Generated C-Chain RPC API documentation (auto-generated from OpenAPI)
+content/docs/rpcs/c-chain/**/*.mdx
+content/docs/rpcs/c-chain/**/meta.json
+!content/docs/rpcs/c-chain/meta.json
+!content/docs/rpcs/c-chain/index.mdx
+!content/docs/rpcs/c-chain/txn-format.mdx
+!content/docs/rpcs/c-chain/api.mdx
 content/docs/avalanche-l1s/evm-configuration/warpmessenger.mdx
 content/docs/avalanche-l1s/validator-manager/contract.mdx
 content/docs/cross-chain/avalanche-warp-messaging/deep-dive.mdx

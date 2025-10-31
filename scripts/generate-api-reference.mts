@@ -48,6 +48,10 @@ async function generate() {
     input: ['./public/openapi/platformvm.yaml'],
   });
 
+  const cChainApi = createOpenAPI({
+    input: ['./public/openapi/coreth.yaml'],
+  });
+
   // Generate Data API documentation
   await generateFiles({
     input: dataApi,
@@ -77,6 +81,16 @@ async function generate() {
   });
 
   console.log('✅ Generated P-Chain RPC API documentation');
+
+  // Generate C-Chain RPC API documentation
+  await generateFiles({
+    input: cChainApi,
+    output: './content/docs/rpcs/c-chain',
+    includeDescription: true,
+    groupBy: 'tag', // Group endpoints by their OpenAPI tags
+  });
+
+  console.log('✅ Generated C-Chain RPC API documentation');
   
   // Move webhooks from data-api to webhook-api
   console.log('\n🔧 Moving webhooks to webhook-api...');

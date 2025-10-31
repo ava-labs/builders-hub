@@ -3,5 +3,19 @@
   "description": "Contract Chain RPC methods",
   "icon": "Code",
   "root": true,
-  "pages": ["index", "api", "txn-format"]
+  "pages": [
+    "index",
+    "---RPC Methods---",
+    "eth",
+    "web3",
+    "net",
+    "personal",
+    "txpool",
+    "debug",
+    "avalanche",
+    "warp",
+    "---Reference---",
+    "api",
+    "txn-format"
+  ]
 }

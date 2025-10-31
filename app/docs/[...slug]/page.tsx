@@ -26,7 +26,7 @@ import { Feedback } from "@/components/ui/feedback";
 import { SidebarActions } from "@/components/ui/sidebar-actions";
 import posthog from "posthog-js";
 import { APIPage } from "fumadocs-openapi/ui";
-import { dataApi, metricsApi, pChainApi } from "@/lib/openapi";
+import { dataApi, metricsApi, pChainApi, cChainApi } from "@/lib/openapi";
 
 export const dynamicParams = false;
 export const revalidate = false;
@@ -98,10 +98,13 @@ export default async function Page(props: {
               const pagePath = params.slug.join('/');
               const isMetricsApi = props.document?.includes('popsicle-api.avax.network');
               const isPChainApi = pagePath.includes('rpcs/p-chain');
+              const isCChainApi = pagePath.includes('rpcs/c-chain');
               
               let apiInstance;
               if (isPChainApi) {
                 apiInstance = pChainApi;
+              } else if (isCChainApi) {
+                apiInstance = cChainApi;
               } else if (isMetricsApi) {
                 apiInstance = metricsApi;
               } else {

@@ -18,3 +18,8 @@ export const pChainApi = createOpenAPI({
   // P-Chain RPC API
   input: ['./public/openapi/platformvm.yaml'],
 });
+
+export const cChainApi = createOpenAPI({
+  // C-Chain RPC API
+  input: ['./public/openapi/coreth.yaml'],
+});
