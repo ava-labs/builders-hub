@@ -31,11 +31,9 @@ async function generate() {
   console.log('\n🔧 Removing deprecated endpoints...');
   execSync('tsx scripts/remove-deprecated-endpoints.mts', { stdio: 'inherit' });
 
-  // Clean up old generated files to ensure deprecated endpoints are removed
-  console.log('\n🧹 Cleaning up old generated files...');
-  execSync('tsx scripts/cleanup-generated-files.mts', { stdio: 'inherit' });
+  // Note: Do not delete existing content; we preserve root files by restoring after generation
 
-  // Create OpenAPI instances using local files (after cleanup)
+  // Create OpenAPI instances using local files (after prep)
   const dataApi = createOpenAPI({
     input: ['./public/openapi/glacier.json'],
   });
@@ -52,59 +50,51 @@ async function generate() {
     input: ['./public/openapi/coreth.yaml'],
   });
 
-  // Generate Data API documentation
-  // Preserve existing meta.json if present
-  const dataApiMetaPath = './content/docs/api-reference/data-api/meta.json';
-  const hasDataMeta = existsSync(dataApiMetaPath);
-  const originalDataMeta = hasDataMeta ? readFileSync(dataApiMetaPath, 'utf-8') : undefined;
-  await generateFiles({
-    input: dataApi,
-    output: './content/docs/api-reference/data-api',
-    includeDescription: true,
-    groupBy: 'tag', // Group endpoints by their OpenAPI tags
-  });
-  if (hasDataMeta && originalDataMeta !== undefined) {
-    // Restore user-defined meta.json
-    writeFileSync(dataApiMetaPath, originalDataMeta);
-  }
+  // Generate Data API documentation (preserve root files)
+  const dataOut = './content/docs/api-reference/data-api';
+  const dataMetaPath = `${dataOut}/meta.json`;
+  const dataIndexPath = `${dataOut}/index.mdx`;
+  const dataMetaBackup = existsSync(dataMetaPath) ? readFileSync(dataMetaPath, 'utf-8') : undefined;
+  const dataIndexBackup = existsSync(dataIndexPath) ? readFileSync(dataIndexPath, 'utf-8') : undefined;
+  await generateFiles({ input: dataApi, output: dataOut, includeDescription: true, groupBy: 'tag' });
+  if (dataMetaBackup !== undefined) writeFileSync(dataMetaPath, dataMetaBackup);
+  if (dataIndexBackup !== undefined) writeFileSync(dataIndexPath, dataIndexBackup);
 
   console.log('✅ Generated Data API documentation');
 
-  // Generate Metrics API documentation
-  // Preserve existing meta.json if present
-  const metricsApiMetaPath = './content/docs/api-reference/metrics-api/meta.json';
-  const hasMetricsMeta = existsSync(metricsApiMetaPath);
-  const originalMetricsMeta = hasMetricsMeta ? readFileSync(metricsApiMetaPath, 'utf-8') : undefined;
-  await generateFiles({
-    input: metricsApi,
-    output: './content/docs/api-reference/metrics-api',
-    includeDescription: true,
-    groupBy: 'tag', // Group endpoints by their OpenAPI tags
-  });
-  if (hasMetricsMeta && originalMetricsMeta !== undefined) {
-    // Restore user-defined meta.json
-    writeFileSync(metricsApiMetaPath, originalMetricsMeta);
-  }
+  // Generate Metrics API documentation (preserve root files)
+  const metricsOut = './content/docs/api-reference/metrics-api';
+  const metricsMetaPath = `${metricsOut}/meta.json`;
+  const metricsIndexPath = `${metricsOut}/index.mdx`;
+  const metricsMetaBackup = existsSync(metricsMetaPath) ? readFileSync(metricsMetaPath, 'utf-8') : undefined;
+  const metricsIndexBackup = existsSync(metricsIndexPath) ? readFileSync(metricsIndexPath, 'utf-8') : undefined;
+  await generateFiles({ input: metricsApi, output: metricsOut, includeDescription: true, groupBy: 'tag' });
+  if (metricsMetaBackup !== undefined) writeFileSync(metricsMetaPath, metricsMetaBackup);
+  if (metricsIndexBackup !== undefined) writeFileSync(metricsIndexPath, metricsIndexBackup);
 
   console.log('✅ Generated Metrics API documentation');
 
-  // Generate P-Chain RPC API documentation
-  await generateFiles({
-    input: pChainApi,
-    output: './content/docs/rpcs/p-chain',
-    includeDescription: true,
-    groupBy: 'tag', // Group endpoints by their OpenAPI tags
-  });
+  // Generate P-Chain RPC API documentation (preserve root files)
+  const pOut = './content/docs/rpcs/p-chain';
+  const pMeta = `${pOut}/meta.json`;
+  const pIndex = `${pOut}/index.mdx`;
+  const pMetaBackup = existsSync(pMeta) ? readFileSync(pMeta, 'utf-8') : undefined;
+  const pIndexBackup = existsSync(pIndex) ? readFileSync(pIndex, 'utf-8') : undefined;
+  await generateFiles({ input: pChainApi, output: pOut, includeDescription: true, groupBy: 'tag' });
+  if (pMetaBackup !== undefined) writeFileSync(pMeta, pMetaBackup);
+  if (pIndexBackup !== undefined) writeFileSync(pIndex, pIndexBackup);
 
   console.log('✅ Generated P-Chain RPC API documentation');
 
-  // Generate C-Chain RPC API documentation
-  await generateFiles({
-    input: cChainApi,
-    output: './content/docs/rpcs/c-chain',
-    includeDescription: true,
-    groupBy: 'tag', // Group endpoints by their OpenAPI tags
-  });
+  // Generate C-Chain RPC API documentation (preserve root files)
+  const cOut = './content/docs/rpcs/c-chain';
+  const cMeta = `${cOut}/meta.json`;
+  const cIndex = `${cOut}/index.mdx`;
+  const cMetaBackup = existsSync(cMeta) ? readFileSync(cMeta, 'utf-8') : undefined;
+  const cIndexBackup = existsSync(cIndex) ? readFileSync(cIndex, 'utf-8') : undefined;
+  await generateFiles({ input: cChainApi, output: cOut, includeDescription: true, groupBy: 'tag' });
+  if (cMetaBackup !== undefined) writeFileSync(cMeta, cMetaBackup);
+  if (cIndexBackup !== undefined) writeFileSync(cIndex, cIndexBackup);
 
   console.log('✅ Generated C-Chain RPC API documentation');
   
@@ -116,9 +106,7 @@ async function generate() {
   console.log('\n🔧 Reordering Data API sections...');
   execSync('tsx scripts/reorder-data-api-sections.mts', { stdio: 'inherit' });
   
-  // Clean up empty sections from meta.json
-  console.log('\n🔧 Cleaning up meta.json files...');
-  execSync('tsx scripts/cleanup-empty-sections.mts', { stdio: 'inherit' });
+  // Done
   
   // Fix empty titles
   console.log('\n🔧 Fixing empty titles...');
