@@ -1,18 +1,18 @@
 {
   "title": "Other RPCs",
   "description": "Additional RPC APIs",
-  "icon": "Webhook",
+  "icon": "Book",
   "root": true,
   "pages": [
     "index",
-    "admin-api",
-    "health-api",
-    "index-api",
-    "info-api",
-    "metrics-api",
-    "proposervm-api",
+    "admin-rpc",
+    "health-rpc",
+    "index-rpc",
+    "info-rpc",
+    "metrics-rpc",
+    "proposervm-rpc",
     "keystore-api",
-    "subnet-evm-api",
+    "subnet-evm-rpc",
     "standards",
     "guides"
   ]
