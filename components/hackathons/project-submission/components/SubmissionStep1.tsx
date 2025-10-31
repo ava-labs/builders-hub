@@ -107,8 +107,12 @@ const SubmitStep1: FC<projectProps> = (project) => {
                   <Textarea
                     onInput={(e) => {
                       const target = e.target as HTMLTextAreaElement;
+                      if (target.value.length > 280) {
+                        target.value = target.value.slice(0, 280);
+                      }
                       target.style.height = '0px';
                       target.style.height = target.scrollHeight + 'px';
+                      field.onChange(target.value);
                     }}
                     placeholder='Write a short and engaging overview...'
                     className='w-full h-9 dark:bg-zinc-950 pr-16'
