@@ -103,34 +103,31 @@ const SubmitStep1: FC<projectProps> = (project) => {
                 checked={!!field.value}
               />
               <FormControl>
-                <Textarea
-                  onInput={(e) => {
-                    const target = e.target as HTMLTextAreaElement;
-                    target.style.height = '0px';
-                    target.style.height = target.scrollHeight + 'px';
-                  }}
-                  placeholder='Write a short and engaging overview...'
-                  className='w-full h-9 dark:bg-zinc-950'
-                  {...field}
-                />
+                <div className='relative'>
+                  <Textarea
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = '0px';
+                      target.style.height = target.scrollHeight + 'px';
+                    }}
+                    placeholder='Write a short and engaging overview...'
+                    className='w-full h-9 dark:bg-zinc-950 pr-16'
+                    {...field}
+                  />
+                  <span className={`absolute bottom-2 right-2 text-xs pointer-events-none ${
+                    shortDescription.length < 30 
+                      ? 'text-red-500' 
+                      : shortDescription.length <= 280 
+                      ? 'text-green-500' 
+                      : 'text-red-500'
+                  }`}>
+                    {shortDescription.length}/280
+                  </span>
+                </div>
               </FormControl>
-              <div className='flex justify-between items-start gap-2'>
+              <div>
                 <FormMessage />
-                <span className={`text-xs ${
-                  shortDescription.length < 30 
-                    ? 'text-red-500' 
-                    : shortDescription.length <= 280 
-                    ? 'text-green-500' 
-                    : 'text-red-500'
-                }`}>
-                  {shortDescription.length}/280
-                </span>
               </div>
-              {shortDescription.length < 30 && shortDescription.length > 0 && (
-                <p className='text-xs text-amber-600 dark:text-amber-400'>
-                  Add {30 - shortDescription.length} more character{30 - shortDescription.length !== 1 ? 's' : ''} (minimum 30 required)
-                </p>
-              )}
             </FormItem>
           )}
         />
@@ -146,21 +143,23 @@ const SubmitStep1: FC<projectProps> = (project) => {
                 checked={!!field.value}
               />
               <FormControl>
-                <Textarea
-                  placeholder='Describe your project in detail...'
-                  className='w-full h-9 dark:bg-zinc-950'
-                  {...field}
-                />
+                <div className='relative'>
+                  <Textarea
+                    placeholder='Describe your project in detail...'
+                    className='w-full h-9 dark:bg-zinc-950 pr-28'
+                    {...field}
+                  />
+                  <span className={`absolute bottom-2 right-2 text-xs pointer-events-none ${
+                    fullDescription.length < 30 
+                      ? 'text-red-500' 
+                      : 'text-green-500'
+                  }`}>
+                    {fullDescription.length}/30
+                  </span>
+                </div>
               </FormControl>
-              <div className='flex justify-between items-start gap-2'>
+              <div>
                 <FormMessage />
-                <span className={`text-xs ${
-                  fullDescription.length < 30 
-                    ? 'text-red-500' 
-                    : 'text-green-500'
-                }`}>
-                  {fullDescription.length} characters
-                </span>
               </div>
               {fullDescription.length < 30 && fullDescription.length > 0 && (
                 <p className='text-xs text-amber-600 dark:text-amber-400'>
