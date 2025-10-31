@@ -49,6 +49,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
 
   const fullDescription = form.watch('full_description');
   const shortDescription = form.watch('short_description');
+  const tracks = form.watch('tracks');
 
   useLayoutEffect(() => {
     const textareas = ['full_description', 'short_description'];
@@ -186,7 +187,16 @@ const SubmitStep1: FC<projectProps> = (project) => {
                   searchPlaceholder='Search tracks'
                 />
               </FormControl>
-              <FormMessage />
+              <div className='flex justify-between items-start gap-2'>
+                <FormMessage />
+                <span className={`text-xs ${
+                  tracks && tracks.length > 0
+                    ? 'text-green-500'
+                    : 'text-red-500'
+                }`}>
+                  {tracks && tracks.length > 0 ? `${tracks.length} track${tracks.length !== 1 ? 's' : ''} selected` : 'Select at least one'}
+                </span>
+              </div>
             </FormItem>
           )}
         />
