@@ -9,12 +9,15 @@ type SingleStep = {
   title: string;
   optional?: boolean;
   component: React.ComponentType;
+  description?: string;
+  outcomes?: string[];
 };
 
 type BranchOption = {
   key: string;
   label: string;
   component: React.ComponentType;
+  outcomes?: string[];
 };
 
 type BranchStep = {
@@ -23,9 +26,29 @@ type BranchStep = {
   title: string;
   optional?: boolean;
   options: BranchOption[];
+  description?: string;
 };
 
 export type StepDefinition = SingleStep | BranchStep;
+
+export type PrerequisiteItem = {
+  requirement: string;
+  type?: string;
+};
+
+export type FlowMetadata = {
+  prerequisites?: PrerequisiteItem[];
+  estimatedTime?: string;
+  useCases?: string[];
+};
+
+export type FlowConfig = {
+  title: string;
+  description?: string;
+  metadata?: FlowMetadata;
+  resources?: Array<{ label: string; href: string }>;
+  githubUrl?: string;
+};
 
 type StepFlowProps = {
   steps: StepDefinition[];
