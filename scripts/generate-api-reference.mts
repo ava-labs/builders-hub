@@ -1,7 +1,7 @@
 import { generateFiles } from 'fumadocs-openapi';
 import { createOpenAPI } from 'fumadocs-openapi/server';
 import { execSync } from 'child_process';
-import { writeFileSync, mkdirSync } from 'fs'; 
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'fs'; 
 
 async function generate() {
   // Ensure the public/openapi directory exists
@@ -53,22 +53,38 @@ async function generate() {
   });
 
   // Generate Data API documentation
+  // Preserve existing meta.json if present
+  const dataApiMetaPath = './content/docs/api-reference/data-api/meta.json';
+  const hasDataMeta = existsSync(dataApiMetaPath);
+  const originalDataMeta = hasDataMeta ? readFileSync(dataApiMetaPath, 'utf-8') : undefined;
   await generateFiles({
     input: dataApi,
     output: './content/docs/api-reference/data-api',
     includeDescription: true,
     groupBy: 'tag', // Group endpoints by their OpenAPI tags
   });
+  if (hasDataMeta && originalDataMeta !== undefined) {
+    // Restore user-defined meta.json
+    writeFileSync(dataApiMetaPath, originalDataMeta);
+  }
 
   console.log('✅ Generated Data API documentation');
 
   // Generate Metrics API documentation
+  // Preserve existing meta.json if present
+  const metricsApiMetaPath = './content/docs/api-reference/metrics-api/meta.json';
+  const hasMetricsMeta = existsSync(metricsApiMetaPath);
+  const originalMetricsMeta = hasMetricsMeta ? readFileSync(metricsApiMetaPath, 'utf-8') : undefined;
   await generateFiles({
     input: metricsApi,
     output: './content/docs/api-reference/metrics-api',
     includeDescription: true,
     groupBy: 'tag', // Group endpoints by their OpenAPI tags
   });
+  if (hasMetricsMeta && originalMetricsMeta !== undefined) {
+    // Restore user-defined meta.json
+    writeFileSync(metricsApiMetaPath, originalMetricsMeta);
+  }
 
   console.log('✅ Generated Metrics API documentation');
 
