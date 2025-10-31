@@ -18,12 +18,12 @@ const tabs = [
   },
   {
     label: 'APIs',
-    href: '/docs/api-reference',
+    href: '/docs/api-reference/data-api',
     pathMatch: (path: string) => path.startsWith('/docs/api-reference')
   },
   {
     label: 'RPCs',
-    href: '/docs/rpcs',
+    href: '/docs/rpcs/c-chain',
     pathMatch: (path: string) => path.startsWith('/docs/rpcs')
   },
   {

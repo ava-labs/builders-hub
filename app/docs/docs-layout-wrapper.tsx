@@ -55,18 +55,27 @@ export function DocsLayoutWrapper({
     
     // Force hide the tabs dropdown on tooling and ACPs pages
     const hideDropdown = () => {
-      if (pathname.startsWith('/docs/tooling') || pathname.startsWith('/docs/acps')) {
-        const sidebar = document.querySelector('#nd-sidebar');
-        if (sidebar) {
-          // Find and hide the tabs dropdown button
-          const buttons = sidebar.querySelectorAll('button');
-          buttons.forEach(button => {
-            if (button.getAttribute('aria-haspopup') || button.getAttribute('role') === 'combobox') {
-              (button as HTMLElement).style.display = 'none';
-            }
-          });
+      const sidebar = document.querySelector('#nd-sidebar');
+      if (!sidebar) return;
+
+      const buttons = sidebar.querySelectorAll('button');
+      const isToolingOrAcps = pathname.startsWith('/docs/tooling') || pathname.startsWith('/docs/acps');
+
+      buttons.forEach((button) => {
+        const isTabsTrigger = button.getAttribute('aria-haspopup') || button.getAttribute('role') === 'combobox';
+        if (!isTabsTrigger) return;
+
+        const el = button as HTMLElement;
+        if (isToolingOrAcps) {
+          // Hide on SDKs/ACPs
+          el.style.display = 'none';
+        } else {
+          // Ensure it is visible again when leaving those sections (fixes persistent hidden state on client nav)
+          if (el.style.display === 'none') {
+            el.style.display = '';
+          }
         }
-      }
+      });
     };
     
     // Run immediately and after a short delay to catch dynamically rendered elements
@@ -76,6 +85,15 @@ export function DocsLayoutWrapper({
     return () => {
       clearTimeout(timeout);
       document.body.removeAttribute('data-docs-section');
+      // On unmount, best-effort restore any hidden tabs trigger
+      const sidebar = document.querySelector('#nd-sidebar');
+      if (sidebar) {
+        sidebar.querySelectorAll('button').forEach((button) => {
+          if (button.getAttribute('aria-haspopup') || button.getAttribute('role') === 'combobox') {
+            (button as HTMLElement).style.display = '';
+          }
+        });
+      }
     };
   }, [pathname]);
 
