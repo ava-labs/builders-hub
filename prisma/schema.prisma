@@ -53,7 +53,7 @@ model User {
   created_at          DateTime      @default(now()) @db.Timestamptz(3)
   updated_hackathons  Hackathon[] @relation("HackathonUpdatedBy")
   memberships         Member[]
-  registrations       RegisterForm?
+  registrations       RegisterForm[]
   hackathons          Hackathon[]
   badges              UserBadge[]
   managedTestnetNodes NodeRegistration[]
@@ -73,7 +73,7 @@ model RegisterForm {
   utm                     String
   city                    String
   dietary                 String?
-  email                   String    @unique
+  email                   String
   interests               String
   languages               String
   roles                   String
