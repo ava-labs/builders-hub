@@ -134,11 +134,11 @@ export default function MediaUploader({
             >
               {fileArray.length === 0 ? (
                 <div
-                  className={`relative border-2 py-4 px-4 dark:bg-zinc-800  border-dashed border-red-500 rounded-md w-full flex items-center justify-center ${sizeClasses}`}
+                  className={`relative border-2 py-4 px-4 dark:bg-zinc-800  border-dashed border-zinc-400 rounded-md w-full flex items-center justify-center ${sizeClasses}`}
                 >
                   <div className='bg-white w-full  h-full flex items-center justify-center rounded-md'>
                     <ImageIcon
-                      className='text-red-500'
+                      className='text-zinc-400'
                       size={64}
                       color='black'
                     />
@@ -162,7 +162,7 @@ export default function MediaUploader({
                     <DropdownMenu key={index}>
                       <DropdownMenuTrigger asChild>
                         <div
-                          className={`relative border-2 py-4 px-4 border-dashed border-red-500 rounded-md w-full h-full flex items-center justify-center cursor-pointer ${sizeClasses}`}
+                          className={`relative border-2 py-4 px-4 border-dashed border-zinc-400 rounded-md w-full h-full flex items-center justify-center cursor-pointer ${sizeClasses}`}
                           onClick={() => setSelectedIndex(index)}
                         >
                           <img
