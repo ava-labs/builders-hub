@@ -42,7 +42,7 @@ export default function SubmitStep2() {
           render={({ field }) => (
             <FormItem>
               <FormLabelWithCheck
-                label="How it's made"
+                label="How it's made*"
                 checked={!!field.value}
               />
               <FormControl>
@@ -78,7 +78,7 @@ export default function SubmitStep2() {
         {/* Campo: Repo Link */}
         <MultiLinkInput
           name="github_repository"
-          label="GitHub Repository"
+          label="GitHub Repository*"
           placeholder="Paste GitHub link (e.g., https://github.com/user/repo)"
           validationMessage="Must be a public repository. If design-only, link a Figma file. Use space,enter or tab after each link"
         />
@@ -86,7 +86,7 @@ export default function SubmitStep2() {
         {/* Campo: Demo Link */}
         <MultiLinkInput
           name="demo_link"
-          label="Demo and Other Links"
+          label="Demo or Other Links*"
           placeholder="Paste any project links (e.g., https://yoursite.com)"
           validationMessage="Provide a live demo, presnetation, deck, Google Drive Folder, website, etc. Use space, enter or tab after each link"
         />
