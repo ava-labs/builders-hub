@@ -76,7 +76,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
           render={({ field }) => (
             <FormItem>
               <FormLabelWithCheck
-                label='Project Name'
+                label='Project Name*'
                 checked={!!field.value}
               />
               <FormControl>
@@ -98,7 +98,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
           render={({ field }) => (
             <FormItem>
               <FormLabelWithCheck
-                label='Short Description'
+                label='Short Description*'
                 checked={!!field.value}
               />
               <FormControl>
@@ -141,7 +141,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
           render={({ field }) => (
             <FormItem>
               <FormLabelWithCheck
-                label='Full Description'
+                label='Full Description*'
                 checked={!!field.value}
               />
               <FormControl>
@@ -176,7 +176,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
           name='tracks'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Tracks</FormLabel>
+              <FormLabel>Tracks*</FormLabel>
               <FormControl>
                 <MultiSelect
                   options={transformedTracks}
