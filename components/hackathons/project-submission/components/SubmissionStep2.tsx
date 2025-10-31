@@ -20,6 +20,7 @@ import { MultiLinkInput } from './MultiLinkInput';
 
 export default function SubmitStep2() {
   const form =  useFormContext<SubmissionForm>();
+  const techStack = form.watch('tech_stack');
   return (
     <div className="space-y-8">
       {/* Sección: Technical Details */}
@@ -49,10 +50,24 @@ export default function SubmitStep2() {
                   {...field}
                 />
               </FormControl>
-              <p className="text-zinc-400 text-[14px] leading-[100%] tracking-[0%] font-aeonik">
-                Mention any innovative solutions or "hacky" parts worth
-                highlighting.
-              </p>
+              <div className='flex justify-between items-start gap-2'>
+                <p className="text-zinc-400 text-[14px] leading-[100%] tracking-[0%] font-aeonik">
+                  Mention any innovative solutions or "hacky" parts worth
+                  highlighting.
+                </p>
+                <span className={`text-xs ${
+                  techStack.length < 30 
+                    ? 'text-red-500' 
+                    : 'text-green-500'
+                }`}>
+                  {techStack.length} characters
+                </span>
+              </div>
+              {techStack.length < 30 && techStack.length > 0 && (
+                <p className='text-xs text-amber-600 dark:text-amber-400'>
+                  Add {30 - techStack.length} more character{30 - techStack.length !== 1 ? 's' : ''} (minimum 30 required)
+                </p>
+              )}
               <FormMessage />
             </FormItem>
           )}
