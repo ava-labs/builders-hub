@@ -63,22 +63,6 @@ export const StepNavigation = ({
     <div className="flex flex-col md:flex-row items-center justify-between mt-8">
       <div className="flex flex-wrap gap-4 mb-4 md:mb-0">
         <LoadingButton
-          isLoading={form.formState.isSubmitting}
-          loadingText="Saving..."
-          type={isLastStep ? 'submit' : 'button'}
-          variant="red"
-          className="px-4 py-2 cursor-pointer"
-          onClick={(e) => {
-            if (!isLastStep) {
-              e.preventDefault();
-              handleNext();
-            }
-          }}
-        >
-          {isLastStep ? 'Final Submit' : 'Continue'}
-        </LoadingButton>
-
-        <LoadingButton
           isLoading={isSavingLater}
           loadingText="Saving..."
           type="button"
@@ -94,6 +78,24 @@ export const StepNavigation = ({
         >
           Save & Continue Later
         </LoadingButton>
+
+        {isLastStep && (
+          <LoadingButton
+            isLoading={form.formState.isSubmitting}
+            loadingText="Saving..."
+            type={isLastStep ? 'submit' : 'button'}
+            variant="red"
+            className="px-4 py-2 cursor-pointer"
+            onClick={(e) => {
+              if (!isLastStep) {
+                e.preventDefault();
+                handleNext();
+              }
+            }}
+          >
+            {isLastStep ? 'Final Submit' : 'Continue'}
+          </LoadingButton>
+        )}
       </div>
 
       <div className="flex flex-col md:flex-row items-center">
