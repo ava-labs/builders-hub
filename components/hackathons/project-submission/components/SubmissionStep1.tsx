@@ -182,24 +182,26 @@ const SubmitStep1: FC<projectProps> = (project) => {
             <FormItem>
               <FormLabel>Tracks*</FormLabel>
               <FormControl>
-                <MultiSelect
-                  options={transformedTracks}
-                  selected={field.value || []}
-                  onChange={field.onChange}
-                  placeholder='Select tracks'
-                  searchPlaceholder='Search tracks'
-                />
+                <div className='space-y-2'>
+                  <MultiSelect
+                    options={transformedTracks}
+                    selected={field.value || []}
+                    onChange={field.onChange}
+                    placeholder='Select tracks'
+                    searchPlaceholder='Search tracks'
+                  />
+                  <div className='flex justify-end'>
+                    <span className={`text-xs ${
+                      tracks && tracks.length > 0
+                        ? 'text-green-500'
+                        : 'text-red-500'
+                    }`}>
+                      {tracks && tracks.length > 0 ? `${tracks.length} track${tracks.length !== 1 ? 's' : ''} selected` : 'Select at least one'}
+                    </span>
+                  </div>
+                </div>
               </FormControl>
-              <div className='flex justify-between items-start gap-2'>
-                <FormMessage />
-                <span className={`text-xs ${
-                  tracks && tracks.length > 0
-                    ? 'text-green-500'
-                    : 'text-red-500'
-                }`}>
-                  {tracks && tracks.length > 0 ? `${tracks.length} track${tracks.length !== 1 ? 's' : ''} selected` : 'Select at least one'}
-                </span>
-              </div>
+              <FormMessage />
             </FormItem>
           )}
         />
