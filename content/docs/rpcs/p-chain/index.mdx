@@ -5,10 +5,61 @@ description: RPC API documentation for the Avalanche P-Chain (Platform Chain)
 
 # P-Chain RPC API
 
-The P-Chain (Platform Chain) manages validators, staking, and subnets on the Avalanche network. It is responsible for coordinating validators and managing the creation of new blockchains.
+The P-Chain (Platform Chain) manages validators, staking, subnets, and blockchain lifecycle on Avalanche. It exposes JSON-RPC methods for chain info, staking operations, subnet administration, fees, and more.
 
-## Available Documentation
+### Endpoint
 
-- **API Reference**: Complete RPC method documentation for the P-Chain
-- **Transaction Format**: Details on P-Chain transaction structures and encoding
+- HTTP (JSON-RPC): `/ext/bc/P`
 
+All methods use POST with a JSON-RPC body and a `platform.*` method name.
+
+### Sections
+
+Browse P-Chain RPC methods by topic:
+
+- Chain Info: see `chain-info/`
+- Balances & UTXOs: see `balances-&-utxos/`
+- Validators: see `validators/`
+- Staking: see `staking/`
+- Subnets: see `subnets/`
+- Blockchains: see `blockchains/`
+- Blocks: see `blocks/`
+- Transactions: see `transactions/`
+- Fees: see `fees/`
+
+Each folder contains individual method pages (e.g., `platform.getHeight`, `platform.getCurrentValidators`, `platform.getSubnets`, etc.).
+
+### Quick examples
+
+Get current height:
+
+```bash
+curl -s -X POST \
+  -H 'content-type: application/json' \
+  --data '{
+    "jsonrpc":"2.0",
+    "id":1,
+    "method":"platform.getHeight",
+    "params":{}
+  }' \
+  https://api.avax.network/ext/bc/P
+```
+
+Get subnets by IDs:
+
+```bash
+curl -s -X POST \
+  -H 'content-type: application/json' \
+  --data '{
+    "jsonrpc":"2.0",
+    "id":1,
+    "method":"platform.getSubnets",
+    "params": { "ids": [] }
+  }' \
+  https://api.avax.network/ext/bc/P
+```
+
+### Reference
+
+- RPC methods by topic: browse the folders above for all supported P-Chain endpoints
+- Transaction format: see `txn-format.mdx` for serialization and field-level details

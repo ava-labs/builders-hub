@@ -5,6 +5,10 @@
   "root": true,
   "pages": [
     "index",
+    "usage",
+    "data-vs-rpc",
+    "rate-limits",
+    "snowflake",
     "health-check",
     "---EVM---",
     "evm-chains",

@@ -184,14 +184,25 @@ content/docs/api-reference/data-api/**/*.mdx
 content/docs/api-reference/data-api/**/meta.json
 !content/docs/api-reference/data-api/meta.json
 !content/docs/api-reference/data-api/index.mdx
+!content/docs/api-reference/data-api/usage.mdx
+!content/docs/api-reference/data-api/data-vs-rpc.mdx
+!content/docs/api-reference/data-api/rate-limits.mdx
+!content/docs/api-reference/data-api/snowflake.mdx
 content/docs/api-reference/metrics-api/**/*.mdx
 content/docs/api-reference/metrics-api/**/meta.json
 !content/docs/api-reference/metrics-api/meta.json
 !content/docs/api-reference/metrics-api/index.mdx
+!content/docs/api-reference/metrics-api/usage-guide.mdx
+!content/docs/api-reference/metrics-api/getting-started.mdx
+!content/docs/api-reference/metrics-api/rate-limits.mdx
 content/docs/api-reference/webhook-api/**/*.mdx
 content/docs/api-reference/webhook-api/**/meta.json
 !content/docs/api-reference/webhook-api/meta.json
 !content/docs/api-reference/webhook-api/index.mdx
+!content/docs/api-reference/webhook-api/rate-limits.mdx
+!content/docs/api-reference/webhook-api/retries.mdx
+!content/docs/api-reference/webhook-api/webhooks-signature.mdx
+!content/docs/api-reference/webhook-api/wss-vs-webhooks.mdx
 
 # Generated RPC API docs (remote content)
 content/docs/rpcs/other/admin-api.mdx

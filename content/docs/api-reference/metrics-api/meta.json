@@ -5,6 +5,9 @@
   "root": true,
   "pages": [
     "index",
+    "getting-started",
+    "usage-guide",
+    "rate-limits",
     "health-check",
     "---Chains---",
     "evm-chains",

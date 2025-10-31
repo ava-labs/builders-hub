@@ -5,10 +5,70 @@ description: RPC methods documentation for the Avalanche C-Chain (Contract Chain
 
 # C-Chain RPC Methods
 
-The C-Chain (Contract Chain) is an instance of the Ethereum Virtual Machine (EVM) powered by Avalanche's Snowman consensus protocol. It enables smart contract deployment and execution.
+The C-Chain (Contract Chain) is Avalanche’s EVM-compatible chain. It supports standard Ethereum JSON-RPC methods as well as Avalanche-specific extensions for administration, UTXO bridging, and fee utilities.
 
-## Available Documentation
+### Endpoints
 
-- **RPC Methods**: Complete RPC method documentation for the C-Chain
-- **Transaction Format**: Details on C-Chain transaction structures and encoding
+- HTTP (JSON-RPC): `/ext/bc/C/rpc`
+- WebSocket: `/ext/bc/C/ws`
+- Avalanche extensions (HTTP): `/ext/bc/C/avax`
+- Admin (HTTP): `/ext/bc/C/admin`
 
+### Namespaces (EVM)
+
+Explore the standard Ethereum namespaces supported on C-Chain:
+
+- Web3: see `web3/`
+- Net: see `net/`
+- Eth: see `eth/`
+- Personal: see `personal/`
+- TxPool: see `txpool/`
+- Debug: see `debug/`
+
+Each namespace folder contains individual method pages (e.g., `eth_blockNumber`, `eth_call`, `personal_newAccount`, etc.).
+
+### Avalanche-specific (C-Chain)
+
+Additional methods exposed under `/ext/bc/C/avax` and admin utilities under `/ext/bc/C/admin`:
+
+- Avalanche methods: see `avalanche/` (e.g., `avax.getUTXOs`, `avax.issueTx`, shared secret utilities)
+- Admin methods: available in the same folder or via API reference (profiling, VM config, log level)
+
+### Warp
+
+Warp-related references live in `warp/` for cross-chain messaging topics and helpers. Refer to these if you’re integrating Warp with EVM contracts.
+
+### Quick examples
+
+RPC (HTTP):
+
+```bash
+curl -s -X POST \
+  -H 'content-type: application/json' \
+  --data '{
+    "jsonrpc":"2.0",
+    "id":1,
+    "method":"eth_blockNumber",
+    "params":[]
+  }' \
+  https://api.avax.network/ext/bc/C/rpc
+```
+
+Avalanche extension (UTXO bridge):
+
+```bash
+curl -s -X POST \
+  -H 'content-type: application/json' \
+  --data '{
+    "jsonrpc":"2.0",
+    "id":1,
+    "method":"avax.getUTXOs",
+    "params":[{"addresses":[], "limit":100, "encoding":"hex"}]
+  }' \
+  https://api.avax.network/ext/bc/C/avax
+```
+
+### Reference
+
+- RPC Methods by namespace: browse the folders above for all supported methods
+- Transaction format: see `txn-format.mdx` for C-Chain transaction fields and encoding

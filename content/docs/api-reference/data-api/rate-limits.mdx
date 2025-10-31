@@ -1,0 +1,157 @@
+---
+title: Rate Limits
+description: Rate Limits for the Data API
+icon: Clock
+---
+
+Rate limiting is managed through a weighted scoring system, known as Compute Units (CUs). Each API request consumes a specified number of CUs, determined by the complexity of the request. This system is designed to accommodate basic requests while efficiently handling more computationally intensive operations.
+
+## Rate Limit Tiers
+
+The maximum CUs (rate-limiting score) for a user depends on their subscription level and is delineated in the following table:
+
+| Subscription Level | Per Minute Limit (CUs) | Per Day Limit (CUs) |
+| :----------------- | :--------------------- | :------------------ |
+| Unauthenticated    | 6,000                  | 1,200,000           |
+| Free               | 8,000                  | 2,000,000           |
+| Base               | 10,000                 | 3,750,000           |
+| Growth             | 14,000                 | 11,200,000          |
+| Pro                | 20,000                 | 25,000,000          |
+
+To update your subscription level use the [AvaCloud Portal](https://app.avacloud.io/)
+
+<Info> Note: Rate limits apply collectively across both Webhooks and Data APIs, with usage from each counting toward your total CU limit. </Info>
+
+## Rate Limit Categories
+
+The CUs for each category are defined in the following table:
+
+| Weight | CU Value |
+| :----- | :------- |
+| Free   | 1        |
+| Small  | 10       |
+| Medium | 20       |
+| Large  | 50       |
+| XL     | 100      |
+| XXL    | 200      |
+
+## Rate Limits for Data API Endpoints
+
+The CUs for each route are defined in the table below:
+
+| Endpoint                                                                          | Method | Weight | CU Value |
+| :-------------------------------------------------------------------------------- | :----- | :----- | :------- |
+| `/v1/health-check`                                                                | GET    | Medium | 20       |
+| `/v1/address/{address}/chains`                                                    | GET    | Medium | 20       |
+| `/v1/transactions`                                                                | GET    | Medium | 20       |
+| `/v1/blocks`                                                                      | GET    | Medium | 20       |
+| `/v1/chains/{chainId}/nfts/collections/{address}/tokens/{tokenId}:reindex`        | POST   | Small  | 10       |
+| `/v1/chains/{chainId}/nfts/collections/{address}/tokens`                          | GET    | Medium | 20       |
+| `/v1/chains/{chainId}/nfts/collections/{address}/tokens/{tokenId}`                | GET    | Medium | 20       |
+| `/v1/operations/{operationId}`                                                    | GET    | Small  | 10       |
+| `/v1/operations/transactions:export`                                              | POST   | Medium | 20       |
+| `/v1/networks/{network}/blockchains/{blockchainId}/transactions/{txHash}`         | GET    | Medium | 20       |
+| `/v1/networks/{network}/blockchains/{blockchainId}/transactions`                  | GET    | XL     | 100      |
+| `/v1/networks/{network}/blockchains/{blockchainId}/transactions:listStaking`      | GET    | XL     | 100      |
+| `/v1/networks/{network}/rewards:listPending`                                      | GET    | XL     | 100      |
+| `/v1/networks/{network}/rewards`                                                  | GET    | XL     | 100      |
+| `/v1/networks/{network}/blockchains/{blockchainId}/utxos`                         | GET    | XL     | 100      |
+| `/v1/networks/{network}/blockchains/{blockchainId}/balances`                      | GET    | XL     | 100      |
+| `/v1/networks/{network}/blockchains/{blockchainId}/blocks/{blockId}`              | GET    | XL     | 100      |
+| `/v1/networks/{network}/blockchains/{blockchainId}/nodes/{nodeId}/blocks`         | GET    | Medium | 20       |
+| `/v1/networks/{network}/blockchains/{blockchainId}/blocks`                        | GET    | Medium | 20       |
+| `/v1/networks/{network}/blockchains/{blockchainId}/vertices`                      | GET    | Medium | 20       |
+| `/v1/networks/{network}/blockchains/{blockchainId}/vertices/{vertexHash}`         | GET    | Medium | 20       |
+| `/v1/networks/{network}/blockchains/{blockchainId}/vertices:listByHeight`         | GET    | Medium | 20       |
+| `/v1/networks/{network}/blockchains/{blockchainId}/assets/{assetId}`              | GET    | XL     | 100      |
+| `/v1/networks/{network}/blockchains/{blockchainId}/assets/{assetId}/transactions` | GET    | XL     | 100      |
+| `/v1/networks/{network}/addresses:listChainIds`                                   | GET    | XL     | 100      |
+| `/v1/networks/{network}`                                                          | GET    | XL     | 100      |
+| `/v1/networks/{network}/blockchains`                                              | GET    | Medium | 20       |
+| `/v1/networks/{network}/subnets`                                                  | GET    | Medium | 20       |
+| `/v1/networks/{network}/subnets/{subnetId}`                                       | GET    | Medium | 20       |
+| `/v1/networks/{network}/validators`                                               | GET    | Medium | 20       |
+| `/v1/networks/{network}/validators/{nodeId}`                                      | GET    | Medium | 20       |
+| `/v1/networks/{network}/delegators`                                               | GET    | Medium | 20       |
+| `/v1/networks/{network}/l1Validators`                                             | GET    | Medium | 20       |
+| `/v1/teleporter/messages/{messageId}`                                             | GET    | Medium | 20       |
+| `/v1/teleporter/messages`                                                         | GET    | Medium | 20       |
+| `/v1/teleporter/addresses/{address}/messages`                                     | GET    | Medium | 20       |
+| `/v1/icm/messages/{messageId}`                                                    | GET    | Medium | 20       |
+| `/v1/icm/messages`                                                                | GET    | Medium | 20       |
+| `/v1/icm/addresses/{address}/messages`                                            | GET    | Medium | 20       |
+| `/v1/apiUsageMetrics`                                                             | GET    | XXL    | 200      |
+| `/v1/apiLogs`                                                                     | GET    | XXL    | 200      |
+| `/v1/subnetRpcUsageMetrics`                                                       | GET    | XXL    | 200      |
+| `/v1/rpcUsageMetrics`                                                             | GET    | XXL    | 200      |
+| `/v1/primaryNetworkRpcUsageMetrics`                                               | GET    | XXL    | 200      |
+| `/v1/signatureAggregator/{network}/aggregateSignatures`                           | POST   | Medium | 20       |
+| `/v1/signatureAggregator/{network}/aggregateSignatures/{txHash}`                  | GET    | Medium | 20       |
+| `/v1/chains/{chainId}/addresses/{address}/balances:getNative`                     | GET    | Medium | 20       |
+| `/v1/chains/{chainId}/addresses/{address}/balances:listErc20`                     | GET    | Medium | 20       |
+| `/v1/chains/{chainId}/addresses/{address}/balances:listErc721`                    | GET    | Medium | 20       |
+| `/v1/chains/{chainId}/addresses/{address}/balances:listErc1155`                   | GET    | Medium | 20       |
+| `/v1/chains/{chainId}/addresses/{address}/balances:listCollectibles`              | GET    | Medium | 20       |
+| `/v1/chains/{chainId}/blocks`                                                     | GET    | Small  | 10       |
+| `/v1/chains/{chainId}/blocks/{blockId}`                                           | GET    | Small  | 10       |
+| `/v1/chains/{chainId}/contracts/{address}/transactions:getDeployment`             | GET    | Medium | 20       |
+| `/v1/chains/{chainId}/contracts/{address}/deployments`                            | GET    | Medium | 20       |
+| `/v1/chains/{chainId}/addresses/{address}`                                        | GET    | Medium | 20       |
+| `/v1/chains`                                                                      | GET    | Free   | 1        |
+| `/v1/chains/{chainId}`                                                            | GET    | Free   | 1        |
+| `/v1/chains/address/{address}`                                                    | GET    | Free   | 1        |
+| `/v1/chains/allTransactions`                                                      | GET    | Free   | 1        |
+| `/v1/chains/allBlocks`                                                            | GET    | Free   | 1        |
+| `/v1/chains/{chainId}/tokens/{address}/transfers`                                 | GET    | Medium | 20       |
+| `/v1/chains/{chainId}/addresses/{address}/transactions`                           | GET    | Medium | 20       |
+| `/v1/chains/{chainId}/addresses/{address}/transactions:listNative`                | GET    | Medium | 20       |
+| `/v1/chains/{chainId}/addresses/{address}/transactions:listErc20`                 | GET    | Medium | 20       |
+| `/v1/chains/{chainId}/addresses/{address}/transactions:listErc721`                | GET    | Medium | 20       |
+| `/v1/chains/{chainId}/addresses/{address}/transactions:listErc1155`               | GET    | Medium | 20       |
+| `/v1/chains/{chainId}/addresses/{address}/transactions:listInternals`             | GET    | Medium | 20       |
+| `/v1/chains/{chainId}/transactions/{txHash}`                                      | GET    | Medium | 20       |
+| `/v1/chains/{chainId}/blocks/{blockId}/transactions`                              | GET    | Medium | 20       |
+| `/v1/chains/{chainId}/transactions`                                               | GET    | Medium | 20       |
+
+## Rate Limits for RPC endpoints
+
+The CUs for RPC calls are calculated based on the RPC method(s) within the request. The CUs assigned to each method are defined in the table below:
+
+| Method                                    | Weight | CU Value |
+| :---------------------------------------- | :----- | :------- |
+| `eth_accounts`                            | Free   | 1        |
+| `eth_blockNumber`                         | Small  | 10       |
+| `eth_call`                                | Small  | 10       |
+| `eth_coinbase`                            | Small  | 10       |
+| `eth_chainId`                             | Free   | 1        |
+| `eth_gasPrice`                            | Small  | 10       |
+| `eth_getBalance`                          | Small  | 10       |
+| `eth_getBlockByHash`                      | Small  | 10       |
+| `eth_getBlockByNumber`                    | Small  | 10       |
+| `eth_getBlockTransactionCountByNumber`    | Medium | 20       |
+| `eth_getCode`                             | Medium | 20       |
+| `eth_getLogs`                             | XXL    | 200      |
+| `eth_getStorageAt`                        | Medium | 20       |
+| `eth_getTransactionByBlockNumberAndIndex` | Medium | 20       |
+| `eth_getTransactionByHash`                | Small  | 10       |
+| `eth_getTransactionCount`                 | Small  | 10       |
+| `eth_getTransactionReceipt`               | Small  | 10       |
+| `eth_signTransaction`                     | Medium | 20       |
+| `eth_sendTransaction`                     | Medium | 20       |
+| `eth_sign`                                | Medium | 20       |
+| `eth_sendRawTransaction`                  | Small  | 10       |
+| `eth_syncing`                             | Free   | 1        |
+| `net_listening`                           | Free   | 1        |
+| `net_peerCount`                           | Medium | 20       |
+| `net_version`                             | Free   | 1        |
+| `web3_clientVersion`                      | Small  | 10       |
+| `web3_sha3`                               | Small  | 10       |
+| `eth_newPendingTransactionFilter`         | Medium | 20       |
+| `eth_maxPriorityFeePerGas`                | Small  | 10       |
+| `eth_baseFee`                             | Small  | 10       |
+| `rpc_modules`                             | Free   | 1        |
+| `eth_getChainConfig`                      | Small  | 10       |
+| `eth_feeConfig`                           | Small  | 10       |
+| `eth_getActivePrecompilesAt`              | Small  | 10       |
+
+<Info> All rate limits, weights, and CU values are subject to change. </Info>
