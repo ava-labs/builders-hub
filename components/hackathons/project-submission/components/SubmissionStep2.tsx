@@ -22,6 +22,7 @@ export default function SubmitStep2() {
   const form =  useFormContext<SubmissionForm>();
   const techStack = form.watch('tech_stack');
   const githubLinks = form.watch('github_repository');
+  const isPreexistingIdea = form.watch('is_preexisting_idea');
   return (
     <div className="space-y-8">
       {/* Sección: Technical Details */}
@@ -138,29 +139,30 @@ export default function SubmitStep2() {
         />
 
         {/* Campo: Explanation of what's built during hackathon */}
-        <FormField
-          control={form.control}
-          name="explanation"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Explain what was built during the hackathon</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Provide a detailed breakdown of the new features, functionalities, or improvements developed during this event."
-                  className=" h-15 resize-none dark:bg-zinc-950"
-                  {...field}
-                />
-              </FormControl>
-              <p className="text-zinc-600 dark:text-zinc-400 text-sm  tracking-[0%] font-aeonik whitespace-pre-line">
-                Clearly specify what was created during the hackathon.{"\n"}
-                Differentiate between pre-existing work and new contributions.
-                {"\n"}
-                Mention any significant modifications or optimizations.
-              </p>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {isPreexistingIdea && (
+          <FormField
+            control={form.control}
+            name="explanation"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Explain what was built during the hackathon</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Provide a detailed breakdown of the new features, functionalities, or improvements developed during this event."
+                    className=" h-15 resize-none dark:bg-zinc-950"
+                    {...field}
+                  />
+                </FormControl>
+                <p className="text-zinc-600 dark:text-zinc-400 text-sm  tracking-[0%] font-aeonik whitespace-pre-line">
+                  Clearly specify what was created during the hackathon. Differentiate between pre-existing work and new contributions.
+                  {"\n"}
+                  Mention any significant modifications or optimizations.
+                </p>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
       </section>
     </div>
   );
