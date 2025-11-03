@@ -92,7 +92,7 @@ header + * {
   
   /* Ensure subnavbar has proper spacing */
   #docs-subnav {
-    z-index: 51 !important;
+    z-index: 35 !important;
     position: relative !important;
   }
   
@@ -155,7 +155,7 @@ header + * {
 /* Desktop: ensure subnavbar sits above sidebar */
 @media (min-width: 768px) {
   #docs-subnav {
-    z-index: 40 !important; /* Above sidebar which is z-30 */
+    z-index: 35 !important; /* Above sidebar which is z-30, but below nav dropdown (z-50) */
   }
 }
 
