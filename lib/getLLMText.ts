@@ -22,19 +22,19 @@ export async function getLLMText(page: AnyPage) {
     
     if (page.url.startsWith('/integrations/')) {
       // Integration pages need the integrations directory prefix
-      filePath = join(process.cwd(), 'content', 'integrations', page.file.path);
+      filePath = join(process.cwd(), 'content', 'integrations', `${page.url}.mdx`);
     } else if (page.url.startsWith('/blog/')) {
       // Blog pages need the blog directory prefix
-      filePath = join(process.cwd(), 'content', 'blog', page.file.path);
+      filePath = join(process.cwd(), 'content', 'blog', `${page.url}.mdx`);
     } else if (page.url.startsWith('/academy/')) {
       // Academy pages need the academy directory prefix
-      filePath = join(process.cwd(), 'content', 'academy', page.file.path);
+      filePath = join(process.cwd(), 'content', 'academy', `${page.url}.mdx`);
     } else if (page.url.startsWith('/docs/')) {
       // Docs pages need the docs directory prefix
-      filePath = join(process.cwd(), 'content', 'docs', page.file.path);
+      filePath = join(process.cwd(), 'content', 'docs', `${page.url}.mdx`);
     } else {
-      // Fallback - try to use the file path as is
-      filePath = join(process.cwd(), 'content', page.file.path);
+      // Fallback - try to use the URL as is
+      filePath = join(process.cwd(), 'content', `${page.url}.mdx`);
     }
     
     let rawContent = readFileSync(filePath, 'utf-8');
@@ -55,7 +55,7 @@ ${page.data.description || ''}
 
 ${processed.value}`;
   } catch (error) {
-    console.error(`Failed to process page ${page.data.title} (${page.file.path}):`, error);
+    console.error(`Failed to process page ${page.data.title} (${page.url}):`, error);
     
     // Fallback: try to load the content asynchronously if available
     try {

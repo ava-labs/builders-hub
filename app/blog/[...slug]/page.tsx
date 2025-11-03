@@ -37,7 +37,7 @@ export default async function Page(props: {
   if (!page) notFound();
 
   const MDX = page.data.body;
-  const path = `content/blog/${page.file.path}`;
+  const path = `content/blog${page.url}.mdx`;
 
   return (
     <>
@@ -138,7 +138,7 @@ export default async function Page(props: {
             <p className="mb-1 text-sm text-muted-foreground">On</p>
             <p className="font-medium">
               {new Date(
-                (page.data.date as string) ?? page.file.name
+                (page.data.date as string) ?? page.url
               ).toDateString()}
             </p>
           </div>
