@@ -285,6 +285,11 @@ const data = {
           icon: Wrench,
         },
         {
+          title: "Revert PoA Manager",
+          url: "/console/utilities/revert-poa-manager",
+          icon: Wrench,
+        },
+        {
           title: "Migrate VMC From V1 to V2",
           url: "/console/utilities/vmcMigrateFromV1",
           icon: Wrench,

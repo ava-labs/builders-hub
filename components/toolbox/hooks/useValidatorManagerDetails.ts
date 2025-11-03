@@ -236,6 +236,7 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
             setIsLoadingOwnership(true);
             setOwnershipError(null);
             setIsOwnerContract(false);
+            setOwnerType(null);
 
             try {
                 const formattedAddress = validatorManagerAddress.startsWith('0x')
