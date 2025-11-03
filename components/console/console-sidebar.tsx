@@ -294,6 +294,11 @@ const data = {
           url: "/console/utilities/data-api-keys",
           icon: BookKey,
         },
+        {
+          title: "Revert PoA Manager",
+          url: "/console/utilities/revert-poa-manager",
+          icon: Wrench,
+        }
       ],
     },
   ],
