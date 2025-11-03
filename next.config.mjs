@@ -261,9 +261,24 @@ const config = {
         source: "/docs/tooling/avalanche-cli",
         destination: "/docs/tooling/cli-commands",
         permanent: true,
-      }, {
+      },       {
         source: "/academy/l1-validator-management",
         destination: "/academy/permissioned-l1s",
+        permanent: true,
+      },
+      {
+        source: "/academy/l1-validator-management/:path*",
+        destination: "/academy/permissioned-l1s/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/l1-tokenomics",
+        destination: "/academy/l1-native-tokenomics",
+        permanent: true,
+      },
+      {
+        source: "/academy/l1-tokenomics/:path*",
+        destination: "/academy/l1-native-tokenomics/:path*",
         permanent: true,
       },
       {

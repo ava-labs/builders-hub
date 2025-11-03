@@ -5,7 +5,8 @@ import { withAuth } from '@/lib/protectedRoute';
 
 export const GET = withAuth(async (
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
+  session: any
 ) => {
   try {
     const id = (await params).id;
@@ -16,18 +17,30 @@ export const GET = withAuth(async (
       );
     }
 
+    // Check if user is trying to access their own profile
+    const isOwnProfile = session.user.id === id;
+    if (!isOwnProfile) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
     const profile = await getProfile(id);
     return NextResponse.json(profile);
   } catch (error) {
     console.error('Error in GET /api/profile/[id]', error);
     return NextResponse.json(
-      { error: `Internal Server Error: ${error}` },
-      { status: 500 }
+      { error: `: ${error}` },
+      { status: 400 }
     );
   }
 });
 
-export const PUT = withAuth(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }, session: any) => {
+export const PUT = withAuth(async (
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+  session: any
+) => {
   try {
     const id = (await params).id;
     if (!id) {
@@ -37,9 +50,10 @@ export const PUT = withAuth(async (req: NextRequest, { params }: { params: Promi
       );
     }
 
-    if (session.user.id != id) {
+    // Use strict equality check
+    if (session.user.id !== id) {
       return NextResponse.json(
-        { error: 'Forbidden.' },
+        { error: 'Forbidden: You can only update your own profile.' },
         { status: 403 }
       );
     }

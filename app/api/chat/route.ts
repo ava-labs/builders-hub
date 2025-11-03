@@ -919,15 +919,27 @@ export async function POST(req: Request) {
     - API Reference: https://build.avax.network/docs/api-reference
     - Tooling: https://build.avax.network/docs/tooling
     
-    Academy Courses:
+    Avalanche Developer Academy:
     - Academy Home: https://build.avax.network/academy
-    - Avalanche Fundamentals: https://build.avax.network/academy/avalanche-fundamentals
     - Blockchain Fundamentals: https://build.avax.network/academy/blockchain-fundamentals
-    - Multi-Chain Architecture: https://build.avax.network/academy/multi-chain-architecture
+    - Avalanche Fundamentals: https://build.avax.network/academy/avalanche-fundamentals
+    - Encrypted ERC: https://build.avax.network/academy/encrypted-erc
     - Interchain Messaging: https://build.avax.network/academy/interchain-messaging
+    - Permissioned L1s: https://build.avax.network/academy/permissioned-l1s
+    - L1 Native Tokenomics: https://build.avax.network/academy/l1-native-tokenomics
+    - Customizing the EVM: https://build.avax.network/academy/customizing-evm
     - Interchain Token Transfer: https://build.avax.network/academy/interchain-token-transfer
-    - Customizing EVM: https://build.avax.network/academy/customizing-evm
-    - L1 Validator Management: https://build.avax.network/academy/l1-validator-management
+    - Chainlink via ICM: https://build.avax.network/academy/icm-chainlink
+    - Permissionless L1s: https://build.avax.network/academy/permissionless-l1s
+    - Multi-Chain Architecture: https://build.avax.network/academy/multi-chain-architecture
+    - Solidity Foundry: https://build.avax.network/academy/solidity-foundry
+    
+    Codebase Entrepreneur Academy:
+    - Entrepreneur Academy Home: https://build.avax.network/codebase-entrepreneur-academy
+    - Level 1: Foundations of a Web3 Venture: https://build.avax.network/codebase-entrepreneur-academy/foundations-web3-venture
+    - Level 2: Go-to-Market Strategist: https://build.avax.network/codebase-entrepreneur-academy/go-to-market
+    - Level 3: Web3 Community Architect: https://build.avax.network/codebase-entrepreneur-academy/web3-community-architect
+    - Level 4: Fundraising & Finance Pro: https://build.avax.network/codebase-entrepreneur-academy/fundraising-finance
     
     Other Sections:
     - Guides: https://build.avax.network/guides

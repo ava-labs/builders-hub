@@ -163,6 +163,9 @@ export const AuthOptions: NextAuthOptions = {
         token.email = dbUser.email ?? '';
         token.user_name = dbUser.user_name ?? '';
         token.is_new_user = dbUser.notifications == null
+      } else if (user?.email) {
+        token.email = user.email;
+        token.name = user.name ?? '';
       }
 
       return token;

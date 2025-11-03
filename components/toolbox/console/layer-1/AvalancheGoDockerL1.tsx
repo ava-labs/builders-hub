@@ -35,6 +35,7 @@ export default function AvalanchegoDocker() {
     const [chainAddedToWallet, setChainAddedToWallet] = useState<string | null>(null);
     const [nodeIsReady, setNodeIsReady] = useState<boolean>(false);
     const [selectedRPCBlockchainId, setSelectedRPCBlockchainId] = useState<string>("");
+    const [minDelayTarget, setMinDelayTarget] = useState<number>(250);
 
     const { avalancheNetworkID } = useWalletStore();
 
@@ -51,18 +52,20 @@ export default function AvalanchegoDocker() {
                 vmId,
                 enableDebugTrace,
                 pruningEnabled,
-                false // isPrimaryNetwork = false
+                false, // isPrimaryNetwork = false
+                isRPC ? null : minDelayTarget // Pass minDelayTarget only for validators
             ));
         } catch (error) {
             setRpcCommand((error as Error).message);
         }
-    }, [subnetId, isRPC, avalancheNetworkID, enableDebugTrace, chainId, pruningEnabled, blockchainInfo]);
+    }, [subnetId, isRPC, avalancheNetworkID, enableDebugTrace, chainId, pruningEnabled, blockchainInfo, minDelayTarget]);
 
     useEffect(() => {
         if (nodeType === "validator") {
             setDomain("");
             setEnableDebugTrace(false);
             setPruningEnabled(true);
+            setMinDelayTarget(250); // Reset to default for L1
         }
     }, [nodeType]);
 
@@ -145,6 +148,7 @@ export default function AvalanchegoDocker() {
         setSubnetIdError(null);
         setNodeIsReady(false);
         setSelectedRPCBlockchainId("");
+        setMinDelayTarget(250);
     };
 
     // Check if this blockchain uses a custom VM
@@ -243,6 +247,29 @@ export default function AvalanchegoDocker() {
                                             </select>
                                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                                 This blockchain will be used for the RPC endpoint URL generation.
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* Min delay target for validator nodes */}
+                                    {nodeType === "validator" && (
+                                        <div className="mt-6">
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Min Delay Target (ms)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={minDelayTarget}
+                                                onChange={(e) => {
+                                                    const value = Math.min(2000, Math.max(0, parseInt(e.target.value) || 0));
+                                                    setMinDelayTarget(value);
+                                                }}
+                                                min="0"
+                                                max="2000"
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                                            />
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                The minimum delay between blocks (in milliseconds) that this node will attempt to use when creating blocks. Maximum: 2000ms. Default for L1: 250ms.
                                             </p>
                                         </div>
                                     )}

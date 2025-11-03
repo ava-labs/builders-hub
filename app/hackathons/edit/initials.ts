@@ -9,6 +9,9 @@ export interface IDataMain {
     location: string;
     total_prizes: number;
     tags: string[];
+    participants?: number;
+    organizers?: string;
+    is_public?: boolean;
   }
   
   export interface ITrack {
@@ -68,7 +71,6 @@ export interface IDataMain {
     end_date: string;
     timezone: string;
     banner: string;
-    participants: number;
     icon: string;
     small_banner: string;
   }
@@ -80,6 +82,9 @@ export interface IDataMain {
           location: '',
           total_prizes: 0,
           tags: [''],
+          participants: 0,
+          organizers: '',
+          is_public: false,
       },
       content: {
           tracks: [
@@ -105,14 +110,7 @@ export interface IDataMain {
               duration: 0,
             },
           ],
-          speakers: [
-            {
-              icon: '',
-              name: '',
-              category: '',
-              picture: '',
-            },
-          ],
+          speakers: [],
           resources: [
             {
               icon: '',
@@ -125,7 +123,7 @@ export interface IDataMain {
           speakers_text: '',
           speakers_banner: '',
           join_custom_link: '',
-          join_custom_text: null,
+          join_custom_text: "Join now",
           become_sponsor_link: '',
           submission_custom_link: null,
           judging_guidelines: '',
@@ -137,7 +135,6 @@ export interface IDataMain {
           end_date: '',
           timezone: '',
           banner: '',
-          participants: 0,
           icon: '',
           small_banner: '',
       }

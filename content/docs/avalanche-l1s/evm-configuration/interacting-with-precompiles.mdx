@@ -1,0 +1,353 @@
+---
+title: Interacting with Precompiles
+description: Learn how to interact with Avalanche L1 precompiles using the Builder Hub Developer Console or Remix IDE.
+---
+
+This guide shows you how to interact with precompiled contracts on your Avalanche L1. For standard precompile implementations, we recommend using the **Builder Hub Developer Console** for the best experience. For custom implementations or advanced use cases, you can use **Remix IDE** with browser wallets.
+
+## Recommended: Using Builder Hub Developer Console
+
+The Builder Hub provides dedicated tools for interacting with standard Avalanche L1 precompiles. These tools offer:
+
+- ✅ **User-friendly interface** - No need to manually enter contract addresses or ABIs
+- ✅ **Built-in validation** - Prevents common configuration mistakes
+- ✅ **Connected to your Builder account** - Track your L1s and configurations
+- ✅ **Visual feedback** - See changes reflected in real-time
+
+### Available Console Tools
+
+| Precompile | Console Tool |
+|------------|--------------|
+| Fee Manager | [Fee Manager Console](/console/l1-tokenomics/fee-manager) |
+| Reward Manager | [Reward Manager Console](/console/l1-tokenomics/reward-manager) |
+| Native Minter | [Native Minter Console](/console/l1-tokenomics/native-minter) |
+| Contract Deployer Allowlist | [Deployer Allowlist Console](/console/l1-access-restrictions/deployer-allowlist) |
+| Transaction Allowlist | [Transactor Allowlist Console](/console/l1-access-restrictions/transactor-allowlist) |
+
+### How to Use Console Tools
+
+1. **Navigate** to the appropriate console tool from the table above
+2. **Connect** your wallet (Core or MetaMask)
+3. **Switch** to your L1 network in your wallet
+4. The tool will automatically detect your permissions
+5. **Configure** using the visual interface:
+   - For Fee Manager: Adjust gas limits, base fees, and target rates
+   - For Native Minter: Mint tokens to specific addresses
+   - For Allowlists: Add or remove addresses with specific roles
+   - For Reward Manager: Configure fee distribution settings
+6. **Review** the transaction details
+7. **Submit** and approve in your wallet
+
+<Callout type="info">
+**Why use the Developer Console?**
+
+Using the Builder Hub console tools allows us to:
+- Provide better support for your L1
+- Track feature usage to improve the platform
+- Build your profile in our builders/developers database
+- Offer personalized recommendations and resources
+</Callout>
+
+### Example Workflows
+
+**Configuring Transaction Fees:**
+1. Go to [Fee Manager Console](/console/l1-tokenomics/fee-manager)
+2. Connect wallet and switch to your L1
+3. Adjust fee parameters using sliders and inputs
+4. See real-time preview of how changes affect gas costs
+5. Submit transaction to update fees
+
+**Minting Native Tokens:**
+1. Go to [Native Minter Console](/console/l1-tokenomics/native-minter)
+2. Connect with an admin/manager address
+3. Enter recipient address and amount
+4. Review the minting transaction
+5. Approve to mint tokens instantly
+
+**Managing Permissions:**
+1. Go to [Deployer Allowlist](/console/l1-access-restrictions/deployer-allowlist) or [Transactor Allowlist](/console/l1-access-restrictions/transactor-allowlist)
+2. Connect with an admin address
+3. Add addresses with desired roles (Admin, Manager, Enabled)
+4. Remove addresses by changing their role to "None"
+5. View current allowlist status
+
+## Alternative: Using Remix IDE
+
+For custom precompile implementations or if you prefer a code-based approach, you can use Remix IDE to interact with precompiles directly.
+
+### When to Use Remix
+
+Use Remix when:
+- You have a **custom precompile** implementation (non-standard addresses or interfaces)
+- You need to interact with precompiles **programmatically**
+- You're **debugging** contract interactions
+- The Builder Console doesn't support your specific use case
+
+### Prerequisites
+
+- Access to an Avalanche L1 where you have admin/manager rights for a precompile
+- [Core Browser Extension](https://core.app) or MetaMask
+- Private key for an admin/manager address on your L1
+- Your L1's RPC URL and Chain ID
+
+## Setup Your Wallet
+
+### Using Core
+
+1. Install the [Core Browser Extension](https://core.app)
+2. Import or create the account with admin/manager privileges
+3. Enable **Testnet Mode** (if using testnet):
+   - Open Core extension
+   - Click hamburger menu → **Advanced**
+   - Toggle **Testnet Mode** on
+
+4. Add your L1 network:
+   - Click the networks dropdown
+   - Select **Manage Networks**
+   - Click **Add Network** and enter:
+     - **Network Name**: Your L1 name
+     - **RPC URL**: Your L1's RPC endpoint
+     - **Chain ID**: Your L1's chain ID
+     - **Symbol**: Your native token symbol
+     - **Explorer**: (Optional) Your L1's explorer URL
+
+5. Switch to your L1 network in the dropdown
+
+### Using MetaMask
+
+1. Install MetaMask browser extension
+2. Import the account with admin/manager privileges
+3. Add your L1 network:
+   - Click the networks dropdown
+   - Click **Add Network** → **Add a network manually**
+   - Enter your L1's network details
+   - Click **Save**
+
+## Connect Remix to Your L1
+
+1. Open [Remix IDE](https://remix.ethereum.org/) in your browser
+
+2. In the left sidebar, click the **Deploy & run transactions** icon
+
+3. In the **Environment** dropdown, select **Injected Provider - MetaMask** (or Core)
+
+4. Approve the connection request in your wallet extension
+
+5. Verify the connection shows your L1's network (e.g., "Custom (11111) network")
+
+## Load Precompile Interfaces
+
+You need to load the Solidity interfaces for the precompiles you want to interact with.
+
+### Available Precompile Interfaces
+
+From the Remix home screen, use **load from GitHub** to import:
+
+**Required for all precompiles:**
+- [IAllowList.sol](https://github.com/ava-labs/subnet-evm/blob/master/contracts/contracts/interfaces/IAllowList.sol)
+
+**Specific precompile interfaces:**
+- [IFeeManager.sol](https://github.com/ava-labs/subnet-evm/blob/master/contracts/contracts/interfaces/IFeeManager.sol) - For fee configuration
+- [INativeMinter.sol](https://github.com/ava-labs/subnet-evm/blob/master/contracts/contracts/interfaces/INativeMinter.sol) - For minting native tokens
+- [IAllowList.sol](https://github.com/ava-labs/subnet-evm/blob/master/contracts/contracts/interfaces/IAllowList.sol) - For transaction/deployer allowlists
+- [IRewardManager.sol](https://github.com/ava-labs/subnet-evm/blob/master/contracts/contracts/interfaces/IRewardManager.sol) - For block rewards
+
+### Compile the Interface
+
+1. In Remix, click the **Solidity Compiler** icon in the left sidebar
+2. Select the precompile interface file (e.g., `IFeeManager.sol`)
+3. Click **Compile**
+
+## Interact with Precompiles
+
+### Connect to Deployed Precompile
+
+Each precompile is deployed at a fixed address on your L1:
+
+| Precompile | Address |
+|------------|---------|
+| NativeMinter | `0x0200000000000000000000000000000000000001` |
+| ContractDeployerAllowList | `0x0200000000000000000000000000000000000000` |
+| FeeManager | `0x0200000000000000000000000000000000000003` |
+| RewardManager | `0x0200000000000000000000000000000000000004` |
+| TransactionAllowList | `0x0200000000000000000000000000000000000002` |
+
+1. In Remix, click **Deploy & run transactions**
+2. In the **Contract** dropdown, select your compiled interface
+3. Paste the precompile address in the **At Address** field
+4. Click **At Address**
+
+The precompile contract will appear in the **Deployed Contracts** section.
+
+## Example: Using Fee Manager
+
+### Read Current Fee Configuration
+
+Anyone can read the current fee configuration (no special permissions required):
+
+1. Expand the FeeManager contract in **Deployed Contracts**
+2. Click **getFeeConfig**
+3. View the current fee parameters:
+   - `gasLimit`: Maximum gas per block
+   - `targetBlockRate`: Target time between blocks (seconds)
+   - `minBaseFee`: Minimum base fee (wei)
+   - `targetGas`: Target gas per second
+   - `baseFeeChangeDenominator`: Rate of base fee adjustment
+   - `minBlockGasCost`: Minimum gas cost for a block
+   - `maxBlockGasCost`: Maximum gas cost for a block
+   - `blockGasCostStep`: Increment for block gas cost
+
+### Update Fee Configuration
+
+Only admin addresses can update the fee configuration:
+
+1. Ensure you're connected with the admin address in your wallet
+2. Expand **setFeeConfig** in the FeeManager contract
+3. Fill in the new fee parameters:
+   ```
+   gasLimit: 8000000
+   targetBlockRate: 2
+   minBaseFee: 25000000000
+   targetGas: 15000000
+   baseFeeChangeDenominator: 36
+   minBlockGasCost: 0
+   maxBlockGasCost: 1000000
+   blockGasCostStep: 200000
+   ```
+4. Click **transact**
+5. Approve the transaction in your wallet
+6. Wait for transaction confirmation
+
+The new fee configuration takes effect immediately after the transaction is accepted.
+
+## Example: Using Native Minter
+
+### Mint Native Tokens
+
+Only admin, manager, or enabled addresses can mint native tokens:
+
+1. Expand the NativeMinter contract in **Deployed Contracts**
+2. Click on **mintNativeCoin**
+3. Fill in the parameters:
+   - `addr`: Recipient address (e.g., `0xB78cbAa319ffBD899951AA30D4320f5818938310`)
+   - `amount`: Amount to mint in wei (e.g., `1000000000000000000` for 1 token)
+4. Click **transact**
+5. Approve the transaction in your wallet
+
+The minted tokens are added directly to the recipient's balance by the EVM (no sender transaction).
+
+### Check Minting Permissions
+
+Anyone can check who has minting permissions:
+
+1. Click **readAllowList** with an address parameter
+2. Returns:
+   - `0`: No permission
+   - `1`: Enabled (can mint)
+   - `2`: Manager (can mint and manage enabled addresses)  
+   - `3`: Admin (full control)
+
+## Example: Managing Allow Lists
+
+### Add Address to Allow List
+
+Admins can add addresses to transaction or deployer allow lists:
+
+1. Expand the AllowList contract
+2. Use **setAdmin**, **setManager**, or **setEnabled**:
+   ```
+   addr: 0x1234...5678
+   ```
+3. Click **transact**
+4. Approve in wallet
+
+### Remove Address from Allow List
+
+1. Use **setNone** with the address:
+   ```
+   addr: 0x1234...5678
+   ```
+2. Click **transact**
+
+### Check Address Status
+
+1. Click **readAllowList**:
+   ```
+   addr: 0x1234...5678
+   ```
+2. Returns permission level (0-3)
+
+## Best Practices
+
+### Security
+
+- **Never share private keys** for admin addresses
+- **Use hardware wallets** for admin accounts when possible
+- **Test on testnet first** before making changes on mainnet
+- **Use multi-sig contracts** for critical admin operations
+- **Document all changes** and announce them to validators
+
+### Network Upgrades
+
+When enabling precompiles via network upgrades:
+
+1. **Announce upgrades** well in advance on social media and Discord
+2. **Coordinate with validators** to ensure they update their nodes
+3. **Use upgrade.json** to schedule precompile activation (see [Precompile Upgrades](/docs/avalanche-l1s/evm-configuration/precompile-upgrades))
+4. **Test the upgrade** on a testnet first
+5. **Monitor** the network after activation
+
+### Troubleshooting
+
+**Connection Issues:**
+- Verify your wallet is connected to the correct network
+- Check that the RPC URL is accessible
+- Ensure you have native tokens for gas fees
+
+**Transaction Failures:**
+- Confirm you're using an admin/manager address
+- Check that the precompile is enabled on your L1
+- Verify parameter formats (addresses must be checksummed)
+- Ensure sufficient gas limit
+
+**Precompile Not Found:**
+- Verify the precompile address is correct
+- Confirm the precompile is activated in your genesis or upgrade.json
+- Check that you're on the correct network
+
+## Additional Resources
+
+### Builder Hub Console Tools
+- [Fee Manager Console](/console/l1-tokenomics/fee-manager) - Configure transaction fees
+- [Reward Manager Console](/console/l1-tokenomics/reward-manager) - Manage fee distribution
+- [Native Minter Console](/console/l1-tokenomics/native-minter) - Mint native tokens
+- [Deployer Allowlist Console](/console/l1-access-restrictions/deployer-allowlist) - Control contract deployment
+- [Transactor Allowlist Console](/console/l1-access-restrictions/transactor-allowlist) - Control transaction submission
+
+### Documentation
+- [Precompile Configuration](/docs/avalanche-l1s/evm-configuration/evm-l1-customization) - Overview of precompiles
+- [Transaction Fees](/docs/avalanche-l1s/evm-configuration/transaction-fees) - Fee Manager and Reward Manager details
+- [Tokenomics](/docs/avalanche-l1s/evm-configuration/tokenomics) - Native Minter details
+- [Permissions](/docs/avalanche-l1s/evm-configuration/permissions) - Allowlist precompiles
+- [Precompile Upgrades](/docs/avalanche-l1s/evm-configuration/precompile-upgrades) - Network upgrade process
+- [AllowList Interface](/docs/avalanche-l1s/evm-configuration/allowlist) - Role-based access control
+- [Subnet-EVM Contracts](https://github.com/ava-labs/subnet-evm/tree/master/contracts/contracts/interfaces) - Precompile interfaces
+
+## Conclusion
+
+For standard Avalanche L1 precompiles, **we strongly recommend using the [Builder Hub Developer Console tools](/console)** for the best experience. These tools provide:
+
+- ✅ Guided workflows with validation
+- ✅ No need to manage contract addresses or ABIs manually  
+- ✅ Integration with your Builder Hub account
+- ✅ Support from the Builder Hub team
+
+For custom implementations or advanced scenarios, the Remix IDE approach provides flexibility to interact with any contract at any address. This is useful for:
+
+- Custom precompile implementations
+- Testing and debugging
+- Programmatic interactions
+- Non-standard use cases
+
+Whichever method you choose, always test on testnet first and follow security best practices when managing admin keys.
+

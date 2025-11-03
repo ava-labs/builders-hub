@@ -1,5 +1,8 @@
 // All comments in English (as requested).
 export function getDateWithTimezone(dateStr: string, timeZone: string): Date {
+    if (!dateStr) {
+        throw new Error(`Invalid date string: "${dateStr}"`);
+    }
     const s: string = dateStr.trim();
     const endsWithZ: boolean = /[zZ]$/.test(s);
   
