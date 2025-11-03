@@ -39,7 +39,7 @@ export default async function Page(props: {
   if (!page) notFound();
 
   const { body: MDX, toc } = await page.data.load();
-  const path = `content/docs${page.url}.mdx`;
+  const path = `content/docs${page.url.replace('/docs/', '/')}.mdx`;
 
   // Use custom edit URL if provided in frontmatter, otherwise use default path
   const editUrl =

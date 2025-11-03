@@ -82,7 +82,7 @@ export default async function Page(props: {
   const page = academy.getPage(params.slug);
   if (!page) notFound();
 
-  const path = `content/academy${page.url}.mdx`;
+  const path = `content/academy${page.url.replace('/academy/', '/')}.mdx`;
   const editUrl = `https://github.com/ava-labs/builders-hub/edit/master/${path}`;
   const MDX = page.data.body;
   const course = COURSES.official.find((c) => c.slug === page.slugs[0]);

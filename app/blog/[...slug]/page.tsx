@@ -37,7 +37,7 @@ export default async function Page(props: {
   if (!page) notFound();
 
   const MDX = page.data.body;
-  const path = `content/blog${page.url}.mdx`;
+  const path = `content/blog${page.url.replace('/blog/', '/')}.mdx`;
 
   return (
     <>

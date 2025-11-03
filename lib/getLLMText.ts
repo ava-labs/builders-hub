@@ -21,17 +21,17 @@ export async function getLLMText(page: AnyPage) {
     let filePath: string;
     
     if (page.url.startsWith('/integrations/')) {
-      // Integration pages need the integrations directory prefix
-      filePath = join(process.cwd(), 'content', 'integrations', `${page.url}.mdx`);
+      // Integration pages - strip /integrations/ prefix
+      filePath = join(process.cwd(), 'content', 'integrations', `${page.url.replace('/integrations/', '')}.mdx`);
     } else if (page.url.startsWith('/blog/')) {
-      // Blog pages need the blog directory prefix
-      filePath = join(process.cwd(), 'content', 'blog', `${page.url}.mdx`);
+      // Blog pages - strip /blog/ prefix
+      filePath = join(process.cwd(), 'content', 'blog', `${page.url.replace('/blog/', '')}.mdx`);
     } else if (page.url.startsWith('/academy/')) {
-      // Academy pages need the academy directory prefix
-      filePath = join(process.cwd(), 'content', 'academy', `${page.url}.mdx`);
+      // Academy pages - strip /academy/ prefix
+      filePath = join(process.cwd(), 'content', 'academy', `${page.url.replace('/academy/', '')}.mdx`);
     } else if (page.url.startsWith('/docs/')) {
-      // Docs pages need the docs directory prefix
-      filePath = join(process.cwd(), 'content', 'docs', `${page.url}.mdx`);
+      // Docs pages - strip /docs/ prefix
+      filePath = join(process.cwd(), 'content', 'docs', `${page.url.replace('/docs/', '')}.mdx`);
     } else {
       // Fallback - try to use the URL as is
       filePath = join(process.cwd(), 'content', `${page.url}.mdx`);

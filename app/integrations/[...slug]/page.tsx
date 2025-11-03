@@ -22,7 +22,7 @@ export default async function Page(props: {
     : "Update Integration Information";
 
   const { body: MDX } = await page.data.load();
-  const path = `content/integrations${page.url}.mdx`;
+  const path = `content/integrations${page.url.replace('/integrations/', '/')}.mdx`;
 
   return (
     <>
