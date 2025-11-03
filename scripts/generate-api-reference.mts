@@ -8,8 +8,6 @@ async function generate() {
   mkdirSync('./public/openapi', { recursive: true });
 
   // Fetch and save Glacier API spec
-  // Note: We keep all parameters (including pageToken) in the spec.
-  // Empty parameters are filtered out by the proxy (/api/openapi-proxy) at request time.
   console.log('📥 Fetching Glacier API spec...');
   const glacierResponse = await fetch('https://glacier-api.avax.network/api-json');
   const glacierSpec = await glacierResponse.json();
@@ -22,10 +20,6 @@ async function generate() {
   const popsicleSpec = await popsicleResponse.json();
   writeFileSync('./public/openapi/popsicle.json', JSON.stringify(popsicleSpec, null, 2));
   console.log('✅ Saved Popsicle API spec to public/openapi/popsicle.json');
-  
-  // Set pageToken to empty string (instead of "string" placeholder)
-  console.log('\n🔧 Setting pageToken to empty...');
-  execSync('tsx scripts/set-pagetoken-empty.mts', { stdio: 'inherit' });
   
   // Remove deprecated endpoints BEFORE generating docs
   console.log('\n🔧 Removing deprecated endpoints...');

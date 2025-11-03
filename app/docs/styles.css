@@ -36,9 +36,9 @@ nav[role="tablist"],
   padding-left: 0 !important;
 }
 
-/* Add padding at top of docs content area */
+/* Add padding at top of docs content area to account for fixed subnavbar */
 .nd-layout-notebook {
-  padding-top: 2rem !important;
+  padding-top: calc(3rem + 2rem) !important; /* Subnavbar height (3rem) + extra spacing (2rem) */
 }
 
 /* Add padding to the main content container */
@@ -59,23 +59,20 @@ header + * {
   box-shadow: none !important;
 }
 
-/* Align subnavbar with content area - match fumadocs article padding */
-/* Mobile: match content padding */
+/* Make subnavbar full-width like main navbar - sits above sidebar */
+#docs-subnav {
+  width: 100vw !important;
+  margin-left: calc(50% - 50vw) !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Subnavbar content gets the padding */
 #docs-subnav > div {
   padding-left: 1rem !important;
-}
-
-/* Tablet and up: match fumadocs content area padding with zoom scaling */
-@media (min-width: 768px) {
-  #docs-subnav > div {
-    padding-left: calc(var(--sidebar-width, 16rem) + 1rem + 2vw) !important;
-  }
-}
-
-@media (min-width: 1024px) {
-  #docs-subnav > div {
-    padding-left: calc(var(--sidebar-width, 16rem) + 1rem + 4vw) !important;
-  }
+  padding-right: 1rem !important;
+  max-width: 1536px !important;
+  margin: 0 auto !important;
 }
 
 /* Mobile navigation: Separate main navbar and docs sidebar menus */
@@ -155,10 +152,10 @@ header + * {
   }
 }
 
-/* Desktop: keep normal z-index */
+/* Desktop: ensure subnavbar sits above sidebar */
 @media (min-width: 768px) {
   #docs-subnav {
-    z-index: 10 !important;
+    z-index: 40 !important; /* Above sidebar which is z-30 */
   }
 }
 
@@ -177,6 +174,32 @@ body[data-docs-section="acps"] .nd-sidebar-tabs {
 /* Hide subnavbar when search is open */
 body.search-open #docs-subnav {
   display: none !important;
+}
+
+/* Reduce sidebar horizontal padding and push down below subnavbar */
+#nd-sidebar,
+[data-sidebar="sidebar"] {
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+  z-index: 20 !important; /* Below subnavbar (z-40) */
+  top: calc(3.5rem + 3rem) !important; /* Main navbar (3.5rem) + subnavbar (3rem) */
+  height: calc(100vh - 3.5rem - 3rem) !important; /* Adjust height accordingly */
+}
+
+/* Hide sidebar toggle button on desktop */
+@media (min-width: 768px) {
+  .nd-layout-notebook > button[data-sidebar],
+  [data-sidebar-toggle],
+  button[aria-label*="sidebar" i]:not([aria-haspopup]):not([role="combobox"]) {
+    display: none !important;
+  }
+}
+
+/* Sidebar content area */
+#nd-sidebar > div,
+[data-sidebar="sidebar"] > div {
+  padding-left: 0.25rem !important;
+  padding-right: 0.25rem !important;
 }
 
 /* Completely remove "On this page" table of contents on mobile */

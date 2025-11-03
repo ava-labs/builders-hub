@@ -33,6 +33,12 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     Popup,
     PopupContent,
     PopupTrigger,
+    // Fix srcset -> srcSet for React 19 compatibility
+    img: (props: any) => {
+      const { srcset, ...rest } = props;
+      // eslint-disable-next-line jsx-a11y/alt-text, @next/next/no-img-element
+      return <img {...rest} {...(srcset && { srcSet: srcset })} />;
+    },
     pre: ({ title, className, icon, allowCopy, ...props }: CodeBlockProps) => (
       <CodeBlock title={title} icon={icon} allowCopy={allowCopy}>
         <Pre className={cn("max-h-[1200px]", className)} {...(props as any)} />
