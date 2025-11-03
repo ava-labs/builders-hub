@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import React, { useState } from "react";
 import { RegisterFormValues } from "./RegistrationForm";
 import { useFormContext } from "react-hook-form";
@@ -185,6 +186,58 @@ export default function RegisterFormStep1({ user }: Step1Props) {
             )}
           />
         </div>
+      </div>
+      <div className="mt-8 mb-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4">
+          Additional Information
+        </h3>
+        <div className="w-full h-px bg-zinc-300 mb-6" />
+      </div>
+
+      <div className="space-y-4">
+        {/* Founder Check */}
+        <FormField
+          control={form.control}
+          name="founder_check"
+          render={({ field }) => (
+            <FormItem className="flex items-center space-x-3">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  className="mt-1"
+                />
+              </FormControl>
+              <div className="flex-1">
+                <FormLabel className="text-base font-medium cursor-pointer">
+                  Are you a founder or co-founder of a blockchain project?
+                </FormLabel>
+              </div>
+            </FormItem>
+          )}
+        />
+
+        {/* Avalanche Ecosystem Member */}
+        <FormField
+          control={form.control}
+          name="avalanche_ecosystem_member"
+          render={({ field }) => (
+            <FormItem className="flex items-center space-x-3">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  className="mt-1"
+                />
+              </FormControl>
+              <div className="flex-1">
+                <FormLabel className="text-base font-medium cursor-pointer">
+                  Consider yourself an Avalanche ecosystem member?
+                </FormLabel>
+              </div>
+            </FormItem>
+          )}
+        />
       </div>
     </>
   );
