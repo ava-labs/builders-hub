@@ -280,6 +280,11 @@ const data = {
           icon: Wrench,
         },
         {
+          title: "Transfer Proxy Admin Ownership",
+          url: "/console/utilities/transfer-proxy-admin",
+          icon: Wrench,
+        },
+        {
           title: "Migrate VMC From V1 to V2",
           url: "/console/utilities/vmcMigrateFromV1",
           icon: Wrench,
@@ -289,6 +294,11 @@ const data = {
           url: "/console/utilities/data-api-keys",
           icon: BookKey,
         },
+        {
+          title: "Revert PoA Manager",
+          url: "/console/utilities/revert-poa-manager",
+          icon: Wrench,
+        }
       ],
     },
   ],
