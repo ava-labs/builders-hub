@@ -24,7 +24,7 @@ const officialCourses: Course[] = [
         duration: "1 hour",
         languages: [],
         tools: [],
-        instructors: ["Martin Eckardt", "Ash"],
+        instructors: ["Martin Eckardt", "Ash", "Katherine Sullivan"],
         category: "Fundamentals"
     },
     {
