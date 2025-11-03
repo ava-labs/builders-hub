@@ -293,7 +293,7 @@ const data = {
           title: "Revert PoA Manager",
           url: "/console/utilities/revert-poa-manager",
           icon: Wrench,
-        },
+        }
       ],
     },
   ],
