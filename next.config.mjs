@@ -66,22 +66,6 @@ const config = {
       //   source: '/docs/api-reference/:path*',
       //   destination: 'https://developers.avacloud.io/:path*',
       // },
-      {
-        source: '/docs/:path*.mdx',
-        destination: '/llms.mdx/docs/:path*',
-      },
-      {
-        source: '/academy/:path*.mdx',
-        destination: '/llms.mdx/academy/:path*',
-      },
-      {
-        source: '/guides/:path*.mdx',
-        destination: '/llms.mdx/guides/:path*',
-      },
-      {
-        source: '/integrations/:path*.mdx',
-        destination: '/llms.mdx/integrations/:path*',
-      },
     ];
   },
   async redirects() {

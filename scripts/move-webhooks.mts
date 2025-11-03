@@ -19,7 +19,7 @@ async function moveWebhooks() {
   // Remove existing webhooks folder in webhook-api if it exists
   if (existsSync(webhooksDestPath)) {
     console.log('  🗑️  Removing existing webhooks folder in webhook-api');
-    rmSync(webhooksDestPath, { recursive: true, force: true });
+    rmSync(webhooksDestPath, { recursive: true, force: true, maxRetries: 3 });
   }
 
   // Move webhooks folder
