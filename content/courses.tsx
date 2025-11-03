@@ -25,7 +25,8 @@ const officialCourses: Course[] = [
         languages: [],
         tools: [],
         instructors: ["Martin Eckardt", "Ash", "Katherine Sullivan"],
-        category: "Fundamentals"
+        category: "Fundamentals",
+        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
         name: "Avalanche Fundamentals",
