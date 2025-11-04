@@ -4,6 +4,8 @@ import { baseOptions } from '@/app/layout.config';
 import { academy } from '@/lib/source';
 import { LayoutWrapper } from '@/app/layout-wrapper.client';
 import { DocsNavbarToggle } from '@/components/navigation/docs-navbar-toggle';
+import { ForceMobileSidebar } from '@/components/navigation/force-mobile-sidebar';
+import { NavbarDropdownInjector } from '@/components/navigation/navbar-dropdown-injector';
 import { AcademyLayoutClient } from './layout.client';
 import './styles.css';
 
@@ -20,6 +22,8 @@ const academyOptions: DocsLayoutProps = {
 export default function Layout({ children }: { children: ReactNode }) {
   return (
     <LayoutWrapper baseOptions={baseOptions}>
+      <NavbarDropdownInjector />
+      <ForceMobileSidebar />
       <AcademyLayoutClient />
       <DocsNavbarToggle />
       <DocsLayout {...academyOptions}>

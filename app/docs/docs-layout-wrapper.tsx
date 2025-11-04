@@ -7,6 +7,8 @@ import { useEffect } from 'react';
 import { RootToggle } from 'fumadocs-ui/components/layout/root-toggle';
 import { DocsSubNav } from '@/components/navigation/docs-subnav';
 import { DocsNavbarToggle } from '@/components/navigation/docs-navbar-toggle';
+import { ForceMobileSidebar } from '@/components/navigation/force-mobile-sidebar';
+import { NavbarDropdownInjector } from '@/components/navigation/navbar-dropdown-injector';
 import { 
   BookOpen,
   Code,
@@ -211,12 +213,16 @@ export function DocsLayoutWrapper({
     };
   } else if (pathname.startsWith('/docs/tooling')) {
     pageTree = toolingTree;
-    // No hamburger menu for tooling - don't include tabs property at all
-    sidebarOptions = {};
+    // No hamburger menu for tooling - explicitly disable tabs
+    sidebarOptions = {
+      tabs: false,
+    };
   } else if (pathname.startsWith('/docs/acps')) {
     pageTree = acpsTree;
-    // No hamburger menu for ACPs - don't include tabs property at all
-    sidebarOptions = {};
+    // No hamburger menu for ACPs - explicitly disable tabs
+    sidebarOptions = {
+      tabs: false,
+    };
   } else {
     pageTree = documentationTree;
     sidebarOptions = {
@@ -237,6 +243,8 @@ export function DocsLayoutWrapper({
 
   return (
     <>
+      <NavbarDropdownInjector />
+      <ForceMobileSidebar />
       <DocsNavbarToggle />
       <DocsSubNav />
       <DocsLayout {...docsOptions}>

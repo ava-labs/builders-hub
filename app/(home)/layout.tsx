@@ -7,6 +7,7 @@ import { SessionProvider, useSession } from "next-auth/react";
 import { useEffect, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { LayoutWrapper } from "@/app/layout-wrapper.client";
+import { NavbarDropdownInjector } from "@/components/navigation/navbar-dropdown-injector";
 
 export default function Layout({
   children,
@@ -18,6 +19,7 @@ export default function Layout({
       <Suspense fallback={null}>
         <RedirectIfNewUser />
       </Suspense>
+      <NavbarDropdownInjector />
       <LayoutWrapper baseOptions={baseOptions}>
         {children}
         <Footer />

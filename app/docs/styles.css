@@ -59,9 +59,20 @@ nav[role="tablist"],
   padding-left: 0 !important;
 }
 
-/* Add padding at top of docs content area to account for fixed subnavbar - DOCS ONLY */
+/* Add padding at top of docs content area to account for fixed navbar + subnavbar - DOCS ONLY */
 body[data-layout="docs"] .nd-layout-notebook {
-  padding-top: 3rem !important; /* Just subnavbar height, no extra spacing */
+  padding-top: 3rem !important; /* Just subnavbar height on desktop */
+}
+
+/* On mobile, add padding for both navbar and subnavbar */
+@media (max-width: 1023px) {
+  body[data-layout="docs"] .nd-layout-notebook {
+    padding-top: 6.5rem !important; /* default when no toc overview */
+  }
+  /* If the toc overview exists, add its height as well so content clears it */
+  body[data-layout="docs"] .nd-layout-notebook:has(#nd-tocnav) {
+    padding-top: 9.5rem !important; /* navbar (3.5rem) + subnavbar (3rem) + tocnav (~3rem) */
+  }
 }
 
 /* Reduce top padding on main content container */
@@ -91,14 +102,36 @@ header + * {
 }
 
 /* Align subnavbar content to match sidebar position - desktop only */
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   #docs-subnav > div {
     padding-left: 3rem !important; /* Match sidebar left position */
+    justify-content: flex-start !important; /* Left-align on desktop */
   }
 }
 
 /* Mobile navigation: Separate main navbar and docs sidebar menus */
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
+  /* When we force mobile at <=1023px, kill desktop sidebar spacing */
+  body[data-layout="docs"] #nd-docs-layout {
+    --fd-sidebar-width: 0px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-inline-start: 0 !important;
+  }
+
+  /* Center the logo on mobile */
+  nav[aria-label="Main"] nav,
+  header[aria-label="Main"] nav {
+    justify-content: space-between !important;
+  }
+  
+  nav[aria-label="Main"] a[href="/"],
+  header[aria-label="Main"] a[href="/"] {
+    position: absolute !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  
   /* Main navbar should stay on the left - ensure it's accessible */
   nav[aria-label="Main"],
   header[aria-label="Main"] {
@@ -107,15 +140,49 @@ header + * {
   
   /* Main navbar button - keep on left */
   nav[aria-label="Main"] button,
-  header[aria-label="Main"] button {
+  header[aria-label="Main"] button,
+  [data-docs-sidebar-toggle] {
     z-index: 60 !important;
     position: relative !important;
+    pointer-events: auto !important;
   }
   
-  /* Ensure subnavbar has proper spacing */
+  /* Make subnavbar sticky on mobile */
   #docs-subnav {
-    z-index: 35 !important;
-    position: relative !important;
+    position: fixed !important;
+    top: 3.5rem !important; /* Below main navbar */
+    z-index: 30 !important; /* Above content but below main navbar dropdown (z-50) */
+    width: 100vw !important;
+  }
+
+  /* Ensure the content overview (toc nav) is visible under the subnavbar on mobile */
+  body[data-layout="docs"] #nd-tocnav {
+    position: fixed !important;  /* take it out of flow to avoid clipping within article container */
+    top: 6.5rem !important;      /* navbar (3.5rem) + subnavbar (3rem) */
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 25 !important;      /* Below subnavbar (30), above content */
+    width: 100vw !important;
+    background: hsl(var(--background)) !important;
+    margin: 0 !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Center subnavbar content on mobile */
+  #docs-subnav > div {
+    justify-content: center !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Ensure any sticky content elements are positioned below the subnavbar */
+  body[data-layout="docs"] .nd-layout-notebook [class*="sticky"],
+  body[data-layout="docs"] .nd-layout-notebook [data-sticky],
+  body[data-layout="docs"] article [class*="sticky"],
+  body[data-layout="docs"] article [data-sticky] {
+    top: 6.5rem !important; /* Below navbar (3.5rem) + subnavbar (3rem) */
+    z-index: 20 !important; /* Below subnavbar (z-30) */
   }
   
   /* Hide the original fumadocs sidebar toggle button on mobile since we're using our own */
@@ -139,45 +206,79 @@ header + * {
     pointer-events: auto !important;
   }
   
-  /* Ensure sidebar opens from left on mobile */
-  [data-sidebar="sidebar"][data-mobile="true"] {
+  /* Override fumadocs mobile sidebar to appear from left instead of right */
+  #nd-sidebar-mobile {
     left: 0 !important;
     right: auto !important;
-    transform: translateX(0) !important;
+    inset-inline-end: auto !important;
+    border-left: none !important;
+    border-right: 1px solid hsl(var(--border)) !important;
   }
   
-  /* Ensure Sheet content is positioned on the left */
+  /* Change fumadocs sidebar animations to slide from left */
+  #nd-sidebar-mobile[data-state="open"] {
+    animation: slideInFromLeft 0.3s ease-out !important;
+  }
+  
+  #nd-sidebar-mobile[data-state="closed"] {
+    animation: slideOutToLeft 0.2s ease-in !important;
+  }
+  
+  @keyframes slideInFromLeft {
+    from {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideOutToLeft {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+  }
+  
+  /* Also handle shadcn Sheet-based sidebar if used */
+  [data-sidebar="sidebar"][data-mobile="true"],
+  [data-sidebar="sidebar"][data-mobile="true"] > div,
+  [data-sidebar="sidebar"][data-mobile="true"] [role="dialog"] {
+    left: 0 !important;
+    right: auto !important;
+  }
+  
   [data-sidebar="sidebar"][data-mobile="true"] [data-radix-dialog-content] {
     left: 0 !important;
     right: auto !important;
   }
   
-  /* Temporarily prevent Sheet overlay from closing sidebar immediately after opening */
-  /* This prevents the click event from bubbling and closing the sidebar */
-  [data-radix-dialog-overlay]:not([data-overlay-enabled]) {
-    pointer-events: none !important;
-  }
-  
-  /* Re-enable overlay clicks after a delay - sidebar should be open by then */
-  [data-sidebar="sidebar"][data-state="open"] ~ [data-radix-dialog-overlay],
-  [data-sidebar="sidebar"][data-state="open"] + [data-radix-dialog-overlay] {
-    animation: enableOverlayClick 0.4s forwards;
-  }
-  
-  @keyframes enableOverlayClick {
-    0% {
-      pointer-events: none !important;
-    }
-    100% {
-      pointer-events: auto !important;
-    }
+  /* Allow sidebar overlay to work for closing */
+  body[data-layout="docs"] [data-radix-dialog-overlay],
+  #nd-sidebar-mobile ~ [data-radix-dialog-overlay] {
+    pointer-events: auto !important;
   }
 }
 
-/* Desktop: ensure subnavbar sits above sidebar */
-@media (min-width: 768px) {
+/* Desktop: ensure subnavbar sits above sidebar but below navbar */
+@media (min-width: 1024px) {
+  /* Add slight left padding to TOC header when sidebar is visible */
+  body[data-layout="docs"] #nd-tocnav {
+    padding-left: 2.5rem !important;
+    /* Ensure the content overview (toc nav) sits below the fixed subnavbar */
+    position: sticky !important;
+    top: calc(3.5rem + 3rem) !important; /* navbar (3.5rem) + subnavbar (3rem) */
+    z-index: 20 !important; /* Below subnavbar (z-30), above article */
+  }
+  
   #docs-subnav {
-    z-index: 35 !important; /* Above sidebar which is z-30, but below nav dropdown (z-50) */
+    z-index: 30 !important; /* Above sidebar (z-20), below navbar dropdown (z-50) */
   }
   
   /* Center content while maintaining sidebar and TOC spacing */
@@ -195,6 +296,14 @@ header + * {
     margin-left: auto !important;
     margin-right: auto !important;
     max-width: var(--fd-page-width) !important;
+  }
+}
+
+/* Hide the content overview in the in-between breakpoint (tablet/medium desktops) */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  body[data-layout="docs"] #nd-tocnav {
+    display: none !important;
+    visibility: hidden !important;
   }
 }
 
@@ -231,7 +340,7 @@ body[data-layout="docs"] [data-sidebar="sidebar"] {
 }
 
 /* Hide sidebar toggle button on desktop */
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   .nd-layout-notebook > button[data-sidebar],
   [data-sidebar-toggle],
   button[aria-label*="sidebar" i]:not([aria-haspopup]):not([role="combobox"]) {
@@ -284,25 +393,25 @@ aside[aria-label*="On this page" i] > div:first-child,
   margin-bottom: 0.5rem !important;
 }
 
-/* Completely remove "On this page" table of contents on mobile */
-@media (max-width: 767px) {
+/* Completely remove "On this page" table of contents on mobile (docs only) */
+@media (max-width: 1023px) {
   /* Target fumadocs table of contents - comprehensive selectors */
   /* The TOC is typically in an aside element next to the main article */
   /* Hide ALL aside elements except the main sidebar */
-  .nd-layout-notebook > div > aside:not(#nd-sidebar):not([data-sidebar]):not([id*="sidebar" i]),
-  .nd-layout-notebook aside:not(#nd-sidebar):not([data-sidebar]):not([id*="sidebar" i]),
-  aside[aria-label*="table" i]:not(#nd-sidebar),
-  aside[aria-label*="On this page" i]:not(#nd-sidebar),
-  aside[aria-label*="Table of contents" i]:not(#nd-sidebar),
-  .nd-toc:not(#nd-sidebar),
-  [data-toc]:not(#nd-sidebar),
+  body[data-layout="docs"] .nd-layout-notebook > div > aside:not(#nd-sidebar):not([data-sidebar]):not([id*="sidebar" i]),
+  body[data-layout="docs"] .nd-layout-notebook aside:not(#nd-sidebar):not([data-sidebar]):not([id*="sidebar" i]),
+  body[data-layout="docs"] aside[aria-label*="table" i]:not(#nd-sidebar),
+  body[data-layout="docs"] aside[aria-label*="On this page" i]:not(#nd-sidebar),
+  body[data-layout="docs"] aside[aria-label*="Table of contents" i]:not(#nd-sidebar),
+  body[data-layout="docs"] .nd-toc:not(#nd-sidebar),
+  body[data-layout="docs"] [data-toc]:not(#nd-sidebar),
   /* Target aside elements that contain navigation (TOC structure) but exclude sidebar */
-  aside:has(> nav):not(#nd-sidebar):not([data-sidebar]):not([id*="sidebar" i]),
+  body[data-layout="docs"] aside:has(> nav):not(#nd-sidebar):not([data-sidebar]):not([id*="sidebar" i]),
   /* Target the TOC container more specifically - fumadocs typically uses a grid layout */
-  .nd-layout-notebook > div > div:has(> aside:not(#nd-sidebar)),
+  body[data-layout="docs"] .nd-layout-notebook > div > div:has(> aside:not(#nd-sidebar)),
   /* Target sticky TOC elements */
-  [data-sticky]:has(> nav):not(#nd-sidebar),
-  [class*="sticky"]:has(> nav):not(#nd-sidebar) {
+  body[data-layout="docs"] [data-sticky]:has(> nav):not(#nd-sidebar),
+  body[data-layout="docs"] [class*="sticky"]:has(> nav):not(#nd-sidebar) {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
@@ -321,13 +430,13 @@ aside[aria-label*="On this page" i] > div:first-child,
   }
   
   /* Ensure article takes full width on mobile when TOC is hidden */
-  .nd-layout-notebook article {
+  body[data-layout="docs"] .nd-layout-notebook article {
     width: 100% !important;
     max-width: 100% !important;
   }
   
   /* Prevent any TOC from appearing above subnavbar */
-  aside:not(#nd-sidebar):not([data-sidebar]):not([id*="sidebar" i]) {
+  body[data-layout="docs"] aside:not(#nd-sidebar):not([data-sidebar]):not([id*="sidebar" i]) {
     z-index: 0 !important;
   }
 }

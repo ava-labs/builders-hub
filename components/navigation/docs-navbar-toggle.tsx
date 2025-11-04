@@ -9,7 +9,7 @@ export function DocsNavbarToggle() {
   useEffect(() => {
       // Only show on docs/academy pages and mobile
       const checkAndInject = () => {
-        const isMobile = window.innerWidth <= 767;
+        const isMobile = window.innerWidth <= 1023;
         const isDocsPage = pathname.startsWith('/docs');
         const isAcademyPage = pathname.startsWith('/academy');
         const shouldHide = pathname.startsWith('/docs/tooling') || pathname.startsWith('/docs/acps');
@@ -32,68 +32,18 @@ export function DocsNavbarToggle() {
         return;
       }
 
-      // Find the right side container (usually has ml-auto or flex items)
-      const rightContainer = navbar.querySelector('div:last-child') || 
-                            Array.from(navbar.querySelectorAll('div')).find(div => 
-                              div.classList.contains('ml-auto') || 
-                              div.style.marginLeft === 'auto' ||
-                              (div.querySelector('button') && div.querySelector('svg'))
-                            );
-
-      if (!rightContainer) return;
-      
-      // Find the search icon button and dropdown arrow button
-      const allButtons = Array.from(rightContainer.querySelectorAll('button'));
-      
-      // Find search icon by aria-label or SVG pattern
-      const searchButton = allButtons.find(btn => {
-        // Check aria-label first (most reliable)
-        const ariaLabel = btn.getAttribute('aria-label')?.toLowerCase() || '';
-        if (ariaLabel.includes('search') || ariaLabel.includes('find')) {
-          return true;
-        }
-        
-        // Check SVG for search icon patterns
-        const svg = btn.querySelector('svg');
-        if (!svg) return false;
-        const paths = svg.querySelectorAll('path, circle');
-        return Array.from(paths).some(path => {
-          const d = path.getAttribute('d') || '';
-          // Look for search icon patterns (circles and lines)
-          return d.includes('M21') || d.includes('m21') || 
-                 path.tagName === 'circle' ||
-                 (d.includes('l') && d.includes('m') && paths.length >= 2);
-        });
-      }) || (allButtons.length >= 2 ? allButtons[allButtons.length - 2] : null); // Fallback to second-to-last button
-      
-      // Find dropdown arrow button (usually the last button or has a chevron icon)
-      const dropdownButton = allButtons.find(btn => {
-        if (btn === searchButton) return false;
-        const svg = btn.querySelector('svg');
-        if (!svg) return false;
-        // Look for chevron down - usually simple path with 2 segments
-        const paths = svg.querySelectorAll('path');
-        const pathArray = Array.from(paths);
-        if (pathArray.length === 1) {
-          const d = pathArray[0].getAttribute('d') || '';
-          // Chevron down usually has vertical or diagonal lines
-          return d.includes('L') && (d.match(/L/g) || []).length <= 2;
-        }
-        return false;
-      }) || (allButtons.length > 0 ? allButtons[allButtons.length - 1] : null);
-      
-      console.log('Found search button:', searchButton, 'Found dropdown button:', dropdownButton, 'Total buttons:', allButtons.length);
+      // Find the main navbar container (the nav element itself contains the items)
+      const navContainer = navbar.querySelector('nav') || navbar;
+      if (!navContainer) return;
 
       // Create the toggle button
       const toggleButton = document.createElement('button');
       toggleButton.setAttribute('data-docs-sidebar-toggle', 'true');
       toggleButton.setAttribute('aria-label', isAcademyPage ? 'Toggle academy sidebar' : 'Toggle docs sidebar');
       toggleButton.setAttribute('type', 'button');
-      toggleButton.className = 'flex items-center justify-center w-10 h-10 rounded-md border border-border bg-background hover:bg-accent transition-colors shrink-0 ml-2';
+      toggleButton.className = 'flex items-center justify-center w-10 h-10 rounded-md border border-border hover:bg-accent transition-colors shrink-0 mr-3';
       toggleButton.style.cursor = 'pointer';
       toggleButton.style.pointerEvents = 'auto';
-      
-      console.log('Creating docs sidebar toggle button');
       
       // Use React icon or create SVG
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -131,8 +81,6 @@ export function DocsNavbarToggle() {
         e.stopPropagation();
         e.stopImmediatePropagation();
         
-        console.log('Docs sidebar toggle clicked');
-        
         // Prevent any click-outside handlers from closing the sidebar immediately
         let preventClose = true;
         const preventClickOutside = (event: MouseEvent) => {
@@ -159,22 +107,11 @@ export function DocsNavbarToggle() {
         
         // Use a timeout to prevent immediate click-outside handlers from closing it
         setTimeout(() => {
-          // Method 1: Find the Sheet component and try to find its trigger
+          // Find the Sheet component and sidebar toggle button
           const sheet = document.querySelector('[data-sidebar="sidebar"][data-mobile="true"]') as HTMLElement;
-          console.log('Sheet found:', sheet);
-          
-          // Method 2: Find the button with aria-label "Open Sidebar"
           const sidebarToggleButton = document.querySelector('button[aria-label*="sidebar" i]:not([data-docs-sidebar-toggle]), button[aria-label*="Open Sidebar" i]:not([data-docs-sidebar-toggle])') as HTMLButtonElement;
-          console.log('Sidebar toggle button found:', sidebarToggleButton);
           
           if (sidebarToggleButton) {
-            console.log('Attempting to open sidebar...');
-            console.log('Button details:', {
-              element: sidebarToggleButton,
-              ariaExpanded: sidebarToggleButton.getAttribute('aria-expanded'),
-              ariaControls: sidebarToggleButton.getAttribute('aria-controls'),
-              onclick: sidebarToggleButton.onclick,
-            });
             
             // Make sure it's visible and clickable - remove all restrictions
             const originalStyles = {
@@ -229,7 +166,6 @@ export function DocsNavbarToggle() {
             // Use requestAnimationFrame to ensure DOM is ready
             requestAnimationFrame(() => {
               // Method 1: Direct click (most reliable)
-              console.log('Method 1: Direct click');
               try {
                 // First ensure button is fully enabled
                 sidebarToggleButton.style.pointerEvents = 'auto';
@@ -271,7 +207,6 @@ export function DocsNavbarToggle() {
               
               // Method 2: MouseEvent that bubbles but doesn't navigate
               setTimeout(() => {
-                console.log('Method 2: Bubbling MouseEvent');
                 try {
                   const clickEvent = new MouseEvent('click', {
                     bubbles: true,
@@ -298,16 +233,8 @@ export function DocsNavbarToggle() {
                 }
               }, 20);
               
-              // Check if sidebar opened after all attempts
+              // Restore styles after sidebar should be open
               setTimeout(() => {
-                const sheet = document.querySelector('[data-sidebar="sidebar"][data-mobile="true"]') as HTMLElement;
-                const isOpen = sheet && (
-                  sheet.getAttribute('data-state') === 'open' ||
-                  !sheet.hasAttribute('hidden') ||
-                  sheet.style.display !== 'none'
-                );
-                console.log('Sidebar opened?', isOpen, sheet);
-                
                 // Restore styles after a delay
                 setTimeout(() => {
                   Object.assign(sidebarToggleButton.style, originalStyles);
@@ -326,11 +253,9 @@ export function DocsNavbarToggle() {
           
           // Method 3: Try to find buttons in the notebook layout
           const notebookButtons = document.querySelectorAll('.nd-layout-notebook button:not([data-docs-sidebar-toggle]):not([aria-haspopup]):not([role="combobox"])');
-          console.log('Notebook buttons found:', notebookButtons.length);
           
           if (notebookButtons.length > 0) {
             const firstButton = notebookButtons[0] as HTMLButtonElement;
-            console.log('Clicking first notebook button:', firstButton);
             
             // Try direct click
             firstButton.click();
@@ -360,8 +285,6 @@ export function DocsNavbarToggle() {
           for (const selector of selectors) {
             const button = document.querySelector(selector) as HTMLButtonElement;
             if (button && button !== toggleButton) {
-              console.log('Found button with selector:', selector, button);
-              
               // Try direct click
               button.click();
               
@@ -382,28 +305,12 @@ export function DocsNavbarToggle() {
         }, 50);
       }, { capture: true });
 
-      // Insert after search icon but before dropdown arrow
-      if (searchButton && searchButton.parentElement === rightContainer) {
-        // Insert right after search button
-        const nextSibling = searchButton.nextSibling;
-        if (nextSibling) {
-          rightContainer.insertBefore(toggleButton, nextSibling);
-        } else if (dropdownButton && dropdownButton !== searchButton) {
-          // If no next sibling, insert before dropdown
-          rightContainer.insertBefore(toggleButton, dropdownButton);
-        } else {
-          // Last resort: append after search
-          rightContainer.appendChild(toggleButton);
-        }
-        console.log('Button inserted after search icon:', toggleButton);
-      } else if (dropdownButton && dropdownButton.parentElement === rightContainer) {
-        // Fallback: insert before dropdown if search not found
-        rightContainer.insertBefore(toggleButton, dropdownButton);
-        console.log('Button inserted before dropdown:', toggleButton);
+      // Insert as the first child of the navbar (before the logo)
+      const firstChild = navContainer.firstChild;
+      if (firstChild) {
+        navContainer.insertBefore(toggleButton, firstChild);
       } else {
-        // Last resort: append at the end
-        rightContainer.appendChild(toggleButton);
-        console.log('Button appended to container:', toggleButton);
+        navContainer.appendChild(toggleButton);
       }
     };
 

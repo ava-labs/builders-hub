@@ -42,7 +42,7 @@ export function DocsSubNav() {
   const pathname = usePathname();
 
   return (
-    <div className="fixed top-14 z-[35] w-full border-b border-border bg-background" id="docs-subnav">
+    <div className="fixed top-14 z-[30] w-full border-b border-border bg-background" id="docs-subnav">
       <div className="flex h-12 items-center gap-2 overflow-x-auto relative px-4 md:pl-16 md:pr-4 justify-center md:justify-start">
         {tabs.map((tab) => {
           const isActive = tab.pathMatch(pathname);
