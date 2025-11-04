@@ -6,6 +6,14 @@ async function moveWebhooks() {
   const webhookApiPath = 'content/docs/api-reference/webhook-api';
   const webhooksSourcePath = join(dataApiPath, 'webhooks');
   const webhooksDestPath = join(webhookApiPath, 'webhooks');
+  const unknownFolderPath = join(dataApiPath, 'unknown');
+
+  // Remove the "unknown" folder if it exists (contains stale webhook schemas)
+  if (existsSync(unknownFolderPath)) {
+    console.log('  🗑️  Removing stale "unknown" folder from data-api');
+    rmSync(unknownFolderPath, { recursive: true, force: true, maxRetries: 3 });
+    console.log('  ✅ Removed unknown folder successfully');
+  }
 
   // Check if webhooks folder exists in data-api
   if (!existsSync(webhooksSourcePath)) {

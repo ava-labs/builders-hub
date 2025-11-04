@@ -218,6 +218,7 @@ content/docs/api-reference/webhook-api/**/meta.json
 !content/docs/api-reference/webhook-api/retries.mdx
 !content/docs/api-reference/webhook-api/webhooks-signature.mdx
 !content/docs/api-reference/webhook-api/wss-vs-webhooks.mdx
+!content/docs/api-reference/webhook-api/tutorials/*.mdx
 
 # Generated RPC API docs (remote content)
 content/docs/rpcs/other/admin-api.mdx

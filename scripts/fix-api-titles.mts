@@ -48,19 +48,57 @@ function getAllMdxFiles(dir: string): string[] {
   return files;
 }
 
+// Strip redundant prefixes from Data API folder titles
+function stripRedundantPrefixes(folderName: string, title: string, parentDir: string): string {
+  // Only apply to Data API
+  if (!parentDir.includes('data-api')) {
+    return title;
+  }
+
+  // Special case: keep "primary-network" as "Primary Network" (it's the overview page)
+  if (folderName === 'primary-network') {
+    return title;
+  }
+
+  // Strip "EVM " prefix for folders starting with evm-
+  if (folderName.startsWith('evm-') && title.startsWith('EVM ')) {
+    return title.slice(4); // Remove "EVM "
+  }
+
+  // Strip "Primary Network " prefix for folders starting with primary-network-
+  if (folderName.startsWith('primary-network-') && title.startsWith('Primary Network ')) {
+    return title.slice(16); // Remove "Primary Network "
+  }
+
+  return title;
+}
+
 function createFolderMetaFiles(dir: string, folders: string[]) {
   for (const folder of folders) {
     const folderPath = path.join(dir, folder);
     const metaPath = path.join(folderPath, 'meta.json');
     
-    if (fs.existsSync(folderPath) && fs.statSync(folderPath).isDirectory() && !fs.existsSync(metaPath)) {
-      const title = toTitleCase(folder);
-      const meta = {
-        title: title,
-      };
+    if (fs.existsSync(folderPath) && fs.statSync(folderPath).isDirectory()) {
+      let title = toTitleCase(folder);
+      title = stripRedundantPrefixes(folder, title, dir);
       
-      fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n', 'utf-8');
-      console.log(`Created meta: ${path.relative('.', metaPath)} with title "${title}"`);
+      // Check if meta.json exists
+      if (fs.existsSync(metaPath)) {
+        // Update existing meta.json if title is different
+        const existingMeta = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
+        if (existingMeta.title !== title) {
+          existingMeta.title = title;
+          fs.writeFileSync(metaPath, JSON.stringify(existingMeta, null, 2) + '\n', 'utf-8');
+          console.log(`Updated meta: ${path.relative('.', metaPath)} with title "${title}"`);
+        }
+      } else {
+        // Create new meta.json
+        const meta = {
+          title: title,
+        };
+        fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n', 'utf-8');
+        console.log(`Created meta: ${path.relative('.', metaPath)} with title "${title}"`);
+      }
     }
   }
 }

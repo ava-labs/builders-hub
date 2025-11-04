@@ -127,10 +127,9 @@ body[data-layout="academy"] [data-sidebar="sidebar"] button[aria-label="Collapse
   body[data-layout="academy"] main#nd-docs-layout.fd-default-layout {
     margin-left: 0 !important;
     margin-right: 0 !important;
-    /* Add left padding to account for sidebar position (3rem) + sidebar width + sidebar right padding (2rem) */
-    padding-left: calc(3rem + var(--fd-sidebar-width) + 2rem) !important;
-    /* Add right padding to account for TOC/right sidebar */
-    padding-right: calc(var(--fd-toc-width) + 2rem) !important;
+    /* Responsive padding that accounts for sidebar position (3rem) + width + spacing (0.5rem) */
+    padding-left: calc(3rem + var(--fd-sidebar-width) + 0.5rem) !important;
+    padding-right: 5rem !important;
   }
   
   /* Center the page content within available space */
@@ -144,5 +143,11 @@ body[data-layout="academy"] [data-sidebar="sidebar"] button[aria-label="Collapse
   body[data-layout="academy"] .nd-layout-notebook {
     padding-right: 2rem !important;
   }
+}
+
+/* Reduce article padding - ACADEMY ONLY */
+body[data-layout="academy"] .nd-layout-notebook article {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
