@@ -43,6 +43,11 @@ body[data-layout="academy"] [data-sidebar="sidebar"] {
   /* Use default fumadocs positioning - no subnav to account for */
   top: 3.5rem !important; /* Only navbar height */
   height: calc(100vh - 3.5rem) !important; /* Full height minus navbar */
+  padding-left: 0.5rem !important;
+  padding-right: 2rem !important; /* Extra right padding to prevent content overlay on resize */
+  /* Force sidebar to left edge with padding - override fumadocs dynamic width calculation */
+  left: 3rem !important;
+  width: var(--fd-sidebar-width) !important; /* Remove extra spacing and layout offset */
 }
 
 /* Remove padding-top from sidebar first child - prevents spacing issues on refresh */
@@ -112,6 +117,32 @@ body[data-layout="academy"] [data-sidebar="sidebar"] button[aria-label="Collapse
     100% {
       pointer-events: auto !important;
     }
+  }
+}
+
+/* Desktop: Center content while maintaining sidebar and TOC spacing */
+@media (min-width: 768px) {
+  /* Remove layout offset margins from main body */
+  body[data-layout="academy"] main#nd-docs-layout.fd-notebook-layout,
+  body[data-layout="academy"] main#nd-docs-layout.fd-default-layout {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    /* Add left padding to account for sidebar position (3rem) + sidebar width + sidebar right padding (2rem) */
+    padding-left: calc(3rem + var(--fd-sidebar-width) + 2rem) !important;
+    /* Add right padding to account for TOC/right sidebar */
+    padding-right: calc(var(--fd-toc-width) + 2rem) !important;
+  }
+  
+  /* Center the page content within available space */
+  body[data-layout="academy"] #nd-page {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-width: var(--fd-page-width) !important;
+  }
+  
+  /* Also add padding to notebook layout container */
+  body[data-layout="academy"] .nd-layout-notebook {
+    padding-right: 2rem !important;
   }
 }
 

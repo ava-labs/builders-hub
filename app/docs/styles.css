@@ -67,6 +67,13 @@ header + * {
   padding-right: 0 !important;
 }
 
+/* Align subnavbar content to match sidebar position - desktop only */
+@media (min-width: 768px) {
+  #docs-subnav > div {
+    padding-left: 3rem !important; /* Match sidebar left position */
+  }
+}
+
 /* Mobile navigation: Separate main navbar and docs sidebar menus */
 @media (max-width: 767px) {
   /* Main navbar should stay on the left - ensure it's accessible */
@@ -149,6 +156,24 @@ header + * {
   #docs-subnav {
     z-index: 35 !important; /* Above sidebar which is z-30, but below nav dropdown (z-50) */
   }
+  
+  /* Center content while maintaining sidebar and TOC spacing */
+  body[data-layout="docs"] main#nd-docs-layout.fd-notebook-layout,
+  body[data-layout="docs"] main#nd-docs-layout.fd-default-layout {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    /* Add left padding to account for sidebar position (3rem) + sidebar width + sidebar right padding (1.5rem) */
+    padding-left: calc(3rem + var(--fd-sidebar-width) + 1.5rem) !important;
+    /* Add right padding to account for TOC/right sidebar */
+    padding-right: calc(var(--fd-toc-width) + 2rem) !important;
+  }
+  
+  /* Center the page content within available space */
+  body[data-layout="docs"] #nd-page {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-width: var(--fd-page-width) !important;
+  }
 }
 
 /* Hide sidebar tabs/hamburger menu on Tooling and ACPs pages */
@@ -172,12 +197,15 @@ body.search-open #docs-subnav {
 body[data-layout="docs"] #nd-sidebar,
 body[data-layout="docs"] [data-sidebar="sidebar"] {
   padding-left: 0.5rem !important;
-  padding-right: 0.5rem !important;
+  padding-right: 1.5rem !important; /* Extra right padding to prevent content overlay on resize */
   z-index: 20 !important; /* Below subnavbar (z-40) */
   top: calc(3.5rem + 3rem) !important; /* Main navbar (3.5rem) + subnavbar (3rem) */
   height: calc(100vh - 3.5rem - 3rem) !important; /* Adjust height accordingly */
   border-right: none !important; /* Remove border for cleaner dark mode */
   background: transparent !important; /* Blend with page background */
+  /* Force sidebar to left edge with small padding - override fumadocs dynamic width calculation */
+  left: 3rem !important;
+  width: var(--fd-sidebar-width) !important; /* Remove extra spacing and layout offset */
 }
 
 /* Hide sidebar toggle button on desktop */
