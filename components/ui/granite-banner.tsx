@@ -80,14 +80,6 @@ function CountdownTimer({ targetDate }: { targetDate: string }) {
     return () => clearInterval(timer);
   }, []);
 
-  const hasTimeLeft = timeLeft.days > 0 || timeLeft.hours > 0 || timeLeft.minutes > 0 || timeLeft.seconds > 0;
-
-  if (!hasTimeLeft) {
-    return (
-      <span className="font-semibold text-red-600 animate-pulse">Update Now!</span>
-    );
-  }
-
   return (
     <span className="font-semibold font-mono bg-white/20 px-3 py-1 rounded-md backdrop-blur-sm inline-flex items-center gap-0.5">
       <TimeDisplay label="d" value={timeLeft.days} />
@@ -106,13 +98,18 @@ export function GraniteBanner() {
 
   return (
     <Banner id="granite-banner" variant="rainbow" style={{ background: "linear-gradient(90deg, #FFB3F0 0%, #8FC5E6 100%)" }}>
-      <div className="flex flex-col md:flex-row items-center justify-center gap-2 text-center">
+      <Link href="/blog/granite-upgrade" className="md:hidden inline-flex items-center gap-1 flex-wrap justify-center">
+        <span>Granite Upgrade Activates in</span>
+        <CountdownTimer targetDate={activationDate} />
+      </Link>
+
+      <div className="hidden md:flex flex-row items-center justify-center gap-2 text-center">
         <span>
           Avalanche Network <strong>Granite upgrade</strong> released. All Mainnet
-          nodes must upgrade by <strong>11 AM ET, November 19, 2025</strong>, or face operational failure.
+          nodes must upgrade by <strong>11 AM ET, November 19, 2025</strong>
         </span>
         <span className="flex items-center gap-2">
-          <span className="hidden md:inline">•</span>
+          <span>•</span>
           <CountdownTimer targetDate={activationDate} />
           <span className="hidden md:inline">•</span>
           <Link href="/blog/granite-upgrade" className="underline underline-offset-4 hover:text-fd-primary transition-colors">
