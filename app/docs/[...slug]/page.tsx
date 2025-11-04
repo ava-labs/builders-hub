@@ -26,8 +26,8 @@ import YouTube from "@/components/content-design/youtube";
 import { Feedback } from "@/components/ui/feedback";
 import { SidebarActions } from "@/components/ui/sidebar-actions";
 import posthog from "posthog-js";
-import { APIPage } from "fumadocs-openapi/ui";
 import { dataApi, metricsApi, pChainApi, cChainApi } from "@/lib/openapi";
+import { APIPageWrapper } from "@/components/content-design/api-page-wrapper";
 
 export const dynamicParams = false;
 export const revalidate = false;
@@ -110,29 +110,41 @@ export default async function Page(props: {
             Folder,
             Files,
             APIPage: (props: any) => {
-              // Determine which API instance to use based on the page path
-              const pagePath = params.slug.join('/');
-              const isMetricsApi = props.document?.includes('popsicle-api.avax.network');
-              const isPChainApi = pagePath.includes('rpcs/p-chain');
-              const isCChainApi = pagePath.includes('rpcs/c-chain');
+              // Determine which API instance to use based on document path
+              const document = props.document || '';
+              const isMetricsApi = document.includes('popsicle.json');
+              const isPChainApi = document.includes('platformvm.yaml');
+              const isCChainApi = document.includes('coreth.yaml');
               
               let apiInstance;
               let apiKey;
+              let storageKey;
               if (isPChainApi) {
                 apiInstance = pChainApi;
                 apiKey = 'p-chain-api';
+                storageKey = 'apiBaseUrl-pchain';
               } else if (isCChainApi) {
                 apiInstance = cChainApi;
                 apiKey = 'c-chain-api';
+                storageKey = 'apiBaseUrl-cchain';
               } else if (isMetricsApi) {
                 apiInstance = metricsApi;
                 apiKey = 'metrics-api';
+                storageKey = 'apiBaseUrl-metrics';
               } else {
                 apiInstance = dataApi;
                 apiKey = 'data-api';
+                storageKey = 'apiBaseUrl-data';
               }
               
-              return <APIPage key={apiKey} {...apiInstance.getAPIPageProps(props)} />;
+              return (
+                <APIPageWrapper 
+                  key={apiKey}
+                  apiKey={apiKey}
+                  storageKey={storageKey}
+                  pageProps={apiInstance.getAPIPageProps(props)}
+                />
+              );
             },
             blockquote: Callout as unknown as FC<ComponentProps<"blockquote">>,
           }}
