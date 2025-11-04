@@ -721,12 +721,6 @@ nav button.size-9.rounded-full {
   justify-content: flex-start !important;
   display: flex !important;
   align-items: center !important;
-  padding-left: 0.5rem !important;
-}
-
-/* Override the sidebar item offset to align with dropdown */
-#nd-sidebar a {
-  --sidebar-item-offset: 0.5rem !important;
 }
 
 /* Docs subnav hover and active states */
