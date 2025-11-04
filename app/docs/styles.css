@@ -36,8 +36,8 @@ nav[role="tablist"],
   padding-left: 0 !important;
 }
 
-/* Add padding at top of docs content area to account for fixed subnavbar */
-.nd-layout-notebook {
+/* Add padding at top of docs content area to account for fixed subnavbar - DOCS ONLY */
+body[data-layout="docs"] .nd-layout-notebook {
   padding-top: 3rem !important; /* Just subnavbar height, no extra spacing */
 }
 
@@ -168,9 +168,9 @@ body.search-open #docs-subnav {
   display: none !important;
 }
 
-/* Reduce sidebar horizontal padding and push down below subnavbar */
-#nd-sidebar,
-[data-sidebar="sidebar"] {
+/* Reduce sidebar horizontal padding and push down below subnavbar - DOCS ONLY */
+body[data-layout="docs"] #nd-sidebar,
+body[data-layout="docs"] [data-sidebar="sidebar"] {
   padding-left: 0.5rem !important;
   padding-right: 0.5rem !important;
   z-index: 20 !important; /* Below subnavbar (z-40) */
@@ -189,20 +189,20 @@ body.search-open #docs-subnav {
   }
 }
 
-/* Sidebar content area */
-#nd-sidebar > div,
-[data-sidebar="sidebar"] > div {
+/* Sidebar content area - DOCS ONLY */
+body[data-layout="docs"] #nd-sidebar > div,
+body[data-layout="docs"] [data-sidebar="sidebar"] > div {
   padding-left: 0.25rem !important;
   padding-right: 0.25rem !important;
 }
 
-/* Reduce sidebar header spacing */
-#nd-sidebar > div:first-child {
+/* Reduce sidebar header spacing - DOCS ONLY */
+body[data-layout="docs"] #nd-sidebar > div:first-child {
   padding-bottom: 0.5rem !important;
 }
 
-/* Sidebar navigation - remove top spacing */
-#nd-sidebar nav {
+/* Sidebar navigation - remove top spacing - DOCS ONLY */
+body[data-layout="docs"] #nd-sidebar nav {
   margin-top: 0 !important;
   padding-top: 0 !important;
 }

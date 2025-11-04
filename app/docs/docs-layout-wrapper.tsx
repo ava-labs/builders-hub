@@ -41,6 +41,13 @@ export function DocsLayoutWrapper({
 
   // Add data attribute to body for CSS targeting and hide tabs dropdown
   useEffect(() => {
+    // Set layout attribute for scoping styles
+    if (pathname.startsWith('/docs')) {
+      document.body.setAttribute('data-layout', 'docs');
+    } else {
+      document.body.removeAttribute('data-layout');
+    }
+
     if (pathname.startsWith('/docs/tooling')) {
       document.body.setAttribute('data-docs-section', 'tooling');
     } else if (pathname.startsWith('/docs/acps')) {
@@ -49,7 +56,7 @@ export function DocsLayoutWrapper({
       document.body.setAttribute('data-docs-section', 'api-reference');
     } else if (pathname.startsWith('/docs/rpcs')) {
       document.body.setAttribute('data-docs-section', 'rpcs');
-    } else {
+    } else if (pathname.startsWith('/docs')) {
       document.body.setAttribute('data-docs-section', 'documentation');
     }
     
@@ -85,6 +92,7 @@ export function DocsLayoutWrapper({
     return () => {
       clearTimeout(timeout);
       document.body.removeAttribute('data-docs-section');
+      document.body.removeAttribute('data-layout');
       // On unmount, best-effort restore any hidden tabs trigger
       const sidebar = document.querySelector('#nd-sidebar');
       if (sidebar) {

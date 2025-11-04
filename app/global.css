@@ -9,11 +9,7 @@
 @source '../node_modules/fumadocs-ui/dist/**/*.js';
 @plugin 'tailwindcss-animate';
 
-@media (min-width: 768px) {
-  #nd-sidebar > div:first-child {
-    padding-top: calc(var(--spacing) * 7.5);
-  }
-}
+/* Removed global sidebar padding - now scoped per layout in docs/styles.css and academy/styles.css */
 /* @plugin "@tailwindcss/typography"; */
 
 .prose

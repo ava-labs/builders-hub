@@ -4,6 +4,7 @@ import { baseOptions } from '@/app/layout.config';
 import { academy } from '@/lib/source';
 import { LayoutWrapper } from '@/app/layout-wrapper.client';
 import { DocsNavbarToggle } from '@/components/navigation/docs-navbar-toggle';
+import { AcademyLayoutClient } from './layout.client';
 import './styles.css';
 
 const academyOptions: DocsLayoutProps = {
@@ -11,11 +12,15 @@ const academyOptions: DocsLayoutProps = {
   nav: {
     enabled: false,
   },
+  sidebar: {
+    collapsible: false, // Disable sidebar collapse - academy doesn't need it
+  },
 };
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
     <LayoutWrapper baseOptions={baseOptions}>
+      <AcademyLayoutClient />
       <DocsNavbarToggle />
       <DocsLayout {...academyOptions}>
         <span

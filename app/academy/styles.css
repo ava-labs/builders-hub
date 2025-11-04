@@ -1,35 +1,78 @@
-/* Increase spacing between the main navbar and the academy sidebar dropdown */
-@media (min-width: 768px) {
-  #nd-sidebar > div:first-child {
-    padding-top: calc(var(--spacing) * 7.5);
-  }
-}
-
-/* Remove thin separator line from library defaults under navbar */
-body > div > nav[aria-label="Main"],
-.nd-layout-home > nav:not([role="tablist"]):not(.nd-tabs-nav),
-.nd-layout-home > header:not([role="tablist"]):not(.nd-tabs-nav) {
+/* Academy-specific navbar styles - ACADEMY ONLY */
+body[data-layout="academy"] > div > nav[aria-label="Main"],
+body[data-layout="academy"] .nd-layout-home > nav:not([role="tablist"]):not(.nd-tabs-nav),
+body[data-layout="academy"] .nd-layout-home > header:not([role="tablist"]):not(.nd-tabs-nav) {
   border-bottom: 0 !important;
   box-shadow: none !important;
 }
 
-/* Remove any top border drawn directly under the navbar */
-nav[aria-label="Main"] + *,
-header + * {
+/* Remove any top border drawn directly under the navbar - ACADEMY ONLY */
+body[data-layout="academy"] nav[aria-label="Main"] + *,
+body[data-layout="academy"] header + * {
   border-top: 0 !important;
   box-shadow: none !important;
 }
 
-/* Fumadocs DocsNavbar adds border-b on internal containers; remove it */
-#nd-subnav .border-b {
-  border-bottom: 0 !important;
-  box-shadow: none !important;
+/* Hide and remove any subnav borders that might appear - ACADEMY ONLY */
+body[data-layout="academy"] #docs-subnav {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  border: none !important;
+  border-bottom: none !important;
 }
 
-/* Mobile styles for academy sidebar */
+/* Remove any border-bottom from elements that might appear below navbar - ACADEMY ONLY */
+body[data-layout="academy"] nav[aria-label="Main"] ~ *,
+body[data-layout="academy"] header ~ * {
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+}
+
+/* Ensure no border appears on the first element after navbar */
+body[data-layout="academy"] nav[aria-label="Main"] + div,
+body[data-layout="academy"] header + div {
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+}
+
+/* Academy sidebar positioning - use fumadocs defaults, no subnav spacing */
+/* Only override what's necessary - let fumadocs handle the rest */
+body[data-layout="academy"] #nd-sidebar,
+body[data-layout="academy"] [data-sidebar="sidebar"] {
+  /* Use default fumadocs positioning - no subnav to account for */
+  top: 3.5rem !important; /* Only navbar height */
+  height: calc(100vh - 3.5rem) !important; /* Full height minus navbar */
+}
+
+/* Remove padding-top from sidebar first child - prevents spacing issues on refresh */
+/* This ensures no extra spacing appears when elements hydrate */
+body[data-layout="academy"] #nd-sidebar > div:first-child,
+body[data-layout="academy"] [data-sidebar="sidebar"] > div:first-child {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Hide sidebar collapse trigger button - academy doesn't need sidebar collapse */
+body[data-layout="academy"] button[aria-label="Collapse Sidebar"],
+body[data-layout="academy"] [data-collapsed] button[aria-label="Collapse Sidebar"],
+body[data-layout="academy"] #nd-sidebar button[aria-label="Collapse Sidebar"],
+body[data-layout="academy"] [data-sidebar="sidebar"] button[aria-label="Collapse Sidebar"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  position: absolute !important;
+  width: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Mobile styles for academy sidebar - ACADEMY ONLY */
 @media (max-width: 767px) {
   /* Hide the original fumadocs sidebar toggle button on mobile since we're using our own */
-  .nd-layout-notebook > div:first-child > button:not([aria-haspopup]):not([role="combobox"]) {
+  body[data-layout="academy"] .nd-layout-notebook > div:first-child > button:not([aria-haspopup]):not([role="combobox"]) {
     display: none !important;
     visibility: hidden !important;
     position: absolute !important;
@@ -39,26 +82,26 @@ header + * {
   }
 
   /* Ensure sidebar opens from left on mobile */
-  [data-sidebar="sidebar"][data-mobile="true"] {
+  body[data-layout="academy"] [data-sidebar="sidebar"][data-mobile="true"] {
     left: 0 !important;
     right: auto !important;
     transform: translateX(0) !important;
   }
   
   /* Ensure Sheet content is positioned on the left */
-  [data-sidebar="sidebar"][data-mobile="true"] [data-radix-dialog-content] {
+  body[data-layout="academy"] [data-sidebar="sidebar"][data-mobile="true"] [data-radix-dialog-content] {
     left: 0 !important;
     right: auto !important;
   }
   
   /* Temporarily prevent Sheet overlay from closing sidebar immediately after opening */
-  [data-radix-dialog-overlay]:not([data-overlay-enabled]) {
+  body[data-layout="academy"] [data-radix-dialog-overlay]:not([data-overlay-enabled]) {
     pointer-events: none !important;
   }
   
   /* Re-enable overlay clicks after a delay - sidebar should be open by then */
-  [data-sidebar="sidebar"][data-state="open"] ~ [data-radix-dialog-overlay],
-  [data-sidebar="sidebar"][data-state="open"] + [data-radix-dialog-overlay] {
+  body[data-layout="academy"] [data-sidebar="sidebar"][data-state="open"] ~ [data-radix-dialog-overlay],
+  body[data-layout="academy"] [data-sidebar="sidebar"][data-state="open"] + [data-radix-dialog-overlay] {
     animation: enableOverlayClick 0.4s forwards;
   }
   
