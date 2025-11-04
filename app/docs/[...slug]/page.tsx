@@ -26,8 +26,9 @@ import YouTube from "@/components/content-design/youtube";
 import { Feedback } from "@/components/ui/feedback";
 import { SidebarActions } from "@/components/ui/sidebar-actions";
 import posthog from "posthog-js";
+import { APIPage } from "fumadocs-openapi/ui";
 import { dataApi, metricsApi, pChainApi, cChainApi } from "@/lib/openapi";
-import { APIPageWrapper } from "@/components/content-design/api-page-wrapper";
+import { APIStorageManager } from "@/components/content-design/api-storage-manager";
 
 export const dynamicParams = false;
 export const revalidate = false;
@@ -117,33 +118,26 @@ export default async function Page(props: {
               const isCChainApi = document.includes('coreth.yaml');
               
               let apiInstance;
-              let apiKey;
               let storageKey;
               if (isPChainApi) {
                 apiInstance = pChainApi;
-                apiKey = 'p-chain-api';
                 storageKey = 'apiBaseUrl-pchain';
               } else if (isCChainApi) {
                 apiInstance = cChainApi;
-                apiKey = 'c-chain-api';
                 storageKey = 'apiBaseUrl-cchain';
               } else if (isMetricsApi) {
                 apiInstance = metricsApi;
-                apiKey = 'metrics-api';
                 storageKey = 'apiBaseUrl-metrics';
               } else {
                 apiInstance = dataApi;
-                apiKey = 'data-api';
                 storageKey = 'apiBaseUrl-data';
               }
               
               return (
-                <APIPageWrapper 
-                  key={apiKey}
-                  apiKey={apiKey}
-                  storageKey={storageKey}
-                  pageProps={apiInstance.getAPIPageProps(props)}
-                />
+                <>
+                  <APIStorageManager storageKey={storageKey} />
+                  <APIPage {...apiInstance.getAPIPageProps(props)} />
+                </>
               );
             },
             blockquote: Callout as unknown as FC<ComponentProps<"blockquote">>,

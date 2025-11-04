@@ -1,17 +1,18 @@
 'use client';
 
-import { APIPage } from 'fumadocs-openapi/ui';
 import { useEffect } from 'react';
 
-interface APIPageWrapperProps {
-  apiKey: string;
+interface APIStorageManagerProps {
   storageKey: string;
-  pageProps: any;
 }
 
-export function APIPageWrapper({ apiKey, storageKey, pageProps }: APIPageWrapperProps) {
+/**
+ * Client component that manages API-specific localStorage for fumadocs-openapi.
+ * Fumadocs uses a hardcoded 'apiBaseUrl' key, so we sync between that and API-specific keys.
+ */
+export function APIStorageManager({ storageKey }: APIStorageManagerProps) {
   useEffect(() => {
-    // Load this API's specific storage or clear if none exists
+    // Load this API's specific storage into fumadocs' expected key
     const apiStorage = localStorage.getItem(storageKey);
     if (apiStorage) {
       localStorage.setItem('apiBaseUrl', apiStorage);
@@ -19,7 +20,7 @@ export function APIPageWrapper({ apiKey, storageKey, pageProps }: APIPageWrapper
       localStorage.removeItem('apiBaseUrl');
     }
 
-    // Save to API-specific storage when fumadocs updates the main key
+    // Sync changes back to API-specific key
     const interval = setInterval(() => {
       const currentBaseUrl = localStorage.getItem('apiBaseUrl');
       if (currentBaseUrl) {
@@ -37,6 +38,6 @@ export function APIPageWrapper({ apiKey, storageKey, pageProps }: APIPageWrapper
     };
   }, [storageKey]);
 
-  return <APIPage {...pageProps} />;
+  return null; // This component only manages side effects
 }
 
