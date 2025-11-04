@@ -56,7 +56,7 @@ export function Footer() {
             <div className="grid grid-cols-2 gap-x-8 gap-y-3">
               <FooterLink href="https://www.facebook.com/avalancheavax" external>Facebook</FooterLink>
               <FooterLink href="https://forum.avax.network" external>Forum</FooterLink>
-              <FooterLink href="https://chat.avax.network" external>Discord</FooterLink>
+              <FooterLink href="https://discord.gg/avax" external>Discord</FooterLink>
               <FooterLink href="https://support.avax.network/en/" external>Support</FooterLink>
               <FooterLink href="https://medium.com/@avaxdevelopers" external>Medium</FooterLink>
               <FooterLink href="https://www.youtube.com/@Avalancheavax" external>Youtube</FooterLink>

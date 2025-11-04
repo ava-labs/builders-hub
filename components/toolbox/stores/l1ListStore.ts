@@ -4,6 +4,11 @@ import { useWalletStore } from "./walletStore";
 import { localStorageComp, STORE_VERSION } from "./utils";
 import { useMemo } from "react";
 
+export type FaucetThresholds = {
+    threshold: number; // min balance threshold to trigger drip
+    dripAmount: number;
+};
+
 export type L1ListItem = {
     id: string;
     name: string;
@@ -20,9 +25,8 @@ export type L1ListItem = {
     externalFaucetUrl?: string;
     explorerUrl?: string;
     hasBuilderHubFaucet?: boolean;
-    dripAmount?: number;
     features?: string[];
-    // Native currency cache - extended info beyond just coinName
+    faucetThresholds?: FaucetThresholds;
     nativeCurrency?: {
         name: string;
         symbol: string;
@@ -48,7 +52,10 @@ const l1ListInitialStateFuji = {
             hasBuilderHubFaucet: true,
             externalFaucetUrl: "https://core.app/tools/testnet-faucet",
             explorerUrl: "https://subnets-test.avax.network/c-chain",
-            dripAmount: 1,
+            faucetThresholds: {
+                threshold: 0.2,
+                dripAmount: 0.5
+            },
             features: [
                 "EVM-compatible blockchain",
                 "Deploy smart contracts"
@@ -70,7 +77,10 @@ const l1ListInitialStateFuji = {
             hasBuilderHubFaucet: true,
             externalFaucetUrl: "https://core.app/tools/testnet-faucet",
             explorerUrl: "https://subnets-test.avax.network/echo",
-            dripAmount: 2,
+            faucetThresholds: {
+                threshold: 1.0,
+                dripAmount: 2
+            },
             features: [
                 "EVM-compatible L1 chain",
                 "Deploy dApps & test interoperability with Echo"
@@ -92,7 +102,10 @@ const l1ListInitialStateFuji = {
             hasBuilderHubFaucet: true,
             externalFaucetUrl: "https://core.app/tools/testnet-faucet",
             explorerUrl: "https://subnets-test.avax.network/dispatch",
-            dripAmount: 2,
+            faucetThresholds: {
+                threshold: 1.0,
+                dripAmount: 2
+            },
             features: [
                 "EVM-compatible L1 chain",
                 "Deploy dApps & test interoperability with Dispatch"
@@ -153,6 +166,9 @@ export const getL1ListStore = (isTestnet: boolean) => {
                             const l1 = get().l1List.find((l1) => l1.evmChainId === chainId);
                             return l1?.nativeCurrency;
                         },
+                        getChainsWithFaucet: () => {
+                            return get().l1List.filter((l1) => l1.hasBuilderHubFaucet);
+                        },
                         reset: () => {
                             window?.localStorage.removeItem(`${STORE_VERSION}-l1-list-store-testnet`);
                         },
@@ -184,6 +200,9 @@ export const getL1ListStore = (isTestnet: boolean) => {
                         getNativeCurrencyInfo: (chainId: number) => {
                             const l1 = get().l1List.find((l1) => l1.evmChainId === chainId);
                             return l1?.nativeCurrency;
+                        },
+                        getChainsWithFaucet: () => {
+                            return get().l1List.filter((l1) => l1.hasBuilderHubFaucet);
                         },
                         reset: () => {
                             window?.localStorage.removeItem(`${STORE_VERSION}-l1-list-store-mainnet`);

@@ -7,7 +7,7 @@ import { getBlockchainInfo, getSubnetInfo } from "@/components/toolbox/coreViem/
 import InputChainId from "@/components/toolbox/components/InputChainId";
 import InputSubnetId from "@/components/toolbox/components/InputSubnetId";
 import BlockchainDetailsDisplay from "@/components/toolbox/components/BlockchainDetailsDisplay";
-import versions from '@/scripts/versions.json';
+import { getContainerVersions } from '@/components/toolbox/utils/containerVersions';
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { nodeConfigBase64 } from "./config";
@@ -16,14 +16,14 @@ import { Success } from "@/components/toolbox/components/Success";
 import { nipify, HostInput } from "@/components/toolbox/components/HostInput";
 import { RadioGroup } from "@/components/toolbox/components/RadioGroup";
 import { RPCURLInput } from "@/components/toolbox/components/RPCURLInput";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useNetworkInfo } from "@/components/toolbox/stores/walletStore";
 import { DockerInstallation } from "@/components/toolbox/components/DockerInstallation";
 import { NodeBootstrapCheck } from "@/components/toolbox/components/NodeBootstrapCheck";
 import { Checkbox } from "@/components/toolbox/components/Checkbox";
 import { Button } from "@/components/toolbox/components/Button";
 
 
-const dockerComposePsOutput = `NAME          IMAGE                                 COMMAND                  SERVICE       CREATED        STATUS        PORTS
+const getDockerComposePsOutput = (versions: any) => `NAME          IMAGE                                 COMMAND                  SERVICE       CREATED        STATUS        PORTS
 avago         avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}  "./avalanchego"          avago         1 minute ago   Up 1 minute   127.0.0.1:9650->9650/tcp, 0.0.0.0:9651->9651/tcp, :::9651->9651/tcp
 backend       blockscout/blockscout:6.10.1                       "sh -c 'bin/blocksco…"   backend       1 minute ago   Up 1 minute   
 bc_frontend   ghcr.io/blockscout/frontend:v1.37.4                "./entrypoint.sh nod…"   bc_frontend   1 minute ago   Up 1 minute   3000/tcp
@@ -85,6 +85,7 @@ interface DockerComposeConfig {
   rpcUrl: string;
   includeAvago: boolean;
   isTestnet: boolean;
+  versions: any;
 }
 
 const genDockerCompose = (config: DockerComposeConfig) => {
@@ -207,7 +208,7 @@ services:
 
   const avalancheGoService = config.includeAvago ? `
   avago:
-    image: avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}
+    image: avaplatform/subnet-evm_avalanchego:${config.versions['avaplatform/subnet-evm_avalanchego']}
     container_name: avago
     restart: always
     ports:
@@ -222,7 +223,7 @@ services:
       AVAGO_HTTP_HOST: "0.0.0.0"
       AVAGO_TRACK_SUBNETS: "${config.subnetId}" 
       AVAGO_HTTP_ALLOWED_HOSTS: "*"
-      AVAGO_CHAIN_CONFIG_CONTENT: "${nodeConfigBase64(config.blockchainId, true, false)}"
+      AVAGO_CHAIN_CONFIG_CONTENT: "${nodeConfigBase64(config.blockchainId, true, false, null)}"
     logging:
       driver: json-file
       options:
@@ -239,6 +240,10 @@ volumes:
 }
 
 export default function BlockScout() {
+  const { isTestnet } = useNetworkInfo();
+  const versions = getContainerVersions(isTestnet);
+  const dockerComposePsOutput = getDockerComposePsOutput(versions);
+
   const [chainId, setChainId] = useState("");
   const [subnetId, setSubnetId] = useState("");
   const [subnet, setSubnet] = useState<any>(null);
@@ -255,8 +260,6 @@ export default function BlockScout() {
   const [rpcOption, setRpcOption] = useState<'local' | 'existing'>('local');
   const [existingRpcUrl, setExistingRpcUrl] = useState('');
   const [servicesChecked, setServicesChecked] = useState(false);
-  const { isTestnet } = useWalletStore()
-
 
   const getL1Info = useL1ByChainId(chainId);
 
@@ -318,13 +321,14 @@ export default function BlockScout() {
         tokenSymbol,
         rpcUrl,
         includeAvago: rpcOption === 'local',
-        isTestnet: isTestnet ?? false
+        isTestnet: isTestnet ?? false,
+        versions
       }));
     } else {
       setCaddyfile("");
       setComposeYaml("");
     }
-  }, [domain, subnetId, chainId, networkName, networkShortName, tokenName, tokenSymbol, subnetIdError, rpcOption, existingRpcUrl]);
+  }, [domain, subnetId, chainId, networkName, networkShortName, tokenName, tokenSymbol, subnetIdError, rpcOption, existingRpcUrl, versions]);
 
   return (
     <>

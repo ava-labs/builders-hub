@@ -72,6 +72,7 @@
     "autocannon": "^8.0.0",
     "axios": "^1.12.2",
     "boring-name-generator": "^1.0.3",
+    "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -132,6 +133,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.13",
     "@tailwindcss/typography": "^0.5.16",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/mdx": "^2.0.13",
     "@types/node": "^24.5.0",
     "@types/prismjs": "^1.26.5",
