@@ -12,17 +12,28 @@ export const avalancheLearningPaths: CourseNode[] = [
         position: { x: 50, y: 0 },
         mobileOrder: 1
     },
+     // Second Layer - Intro to Solidity
+    {
+        id: "intro-to-solidity",
+        name: "Intro to Solidity",
+        description: "Start here to learn about Solidity basics with Foundry",
+        slug: "solidity-foundry",
+        category: "Fundamentals",
+        dependencies: ["blockchain-fundamentals"],
+        position: { x: 50, y: 150 },
+        mobileOrder: 2
+    },
 
-    // Second Layer - Avalanche Fundamentals
+    // Third Layer - Avalanche Fundamentals
     {
         id: "avalanche-fundamentals",
         name: "Avalanche Fundamentals",
         description: "Learn about Avalanche Consensus, Multi-Chain Architecture, and VMs",
         slug: "avalanche-fundamentals",
         category: "Fundamentals",
-        dependencies: ["blockchain-fundamentals"],
-        position: { x: 50, y: 150 },
-        mobileOrder: 2
+        dependencies: ["intro-to-solidity"],
+        position: { x: 50, y: 350 },
+        mobileOrder: 3
     },
     {
         id: "encrypted-erc",
@@ -30,12 +41,12 @@ export const avalancheLearningPaths: CourseNode[] = [
         description: "Learn about eERC tokens to add privacy to your applications",
         slug: "encrypted-erc",
         category: "Privacy",
-        dependencies: ["blockchain-fundamentals"],
-        position: { x: 20, y: 150 },
+        dependencies: ["intro-to-solidity"],
+        position: { x: 20, y: 350 },
         mobileOrder: 9
     },
 
-    // Third Layer - Branching paths
+    // Fourth Layer - Branching paths
     {
         id: "interchain-messaging",
         name: "Interchain Messaging",
@@ -43,7 +54,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "interchain-messaging",
         category: "Interoperability",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 65, y: 350 },
+        position: { x: 65, y: 550 },
         mobileOrder: 3
     },
     {
@@ -53,7 +64,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "permissioned-l1s",
         category: "L1 Development",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 5, y: 350 },
+        position: { x: 5, y: 550 },
         mobileOrder: 7
     },
     {
@@ -63,7 +74,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "l1-native-tokenomics",
         category: "L1 Tokenomics",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 35, y: 350 },
+        position: { x: 35, y: 550 },
         mobileOrder: 6
     },
     {
@@ -73,11 +84,11 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "customizing-evm",
         category: "VM Customization",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 95, y: 350 },
+        position: { x: 95, y: 550 },
         mobileOrder: 8
     },
 
-    // Fourth Layer - Advanced topics (adjusted for no overlap)
+    // Fifth Layer - Advanced topics (adjusted for no overlap)
     {
         id: "interchain-token-transfer",
         name: "Interchain Token Transfer",
@@ -85,7 +96,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "interchain-token-transfer",
         category: "Interoperability",
         dependencies: ["interchain-messaging"],
-        position: { x: 50, y: 550 },
+        position: { x: 50, y: 750 },
         mobileOrder: 4
     },
     {
@@ -95,7 +106,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "icm-chainlink",
         category: "Interoperability",
         dependencies: ["interchain-messaging"],
-        position: { x: 80, y: 550 },
+        position: { x: 80, y: 750 },
         mobileOrder: 5
     },
     {
@@ -105,7 +116,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "permissionless-l1s",
         category: "L1 Development",
         dependencies: ["permissioned-l1s", "l1-native-tokenomics"],
-        position: { x: 20, y: 550 },
+        position: { x: 20, y: 750 },
         mobileOrder: 7
     },
 ];
