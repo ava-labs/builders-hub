@@ -19,8 +19,8 @@ export const avalancheLearningPaths: CourseNode[] = [
         description: "Start here to learn about Solidity basics with Foundry",
         slug: "solidity-foundry",
         category: "Fundamentals",
-        dependencies: ["blockchain-fundamentals"],
-        position: { x: 50, y: 150 },
+        dependencies: ["avalanche-fundamentals"],
+        position: { x: 20, y: 300 },
         mobileOrder: 2
     },
 
@@ -31,9 +31,20 @@ export const avalancheLearningPaths: CourseNode[] = [
         description: "Learn about Avalanche Consensus, Multi-Chain Architecture, and VMs",
         slug: "avalanche-fundamentals",
         category: "Fundamentals",
-        dependencies: ["intro-to-solidity"],
-        position: { x: 50, y: 350 },
+        dependencies: ["blockchain-fundamentals"],
+        position: { x: 50, y: 150 },
         mobileOrder: 3
+    },
+    // Fourth Layer - Branching paths
+    {
+        id: "customizing-evm",
+        name: "Customizing the EVM",
+        description: "Add custom precompiles and configure the EVM",
+        slug: "customizing-evm",
+        category: "VM Customization",
+        dependencies: ["avalanche-fundamentals"],
+        position: { x:80, y: 300 },
+        mobileOrder: 10
     },
     {
         id: "encrypted-erc",
@@ -42,11 +53,9 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "encrypted-erc",
         category: "Privacy",
         dependencies: ["intro-to-solidity"],
-        position: { x: 20, y: 350 },
+        position: { x: 20, y: 450 },
         mobileOrder: 11
     },
-
-    // Fourth Layer - Branching paths
     {
         id: "interchain-messaging",
         name: "Interchain Messaging",
@@ -54,7 +63,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "interchain-messaging",
         category: "Interoperability",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 65, y: 550 },
+        position: { x: 65, y: 450 },
         mobileOrder: 4
     },
     {
@@ -64,7 +73,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "permissioned-l1s",
         category: "L1 Development",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 5, y: 550 },
+        position: { x: 35, y: 600 },
         mobileOrder: 7
     },
     {
@@ -74,20 +83,9 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "l1-native-tokenomics",
         category: "L1 Tokenomics",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 35, y: 550 },
+        position: { x: 50, y: 750 },
         mobileOrder: 8
     },
-    {
-        id: "customizing-evm",
-        name: "Customizing the EVM",
-        description: "Add custom precompiles and configure the EVM",
-        slug: "customizing-evm",
-        category: "VM Customization",
-        dependencies: ["avalanche-fundamentals"],
-        position: { x: 95, y: 550 },
-        mobileOrder: 10
-    },
-
     // Fifth Layer - Advanced topics (adjusted for no overlap)
     {
         id: "interchain-token-transfer",
@@ -96,7 +94,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "interchain-token-transfer",
         category: "Interoperability",
         dependencies: ["interchain-messaging"],
-        position: { x: 50, y: 750 },
+        position: { x: 80, y: 600 },
         mobileOrder: 5
     },
     {
@@ -106,7 +104,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "icm-chainlink",
         category: "Interoperability",
         dependencies: ["interchain-messaging"],
-        position: { x: 80, y: 750 },
+        position: { x: 65, y: 900 },
         mobileOrder: 6
     },
     {
@@ -116,7 +114,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "permissionless-l1s",
         category: "L1 Development",
         dependencies: ["permissioned-l1s", "l1-native-tokenomics"],
-        position: { x: 20, y: 750 },
+        position: { x: 35, y: 900 },
         mobileOrder: 9
     },
 ];
