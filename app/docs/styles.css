@@ -38,12 +38,12 @@ nav[role="tablist"],
 
 /* Add padding at top of docs content area to account for fixed subnavbar */
 .nd-layout-notebook {
-  padding-top: calc(3rem + 2rem) !important; /* Subnavbar height (3rem) + extra spacing (2rem) */
+  padding-top: 3rem !important; /* Just subnavbar height, no extra spacing */
 }
 
-/* Add padding to the main content container */
+/* Reduce top padding on main content container */
 main .nd-layout-notebook > div:first-child {
-  padding-top: 1rem !important;
+  padding-top: 0.5rem !important;
 }
 
 /* Remove any top border drawn directly under the navbar */
@@ -65,14 +65,6 @@ header + * {
   margin-left: calc(50% - 50vw) !important;
   padding-left: 0 !important;
   padding-right: 0 !important;
-}
-
-/* Subnavbar content gets the padding */
-#docs-subnav > div {
-  padding-left: 1rem !important;
-  padding-right: 1rem !important;
-  max-width: 1536px !important;
-  margin: 0 auto !important;
 }
 
 /* Mobile navigation: Separate main navbar and docs sidebar menus */
@@ -184,6 +176,8 @@ body.search-open #docs-subnav {
   z-index: 20 !important; /* Below subnavbar (z-40) */
   top: calc(3.5rem + 3rem) !important; /* Main navbar (3.5rem) + subnavbar (3rem) */
   height: calc(100vh - 3.5rem - 3rem) !important; /* Adjust height accordingly */
+  border-right: none !important; /* Remove border for cleaner dark mode */
+  background: transparent !important; /* Blend with page background */
 }
 
 /* Hide sidebar toggle button on desktop */
@@ -200,6 +194,42 @@ body.search-open #docs-subnav {
 [data-sidebar="sidebar"] > div {
   padding-left: 0.25rem !important;
   padding-right: 0.25rem !important;
+}
+
+/* Reduce sidebar header spacing */
+#nd-sidebar > div:first-child {
+  padding-bottom: 0.5rem !important;
+}
+
+/* Sidebar navigation - remove top spacing */
+#nd-sidebar nav {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Tighten main content spacing */
+.nd-layout-notebook article {
+  padding-top: 0 !important;
+}
+
+/* Reduce heading top margin */
+.nd-layout-notebook article h1:first-child,
+.nd-layout-notebook article h2:first-child {
+  margin-top: 0.5rem !important;
+}
+
+/* Tighten "On this page" TOC spacing */
+aside[aria-label*="table" i],
+aside[aria-label*="On this page" i],
+.nd-toc {
+  padding-top: 0.5rem !important;
+}
+
+/* Reduce TOC heading spacing */
+aside[aria-label*="table" i] > div:first-child,
+aside[aria-label*="On this page" i] > div:first-child,
+.nd-toc > div:first-child {
+  margin-bottom: 0.5rem !important;
 }
 
 /* Completely remove "On this page" table of contents on mobile */
