@@ -8,6 +8,7 @@ import {
 import { notFound } from "next/navigation";
 import { type ComponentProps, type FC, type ReactElement } from "react";
 import defaultComponents from "fumadocs-ui/mdx";
+import { Heading } from "fumadocs-ui/components/heading";
 import { Popup, PopupContent, PopupTrigger } from "fumadocs-twoslash/ui";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { Step, Steps } from "fumadocs-ui/components/steps";
@@ -74,9 +75,24 @@ export default async function Page(props: {
       <DocsBody className="text-fd-foreground/80">
         <MDX
           components={{
-            ...defaultComponents,
+            ...(() => {
+              const { h1, h2, h3, h4, h5, h6, img, ...restComponents } = defaultComponents;
+              return restComponents;
+            })(),
             ...((await import("lucide-react")) as unknown as MDXComponents),
 
+            h1: (props) => <Heading as="h1" {...props} />,
+            h2: (props) => <Heading as="h2" {...props} />,
+            h3: (props) => <Heading as="h3" {...props} />,
+            h4: (props) => <Heading as="h4" {...props} />,
+            h5: (props) => <Heading as="h5" {...props} />,
+            h6: (props) => <Heading as="h6" {...props} />,
+            // Fix srcset -> srcSet for React 19 compatibility
+            img: (props: any) => {
+              const { srcset, ...imgProps } = props;
+              // eslint-disable-next-line jsx-a11y/alt-text, @next/next/no-img-element
+              return <img {...imgProps} {...(srcset && { srcSet: srcset })} />;
+            },
             Popup,
             PopupContent,
             PopupTrigger,
@@ -101,17 +117,22 @@ export default async function Page(props: {
               const isCChainApi = pagePath.includes('rpcs/c-chain');
               
               let apiInstance;
+              let apiKey;
               if (isPChainApi) {
                 apiInstance = pChainApi;
+                apiKey = 'p-chain-api';
               } else if (isCChainApi) {
                 apiInstance = cChainApi;
+                apiKey = 'c-chain-api';
               } else if (isMetricsApi) {
                 apiInstance = metricsApi;
+                apiKey = 'metrics-api';
               } else {
                 apiInstance = dataApi;
+                apiKey = 'data-api';
               }
               
-              return <APIPage {...apiInstance.getAPIPageProps(props)} />;
+              return <APIPage key={apiKey} {...apiInstance.getAPIPageProps(props)} />;
             },
             blockquote: Callout as unknown as FC<ComponentProps<"blockquote">>,
           }}

@@ -148,10 +148,6 @@ svg.lucide.lucide-folder-open {
   display: none;
 }
 
-nav a:not(:first-child) {
-  display: none;
-}
-
 @keyframes ripple {
   0%,
   100% {
@@ -689,17 +685,91 @@ html body[data-scroll-locked] {
   }
 }
 
-/* Active navigation item highlighting - using same hover effect */
-nav a[data-active="true"],
-nav a[aria-current="page"],
-nav button[data-active="true"],
-nav button[aria-current="page"] {
-  background-color: rgba(0, 0, 0, 0.05) !important;
-  border-radius: 0.375rem !important;
+/* Apply consistent padding to all nav items to prevent layout shift */
+nav a,
+nav button {
   padding-left: 0.75rem !important;
   padding-right: 0.75rem !important;
   padding-top: 0.5rem !important;
   padding-bottom: 0.5rem !important;
+  border-radius: 0.5rem !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Larger padding for type: 'main' items (University, Blog) to match menu hover size */
+nav li > a {
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+  padding-top: 0.875rem !important;
+  padding-bottom: 0.875rem !important;
+}
+
+/* Align user icon button vertically */
+nav button.size-9.rounded-full {
+  margin-top: 0.5rem !important;
+}
+
+/* Left-align sidebar content */
+#nd-sidebar [data-radix-scroll-area-viewport] > div {
+  display: block !important;
+  text-align: left !important;
+}
+
+#nd-sidebar a,
+#nd-sidebar p {
+  text-align: left !important;
+  justify-content: flex-start !important;
+  display: flex !important;
+  align-items: center !important;
+  padding-left: 0.5rem !important;
+}
+
+/* Override the sidebar item offset to align with dropdown */
+#nd-sidebar a {
+  --sidebar-item-offset: 0.5rem !important;
+}
+
+/* Docs subnav hover and active states */
+.docs-subnav-link:hover:not([data-active="true"]):not([aria-current="page"]) {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.dark .docs-subnav-link:hover:not([data-active="true"]):not([aria-current="page"]) {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
+}
+
+.docs-subnav-link[data-active="true"],
+.docs-subnav-link[aria-current="page"] {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.dark .docs-subnav-link[data-active="true"],
+.dark .docs-subnav-link[aria-current="page"] {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Hover state for type: 'main' nav links (University, Blog) - direct <a> children, not wrapped in buttons */
+nav li > a:hover:not([data-active="true"]):not([aria-current="page"]) {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.dark nav li > a:hover:not([data-active="true"]):not([aria-current="page"]) {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Active navigation item highlighting - matches hover size and prominence */
+nav a[data-active="true"],
+nav a[aria-current="page"],
+nav button[data-active="true"],
+nav button[aria-current="page"] {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
   cursor: default !important;
 }
 
@@ -707,16 +777,17 @@ nav button[aria-current="page"] {
 .dark nav a[aria-current="page"],
 .dark nav button[data-active="true"],
 .dark nav button[aria-current="page"] {
-  background-color: rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* Prevent hover effect on active navigation items - override all hover states */
+/* Keep active state on hover - prevent further changes */
 nav a[data-active="true"]:hover,
 nav a[aria-current="page"]:hover,
 nav button[data-active="true"]:hover,
 nav button[aria-current="page"]:hover {
-  background-color: rgba(0, 0, 0, 0.05) !important;
-  opacity: 1 !important;
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
   transform: none !important;
   scale: 1 !important;
 }
@@ -725,8 +796,8 @@ nav button[aria-current="page"]:hover {
 .dark nav a[aria-current="page"]:hover,
 .dark nav button[data-active="true"]:hover,
 .dark nav button[aria-current="page"]:hover {
-  background-color: rgba(255, 255, 255, 0.1) !important;
-  opacity: 1 !important;
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
   transform: none !important;
   scale: 1 !important;
 }

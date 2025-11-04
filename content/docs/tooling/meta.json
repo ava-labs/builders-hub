@@ -19,8 +19,6 @@
     "guides",
     "---Scripts & APIs---",
     "avalanche-js",
-    "[Glacier API](https://developers.avacloud.io/data-api)",
-    "[Metrics API](https://developers.avacloud.io/metrics-api)",
     "---Avalanche Postman Collection---",
     "avalanche-postman/add-postman-collection",
     "avalanche-postman/making-api-calls",

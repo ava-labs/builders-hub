@@ -43,7 +43,7 @@ export function DocsSubNav() {
 
   return (
     <div className="fixed top-14 z-[35] w-full border-b border-border bg-background" id="docs-subnav">
-      <div className="flex h-12 items-center gap-6 overflow-x-auto relative px-4 md:pl-16 md:pr-4 justify-center md:justify-start">
+      <div className="flex h-12 items-center gap-2 overflow-x-auto relative px-4 md:pl-16 md:pr-4 justify-center md:justify-start">
         {tabs.map((tab) => {
           const isActive = tab.pathMatch(pathname);
           
@@ -51,10 +51,12 @@ export function DocsSubNav() {
             <Link
               key={tab.href}
               href={tab.href}
+              data-active={isActive ? 'true' : undefined}
+              aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'text-sm font-medium transition-colors hover:text-foreground/80 whitespace-nowrap pb-2',
+                'text-sm font-medium whitespace-nowrap rounded-md px-3 py-2 transition-all docs-subnav-link',
                 isActive
-                  ? 'text-foreground border-b-2 border-primary'
+                  ? 'text-foreground'
                   : 'text-muted-foreground'
               )}
             >

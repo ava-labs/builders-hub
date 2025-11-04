@@ -5,6 +5,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { Cards, Card } from "fumadocs-ui/components/card";
 import { TypeTable } from "fumadocs-ui/components/type-table";
+import { Heading } from "fumadocs-ui/components/heading";
 import defaultComponents from "fumadocs-ui/mdx";
 import {
   CodeBlock,
@@ -27,17 +28,26 @@ const Mermaid = dynamic(() => import("@/components/content-design/mermaid"), {
 });
 
 export function useMDXComponents(components: MDXComponents): MDXComponents {
+  // Exclude heading and img components from defaultComponents to avoid conflicts
+  const { h1, h2, h3, h4, h5, h6, img, ...restDefaultComponents } = defaultComponents;
+  
   return {
-    ...defaultComponents,
+    ...restDefaultComponents,
+    h1: (props) => <Heading as="h1" {...props} />,
+    h2: (props) => <Heading as="h2" {...props} />,
+    h3: (props) => <Heading as="h3" {...props} />,
+    h4: (props) => <Heading as="h4" {...props} />,
+    h5: (props) => <Heading as="h5" {...props} />,
+    h6: (props) => <Heading as="h6" {...props} />,
     BadgeCheck,
     Popup,
     PopupContent,
     PopupTrigger,
     // Fix srcset -> srcSet for React 19 compatibility
     img: (props: any) => {
-      const { srcset, ...rest } = props;
+      const { srcset, ...imgProps } = props;
       // eslint-disable-next-line jsx-a11y/alt-text, @next/next/no-img-element
-      return <img {...rest} {...(srcset && { srcSet: srcset })} />;
+      return <img {...imgProps} {...(srcset && { srcSet: srcset })} />;
     },
     pre: ({ title, className, icon, allowCopy, ...props }: CodeBlockProps) => (
       <CodeBlock title={title} icon={icon} allowCopy={allowCopy}>
@@ -56,7 +66,8 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       // Determine which API instance to use based on the document URL
       const isMetricsApi = props.document?.includes('popsicle-api.avax.network');
       const apiInstance = isMetricsApi ? metricsApi : dataApi;
-      return <APIPage {...apiInstance.getAPIPageProps(props)} />;
+      const apiKey = isMetricsApi ? 'metrics-api' : 'data-api';
+      return <APIPage key={apiKey} {...apiInstance.getAPIPageProps(props)} />;
     },
     Accordion,
     Accordions,

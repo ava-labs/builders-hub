@@ -3,5 +3,5 @@
   "description": "Exchange Chain RPC methods",
   "icon": "Network",
   "root": true,
-  "pages": ["index", "api", "txn-format"]
+  "pages": ["index", "rpc", "txn-format"]
 }
