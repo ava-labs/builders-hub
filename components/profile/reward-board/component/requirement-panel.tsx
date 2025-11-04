@@ -29,7 +29,7 @@ export function RequirementsPanel({
             </h3>
           </div>
 
-          <div className="px-6 pb-6 h-35 overflow-y-auto">
+          <div className="px-6 pb-6 ">
             <ul className="text-left ">
               {requirements.map((requirement) => (
                 <li

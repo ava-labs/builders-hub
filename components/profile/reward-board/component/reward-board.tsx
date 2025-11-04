@@ -6,6 +6,7 @@ import { getRewardBoard } from "@/server/services/rewardBoard";
 import { Separator } from "@/components/ui/separator";
 import { Badge, UserBadge } from "@/types/badge";
 import { getAllBadges } from "@/server/services/badge";
+import Link from "next/link";
 
 export default async function RewardBoard() {
   const session = await getAuthSession();
@@ -13,10 +14,10 @@ export default async function RewardBoard() {
   if (!user_id) {
     return <div>Loading...</div>;
   }
-  const userBadges:UserBadge[] = await getRewardBoard(user_id);
+  const userBadges: UserBadge[] = await getRewardBoard(user_id);
   const badges = await getAllBadges();
   const academyBadges = badges.filter((badge) => badge.category == "academy");
-  const hackathonBadges:Badge[] = badges.filter((badge) => badge.category == "hackathon");
+  const hackathonBadges: Badge[] = badges.filter((badge) => badge.category == "hackathon");
   const totalPoints = userBadges.reduce((acc, userBadge) => acc + userBadge.points, 0);
   const hackathonBadgesUnlocked = hackathonBadges.map((badge) => {
     const userBadge = userBadges.find((userBadge) => userBadge.badge_id == badge.id);
@@ -25,8 +26,8 @@ export default async function RewardBoard() {
       is_unlocked: !!userBadge,
       requirements: userBadge?.requirements || badge.requirements,
     };
-  }).sort(element=>element.is_unlocked ? -1 : 1);
-  
+  });
+
   const academyBadgesUnlocked = academyBadges.map((badge) => {
     const userBadge = userBadges.find((userBadge) => userBadge.badge_id == badge.id);
     return {
@@ -34,7 +35,7 @@ export default async function RewardBoard() {
       is_unlocked: !!userBadge,
       requirements: userBadge?.requirements || badge.requirements,
     };
-  }).sort(element=>element.is_unlocked ? -1 : 1);
+  }).sort(element => element.is_unlocked ? -1 : 1);
   const rewards = hackathonBadgesUnlocked.map((reward) => (
     <RewardCard
       key={reward.name}
@@ -50,7 +51,7 @@ export default async function RewardBoard() {
     />
   ));
   const academyRewards = academyBadgesUnlocked.map((reward) => (
-    
+
     <RewardCard
       key={reward.name}
       icon={reward.image_path}
@@ -61,14 +62,14 @@ export default async function RewardBoard() {
       requirements={reward.requirements}
       id={reward.id}
       is_unlocked={reward.is_unlocked}
-  
+
     />
   ));
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
       <div>
-  
+
 
         <div className="flex flex-col gap-4 sm:gap-6 mb-2 sm:mb-4">
           <div className="flex justify-between items-center">
@@ -86,7 +87,8 @@ export default async function RewardBoard() {
         {rewards.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-gray-500 dark:text-gray-400 text-lg">
-              No rewards available yet. Keep contributing to earn rewards!
+
+              <Link href="/hackathons" className="text-blue-500 hover:text-blue-700">   Your contributions matter. Explore our dev events here </Link>
             </div>
           </div>
         ) : (
@@ -105,7 +107,7 @@ export default async function RewardBoard() {
       {academyRewards.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-gray-500 dark:text-gray-400 text-lg">
-          Your contributions matter. Keep going to start earning rewards!
+            <Link href="/hackathons" className="text-blue-500 hover:text-blue-700">   Your contributions matter. Explore our dev events here </Link>
           </div>
         </div>
       ) : (
