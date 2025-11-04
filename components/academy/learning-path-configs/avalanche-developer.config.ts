@@ -43,7 +43,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         category: "Privacy",
         dependencies: ["intro-to-solidity"],
         position: { x: 20, y: 350 },
-        mobileOrder: 9
+        mobileOrder: 11
     },
 
     // Fourth Layer - Branching paths
@@ -55,7 +55,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         category: "Interoperability",
         dependencies: ["avalanche-fundamentals"],
         position: { x: 65, y: 550 },
-        mobileOrder: 3
+        mobileOrder: 4
     },
     {
         id: "permissioned-l1s",
@@ -75,7 +75,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         category: "L1 Tokenomics",
         dependencies: ["avalanche-fundamentals"],
         position: { x: 35, y: 550 },
-        mobileOrder: 6
+        mobileOrder: 8
     },
     {
         id: "customizing-evm",
@@ -85,7 +85,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         category: "VM Customization",
         dependencies: ["avalanche-fundamentals"],
         position: { x: 95, y: 550 },
-        mobileOrder: 8
+        mobileOrder: 10
     },
 
     // Fifth Layer - Advanced topics (adjusted for no overlap)
@@ -97,7 +97,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         category: "Interoperability",
         dependencies: ["interchain-messaging"],
         position: { x: 50, y: 750 },
-        mobileOrder: 4
+        mobileOrder: 5
     },
     {
         id: "icm-chainlink",
@@ -107,7 +107,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         category: "Interoperability",
         dependencies: ["interchain-messaging"],
         position: { x: 80, y: 750 },
-        mobileOrder: 5
+        mobileOrder: 6
     },
     {
         id: "permissionless-l1s",
@@ -117,7 +117,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         category: "L1 Development",
         dependencies: ["permissioned-l1s", "l1-native-tokenomics"],
         position: { x: 20, y: 750 },
-        mobileOrder: 7
+        mobileOrder: 9
     },
 ];
 
