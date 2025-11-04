@@ -13,7 +13,7 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
-import { SubmissionForm } from "../hooks/useSubmissionForm";
+import { SubmissionForm } from "../hooks/useSubmissionFormSecure";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
 
 interface MultiLinkInputProps {
