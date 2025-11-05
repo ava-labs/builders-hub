@@ -11,8 +11,6 @@
     "info-rpc",
     "metrics-rpc",
     "proposervm-rpc",
-    "keystore-api",
-    "subnet-evm-rpc",
     "standards",
     "guides"
   ]

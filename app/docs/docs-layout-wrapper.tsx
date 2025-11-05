@@ -4,7 +4,6 @@ import { DocsLayout, type DocsLayoutProps } from 'fumadocs-ui/layouts/notebook';
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
-import { RootToggle } from 'fumadocs-ui/components/layout/root-toggle';
 import { DocsSubNav } from '@/components/navigation/docs-subnav';
 import { DocsNavbarToggle } from '@/components/navigation/docs-navbar-toggle';
 import { ForceMobileSidebar } from '@/components/navigation/force-mobile-sidebar';
@@ -172,22 +171,28 @@ export function DocsLayoutWrapper({
   // RPCs hamburger menu options
   const rpcsOptions = [
     {
-      title: 'C-Chain',
+      title: 'C-Chain RPC',
       description: 'Contract Chain RPC methods',
       icon: <Code className="w-5 h-5" />,
       url: '/docs/rpcs/c-chain',
     },
     {
-      title: 'P-Chain',
+      title: 'P-Chain RPC',
       description: 'Platform Chain RPC methods',
       icon: <Server className="w-5 h-5" />,
       url: '/docs/rpcs/p-chain',
     },
     {
-      title: 'X-Chain',
+      title: 'X-Chain RPC',
       description: 'Exchange Chain RPC methods',
       icon: <Network className="w-5 h-5" />,
       url: '/docs/rpcs/x-chain',
+    },
+    {
+      title: 'Subnet-EVM RPC',
+      description: 'Subnet-EVM RPC methods',
+      icon: <Network className="w-5 h-5" />,
+      url: '/docs/rpcs/subnet-evm',
     },
     {
       title: 'Other RPCs',

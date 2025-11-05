@@ -1,7 +1,7 @@
 {
   "title": "X-Chain",
   "description": "Exchange Chain RPC methods",
-  "icon": "Network",
+  "icon": "CircleDollarSign",
   "root": true,
   "pages": ["index", "rpc", "txn-format"]
 }
