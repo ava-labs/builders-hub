@@ -38,7 +38,6 @@ export default function Layout({ children }: { children: ReactNode }) {
     >
       <PHProvider>
         <body className="flex min-h-screen flex-col">
-          <GraniteBanner />
           <Body>
             <SearchRootProvider>{children}</SearchRootProvider>
             <Chatbot />
