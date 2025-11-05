@@ -6,7 +6,7 @@ import { cn } from '@/lib/cn';
 
 const tabs = [
   {
-    label: 'Documentation',
+    label: 'Overview',
     href: '/docs/quick-start',
     pathMatch: (path: string) => 
       path === '/docs/quick-start' ||

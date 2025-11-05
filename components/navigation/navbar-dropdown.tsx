@@ -47,7 +47,7 @@ export function NavbarDropdown() {
       ],
     },
     {
-      title: 'Build',
+      title: 'Documentation',
       href: '/docs/quick-start',
       items: [
         { text: 'Avalanche Protocol', href: '/docs/quick-start' },
