@@ -29,7 +29,7 @@ repository. Simply:
 
 To propose new docs or large edits to our existing pages, follow the steps accordingly:
 
-- **Ava Labs Github Organization Members:** Clone the repo
+- **Ava Labs GitHub Organization Members:** Clone the repo
   `git clone https://github.com/ava-labs/builders-hub.git`
 - **External Contributors:** Fork the repo via GitHub's GUI
 - Checkout to a new branch `git checkout -b <your-name/branch-name>`
