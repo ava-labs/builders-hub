@@ -9,7 +9,11 @@ comments: true
 
 ## Introducing Avalanche Granite
 
-A [pre-release](https://github.com/ava-labs/avalanchego/releases/tag/v1.14.0-fuji) for the latest upgrade to the Avalanche Network, dubbed "Avalanche Granite", has been published. The upgrade is scheduled to activate on the **Fuji Testnet at 11 AM ET (3 PM UTC) on Wednesday, October 29th, 2025**. Following successful activation and testing on the Avalanche Fuji Testnet, an Avalanche Mainnet release will be published, with a set future activation time.
+The Mainnet [release](https://github.com/ava-labs/avalanchego/releases/tag/v1.14.0) for the latest upgrade to the Avalanche Network, dubbed "Avalanche Granite", has been published. The Mainnet activation is scheduled for **November 19th, 2025 at 11 AM ET (3 PM UTC)**.
+
+**_Action Required_: All Mainnet node operators must upgrade their nodes to v1.14 before the scheduled activation time or risk operational failure.** For instructions on upgrading your node, see [this guide](https://build.avax.network/blog/granite-installer).
+
+The [pre-release](https://github.com/ava-labs/avalanchego/releases/tag/v1.14.0-fuji) was published on October 21st, 2025 and successfully activated on the Fuji Testnet at 11 AM ET (3 PM UTC) on Wednesday, October 29th, 2025.
 
 The Granite upgrade is driven by three Avalanche Community Proposals that significantly enhance the network's capabilities:
 
@@ -23,15 +27,16 @@ The Granite upgrade is driven by three Avalanche Community Proposals that signif
 
 ### Mainnet Node Operators
 
-**Action Required**: All Mainnet node operators must upgrade their nodes to **v1.14** before the activation time.
+**Action Required**: All Mainnet node operators must upgrade their nodes to **v1.14** before **11 AM ET (3 PM UTC) on November 19th, 2025**.
 
-The Avalanche Granite Upgrade includes protocol optimizations that are not compatible with AvalancheGo versions < v1.14. If you run a node on Mainnet, you must upgrade your software to AvalancheGo >= v1.14 before the scheduled activation time. The plugin version is updated to 44. All plugins must update to be compatible. Ensure your node is running with the correct plugin version as specified in the [release notes](https://github.com/ava-labs/avalanchego/releases).
+The Avalanche Granite Upgrade includes protocol optimizations that are not compatible with AvalancheGo versions < v1.14. If you run a node on Mainnet, you must upgrade your software to AvalancheGo >= v1.14 before the activation time. The plugin version is updated to 44. All plugins must update to be compatible. Ensure your node is running with the correct plugin version as specified in the [release notes](https://github.com/ava-labs/avalanchego/releases).
 
-**Important**: Failure to upgrade before the scheduled activation time will result in your node being unable to participate in consensus.
+
+**Critical Warning**: All Mainnet nodes must upgrade before **11 AM ET, November 19, 2025**, or risk going offline once Granite activates. This warning applies to L1 validators who risk finalizing invalid blocks past the Granite activation time without epoch information if they fail to upgrade in time.
 
 ### Fuji Testnet Node Operators
 
-Fuji node operators must upgrade their nodes to **[v1.14-fuji](https://github.com/ava-labs/avalanchego/releases/tag/v1.14.0-fuji)** prior to **11 AM ET (3 PM UTC) on Wednesday, October 29th, 2025**. The pre-release includes protocol optimizations that are not compatible with AvalancheGo versions < v1.14-fuji. The plugin version is updated to 44. All plugins must update to be compatible.
+The Granite upgrade successfully activated on the Fuji Testnet at **11 AM ET (3 PM UTC) on Wednesday, October 29th, 2025**. Fuji node operators have upgraded their nodes to **[v1.14-fuji](https://github.com/ava-labs/avalanchego/releases/tag/v1.14.0-fuji)**, which includes protocol optimizations that are not compatible with AvalancheGo versions < v1.14-fuji. The plugin version is updated to 44.
 
 **Please note**: This Fuji pre-release is unable to run on mainnet and will display "mainnet is not supported" if attempted with a mainnet configuration.
 
