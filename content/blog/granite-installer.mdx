@@ -74,9 +74,11 @@ The script will automatically detect your existing installation and switch to up
 AvalancheGo installer
 ---------------------
 Preparing environment...
-Found 64bit Intel/AMD architecture...
-Found AvalancheGo systemd service already installed, switching to upgrade mode.
-Stopping service...
+Found amd64 architecture...
+Looking for amd64 version latest...
+Node version found.
+Attempting to download: 
+   https://github.com/ava-labs/avalanchego/releases/download/v1.14.0/avalanchego-linux-amd64-v1.14.0.tar.gz
 ```
 
 </Step>
@@ -212,21 +214,7 @@ curl -X POST --data '{
 You should see a response similar to:
 
 ```json
-{
-  "jsonrpc": "2.0",
-  "result": {
-    "version": "avalanche/1.14.0",
-    "databaseVersion": "v1.4.5",
-    "rpcProtocolVersion": "18",
-    "gitCommit": "...",
-    "vmVersions": {
-      "avm": "v1.14.0",
-      "evm": "v0.14.0",
-      "platform": "v1.14.0"
-    }
-  },
-  "id": 1
-}
+{"jsonrpc":"2.0","result":{"version":"avalanchego/1.14.0","databaseVersion":"v1.4.5","rpcProtocolVersion":"44","gitCommit":"dce38e90b1542fafa3c2b8efa8ef864d7a370eb6","vmVersions":{"avm":"v1.14.0","evm":"v0.15.4","platform":"v1.14.0"}},"id":1}
 ```
 
 The `version` field should show `avalanche/1.14.0` confirming your node is running Granite.
