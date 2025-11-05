@@ -33,7 +33,7 @@ export type UserBadge = {
     awarded_by: string | null
     name: string
     description: string
-    points: number
+    // points: number // COMMENTED OUT: Points feature disabled
     image_path: string
     category: string
     requirements: Requirement[] | null

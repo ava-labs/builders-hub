@@ -94,7 +94,9 @@ export const BadgeNotification = ({
                   {badges[0]?.name}
                 </h3>
                 <p className="text-base dark:text-zinc-400 text-gray-500 text-center mt-1">
-                  {badges[0]?.completed_requirement.description} : <span className="font-bold">{badges[0]?.completed_requirement.points} points</span>
+                  {badges[0]?.completed_requirement.description}
+                  {/* COMMENTED OUT: Points feature disabled */}
+                  {/* : <span className="font-bold">{badges[0]?.completed_requirement.points} points</span> */}
                 </p>
               </div>
             ) : Array.isArray(badges) && badges.length > 1 ? (
@@ -116,7 +118,9 @@ export const BadgeNotification = ({
                         {badge.name}
                       </p>
                       <p className="text-base dark:text-zinc-400 text-gray-500 text-center mt-1">
-                        {badge.completed_requirement.description} : <span className="font-bold">{badge.completed_requirement.points} points</span>
+                        {badge.completed_requirement.description}
+                        {/* COMMENTED OUT: Points feature disabled */}
+                        {/* : <span className="font-bold">{badge.completed_requirement.points} points</span> */}
                       </p>
                     </div>
                   ))}

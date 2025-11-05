@@ -17,7 +17,8 @@ export default async function RewardBoard() {
   const badges = await getAllBadges();
   const academyBadges = badges.filter((badge) => badge.category == "academy");
   const hackathonBadges:Badge[] = badges.filter((badge) => badge.category == "hackathon");
-  const totalPoints = userBadges.reduce((acc, userBadge) => acc + userBadge.points, 0);
+  // COMMENTED OUT: Points feature disabled
+  // const totalPoints = userBadges.reduce((acc, userBadge) => acc + userBadge.points, 0);
   const hackathonBadgesUnlocked = hackathonBadges.map((badge) => {
     const userBadge = userBadges.find((userBadge) => userBadge.badge_id == badge.id);
     return {
@@ -75,11 +76,12 @@ export default async function RewardBoard() {
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
               Hackathon Badges
             </h1>
-            <div className="px-4 py-2 border rounded border-red-500 ">
+            {/* COMMENTED OUT: Points feature disabled */}
+            {/* <div className="px-4 py-2 border rounded border-red-500 ">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
                 Total Points: {totalPoints}
               </h2>
-            </div>
+            </div> */}
           </div>
         </div>
         <Separator className="mb-6 mt-6 bg-zinc-700 " />

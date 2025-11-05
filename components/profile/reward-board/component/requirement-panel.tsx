@@ -14,10 +14,11 @@ export function RequirementsPanel({
 }: {
   requirements?: Requirement[];
 }) {
-  const total = requirements.reduce(
-    (acc, r) => acc + Number(r.points ?? 0),
-    0
-  );
+  // COMMENTED OUT: Points feature disabled
+  // const total = requirements.reduce(
+  //   (acc, r) => acc + Number(r.points ?? 0),
+  //   0
+  // );
 
   return (
     <div >
@@ -46,19 +47,22 @@ export function RequirementsPanel({
                       <Check className="w-10 h-10 text-green-500 mr-2" />
                     )}
                     <span>
-                      {requirement.description}:{" "}
+                      {requirement.description}
+                      {/* COMMENTED OUT: Points feature disabled */}
+                      {/* :{" "}
                       <span className="font-bold">
                         {Number(requirement.points ?? 0)} points
-                      </span>
+                      </span> */}
                     </span>
                   </span>
                 </li>
               ))}
             </ul>
 
-            <Separator className="bg-zinc-700 my-2" />
+            {/* COMMENTED OUT: Points feature disabled */}
+            {/* <Separator className="bg-zinc-700 my-2" />
 
-            <span className="font-bold">{total} points</span>
+            <span className="font-bold">{total} points</span> */}
           </div>
         </CardContent>
       </Card>

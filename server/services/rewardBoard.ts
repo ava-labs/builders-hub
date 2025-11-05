@@ -9,7 +9,7 @@ export function parseBadgeMetadata(metadata: JsonValue): Requirement | null {
     course_id: metadataObject.course_id || undefined,
     hackathon: metadataObject.hackathon || null,
     type: metadataObject.type || undefined,
-    points: metadataObject.points || undefined,
+    // points: metadataObject.points || undefined, // COMMENTED OUT: Points feature disabled
     description: metadataObject.description || undefined,
     id: metadataObject.id || "",
     unlocked: metadataObject.unlocked || false,
@@ -48,7 +48,7 @@ let badges=userBadges.map((userBadge) => {
     awarded_by: userBadge.awarded_by,
     name: userBadge.badge.name,
     description: userBadge.badge.description,
-    points: 0, 
+    // points: 0, // COMMENTED OUT: Points feature disabled - keeping field for compatibility
     image_path: userBadge.badge.image_path,
     category: userBadge.badge.category,
     evidence: userBadge.evidence,
@@ -57,21 +57,22 @@ let badges=userBadges.map((userBadge) => {
 });
 
 
-badges.forEach((badge) => {
-  if (Array.isArray(badge.evidence)) {
-    badge.points = badge.evidence.reduce(
-      (acc: number, requirement: any) => {
-        if (requirement && typeof requirement.points !== "undefined" && requirement.points !== null) {
-          return acc + parseInt(requirement.points.toString(), 10);
-        }
-        return acc;
-      },
-      0
-    );
-  } else {
-    badge.points = 0;
-  }
-});
+// COMMENTED OUT: Points calculation disabled
+// badges.forEach((badge) => {
+//   if (Array.isArray(badge.evidence)) {
+//     badge.points = badge.evidence.reduce(
+//       (acc: number, requirement: any) => {
+//         if (requirement && typeof requirement.points !== "undefined" && requirement.points !== null) {
+//           return acc + parseInt(requirement.points.toString(), 10);
+//         }
+//         return acc;
+//       },
+//       0
+//     );
+//   } else {
+//     badge.points = 0;
+//   }
+// });
 
   // Map the result to the UserBadge type, flattening the badge fields
   return badges as unknown as UserBadge[];
