@@ -47,27 +47,6 @@ const config = {
       },
     ],
   },
-  async rewrites() {
-    return [
-      // COMMENTED OUT: Now using native fumadocs OpenAPI implementation
-      // {
-      //   source: '/mintlify-assets/:path*',
-      //   destination: 'https://developers.avacloud.io/mintlify-assets/:path*',
-      // },
-      // {
-      //   source: '/_mintlify/:path*',
-      //   destination: 'https://developers.avacloud.io/_mintlify/:path*',
-      // },
-      // {
-      //   source: '/docs/api-reference',
-      //   destination: 'https://developers.avacloud.io',
-      // },
-      // {
-      //   source: '/docs/api-reference/:path*',
-      //   destination: 'https://developers.avacloud.io/:path*',
-      // },
-    ];
-  },
   async redirects() {
     return [
       {

@@ -5,15 +5,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
-
-  // Proxy Mintlify-powered API Reference through our domain in production
-  // COMMENTED OUT: Now using native fumadocs OpenAPI implementation
-  // if (pathname === '/docs/api-reference' || pathname.startsWith('/docs/api-reference/')) {
-  //   const suffix = pathname === '/docs/api-reference' ? '' : pathname.replace('/docs/api-reference', '');
-  //   const target = new URL(`https://developers.avacloud.io${suffix}${req.nextUrl.search}`);
-  //   return NextResponse.rewrite(target);
-  // }
-
   const response = NextResponse.next();
   response.headers.set("Access-Control-Allow-Origin", "*");
   response.headers.set(
@@ -90,8 +81,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    // "/docs/api-reference", // COMMENTED OUT: Now using native fumadocs
-    // "/docs/api-reference/:path*", // COMMENTED OUT: Now using native fumadocs
     "/hackathons/registration-form/:path*",
     "/hackathons/project-submission/:path*",
     "/hackathons/edit/:path*",
