@@ -5,6 +5,7 @@
   "root": true,
   "pages": [
     "index",
+    "getting-started",
     "usage",
     "data-vs-rpc",
     "rate-limits",
