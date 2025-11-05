@@ -63,15 +63,27 @@ nav[role="tablist"],
 body[data-layout="docs"] .nd-layout-notebook {
   padding-top: 3rem !important; /* Just subnavbar height on desktop */
 }
+/* When banner exists, add extra padding */
+body:has([data-granite-banner])[data-layout="docs"] .nd-layout-notebook {
+  padding-top: 6.5rem !important; /* Banner (3rem) + subnavbar (3rem) + some spacing on desktop */
+}
 
 /* On mobile, add padding for both navbar and subnavbar */
 @media (max-width: 1023px) {
   body[data-layout="docs"] .nd-layout-notebook {
-    padding-top: 6.5rem !important; /* default when no toc overview */
+    padding-top: 6.5rem !important; /* navbar (3.5rem) + subnavbar (3rem) */
+  }
+  /* When banner exists, add extra padding */
+  body:has([data-granite-banner])[data-layout="docs"] .nd-layout-notebook {
+    padding-top: 9.5rem !important; /* banner (3rem) + navbar (3.5rem) + subnavbar (3rem) */
   }
   /* If the toc overview exists, add its height as well so content clears it */
   body[data-layout="docs"] .nd-layout-notebook:has(#nd-tocnav) {
     padding-top: 9.5rem !important; /* navbar (3.5rem) + subnavbar (3rem) + tocnav (~3rem) */
+  }
+  /* When banner exists and toc nav exists */
+  body:has([data-granite-banner])[data-layout="docs"] .nd-layout-notebook:has(#nd-tocnav) {
+    padding-top: 12.5rem !important; /* banner (3rem) + navbar (3.5rem) + subnavbar (3rem) + tocnav (~3rem) */
   }
 }
 
@@ -150,9 +162,13 @@ header + * {
   /* Make subnavbar sticky on mobile */
   #docs-subnav {
     position: fixed !important;
-    top: 3.5rem !important; /* Below main navbar */
+    top: 3.5rem !important; /* Below main navbar (3.5rem) */
     z-index: 30 !important; /* Above content but below main navbar dropdown (z-50) */
     width: 100vw !important;
+  }
+  /* When banner exists, adjust subnavbar position */
+  body:has([data-granite-banner]) #docs-subnav {
+    top: 6.5rem !important; /* Below banner (3rem) + main navbar (3.5rem) */
   }
 
   /* Ensure the content overview (toc nav) is visible under the subnavbar on mobile */
@@ -167,6 +183,10 @@ header + * {
     margin: 0 !important;
     padding-left: 1rem !important;
     padding-right: 1rem !important;
+  }
+  /* When banner exists, adjust toc nav position */
+  body:has([data-granite-banner])[data-layout="docs"] #nd-tocnav {
+    top: 9.5rem !important;      /* banner (3rem) + navbar (3.5rem) + subnavbar (3rem) */
   }
   
   /* Center subnavbar content on mobile */
@@ -183,6 +203,13 @@ header + * {
   body[data-layout="docs"] article [data-sticky] {
     top: 6.5rem !important; /* Below navbar (3.5rem) + subnavbar (3rem) */
     z-index: 20 !important; /* Below subnavbar (z-30) */
+  }
+  /* When banner exists, adjust sticky elements */
+  body:has([data-granite-banner])[data-layout="docs"] .nd-layout-notebook [class*="sticky"],
+  body:has([data-granite-banner])[data-layout="docs"] .nd-layout-notebook [data-sticky],
+  body:has([data-granite-banner])[data-layout="docs"] article [class*="sticky"],
+  body:has([data-granite-banner])[data-layout="docs"] article [data-sticky] {
+    top: 9.5rem !important; /* Below banner (3rem) + navbar (3.5rem) + subnavbar (3rem) */
   }
   
   /* Hide the original fumadocs sidebar toggle button on mobile since we're using our own */
@@ -276,9 +303,17 @@ header + * {
     top: calc(3.5rem + 3rem) !important; /* navbar (3.5rem) + subnavbar (3rem) */
     z-index: 20 !important; /* Below subnavbar (z-30), above article */
   }
+  /* When banner exists, adjust toc nav position */
+  body:has([data-granite-banner])[data-layout="docs"] #nd-tocnav {
+    top: calc(3rem + 3.5rem + 3rem) !important; /* banner (3rem) + navbar (3.5rem) + subnavbar (3rem) */
+  }
   
   #docs-subnav {
     z-index: 30 !important; /* Above sidebar (z-20), below navbar dropdown (z-50) */
+  }
+  /* When banner exists, adjust desktop subnavbar position */
+  body:has([data-granite-banner]) #docs-subnav {
+    top: 6.5rem !important; /* Below banner (3rem) + navbar (3.5rem) */
   }
   
   /* Center content while maintaining sidebar and TOC spacing */
@@ -330,13 +365,19 @@ body[data-layout="docs"] [data-sidebar="sidebar"] {
   padding-left: 0.5rem !important;
   padding-right: 1.5rem !important; /* Extra right padding to prevent content overlay on resize */
   z-index: 20 !important; /* Below subnavbar (z-40) */
-  top: calc(3.5rem + 3rem) !important; /* Main navbar (3.5rem) + subnavbar (3rem) */
+  top: calc(3.5rem + 3rem) !important; /* main navbar (3.5rem) + subnavbar (3rem) */
   height: calc(100vh - 3.5rem - 3rem) !important; /* Adjust height accordingly */
   border-right: none !important; /* Remove border for cleaner dark mode */
   background: transparent !important; /* Blend with page background */
   /* Force sidebar to left edge with small padding - override fumadocs dynamic width calculation */
   left: 3rem !important;
   width: var(--fd-sidebar-width) !important; /* Remove extra spacing and layout offset */
+}
+/* When banner exists, adjust sidebar position */
+body:has([data-granite-banner])[data-layout="docs"] #nd-sidebar,
+body:has([data-granite-banner])[data-layout="docs"] [data-sidebar="sidebar"] {
+  top: calc(3rem + 3.5rem + 3rem) !important; /* Banner (3rem) + main navbar (3.5rem) + subnavbar (3rem) */
+  height: calc(100vh - 3rem - 3.5rem - 3rem) !important; /* Adjust height accordingly */
 }
 
 /* Hide sidebar toggle button on desktop */

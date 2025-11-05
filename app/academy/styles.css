@@ -52,6 +52,12 @@ body[data-layout="academy"] [data-sidebar="sidebar"] {
   background: transparent !important;
   border-right: none !important;
 }
+/* When banner exists, adjust academy sidebar position */
+body:has([data-granite-banner])[data-layout="academy"] #nd-sidebar,
+body:has([data-granite-banner])[data-layout="academy"] [data-sidebar="sidebar"] {
+  top: calc(3rem + 3.5rem) !important; /* Banner (3rem) + navbar (3.5rem) */
+  height: calc(100vh - 3rem - 3.5rem) !important; /* Full height minus banner and navbar */
+}
 
 /* Remove padding-top from sidebar first child - prevents spacing issues on refresh */
 /* This ensures no extra spacing appears when elements hydrate */
