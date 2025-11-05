@@ -41,6 +41,7 @@ body:has([data-granite-banner]) {
 
 /* Ensure all dropdown menus appear above the banner */
 [data-radix-popover-content],
+[data-radix-popover-content][data-state="open"],
 [data-radix-dropdown-menu-content],
 [data-radix-navigation-menu-content],
 [data-navbar-dropdown] > div[class*="absolute"],
@@ -48,7 +49,38 @@ body:has([data-granite-banner]) {
 nav[aria-label="Main"] [data-radix-popover-content],
 header[aria-label="Main"] [data-radix-popover-content] {
   z-index: 100 !important;
+  pointer-events: auto !important; /* Ensure all dropdowns are clickable */
 }
+
+/* CRITICAL: When banner exists, PopoverContent wrapper must be above everything */
+body:has([data-granite-banner]) [data-radix-popper-content-wrapper] {
+  z-index: 10000 !important;
+}
+
+body:has([data-granite-banner]) [data-radix-popover-content][data-state="open"],
+body:has([data-granite-banner]) [data-slot="popover-content"][data-state="open"] {
+  z-index: 10000 !important;
+  position: fixed !important;
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure banner doesn't block PopoverContent clicks - ALL BREAKPOINTS */
+body:has([data-radix-popover-content][data-state="open"]) [data-granite-banner] {
+  pointer-events: none !important; /* Allow clicks through banner to PopoverContent */
+}
+
+/* Ensure PopoverTrigger is clickable when banner exists */
+body:has([data-granite-banner]) [data-radix-popover-trigger],
+body:has([data-granite-banner]) button:has([data-radix-popover-trigger]),
+body:has([data-granite-banner]) [role="button"]:has([data-radix-popover-trigger]) {
+  pointer-events: auto !important;
+  z-index: 100 !important; /* Above banner (z-40) */
+  position: relative !important;
+}
+
 
 /* Position navbar below banner (banner is 3rem tall) - only when banner exists */
 body:has([data-granite-banner]) nav[aria-label="Main"],
@@ -246,10 +278,6 @@ svg.lucide.lucide-folder-open {
   background-color: rgba(232, 65, 66, 0.2) !important;
 }
 
-.hover\:bg-avax-red\/10:hover {
-  background-color: rgba(232, 65, 66, 0.1) !important;
-}
-
 .border-avax-green {
   --tw-border-opacity: 1;
   border-color: #0b7f54;
@@ -400,12 +428,6 @@ html body[data-scroll-locked] {
 
 html {
   scroll-behavior: smooth;
-}
-
-/* This is a workaround for this issue: https://github.com/shadcn-ui/ui/issues/4227 */
-html body[data-scroll-locked] {
-  overflow: visible !important;
-  margin-right: 0 !important;
 }
 
 :root {
@@ -816,6 +838,13 @@ nav button[aria-current="page"]:hover {
     visibility: hidden !important;
     pointer-events: none !important;
     opacity: 0 !important;
+    z-index: -1 !important; /* Ensure it's completely out of the way */
+  }
+  
+  /* CRITICAL: Ensure desktop sidebar children don't block anything when hidden */
+  #nd-sidebar:not(#nd-sidebar-mobile) *,
+  aside[id="nd-sidebar"]:not([id="nd-sidebar-mobile"]) * {
+    pointer-events: none !important;
   }
   
   /* Force mobile sidebar to be in the DOM and toggleable - override fumadocs */
@@ -825,7 +854,15 @@ nav button[aria-current="page"]:hover {
   aside[id="nd-sidebar-mobile"] {
     /* Mobile sidebar should be able to appear */
     position: fixed !important;
-    z-index: 50 !important;
+    z-index: 60 !important; /* Above navbar (z-55) so sidebar overlays properly */
+  }
+  
+  /* Add padding-top to SidebarHeader in mobile sidebar on docs to account for navbar */
+  /* This ensures content doesn't get hidden behind navbar while sidebar overlays full screen */
+  body[data-layout="docs"] #nd-sidebar-mobile > div:first-child,
+  body[data-layout="docs"] [data-sidebar="sidebar"][data-mobile="true"] > div:first-child {
+    padding-top: 1rem !important; /* Reduced to match academy closer */
+    margin-top: 0 !important; /* Remove any margin that might add extra spacing */
   }
   
   /* When closed, hide it off-screen */
@@ -859,12 +896,22 @@ nav button[aria-current="page"]:hover {
     /* Important: This z-index must be lower than sidebar's z-50 */
   }
   
-  /* Ensure mobile sidebar is above the backdrop - override fumadocs z-40 */
-  /* The sidebar already has z-index: 50 from line 914, but ensure it applies when open */
+  /* CRITICAL: Backdrop must be below PopoverContent when it's open */
+  body:has([data-radix-popover-content][data-state="open"]) div.fixed.inset-0.backdrop-blur-xs[data-state="open"]:not(#nd-sidebar-mobile):not(aside):not([id]) {
+    z-index: 44 !important; /* Below PopoverContent (z-10000) */
+  }
+  
+  /* CRITICAL: Prevent backdrop from blocking PopoverContent - backdrop must NOT block PopoverContent */
+  body:has([data-radix-popover-content][data-state="open"]) div.fixed.inset-0.backdrop-blur-xs[data-state="open"]:not(#nd-sidebar-mobile):not(aside):not([id]),
+  body:has([data-radix-popover-content][data-state="open"]) div.fixed.z-40.inset-0[data-state="open"]:not(#nd-sidebar-mobile):not(aside):not([id]) {
+    pointer-events: none !important; /* CRITICAL: Allow clicks through to PopoverContent when it's open */
+    z-index: 44 !important; /* Below PopoverContent (z-9999) */
+  }
+  
+  /* Ensure mobile sidebar is above the backdrop and navbar */
   #nd-sidebar-mobile[data-state="open"],
   aside#nd-sidebar-mobile[data-state="open"] {
-    z-index: 50 !important;
-    /* Ensure sidebar and all its contents are clickable */
+    z-index: 60 !important; /* Above navbar (z-55) so sidebar overlays properly */
     pointer-events: auto !important;
     position: fixed !important;
   }
@@ -872,6 +919,21 @@ nav button[aria-current="page"]:hover {
   /* Ensure sidebar children are also clickable and properly layered */
   #nd-sidebar-mobile[data-state="open"] *,
   aside#nd-sidebar-mobile[data-state="open"] * {
+    pointer-events: auto !important;
+  }
+  
+  /* CRITICAL: PopoverContent wrapper must be above sidebar backdrop when open */
+  [data-radix-popper-content-wrapper] {
+    z-index: 10000 !important;
+  }
+  
+  [data-radix-popover-content][data-state="open"],
+  [data-slot="popover-content"][data-state="open"] {
+    z-index: 10000 !important;
+    position: fixed !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
     pointer-events: auto !important;
   }
   
@@ -929,6 +991,7 @@ nav button[aria-current="page"]:hover {
     visibility: hidden !important;
     pointer-events: none !important;
   }
+  
 }
 
 /* Ensure proper spacing for navbar container */

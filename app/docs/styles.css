@@ -380,6 +380,7 @@ body:has([data-granite-banner])[data-layout="docs"] [data-sidebar="sidebar"] {
   height: calc(100vh - 3rem - 3.5rem - 3rem) !important; /* Adjust height accordingly */
 }
 
+
 /* Hide sidebar toggle button on desktop */
 @media (min-width: 1024px) {
   .nd-layout-notebook > button[data-sidebar],
