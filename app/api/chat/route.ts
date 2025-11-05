@@ -25,9 +25,20 @@ async function getDocumentation(): Promise<string> {
   }
   
   try {
-    const response = await fetch(
-      new URL('/llms-full.txt', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000')
-    );
+    // Build the URL more reliably for both local and production
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
+                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
+                   'http://localhost:3000';
+    
+    const url = new URL('/llms-full.txt', baseUrl);
+    console.log(`Fetching documentation from: ${url.toString()}`);
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch documentation: ${response.status} ${response.statusText}`);
+    }
+    
     docsCache = await response.text();
     cacheTimestamp = now;
     
@@ -35,6 +46,7 @@ async function getDocumentation(): Promise<string> {
     return docsCache;
   } catch (error) {
     console.error('Error fetching documentation:', error);
+    // Return empty string to avoid breaking the chat
     return '';
   }
 }
@@ -48,9 +60,20 @@ async function getValidUrls(): Promise<string[]> {
   }
   
   try {
-    const response = await fetch(
-      new URL('/static.json', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000')
-    );
+    // Build the URL more reliably for both local and production
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
+                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
+                   'http://localhost:3000';
+    
+    const url = new URL('/static.json', baseUrl);
+    console.log(`Fetching valid URLs from: ${url.toString()}`);
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch URLs: ${response.status} ${response.statusText}`);
+    }
+    
     const data = await response.json();
     const urls = data.map((item: any) => item.url);
     validUrlsCache = urls;
@@ -339,8 +362,8 @@ At the end of EVERY response, you MUST include exactly 3 follow-up questions in 
 - Must number as "1. ", "2. ", "3. "
 - Plain text only, NO markdown links
 - Each question on its own line
-
-${relevantContext}
+    
+    ${relevantContext}
     
 ADDITIONAL RESOURCES (mention when relevant):
     - GitHub: https://github.com/ava-labs

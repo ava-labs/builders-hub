@@ -2,7 +2,20 @@ import { NextResponse } from 'next/server';
 
 async function loadLLMsContent() {
   try {
-    const response = await fetch(new URL('/llms-full.txt', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'));
+    // Build the URL more reliably for both local and production
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
+                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
+                   'http://localhost:3000';
+    
+    const url = new URL('/llms-full.txt', baseUrl);
+    console.log(`[Suggestions] Fetching documentation from: ${url.toString()}`);
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch documentation: ${response.status} ${response.statusText}`);
+    }
+    
     const llmsContent = await response.text();
     
     // Parse the content into sections

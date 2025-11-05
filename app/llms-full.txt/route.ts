@@ -1,8 +1,8 @@
 import { documentation, academy, integration, blog } from '@/lib/source';
 import { getLLMText } from '@/lib/llm-utils';
 
-// Cached forever for performance
-export const revalidate = false;
+// Revalidate every hour to ensure fresh content
+export const revalidate = 3600; // 1 hour in seconds
 
 export async function GET() {
   const scanned: string[] = [];
