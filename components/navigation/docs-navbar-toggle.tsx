@@ -12,15 +12,22 @@ export function DocsNavbarToggle() {
         const isMobile = window.innerWidth <= 1023;
         const isDocsPage = pathname.startsWith('/docs');
         const isAcademyPage = pathname.startsWith('/academy');
-        const shouldHide = pathname.startsWith('/docs/tooling') || pathname.startsWith('/docs/acps');
       
-        if ((!isDocsPage && !isAcademyPage) || !isMobile || shouldHide) {
+        if ((!isDocsPage && !isAcademyPage) || !isMobile) {
           // Remove button if conditions don't match
           const existingButton = document.querySelector('[data-docs-sidebar-toggle]');
           if (existingButton) {
             existingButton.remove();
           }
           return;
+        }
+        
+        // Add data attribute to body for CSS targeting (hide dropdown on tooling/acps pages)
+        const shouldHideDropdown = pathname.startsWith('/docs/tooling') || pathname.startsWith('/docs/acps');
+        if (shouldHideDropdown) {
+          document.body.setAttribute('data-hide-sidebar-dropdown', 'true');
+        } else {
+          document.body.removeAttribute('data-hide-sidebar-dropdown');
         }
 
       const navbar = document.querySelector('nav[aria-label="Main"]') || document.querySelector('header[aria-label="Main"]');

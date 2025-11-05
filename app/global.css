@@ -1014,6 +1014,14 @@ nav button[aria-current="page"]:hover {
   }
 }
 
+/* Hide sidebar dropdown on /docs/tooling and /docs/acps pages */
+body[data-hide-sidebar-dropdown] #nd-sidebar button:has(> div > p.text-sm.font-medium),
+body[data-hide-sidebar-dropdown] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
 /* Always show sidebar folder description - override fumadocs md:hidden */
 /* The RootToggle component hides descriptions with md:hidden on desktop (line 44 of root-toggle.tsx) */
 /* Target description paragraph that comes after title paragraph in RootToggle */
