@@ -9,11 +9,10 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
-import { SubmissionForm } from "../hooks/useSubmissionForm";
+import { SubmissionForm } from "../hooks/useSubmissionFormSecure";
 import { MultiLinkInput } from './MultiLinkInput';
 
 

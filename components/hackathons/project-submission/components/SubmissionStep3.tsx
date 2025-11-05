@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { FormLabelWithCheck } from './FormLabelWithCheck';
-import { SubmissionForm } from '../hooks/useSubmissionForm';
+import { SubmissionForm } from '../hooks/useSubmissionFormSecure';
 
 export default function SubmitStep3() {
   const form = useFormContext<SubmissionForm>();
