@@ -89,6 +89,17 @@ body:has([data-granite-banner]) #nd-nav {
   top: 3rem !important;
 }
 
+/* Add padding to homepage content when banner exists to prevent cutoff */
+body:has([data-granite-banner]) .nd-layout-home > main,
+body:has([data-granite-banner]) main.container {
+  padding-top: calc(var(--fd-banner-height, 3rem) + 1rem) !important;
+}
+
+/* Add margin-top to hero section when banner exists to prevent cutoff */
+body:has([data-granite-banner]) section.min-h-\[50vh\] {
+  margin-top: calc(var(--fd-banner-height, 3rem) + 3.5rem) !important; /* Banner + navbar height */
+}
+
 /* Remove ALL left whitespace from navbar to fill screen edge */
 body > div > nav,
 body > div > header,
