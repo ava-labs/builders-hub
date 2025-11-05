@@ -277,7 +277,7 @@ function GenesisBuilderInner({
                         },
                         // Add fee and reward manager configurations
                         ...(feeManagerConfig.activated && {
-                            feeManagerAddress: {
+                            feeManagerConfig: {
                                 blockTimestamp: blockTimestamp || 0,
                                 adminAddresses: [
                                     ...(feeManagerConfig.addresses?.Admin || []).map(a => a.address),
@@ -287,7 +287,7 @@ function GenesisBuilderInner({
                             }
                         }),
                         ...(rewardManagerConfig.activated && {
-                            rewardManagerAddress: {
+                            rewardManagerConfig: {
                                 blockTimestamp: blockTimestamp || 0,
                                 adminAddresses: [
                                     ...(rewardManagerConfig.addresses?.Admin || []).map(a => a.address),

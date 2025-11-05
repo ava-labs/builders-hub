@@ -48,6 +48,8 @@ const createRegisterSchema = (isOnline: boolean) => z.object({
   terms_event_conditions: z.boolean().optional(),
   newsletter_subscription: z.boolean().default(false).optional(),
   prohibited_items: z.boolean().optional(),
+  founder_check: z.boolean().optional(),
+  avalanche_ecosystem_member: z.boolean().optional(),
 });
 
 export const registerSchema = createRegisterSchema(false); // Default schema for TypeScript inference
@@ -97,6 +99,8 @@ export function RegisterForm({
     terms_event_conditions: false,
     newsletter_subscription: false,
     prohibited_items: false,
+    founder_check: false,
+    avalanche_ecosystem_member: false,
   });
 
   const form = useForm<RegisterFormValues>({
@@ -163,6 +167,8 @@ export function RegisterForm({
           terms_event_conditions: loadedData.terms_event_conditions || false,
           newsletter_subscription: loadedData.newsletter_subscription || false,
           prohibited_items: !isOnlineHackathon ? (loadedData.prohibited_items || false) : false,
+          founder_check: loadedData.founder_check || false,
+          avalanche_ecosystem_member: loadedData.avalanche_ecosystem_member || false,
         };
         hackathon_id = loadedData.hackathon_id;
         form.reset(parsedData);

@@ -171,7 +171,7 @@ async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> 
     const destinationAddress = searchParams.get('address')!;
     const chainId = parseInt(searchParams.get('chainId')!);
     const supportedChain = findSupportedChain(chainId);
-    const dripAmount = (supportedChain?.dripAmount || 3).toString();
+    const dripAmount = (supportedChain?.faucetThresholds?.dripAmount || 3).toString();
 
     const tx = await transferEVMTokens(
       FAUCET_ADDRESS!,
@@ -217,8 +217,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     identifier: async (_req: NextRequest) => {
       const session = await import('@/lib/auth/authSession').then(mod => mod.getAuthSession());
       if (!session) throw new Error('Authentication required');
-      const userId = session.user.id;
-      return `${userId}-${chainId}`;
+      const email = session.user.email;
+      if (!email) throw new Error('email required for rate limiting');
+      return `${email}-${chainId}`;
     }
   });
 

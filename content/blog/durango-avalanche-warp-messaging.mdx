@@ -1,0 +1,66 @@
+---
+title: "Durango: Avalanche Warp Messaging Comes to the EVM"
+description: Native cross-chain communication comes to every EVM Chain in the Avalanche Ecosystem.
+date: 2024-02-01
+authors: [AvaxDevelopers]
+topics: [Network Updates, Durango Upgrade, Avalanche Warp Messaging, EVM, Interoperability, P-Chain]
+comments: true
+---
+
+![Durango: Avalanche Warp Messaging Comes to the EVM](https://www.avax.network/_astro/65bc11f33d8a959ccaee46f2_durango_20test4_GXxOE.webp)
+
+The publishing of the pre-release code for a proposed upgrade to the Avalanche Network, codenamed Durango
+
+---
+
+**Update (2/21/24):** The production code [AvalancheGo@v1.11.0](https://github.com/ava-labs/avalanchego/releases/tag/v1.11.0) for the proposed Durango Upgrade was published. If sufficient stake supports Durango, it will activate on the Avalanche Mainnet at **11 AM ET on Wednesday, March 6th, 2024**. Durango contains ACPs that are not compatible with < v1.11.0 (Cortina). If Durango activates and you do not upgrade your node **before** the activation time, your node will be unable to process new blocks and will be marked as offline by other nodes (impacting your node's uptime and potentially jeopardizing your staking rewards). You can track support for ACP-23, ACP-24, ACP-25, ACP-30, ACP-31, ACP-41, and ACP-62 (included in Durango) on snowpeer: [https://snowpeer.io/acps](https://snowpeer.io/acps)
+
+**Update (2/13/24):** Durango activated successfully on the Fuji Testnet this morning at 11 AM ET!
+
+---
+
+The [pre-release code](https://github.com/ava-labs/avalanchego/releases/tag/v1.11.0-fuji) for a proposed upgrade to the Avalanche Network was published for activation on the Fuji Testnet at 11 A.M. ET (4 P.M. UTC) on Tuesday, February 13th, 2024. This proposed upgrade, codenamed Durango, consists of Avalanche Community Proposals (ACPs) [\[ACP-23\] P-Chain Native Transfers](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/23-p-chain-native-transfers/README.md), [\[ACP-24\] Activate Shanghai EIPs on C-Chain](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/24-shanghai-eips/README.md), [\[ACP-25\] Virtual Machine Application Errors](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/25-vm-application-errors/README.md), [\[ACP-30\] Integrate Avalanche Warp Messaging into the EVM](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/30-avalanche-warp-x-evm/README.md), [\[ACP-31\] Enable Subnet Ownership Transfer](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/31-enable-subnet-ownership-transfer/README.md), [\[ACP-41\] Remove Pending Stakers](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/41-remove-pending-stakers/README.md), and [\[ACP-62\] Disable AddValidatorTx and AddDelegatorTx](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/62-disable-addvalidatortx-and-adddelegatortx/README.md).
+
+**Note, this pre-release code will ONLY work on Fuji. If you run the code on Mainnet, it will exit on startup.** The Durango Upgrade includes protocol optimizations that are not compatible with AvalancheGo versions < v1.11.0. If you run a node on Fuji, you must upgrade your software to AvalancheGo >= v1.11.0 **before** the activation time on Fuji. **If you are a Mainnet node operator, no action is required.**
+
+Pending a successful activation on the Fuji Testnet of all [implementable](https://github.com/avalanche-foundation/ACPs?tab=readme-ov-file#acp-statuses) ACPs, Avalanche Validators can choose to update their nodes to a production release of Durango (yet to be published) that supports the ACPs on Avalanche Mainnet. **Reminder: Avalanche Validators can** [signal](https://x.com/_patrickogrady/status/1748074273275822364?s=20) **their support for ACPs.**
+
+## Cross-Subnet Interoperability
+
+The first native Cross-Subnet message was sent on Avalanche Mainnet using Avalanche Warp Messaging (AWM) [on December 22nd, 2022](https://x.com/_patrickogrady/status/1605989086451597313?s=20). Following this milestone, [ACP-30](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/30-avalanche-warp-x-evm/README.md) proposed activating AWM on the C-Chain and Subnet-EVM. Activating this ACP brings native cross-chain communication to every EVM Chain in the Avalanche Ecosystem and establishes a standard for future VMs to communicate using AWM.
+
+With AWM, there are no third party intermediaries or trust assumptions outside of the validator set of the Primary Network and the communicating Subnets. With only the validators of a Subnet, every Avalanche Subnet can send messages to one another. AWM leverages the Avalanche P-Chain as a registry of all Subnets' validator sets including a BLS Public Key for each validator.
+
+To send a message, an [untrusted relayer](https://github.com/ava-labs/awm-relayer) or [user](https://github.com/ava-labs/hypersdk/blob/4bd6d720a5bc8ab9c6361e05f3c00d9c4780720d/examples/tokenvm/tests/e2e/e2e_test.go#L710-L748) aggregates signatures from a threshold of the Subnets' participating stake. Once it has received signatures from a threshold of stake, it constructs a [BLS Multi-Signature](https://crypto.stanford.edu/~dabo/pubs/papers/BLSmultisig.html) and a bit set to specify which validators have included a signature. For a receiving Subnet to verify the message, it looks up the validator set of the source Subnet at the current P-Chain height from its local database, checks that the total weight of included validators meets the required threshold, aggregates the specified BLS public keys, and then verifies the signature against the resulting aggregate public key. Any relayers broadcasting invalid BLS Multi-Signatures will be ignored.
+
+**Note, no transactions/messages are included in the P-Chain to send an Avalanche Warp Message. Messages are passed directly between communicating Subnets or between a Subnet and the C-Chain.**
+
+![AWM Architecture Diagram](https://images.ctfassets.net/voq4a5ue459o/4f048dc2a414c1a60bb67c7b299581b3/fe273d73529d1bbff8a3390e37f4eb7c/65bc12b118fad82932fc4693_KLrCXnfqjgHu9ltWr39vbTzOEfiYVFWu4O6GUGiVXll3XMCnAFVROeKf2q625pV0h0YSo7G2UywgsS9cocU3V6gRsoIOrdxoIC3.png?w=1600&q=80&fm=webp)
+
+This lightweight protocol replaces the management of point-to-point connections with the simplicity of one unified registry: the Avalanche P-Chain. For the full details on how this is integrated into the EVM, see [ACP-30](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/30-avalanche-warp-x-evm/README.md).
+
+In order to use AWM, a threshold stake of the Subnet's validators need to register BLS keys via 'AddPermissionlessValidatorTx'. [ACP-62](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/62-disable-addvalidatortx-and-adddelegatortx/README.md) proposes disabling 'AddValidatorTx' and 'AddDelegatorTx' to push all new stakers to use 'AddPermissionlessValidatorTx' and 'AddPermissionlessDelegatorTx'. Wide adoption of registered BLS keys not only enables Subnets to utilize AWM, but also accelerates the timeline for potential future P-Chain upgrades.
+
+## Improving the Developer Experience
+
+This upgrade also addresses some common requests from developers to improve the developer experience. These include adding P-Chain native transfers, enabling subnet ownership transfers, maintaining smart contract compatibility with Ethereum by supporting the Ethereum Shanghai Upgrade, and adding VM application errors.
+
+Currently, users who want to transfer assets between P-Chain addresses either need to leave the P-Chain or use a transaction type not meant for native transfers. [ACP-23](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/23-p-chain-native-transfers/README.md) proposes supporting native transfers on the P-Chain with 'BaseTx'. By supporting native transfers on the P-Chain, users can manage their assets more efficiently and securely.
+
+Another challenge for developers has been changing the owner of a Subnet, as currently the owner is immutable when new Subnets are created on the P-chain. Subnet operators may want to transition ownership of the Subnet to a new owner for a number of reasons, i.e. to perform a periodic rotation of the Subnet's control key(s). [ACP-31](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/31-enable-subnet-ownership-transfer/README.md) proposes allowing the current owner of a Subnet to transfer ownership to a new owner via 'TransferSubnetOwnershipTx'.
+
+Durango also activates [ACP-24](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/24-shanghai-eips/README.md), which incorporates the changes from the Ethereum Shanghai Upgrade to ensure the C-Chain maintains smart contract compatibility with Ethereum. Specifically, EIP-3855 adds the PUSH0 opcode to the C-Chain, maintaining compatibility with Solidity versions >= v0.8.20. See the [ACP](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/24-shanghai-eips/README.md) for full details on the changes.
+
+At the VM level, a peer cannot signal VM application errors, resulting in a network timeout and failed request. [ACP-25](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/25-vm-application-errors/README.md) proposes adding an 'AppError' message to indicate that an error has occurred. This allows a peer to signal failure early rather than wait for a timeout to fire, reducing the latency of a failed request from the network timeout (~2s) to a single network round trip time (~500ms).
+
+## Starting the Path to 100k Subnets
+
+To help further increase the scalability of the P-Chain, [ACP-41](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/41-remove-pending-stakers/README.md) proposes removing a user-specified 'StartTime' for stakers. This modifies the P-Chain to start a staker's staking period when the transaction is accepted. This greatly reduces the computation load on the P-Chain, increasing the efficiency of all Avalanche Network Validators and sets the stage for future P-Chain upgrades, including continuous staking (stake once and forget about it).
+
+In addition to scaling the P-chain, key features will be needed in order to walk the "[Path to 100k Subnets](https://hackmd.io/@patrickogrady/100k-subnets)". Many of these will rely on BLS keys, whose wide adoption not only enables Subnets to fully utilize Avalanche Warp Messaging and to send cross-Subnet messages, but also accelerates the timeline for future P-Chain upgrades. These include, but are not limited to:
+
+**Arbitrary Subnet Rewards:** The P-Chain currently restricts Elastic Subnets to follow the reward curve defined in a 'TransformSubnetTx'. With sufficient BLS key adoption, Elastic Subnets can define their own reward curve and reward conditions. The P-Chain can be modified to take in a message indicating if a Subnet validator should be rewarded with how many tokens signed with a BLS Multi-Signature.
+
+**Subnet Attestations:** The Primary Network or a Subnet can attest to the state of their Subnet with a BLS Multi-Signature. This can enable clients to fetch the current state of the Subnet without syncing the entire Subnet. StateSync enables clients to download chain state from peers up to a recent block near tip. However, it is up to the client to query these peers and resolve any potential conflicts in the responses. With Subnet Attestations, clients can query an API node to prove information about a Subnet without querying the Subnet's validators. This can especially be useful for Subnet-Only Validators to prove information about the C-Chain.
+
+As mentioned earlier, [ACP-62](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/62-disable-addvalidatortx-and-adddelegatortx/README.md) proposes the shift to the new BLS key tx type, 'AddPermissionlessValidatorTx', accelerating towards the future of BLS-powered advancements in the Avalanche Network.

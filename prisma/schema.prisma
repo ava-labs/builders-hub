@@ -26,7 +26,10 @@ model Hackathon {
   top_most        Boolean?       @default(false)
   custom_link     String?
   created_by      String?
+  updated_by      String?
+  is_public       Boolean?
   created_by_user User?          @relation(fields: [created_by], references: [id])
+  updated_by_user User?          @relation("HackathonUpdatedBy", fields: [updated_by], references: [id])
   projects        Project[]
   registrations   RegisterForm[]
 }
@@ -48,12 +51,13 @@ model User {
   custom_attributes   String[]
   telegram_user       String?
   created_at          DateTime           @default(now()) @db.Timestamptz(3)
+  updated_hackathons  Hackathon[] @relation("HackathonUpdatedBy")
+  memberships         Member[]
+  registrations       RegisterForm[]
+  badges              UserBadge[]
+  managedTestnetNodes NodeRegistration[]
   consoleLog          ConsoleLog[]
   hackathons          Hackathon[]
-  memberships         Member[]
-  managedTestnetNodes NodeRegistration[]
-  registrations       RegisterForm?
-  badges              UserBadge[]
 }
 
 model VerificationToken {
@@ -69,7 +73,7 @@ model RegisterForm {
   utm                     String
   city                    String
   dietary                 String?
-  email                   String    @unique
+  email                   String
   interests               String
   languages               String
   roles                   String
@@ -141,28 +145,28 @@ model Member {
 }
 
 model Badge {
-  id              String         @id @default(uuid())
-  name            String
-  description     String
-  image_path      String
-  category        String
+  id          String         @id @default(uuid())
+  name        String
+  description String
+  image_path  String
+  category    String
+  users       UserBadge[]
+  projects    ProjectBadge[]
   requirements    Json[]         @default([])
   current_version Int            @default(1)
-  projects        ProjectBadge[]
-  users           UserBadge[]
 }
 
 model UserBadge {
-  id                   String   @id @default(uuid())
-  user_id              String
-  badge_id             String
-  awarded_at           DateTime @default(now())
-  awarded_by           String?
+  id         String   @id @default(uuid())
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id    String
+  badge      Badge    @relation(fields: [badge_id], references: [id], onDelete: Cascade)
+  badge_id   String
+  awarded_at DateTime @default(now())
+  awarded_by String?
   evidence             Json?
   requirements_version Int      @default(1)
   status               Int      @db.SmallInt
-  badge                Badge    @relation(fields: [badge_id], references: [id], onDelete: Cascade)
-  user                 User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, badge_id])
 }

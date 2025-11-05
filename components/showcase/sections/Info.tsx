@@ -45,8 +45,9 @@ export default function Info({ project }: Props) {
             className="min-w-5 w-5 h-5 !text-zinc-700 dark:!text-zinc-300"
           />
           <p className="text-xs text-zinc-700 dark:text-zinc-300">
-            {`${project.hackathon?.title ?? ""} ${project.hackathon?.location ?? ""
-              } ${new Date(project.hackathon?.start_date ?? "").getFullYear()}`}
+            {`${project.hackathon?.title ?? ""} ${
+              project.hackathon?.location ?? ""
+            } ${project.hackathon?.start_date ? new Date(project.hackathon.start_date).getFullYear() : ""}`}
           </p>
         </div>
       </div>

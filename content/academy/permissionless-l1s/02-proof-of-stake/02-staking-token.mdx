@@ -1,0 +1,51 @@
+---
+title: Staking Token Selection
+description: Learn about staking on Avalanche L1s
+updated: 2025-03-13
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+The Proof of Stake algorithm covered in the previous section is available for your own L1 if you decide to build a permissionless blockchain. One of the key design decisions you'll need to make is choosing which token will serve as your staking token.
+
+## Separating Staking and Native Tokens
+
+In many networks, such as Ethereum, the same token is used for both staking and paying for gas. However, **Avalanche L1s offer the flexibility to separate staking tokens from native (gas) tokens**, as they fulfill fundamentally different purposes:
+
+- **Native Token (Gas Token)**: Used to pay for transaction fees and execute smart contracts on your L1
+- **Staking Token**: Used to secure the network through the Proof of Stake mechanism
+
+### Why Use the Same Token?
+
+Using your native token as the staking token creates a unified economic model where:
+- Validators have a direct stake in the L1's success
+- Token utility is maximized (both for transactions and security)
+- The economic security is directly tied to your L1's value
+
+### Why Use a Different Token?
+
+Alternatively, you might choose to use a separate staking token (such as AVAX or another established token) when:
+- You want to bootstrap security from an existing liquid token
+- Your native token is designed for specific use cases that don't align with staking economics
+- You want to leverage an established validator set from another network
+
+## Critical Design Consideration: Token Liquidity
+
+If you decide to use an alternative token (rather than your native token) as your staking token, **you must choose a token with substantial liquidity and market depth**. This is a critical security consideration.
+
+### The Liquidity Attack Vector
+
+Using a low-liquidity token as your staking token exposes your L1 to a potentially devastating attack:
+
+1. **Attack Scenario**: A malicious actor could take out a large loan or use existing capital to purchase a majority of the staking token
+2. **Network Takeover**: With >51% of the staking token, they gain control of your network's consensus
+3. **Exploitation**: They could halt the network, double-spend, censor transactions, or otherwise disrupt operations
+4. **Exit**: After causing damage or extracting value, they could sell back the staking tokens (potentially at a profit if they shorted your native token)
+
+### Liquidity Requirements
+
+When selecting an alternative staking token, evaluate:
+- **Market Capitalization**: Is it large enough that acquiring 51% would be prohibitively expensive?
+- **Daily Trading Volume**: Can large amounts be bought without significantly moving the price?
+- **Market Depth**: Are there sufficient orders on both sides of the order book?
+- **Distribution**: Is the token widely distributed, or controlled by a few large holders?

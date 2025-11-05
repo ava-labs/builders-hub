@@ -51,8 +51,8 @@ export async function POST(request: Request) {
     processedFormData["employment_role_other"] = Array.isArray(formData.roles) ? formData.roles.join(";") : formData.roles || "";
     processedFormData["tooling_familiarity"] = Array.isArray(formData.tools) ? formData.tools.join(";") : formData.tools || "";
     //processedFormData["hackathon_event_id"] = formData.hackathon_id || "";
-    processedFormData["founder_check"] = "No";
-    processedFormData["avalanche_ecosystem_member"] = "No";
+    processedFormData["founder_check"] = formData.founder_check ? "Yes" : "No";
+    processedFormData["avalanche_ecosystem_member"] = formData.avalanche_ecosystem_member ? "Yes" : "No";
 
     // Map boolean fields
     processedFormData["marketing_consent"] = formData.newsletter_subscription === true ? "Yes" : "No";

@@ -277,8 +277,8 @@ export async function sendRegistrationToHubSpot(
       'programming_language_familiarity': registrationData.languages || '',
       'employment_role_other': registrationData.roles || 'Other',
       'tooling_familiarity': registrationData.tools || '',
-      'founder_check' : 'No', // TODO: add this to the BH form
-      'avalanche_ecosystem_member' : 'No',  // TODO: add this to the BH form
+      'founder_check': registrationData.founder_check ? 'Yes' : 'No',
+      'avalanche_ecosystem_member': registrationData.avalanche_ecosystem_member ? 'Yes' : 'No',
       //'hackathon_event_id': registrationData.hackathon_id, // TODO: add this to the HS form
       //'hackathon_event_title': hackathon?.title || '', // TODO: add this to the HS form
       

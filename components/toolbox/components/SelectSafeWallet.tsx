@@ -57,6 +57,7 @@ export default function SelectSafeWallet({
   const [safes, setSafes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [safeDetails, setSafeDetails] = useState<Record<string, SafeSelection>>({});
+  const [isFetchingManualAddress, setIsFetchingManualAddress] = useState(false);
 
   // Fetch Ash Wallet accounts from the backend API
   useEffect(() => {
@@ -109,6 +110,53 @@ export default function SelectSafeWallet({
     fetchSafes();
   }, [walletEVMAddress, viemChain?.id]);
 
+  // Fetch details for manually entered Safe address
+  useEffect(() => {
+    const fetchManualSafeDetails = async () => {
+      // Only fetch if:
+      // 1. We have a value
+      // 2. It looks like an address (starts with 0x and has reasonable length)
+      // 3. We don't already have details for this address
+      // 4. We're not currently loading the owned safes
+      if (!value || !viemChain || safeDetails[value] || isLoading) return;
+      if (!value.startsWith('0x') || value.length !== 42) return;
+
+      setIsFetchingManualAddress(true);
+      try {
+        const allSafesInfo = await callSafeAPI<AllSafesInfoResponse>('getAllSafesInfo', {
+          chainId: viemChain.id.toString(),
+          safeAddresses: [value]
+        });
+
+        const safeInfo = allSafesInfo.safeInfos[value];
+        if (safeInfo) {
+          setSafeDetails(prev => ({
+            ...prev,
+            [value]: {
+              safeAddress: value,
+              threshold: safeInfo.threshold,
+              owners: safeInfo.owners
+            }
+          }));
+          // Trigger onChange with the fetched details
+          onChange({
+            safeAddress: value,
+            threshold: safeInfo.threshold,
+            owners: safeInfo.owners
+          });
+        } else if (allSafesInfo.errors?.[value]) {
+          console.warn(`Failed to fetch details for manually entered Ash Wallet ${value}:`, allSafesInfo.errors[value]);
+        }
+      } catch (error) {
+        console.error("Error fetching manually entered Ash Wallet details:", error);
+      } finally {
+        setIsFetchingManualAddress(false);
+      }
+    };
+
+    fetchManualSafeDetails();
+  }, [value, viemChain?.id, isLoading]);
+
   const safeSuggestions: Suggestion[] = useMemo(() => {
     const result: Suggestion[] = [];
 
@@ -158,6 +206,12 @@ export default function SelectSafeWallet({
     onChange={handleValueChange}
     suggestions={safeSuggestions}
     error={error}
-    placeholder={isLoading ? "Loading Ash Wallet accounts..." : "Enter Ash Wallet address or select from your accounts"}
+    placeholder={
+      isLoading 
+        ? "Loading Ash Wallet accounts..." 
+        : isFetchingManualAddress 
+        ? "Loading Safe details..." 
+        : "Enter Ash Wallet address or select from your accounts"
+    }
   />
 } 
