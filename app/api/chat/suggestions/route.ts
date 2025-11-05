@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 async function loadLLMsContent() {
   try {
-    const response = await fetch(new URL('/llms.txt', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'));
+    const response = await fetch(new URL('/llms-full.txt', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'));
     const llmsContent = await response.text();
     
     // Parse the content into sections

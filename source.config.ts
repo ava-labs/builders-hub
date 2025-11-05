@@ -19,6 +19,9 @@ export const { docs, meta } = defineDocs({
       index: z.boolean().default(false),
       edit_url: z.string().optional(),
     }),
+    postprocess: {
+      includeProcessedMarkdown: true,
+    },
   },
   meta: {
     schema: metaSchema.extend({

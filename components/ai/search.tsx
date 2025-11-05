@@ -33,6 +33,11 @@ import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import dynamic from 'next/dynamic';
 import { useIsMobile } from '../../hooks/use-mobile';
 import React from 'react';
+import 'katex/dist/katex.min.css';
+
+const Mermaid = dynamic(() => import('@/components/content-design/mermaid'), {
+  ssr: false,
+});
 
 const ChatContext = createContext<UseChatHelpers | null>(null);
 function useChatContext() {
@@ -346,7 +351,7 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
           <p className="text-xs font-medium text-fd-muted-foreground">
             {roleName[message.role] ?? 'Unknown'}
           </p>
-          <div className="prose prose-sm max-w-none dark:prose-invert">
+          <div className="prose prose-sm max-w-none dark:prose-invert [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden [&_.katex]:text-sm [&_.katex-display]:my-4">
             <Markdown text={cleanContent} onToolClick={isMobile ? undefined : onToolReference} />
           </div>
 
@@ -396,6 +401,11 @@ function Pre(props: ComponentProps<'pre'>) {
       ?.slice('language-'.length) ?? 'text';
 
   if (lang === 'mdx') lang = 'md';
+
+  // Handle Mermaid diagrams specially
+  if (lang === 'mermaid') {
+    return <Mermaid chart={(codeProps.children ?? '') as string} />;
+  }
 
   return (
     <DynamicCodeBlock lang={lang} code={(codeProps.children ?? '') as string} />
@@ -673,15 +683,10 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
 }
 
 function SmallViewContent({ onExpand }: { onExpand: () => void }) {
-  const [selectedModel, setSelectedModel] = useState<'anthropic' | 'openai'>('anthropic');
-
   const chat = useChat({
     id: 'search',
     streamProtocol: 'data',
     sendExtraMessageFields: true,
-    body: {
-      model: selectedModel,
-    },
     onResponse(response) {
       if (response.status === 401) {
         console.error(response.statusText);
@@ -773,24 +778,8 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
       <SearchAIInput className="px-3 pb-3 pt-2" />
 
       <div className="px-3 py-2 text-center">
-        <p className="text-[10px] text-fd-muted-foreground flex items-center justify-center gap-1">
-          Powered by
-          <select
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value as 'anthropic' | 'openai')}
-            className={cn(
-              "text-[10px] px-1 py-0.5 rounded border border-fd-border/50",
-              "bg-fd-background hover:bg-fd-muted/50",
-              "focus:outline-none focus:ring-1 focus:ring-red-600/20",
-              "transition-colors cursor-pointer",
-              "-my-0.5" // Align with text
-            )}
-            disabled={status === 'streaming'}
-          >
-            <option value="anthropic">Anthropic</option>
-            <option value="openai">OpenAI</option>
-          </select>
-          • Responses may be inaccurate
+        <p className="text-[10px] text-fd-muted-foreground">
+          Powered by OpenAI • Responses may be inaccurate
         </p>
       </div>
     </ChatContext>
@@ -798,15 +787,10 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
 }
 
 function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: string) => void; onCollapse?: () => void }) {
-  const [selectedModel, setSelectedModel] = useState<'anthropic' | 'openai'>('anthropic');
-
   const chat = useChat({
     id: 'search',
     streamProtocol: 'data',
     sendExtraMessageFields: true,
-    body: {
-      model: selectedModel,
-    },
     onResponse(response) {
       if (response.status === 401) {
         console.error(response.statusText);
@@ -941,24 +925,8 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
       <SearchAIInput />
 
       <div className="px-4 py-2 text-center">
-        <p className="text-xs text-fd-muted-foreground flex items-center justify-center gap-1">
-          Powered by
-          <select
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value as 'anthropic' | 'openai')}
-            className={cn(
-              "text-xs px-1.5 py-0.5 rounded border border-fd-border/50",
-              "bg-fd-background hover:bg-fd-muted/50",
-              "focus:outline-none focus:ring-1 focus:ring-red-600/20",
-              "transition-colors cursor-pointer",
-              "-my-0.5" // Align with text
-            )}
-            disabled={isLoading}
-          >
-            <option value="anthropic">Anthropic</option>
-            <option value="openai">OpenAI</option>
-          </select>
-          • Responses may be inaccurate
+        <p className="text-xs text-fd-muted-foreground">
+          Powered by OpenAI • Responses may be inaccurate
         </p>
       </div>
     </ChatContext>
