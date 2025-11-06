@@ -292,13 +292,6 @@ function SuggestedFollowUps({ questions, onQuestionClick }: {
   );
 }
 
-// Extract tool references from message content
-// function extractToolReferences(content: string): string[] {
-//   const toolPattern = /tools\/l1-toolbox#(\w+)/g;
-//   const matches = content.matchAll(toolPattern);
-//   return Array.from(matches, m => m[1]);
-// }
-
 function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReference }: {
   message: Message;
   isLast: boolean;
@@ -316,24 +309,6 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
   // Extract tool references from AI responses - only on desktop
   const [detectedTools, setDetectedTools] = useState<string[]>([]);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
-
-  // useEffect(() => {
-  //   if (!isUser && !isStreaming && !isMobile) {
-  //     const toolRefs = extractToolReferences(message.content);
-  //     // Only keep unique tool references
-  //     const uniqueTools = Array.from(new Set(toolRefs));
-  //     setDetectedTools(uniqueTools);
-
-  //     // Always auto-open the first tool reference if we haven't already
-  //     if (uniqueTools.length > 0 && onToolReference && !hasAutoOpened) {
-  //       setHasAutoOpened(true);
-  //       // Add a small delay to ensure the component is ready
-  //       setTimeout(() => {
-  //         onToolReference(uniqueTools[0]);
-  //       }, 100);
-  //     }
-  //   }
-  // }, [message.content, isUser, isStreaming, onToolReference, isMobile, hasAutoOpened]);
 
   return (
     <div className={cn(
@@ -424,23 +399,7 @@ function Markdown({ text, onToolClick }: { text: string; onToolClick?: (toolId: 
 
         // Custom link component to intercept tool clicks
         const LinkWithToolDetection = (props: ComponentProps<'a'>) => {
-          // const href = props.href || '';
-          // const toolMatch = href.match(/tools\/l1-toolbox#(\w+)/);
-
-          // if (toolMatch && onToolClick) {
-          //   return (
-          //     <a
-          //       {...props}
-          //       href={href}
-          //       onClick={(e) => {
-          //         e.preventDefault();
-          //         onToolClick(toolMatch[1]);
-          //       }}
-          //       className={cn(props.className, "cursor-pointer hover:underline text-red-600")}
-          //     />
-          //   );
-          // }
-
+      
           // On mobile or when no handler, just use regular link
           return <Link {...props} />;
         };
@@ -470,18 +429,6 @@ function Markdown({ text, onToolClick }: { text: string; onToolClick?: (toolId: 
 
   return <>{rendered || text}</>;
 }
-
-// Dynamically import the ToolboxApp to avoid SSR issues
-// const ToolboxApp = dynamic(() => import('../../toolbox/src/toolbox/ToolboxApp'), {
-//   ssr: false,
-//   loading: () => (
-//     <div className="flex justify-center items-center h-full">
-//       <Loader2 className="size-6 animate-spin text-fd-muted-foreground" />
-//     </div>
-//   ),
-// });
-
-
 
 export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: string) => void }) {
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
@@ -548,42 +495,6 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
     };
   }, []);
 
-  // Add escape key handler to close toolbox
-  // useEffect(() => {
-  //   const handleEscape = (e: KeyboardEvent) => {
-  //     if (e.key === 'Escape' && selectedTool && !isClosing) {
-  //       e.preventDefault();
-  //       e.stopPropagation();
-  //       handleCloseTool();
-  //     }
-  //   };
-
-  //   if (selectedTool) {
-  //     document.addEventListener('keydown', handleEscape, true);
-  //     return () => document.removeEventListener('keydown', handleEscape, true);
-  //   }
-  // }, [selectedTool, isClosing]);
-
-  // Component to render the tool - memoized to prevent re-renders
-  // const ToolRenderer = React.memo(({ toolId }: { toolId: string }) => {
-  //   useEffect(() => {
-  //     // Always update the hash when toolId changes
-  //     if (toolId && !isClosing) {
-  //       // Use replaceState to avoid adding to browser history
-  //       const newHash = `#${toolId}`;
-  //       if (window.location.hash !== newHash) {
-  //         window.history.replaceState(null, '', newHash);
-  //         // Dispatch a hashchange event to notify the toolbox
-  //         window.dispatchEvent(new HashChangeEvent('hashchange'));
-  //       }
-  //     }
-  //   }, [toolId]);
-
-  //   return <ToolboxApp embedded />;
-  // });
-
-  // ToolRenderer.displayName = 'ToolRenderer';
-
   return (
     <Dialog {...props}>
       {props.children}
@@ -643,36 +554,6 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
                 <div className="flex md:hidden flex-col w-full">
                   <Content onCollapse={() => setViewMode('small')} />
                 </div>
-
-                {/* Desktop tool panel */}
-                {/*  {selectedTool && !isMobile && (
-                  <div key={selectedTool} className="hidden md:flex md:w-[60%] md:flex-col bg-fd-muted/20">
-                    <div className="toolbox-embedded-header flex items-center justify-between border-b border-fd-border px-4 py-3 relative z-[9999]">
-                      <a
-                        href={`/tools/l1-toolbox#${selectedTool}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm font-medium hover:text-red-600 hover:underline transition-colors cursor-pointer flex items-center gap-1"
-                      >
-                        Toolbox: {selectedTool}
-                        <ChevronRight className="size-3" />
-                      </a>
-                      <button
-                        onClick={handleCloseTool}
-                        className={cn(
-                          buttonVariants({ size: 'icon', variant: 'ghost' }),
-                          'size-6 rounded-md relative z-[9999]',
-                        )}
-                        style={{ position: 'relative', zIndex: 9999 }}
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </div>
-                    <div className="flex-1 overflow-auto bg-fd-background relative">
-                      <ToolRenderer toolId={selectedTool} />
-                    </div> 
-                  </div>
-                )}*/}
               </div>
             </DialogContent>
           </>
