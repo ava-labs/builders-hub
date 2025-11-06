@@ -39,6 +39,14 @@ const config = {
       },
       {
         protocol: 'https',
+        hostname: 'f005.backblazeb2.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'explorer-binaryholdings.cogitus.io',
+      },
+      {
+        protocol: 'https',
         hostname: 'cdn.prod.website-files.com',
       },
       {
