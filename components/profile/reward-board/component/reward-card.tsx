@@ -30,7 +30,6 @@ export const RewardCard = ({
         <div
           style={{ width: "100%", height: 300, cursor: "pointer" }}
           onClick={() => setOpen(true)}
-          title="details"
         >
           <Canvas
             shadows={false}
