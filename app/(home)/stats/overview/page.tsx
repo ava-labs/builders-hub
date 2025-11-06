@@ -40,7 +40,7 @@ export default function AvalancheMetrics() {
     useState<OverviewMetrics | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sortField, setSortField] = useState<string>("weeklyTxCount");
+  const [sortField, setSortField] = useState<string>("weeklyActiveAddresses");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [visibleCount, setVisibleCount] = useState(25);
   const [searchTerm, setSearchTerm] = useState("");
@@ -131,11 +131,11 @@ export default function AvalancheMetrics() {
       case "weeklyTxCount":
         aValue =
           typeof a.txCount.current_value === "number"
-            ? a.txCount.current_value
+            ? a.txCount.current_value / 365
             : 0;
         bValue =
           typeof b.txCount.current_value === "number"
-            ? b.txCount.current_value
+            ? b.txCount.current_value / 365
             : 0;
         break;
       case "weeklyActiveAddresses":
@@ -151,11 +151,11 @@ export default function AvalancheMetrics() {
       case "totalIcmMessages":
         aValue =
           typeof a.icmMessages.current_value === "number"
-            ? a.icmMessages.current_value
+            ? a.icmMessages.current_value / 365
             : 0;
         bValue =
           typeof b.icmMessages.current_value === "number"
-            ? b.icmMessages.current_value
+            ? b.icmMessages.current_value / 365
             : 0;
         break;
       case "validatorCount":
@@ -389,7 +389,7 @@ export default function AvalancheMetrics() {
           <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-6 text-center">
               <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                Daily Avalanche L1 Transactions
+                Daily Transactions
               </p>
               <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
                 {formatNumber(
@@ -432,11 +432,14 @@ export default function AvalancheMetrics() {
           <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-5 text-center">
               <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                Interchain Messages
+                Daily ICM Count
               </p>
               <p className="text-2xl font-semibold text-black dark:text-white">
                 {formatNumber(
-                  overviewMetrics.aggregated.totalICMMessages.current_value
+                  Math.round(
+                    overviewMetrics.aggregated.totalICMMessages.current_value /
+                      365
+                  )
                 )}
               </p>
             </div>
@@ -521,24 +524,24 @@ export default function AvalancheMetrics() {
                   </th>
                   <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-4 text-left">
                     <div className="flex items-center gap-2">
-                      <SortButton field="weeklyTxCount">
+                      <SortButton field="weeklyActiveAddresses">
                         <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
-                          Transactions
+                          Active Addresses
                         </span>
                         <span className="lg:hidden text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">
-                          Txs
+                          Addresses
                         </span>
                       </SortButton>
                     </div>
                   </th>
                   <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-4 text-left">
                     <div className="flex items-center gap-2">
-                      <SortButton field="weeklyActiveAddresses">
+                      <SortButton field="weeklyTxCount">
                         <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
-                          Active Addresses
+                          Transactions
                         </span>
                         <span className="lg:hidden text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">
-                          Addrs
+                          Transactions
                         </span>
                       </SortButton>
                     </div>
@@ -547,7 +550,7 @@ export default function AvalancheMetrics() {
                     <div className="flex items-center gap-2">
                       <SortButton field="totalIcmMessages">
                         <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
-                          Total ICM Count
+                          Interchain Messages
                         </span>
                         <span className="lg:hidden text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">
                           ICM
@@ -634,33 +637,25 @@ export default function AvalancheMetrics() {
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
                         <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                          {typeof chain.txCount.current_value === "number"
-                            ? formatFullNumber(chain.txCount.current_value)
-                            : chain.txCount.current_value}
+                          {typeof chain.activeAddresses.current_value === "number"
+                            ? formatFullNumber(chain.activeAddresses.current_value) : chain.activeAddresses.current_value}
                         </span>
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
                         <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                          {typeof chain.activeAddresses.current_value ===
-                          "number"
-                            ? formatFullNumber(
-                                chain.activeAddresses.current_value
-                              )
-                            : chain.activeAddresses.current_value}
+                          {typeof chain.txCount.current_value === "number"
+                            ? formatFullNumber(Math.round(chain.txCount.current_value / 365)) : chain.txCount.current_value}
                         </span>
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
                         <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {typeof chain.icmMessages.current_value === "number"
-                            ? formatFullNumber(chain.icmMessages.current_value)
-                            : chain.icmMessages.current_value}
+                            ? formatFullNumber(Math.round(chain.icmMessages.current_value / 365)) : chain.icmMessages.current_value}
                         </span>
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
                         <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                          {typeof chain.validatorCount === "number"
-                            ? formatFullNumber(chain.validatorCount)
-                            : chain.validatorCount}
+                          {typeof chain.validatorCount === "number" ? formatFullNumber(chain.validatorCount) : chain.validatorCount}
                         </span>
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
@@ -670,9 +665,7 @@ export default function AvalancheMetrics() {
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(
-                            getChainCategory(chain.chainName)
-                          )}`}
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(getChainCategory(chain.chainName))}`}
                         >
                           {getChainCategory(chain.chainName)}
                         </span>
