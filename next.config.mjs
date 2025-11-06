@@ -78,6 +78,11 @@ const config = {
         permanent: false,
       },
       {
+        source: '/docs/tooling/rpc-providers',
+        destination: '/integrations#rpc-providers',
+        permanent: true,
+      },
+      {
         source: '/data-api/:path*',
         destination: '/docs/api-reference/data-api/:path*',
         permanent: false,
