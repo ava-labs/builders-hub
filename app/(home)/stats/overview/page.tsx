@@ -549,7 +549,7 @@ export default function AvalancheMetrics() {
                 </h3>
                 <div className="space-y-1">
                   <p className="text-2xl sm:text-3xl font-bold text-foreground">
-                    {formatNumber(
+                    {timeRange !== "30d" ? "N/A" : formatNumber(
                       typeof overviewMetrics.aggregated.totalActiveAddresses
                         .current_value === "number"
                         ? overviewMetrics.aggregated.totalActiveAddresses
