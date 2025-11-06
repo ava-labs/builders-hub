@@ -375,7 +375,7 @@ export default function AvalancheMetrics() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
+          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-6 text-center">
               <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
                 Mainnet Avalanche L1s
@@ -386,7 +386,7 @@ export default function AvalancheMetrics() {
             </div>
           </Card>
 
-          <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
+          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-6 text-center">
               <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
                 Daily Avalanche L1 Transactions
@@ -405,7 +405,7 @@ export default function AvalancheMetrics() {
             </div>
           </Card>
 
-          <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
+          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-6 text-center">
               <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
                 Combined Throughput
@@ -429,7 +429,7 @@ export default function AvalancheMetrics() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
+          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-5 text-center">
               <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                 Interchain Messages
@@ -442,7 +442,7 @@ export default function AvalancheMetrics() {
             </div>
           </Card>
 
-          <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
+          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-5 text-center">
               <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                 Total Validators
@@ -453,7 +453,7 @@ export default function AvalancheMetrics() {
             </div>
           </Card>
 
-          <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
+          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-5 text-center">
               <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                 All-Time Validation Fees
@@ -465,7 +465,7 @@ export default function AvalancheMetrics() {
             </div>
           </Card>
 
-          <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
+          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-5 text-center">
               <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                 Total Network Fees Burned
@@ -489,7 +489,7 @@ export default function AvalancheMetrics() {
               placeholder="Search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 rounded-full border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
+              className="pl-10 rounded-full border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
             />
           </div>
           <Button
@@ -499,7 +499,7 @@ export default function AvalancheMetrics() {
               setSearchTerm("");
               setVisibleCount(25);
             }}
-            className="text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white rounded-full"
+            className="text-neutral-600 dark:text-neutral-400 hover:bg-[#fcfcfd] dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white rounded-full"
           >
             Clear Search
           </Button>
@@ -508,7 +508,7 @@ export default function AvalancheMetrics() {
         <Card className="overflow-hidden border border-neutral-200 dark:border-neutral-800 py-0">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
-              <thead className="bg-neutral-50 dark:bg-neutral-900">
+              <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
                 <tr className="border-b border-neutral-200 dark:border-neutral-800">
                   <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-4 text-left">
                     <div className="flex items-center gap-2">
@@ -691,7 +691,7 @@ export default function AvalancheMetrics() {
               onClick={handleLoadMore}
               variant="outline"
               size="lg"
-              className="px-8 py-3 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-black dark:text-white transition-colors hover:border-black dark:hover:border-white hover:bg-white dark:hover:bg-neutral-900"
+              className="px-8 py-3 border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-900 text-black dark:text-white transition-colors hover:border-black dark:hover:border-white hover:bg-[#fcfcfd] dark:hover:bg-neutral-900"
             >
               Load More Chains ({sortedData.length - visibleCount} remaining)
             </Button>
