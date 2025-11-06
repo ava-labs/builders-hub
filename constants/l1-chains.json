@@ -74,7 +74,7 @@
   {
     "chainId": "836",
     "chainName": "Binary Holdings",
-    "chainLogoURI": "",
+    "chainLogoURI": "https://explorer-binaryholdings.cogitus.io/_next/image?url=https%3A%2F%2Ff005.backblazeb2.com%2Ffile%2Ftracehawk-prod%2Flogo%2FBinaryHoldings%2FLight.png&w=96&q=75",
     "subnetId": "23dqTMHK186m4Rzcn1ukJdmHy13nqido4LjTp5Kh9W6qBKaFib",
     "slug": "binary-holdings",
     "color": "#F97316",

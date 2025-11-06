@@ -42,6 +42,10 @@ const config = {
       },
       {
         protocol: 'https',
+        hostname: 'explorer-binaryholdings.cogitus.io',
+      },
+      {
+        protocol: 'https',
         hostname: 'cdn.prod.website-files.com',
       },
     ],
