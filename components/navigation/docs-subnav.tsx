@@ -17,12 +17,12 @@ const tabs = [
        !path.startsWith('/docs/acps'))
   },
   {
-    label: 'AvalancheGo RPCs',
+    label: 'Node RPCs',
     href: '/docs/rpcs/c-chain',
     pathMatch: (path: string) => path.startsWith('/docs/rpcs')
   },
   {
-    label: 'APIs',
+    label: 'Data APIs',
     href: '/docs/api-reference/data-api',
     pathMatch: (path: string) => path.startsWith('/docs/api-reference')
   },
