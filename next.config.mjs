@@ -50,6 +50,21 @@ const config = {
   async redirects() {
     return [
       {
+        source: '/docs/rpcs',
+        destination: '/docs/rpcs/c-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling',
+        destination: '/docs/tooling/avalanche-sdk',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference',
+        destination: '/docs/api-reference/data-api',
+        permanent: true,
+      },
+      {
         source: '/introduction',
         destination: '/docs/api-reference/introduction',
         permanent: false,
