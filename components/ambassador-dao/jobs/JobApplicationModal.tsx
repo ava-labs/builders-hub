@@ -99,8 +99,8 @@ const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
       const results = await Promise.all(uploadPromises);
 
       const newFiles = [...files, ...selectedFiles];
-      const newFileIds = [...fileIds, ...results.map((r) => r.file.id)];
 
+      const newFileIds = [...fileIds, ...results.map((r) => r.file.id)];
       setFiles(newFiles);
       setFileIds(newFileIds);
 

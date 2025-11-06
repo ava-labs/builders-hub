@@ -380,9 +380,9 @@ const TalentForm = () => {
     // Set default profile image URL if no image is provided
     const submitData = {
       ...data,
-      profile_image: previewImage && previewImage.startsWith('data:image') 
-        ? 'https://ava.com/profile.png' 
-        : data.profile_image || 'https://ava.com/profile.png',
+      profile_image: data.profile_image && data.profile_image !== '' 
+      ? data.profile_image  
+      : 'https://ava.com/profile.png', 
       skill_ids: selectedSkills,
       social_links: validSocialLinks,
       years_of_experience: +data.years_of_experience,
