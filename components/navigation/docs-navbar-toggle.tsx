@@ -22,8 +22,8 @@ export function DocsNavbarToggle() {
           return;
         }
         
-        // Add data attribute to body for CSS targeting (hide dropdown on tooling/acps pages)
-        const shouldHideDropdown = pathname.startsWith('/docs/tooling') || pathname.startsWith('/docs/acps');
+        // Add data attribute to body for CSS targeting (hide dropdown on acps pages only)
+        const shouldHideDropdown = pathname.startsWith('/docs/acps');
         if (shouldHideDropdown) {
           document.body.setAttribute('data-hide-sidebar-dropdown', 'true');
         } else {
