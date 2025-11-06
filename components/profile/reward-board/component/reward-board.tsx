@@ -16,8 +16,8 @@ export default async function RewardBoard() {
   }
   const userBadges: UserBadge[] = await getRewardBoard(user_id);
   const badges = await getAllBadges();
-  const academyBadges = badges.filter((badge) => badge.category == "academy");
-  const hackathonBadges: Badge[] = badges.filter((badge) => badge.category == "hackathon");
+  const academyBadges = badges.filter((badge) => badge.category == "academy")?.sort((a, b) => a.id.localeCompare(b.id));
+  const hackathonBadges: Badge[] = badges.filter((badge) => badge.category == "hackathon")?.sort((a, b) => a.id.localeCompare(b.id));
   const totalPoints = userBadges.reduce((acc, userBadge) => acc + userBadge.points, 0);
   const hackathonBadgesUnlocked = hackathonBadges.map((badge) => {
     const userBadge = userBadges.find((userBadge) => userBadge.badge_id == badge.id);
