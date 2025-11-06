@@ -12,7 +12,7 @@ export function parseBadgeMetadata(metadata: JsonValue): Requirement | null {
     points: metadataObject.points || undefined,
     description: metadataObject.description || undefined,
     id: metadataObject.id || "",
-    unlocked: metadataObject.unlocked || false,
+    unlocked:  false,
   };
   return toReturn;
 }
@@ -73,7 +73,6 @@ badges.forEach((badge) => {
   }
 });
 
-  // Map the result to the UserBadge type, flattening the badge fields
-  return badges as unknown as UserBadge[];
+  return badges.sort((a, b) => a.badge_id.localeCompare(b.badge_id)) as unknown as UserBadge[];
 }
 

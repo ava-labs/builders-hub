@@ -98,7 +98,7 @@ export default async function RewardBoard() {
         )}
       </div>
 
-      <div className="flex flex-col gap-4 sm:gap-6 mb-2 mt-8 ">
+      <div className="flex flex-col gap-4 sm:gap-6 mb-2 mt-3 ">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
           Academy Badges
         </h1>
