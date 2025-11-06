@@ -1,0 +1,8 @@
+{
+  "title": "Transactions",
+  "description": "Managing transactions with Avalanche-CLI",
+  "pages": [
+    "native-send",
+    "ledger-p-chain-transfer"
+  ]
+}

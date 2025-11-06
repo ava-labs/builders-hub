@@ -19,7 +19,10 @@ import {
   Activity,
   Network,
   Webhook,
-  CircleDollarSign
+  CircleDollarSign,
+  Terminal,
+  Package,
+  Milestone
 } from 'lucide-react';
 
 interface DocsLayoutWrapperProps {
@@ -62,24 +65,24 @@ export function DocsLayoutWrapper({
       document.body.setAttribute('data-docs-section', 'documentation');
     }
     
-    // Force hide the tabs dropdown on tooling and ACPs pages
+    // Force hide the tabs dropdown on ACPs pages only
     const hideDropdown = () => {
       const sidebar = document.querySelector('#nd-sidebar');
       if (!sidebar) return;
 
       const buttons = sidebar.querySelectorAll('button');
-      const isToolingOrAcps = pathname.startsWith('/docs/tooling') || pathname.startsWith('/docs/acps');
+      const isAcps = pathname.startsWith('/docs/acps');
 
       buttons.forEach((button) => {
         const isTabsTrigger = button.getAttribute('aria-haspopup') || button.getAttribute('role') === 'combobox';
         if (!isTabsTrigger) return;
 
         const el = button as HTMLElement;
-        if (isToolingOrAcps) {
-          // Hide on SDKs/ACPs
+        if (isAcps) {
+          // Hide on ACPs
           el.style.display = 'none';
         } else {
-          // Ensure it is visible again when leaving those sections (fixes persistent hidden state on client nav)
+          // Ensure it is visible again when leaving ACPs section (fixes persistent hidden state on client nav)
           if (el.style.display === 'none') {
             el.style.display = '';
           }
@@ -203,6 +206,28 @@ export function DocsLayoutWrapper({
     },
   ];
 
+  // Tooling hamburger menu options
+  const toolingOptions = [
+    {
+      title: 'Avalanche-SDK',
+      description: 'Software development kit for Avalanche',
+      icon: <Package className="w-5 h-5" />,
+      url: '/docs/tooling/avalanche-sdk',
+    },
+    {
+      title: 'Avalanche-CLI',
+      description: 'Command-line interface for Avalanche',
+      icon: <Terminal className="w-5 h-5" />,
+      url: '/docs/tooling/avalanche-cli',
+    },
+    {
+      title: "Postman Collection",
+      description: 'Postman collection for Avalanche APIs',
+      icon: <Milestone className="w-5 h-5" />,
+      url: '/docs/tooling/avalanche-postman',
+    },
+  ];
+
   // Determine which section we're in and get the appropriate tree
   let pageTree;
   let sidebarOptions: any = {};
@@ -219,9 +244,8 @@ export function DocsLayoutWrapper({
     };
   } else if (pathname.startsWith('/docs/tooling')) {
     pageTree = toolingTree;
-    // No hamburger menu for tooling - explicitly disable tabs
     sidebarOptions = {
-      tabs: false,
+      tabs: toolingOptions,
     };
   } else if (pathname.startsWith('/docs/acps')) {
     pageTree = acpsTree;

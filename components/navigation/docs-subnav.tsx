@@ -28,7 +28,7 @@ const tabs = [
   },
   {
     label: 'SDKs',
-    href: '/docs/tooling',
+    href: '/docs/tooling/avalanche-sdk',
     pathMatch: (path: string) => path.startsWith('/docs/tooling')
   },
   {
