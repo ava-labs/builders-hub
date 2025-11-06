@@ -334,7 +334,10 @@ export default function AvalancheMetrics() {
             <Button
               size="sm"
               onClick={() =>
-                window.open("https://forms.gle/your-form-link", "_blank")
+                window.open(
+                  "https://github.com/ava-labs/builders-hub/blob/master/constants/l1-chains.json",
+                  "_blank"
+                )
               }
               className="flex-shrink-0 bg-black dark:bg-white text-white dark:text-black transition-colors hover:bg-neutral-800 dark:hover:bg-neutral-200"
             >
@@ -368,7 +371,11 @@ export default function AvalancheMetrics() {
                 {formatNumber(
                   typeof overviewMetrics.aggregated.totalTxCount
                     .current_value === "number"
-                    ? Math.round(overviewMetrics.aggregated.totalTxCount.current_value / 365) : 0
+                    ? Math.round(
+                        overviewMetrics.aggregated.totalTxCount.current_value /
+                          365
+                      )
+                    : 0
                 )}
               </p>
             </div>
@@ -405,7 +412,10 @@ export default function AvalancheMetrics() {
               </p>
               <p className="text-2xl font-semibold text-black dark:text-white">
                 {formatNumber(
-                  Math.round(overviewMetrics.aggregated.totalICMMessages.current_value / 365)
+                  Math.round(
+                    overviewMetrics.aggregated.totalICMMessages.current_value /
+                      365
+                  )
                 )}
               </p>
             </div>
@@ -429,7 +439,9 @@ export default function AvalancheMetrics() {
               </p>
               <div className="flex items-center justify-center gap-2">
                 <AvalancheLogo className="w-6 h-6" fill="#E84142" />
-                <p className="text-2xl font-semibold text-black dark:text-white">8,310</p>
+                <p className="text-2xl font-semibold text-black dark:text-white">
+                  8,310
+                </p>
               </div>
             </div>
           </Card>
@@ -593,7 +605,9 @@ export default function AvalancheMetrics() {
                               </div>
                             )}
                           </div>
-                          <span className="font-medium text-black dark:text-white">{chain.chainName}</span>
+                          <span className="font-medium text-black dark:text-white">
+                            {chain.chainName}
+                          </span>
                           {chainSlug && (
                             <div className="relative overflow-hidden w-4 h-4 flex-shrink-0">
                               <ArrowUpRight className="h-4 w-4 text-blue-600 dark:text-blue-400 absolute transition-all duration-300 ease-out transform translate-y-4 translate-x-4 opacity-0 group-hover:translate-y-0 group-hover:translate-x-0 group-hover:opacity-100" />
@@ -633,7 +647,9 @@ export default function AvalancheMetrics() {
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
                         <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                          {typeof chain.validatorCount === "number" ? formatFullNumber(chain.validatorCount) : chain.validatorCount}
+                          {typeof chain.validatorCount === "number"
+                            ? formatFullNumber(chain.validatorCount)
+                            : chain.validatorCount}
                         </span>
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
