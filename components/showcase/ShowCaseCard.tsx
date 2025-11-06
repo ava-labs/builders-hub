@@ -25,10 +25,12 @@ import {
 } from '../ui/pagination';
 import React from 'react';
 import { ProjectCard } from './ProjectCard';
-import Link from 'next/link';
 import { ProjectFilters } from '@/types/project';
 import { useRouter } from 'next/navigation';
 import { HackathonHeader } from '@/types/hackathons';
+import { useExports } from './hooks/useExports';
+import { LoadingButton } from '../ui/loading-button';
+import { useSession } from 'next-auth/react';
 const tracks = ['AI', 'DeFi', 'RWA', 'Gaming', 'SocialFi', 'Tooling'];
 
 type Props = {
@@ -47,16 +49,45 @@ export default function ShowCaseCard({
   const [searchValue, setSearchValue] = useState('');
   const [filters, setFilters] = useState<ProjectFilters>(initialFilters);
   const [currentPage, setCurrentPage] = useState(initialFilters.page ?? 1);
+  const { data: session } = useSession();
   const [recordsByPage, setRecordsByPage] = useState(
     initialFilters.recordsByPage ?? 12
   );
   const [totalPages, setTotalPages] = useState<number>(
     Math.ceil(totalProjects / recordsByPage) || 1
   );
+  const [isExporting, setIsExporting] = useState(false);
   const router = useRouter();
-
+  const { exportToExcel, isLoading, error } = useExports();
   const selectedHackathon = events.find(event => event.id === filters.event);
   const availableTracks = selectedHackathon?.content?.tracks?.map(track => track.name) ?? [];
+  const [hasRole, setHasRole] = useState(false);
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      await exportToExcel({
+        event: 'hackathon-2024',
+        track: 'DeFi',
+        winningProjects: true
+      });
+    } catch (err) {
+      console.error('Error exporting:', error);
+    }
+    finally {
+      setIsExporting(false);
+    }
+  };
+
+  useEffect(() => {
+    if(session?.user) {
+      if (session?.user?.custom_attributes?.includes('hackathonCreator')) {
+        setHasRole(true);
+      }
+    }
+    else {
+      setHasRole(false);
+    }
+  }, [session]);
   
 
   const handleFilterChange = (type: keyof ProjectFilters, value: string) => {
@@ -112,6 +143,14 @@ export default function ShowCaseCard({
         </CardDescription>
       </CardHeader>
       <Separator className='mt-6 bg-zinc-300 dark:bg-zinc-800 h-[2px]' />
+      <div className='flex justify-end'>
+        {hasRole && <LoadingButton variant={'outline'}
+        isLoading={isExporting}
+        onClick={handleExport}
+          className='bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50'>
+          Export Projects
+        </LoadingButton>}
+      </div>
       <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-6'>
         <div className='w-full'>
           <Tabs
@@ -146,6 +185,7 @@ export default function ShowCaseCard({
             </TabsList>
           </Tabs>
         </div>
+
         <div className='relative w-full'>
           <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-[40px] w-5 text-zinc-400 stroke-zinc-700' />
           <Input

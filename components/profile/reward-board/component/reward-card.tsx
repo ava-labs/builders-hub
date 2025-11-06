@@ -30,7 +30,6 @@ export const RewardCard = ({
         <div
           style={{ width: "100%", height: 300, cursor: "pointer" }}
           onClick={() => setOpen(true)}
-          title="details"
         >
           <Canvas
             shadows={false}
@@ -94,7 +93,7 @@ export const RewardCard = ({
           </div>
 
           {requirements && requirements.length > 0 && (
-            <div className="w-full">
+            <div >
               <RequirementsPanel requirements={requirements as any} />
             </div>
           )}
