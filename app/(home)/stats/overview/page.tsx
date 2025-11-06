@@ -201,7 +201,7 @@ export default function AvalancheMetrics() {
     children: React.ReactNode;
   }) => (
     <button
-      className="flex items-center gap-2 transition-colors hover:text-neutral-900"
+      className="flex items-center gap-2 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100"
       onClick={() => handleSort(field)}
     >
       {children}
@@ -248,14 +248,14 @@ export default function AvalancheMetrics() {
 
   const getCategoryColor = (category: string): string => {
     const colors: { [key: string]: string } = {
-      General: "bg-neutral-100 text-neutral-700",
-      DeFi: "bg-blue-100 text-blue-700",
-      Gaming: "bg-purple-100 text-purple-700",
-      Institutions: "bg-green-100 text-green-700",
-      RWAs: "bg-orange-100 text-orange-700",
-      Payments: "bg-pink-100 text-pink-700",
+      General: "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300",
+      DeFi: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+      Gaming: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
+      Institutions: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+      RWAs: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+      Payments: "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300",
     };
-    return colors[category] || "bg-gray-100 text-gray-700";
+    return colors[category] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
   };
 
   const getChainTPS = (chain: ChainOverviewMetrics): string => {
@@ -270,24 +270,24 @@ export default function AvalancheMetrics() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-white dark:bg-neutral-950">
         <div className="container mx-auto px-6 py-10 pb-24 space-y-12">
           <div className="space-y-3">
             <div>
-              <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-black">
+              <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-black dark:text-white">
                 Avalanche L1s Index
               </h1>
-              <p className="text-base text-neutral-600 max-w-2xl leading-relaxed">
+              <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
                 Loading comprehensive stats for Avalanche Mainnet L1s...
               </p>
             </div>
           </div>
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
-              <div className="w-12 h-12 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Activity className="h-6 w-6 text-neutral-500 animate-pulse" />
+              <div className="w-12 h-12 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Activity className="h-6 w-6 text-neutral-500 dark:text-neutral-400 animate-pulse" />
               </div>
-              <p className="text-sm text-neutral-600">Loading data...</p>
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">Loading data...</p>
             </div>
           </div>
         </div>
@@ -300,18 +300,18 @@ export default function AvalancheMetrics() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-white dark:bg-neutral-950">
         <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
           <div className="flex items-center justify-center min-h-[400px]">
-            <Card className="max-w-md border border-neutral-200 bg-white">
+            <Card className="max-w-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
               <div className="p-6 text-center">
-                <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Activity className="h-6 w-6 text-red-600" />
+                <div className="w-12 h-12 bg-red-50 dark:bg-red-950 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Activity className="h-6 w-6 text-red-600 dark:text-red-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-black mb-2">
+                <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
                   Failed to Load Data
                 </h3>
-                <p className="text-red-600 text-sm">{error}</p>
+                <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
               </div>
             </Card>
           </div>
@@ -325,18 +325,18 @@ export default function AvalancheMetrics() {
 
   if (!overviewMetrics || overviewMetrics.chains.length === 0) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-white dark:bg-neutral-950">
         <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
           <div className="flex items-center justify-center min-h-[400px]">
-            <Card className="max-w-md border border-neutral-200 bg-white">
+            <Card className="max-w-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
               <div className="p-6 text-center">
-                <div className="w-12 h-12 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <BarChart3 className="h-6 w-6 text-neutral-500" />
+                <div className="w-12 h-12 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BarChart3 className="h-6 w-6 text-neutral-500 dark:text-neutral-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-black mb-2">
+                <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
                   No Data Available
                 </h3>
-                <p className="text-neutral-600 text-sm">
+                <p className="text-neutral-600 dark:text-neutral-400 text-sm">
                   No chain metrics found from the API.
                 </p>
               </div>
@@ -351,11 +351,11 @@ export default function AvalancheMetrics() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-neutral-950">
       <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
         <div className="mb-10">
           <div className="flex items-start justify-between gap-4 mb-3">
-            <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-black">
+            <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-black dark:text-white">
               Avalanche L1s Index
             </h1>
             <Button
@@ -363,35 +363,35 @@ export default function AvalancheMetrics() {
               onClick={() =>
                 window.open("https://forms.gle/your-form-link", "_blank")
               }
-              className="flex-shrink-0 bg-black text-white transition-colors hover:bg-neutral-800"
+              className="flex-shrink-0 bg-black dark:bg-white text-white dark:text-black transition-colors hover:bg-neutral-800 dark:hover:bg-neutral-200"
             >
               Submit Your L1
               <ArrowUpRight className="ml-1.5 h-4 w-4" />
             </Button>
           </div>
-          <p className="text-base text-neutral-600 max-w-2xl leading-relaxed">
+          <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
             Opinionated stats for Mainnet L1s in the Avalanche ecosystem.
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Card className="border border-neutral-200 bg-white transition-all hover:border-neutral-300 hover:shadow-sm py-0">
+          <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-6 text-center">
-              <p className="mb-2 text-sm font-medium text-neutral-500">
+              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
                 Mainnet Avalanche L1s
               </p>
-              <p className="text-4xl font-semibold tracking-tight text-black">
+              <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
                 {overviewMetrics.chains.length}
               </p>
             </div>
           </Card>
 
-          <Card className="border border-neutral-200 bg-white transition-all hover:border-neutral-300 hover:shadow-sm py-0">
+          <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-6 text-center">
-              <p className="mb-2 text-sm font-medium text-neutral-500">
+              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
                 Daily Avalanche L1 Transactions
               </p>
-              <p className="text-4xl font-semibold tracking-tight text-black">
+              <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
                 {formatNumber(
                   typeof overviewMetrics.aggregated.totalTxCount
                     .current_value === "number"
@@ -405,12 +405,12 @@ export default function AvalancheMetrics() {
             </div>
           </Card>
 
-          <Card className="border border-neutral-200 bg-white transition-all hover:border-neutral-300 hover:shadow-sm py-0">
+          <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-6 text-center">
-              <p className="mb-2 text-sm font-medium text-neutral-500">
+              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
                 Combined Throughput
               </p>
-              <p className="text-4xl font-semibold tracking-tight text-black">
+              <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
                 {(() => {
                   // Calculate total TPS from all chains
                   const totalTxs =
@@ -429,12 +429,12 @@ export default function AvalancheMetrics() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border border-neutral-200 bg-white transition-all hover:border-neutral-300 hover:shadow-sm py-0">
+          <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-5 text-center">
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                 Interchain Messages
               </p>
-              <p className="text-2xl font-semibold text-black">
+              <p className="text-2xl font-semibold text-black dark:text-white">
                 {formatNumber(
                   overviewMetrics.aggregated.totalICMMessages.current_value
                 )}
@@ -442,37 +442,37 @@ export default function AvalancheMetrics() {
             </div>
           </Card>
 
-          <Card className="border border-neutral-200 bg-white transition-all hover:border-neutral-300 hover:shadow-sm py-0">
+          <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-5 text-center">
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                 Total Validators
               </p>
-              <p className="text-2xl font-semibold text-black">
+              <p className="text-2xl font-semibold text-black dark:text-white">
                 {formatNumber(overviewMetrics.aggregated.totalValidators)}
               </p>
             </div>
           </Card>
 
-          <Card className="border border-neutral-200 bg-white transition-all hover:border-neutral-300 hover:shadow-sm py-0">
+          <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-5 text-center">
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                 All-Time Validation Fees
               </p>
               <div className="flex items-center justify-center gap-2">
                 <AvalancheLogo className="w-6 h-6" fill="#E84142" />
-                <p className="text-2xl font-semibold text-black">10,220</p>
+                <p className="text-2xl font-semibold text-black dark:text-white">10,220</p>
               </div>
             </div>
           </Card>
 
-          <Card className="border border-neutral-200 bg-white transition-all hover:border-neutral-300 hover:shadow-sm py-0">
+          <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-5 text-center">
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                 Total Network Fees Burned
               </p>
               <div className="flex items-center justify-center gap-2">
                 <AvalancheLogo className="w-6 h-6" fill="#E84142" />
-                <p className="text-2xl font-semibold text-black">
+                <p className="text-2xl font-semibold text-black dark:text-white">
                   {formatNumber(4930978)}
                 </p>
               </div>
@@ -480,16 +480,16 @@ export default function AvalancheMetrics() {
           </Card>
         </div>
 
-        <div className="border-t border-neutral-200 my-8"></div>
+        <div className="border-t border-neutral-200 dark:border-neutral-800 my-8"></div>
 
         <div className="flex items-center gap-2">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500" />
             <Input
               placeholder="Search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 rounded-full border-neutral-200 bg-neutral-100 transition-colors focus-visible:border-black focus-visible:ring-0"
+              className="pl-10 rounded-full border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
             />
           </div>
           <Button
@@ -499,75 +499,75 @@ export default function AvalancheMetrics() {
               setSearchTerm("");
               setVisibleCount(25);
             }}
-            className="text-neutral-600 hover:bg-neutral-100 hover:text-black rounded-full"
+            className="text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white rounded-full"
           >
             Clear Search
           </Button>
         </div>
 
-        <Card className="overflow-hidden border border-neutral-200 py-0">
+        <Card className="overflow-hidden border border-neutral-200 dark:border-neutral-800 py-0">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
-              <thead className="bg-neutral-50">
-                <tr className="border-b border-neutral-200">
-                  <th className="border-r border-neutral-200 px-6 py-4 text-left">
+              <thead className="bg-neutral-50 dark:bg-neutral-900">
+                <tr className="border-b border-neutral-200 dark:border-neutral-800">
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-4 text-left">
                     <div className="flex items-center gap-2">
                       <SortButton field="chainName">
-                        <span className="text-sm font-semibold uppercase tracking-wide">
+                        <span className="text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
                           L1 Name
                         </span>
                       </SortButton>
                     </div>
                   </th>
-                  <th className="border-r border-neutral-200 px-6 py-4 text-left">
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-4 text-left">
                     <div className="flex items-center gap-2">
                       <SortButton field="weeklyTxCount">
-                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
+                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
                           Transactions
                         </span>
-                        <span className="lg:hidden text-xs font-medium uppercase tracking-wide text-neutral-600">
+                        <span className="lg:hidden text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">
                           Txs
                         </span>
                       </SortButton>
                     </div>
                   </th>
-                  <th className="border-r border-neutral-200 px-6 py-4 text-left">
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-4 text-left">
                     <div className="flex items-center gap-2">
                       <SortButton field="weeklyActiveAddresses">
-                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
+                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
                           Active Addresses
                         </span>
-                        <span className="lg:hidden text-xs font-medium uppercase tracking-wide text-neutral-600">
+                        <span className="lg:hidden text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">
                           Addrs
                         </span>
                       </SortButton>
                     </div>
                   </th>
-                  <th className="border-r border-neutral-200 px-6 py-4 text-left">
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-4 text-left">
                     <div className="flex items-center gap-2">
                       <SortButton field="totalIcmMessages">
-                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
+                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
                           Total ICM Count
                         </span>
-                        <span className="lg:hidden text-xs font-medium uppercase tracking-wide text-neutral-600">
+                        <span className="lg:hidden text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">
                           ICM
                         </span>
                       </SortButton>
                     </div>
                   </th>
-                  <th className="border-r border-neutral-200 px-6 py-4 text-left">
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-4 text-left">
                     <div className="flex items-center gap-2">
                       <SortButton field="validatorCount">
-                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
+                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
                           Validators
                         </span>
                       </SortButton>
                     </div>
                   </th>
-                  <th className="border-r border-neutral-200 px-6 py-4 text-left">
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-4 text-left">
                     <div className="flex items-center gap-2">
                       <SortButton field="throughput">
-                        <span className="text-sm font-semibold uppercase tracking-wide">
+                        <span className="text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
                           Throughput
                         </span>
                       </SortButton>
@@ -576,7 +576,7 @@ export default function AvalancheMetrics() {
                   <th className="px-6 py-4 text-left">
                     <div className="flex items-center gap-2">
                       <SortButton field="category">
-                        <span className="text-sm font-semibold uppercase tracking-wide">
+                        <span className="text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
                           Category
                         </span>
                       </SortButton>
@@ -584,7 +584,7 @@ export default function AvalancheMetrics() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white">
+              <tbody className="bg-white dark:bg-neutral-950">
                 {visibleData.map((chain, index) => {
                   const chainSlug = getChainSlug(
                     chain.chainId,
@@ -593,7 +593,7 @@ export default function AvalancheMetrics() {
                   return (
                     <tr
                       key={chain.chainId}
-                      className={`border-b border-slate-100 transition-colors hover:bg-blue-50/50 ${
+                      className={`border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50 ${
                         chainSlug ? "cursor-pointer" : ""
                       }`}
                       onClick={() => {
@@ -602,7 +602,7 @@ export default function AvalancheMetrics() {
                         }
                       }}
                     >
-                      <td className="border-r border-slate-100 px-6 py-4">
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
                         <div className="flex items-center gap-3 group">
                           <div className="relative">
                             {chain.chainLogoURI ? (
@@ -624,23 +624,23 @@ export default function AvalancheMetrics() {
                               </div>
                             )}
                           </div>
-                          <span className="font-medium">{chain.chainName}</span>
+                          <span className="font-medium text-black dark:text-white">{chain.chainName}</span>
                           {chainSlug && (
                             <div className="relative overflow-hidden w-4 h-4 flex-shrink-0">
-                              <ArrowUpRight className="h-4 w-4 text-blue-600 absolute transition-all duration-300 ease-out transform translate-y-4 translate-x-4 opacity-0 group-hover:translate-y-0 group-hover:translate-x-0 group-hover:opacity-100" />
+                              <ArrowUpRight className="h-4 w-4 text-blue-600 dark:text-blue-400 absolute transition-all duration-300 ease-out transform translate-y-4 translate-x-4 opacity-0 group-hover:translate-y-0 group-hover:translate-x-0 group-hover:opacity-100" />
                             </div>
                           )}
                         </div>
                       </td>
-                      <td className="border-r border-slate-100 px-6 py-4">
-                        <span className="text-sm font-medium">
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
+                        <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {typeof chain.txCount.current_value === "number"
                             ? formatFullNumber(chain.txCount.current_value)
                             : chain.txCount.current_value}
                         </span>
                       </td>
-                      <td className="border-r border-slate-100 px-6 py-4">
-                        <span className="text-sm font-medium">
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
+                        <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {typeof chain.activeAddresses.current_value ===
                           "number"
                             ? formatFullNumber(
@@ -649,22 +649,22 @@ export default function AvalancheMetrics() {
                             : chain.activeAddresses.current_value}
                         </span>
                       </td>
-                      <td className="border-r border-slate-100 px-6 py-4">
-                        <span className="text-sm font-medium">
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
+                        <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {typeof chain.icmMessages.current_value === "number"
                             ? formatFullNumber(chain.icmMessages.current_value)
                             : chain.icmMessages.current_value}
                         </span>
                       </td>
-                      <td className="border-r border-slate-100 px-6 py-4">
-                        <span className="text-sm font-medium">
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
+                        <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {typeof chain.validatorCount === "number"
                             ? formatFullNumber(chain.validatorCount)
                             : chain.validatorCount}
                         </span>
                       </td>
-                      <td className="border-r border-slate-100 px-6 py-4">
-                        <span className="text-sm font-medium">
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
+                        <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {getChainTPS(chain)} TPS
                         </span>
                       </td>
@@ -691,7 +691,7 @@ export default function AvalancheMetrics() {
               onClick={handleLoadMore}
               variant="outline"
               size="lg"
-              className="px-8 py-3 border-neutral-200 bg-white transition-colors hover:border-black hover:bg-white"
+              className="px-8 py-3 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-black dark:text-white transition-colors hover:border-black dark:hover:border-white hover:bg-white dark:hover:bg-neutral-900"
             >
               Load More Chains ({sortedData.length - visibleCount} remaining)
             </Button>
@@ -699,7 +699,7 @@ export default function AvalancheMetrics() {
         )}
 
         <div className="text-center">
-          <p className="text-sm text-neutral-600 mb-2">
+          <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
             Showing {Math.min(visibleCount, sortedData.length)} of{" "}
             {sortedData.length} chains
           </p>
