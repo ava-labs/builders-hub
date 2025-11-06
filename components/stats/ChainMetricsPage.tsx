@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, Legend, ComposedChart } from "recharts";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Zap, Gauge, DollarSign, TrendingDown, Clock, Fuel, ExternalLink } from "lucide-react";
@@ -882,9 +882,9 @@ function ChartCard({
 
         <div className="px-5 pt-6 pb-6">
           {/* Current Value and Change */}
-          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4">
-            <div className="text-md sm:text-xl font-mono break-all">
-              {formatTooltipValue(typeof currentValue === "string" ? parseFloat(currentValue) : currentValue)}
+          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4 flex-wrap">
+            <div className="text-md sm:text-base font-mono break-all">
+              {formatTooltipValue(typeof currentValue === "string"? parseFloat(currentValue) : currentValue)}
             </div>
             {dynamicChange.change > 0 && (
               <div
@@ -894,9 +894,31 @@ function ChartCard({
                 <TrendingUp
                   className={`h-3 w-3 sm:h-4 sm:w-4 ${dynamicChange.isPositive ? "" : "rotate-180"}`}
                 />
-                {dynamicChange.change.toFixed(1)}%
+                {dynamicChange.change >= 1000
+                  ? dynamicChange.change >= 1000000
+                    ? `${(dynamicChange.change / 1000000).toFixed(1)}M%`
+                    : `${(dynamicChange.change / 1000).toFixed(1)}K%`
+                  : `${dynamicChange.change.toFixed(1)}%`}
               </div>
             )}
+            {/* for cumulative charts */}
+            {config.chartType === "bar" && (config.metricKey === "txCount" || config.metricKey === "activeAddresses") && (
+                <div className="flex items-center gap-3 ml-auto text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded" style={{ backgroundColor: config.color }}/>
+                    <span className="text-muted-foreground">
+                      {period === "D" ? "Daily": period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div
+                      className="w-3 h-0.5"
+                      style={{ backgroundColor: "#10b981" }}
+                    />
+                    <span style={{ color: "#10b981" }}>Total</span>
+                  </div>
+                </div>
+              )}
           </div>
 
           <div className="mb-6">
@@ -906,13 +928,12 @@ function ChartCard({
                 config.metricKey === "activeAddresses") ? (
                 <ComposedChart
                   data={displayDataWithCumulative}
-                  margin={{ top: 20, right: 10, left: 20, bottom: 20 }}
+                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
                     className="stroke-gray-200 dark:stroke-gray-700"
                     vertical={false}
-                    horizontalPoints={[0, 400]}
                   />
                   <XAxis
                     dataKey="day"
@@ -935,36 +956,6 @@ function ChartCard({
                     className="text-xs text-gray-600 dark:text-gray-400"
                     tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
                   />
-                  <Legend
-                    verticalAlign="top"
-                    height={36}
-                    content={({ payload }) => (
-                      <div className="flex items-center justify-center gap-4 pb-2 text-xs">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded"
-                            style={{ backgroundColor: config.color }}
-                          />
-                          <span>
-                            {config.metricKey === "txCount"
-                              ? "Daily Transactions"
-                              : "Active Addresses"}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-0.5"
-                            style={{ backgroundColor: "#10b981" }}
-                          />
-                          <span style={{ color: "#10b981" }}>
-                            {config.metricKey === "txCount"
-                              ? "Total Transactions"
-                              : "Total Addresses"}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  />
                   <Tooltip
                     cursor={{ fill: `${config.color}20` }}
                     content={({ active, payload }) => {
@@ -978,11 +969,11 @@ function ChartCard({
                             <div className="font-medium text-sm">
                               {formattedDate}
                             </div>
-                            <div className="text-sm">
+                            <div className="text-xs">
                               {formatTooltipValue(payload[0].value as number)}
                             </div>
                             {payload[0].payload.cumulative && (
-                              <div className="text-sm text-muted-foreground">
+                              <div className="text-xs text-muted-foreground">
                                 Cumulative:{" "}
                                 {formatYAxisValue(
                                   payload[0].payload.cumulative
@@ -1009,14 +1000,10 @@ function ChartCard({
                     type="monotone"
                     dataKey="cumulative"
                     stroke="#10b981"
-                    strokeWidth={3}
+                    strokeWidth={1}
                     dot={false}
                     yAxisId="right"
-                    name={
-                      config.metricKey === "txCount"
-                        ? "Total Transactions"
-                        : "Total Addresses"
-                    }
+                    name={config.metricKey === "txCount" ? "Total Transactions" : "Total Addresses"}
                     strokeOpacity={0.9}
                   />
                 </ComposedChart>
@@ -1051,10 +1038,10 @@ function ChartCard({
                       return (
                         <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                           <div className="grid gap-2">
-                            <div className="font-medium text-sm">
+                            <div className="font-medium text-xs">
                               {formattedDate}
                             </div>
-                            <div className="text-sm">
+                            <div className="text-xs">
                               {formatTooltipValue(payload[0].value as number)}
                             </div>
                           </div>
@@ -1119,10 +1106,10 @@ function ChartCard({
                       return (
                         <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                           <div className="grid gap-2">
-                            <div className="font-medium text-sm">
+                            <div className="font-medium text-xs">
                               {formattedDate}
                             </div>
-                            <div className="text-sm">
+                            <div className="text-xs">
                               {formatTooltipValue(payload[0].value as number)}
                             </div>
                           </div>
@@ -1173,10 +1160,10 @@ function ChartCard({
                       return (
                         <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                           <div className="grid gap-2">
-                            <div className="font-medium text-sm">
+                            <div className="font-medium text-xs">
                               {formattedDate}
                             </div>
-                            <div className="text-sm">
+                            <div className="text-xs">
                               {formatTooltipValue(payload[0].value as number)}
                             </div>
                           </div>
