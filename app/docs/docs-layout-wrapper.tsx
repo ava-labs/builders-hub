@@ -18,7 +18,8 @@ import {
   Database,
   Activity,
   Network,
-  Webhook
+  Webhook,
+  CircleDollarSign
 } from 'lucide-react';
 
 interface DocsLayoutWrapperProps {
@@ -185,7 +186,7 @@ export function DocsLayoutWrapper({
     {
       title: 'X-Chain RPC',
       description: 'Exchange Chain RPC methods',
-      icon: <Network className="w-5 h-5" />,
+      icon: <CircleDollarSign className="w-5 h-5" />,
       url: '/docs/rpcs/x-chain',
     },
     {

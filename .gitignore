@@ -140,6 +140,9 @@ package-lock.json
 
 
 
+
+
+
 # Remote content output paths
 content/docs/acps/103-dynamic-fees.mdx
 content/docs/acps/108-evm-event-importing.mdx
@@ -187,16 +190,16 @@ content/docs/nodes/chain-configs/subnet-evm.mdx
 content/docs/nodes/chain-configs/x-chain.mdx
 content/docs/nodes/configure/avalanche-l1-configs.mdx
 content/docs/nodes/configure/configs-flags.mdx
-content/docs/rpcs/c-chain/rpc.mdx
-content/docs/rpcs/other/admin-rpc.mdx
+content/docs/rpcs/c-chain/index.mdx
 content/docs/rpcs/other/health-rpc.mdx
 content/docs/rpcs/other/index-rpc.mdx
+content/docs/rpcs/other/index.mdx
 content/docs/rpcs/other/info-rpc.mdx
 content/docs/rpcs/other/metrics-rpc.mdx
 content/docs/rpcs/other/proposervm-rpc.mdx
-content/docs/rpcs/p-chain/rpc.mdx
+content/docs/rpcs/p-chain/index.mdx
 content/docs/rpcs/subnet-evm/index.mdx
-content/docs/rpcs/x-chain/rpc.mdx
+content/docs/rpcs/x-chain/index.mdx
 content/docs/tooling/cli-commands.mdx
 # (duplicates removed below)
 content/docs/nodes/chain-configs/c-chain.mdx
@@ -274,6 +277,16 @@ content/docs/rpcs/c-chain/**/meta.json
 !content/docs/rpcs/c-chain/index.mdx
 !content/docs/rpcs/c-chain/txn-format.mdx
 !content/docs/rpcs/c-chain/api.mdx
+
+# Generated X-Chain RPC API documentation (auto-generated from OpenAPI)
+content/docs/rpcs/x-chain/**/*.mdx
+content/docs/rpcs/x-chain/**/meta.json
+!content/docs/rpcs/x-chain/meta.json
+!content/docs/rpcs/x-chain/index.mdx
+!content/docs/rpcs/x-chain/txn-format.mdx
+!content/docs/rpcs/x-chain/api.mdx
+!content/docs/rpcs/x-chain/rpc.mdx
+
 content/docs/avalanche-l1s/evm-configuration/warpmessenger.mdx
 content/docs/avalanche-l1s/validator-manager/contract.mdx
 content/docs/cross-chain/avalanche-warp-messaging/deep-dive.mdx

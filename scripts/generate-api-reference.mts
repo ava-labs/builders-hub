@@ -44,6 +44,10 @@ async function generate() {
     input: ['./public/openapi/coreth.yaml'],
   });
 
+  const xChainApi = createOpenAPI({
+    input: ['./public/openapi/xchain.yaml'],
+  });
+
   // Generate Data API documentation (preserve root files)
   const dataOut = './content/docs/api-reference/data-api';
   const dataMetaPath = `${dataOut}/meta.json`;
@@ -91,6 +95,18 @@ async function generate() {
   if (cIndexBackup !== undefined) writeFileSync(cIndex, cIndexBackup);
 
   console.log('✅ Generated C-Chain RPC API documentation');
+
+  // Generate X-Chain RPC API documentation (preserve root files)
+  const xOut = './content/docs/rpcs/x-chain';
+  const xMeta = `${xOut}/meta.json`;
+  const xIndex = `${xOut}/index.mdx`;
+  const xMetaBackup = existsSync(xMeta) ? readFileSync(xMeta, 'utf-8') : undefined;
+  const xIndexBackup = existsSync(xIndex) ? readFileSync(xIndex, 'utf-8') : undefined;
+  await generateFiles({ input: xChainApi, output: xOut, includeDescription: true, groupBy: 'tag' });
+  if (xMetaBackup !== undefined) writeFileSync(xMeta, xMetaBackup);
+  if (xIndexBackup !== undefined) writeFileSync(xIndex, xIndexBackup);
+
+  console.log('✅ Generated X-Chain RPC API documentation');
   
   // Move webhooks from data-api to webhook-api
   console.log('\n🔧 Moving webhooks to webhook-api...');

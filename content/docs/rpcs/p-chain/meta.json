@@ -5,7 +5,7 @@
   "root": true,
   "pages": [
     "index",
-    "---API Methods---",
+    "---RPC Methods---",
     "chain-info",
     "subnets",
     "validators",

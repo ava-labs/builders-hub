@@ -19,3 +19,8 @@ export const cChainApi = createOpenAPI({
   // C-Chain RPC API
   input: ['./public/openapi/coreth.yaml'],
 });
+
+export const xChainApi = createOpenAPI({
+  // X-Chain RPC API
+  input: ['./public/openapi/xchain.yaml'],
+});

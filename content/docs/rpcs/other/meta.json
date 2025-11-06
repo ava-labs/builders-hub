@@ -5,7 +5,6 @@
   "root": true,
   "pages": [
     "index",
-    "admin-rpc",
     "health-rpc",
     "index-rpc",
     "info-rpc",

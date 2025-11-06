@@ -8,7 +8,7 @@ export function getApisConfigs(): FileConfig[] {
   return [
     {
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/api/admin/service.md",
-      outputPath: "content/docs/rpcs/other/admin-rpc.mdx",
+      outputPath: "content/docs/rpcs/other/index.mdx",
       title: "Admin RPC",
       description: "This page is an overview of the Admin RPC associated with AvalancheGo.",
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/api/admin/",
@@ -41,27 +41,27 @@ export function getApisConfigs(): FileConfig[] {
       description: "This page is an overview of the Index RPC associated with AvalancheGo.",
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/indexer/",
     },
-    // {
-    //   sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/vms/platformvm/service.md",
-    //   outputPath: "content/docs/rpcs/p-chain/rpc.mdx",
-    //   title: "P-Chain RPC",
-    //   description: "This page is an overview of the P-Chain RPC associated with AvalancheGo.",
-    //   contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/platformvm/",
-    // },
+    {
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/vms/platformvm/service.md",
+      outputPath: "content/docs/rpcs/p-chain/index.mdx",
+      title: "P-Chain RPC",
+      description: "This page is an overview of the P-Chain RPC associated with AvalancheGo.",
+      contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/platformvm/",
+    },
     {
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/vms/avm/service.md",
-      outputPath: "content/docs/rpcs/x-chain/rpc.mdx",
+      outputPath: "content/docs/rpcs/x-chain/index.mdx",
       title: "X-Chain RPC",
       description: "This page is an overview of the X-Chain RPC associated with AvalancheGo.",
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/avm/",
     },
-    // {
-    //   sourceUrl: "https://raw.githubusercontent.com/ava-labs/coreth/master/plugin/evm/api.md",
-    //   outputPath: "content/docs/rpcs/c-chain/rpc.mdx",
-    //   title: "C-Chain RPC",
-    //   description: "This page is an overview of the C-Chain RPC associated with AvalancheGo.",
-    //   contentUrl: "https://github.com/ava-labs/coreth/blob/master/plugin/evm/",
-    // },
+    {
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/coreth/master/plugin/evm/api.md",
+      outputPath: "content/docs/rpcs/c-chain/index.mdx",
+      title: "C-Chain RPC",
+      description: "This page is an overview of the C-Chain RPC associated with AvalancheGo.",
+      contentUrl: "https://github.com/ava-labs/coreth/blob/master/plugin/evm/",
+    },
     {
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/subnet-evm/master/plugin/evm/service.md",
       outputPath: "content/docs/rpcs/subnet-evm/index.mdx",
