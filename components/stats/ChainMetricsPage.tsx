@@ -1122,7 +1122,7 @@ function ChartCard({
                     dataKey="value"
                     stroke={config.color}
                     fill={`url(#gradient-${config.metricKey})`}
-                    strokeWidth={2}
+                    strokeWidth={1}
                   />
                 </AreaChart>
               ) : (
@@ -1175,7 +1175,7 @@ function ChartCard({
                     type="monotone"
                     dataKey="value"
                     stroke={config.color}
-                    strokeWidth={2}
+                    strokeWidth={1}
                     dot={false}
                   />
                 </LineChart>
