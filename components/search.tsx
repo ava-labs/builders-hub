@@ -1,6 +1,6 @@
 "use client";
 import { type SharedProps } from "fumadocs-ui/components/dialog/search";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { liteClient } from "algoliasearch/lite";
 import { Search, ArrowUpRight } from "lucide-react";
 
@@ -23,6 +23,12 @@ export default function CustomSearchDialog(props: SharedProps) {
   const [results, setResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const modalRef = React.useRef<HTMLDivElement>(null);
+
+  const handleClose = useCallback(() => {
+    if (props.onOpenChange) {
+      props.onOpenChange(false);
+    }
+  }, [props.onOpenChange]);
 
   const performSearch = async (searchTerm: string) => {
     if (!searchTerm || searchTerm.length < 2) {
@@ -85,7 +91,7 @@ export default function CustomSearchDialog(props: SharedProps) {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [props.open]);
+  }, [props.open, handleClose]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -99,22 +105,21 @@ export default function CustomSearchDialog(props: SharedProps) {
 
     if (props.open) {
       document.addEventListener("mousedown", handleClickOutside);
+      // Add class to body to hide subnavbar when search is open
+      document.body.classList.add('search-open');
+    } else {
+      document.body.classList.remove('search-open');
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.body.classList.remove('search-open');
     };
-  }, [props.open]);
+  }, [props.open, handleClose]);
 
   if (!props.open) {
     return null;
   }
-
-  const handleClose = () => {
-    if (props.onOpenChange) {
-      props.onOpenChange(false);
-    }
-  };
 
   const handleResultClick = (item: any) => {
     if (item.url) {
@@ -140,7 +145,7 @@ export default function CustomSearchDialog(props: SharedProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm">
       <div className="flex min-h-full items-start justify-center p-4 pt-[10vh]">
         <div
           ref={modalRef}

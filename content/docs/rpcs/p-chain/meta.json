@@ -1,0 +1,22 @@
+{
+  "title": "P-Chain",
+  "description": "Platform Chain RPC methods",
+  "icon": "Server",
+  "root": true,
+  "pages": [
+    "index",
+    "---RPC Methods---",
+    "chain-info",
+    "subnets",
+    "validators",
+    "blockchains",
+    "blocks",
+    "transactions",
+    "balances-utxos",
+    "staking",
+    "rewards",
+    "fees",
+    "---Reference---",
+    "txn-format"
+  ]
+}

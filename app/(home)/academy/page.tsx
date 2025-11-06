@@ -32,8 +32,8 @@ export default function AcademyPage(): React.ReactElement {
   const blogPages = [...blog.getPages()]
     .sort(
       (a, b) =>
-        new Date((b.data.date as string) ?? b.file.name).getTime() -
-        new Date((a.data.date as string) ?? a.file.name).getTime()
+        new Date((b.data.date as string) ?? b.url).getTime() -
+        new Date((a.data.date as string) ?? a.url).getTime()
     )
     .slice(0, 9); // Limit to 9 guides
 
@@ -50,7 +50,7 @@ export default function AcademyPage(): React.ReactElement {
           : (page.data.date as string) || "",
     },
     file: {
-      name: page.file.name,
+      name: page.url, // Use URL instead of file.name in v16
     },
   }));
 
