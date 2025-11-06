@@ -10,6 +10,7 @@ import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { TimeSeriesMetric, ICMMetric, TimeRange } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 
 interface ChainOverviewMetrics {
   chainId: string;
@@ -167,8 +168,8 @@ export default function AvalancheMetrics() {
         bValue = Number.parseFloat(getChainTPS(b));
         break;
       case "category":
-        aValue = getChainCategory(a.chainName);
-        bValue = getChainCategory(b.chainName);
+        aValue = getChainCategory(a.chainId, a.chainName);
+        bValue = getChainCategory(b.chainId, b.chainName);
         break;
       default:
         aValue = 0;
@@ -217,33 +218,12 @@ export default function AvalancheMetrics() {
     </button>
   );
 
-  const getChainCategory = (chainName: string): string => {
-    const name = chainName.toLowerCase();
-
-    if (name.includes("c-chain") || name === "c-chain") return "General";
-    if (name.includes("beam") || name.includes("dexalot")) return "DeFi";
-    if (name.includes("haven") || name.includes("portal")) return "Gaming";
-    if (name.includes("xai") || name.includes("kiki")) return "Gaming";
-    if (name.includes("zexe") || name.includes("alpha")) return "DeFi";
-    if (name.includes("intain") || name.includes("plume")) return "RWAs";
-    if (name.includes("gunz") || name.includes("dos")) return "Gaming";
-    if (name.includes("step") || name.includes("zero")) return "Payments";
-    if (name.includes("avalancheverse") || name.includes("oasys"))
-      return "Gaming";
-
-    // Default categories for variety
-    const categories = [
-      "DeFi",
-      "Gaming",
-      "Institutions",
-      "RWAs",
-      "Payments",
-      "General",
-    ];
-    const hash = chainName
-      .split("")
-      .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return categories[hash % categories.length];
+  const getChainCategory = (chainId: string, chainName: string): string => {
+    // Look up category from constants/l1-chains.json
+    const chain = l1ChainsData.find(
+      (c) => c.chainId === chainId || c.chainName.toLowerCase() === chainName.toLowerCase()
+    );
+    return chain?.category || "General";
   };
 
   const getCategoryColor = (category: string): string => {
@@ -282,14 +262,7 @@ export default function AvalancheMetrics() {
               </p>
             </div>
           </div>
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Activity className="h-6 w-6 text-neutral-500 dark:text-neutral-400 animate-pulse" />
-              </div>
-              <p className="text-sm text-neutral-600 dark:text-neutral-400">Loading data...</p>
-            </div>
-          </div>
+          <ChartSkeletonLoader />
         </div>
 
         {/* Bubble Navigation */}
@@ -395,11 +368,7 @@ export default function AvalancheMetrics() {
                 {formatNumber(
                   typeof overviewMetrics.aggregated.totalTxCount
                     .current_value === "number"
-                    ? Math.round(
-                        overviewMetrics.aggregated.totalTxCount.current_value /
-                          365
-                      )
-                    : 0
+                    ? Math.round(overviewMetrics.aggregated.totalTxCount.current_value / 365) : 0
                 )}
               </p>
             </div>
@@ -436,10 +405,7 @@ export default function AvalancheMetrics() {
               </p>
               <p className="text-2xl font-semibold text-black dark:text-white">
                 {formatNumber(
-                  Math.round(
-                    overviewMetrics.aggregated.totalICMMessages.current_value /
-                      365
-                  )
+                  Math.round(overviewMetrics.aggregated.totalICMMessages.current_value / 365)
                 )}
               </p>
             </div>
@@ -463,7 +429,7 @@ export default function AvalancheMetrics() {
               </p>
               <div className="flex items-center justify-center gap-2">
                 <AvalancheLogo className="w-6 h-6" fill="#E84142" />
-                <p className="text-2xl font-semibold text-black dark:text-white">10,220</p>
+                <p className="text-2xl font-semibold text-black dark:text-white">8,310</p>
               </div>
             </div>
           </Card>
@@ -637,20 +603,32 @@ export default function AvalancheMetrics() {
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
                         <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                          {typeof chain.activeAddresses.current_value === "number"
-                            ? formatFullNumber(chain.activeAddresses.current_value) : chain.activeAddresses.current_value}
+                          {typeof chain.activeAddresses.current_value ===
+                          "number"
+                            ? formatFullNumber(
+                                chain.activeAddresses.current_value
+                              )
+                            : chain.activeAddresses.current_value}
                         </span>
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
                         <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {typeof chain.txCount.current_value === "number"
-                            ? formatFullNumber(Math.round(chain.txCount.current_value / 365)) : chain.txCount.current_value}
+                            ? formatFullNumber(
+                                Math.round(chain.txCount.current_value / 365)
+                              )
+                            : chain.txCount.current_value}
                         </span>
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
                         <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {typeof chain.icmMessages.current_value === "number"
-                            ? formatFullNumber(Math.round(chain.icmMessages.current_value / 365)) : chain.icmMessages.current_value}
+                            ? formatFullNumber(
+                                Math.round(
+                                  chain.icmMessages.current_value / 365
+                                )
+                              )
+                            : chain.icmMessages.current_value}
                         </span>
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
@@ -665,9 +643,11 @@ export default function AvalancheMetrics() {
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(getChainCategory(chain.chainName))}`}
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(
+                            getChainCategory(chain.chainId, chain.chainName)
+                          )}`}
                         >
-                          {getChainCategory(chain.chainName)}
+                          {getChainCategory(chain.chainId, chain.chainName)}
                         </span>
                       </td>
                     </tr>
@@ -690,13 +670,6 @@ export default function AvalancheMetrics() {
             </Button>
           </div>
         )}
-
-        <div className="text-center">
-          <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
-            Showing {Math.min(visibleCount, sortedData.length)} of{" "}
-            {sortedData.length} chains
-          </p>
-        </div>
       </main>
 
       {/* Bubble Navigation */}
