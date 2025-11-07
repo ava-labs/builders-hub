@@ -97,7 +97,7 @@ export const RewardCard = ({
 
           {requirements && requirements.length > 0 && (
             <div >
-              <RequirementsPanel requirements={requirements as any} />
+              <RequirementsPanel requirements={requirements as any} title={name} />
             </div>
           )}
         </DialogContent>
