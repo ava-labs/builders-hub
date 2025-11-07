@@ -393,8 +393,8 @@ body:has([data-granite-banner])[data-layout="docs"] [data-sidebar="sidebar"] {
 /* Sidebar content area - DOCS ONLY */
 body[data-layout="docs"] #nd-sidebar > div,
 body[data-layout="docs"] [data-sidebar="sidebar"] > div {
-  padding-left: 0.25rem !important;
-  padding-right: 0.25rem !important;
+  /*padding-left: 0.25rem !important;
+  padding-right: 0.25rem !important;*/
 }
 
 /* Reduce sidebar header spacing - DOCS ONLY */
