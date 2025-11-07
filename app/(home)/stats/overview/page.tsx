@@ -268,7 +268,7 @@ export default function AvalancheMetrics() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-neutral-950">
+      <div className="min-h-screen bg-white dark:bg-neutral-950 pt-14">
         <div className="container mx-auto px-6 py-10 pb-24 space-y-12">
           <div className="space-y-3">
             <div>
@@ -291,7 +291,7 @@ export default function AvalancheMetrics() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white dark:bg-neutral-950">
+      <div className="min-h-screen bg-white dark:bg-neutral-950 pt-14">
         <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
           <div className="flex items-center justify-center min-h-[400px]">
             <Card className="max-w-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
@@ -316,7 +316,7 @@ export default function AvalancheMetrics() {
 
   if (!overviewMetrics || overviewMetrics.chains.length === 0) {
     return (
-      <div className="min-h-screen bg-white dark:bg-neutral-950">
+      <div className="min-h-screen bg-white dark:bg-neutral-950 pt-14">
         <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
           <div className="flex items-center justify-center min-h-[400px]">
             <Card className="max-w-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
@@ -342,7 +342,7 @@ export default function AvalancheMetrics() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-neutral-950">
+    <div className="min-h-screen bg-white dark:bg-neutral-950 pt-14">
       <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
         <div className="mb-10">
           <div className="flex items-start justify-between gap-4 mb-3">

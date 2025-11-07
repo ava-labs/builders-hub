@@ -281,7 +281,7 @@ export default function PrimaryNetworkValidatorMetrics() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-14">
         <div className="container mx-auto mt-4 p-6 pb-24 space-y-12">
           <div className="space-y-2">
             <div>
@@ -303,7 +303,7 @@ export default function PrimaryNetworkValidatorMetrics() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-14">
         <div className="container mx-auto p-6">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
@@ -324,7 +324,7 @@ export default function PrimaryNetworkValidatorMetrics() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-14">
       <div className="container mx-auto mt-4 p-4 sm:p-6 pb-24 space-y-8 sm:space-y-12">
         <div className="space-y-2">
           <div>
