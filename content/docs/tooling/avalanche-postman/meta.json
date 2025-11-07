@@ -1,0 +1,12 @@
+{
+    "title": "Postman Collection",
+    "description": "Postman collection for Avalanche APIs",
+    "root": true,
+    "pages": [
+      "index",
+      "making-api-calls",
+      "data-visualization",
+      "variables"
+    ]
+  }
+  

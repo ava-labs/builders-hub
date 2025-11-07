@@ -1,0 +1,42 @@
+---
+title: Custom HTTP Client
+description: Custom HTTP Client for the ChainKit SDK
+icon: Server
+---
+
+The TypeScript SDK makes API calls using an HTTPClient that wraps the native [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API). This client is a thin wrapper around `fetch` and provides the ability to attach hooks around the request lifecycle that can be used to modify the request or handle errors and response.
+
+The `HTTPClient` constructor takes an optional `fetcher` argument that can be used to integrate a third-party HTTP client or when writing tests to mock out the HTTP client and feed in fixtures.
+
+The following example shows how to use the `beforeRequest` hook to to add a custom header and a timeout to requests and how to use the `requestError` hook to log errors:
+
+```javascript
+import { Avalanche } from "@avalanche-sdk/chainkit";
+import { HTTPClient } from "@avalanche-sdk/chainkit/lib/http";
+
+const httpClient = new HTTPClient({
+  // fetcher takes a function that has the same signature as native `fetch`.
+  fetcher: (request) => {
+    return fetch(request);
+  },
+});
+
+httpClient.addHook("beforeRequest", (request) => {
+  const nextRequest = new Request(request, {
+    signal: request.signal || AbortSignal.timeout(5000),
+  });
+
+  nextRequest.headers.set("x-custom-header", "custom value");
+
+  return nextRequest;
+});
+
+httpClient.addHook("requestError", (error, request) => {
+  console.group("Request Error");
+  console.log("Reason:", `${error}`);
+  console.log("Endpoint:", `${request.method} ${request.url}`);
+  console.groupEnd();
+});
+
+const sdk = new Avalanche({ httpClient });
+```

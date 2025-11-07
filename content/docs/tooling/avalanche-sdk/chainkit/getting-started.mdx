@@ -1,0 +1,78 @@
+---
+title: Getting Started
+description: Get started with the ChainKit SDK
+icon: Rocket
+---
+### ChainKit SDK
+
+The ChainKit SDK provides web3 application developers with multi-chain data related to Avalanche's primary network, Avalanche L1s, and Ethereum. With the Data API, you can easily build products that leverage real-time and historical transaction and transfer history, native and token balances, and various types of token metadata.
+
+<Callout>
+  **Migration Notice**: This SDK was previously known as the AvaCloud SDK. We
+  have made namespace changes and will discontinue the AvaCloud SDK in favor of
+  the ChainKit SDK. For migration guidance and specific method updates, please
+  refer to the individual method documentation.
+</Callout>
+
+<img src="https://mintcdn.com/avalabs-47ea3976/5tYvr4aERqS4CNLz/images/chainkit-SDK.jpg?fit=max&auto=format&n=5tYvr4aERqS4CNLz&q=85&s=5ef81daf70200912ac6c1b505021c921" data-og-width="3968" width="3968" data-og-height="2452" height="2452" data-path="images/chainkit-SDK.jpg" data-optimize="true" data-opv="3" srcSet="https://mintcdn.com/avalabs-47ea3976/5tYvr4aERqS4CNLz/images/chainkit-SDK.jpg?w=280&fit=max&auto=format&n=5tYvr4aERqS4CNLz&q=85&s=17f99881ded8ce13a0df4784eb730562 280w, https://mintcdn.com/avalabs-47ea3976/5tYvr4aERqS4CNLz/images/chainkit-SDK.jpg?w=560&fit=max&auto=format&n=5tYvr4aERqS4CNLz&q=85&s=b64c64345a3586c1d73a1acdad757bb0 560w, https://mintcdn.com/avalabs-47ea3976/5tYvr4aERqS4CNLz/images/chainkit-SDK.jpg?w=840&fit=max&auto=format&n=5tYvr4aERqS4CNLz&q=85&s=606d74291aa14a9c98a169450b00ec9e 840w, https://mintcdn.com/avalabs-47ea3976/5tYvr4aERqS4CNLz/images/chainkit-SDK.jpg?w=1100&fit=max&auto=format&n=5tYvr4aERqS4CNLz&q=85&s=8cb8cb94c1851512eae03c1deaa71985 1100w, https://mintcdn.com/avalabs-47ea3976/5tYvr4aERqS4CNLz/images/chainkit-SDK.jpg?w=1650&fit=max&auto=format&n=5tYvr4aERqS4CNLz&q=85&s=855ca27fa8e66c64006f3d4623a7d8f6 1650w, https://mintcdn.com/avalabs-47ea3976/5tYvr4aERqS4CNLz/images/chainkit-SDK.jpg?w=2500&fit=max&auto=format&n=5tYvr4aERqS4CNLz&q=85&s=97d501a7bedbfc7c909e4b6b706bafe8 2500w" />
+
+The SDK is currently available in TypeScript, with more languages coming soon. If you are interested in a language that is not listed, please reach out to us in the [#dev-tools](https://discord.com/channels/578992315641626624/1280920394236297257) channel in the [Avalanche Discord](https://discord.gg/avax).
+
+<Cards>
+  <Card title="NPM Package">
+    [https://www.npmjs.com/package/@avalanche-sdk/chainkit](https://www.npmjs.com/package/@avalanche-sdk/chainkit)
+  </Card>
+  <Card title="GitHub Repository">
+    [https://github.com/ava-labs/avalanche-sdk-typescript](https://github.com/ava-labs/avalanche-sdk-typescript)
+  </Card>
+</Cards>
+
+### SDK Installation
+
+<Tabs items={['npm', 'pnpm', 'bun', 'yarn']}>
+  <Tab value="npm">
+  ```bash
+  npm add @avalanche-sdk/chainkit
+  ```
+</Tab>
+<Tab value="pnpm">
+  ```bash
+  pnpm add @avalanche-sdk/chainkit
+  ```
+</Tab>
+<Tab value="bun">
+  ```bash
+  bun add @avalanche-sdk/chainkit
+  ```
+</Tab>
+<Tab value="yarn">
+  ```bash
+  yarn add @avalanche-sdk/chainkit zod
+  ```
+</Tab>
+</Tabs>
+
+### SDK Example Usage
+
+```javascript
+import { Avalanche } from "@avalanche-sdk/chainkit";
+
+const avalancheSDK = new Avalanche({
+    apiKey: "<YOUR_API_KEY_HERE>",
+    chainId: "43114",
+    network: "mainnet",
+});
+
+async function run() {
+    const result = await avalancheSDK.metrics.healthCheck();
+
+    // Handle the result
+    console.log(result);
+}
+
+run();
+
+```
+
+Refer to the code samples provided for each route to see examples of how to use them in the SDK. Explore routes here [Data API](/docs/api-reference/data-api/getting-started),
+[Metrics API](/docs/api-reference/metrics-api/getting-started) & [Webhooks API](/docs/api-reference/webhook-api/getting-started).

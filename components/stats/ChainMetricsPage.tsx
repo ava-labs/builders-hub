@@ -1,15 +1,31 @@
 "use client";
-import * as React from "react";
-import { useState, useEffect } from "react";
-import { Area,AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, ReferenceLine } from "recharts";
-import {Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect, useMemo } from "react";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {type ChartConfig, ChartContainer,ChartTooltip,ChartTooltipContent } from "@/components/ui/chart";
-import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Zap, Gauge, DollarSign, TrendingDown, Clock, Fuel, ExternalLink } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
-import {TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, ChartDataPoint, TimeRange } from "@/types/stats";
+
+interface TimeSeriesDataPoint {
+  date: string;
+  value: number | string;
+}
+
+interface ICMDataPoint {
+  date: string;
+  messageCount: number;
+}
+
+interface TimeSeriesMetric {
+  current_value: number | string;
+  data: TimeSeriesDataPoint[];
+}
+
+interface ICMMetric {
+  current_value: number;
+  data: ICMDataPoint[];
+}
 
 interface CChainMetrics {
   activeAddresses: TimeSeriesMetric;
@@ -31,48 +47,36 @@ interface CChainMetrics {
   last_updated: number;
 }
 
-interface ICMChartDataPoint {
-  day: string;
-  messageCount: number;
-}
-
 interface ChainMetricsPageProps {
-  chainId: string;
-  chainName: string;
-  description: string;
+  chainId?: string;
+  chainName?: string;
+  description?: string;
+  themeColor?: string;
 }
 
 export default function ChainMetricsPage({
-  chainId,
-  chainName,
-  description,
+  chainId = "43114",
+  chainName = "Avalanche C-Chain",
+  description = "Real-time metrics and analytics for the Avalanche C-Chain",
+  themeColor = "#E57373",
 }: ChainMetricsPageProps) {
   const [metrics, setMetrics] = useState<CChainMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = React.useState<TimeRange>("1y");
 
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(
-        `/api/chain-stats/${chainId}?timeRange=${timeRange}`
-      );
+      const response = await fetch(`/api/chain-stats/${chainId}?timeRange=all`);
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const chainData = await response.json();
-
-      if (!chainData) {
-        throw new Error("Chain data not found");
-      }
-
       setMetrics(chainData);
-      setLastUpdated(new Date().toLocaleString());
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -82,7 +86,7 @@ export default function ChainMetricsPage({
 
   useEffect(() => {
     fetchData();
-  }, [timeRange, chainId]);
+  }, [chainId]);
 
   const formatNumber = (num: number | string): string => {
     if (num === "N/A" || num === "") return "N/A";
@@ -158,180 +162,58 @@ export default function ChainMetricsPage({
 
   const getChartData = (
     metricKey: keyof Omit<CChainMetrics, "last_updated" | "icmMessages">
-  ): ChartDataPoint[] => {
+  ) => {
     if (!metrics || !metrics[metricKey]?.data) return [];
-    const today = new Date().toISOString().split("T")[0];
-    const finalizedData = metrics[metricKey].data.filter(
-      (point) => point.date !== today
-    );
 
-    return finalizedData
+    return metrics[metricKey].data
       .map((point: TimeSeriesDataPoint) => ({
         day: point.date,
         value:
           typeof point.value === "string"
-            ? parseFloat(point.value)
+            ? Number.parseFloat(point.value)
             : point.value,
       }))
       .reverse();
   };
 
-  const getICMChartData = (): ICMChartDataPoint[] => {
+  const getICMChartData = () => {
     if (!metrics?.icmMessages?.data) return [];
 
-    // Filter out today's incomplete data - only show finalized days
-    const today = new Date().toISOString().split("T")[0];
-    const finalizedData = metrics.icmMessages.data.filter(
-      (point) => point.date !== today
-    );
-
-    return finalizedData
+    return metrics.icmMessages.data
       .map((point: ICMDataPoint) => ({
         day: point.date,
-        messageCount: point.messageCount,
+        value: point.messageCount,
       }))
       .reverse();
   };
 
-  const getYAxisDomain = (
-    data: ChartDataPoint[] | ICMChartDataPoint[],
-    isICM: boolean = false
-  ): [number, number] => {
-    if (data.length === 0) return [0, 100];
-
-    const values = isICM
-      ? (data as ICMChartDataPoint[]).map((d) => d.messageCount)
-      : (data as ChartDataPoint[]).map((d) => d.value);
-
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-
-    if (max - min < max * 0.1) {
-      const center = (min + max) / 2;
-      const range = Math.max(center * 0.1, 1);
-      return [Math.max(0, center - range), center + range];
-    }
-
-    const padding = (max - min) * 0.1;
-    return [Math.max(0, min - padding), max + padding];
-  };
-
-  const getYearBoundaries = (data: ChartDataPoint[]): string[] => {
-    if (timeRange !== "all" || data.length === 0) return [];
-
-    const yearMap = new Map<number, string>();
-
-    data.forEach((point) => {
-      const date = new Date(point.day);
-      const year = date.getFullYear();
-      if (!yearMap.has(year)) {
-        yearMap.set(year, point.day);
-      }
-    });
-
-    const sortedYears = Array.from(yearMap.keys()).sort((a, b) => a - b);
-    return sortedYears.slice(1).map((year) => yearMap.get(year)!);
-  };
-
-  const formatDateLabel = (dateString: string): string => {
-    const date = new Date(dateString);
-
-    if (timeRange === "all") {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        year: "numeric",
-      });
-    } else {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
-    }
-  };
-
-  const formatTooltipDate = (dateString: string): string => {
-    const date = new Date(dateString);
-
-    if (timeRange === "all") {
-      return date.toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      });
-    } else {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    }
-  };
-
-  const calculateAverage = (
-    data: ChartDataPoint[] | ICMChartDataPoint[]
-  ): number => {
-    if (!data || data.length === 0) return 0;
-    const sum = data.reduce((acc, point) => {
-      if ("value" in point) {
-        return acc + (typeof point.value === "number" ? point.value : 0);
-      } else if ("messageCount" in point) {
-        return acc + point.messageCount;
-      }
-      return acc;
-    }, 0);
-
-    return sum / data.length;
-  };
-
-  const AVERAGE_LINE_COLOR = "#8b5cf6";
-  const toShowAverageLine = (metricKey: string): boolean => {
-    return ["activeAddresses", "activeSenders", "txCount", "gasUsed"].includes(metricKey);
-  };
-
-  const getAverageLineProps = (
-    chartData: ChartDataPoint[] | ICMChartDataPoint[],
-    metricKey: string,
-    isICMChart: boolean = false
-  ) => {
-    const average = calculateAverage(chartData);
-    const formattedValue = isICMChart ? formatNumber(average) : formatTooltipValue(average, metricKey).replace(/^[^:]*:\s*/, "");
-
-    return {
-      y: average,
-      stroke: AVERAGE_LINE_COLOR,
-      strokeDasharray: "8 4",
-      strokeWidth: 2,
-      opacity: 0.9,
-      label: {
-        value: `Avg: ${formattedValue}`,
-        position: "insideTopLeft" as const,
-        style: {
-          textAnchor: "start" as const,
-          fontSize: "11px",
-          fill: AVERAGE_LINE_COLOR,
-          fontWeight: "600",
-          fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-        },
-      },
-    };
-  };
-
   const formatTooltipValue = (value: number, metricKey: string): string => {
+    const roundedValue = [
+      "activeAddresses",
+      "activeSenders",
+      "txCount",
+      "cumulativeAddresses",
+      "cumulativeDeployers",
+      "cumulativeTxCount",
+      "cumulativeContracts",
+      "icmMessages"
+    ].includes(metricKey) ? Math.round(value) : value;
+
     switch (metricKey) {
       case "activeAddresses":
-        return `${formatNumber(value)} Active Addresses`;
+        return `${formatNumber(roundedValue)} Active Addresses`;
       case "activeSenders":
-        return `${formatNumber(value)} Active Senders`;
-      case "cumulativeAddresses":
-        return `${formatNumber(value)} Total Addresses`;
-      case "cumulativeDeployers":
-        return `${formatNumber(value)} Total Deployers`;
+        return `${formatNumber(roundedValue)} Active Senders`;
       case "txCount":
-        return `${formatNumber(value)} Transactions`;
+        return `${formatNumber(roundedValue)} Transactions`;
+      case "cumulativeAddresses":
+        return `${formatNumber(roundedValue)} Total Addresses`;
+      case "cumulativeDeployers":
+        return `${formatNumber(roundedValue)} Total Deployers`;
       case "cumulativeTxCount":
-        return `${formatNumber(value)} Total Transactions`;
+        return `${formatNumber(roundedValue)} Total Transactions`;
       case "cumulativeContracts":
-        return `${formatNumber(value)} Total Contracts`;
+        return `${formatNumber(roundedValue)} Total Contracts`;
       case "gasUsed":
         return formatGas(value);
       case "avgGps":
@@ -349,7 +231,7 @@ export default function ChainMetricsPage({
       case "feesPaid":
         return formatEther(value);
       case "icmMessages":
-        return `${formatNumber(value)} ICM Messages`;
+        return `${formatNumber(roundedValue)} ICM Messages`;
       default:
         return formatNumber(value);
     }
@@ -362,301 +244,140 @@ export default function ChainMetricsPage({
     return metrics[metricKey].current_value;
   };
 
-  const getValueChange = (
-    metricKey: keyof Omit<CChainMetrics, "last_updated">
-  ): { change: number; isPositive: boolean } => {
-    if (
-      !metrics ||
-      !metrics[metricKey]?.data ||
-      metrics[metricKey].data.length === 0
-    ) {
-      return { change: 0, isPositive: true };
-    }
-
-    const data = metrics[metricKey].data;
-    const currentValue = data[0];
-
-    let comparisonIndex = 1;
-    switch (timeRange) {
-      case "30d":
-        comparisonIndex = Math.min(30, data.length - 1);
-        break;
-      case "90d":
-        comparisonIndex = Math.min(90, data.length - 1);
-        break;
-      case "1y":
-        comparisonIndex = Math.min(365, data.length - 1);
-        break;
-      case "all":
-        comparisonIndex = data.length - 1;
-        break;
-    }
-
-    if (comparisonIndex >= data.length) {
-      return { change: 0, isPositive: true };
-    }
-
-    const comparisonValue = data[comparisonIndex];
-
-    let currentVal: number;
-    let comparisonVal: number;
-
-    if (metricKey === "icmMessages") {
-      const current = currentValue as ICMDataPoint;
-      const comparison = comparisonValue as ICMDataPoint;
-      currentVal = current.messageCount;
-      comparisonVal = comparison.messageCount;
-    } else {
-      const current = currentValue as TimeSeriesDataPoint;
-      const comparison = comparisonValue as TimeSeriesDataPoint;
-      currentVal =
-        typeof current.value === "string"
-          ? parseFloat(current.value)
-          : current.value;
-      comparisonVal =
-        typeof comparison.value === "string"
-          ? parseFloat(comparison.value)
-          : comparison.value;
-    }
-
-    if (isNaN(currentVal) || isNaN(comparisonVal) || comparisonVal === 0) {
-      return { change: 0, isPositive: true };
-    }
-
-    const changePercentage =
-      ((currentVal - comparisonVal) / comparisonVal) * 100;
-
-    return {
-      change: Math.abs(changePercentage),
-      isPositive: changePercentage >= 0,
-    };
-  };
-
-  function getTimeRangeLabel(range: string): string {
-    switch (range) {
-      case "30d":
-        return "30 days";
-      case "90d":
-        return "90 days";
-      case "1y":
-        return "1 year";
-      case "all":
-        return "all time";
-      default:
-        return "1 year";
-    }
-  }
-
-  function getComparisonPeriodLabel(range: string): string {
-    switch (range) {
-      case "30d":
-        return "30 days ago";
-      case "90d":
-        return "90 days ago";
-      case "1y":
-        return "1 year ago";
-      case "all":
-        return "the beginning of the dataset";
-      default:
-        return "1 year ago";
-    }
-  }
-
-  const addressConfigs = [
+  const chartConfigs = [
     {
       title: "Active Addresses",
       icon: Users,
       metricKey: "activeAddresses" as const,
-      description: `Distinct addresses active over the past ${getTimeRangeLabel(
-        timeRange
-      )}`,
-      chartConfig: {
-        value: { label: "Active Addresses", color: "#40c9ff" },
-      } satisfies ChartConfig,
+      description: "Distinct addresses active on the network",
+      color: themeColor,
+      chartType: "bar" as const,
     },
     {
       title: "Active Senders",
       icon: UserPlus,
       metricKey: "activeSenders" as const,
-      description: `Addresses sending transactions over the past ${getTimeRangeLabel(
-        timeRange
-      )}`,
-      chartConfig: {
-        value: { label: "Active Senders", color: "#10b981" },
-      } satisfies ChartConfig,
+      description: "Addresses sending transactions",
+      color: themeColor,
+      chartType: "area" as const,
+    },
+    {
+      title: "Daily Transactions",
+      icon: Activity,
+      metricKey: "txCount" as const,
+      description: "Transaction volume over time",
+      color: themeColor,
+      chartType: "bar" as const,
     },
     {
       title: "Total Addresses",
       icon: Hash,
       metricKey: "cumulativeAddresses" as const,
-      description: `Cumulative unique addresses since genesis`,
-      chartConfig: {
-        value: { label: "Total Addresses", color: "#8b5cf6" },
-      } satisfies ChartConfig,
+      description: "Cumulative unique addresses since genesis",
+      color: themeColor,
+      chartType: "area" as const,
     },
     {
       title: "Total Deployers",
       icon: Code2,
       metricKey: "cumulativeDeployers" as const,
-      description: `Cumulative contract deployers since genesis`,
-      chartConfig: {
-        value: { label: "Total Deployers", color: "#f59e0b" },
-      } satisfies ChartConfig,
-    },
-  ];
-
-  const transactionConfigs = [
-    {
-      title: "Daily Transactions",
-      icon: Activity,
-      metricKey: "txCount" as const,
-      description: `Transaction volume over the past ${getTimeRangeLabel(
-        timeRange
-      )}`,
-      chartConfig: {
-        value: { label: "Daily Transactions", color: "#40c9ff" },
-      } satisfies ChartConfig,
+      description: "Cumulative contract deployers since genesis",
+      color: themeColor,
+      chartType: "area" as const,
     },
     {
       title: "Total Transactions",
       icon: Hash,
       metricKey: "cumulativeTxCount" as const,
-      description: `Cumulative transaction count since genesis`,
-      chartConfig: {
-        value: { label: "Total Transactions", color: "#10b981" },
-      } satisfies ChartConfig,
+      description: "Cumulative transaction count since genesis",
+      color: themeColor,
+      chartType: "area" as const,
     },
-  ];
-
-  const contractConfigs = [
     {
       title: "Total Contracts",
       icon: FileText,
       metricKey: "cumulativeContracts" as const,
-      description: `Cumulative smart contracts deployed since genesis`,
-      chartConfig: {
-        value: { label: "Total Contracts", color: "#8b5cf6" },
-      } satisfies ChartConfig,
+      description: "Cumulative smart contracts deployed since genesis",
+      color: themeColor,
+      chartType: "area" as const,
     },
-  ];
-
-  const gasConfigs = [
     {
       title: "Gas Used",
       icon: Fuel,
       metricKey: "gasUsed" as const,
-      description: `Gas consumption over the past ${getTimeRangeLabel(
-        timeRange
-      )}`,
-      chartConfig: {
-        value: { label: "Gas Used", color: "#40c9ff" },
-      } satisfies ChartConfig,
+      description: "Gas consumption over time",
+      color: themeColor,
+      chartType: "bar" as const,
     },
     {
       title: "Avg GPS",
       icon: Gauge,
       metricKey: "avgGps" as const,
-      description: `Average gas per second over the past ${getTimeRangeLabel(
-        timeRange
-      )}`,
-      chartConfig: {
-        value: { label: "Avg GPS", color: "#10b981" },
-      } satisfies ChartConfig,
+      description: "Average gas per second",
+      color: themeColor,
+      chartType: "area" as const,
     },
     {
       title: "Max GPS",
       icon: Zap,
       metricKey: "maxGps" as const,
-      description: `Peak gas per second over the past ${getTimeRangeLabel(
-        timeRange
-      )}`,
-      chartConfig: {
-        value: { label: "Max GPS", color: "#ef4444" },
-      } satisfies ChartConfig,
+      description: "Peak gas per second",
+      color: themeColor,
+      chartType: "area" as const,
     },
     {
       title: "Avg TPS",
       icon: Clock,
       metricKey: "avgTps" as const,
-      description: `Average transactions per second over the past ${getTimeRangeLabel(
-        timeRange
-      )}`,
-      chartConfig: {
-        value: { label: "Avg TPS", color: "#8b5cf6" },
-      } satisfies ChartConfig,
+      description: "Average transactions per second",
+      color: themeColor,
+      chartType: "area" as const,
     },
     {
       title: "Max TPS",
       icon: TrendingUp,
       metricKey: "maxTps" as const,
-      description: `Peak transactions per second over the past ${getTimeRangeLabel(
-        timeRange
-      )}`,
-      chartConfig: {
-        value: { label: "Max TPS", color: "#f59e0b" },
-      } satisfies ChartConfig,
+      description: "Peak transactions per second",
+      color: themeColor,
+      chartType: "area" as const,
     },
-  ];
-
-  const feeConfigs = [
     {
       title: "Avg Gas Price",
       icon: DollarSign,
       metricKey: "avgGasPrice" as const,
-      description: `Average gas price over the past ${getTimeRangeLabel(
-        timeRange
-      )}`,
-      chartConfig: {
-        value: { label: "Avg Gas Price", color: "#40c9ff" },
-      } satisfies ChartConfig,
+      description: "Average gas price over time",
+      color: themeColor,
+      chartType: "area" as const,
     },
     {
       title: "Max Gas Price",
       icon: TrendingDown,
       metricKey: "maxGasPrice" as const,
-      description: `Peak gas price over the past ${getTimeRangeLabel(
-        timeRange
-      )}`,
-      chartConfig: {
-        value: { label: "Max Gas Price", color: "#ef4444" },
-      } satisfies ChartConfig,
+      description: "Peak gas price over time",
+      color: themeColor,
+      chartType: "area" as const,
     },
     {
       title: "Fees Paid",
       icon: DollarSign,
       metricKey: "feesPaid" as const,
-      description: `Total transaction fees over the past ${getTimeRangeLabel(
-        timeRange
-      )}`,
-      chartConfig: {
-        value: { label: "Fees Paid", color: "#10b981" },
-      } satisfies ChartConfig,
+      description: "Total transaction fees over time",
+      color: themeColor,
+      chartType: "bar" as const,
     },
-  ];
-
-  const icmConfigs = [
     {
       title: "ICM Messages",
       icon: MessageSquare,
       metricKey: "icmMessages" as const,
-      description: `Interchain messaging activity over the past ${getTimeRangeLabel(
-        timeRange
-      )}`,
-      chartConfig: {
-        messageCount: { label: "ICM Messages", color: "#40c9ff" },
-      } satisfies ChartConfig,
-      isStackedBar: false,
+      description: "Interchain messaging activity",
+      color: themeColor,
+      chartType: "bar" as const,
     },
   ];
 
-  const allConfigs = [
-    ...addressConfigs,
-    ...transactionConfigs,
-    ...contractConfigs,
-    ...gasConfigs,
-    ...feeConfigs,
-    ...icmConfigs,
-  ];
+  const [chartPeriods, setChartPeriods] = useState<
+    Record<string, "D" | "W" | "M" | "Q" | "Y">
+  >(Object.fromEntries(chartConfigs.map((config) => [config.metricKey, "D"])));
 
   if (loading) {
     return (
@@ -682,21 +403,17 @@ export default function ChainMetricsPage({
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-        <div className="container mx-auto p-6">
+        <div className="container mx-auto p-6 pb-24">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
               <p className="text-destructive text-lg mb-4">
                 Error loading data: {error}
               </p>
-              <button
-                onClick={fetchData}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-              >
-                Retry
-              </button>
+              <Button onClick={fetchData}>Retry</Button>
             </div>
           </div>
         </div>
+        <StatsBubbleNav />
       </div>
     );
   }
@@ -704,6 +421,7 @@ export default function ChainMetricsPage({
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       <div className="container mx-auto mt-4 p-4 sm:p-6 pb-24 space-y-8 sm:space-y-12">
+        {/* Header */}
         <div className="space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
             <div className="min-w-0 flex-1">
@@ -734,51 +452,62 @@ export default function ChainMetricsPage({
           </div>
         </div>
 
+        {/* Network Overview */}
         <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">Network Overview</h2>
+            <h2 className="text-lg sm:text-2xl font-medium text-left">
+              Network Overview
+            </h2>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {[
-              addressConfigs[0],
-              transactionConfigs[0],
-              contractConfigs[0],
               {
-                title: "ICM Messages",
-                icon: MessageSquare,
-                metricKey: "icmMessages" as const,
-                chartConfig: {
-                  value: { label: "ICM Messages", color: "#8b5cf6" },
-                },
+                key: "activeAddresses",
+                icon: Users,
+                color: themeColor,
+                label: "Active Addresses",
               },
-            ].map((config: any) => {
-              const currentValue = getCurrentValue(config.metricKey);
-              const Icon = config.icon;
-
-              let displayValue = formatNumber(currentValue);
-              if (config.metricKey === "gasUsed") {
-                displayValue = formatGas(currentValue);
-              } else if (config.metricKey === "icmMessages") {
-                displayValue = `${formatNumber(currentValue)}`;
-              }
+              {
+                key: "txCount",
+                icon: Activity,
+                color: themeColor,
+                label: "Daily Transactions",
+              },
+              {
+                key: "cumulativeContracts",
+                icon: FileText,
+                color: themeColor,
+                label: "Total Contracts",
+              },
+              {
+                key: "icmMessages",
+                icon: MessageSquare,
+                color: themeColor,
+                label: "ICM Messages",
+              },
+            ].map((item) => {
+              const currentValue = getCurrentValue(
+                item.key as keyof Omit<CChainMetrics, "last_updated">
+              );
+              const Icon = item.icon;
 
               return (
                 <div
-                  key={config.metricKey}
-                  className="text-center p-4 sm:p-6 rounded-lg bg-card border"
+                  key={item.key}
+                  className="text-center p-4 sm:p-6 rounded-md bg-card border border-gray-200 dark:border-gray-700"
                 >
                   <div className="flex items-center justify-center gap-2 mb-2 sm:mb-3">
                     <Icon
                       className="h-4 w-4 sm:h-5 sm:w-5"
-                      style={{ color: config.chartConfig.value.color }}
+                      style={{ color: item.color }}
                     />
                     <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                      {config.title}
+                      {item.label}
                     </p>
                   </div>
                   <p className="text-xl sm:text-3xl font-mono font-semibold break-all">
-                    {displayValue}
+                    {formatNumber(currentValue)}
                   </p>
                 </div>
               );
@@ -797,270 +526,51 @@ export default function ChainMetricsPage({
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {allConfigs.map((config) => {
-              const isICMChart = config.metricKey === "icmMessages";
-              const chartData = isICMChart
-                ? getICMChartData()
-                : getChartData(
-                    config.metricKey as keyof Omit<
-                      CChainMetrics,
-                      "last_updated" | "icmMessages"
-                    >
-                  );
-              const yAxisDomain = getYAxisDomain(chartData, isICMChart);
-              const currentValue = getCurrentValue(config.metricKey);
-              const { change, isPositive } = getValueChange(config.metricKey);
-              const Icon = config.icon;
+            {chartConfigs
+              .filter(
+                (config) =>
+                  config.metricKey !== "cumulativeTxCount" &&
+                  config.metricKey !== "cumulativeAddresses"
+              )
+              .map((config) => {
+                const rawData =
+                  config.metricKey === "icmMessages"
+                    ? getICMChartData()
+                    : getChartData(config.metricKey);
+                if (rawData.length === 0) return null;
 
-              return (
-                <Card key={config.metricKey} className="w-full py-2 sm:py-0">
-                  <CardHeader className="px-4 pt-2 pb-2 sm:px-6 sm:pt-4 sm:pb-3">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="flex items-center gap-2 font-medium text-sm sm:text-base min-w-0 flex-1">
-                          <Icon
-                            className="h-4 w-4 sm:h-5 sm:w-5"
-                            style={{
-                              color: isICMChart
-                                ? config.chartConfig.messageCount.color
-                                : config.chartConfig.value.color,
-                            }}
-                          />
-                          <span className="truncate">{config.title}</span>
-                        </CardTitle>
-                        <div className="shrink-0">
-                          <DateRangeFilter
-                            compact={true}
-                            defaultRange={timeRange}
-                            onRangeChange={(range) => {
-                              if (
-                                range === "30d" ||
-                                range === "90d" ||
-                                range === "1y" ||
-                                range === "all"
-                              ) {
-                                setTimeRange(range);
-                              }
-                            }}
-                          />
-                        </div>
-                      </div>
-                      <CardDescription className="text-xs sm:text-sm">
-                        {config.description}
-                      </CardDescription>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="px-2 pt-2 sm:px-6 sm:pt-4">
-                    <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4">
-                      <div className="text-lg sm:text-2xl font-mono break-all">
-                        {isICMChart
-                          ? `${formatNumber(currentValue)} Messages`
-                          : formatTooltipValue(
-                              typeof currentValue === "string"
-                                ? parseFloat(currentValue)
-                                : currentValue,
-                              config.metricKey
-                            )}
-                      </div>
-                      {change > 0 && (
-                        <div
-                          className={`flex items-center gap-1 text-xs sm:text-sm ${
-                            isPositive ? "text-green-600" : "text-red-600"
-                          }`}
-                          title={`Change compared to ${getComparisonPeriodLabel(
-                            timeRange
-                          )}`}
-                        >
-                          <TrendingUp
-                            className={`h-3 w-3 sm:h-4 sm:w-4 ${
-                              isPositive ? "" : "rotate-180"
-                            }`}
-                          />
-                          {change.toFixed(1)}%
-                        </div>
-                      )}
-                    </div>
-                    <ChartContainer
-                      config={config.chartConfig}
-                      className={`aspect-auto w-full font-mono ${
-                        isICMChart
-                          ? "h-[200px] sm:h-[300px]"
-                          : "h-[180px] sm:h-[250px]"
-                      }`}
-                    >
-                      {isICMChart ? (
-                        <BarChart
-                          data={chartData}
-                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                        >
-                          <CartesianGrid
-                            strokeDasharray="3 3"
-                            vertical={false}
-                          />
-                          <XAxis
-                            dataKey="day"
-                            tickLine={false}
-                            axisLine={false}
-                            tickMargin={8}
-                            minTickGap={32}
-                            tickFormatter={(value) => formatDateLabel(value)}
-                            tick={{
-                              fontFamily:
-                                'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                            }}
-                          />
-                          <YAxis
-                            tickLine={false}
-                            axisLine={false}
-                            tickMargin={8}
-                            tickFormatter={(value) => value.toLocaleString()}
-                            tick={{
-                              fontFamily:
-                                'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                            }}
-                          />
-                          <ChartTooltip
-                            cursor={false}
-                            content={({ active, payload, label }) => {
-                              if (active && payload && payload.length) {
-                                const messageCount =
-                                  payload[0]?.payload?.messageCount || 0;
-                                return (
-                                  <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
-                                    <div className="grid gap-2">
-                                      <div className="font-medium">
-                                        {formatTooltipDate(label)}
-                                      </div>
-                                      <div className="flex items-center gap-2 text-sm">
-                                        <div
-                                          className="w-3 h-3 rounded-sm"
-                                          style={{
-                                            backgroundColor:
-                                              config.chartConfig.messageCount
-                                                .color,
-                                          }}
-                                        />
-                                        <span>
-                                          ICM Messages:{" "}
-                                          {formatNumber(messageCount)}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              }
-                              return null;
-                            }}
-                          />
-                          {toShowAverageLine(config.metricKey) && (
-                            <ReferenceLine
-                              {...getAverageLineProps(chartData, config.metricKey, true)}
-                            />
-                          )}
-                          <Bar
-                            dataKey="messageCount"
-                            fill={config.chartConfig.messageCount.color}
-                            radius={[4, 4, 4, 4]}
-                          />
-                        </BarChart>
-                      ) : (
-                        <AreaChart data={chartData}>
-                          <defs>
-                            <linearGradient
-                              id={`fill-${config.metricKey}`}
-                              x1="0"
-                              y1="0"
-                              x2="0"
-                              y2="1"
-                            >
-                              <stop
-                                offset="5%"
-                                stopColor={config.chartConfig.value.color}
-                                stopOpacity={0.8}
-                              />
-                              <stop
-                                offset="95%"
-                                stopColor={config.chartConfig.value.color}
-                                stopOpacity={0.1}
-                              />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid vertical={false} />
-                          <XAxis
-                            dataKey="day"
-                            tickLine={false}
-                            axisLine={false}
-                            tickMargin={8}
-                            minTickGap={32}
-                            tickFormatter={(value) => formatDateLabel(value)}
-                            tick={{
-                              fontFamily:
-                                'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                            }}
-                          />
-                          <YAxis
-                            domain={yAxisDomain}
-                            tickLine={false}
-                            axisLine={false}
-                            tickMargin={8}
-                            tickFormatter={(value) => formatNumber(value)}
-                            tick={{
-                              fontFamily:
-                                'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                            }}
-                          />
-                          <ChartTooltip
-                            cursor={false}
-                            content={
-                              <ChartTooltipContent
-                                labelFormatter={(value) =>
-                                  formatTooltipDate(value)
-                                }
-                                indicator="dot"
-                                formatter={(value) => [
-                                  formatTooltipValue(
-                                    value as number,
-                                    config.metricKey
-                                  ),
-                                  "",
-                                ]}
-                                className="font-mono"
-                              />
-                            }
-                          />
+                const period = chartPeriods[config.metricKey];
+                const currentValue = getCurrentValue(config.metricKey);
 
-                          {timeRange === "all" &&
-                            getYearBoundaries(
-                              chartData as ChartDataPoint[]
-                            ).map((yearBoundary, idx) => (
-                              <ReferenceLine
-                                key={`year-${idx}`}
-                                x={yearBoundary}
-                                stroke="#d1d5db"
-                                strokeWidth={1}
-                                strokeDasharray="3 3"
-                                opacity={0.6}
-                              />
-                            ))}
-                          {toShowAverageLine(config.metricKey) && (
-                            <ReferenceLine
-                              {...getAverageLineProps(chartData, config.metricKey, false)}
-                            />
-                          )}
-                          <Area
-                            dataKey="value"
-                            type="natural"
-                            fill={`url(#fill-${config.metricKey})`}
-                            stroke={config.chartConfig.value.color}
-                            strokeWidth={2}
-                          />
-                        </AreaChart>
-                      )}
-                    </ChartContainer>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                // Get cumulative data for charts that need it
+                let cumulativeData = null;
+                if (config.metricKey === "txCount") {
+                  cumulativeData = getChartData("cumulativeTxCount");
+                } else if (config.metricKey === "activeAddresses") {
+                  cumulativeData = getChartData("cumulativeAddresses");
+                }
+
+                return (
+                  <ChartCard
+                    key={config.metricKey}
+                    config={config}
+                    rawData={rawData}
+                    cumulativeData={cumulativeData}
+                    period={period}
+                    currentValue={currentValue}
+                    onPeriodChange={(newPeriod) =>
+                      setChartPeriods((prev) => ({
+                        ...prev,
+                        [config.metricKey]: newPeriod,
+                      }))
+                    }
+                    formatTooltipValue={(value) =>
+                      formatTooltipValue(value, config.metricKey)
+                    }
+                    formatYAxisValue={formatNumber}
+                  />
+                );
+              })}
           </div>
         </section>
       </div>
@@ -1068,5 +578,655 @@ export default function ChainMetricsPage({
       {/* Bubble Navigation */}
       <StatsBubbleNav />
     </div>
+  );
+}
+
+function ChartCard({
+  config,
+  rawData,
+  cumulativeData,
+  period,
+  currentValue,
+  onPeriodChange,
+  formatTooltipValue,
+  formatYAxisValue,
+}: {
+  config: any;
+  rawData: any[];
+  cumulativeData?: any[] | null;
+  period: "D" | "W" | "M" | "Q" | "Y";
+  currentValue: number | string;
+  onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
+  formatTooltipValue: (value: number) => string;
+  formatYAxisValue: (value: number) => string;
+}) {
+  const [brushIndexes, setBrushIndexes] = useState<{
+    startIndex: number;
+    endIndex: number;
+  } | null>(null);
+
+  // Aggregate data based on selected period
+  const aggregatedData = useMemo(() => {
+    if (period === "D") return rawData;
+
+    const grouped = new Map<
+      string,
+      { sum: number; count: number; date: string }
+    >();
+
+    rawData.forEach((point) => {
+      const date = new Date(point.day);
+      let key: string;
+
+      if (period === "W") {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
+      } else if (period === "M") {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}`;
+      } else if (period === "Q") {
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
+      } else {
+        // Y
+        key = String(date.getFullYear());
+      }
+
+      if (!grouped.has(key)) {
+        grouped.set(key, { sum: 0, count: 0, date: key });
+      }
+
+      const group = grouped.get(key)!;
+      group.sum += point.value;
+      group.count += 1;
+    });
+
+    return Array.from(grouped.values())
+      .map((group) => ({
+        day: group.date,
+        value: group.sum / group.count,
+      }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+  }, [rawData, period]);
+
+  // Aggregate cumulative data - take the last (max) value in each period
+  const aggregatedCumulativeData = useMemo(() => {
+    if (!cumulativeData || period === "D") return cumulativeData;
+
+    const grouped = new Map<string, { maxValue: number; date: string }>();
+
+    cumulativeData.forEach((point) => {
+      const date = new Date(point.day);
+      let key: string;
+
+      if (period === "W") {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
+      } else if (period === "M") {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}`;
+      } else if (period === "Q") {
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
+      } else {
+        // Y
+        key = String(date.getFullYear());
+      }
+
+      if (!grouped.has(key)) {
+        grouped.set(key, { maxValue: point.value, date: key });
+      } else {
+        const group = grouped.get(key)!;
+        group.maxValue = Math.max(group.maxValue, point.value);
+      }
+    });
+
+    return Array.from(grouped.values())
+      .map((group) => ({
+        day: group.date,
+        value: group.maxValue,
+      }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+  }, [cumulativeData, period]);
+
+  // Set default brush range based on period
+  useEffect(() => {
+    if (aggregatedData.length === 0) return;
+
+    if (period === "D") {
+      // Show last 90 days for daily view only
+      const daysToShow = 90;
+      setBrushIndexes({
+        startIndex: Math.max(0, aggregatedData.length - daysToShow),
+        endIndex: aggregatedData.length - 1,
+      });
+    } else {
+      // Show all data for W, M, Q, Y
+      setBrushIndexes({
+        startIndex: 0,
+        endIndex: aggregatedData.length - 1,
+      });
+    }
+  }, [period, aggregatedData.length]);
+
+  const displayData = brushIndexes
+    ? aggregatedData.slice(brushIndexes.startIndex, brushIndexes.endIndex + 1)
+    : aggregatedData;
+
+  // Merge actual cumulative transaction data with daily data
+  const displayDataWithCumulative = useMemo(() => {
+    if (!aggregatedCumulativeData || aggregatedCumulativeData.length === 0) {
+      return displayData;
+    }
+
+    // Create a map of cumulative values by date for quick lookup
+    const cumulativeMap = new Map(
+      aggregatedCumulativeData.map((point) => [point.day, point.value])
+    );
+
+    // Merge the data
+    return displayData.map((point) => ({
+      ...point,
+      cumulative: cumulativeMap.get(point.day) || null,
+    }));
+  }, [displayData, aggregatedCumulativeData]);
+
+  // Calculate percentage change based on brush selection
+  const dynamicChange = useMemo(() => {
+    if (!displayData || displayData.length < 2) {
+      return { change: 0, isPositive: true };
+    }
+
+    const firstValue = displayData[0].value;
+    const lastValue = displayData[displayData.length - 1].value;
+
+    if (lastValue === 0) {
+      return { change: 0, isPositive: true };
+    }
+
+    const changePercentage = ((lastValue - firstValue) / firstValue) * 100;
+
+    return {
+      change: Math.abs(changePercentage),
+      isPositive: changePercentage >= 0,
+    };
+  }, [displayData]);
+
+  const formatXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) { return `${parts[1]} '${parts[0].slice(-2)}` }
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        year: "2-digit",
+      });
+    }
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  const formatBrushXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) { return `${parts[1]} ${parts[0]}` }
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatTooltipDate = (value: string) => {
+    if (period === "Y") { return value }
+    
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) {
+        return `${parts[1]} ${parts[0]}`;
+      }
+      return value;
+    }
+    
+    const date = new Date(value);
+    
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      });
+    }
+    
+    if (period === "W") {
+      const endDate = new Date(date);
+      endDate.setDate(date.getDate() + 6);
+      
+      const startMonth = date.toLocaleDateString("en-US", { month: "long" });
+      const endMonth = endDate.toLocaleDateString("en-US", { month: "long" });
+      const startDay = date.getDate();
+      const endDay = endDate.getDate();
+      const year = endDate.getFullYear();
+      
+      if (startMonth === endMonth) {
+        return `${startMonth} ${startDay}-${endDay}, ${year}`;
+      } else {
+        return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
+      }
+    }
+    
+    return date.toLocaleDateString("en-US", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const Icon = config.icon;
+
+  return (
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+      <CardContent className="p-0">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div
+              className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+              style={{ backgroundColor: `${config.color}20` }}
+            >
+              <Icon
+                className="h-5 w-5 sm:h-6 sm:w-6"
+                style={{ color: config.color }}
+              />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-normal">
+                {config.title}
+              </h3>
+              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                {config.description}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-0.5 sm:gap-1">
+            {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => onPeriodChange(p)}
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm  rounded-md transition-colors ${
+                  period === p
+                    ? "text-white dark:text-white"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+                style={
+                  period === p
+                    ? { backgroundColor: `${config.color}`, opacity: 0.9 }
+                    : {}
+                }
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="px-5 pt-6 pb-6">
+          {/* Current Value and Change */}
+          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4 flex-wrap">
+            <div className="text-md sm:text-base font-mono break-all">
+              {formatTooltipValue(typeof currentValue === "string"? parseFloat(currentValue) : currentValue)}
+            </div>
+            {dynamicChange.change > 0 && (
+              <div
+                className={`flex items-center gap-1 text-xs sm:text-sm ${dynamicChange.isPositive ? "text-green-600" : "text-red-600"}`}
+                title={`Change over selected time range`}
+              >
+                <TrendingUp
+                  className={`h-3 w-3 sm:h-4 sm:w-4 ${dynamicChange.isPositive ? "" : "rotate-180"}`}
+                />
+                {dynamicChange.change >= 1000
+                  ? dynamicChange.change >= 1000000
+                    ? `${(dynamicChange.change / 1000000).toFixed(1)}M%`
+                    : `${(dynamicChange.change / 1000).toFixed(1)}K%`
+                  : `${dynamicChange.change.toFixed(1)}%`}
+              </div>
+            )}
+            {/* for cumulative charts */}
+            {config.chartType === "bar" && (config.metricKey === "txCount" || config.metricKey === "activeAddresses") && (
+                <div className="flex items-center gap-3 ml-auto text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded" style={{ backgroundColor: config.color }}/>
+                    <span className="text-muted-foreground">
+                      {period === "D" ? "Daily": period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div
+                      className="w-3 h-0.5"
+                      style={{ backgroundColor: "#10b981" }}
+                    />
+                    <span style={{ color: "#10b981" }}>Total</span>
+                  </div>
+                </div>
+              )}
+          </div>
+
+          <div className="mb-6">
+            <ResponsiveContainer width="100%" height={400}>
+              {config.chartType === "bar" &&
+              (config.metricKey === "txCount" ||
+                config.metricKey === "activeAddresses") ? (
+                <ComposedChart
+                  data={displayDataWithCumulative}
+                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-gray-200 dark:stroke-gray-700"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={formatXAxis}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    yAxisId="left"
+                    tickFormatter={formatYAxisValue}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    tickFormatter={formatYAxisValue}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: `${config.color}20` }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const formattedDate = formatTooltipDate(
+                        payload[0].payload.day
+                      );
+                      return (
+                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                          <div className="grid gap-2">
+                            <div className="font-medium text-sm">
+                              {formattedDate}
+                            </div>
+                            <div className="text-xs">
+                              {formatTooltipValue(payload[0].value as number)}
+                            </div>
+                            {payload[0].payload.cumulative && (
+                              <div className="text-xs text-muted-foreground">
+                                Cumulative:{" "}
+                                {formatYAxisValue(
+                                  payload[0].payload.cumulative
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar
+                    dataKey="value"
+                    fill={config.color}
+                    radius={[4, 4, 0, 0]}
+                    yAxisId="left"
+                    name={
+                      config.metricKey === "txCount"
+                        ? "Daily Transactions"
+                        : "Active Addresses"
+                    }
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="cumulative"
+                    stroke="#10b981"
+                    strokeWidth={1}
+                    dot={false}
+                    yAxisId="right"
+                    name={config.metricKey === "txCount" ? "Total Transactions" : "Total Addresses"}
+                    strokeOpacity={0.9}
+                  />
+                </ComposedChart>
+              ) : config.chartType === "bar" ? (
+                <BarChart
+                  data={displayDataWithCumulative}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-gray-200 dark:stroke-gray-700"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={formatXAxis}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tickFormatter={formatYAxisValue}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: `${config.color}20` }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const formattedDate = formatTooltipDate(payload[0].payload.day);
+                      return (
+                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                          <div className="grid gap-2">
+                            <div className="font-medium text-xs">
+                              {formattedDate}
+                            </div>
+                            <div className="text-xs">
+                              {formatTooltipValue(payload[0].value as number)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar
+                    dataKey="value"
+                    fill={config.color}
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              ) : config.chartType === "area" ? (
+                <AreaChart
+                  data={displayDataWithCumulative}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient
+                      id={`gradient-${config.metricKey}`}
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor={config.color}
+                        stopOpacity={0.3}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor={config.color}
+                        stopOpacity={0}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-gray-200 dark:stroke-gray-700"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={formatXAxis}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tickFormatter={formatYAxisValue}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: `${config.color}20` }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const formattedDate = formatTooltipDate(payload[0].payload.day);
+                      return (
+                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                          <div className="grid gap-2">
+                            <div className="font-medium text-xs">
+                              {formattedDate}
+                            </div>
+                            <div className="text-xs">
+                              {formatTooltipValue(payload[0].value as number)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke={config.color}
+                    fill={`url(#gradient-${config.metricKey})`}
+                    strokeWidth={1}
+                  />
+                </AreaChart>
+              ) : (
+                <LineChart
+                  data={displayDataWithCumulative}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-gray-200 dark:stroke-gray-700"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={formatXAxis}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tickFormatter={formatYAxisValue}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                  />
+                  <Tooltip
+                    cursor={{
+                      stroke: config.color,
+                      strokeWidth: 1,
+                      strokeDasharray: "5 5",
+                    }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const formattedDate = formatTooltipDate(payload[0].payload.day);
+                      return (
+                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                          <div className="grid gap-2">
+                            <div className="font-medium text-xs">
+                              {formattedDate}
+                            </div>
+                            <div className="text-xs">
+                              {formatTooltipValue(payload[0].value as number)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke={config.color}
+                    strokeWidth={1}
+                    dot={false}
+                  />
+                </LineChart>
+              )}
+            </ResponsiveContainer>
+          </div>
+
+          {/* Brush Slider */}
+          <div className="mt-4 bg-white dark:bg-black pl-[60px]">
+            <ResponsiveContainer width="100%" height={80}>
+              <LineChart
+                data={aggregatedData}
+                margin={{ top: 0, right: 30, left: 0, bottom: 5 }}
+              >
+                <Brush
+                  dataKey="day"
+                  height={80}
+                  stroke={config.color}
+                  fill={`${config.color}20`}
+                  alwaysShowText={false}
+                  startIndex={brushIndexes?.startIndex ?? 0}
+                  endIndex={brushIndexes?.endIndex ?? aggregatedData.length - 1}
+                  onChange={(e: any) => {
+                    if (
+                      e.startIndex !== undefined &&
+                      e.endIndex !== undefined
+                    ) {
+                      setBrushIndexes({
+                        startIndex: e.startIndex,
+                        endIndex: e.endIndex,
+                      });
+                    }
+                  }}
+                  travellerWidth={8}
+                  tickFormatter={formatBrushXAxis}
+                >
+                  <LineChart>
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke={config.color}
+                      strokeWidth={1}
+                      dot={false}
+                    />
+                  </LineChart>
+                </Brush>
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

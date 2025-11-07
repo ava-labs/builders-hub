@@ -1,0 +1,784 @@
+openapi: 3.0.0
+info:
+  title: Avalanche X-Chain (AVM) API
+  description: >-
+    The X-Chain, Avalanche's native platform for creating and trading assets, is an instance of the 
+    Avalanche Virtual Machine (AVM). This API allows clients to create and trade assets on the X-Chain 
+    and other instances of the AVM.
+    
+    
+    **Important Notes:**
+    
+    • All methods use JSON-RPC 2.0 format
+    
+    • The API is accessible at `/ext/bc/X` for the X-Chain
+    
+    • For other AVM instances, use `/ext/bc/{blockchainID}`
+    
+    • Several methods are deprecated as of v1.9.12 and v1.10.0
+    
+    • AssetID for AVAX differs by network:
+      - Mainnet: FvwEAhmxKfeiG8SnEvq42hc6whRyY3EFYAvebMqDNDGCgxN5Z
+      - Testnet: U8iRqJoiJm8xZHAacmvYyZVwqQx6uDNtQeP3CQ6fcgQk3JqnK
+  version: 1.0.0
+servers:
+  - url: https://api.avax.network
+    description: Avalanche Mainnet (Public RPC)
+  - url: https://api.avax-test.network
+    description: Avalanche Fuji Testnet (Public RPC)
+paths:
+  /ext/bc/X#avm.getAssetDescription:
+    post:
+      summary: avm.getAssetDescription
+      description: Get information about an asset including name, symbol, and denomination.
+      operationId: avm_getAssetDescription
+      tags:
+        - Chain
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: avm.getAssetDescription
+                params:
+                  type: object
+                  properties:
+                    assetID:
+                      type: string
+                      description: The ID of the asset to get information about
+                      example: "FvwEAhmxKfeiG8SnEvq42hc6whRyY3EFYAvebMqDNDGCgxN5Z"
+                  required:
+                    - assetID
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAssetDescriptionResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/X#avm.getBlock:
+    post:
+      summary: avm.getBlock
+      description: Returns the block with the given id.
+      operationId: avm_getBlock
+      tags:
+        - Chain
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: avm.getBlock
+                params:
+                  type: object
+                  properties:
+                    blockID:
+                      type: string
+                      description: The block ID in cb58 format
+                      example: "tXJ4xwmR8soHE6DzRNMQPtiwQvuYsHn6eLLBzo2moDqBquqy6"
+                    encoding:
+                      type: string
+                      description: The encoding format to use (hex or json)
+                      enum: ["hex", "json"]
+                      default: "hex"
+                      example: "hex"
+                  required:
+                    - blockID
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetBlockResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/X#avm.getBlockByHeight:
+    post:
+      summary: avm.getBlockByHeight
+      description: Returns block at the given height.
+      operationId: avm_getBlockByHeight
+      tags:
+        - Chain
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: avm.getBlockByHeight
+                params:
+                  type: object
+                  properties:
+                    height:
+                      type: string
+                      description: The block height as a string
+                      example: "275686313486"
+                    encoding:
+                      type: string
+                      description: The encoding format to use (hex or json)
+                      enum: ["hex", "json"]
+                      default: "hex"
+                      example: "hex"
+                  required:
+                    - height
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetBlockResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/X#avm.getHeight:
+    post:
+      summary: avm.getHeight
+      description: Returns the height of the last accepted block.
+      operationId: avm_getHeight
+      tags:
+        - Chain
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: avm.getHeight
+                params:
+                  type: object
+                  example: {}
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetHeightResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/X#avm.getTx:
+    post:
+      summary: avm.getTx
+      description: Returns the specified transaction.
+      operationId: avm_getTx
+      tags:
+        - Chain
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: avm.getTx
+                params:
+                  type: object
+                  properties:
+                    txID:
+                      type: string
+                      description: The transaction ID
+                      example: "2oJCbb8pfdxEHAf9A8CdN4Afj9VSR3xzyzNkf8tDv7aM1sfNFL"
+                    encoding:
+                      type: string
+                      description: The encoding format to use (hex or json)
+                      enum: ["hex", "json"]
+                      default: "hex"
+                      example: "json"
+                  required:
+                    - txID
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetTxResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/X#avm.getTxFee:
+    post:
+      summary: avm.getTxFee
+      description: Get the transaction fees of the network.
+      operationId: avm_getTxFee
+      tags:
+        - Chain
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: avm.getTxFee
+                  params: {}
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetTxFeeResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/X#avm.getUTXOs:
+    post:
+      summary: avm.getUTXOs
+      description: |
+        Gets the UTXOs that reference a given address. If sourceChain is specified, 
+        then it will retrieve the atomic UTXOs exported from that chain to the X Chain.
+      operationId: avm_getUTXOs
+      tags:
+        - Chain
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: avm.getUTXOs
+                params:
+                  type: object
+                  properties:
+                    addresses:
+                      type: array
+                      items:
+                        type: string
+                      description: List of addresses to get UTXOs for
+                      example: 
+                        - "X-avax18jma8ppw3nhx5r4ap8clazz0dps7rv5ukulre5"
+                        - "X-avax1d09qn852zcy03sfc9hay2llmn9hsgnw4tp3dv6"
+                    limit:
+                      type: integer
+                      description: Maximum number of UTXOs to return (max 1024)
+                      maximum: 1024
+                      example: 5
+                    startIndex:
+                      type: object
+                      description: Pagination start index
+                      properties:
+                        address:
+                          type: string
+                          description: Starting address
+                        utxo:
+                          type: string
+                          description: Starting UTXO ID
+                    sourceChain:
+                      type: string
+                      description: Source chain for atomic UTXOs (e.g., 'P' for P-Chain)
+                      example: "P"
+                    encoding:
+                      type: string
+                      description: Encoding format for UTXOs
+                      enum: ["hex"]
+                      example: "hex"
+                  required:
+                    - addresses
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetUTXOsResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/X#avm.issueTx:
+    post:
+      summary: avm.issueTx
+      description: Send a signed transaction to the network.
+      operationId: avm_issueTx
+      tags:
+        - Chain
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: avm.issueTx
+                params:
+                  type: object
+                  properties:
+                    tx:
+                      type: string
+                      description: The signed transaction in hex encoding
+                      example: "0x00000009de31b4d8b22991d51aa6aa1fc733f23a851a8c9400000000000186a0000000005f041280000000005f9ca900000030390000000000000001fceda8f90fcb5d30614b99d79fc4baa29307762668f16eb0259a57c2d3b78c875c86ec2045792d4df2d926c40f829196e0bb97ee697af71f5b0a966dabff749634c8b729855e937715b0e44303fd1014daedc752006011b730"
+                    encoding:
+                      type: string
+                      description: Encoding format (only 'hex' supported)
+                      enum: ["hex"]
+                      example: "hex"
+                  required:
+                    - tx
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueTxResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+components:
+  schemas:
+    JSONRPCRequest:
+      type: object
+      description: JSON-RPC 2.0 Request
+      properties:
+        jsonrpc:
+          type: string
+          example: '2.0'
+        method:
+          type: string
+        params:
+          type: object
+        id:
+          type: integer
+          example: 1
+      required:
+        - jsonrpc
+        - method
+        - params
+        - id
+
+    JSONRPCResponse:
+      type: object
+      description: JSON-RPC 2.0 Response
+      properties:
+        jsonrpc:
+          type: string
+          example: '2.0'
+        result:
+          type: object
+          description: The result of the method call
+        id:
+          type: integer
+          example: 1
+      required:
+        - jsonrpc
+        - result
+        - id
+
+    JSONRPCError:
+      type: object
+      description: JSON-RPC 2.0 Error Response
+      properties:
+        jsonrpc:
+          type: string
+          example: '2.0'
+        error:
+          type: object
+          properties:
+            code:
+              type: integer
+            message:
+              type: string
+            data:
+              description: Additional error data
+          required:
+            - code
+            - message
+        id:
+          type: integer
+          example: 1
+      required:
+        - jsonrpc
+        - error
+        - id
+
+    GetAssetDescriptionResponse:
+      type: object
+      properties:
+        jsonrpc:
+          type: string
+          example: '2.0'
+        result:
+          type: object
+          properties:
+            assetID:
+              type: string
+              description: The asset ID
+              example: "FvwEAhmxKfeiG8SnEvq42hc6whRyY3EFYAvebMqDNDGCgxN5Z"
+            name:
+              type: string
+              description: Human-readable asset name
+              example: "Avalanche"
+            symbol:
+              type: string
+              description: Asset symbol
+              example: "AVAX"
+            denomination:
+              type: string
+              description: Number of decimal places for display
+              example: "9"
+        id:
+          type: integer
+          example: 1
+
+    GetBlockResponse:
+      type: object
+      properties:
+        jsonrpc:
+          type: string
+          example: '2.0'
+        result:
+          type: object
+          properties:
+            block:
+              type: string
+              description: The block data encoded in the requested format
+            encoding:
+              type: string
+              description: The encoding format used
+              enum: ["hex", "json"]
+        id:
+          type: integer
+          example: 1
+
+    GetHeightResponse:
+      type: object
+      properties:
+        jsonrpc:
+          type: string
+          example: '2.0'
+        result:
+          type: object
+          properties:
+            height:
+              type: string
+              description: The height of the last accepted block
+              example: "5094088"
+        id:
+          type: integer
+          example: 1
+
+    GetTxResponse:
+      type: object
+      properties:
+        jsonrpc:
+          type: string
+          example: '2.0'
+        result:
+          type: object
+          properties:
+            tx:
+              oneOf:
+                - type: string
+                  description: Transaction in hex encoding
+                - type: object
+                  description: Transaction in JSON format
+                  properties:
+                    unsignedTx:
+                      type: object
+                      properties:
+                        networkID:
+                          type: integer
+                        blockchainID:
+                          type: string
+                        outputs:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/TransactionOutput'
+                        inputs:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/TransactionInput'
+                        memo:
+                          type: string
+                        destinationChain:
+                          type: string
+                        exportedOutputs:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/TransactionOutput'
+                    credentials:
+                      type: array
+                      items:
+                        type: object
+                    id:
+                      type: string
+            encoding:
+              type: string
+              enum: ["hex", "json"]
+        id:
+          type: integer
+          example: 1
+
+    GetTxFeeResponse:
+      type: object
+      properties:
+        jsonrpc:
+          type: string
+          example: '2.0'
+        result:
+          type: object
+          properties:
+            txFee:
+              type: string
+              description: Default transaction fee in nAVAX
+              example: "1000000"
+            createAssetTxFee:
+              type: string
+              description: Fee for creating a new asset in nAVAX
+              example: "10000000"
+        id:
+          type: integer
+          example: 1
+
+    GetUTXOsResponse:
+      type: object
+      properties:
+        jsonrpc:
+          type: string
+          example: '2.0'
+        result:
+          type: object
+          properties:
+            numFetched:
+              type: string
+              description: Number of UTXOs fetched
+              example: "5"
+            utxos:
+              type: array
+              items:
+                type: string
+              description: List of UTXOs in hex encoding
+            endIndex:
+              type: object
+              description: Pagination end index for next call
+              properties:
+                address:
+                  type: string
+                utxo:
+                  type: string
+            encoding:
+              type: string
+              enum: ["hex"]
+        id:
+          type: integer
+          example: 1
+
+    IssueTxResponse:
+      type: object
+      properties:
+        jsonrpc:
+          type: string
+          example: '2.0'
+        result:
+          type: object
+          properties:
+            txID:
+              type: string
+              description: The transaction ID
+              example: "NUPLwbt2hsYxpQg4H2o451hmTWQ4JZx2zMzM4SinwtHgAdX1JLPHXvWSXEnpecStLj"
+        id:
+          type: integer
+          example: 1
+
+    TransactionOutput:
+      type: object
+      properties:
+        assetID:
+          type: string
+          description: The ID of the asset being transferred
+        fxID:
+          type: string
+          description: The ID of the FX this output uses
+        output:
+          type: object
+          properties:
+            addresses:
+              type: array
+              items:
+                type: string
+              description: Addresses that can consume this output
+            amount:
+              type: integer
+              description: Amount of the asset
+            locktime:
+              type: integer
+              description: Unix timestamp after which this output can be consumed
+            threshold:
+              type: integer
+              description: Number of signatures required
+
+    TransactionInput:
+      type: object
+      properties:
+        txID:
+          type: string
+          description: Transaction ID containing the UTXO being consumed
+        outputIndex:
+          type: integer
+          description: Index of the output in the transaction
+        assetID:
+          type: string
+          description: Asset ID being transferred
+        fxID:
+          type: string
+          description: FX ID for this input
+        input:
+          type: object
+          properties:
+            amount:
+              type: integer
+              description: Amount being consumed
+            signatureIndices:
+              type: array
+              items:
+                type: integer
+              description: Indices of signatures

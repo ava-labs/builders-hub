@@ -140,7 +140,7 @@ export const stats: LinkItemType = {
 
 export const docsMenu: LinkItemType = {
   type: 'menu',
-  text: 'Docs',
+  text: 'Documentation',
   url: '/docs/quick-start',
   items: [
     {
@@ -201,7 +201,7 @@ export const docsMenu: LinkItemType = {
       text: 'Browse All Docs',
       description:
         'Explore our in-depth documentation, guides, and resources to bring your ideas to life.',
-      url: '/docs',
+      url: '/docs/quick-start',
       menu: {
         className: 'lg:col-start-3',
       },
