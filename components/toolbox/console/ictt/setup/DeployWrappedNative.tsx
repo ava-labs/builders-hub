@@ -16,7 +16,6 @@ import UnwrapNativeToken from "./wrappedNativeToken/UnwrapNativeToken";
 import DisplayNativeBalance from "./wrappedNativeToken/DisplayNativeBalance";
 import DisplayWrappedBalance from "./wrappedNativeToken/DisplayWrappedBalance";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
@@ -35,22 +34,24 @@ const metadata: ConsoleToolMetadata = {
 
 function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
+    const [isMounted, setIsMounted] = useState(false);
 
     const setWrappedNativeToken = useSetWrappedNativeToken();
     const selectedL1 = useSelectedL1()();
-    const [wrappedNativeTokenAddress, setLocalWrappedNativeTokenAddress] = useState<string>('');
-    const [hasPredeployedToken, setHasPredeployedToken] = useState(false);
-    const [isCheckingToken, setIsCheckingToken] = useState(false);
-    const { coreWalletClient } = useConnectedWallet();
-    const { walletEVMAddress, walletChainId } = useWalletStore();
-    const setNativeCurrencyInfo = useSetNativeCurrencyInfo();
-    const { notify } = useConsoleNotifications();
-    const viemChain = useViemChainStore();
-    const [isDeploying, setIsDeploying] = useState(false);
     
     // Get cached values from wallet store
     const cachedWrappedToken = useWrappedNativeToken();
     const cachedNativeCurrency = useNativeCurrencyInfo();
+    
+    // Initialize with cached value to prevent flickering
+    const [wrappedNativeTokenAddress, setLocalWrappedNativeTokenAddress] = useState<string>(cachedWrappedToken || '');
+    const [hasPredeployedToken, setHasPredeployedToken] = useState(!!cachedWrappedToken);
+    const [isCheckingToken, setIsCheckingToken] = useState(!cachedWrappedToken);
+    const { coreWalletClient, walletEVMAddress, walletChainId } = useWalletStore();
+    const setNativeCurrencyInfo = useSetNativeCurrencyInfo();
+    const { notify } = useConsoleNotifications();
+    const viemChain = useViemChainStore();
+    const [isDeploying, setIsDeploying] = useState(false);
     
     // Get native token symbol (use cached value if available)
     const nativeTokenSymbol = cachedNativeCurrency?.symbol || viemChain?.nativeCurrency?.symbol || selectedL1?.coinName || 'COIN';
@@ -61,10 +62,57 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
         throw criticalError;
     }
 
+    // Handle mounting to avoid hydration errors
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    // Sync cached wrapped token with local state immediately
+    useEffect(() => {
+        if (cachedWrappedToken && wrappedNativeTokenAddress !== cachedWrappedToken) {
+            setLocalWrappedNativeTokenAddress(cachedWrappedToken);
+            setHasPredeployedToken(true);
+            setIsCheckingToken(false);
+        }
+    }, [cachedWrappedToken, wrappedNativeTokenAddress]);
+
+    // Validate that an address is a valid wrapped native token contract
+    async function validateWrappedTokenContract(address: string, publicClient: any): Promise<boolean> {
+        try {
+            // Check if contract has bytecode
+            const code = await publicClient.getBytecode({ address: address as `0x${string}` });
+            if (!code || code === '0x') {
+                return false;
+            }
+
+            // Try to call balanceOf to verify it's a valid ERC20-like contract
+            // We use a test address to avoid issues with undefined walletEVMAddress
+            await publicClient.readContract({
+                address: address as `0x${string}`,
+                abi: WrappedNativeToken.abi,
+                functionName: 'balanceOf',
+                args: ['0x0000000000000000000000000000000000000000']
+            });
+            
+            return true;
+        } catch (error) {
+            console.error('Contract validation failed:', error);
+            return false;
+        }
+    }
+
     // Check for pre-deployed wrapped native token
     useEffect(() => {
         async function checkToken() {
-            if (!viemChain || !walletEVMAddress) return;
+            if (!isMounted || !viemChain || !walletEVMAddress) {
+                return;
+            }
+
+            // If we have a cached token and it's already set locally, no need to check again
+            if (cachedWrappedToken && wrappedNativeTokenAddress === cachedWrappedToken) {
+                setIsCheckingToken(false);
+                return;
+            }
 
             setIsCheckingToken(true);
             try {
@@ -75,39 +123,51 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
                     setNativeCurrencyInfo(walletChainId, viemChain.nativeCurrency);
                 }
                 
+                const publicClient = createPublicClient({
+                    transport: http(viemChain.rpcUrls.default.http[0] || "")
+                });
+
                 // Check cache first for wrapped token
                 let tokenAddress = cachedWrappedToken || '';
                 
-                // If not in cache, check other sources
+                // Validate cached address if it exists
+                if (tokenAddress) {
+                    const isValid = await validateWrappedTokenContract(tokenAddress, publicClient);
+                    if (!isValid) {
+                        console.warn(`Cached wrapped token address ${tokenAddress} is invalid, clearing it`);
+                        tokenAddress = '';
+                        setWrappedNativeToken(''); // Clear invalid address from store
+                    } else {
+                        setHasPredeployedToken(true);
+                    }
+                }
+                
+                // If not in cache or invalid, check other sources
                 if (!tokenAddress) {
                     if (selectedL1?.wrappedTokenAddress) {
-                        tokenAddress = selectedL1.wrappedTokenAddress;
-                    } else {
-                        // Check if pre-deployed wrapped native token exists
-                        const publicClient = createPublicClient({
-                            transport: http(viemChain.rpcUrls.default.http[0] || "")
-                        });
+                        const isValid = await validateWrappedTokenContract(selectedL1.wrappedTokenAddress, publicClient);
+                        if (isValid) {
+                            tokenAddress = selectedL1.wrappedTokenAddress;
+                            setHasPredeployedToken(true);
+                        }
+                    } 
+                    
+                    // If still no valid token, check pre-deployed address
+                    if (!tokenAddress) {
+                        const isValid = await validateWrappedTokenContract(PREDEPLOYED_WRAPPED_NATIVE_ADDRESS, publicClient);
+                        setHasPredeployedToken(isValid);
                         
-                        const code = await publicClient.getBytecode({ address: PREDEPLOYED_WRAPPED_NATIVE_ADDRESS as `0x${string}` });
-                        const hasPredeployed = code !== undefined && code !== '0x';
-                        setHasPredeployedToken(hasPredeployed);
-                        
-                        if (hasPredeployed) {
+                        if (isValid) {
                             tokenAddress = PREDEPLOYED_WRAPPED_NATIVE_ADDRESS;
                         }
                     }
-                    
-                    // No need to cache here since we're using toolboxStore
-                } else {
-                    // If we got from cache, we assume it exists
-                    setHasPredeployedToken(true);
                 }
 
                 setLocalWrappedNativeTokenAddress(tokenAddress);
                 
-                // If we detected pre-deployed token and nothing in store, save it
-                if (tokenAddress === PREDEPLOYED_WRAPPED_NATIVE_ADDRESS && !selectedL1?.wrappedTokenAddress) {
-                    setWrappedNativeToken(PREDEPLOYED_WRAPPED_NATIVE_ADDRESS);
+                // If we detected a valid token and nothing in store, save it
+                if (tokenAddress && !cachedWrappedToken) {
+                    setWrappedNativeToken(tokenAddress);
                 }
             } catch (error) {
                 console.error('Error checking token:', error);
@@ -117,9 +177,14 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
         }
 
         checkToken();
-    }, [viemChain, walletEVMAddress, selectedL1, walletChainId, cachedWrappedToken, cachedNativeCurrency, setNativeCurrencyInfo]);
-
+    }, [isMounted, viemChain, walletEVMAddress, selectedL1, walletChainId, cachedWrappedToken, cachedNativeCurrency, wrappedNativeTokenAddress]);
+   
     async function handleDeploy() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error("Core wallet not found"));
+            return;
+        }
+
         setIsDeploying(true);
         try {
             if (!viemChain) throw new Error("No chain selected");
@@ -135,6 +200,7 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
                 chain: viemChain,
                 account: walletEVMAddress as `0x${string}`
             });
+            
             notify({
                 type: 'deploy',
                 name: 'WrappedNativeToken'
@@ -156,81 +222,82 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
     }
 
 
+    // Don't render anything until we've finished checking (or during SSR/initial mount)
+    if (!isMounted || isCheckingToken) {
+        return (
+            <div className="text-center py-8 text-zinc-500">
+                Checking for wrapped native token...
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
-            {isCheckingToken ? (
-                <div className="text-center py-8 text-zinc-500">
-                    Checking for wrapped native token...
+            {/* Token Address Display */}
+            {wrappedNativeTokenAddress && (
+                <Success
+                    label={`Wrapped Native Token Address (${wrappedTokenSymbol})`}
+                    value={wrappedNativeTokenAddress}
+                />
+            )}
+
+            {/* Deploy Section - Only show if no wrapped token exists */}
+            {!wrappedNativeTokenAddress && (
+                <div className="space-y-4">
+                    <div>
+                        {hasPredeployedToken ? (
+                            <div className="space-y-2">
+                                <p className="text-sm text-green-600 dark:text-green-400">
+                                    ✓ Pre-deployed wrapped native token detected at {PREDEPLOYED_WRAPPED_NATIVE_ADDRESS}
+                                </p>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                    This token wraps your L1's native token ({nativeTokenSymbol} → {wrappedTokenSymbol})
+                                </p>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                No wrapped native token found. Deploy one to enable wrapping functionality.
+                            </p>
+                        )}
+                    </div>
+                    
+                    <Button
+                        variant="primary"
+                        onClick={handleDeploy}
+                        loading={isDeploying}
+                        disabled={isDeploying}
+                    >
+                        Deploy Wrapped Native Token
+                    </Button>
                 </div>
-            ) : (
-                <>
-                    {/* Token Address Display */}
-                    {wrappedNativeTokenAddress && (
-                        <Success
-                            label={`Wrapped Native Token Address (${wrappedTokenSymbol})`}
-                            value={wrappedNativeTokenAddress}
+            )}
+
+            {/* Independent Tools Section - Only show if wrapped token exists */}
+            {wrappedNativeTokenAddress && (
+                <div className="space-y-6">
+                    {/* Balance Display Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <DisplayNativeBalance
+                            onError={setCriticalError}
                         />
-                    )}
-
-                    {/* Deploy Section - Only show if no wrapped token exists */}
-                    {!wrappedNativeTokenAddress && (
-                        <div className="space-y-4">
-                            <div>
-                                {hasPredeployedToken ? (
-                                    <div className="space-y-2">
-                                        <p className="text-sm text-green-600 dark:text-green-400">
-                                            ✓ Pre-deployed wrapped native token detected at {PREDEPLOYED_WRAPPED_NATIVE_ADDRESS}
-                                        </p>
-                                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                                            This token wraps your L1's native token ({nativeTokenSymbol} → {wrappedTokenSymbol})
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                        No wrapped native token found. Deploy one to enable wrapping functionality.
-                                    </p>
-                                )}
-                            </div>
-                            
-                            <Button
-                                variant="primary"
-                                onClick={handleDeploy}
-                                loading={isDeploying}
-                                disabled={isDeploying}
-                            >
-                                Deploy Wrapped Native Token
-                            </Button>
-                        </div>
-                    )}
-
-                    {/* Independent Tools Section - Only show if wrapped token exists */}
-                    {wrappedNativeTokenAddress && (
-                        <div className="space-y-6">
-                            {/* Balance Display Row */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <DisplayNativeBalance
-                                    onError={setCriticalError}
-                                />
-                                <DisplayWrappedBalance
-                                    wrappedNativeTokenAddress={wrappedNativeTokenAddress}
-                                    onError={setCriticalError}
-                                />
-                            </div>
-                            
-                            {/* Wrap/Unwrap Tools Row */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <WrapNativeToken
-                                    wrappedNativeTokenAddress={wrappedNativeTokenAddress}
-                                    onError={setCriticalError}
-                                />
-                                <UnwrapNativeToken
-                                    wrappedNativeTokenAddress={wrappedNativeTokenAddress}
-                                    onError={setCriticalError}
-                                />
-                            </div>
-                        </div>
-                    )}
-                </>
+                        <DisplayWrappedBalance
+                            wrappedNativeTokenAddress={wrappedNativeTokenAddress}
+                            onError={setCriticalError}
+                        />
+                    </div>
+                    
+                    {/* Wrap/Unwrap Tools Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <WrapNativeToken
+                            wrappedNativeTokenAddress={wrappedNativeTokenAddress}
+                            onError={setCriticalError}
+                        />
+                        <UnwrapNativeToken
+                            wrappedNativeTokenAddress={wrappedNativeTokenAddress}
+                            onError={setCriticalError}
+                        />
+                    </div>
+                </div>
             )}
         </div>
     );
