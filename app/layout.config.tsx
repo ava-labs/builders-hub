@@ -513,9 +513,9 @@ export const userMenu: LinkItemType = {
 export const baseOptions: BaseLayoutProps = {
   nav: {
     title: (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <AvalancheLogo className='size-7' fill='currentColor' />
-        <span style={{ fontSize: 'large', marginTop: '4px' }}>Builder Hub</span>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <AvalancheLogo className="size-7" fill="currentColor" />
+        <span style={{ fontSize: "large", marginTop: "4px" }}>Builder Hub</span>
       </div>
     ),
   },
@@ -525,10 +525,10 @@ export const baseOptions: BaseLayoutProps = {
     consoleMenu,
     eventsMenu,
     grantsMenu,
-    universityMenu,
+    stats,
     integrationsMenu,
     userMenu,
     blogMenu,
-    stats
+    universityMenu
   ],
 };
