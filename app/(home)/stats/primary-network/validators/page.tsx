@@ -1,14 +1,47 @@
 "use client";
 import * as React from "react";
 import { useState, useEffect, useMemo } from "react";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart,Line, LineChart, Brush, ResponsiveContainer, Tooltip } from "recharts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { type ChartConfig, ChartLegendContent, ChartStyle, ChartContainer, ChartTooltip, ChartLegend } from "@/components/ui/chart";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Pie,
+  PieChart,
+  Line,
+  LineChart,
+  Brush,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  type ChartConfig,
+  ChartLegendContent,
+  ChartStyle,
+  ChartContainer,
+  ChartTooltip,
+  ChartLegend,
+} from "@/components/ui/chart";
 import { Landmark, Shield, TrendingUp, Monitor, HandCoins } from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
-import {TimeSeriesDataPoint, ChartDataPoint, PrimaryNetworkMetrics, VersionCount } from "@/types/stats";
+import {
+  TimeSeriesDataPoint,
+  ChartDataPoint,
+  PrimaryNetworkMetrics,
+  VersionCount,
+} from "@/types/stats";
 
 export default function PrimaryNetworkValidatorMetrics() {
   const [metrics, setMetrics] = useState<PrimaryNetworkMetrics | null>(null);
@@ -156,7 +189,9 @@ export default function PrimaryNetworkValidatorMetrics() {
   ): ChartDataPoint[] => {
     if (!metrics || !metrics[metricKey]?.data) return [];
     const today = new Date().toISOString().split("T")[0];
-    const finalizedData = metrics[metricKey].data.filter((point) => point.date !== today);
+    const finalizedData = metrics[metricKey].data.filter(
+      (point) => point.date !== today
+    );
 
     return finalizedData
       .map((point: TimeSeriesDataPoint) => ({
@@ -281,7 +316,7 @@ export default function PrimaryNetworkValidatorMetrics() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-14">
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
         <div className="container mx-auto mt-4 p-6 pb-24 space-y-12">
           <div className="space-y-2">
             <div>
@@ -303,7 +338,7 @@ export default function PrimaryNetworkValidatorMetrics() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-14">
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
         <div className="container mx-auto p-6">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
@@ -324,7 +359,7 @@ export default function PrimaryNetworkValidatorMetrics() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-14">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
       <div className="container mx-auto mt-4 p-4 sm:p-6 pb-24 space-y-8 sm:space-y-12">
         <div className="space-y-2">
           <div>
@@ -751,12 +786,18 @@ function ValidatorChartCard({
     }
   }, [period, aggregatedData.length]);
 
-  const displayData = brushIndexes ? aggregatedData.slice(brushIndexes.startIndex, brushIndexes.endIndex + 1) : aggregatedData;
+  const displayData = brushIndexes
+    ? aggregatedData.slice(brushIndexes.startIndex, brushIndexes.endIndex + 1)
+    : aggregatedData;
   const dynamicChange = useMemo(() => {
-    if (!displayData || displayData.length < 2) { return { change: 0, isPositive: true } }
+    if (!displayData || displayData.length < 2) {
+      return { change: 0, isPositive: true };
+    }
     const firstValue = displayData[0].value;
     const lastValue = displayData[displayData.length - 1].value;
-    if (lastValue === 0) { return { change: 0, isPositive: true } }
+    if (lastValue === 0) {
+      return { change: 0, isPositive: true };
+    }
     const changePercentage = ((lastValue - firstValue) / firstValue) * 100;
     return {
       change: Math.abs(changePercentage),
@@ -800,18 +841,25 @@ function ValidatorChartCard({
   };
 
   const formatTooltipDate = (value: string) => {
-    if (period === "Y") { return value }
+    if (period === "Y") {
+      return value;
+    }
 
     if (period === "Q") {
       const parts = value.split("-");
-      if (parts.length === 2) { return `${parts[1]} ${parts[0]}` }
+      if (parts.length === 2) {
+        return `${parts[1]} ${parts[0]}`;
+      }
       return value;
     }
 
     const date = new Date(value);
 
     if (period === "M") {
-      return date.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+      return date.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      });
     }
 
     if (period === "W") {

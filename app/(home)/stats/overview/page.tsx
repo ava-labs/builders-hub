@@ -6,7 +6,15 @@ import { useTheme } from "next-themes";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowUpDown, ArrowUp, ArrowDown, Activity, BarChart3, Search, ArrowUpRight } from "lucide-react";
+import {
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Activity,
+  BarChart3,
+  Search,
+  ArrowUpRight,
+} from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { TimeSeriesMetric, ICMMetric, TimeRange } from "@/types/stats";
@@ -239,21 +247,29 @@ export default function AvalancheMetrics() {
   const getChainCategory = (chainId: string, chainName: string): string => {
     // Look up category from constants/l1-chains.json
     const chain = l1ChainsData.find(
-      (c) => c.chainId === chainId || c.chainName.toLowerCase() === chainName.toLowerCase()
+      (c) =>
+        c.chainId === chainId ||
+        c.chainName.toLowerCase() === chainName.toLowerCase()
     );
     return chain?.category || "General";
   };
 
   const getCategoryColor = (category: string): string => {
     const colors: { [key: string]: string } = {
-      General: "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300",
+      General:
+        "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300",
       DeFi: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-      Gaming: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
-      Institutions: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+      Gaming:
+        "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
+      Institutions:
+        "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
       RWAs: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
       Payments: "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300",
     };
-    return colors[category] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
+    return (
+      colors[category] ||
+      "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+    );
   };
 
   const getChainTPS = (chain: ChainOverviewMetrics): string => {
@@ -268,7 +284,7 @@ export default function AvalancheMetrics() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-neutral-950 pt-14">
+      <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
         <div className="container mx-auto px-6 py-10 pb-24 space-y-12">
           <div className="space-y-3">
             <div>
@@ -291,7 +307,7 @@ export default function AvalancheMetrics() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white dark:bg-neutral-950 pt-14">
+      <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
         <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
           <div className="flex items-center justify-center min-h-[400px]">
             <Card className="max-w-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
@@ -302,7 +318,9 @@ export default function AvalancheMetrics() {
                 <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
                   Failed to Load Data
                 </h3>
-                <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+                <p className="text-red-600 dark:text-red-400 text-sm">
+                  {error}
+                </p>
               </div>
             </Card>
           </div>
@@ -316,7 +334,7 @@ export default function AvalancheMetrics() {
 
   if (!overviewMetrics || overviewMetrics.chains.length === 0) {
     return (
-      <div className="min-h-screen bg-white dark:bg-neutral-950 pt-14">
+      <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
         <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
           <div className="flex items-center justify-center min-h-[400px]">
             <Card className="max-w-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
@@ -342,7 +360,7 @@ export default function AvalancheMetrics() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-neutral-950 pt-14">
+    <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
       <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
         <div className="mb-10">
           <div className="flex items-start justify-between gap-4 mb-3">
