@@ -41,7 +41,7 @@ body[data-layout="academy"] header + div {
 body[data-layout="academy"] #nd-sidebar,
 body[data-layout="academy"] [data-sidebar="sidebar"] {
   /* Use default fumadocs positioning - no subnav to account for */
-  top: 3.5rem !important; /* Only navbar height */
+  top: 4.5rem !important; /* Only navbar height */
   height: calc(100vh - 3.5rem) !important; /* Full height minus navbar */
   padding-left: 0.5rem !important;
   padding-right: 2rem !important; /* Extra right padding to prevent content overlay on resize */
@@ -55,7 +55,7 @@ body[data-layout="academy"] [data-sidebar="sidebar"] {
 /* When banner exists, adjust academy sidebar position */
 body:has([data-granite-banner])[data-layout="academy"] #nd-sidebar,
 body:has([data-granite-banner])[data-layout="academy"] [data-sidebar="sidebar"] {
-  top: calc(3rem + 3.5rem) !important; /* Banner (3rem) + navbar (3.5rem) */
+  top: 7.5rem !important; /* Banner (3rem) + navbar (3.5rem) */
   height: calc(100vh - 3rem - 3.5rem) !important; /* Full height minus banner and navbar */
 }
 
@@ -334,5 +334,26 @@ body[data-layout="academy"] #nd-sidebar-mobile button > img:first-child {
   width: 1.25rem !important;     /* 20px */
   height: 1.25rem !important;
   flex-shrink: 0 !important;
+}
+
+/* Hide nd-subnav on desktop for academy routes (keep visible on mobile/tablet) */
+@media (min-width: 1024px) {
+  body[data-layout="academy"] #nd-subnav {
+    display: none !important;
+  }
+}
+
+body[data-layout="academy"]:has([data-granite-banner]) #nd-docs-layout {
+  padding-top: var(--fd-banner-height) !important;
+}
+
+/* Remove padding-top from layout when banner is visible on academy routes */
+body[data-layout="academy"] #nd-docs-layout {
+  padding-top: 0px !important;
+}
+
+/* Set custom padding-top for table of contents on academy routes */
+body[data-layout="academy"] #nd-toc {
+  padding-top: calc(var(--spacing) * 12) !important;
 }
 
