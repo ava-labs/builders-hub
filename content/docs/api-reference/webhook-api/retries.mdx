@@ -1,0 +1,69 @@
+---
+title: Retry mechanism
+description: Retry mechanism for the Webhook API
+icon: RotateCcw
+---
+
+Our webhook system is designed to ensure you receive all your messages, even if temporary issues prevent immediate delivery. To achieve this, we’ve implemented a retry mechanism that resends messages if they don’t get through on the first attempt. Importantly, **retries are handled on a per-message basis**, meaning each webhook message follows its own independent retry schedule. This ensures that the failure of one message doesn’t affect the delivery attempts of others.
+
+This guide will walk you through how the retry mechanism works, the differences between free and paid tier users, and practical steps you can take to ensure your system handles webhooks effectively.
+
+## How it works
+
+When we send a webhook message to your server, we expect a `200` status code within 10 seconds to confirm successful receipt. Your server should return this response immediately and process the message afterward. Processing the message before sending the response can lead to timeouts and trigger unnecessary retries.
+<img src="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/retries.png?fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=3d303f125a03da321e15812c437c3ba9" alt="webhooks" data-og-width="1943" width="1943" data-og-height="1747" height="1747" data-path="images/retries.png" data-optimize="true" data-opv="3" srcset="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/retries.png?w=280&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=9bb01f0aea8b651f793163a3631e0c14 280w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/retries.png?w=560&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=b41eeb02d1b91481723179fa56fad5ef 560w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/retries.png?w=840&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=4b785be5a3ea9e7a9493fd8669c22e1d 840w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/retries.png?w=1100&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=23a984a432ad4458928035daffb7edfb 1100w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/retries.png?w=1650&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=82c785972eab57f7d770ccb83e30024f 1650w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/retries.png?w=2500&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=caeac507f17204e13100649d5077ea0c 2500w" />
+
+* **Attempt 1:** We send the message expecting a respose with `200` status code. If we do not receive a `200` status code within **10 seconds**, the attempt is considered failed. During this window, any non-`2xx` responses are ignored.
+* **Attempt 2:** Occurs **10 seconds** after the first attempt, with another 10-second timeout and the same rule for ignoring non-`2xx` responses.
+* **Retry Queue After Two Failed Attempts**
+  If both initial attempts fail, the message enters a **retry queue** with progressively longer intervals between attempts. Each retry attempt still has a 10-second timeout, and non-`2xx` responses are ignored during this window.
+
+The retry schedule is as follows:
+
+| Attempt | Interval |
+| ------- | -------- |
+| 3       | 1 min    |
+| 4       | 5 min    |
+| 5       | 10 min   |
+| 6       | 30 min   |
+| 7       | 2 hours  |
+| 8       | 6 hours  |
+| 9       | 12 hours |
+| 10      | 24 hours |
+
+**Total Retry Duration:** Up to approximately 44.8 hours (2,688 minutes) if all retries are exhausted.
+
+**Interval Timing:** Each retry interval starts 10 seconds after the previous attempt is deemed failed. For example, if attempt 2 fails at t=20 seconds, attempt 3 will start at t=80 seconds (20s + 1 minute interval + 10s).
+
+<Callout>Since retries are per message, multiple messages can be in different stages of their retry schedules simultaneously without interfering with each other.</Callout>
+
+## Differences Between Free and Paid Tier Users
+
+The behavior of the retry mechanism varies based on your subscription tier:
+**Free tier users**
+
+* **Initial attempts limit:** If six messages fail both the first and second attempts, your webhook will be automatically deactivated.
+* **Retry queue limit:** Only five messages can enter the retry queue over the lifetime of the subscription. If a sixth message requires retry queuing, or if any message fails all 10 retry attempts, the subscription will be deactivated.
+
+**Paid tier users**
+
+* For paid users, webhooks will be deactivated if a single message, retried at the 24-hour interval, fails to process successfully.
+
+## What you can do
+
+**Ensure server availability:**
+
+* Keep your server running smoothly to receive webhook messages without interruption.
+* Implement logging for incoming webhook requests and your server's responses to help identify any issues quickly.
+
+**Design for idempotency**
+
+* Set up your webhook handler so it can safely process the same message multiple times without causing errors or unwanted effects. This way, if retries occur, they won't negatively impact your system.
+* The webhook retry mechanism is designed to maximize the reliability of message delivery while minimizing the impact of temporary issues. By understanding how retries work—especially the per-message nature of the system—and following best practices like ensuring server availability and designing for idempotency, you can ensure a seamless experience with webhooks.
+
+## Key Takeaways
+
+* Each message has its own retry schedule, ensuring isolation and reliability.
+* Free tier users have limits on failed attempts and retry queue entries, while paid users do not.
+* Implement logging and idempotency to handle retries effectively and avoid disruptions.
+* By following this guide, you’ll be well-equipped to manage webhooks and ensure your system remains robust, even in the face of temporary challenges.

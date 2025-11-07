@@ -1,10 +1,10 @@
 "use client";
 
-import { HomeLayout } from 'fumadocs-ui/layouts/home';
 import type { ReactNode } from 'react';
 import { Footer } from '@/components/navigation/footer';
 import { baseOptions } from '@/app/layout.config';
 import { SessionProvider } from 'next-auth/react';
+import { LayoutWrapper } from '@/app/layout-wrapper.client';
 
 export default function Layout({
   children,
@@ -13,10 +13,10 @@ export default function Layout({
 }): React.ReactElement {
   return (
     <SessionProvider>
-      <HomeLayout {...baseOptions}>
+      <LayoutWrapper baseOptions={baseOptions}>
         {children}
         <Footer />
-      </HomeLayout>
+      </LayoutWrapper>
     </SessionProvider>
   );
 }

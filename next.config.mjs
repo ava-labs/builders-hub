@@ -9,6 +9,7 @@ const config = {
     'ts-morph',
     'typescript',
     'twoslash',
+    'shiki',
   ],
   env: {
     APIKEY: process.env.APIKEY,
@@ -38,32 +39,124 @@ const config = {
       },
       {
         protocol: 'https',
+        hostname: 'f005.backblazeb2.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'explorer-binaryholdings.cogitus.io',
+      },
+      {
+        protocol: 'https',
         hostname: 'cdn.prod.website-files.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'developers.avacloud.io',
       },
     ],
   },
-  async rewrites() {
-    return [
-      {
-        source: '/docs/:path*.mdx',
-        destination: '/llms.mdx/docs/:path*',
-      },
-      {
-        source: '/academy/:path*.mdx',
-        destination: '/llms.mdx/academy/:path*',
-      },
-      {
-        source: '/guides/:path*.mdx',
-        destination: '/llms.mdx/guides/:path*',
-      },
-      {
-        source: '/integrations/:path*.mdx',
-        destination: '/llms.mdx/integrations/:path*',
-      },
-    ];
-  },
   async redirects() {
     return [
+      {
+        source: '/docs/api-reference/c-chain/api',
+        destination: '/docs/rpcs/c-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/p-chain/api',
+        destination: '/docs/rpcs/p-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/x-chain/api',
+        destination: '/docs/rpcs/x-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/info-api',
+        destination: '/docs/rpcs/other/info-rpc',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/index-api',
+        destination: '/docs/rpcs/other/index-rpc',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/health-api',
+        destination: '/docs/rpcs/other/health-rpc',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/admin-api',
+        destination: '/docs/rpcs/other',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/proposervm-api',
+        destination: '/docs/rpcs/other/proposervm-rpc',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/subnet-evm-api',
+        destination: '/docs/rpcs/subnet-evm',
+        permanent: true,
+      },
+      {
+        source: '/docs/rpcs',
+        destination: '/docs/rpcs/c-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling',
+        destination: '/docs/tooling/avalanche-sdk',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference',
+        destination: '/docs/api-reference/data-api',
+        permanent: true,
+      },
+      {
+        source: '/introduction',
+        destination: '/docs/api-reference/introduction',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/rpc-providers',
+        destination: '/integrations#rpc-providers',
+        permanent: true,
+      },
+      {
+        source: '/data-api/:path*',
+        destination: '/docs/api-reference/data-api/:path*',
+        permanent: false,
+      },
+      {
+        source: '/webhooks-api/:path*',
+        destination: '/docs/api-reference/webhooks-api/:path*',
+        permanent: false,
+      },
+      {
+        source: '/metrics-api/:path*',
+        destination: '/docs/api-reference/metrics-api/:path*',
+        permanent: false,
+      },
+      {
+        source: '/rpc-api/:path*',
+        destination: '/docs/api-reference/rpc-api/:path*',
+        permanent: false,
+      },
+      {
+        source: '/avalanche-sdk/:path*',
+        destination: '/docs/api-reference/avalanche-sdk/:path*',
+        permanent: false,
+      },
+      {
+        source: '/changelog/:path*',
+        destination: '/docs/api-reference/changelog/:path*',
+        permanent: false,
+      },
       {
         source: '/codebase-entrepreneur',
         destination: '/codebase-entrepreneur-academy',
@@ -250,18 +343,6 @@ const config = {
         destination: "/docs/tooling/create-deploy-avalanche-l1s/deploy-on-fuji-testnet",
         permanent: true,
       }, {
-        source: "/docs/tooling/avalanche-cli#avalanche-l1-deploy",
-        destination: "/docs/tooling/cli-commands#deploy",
-        permanent: true,
-      }, {
-        source: "/docs/tooling/avalanche-cli#network-start",
-        destination: "/docs/tooling/cli-commands#start",
-        permanent: true,
-      }, {
-        source: "/docs/tooling/avalanche-cli",
-        destination: "/docs/tooling/cli-commands",
-        permanent: true,
-      },       {
         source: "/academy/l1-validator-management",
         destination: "/academy/permissioned-l1s",
         permanent: true,

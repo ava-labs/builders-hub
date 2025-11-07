@@ -1,0 +1,10 @@
+{
+    "title": "Subnet-EVM",
+    "description": "Subnet-EVM RPC methods",
+    "icon": "Code",
+    "root": true,
+    "pages": [
+      "index"
+    ]
+  }
+  

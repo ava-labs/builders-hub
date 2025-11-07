@@ -9,6 +9,7 @@ interface L1Chain {
   chainLogoURI: string;
   subnetId: string;
   slug: string;
+  color?: string;
 }
 
 export async function generateMetadata({
@@ -68,6 +69,7 @@ export default async function L1Metrics({
       chainId={currentChain.chainId}
       chainName={currentChain.chainName}
       description={`Real-time insights into ${currentChain.chainName} L1 activity and network usage`}
+      themeColor={currentChain.color || "#E57373"}
     />
   );
 }

@@ -96,14 +96,22 @@ function CountdownTimer({ targetDate }: { targetDate: string }) {
 export function GraniteBanner() {
   const activationDate = "2025-11-19T11:00:00-05:00";
 
+  // Clear localStorage on mount so banner always shows on refresh
+  useEffect(() => {
+    const bannerKey = "nd-banner-granite-banner";
+    localStorage.removeItem(bannerKey);
+    // Also remove the class that hides the banner
+    document.documentElement.classList.remove("nd-banner-granite-banner");
+  }, []);
+
   return (
-    <Banner id="granite-banner" variant="rainbow" style={{ background: "linear-gradient(90deg, #FFB3F0 0%, #8FC5E6 100%)" }}>
-      <Link href="/blog/granite-upgrade" className="md:hidden inline-flex items-center gap-1 flex-wrap justify-center">
+    <Banner id="granite-banner" variant="rainbow" changeLayout={false} data-granite-banner style={{ background: "linear-gradient(90deg, #FFB3F0 0%, #8FC5E6 100%)" }}>
+      <Link href="/blog/granite-upgrade" className="lg:hidden inline-flex items-center gap-1 flex-wrap justify-center">
         <span>Granite Upgrade Activates in</span>
         <CountdownTimer targetDate={activationDate} />
       </Link>
 
-      <div className="hidden md:flex flex-row items-center justify-center gap-2 text-center">
+      <div className="hidden lg:flex flex-row items-center justify-center gap-2 text-center">
         <span>
           Avalanche Network <strong>Granite upgrade</strong> released. All Mainnet
           nodes must upgrade by <strong>11 AM ET, November 19, 2025</strong>
@@ -111,7 +119,7 @@ export function GraniteBanner() {
         <span className="flex items-center gap-2">
           <span>•</span>
           <CountdownTimer targetDate={activationDate} />
-          <span className="hidden md:inline">•</span>
+          <span className="hidden lg:inline">•</span>
           <Link href="/blog/granite-upgrade" className="underline underline-offset-4 hover:text-fd-primary transition-colors">
             Learn more
           </Link>

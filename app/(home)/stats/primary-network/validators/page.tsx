@@ -1,21 +1,19 @@
 "use client";
 import * as React from "react";
-import { useState, useEffect } from "react";
-import {Area, AreaChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, ReferenceLine } from "recharts";
-import {Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {type ChartConfig, ChartContainer, ChartStyle, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
-import DateRangeFilter from "@/components/ui/DateRangeFilter";
-import {Landmark, Shield, TrendingUp, Monitor, HandCoins } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart,Line, LineChart, Brush, ResponsiveContainer, Tooltip } from "recharts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { type ChartConfig, ChartLegendContent, ChartStyle, ChartContainer, ChartTooltip, ChartLegend } from "@/components/ui/chart";
+import { Landmark, Shield, TrendingUp, Monitor, HandCoins } from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
-import {TimeSeriesDataPoint, ChartDataPoint, TimeRange, PrimaryNetworkMetrics, VersionCount } from "@/types/stats";
+import {TimeSeriesDataPoint, ChartDataPoint, PrimaryNetworkMetrics, VersionCount } from "@/types/stats";
 
 export default function PrimaryNetworkValidatorMetrics() {
   const [metrics, setMetrics] = useState<PrimaryNetworkMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = React.useState<TimeRange>("1y");
   const [validatorVersions, setValidatorVersions] = useState<VersionCount[]>(
     []
   );
@@ -26,9 +24,7 @@ export default function PrimaryNetworkValidatorMetrics() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(
-        `/api/primary-network-stats?timeRange=${timeRange}`
-      );
+      const response = await fetch(`/api/primary-network-stats?timeRange=all`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -96,7 +92,7 @@ export default function PrimaryNetworkValidatorMetrics() {
 
   useEffect(() => {
     fetchData();
-  }, [timeRange]);
+  }, []);
 
   const formatNumber = (num: number | string): string => {
     if (num === "N/A" || num === "") return "N/A";
@@ -173,65 +169,22 @@ export default function PrimaryNetworkValidatorMetrics() {
       .reverse();
   };
 
-  const getYearBoundaries = (data: ChartDataPoint[]): string[] => {
-    if (timeRange !== "all" || data.length === 0) return [];
-    const yearMap = new Map<number, string>();
-    data.forEach((point) => {
-      const date = new Date(point.day);
-      const year = date.getFullYear();
-      if (!yearMap.has(year)) {
-        yearMap.set(year, point.day);
-      }
-    });
-
-    const sortedYears = Array.from(yearMap.keys()).sort((a, b) => a - b);
-    return sortedYears.slice(1).map((year) => yearMap.get(year)!);
-  };
-
-  const formatDateLabel = (dateString: string): string => {
-    const date = new Date(dateString);
-
-    if (timeRange === "all") {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        year: "numeric",
-      });
-    } else {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
-    }
-  };
-
-  const formatTooltipDate = (dateString: string): string => {
-    const date = new Date(dateString);
-
-    if (timeRange === "all") {
-      return date.toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      });
-    } else {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    }
-  };
-
   const formatTooltipValue = (value: number, metricKey: string): string => {
+    const roundedValue = ["validator_count", "delegator_count"].includes(
+      metricKey
+    )
+      ? Math.round(value)
+      : value;
+
     switch (metricKey) {
       case "validator_count":
-        return `${formatNumber(value)} Validators`;
+        return `${formatNumber(roundedValue)} Validators`;
 
       case "validator_weight":
         return `${formatWeight(value)} Staked`;
 
       case "delegator_count":
-        return `${formatNumber(value)} Delegators`;
+        return `${formatNumber(roundedValue)} Delegators`;
 
       case "delegator_weight":
         return `${formatWeight(value)} Delegated Stake`;
@@ -252,69 +205,6 @@ export default function PrimaryNetworkValidatorMetrics() {
   ): number | string => {
     if (!metrics || !metrics[metricKey]) return "N/A";
     return metrics[metricKey].current_value;
-  };
-
-  const getValueChange = (
-    metricKey: keyof Pick<
-      PrimaryNetworkMetrics,
-      | "validator_count"
-      | "validator_weight"
-      | "delegator_count"
-      | "delegator_weight"
-    >
-  ): { change: number; isPositive: boolean } => {
-    if (
-      !metrics ||
-      !metrics[metricKey]?.data ||
-      metrics[metricKey].data.length === 0
-    ) {
-      return { change: 0, isPositive: true };
-    }
-
-    const data = metrics[metricKey].data;
-    const currentValue = data[0];
-    let comparisonIndex = 1;
-    switch (timeRange) {
-      case "30d":
-        comparisonIndex = Math.min(30, data.length - 1);
-        break;
-      case "90d":
-        comparisonIndex = Math.min(90, data.length - 1);
-        break;
-      case "1y":
-        comparisonIndex = Math.min(365, data.length - 1);
-        break;
-      case "all":
-        comparisonIndex = data.length - 1;
-        break;
-    }
-
-    if (comparisonIndex >= data.length) {
-      return { change: 0, isPositive: true };
-    }
-
-    const comparisonValue = data[comparisonIndex];
-
-    const currentVal =
-      typeof currentValue.value === "string"
-        ? parseFloat(currentValue.value)
-        : currentValue.value;
-    const comparisonVal =
-      typeof comparisonValue.value === "string"
-        ? parseFloat(comparisonValue.value)
-        : comparisonValue.value;
-
-    if (isNaN(currentVal) || isNaN(comparisonVal) || comparisonVal === 0) {
-      return { change: 0, isPositive: true };
-    }
-
-    const changePercentage =
-      ((currentVal - comparisonVal) / comparisonVal) * 100;
-
-    return {
-      change: Math.abs(changePercentage),
-      isPositive: changePercentage >= 0,
-    };
   };
 
   const getPieChartData = () => {
@@ -355,89 +245,39 @@ export default function PrimaryNetworkValidatorMetrics() {
       title: "Validator Count",
       icon: Monitor,
       metricKey: "validator_count" as const,
-      description: `Number of active validators over the past ${getTimeRangeLabel(
-        timeRange
-      )}`,
-      chartConfig: {
-        value: {
-          label: "Validator Count",
-          color: "#40c9ff",
-        },
-      } satisfies ChartConfig,
+      description: "Number of active validators",
+      color: "#40c9ff",
+      chartType: "bar" as const,
     },
     {
       title: "Validator Weight",
       icon: Landmark,
       metricKey: "validator_weight" as const,
-      description: `Total validator weight over the past ${getTimeRangeLabel(
-        timeRange
-      )}`,
-      chartConfig: {
-        value: {
-          label: "Validator Weight",
-          color: "#40c9ff",
-        },
-      } satisfies ChartConfig,
+      description: "Total validator weight",
+      color: "#40c9ff",
+      chartType: "area" as const,
     },
     {
       title: "Delegator Count",
       icon: HandCoins,
       metricKey: "delegator_count" as const,
-      description: `Number of active delegators over the past ${getTimeRangeLabel(
-        timeRange
-      )}`,
-      chartConfig: {
-        value: {
-          label: "Delegator Count",
-          color: "#8b5cf6",
-        },
-      } satisfies ChartConfig,
+      description: "Number of active delegators",
+      color: "#8b5cf6",
+      chartType: "bar" as const,
     },
     {
       title: "Delegator Weight",
       icon: Landmark,
       metricKey: "delegator_weight" as const,
-      description: `Total delegator weight over the past ${getTimeRangeLabel(
-        timeRange
-      )}`,
-      chartConfig: {
-        value: {
-          label: "Delegator Weight",
-          color: "#a855f7",
-        },
-      } satisfies ChartConfig,
+      description: "Total delegator weight",
+      color: "#a855f7",
+      chartType: "area" as const,
     },
   ];
 
-  function getTimeRangeLabel(range: string): string {
-    switch (range) {
-      case "30d":
-        return "30 days";
-      case "90d":
-        return "90 days";
-      case "1y":
-        return "1 year";
-      case "all":
-        return "all time";
-      default:
-        return "1 year";
-    }
-  }
-
-  function getComparisonPeriodLabel(range: string): string {
-    switch (range) {
-      case "30d":
-        return "30 days ago";
-      case "90d":
-        return "90 days ago";
-      case "1y":
-        return "1 year ago";
-      case "all":
-        return "the beginning of the dataset";
-      default:
-        return "1 year ago";
-    }
-  }
+  const [chartPeriods, setChartPeriods] = useState<
+    Record<string, "D" | "W" | "M" | "Q" | "Y">
+  >(Object.fromEntries(chartConfigs.map((config) => [config.metricKey, "D"])));
 
   if (loading) {
     return (
@@ -513,12 +353,12 @@ export default function PrimaryNetworkValidatorMetrics() {
               return (
                 <div
                   key={config.metricKey}
-                  className="text-center p-4 sm:p-6 rounded-lg bg-card border"
+                  className="text-center p-4 sm:p-6 rounded-md bg-card border border-gray-200 dark:border-gray-700"
                 >
                   <div className="flex items-center justify-center gap-2 mb-2 sm:mb-3">
                     <Icon
                       className="h-4 w-4 sm:h-5 sm:w-5"
-                      style={{ color: config.chartConfig.value.color }}
+                      style={{ color: config.color }}
                     />
                     <p className="text-xs sm:text-sm text-muted-foreground truncate">
                       {config.title}
@@ -546,166 +386,35 @@ export default function PrimaryNetworkValidatorMetrics() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {chartConfigs.map((config, index) => {
-              const chartData = getChartData(config.metricKey);
+            {chartConfigs.map((config) => {
+              const rawData = getChartData(config.metricKey);
+              if (rawData.length === 0) return null;
+
+              const period = chartPeriods[config.metricKey];
               const currentValue = getCurrentValue(config.metricKey);
-              const { change, isPositive } = getValueChange(config.metricKey);
-              const Icon = config.icon;
 
               return (
-                <Card key={config.metricKey} className="w-full py-2 sm:py-0">
-                  <CardHeader className="px-4 pt-2 pb-2 sm:px-6 sm:pt-4 sm:pb-3">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="flex items-center gap-2 font-medium text-sm sm:text-base min-w-0 flex-1">
-                          <Icon
-                            className="h-4 w-4 sm:h-5 sm:w-5"
-                            style={{ color: config.chartConfig.value.color }}
-                          />
-                          <span className="truncate">{config.title}</span>
-                        </CardTitle>
-                        <div className="shrink-0">
-                          <DateRangeFilter
-                            compact={true}
-                            defaultRange={timeRange}
-                            onRangeChange={(range) => {
-                              if (
-                                range === "30d" ||
-                                range === "90d" ||
-                                range === "1y" ||
-                                range === "all"
-                              ) {
-                                setTimeRange(range);
-                              }
-                            }}
-                          />
-                        </div>
-                      </div>
-                      <CardDescription className="text-xs sm:text-sm">
-                        {config.description}
-                      </CardDescription>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="px-2 pt-2 sm:px-6 sm:pt-4">
-                    <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4">
-                      <div className="text-lg sm:text-2xl font-mono break-all">
-                        {config.metricKey.includes("weight")
-                          ? formatWeight(currentValue)
-                          : formatNumber(currentValue)}
-                      </div>
-                      {change > 0 && (
-                        <div
-                          className={`flex items-center gap-1 text-xs sm:text-sm ${
-                            isPositive ? "text-green-600" : "text-red-600"
-                          }`}
-                          title={`Change compared to ${getComparisonPeriodLabel(
-                            timeRange
-                          )}`}
-                        >
-                          <TrendingUp
-                            className={`h-3 w-3 sm:h-4 sm:w-4 ${
-                              isPositive ? "" : "rotate-180"
-                            }`}
-                          />
-                          {change.toFixed(1)}%
-                        </div>
-                      )}
-                    </div>
-                    <ChartContainer
-                      config={config.chartConfig}
-                      className="aspect-auto w-full font-mono h-[180px] sm:h-[250px]"
-                    >
-                      <AreaChart data={chartData}>
-                        <defs>
-                          <linearGradient
-                            id={`fill-${config.metricKey}`}
-                            x1="0"
-                            y1="0"
-                            x2="0"
-                            y2="1"
-                          >
-                            <stop
-                              offset="5%"
-                              stopColor={`var(--color-value)`}
-                              stopOpacity={0.8}
-                            />
-                            <stop
-                              offset="95%"
-                              stopColor={`var(--color-value)`}
-                              stopOpacity={0.1}
-                            />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid vertical={false} />
-                        <XAxis
-                          dataKey="day"
-                          tickLine={false}
-                          axisLine={false}
-                          tickMargin={8}
-                          minTickGap={32}
-                          tickFormatter={(value) => formatDateLabel(value)}
-                          tick={{
-                            fontFamily:
-                              'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                          }}
-                        />
-                        <YAxis
-                          tickLine={false}
-                          axisLine={false}
-                          tickMargin={8}
-                          tickFormatter={(value) =>
-                            config.metricKey.includes("weight")
-                              ? formatWeightForAxis(value)
-                              : formatNumber(value)
-                          }
-                          tick={{
-                            fontFamily:
-                              'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                          }}
-                        />
-                        <ChartTooltip
-                          cursor={false}
-                          content={
-                            <ChartTooltipContent
-                              labelFormatter={(value) =>
-                                formatTooltipDate(value)
-                              }
-                              indicator="dot"
-                              formatter={(value) => [
-                                formatTooltipValue(
-                                  value as number,
-                                  config.metricKey
-                                ),
-                                "",
-                              ]}
-                              className="font-mono"
-                            />
-                          }
-                        />
-                        {timeRange === "all" &&
-                          getYearBoundaries(chartData).map(
-                            (yearBoundary, idx) => (
-                              <ReferenceLine
-                                key={`year-${idx}`}
-                                x={yearBoundary}
-                                stroke="#d1d5db"
-                                strokeWidth={1}
-                                strokeDasharray="3 3"
-                                opacity={0.6}
-                              />
-                            )
-                          )}
-                        <Area
-                          dataKey="value"
-                          type="natural"
-                          fill={`url(#fill-${config.metricKey})`}
-                          stroke={`var(--color-value)`}
-                          strokeWidth={2}
-                        />
-                      </AreaChart>
-                    </ChartContainer>
-                  </CardContent>
-                </Card>
+                <ValidatorChartCard
+                  key={config.metricKey}
+                  config={config}
+                  rawData={rawData}
+                  period={period}
+                  currentValue={currentValue}
+                  onPeriodChange={(newPeriod) =>
+                    setChartPeriods((prev) => ({
+                      ...prev,
+                      [config.metricKey]: newPeriod,
+                    }))
+                  }
+                  formatTooltipValue={(value) =>
+                    formatTooltipValue(value, config.metricKey)
+                  }
+                  formatYAxisValue={
+                    config.metricKey.includes("weight")
+                      ? formatWeightForAxis
+                      : formatNumber
+                  }
+                />
               );
             })}
           </div>
@@ -955,5 +664,425 @@ export default function PrimaryNetworkValidatorMetrics() {
       {/* Bubble Navigation */}
       <StatsBubbleNav />
     </div>
+  );
+}
+
+function ValidatorChartCard({
+  config,
+  rawData,
+  period,
+  currentValue,
+  onPeriodChange,
+  formatTooltipValue,
+  formatYAxisValue,
+}: {
+  config: any;
+  rawData: any[];
+  period: "D" | "W" | "M" | "Q" | "Y";
+  currentValue: number | string;
+  onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
+  formatTooltipValue: (value: number) => string;
+  formatYAxisValue: (value: number) => string;
+}) {
+  const [brushIndexes, setBrushIndexes] = useState<{
+    startIndex: number;
+    endIndex: number;
+  } | null>(null);
+
+  const aggregatedData = useMemo(() => {
+    if (period === "D") return rawData;
+
+    const grouped = new Map<
+      string,
+      { sum: number; count: number; date: string }
+    >();
+
+    rawData.forEach((point) => {
+      const date = new Date(point.day);
+      let key: string;
+
+      if (period === "W") {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
+      } else if (period === "M") {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}`;
+      } else if (period === "Q") {
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
+      } else {
+        key = String(date.getFullYear());
+      }
+
+      if (!grouped.has(key)) {
+        grouped.set(key, { sum: 0, count: 0, date: key });
+      }
+
+      const group = grouped.get(key)!;
+      group.sum += point.value;
+      group.count += 1;
+    });
+
+    return Array.from(grouped.values())
+      .map((group) => ({
+        day: group.date,
+        value: group.sum / group.count,
+      }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+  }, [rawData, period]);
+
+  useEffect(() => {
+    if (aggregatedData.length === 0) return;
+
+    if (period === "D") {
+      const daysToShow = 90;
+      setBrushIndexes({
+        startIndex: Math.max(0, aggregatedData.length - daysToShow),
+        endIndex: aggregatedData.length - 1,
+      });
+    } else {
+      setBrushIndexes({
+        startIndex: 0,
+        endIndex: aggregatedData.length - 1,
+      });
+    }
+  }, [period, aggregatedData.length]);
+
+  const displayData = brushIndexes ? aggregatedData.slice(brushIndexes.startIndex, brushIndexes.endIndex + 1) : aggregatedData;
+  const dynamicChange = useMemo(() => {
+    if (!displayData || displayData.length < 2) { return { change: 0, isPositive: true } }
+    const firstValue = displayData[0].value;
+    const lastValue = displayData[displayData.length - 1].value;
+    if (lastValue === 0) { return { change: 0, isPositive: true } }
+    const changePercentage = ((lastValue - firstValue) / firstValue) * 100;
+    return {
+      change: Math.abs(changePercentage),
+      isPositive: changePercentage >= 0,
+    };
+  }, [displayData]);
+
+  const formatXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) {
+        return `${parts[1]} '${parts[0].slice(-2)}`;
+      }
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        year: "2-digit",
+      });
+    }
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  const formatBrushXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) {
+        return `${parts[1]} ${parts[0]}`;
+      }
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatTooltipDate = (value: string) => {
+    if (period === "Y") { return value }
+
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) { return `${parts[1]} ${parts[0]}` }
+      return value;
+    }
+
+    const date = new Date(value);
+
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+    }
+
+    if (period === "W") {
+      const endDate = new Date(date);
+      endDate.setDate(date.getDate() + 6);
+      const startMonth = date.toLocaleDateString("en-US", { month: "long" });
+      const endMonth = endDate.toLocaleDateString("en-US", { month: "long" });
+      const startDay = date.getDate();
+      const endDay = endDate.getDate();
+      const year = endDate.getFullYear();
+
+      if (startMonth === endMonth) {
+        return `${startMonth} ${startDay}-${endDay}, ${year}`;
+      } else {
+        return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
+      }
+    }
+
+    return date.toLocaleDateString("en-US", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const Icon = config.icon;
+
+  return (
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+      <CardContent className="p-0">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div
+              className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+              style={{ backgroundColor: `${config.color}20` }}
+            >
+              <Icon
+                className="h-5 w-5 sm:h-6 sm:w-6"
+                style={{ color: config.color }}
+              />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-normal">
+                {config.title}
+              </h3>
+              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                {config.description}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-0.5 sm:gap-1">
+            {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => onPeriodChange(p)}
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm  rounded-md transition-colors ${
+                  period === p
+                    ? "text-white dark:text-white"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+                style={
+                  period === p
+                    ? { backgroundColor: `${config.color}`, opacity: 0.9 }
+                    : {}
+                }
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="px-5 pt-6 pb-6">
+          {/* Current Value and Change */}
+          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4">
+            <div className="text-md sm:text-xl font-mono break-all">
+              {formatTooltipValue(
+                typeof currentValue === "string"
+                  ? parseFloat(currentValue)
+                  : currentValue
+              )}
+            </div>
+            {dynamicChange.change > 0 && (
+              <div
+                className={`flex items-center gap-1 text-xs sm:text-sm ${
+                  dynamicChange.isPositive ? "text-green-600" : "text-red-600"
+                }`}
+                title={`Change over selected time range`}
+              >
+                <TrendingUp
+                  className={`h-3 w-3 sm:h-4 sm:w-4 ${
+                    dynamicChange.isPositive ? "" : "rotate-180"
+                  }`}
+                />
+                {dynamicChange.change.toFixed(1)}%
+              </div>
+            )}
+          </div>
+
+          <div className="mb-6">
+            <ResponsiveContainer width="100%" height={350}>
+              {config.chartType === "bar" ? (
+                <BarChart
+                  data={displayData}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-gray-200 dark:stroke-gray-700"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={formatXAxis}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tickFormatter={formatYAxisValue}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: `${config.color}20` }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const formattedDate = formatTooltipDate(
+                        payload[0].payload.day
+                      );
+                      return (
+                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                          <div className="grid gap-2">
+                            <div className="font-medium text-sm">
+                              {formattedDate}
+                            </div>
+                            <div className="text-sm">
+                              {formatTooltipValue(payload[0].value as number)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar
+                    dataKey="value"
+                    fill={config.color}
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              ) : (
+                <AreaChart
+                  data={displayData}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient
+                      id={`gradient-${config.metricKey}`}
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor={config.color}
+                        stopOpacity={0.3}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor={config.color}
+                        stopOpacity={0}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-gray-200 dark:stroke-gray-700"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={formatXAxis}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tickFormatter={formatYAxisValue}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: `${config.color}20` }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const formattedDate = formatTooltipDate(
+                        payload[0].payload.day
+                      );
+                      return (
+                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                          <div className="grid gap-2">
+                            <div className="font-medium text-sm">
+                              {formattedDate}
+                            </div>
+                            <div className="text-sm">
+                              {formatTooltipValue(payload[0].value as number)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke={config.color}
+                    fill={`url(#gradient-${config.metricKey})`}
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              )}
+            </ResponsiveContainer>
+          </div>
+
+          {/* Brush Slider */}
+          <div className="mt-4 bg-white dark:bg-black pl-[60px]">
+            <ResponsiveContainer width="100%" height={80}>
+              <LineChart
+                data={aggregatedData}
+                margin={{ top: 0, right: 30, left: 0, bottom: 5 }}
+              >
+                <Brush
+                  dataKey="day"
+                  height={80}
+                  stroke={config.color}
+                  fill={`${config.color}20`}
+                  alwaysShowText={false}
+                  startIndex={brushIndexes?.startIndex ?? 0}
+                  endIndex={brushIndexes?.endIndex ?? aggregatedData.length - 1}
+                  onChange={(e: any) => {
+                    if (
+                      e.startIndex !== undefined &&
+                      e.endIndex !== undefined
+                    ) {
+                      setBrushIndexes({
+                        startIndex: e.startIndex,
+                        endIndex: e.endIndex,
+                      });
+                    }
+                  }}
+                  travellerWidth={8}
+                  tickFormatter={formatBrushXAxis}
+                >
+                  <LineChart>
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke={config.color}
+                      strokeWidth={1}
+                      dot={false}
+                    />
+                  </LineChart>
+                </Brush>
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

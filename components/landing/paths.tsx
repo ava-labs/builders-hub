@@ -53,13 +53,13 @@ const paths = [
 export default function Paths() {
   return (
     <div className="flex flex-col px-4 mb-20">
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center gap-3 mb-8 mx-auto max-w-7xl w-full">
         <h2 className="text-xl font-bold tracking-wide text-zinc-700 dark:text-zinc-300 uppercase">
           Choose your path
         </h2>
       </div>
       
-      <div className="mt-12 mx-auto font-geist relative max-w-7xl w-full">
+      <div className="mx-auto font-geist relative max-w-7xl w-full">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           {paths.map((path, index) => (
             <Link

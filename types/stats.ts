@@ -64,7 +64,7 @@ export const STATS_CONFIG = {
     '1y': { days: 365, pageSize: 1000, fetchAllPages: true },
     'all': { startTimestamp: 1600646400, pageSize: 2000, fetchAllPages: true }
   },
-  ACTIVE_ADDRESSES_INTERVALS: {'30d': 'month', '90d': null, '1y': null, 'all': null}, // separate time intervals to avoid double-counting for active addresses
+  ACTIVE_ADDRESSES_INTERVALS: {'30d': 'day', '90d': 'day', '1y': 'day', 'all': 'day'}, // daily active addresses interval
   AVALANCHE_GENESIS_TIMESTAMP: 1600646400,
   DATA_OFFSET_DAYS: 1,
 } as const;

@@ -109,7 +109,7 @@ function TransferOwnership({ onSuccess }: BaseConsoleToolProps) {
         }
         try {
             const transferPromise = coreWalletClient.writeContract({
-                address: validatorManagerAddress,
+                address: validatorManagerAddress as `0x${string}`,
                 abi: ValidatorManagerABI.abi,
                 functionName: 'transferOwnership',
                 args: [newOwnerAddress],

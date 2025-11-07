@@ -187,8 +187,8 @@ export function HeroBackground() {
 
 export default function Hero() {
   return (
-    <section className="min-h-[50vh] w-full flex items-center justify-center relative py-8 lg:py-12">
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="min-h-[50vh] w-full flex items-center justify-center relative py-8 lg:py-12 px-4">
+      <div className="relative z-10 w-full max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           
           {/* Content Section */}
@@ -222,7 +222,7 @@ export default function Hero() {
               </Link>
               
               <Link
-                href="/docs"
+                href="/docs/quick-start"
                 className="group premium-button inline-flex items-center justify-center px-8 py-4 text-base font-bold tracking-[-0.015em] rounded-xl bg-white/10 glass-effect border border-slate-200/30 text-slate-900 dark:text-white hover:bg-white/20 hover:scale-[1.02] transition-all duration-300 backdrop-blur-sm dark:border-slate-700/40"
               >
                 Build
