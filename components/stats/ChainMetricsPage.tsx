@@ -111,11 +111,14 @@ export default function ChainMetricsPage({
       typeof price === "string" ? Number.parseFloat(price) : price;
     if (isNaN(priceValue)) return "N/A";
 
-    const gwei = priceValue / 1e9;
-    if (gwei < 1) {
-      return `${gwei.toFixed(3)} gwei`;
+    // values are already in nano terms, no conversion needed
+    const isC_Chain = chainName.includes("C-Chain");
+    const unit = isC_Chain ? " nAVAX" : "";
+
+    if (priceValue < 1) {
+      return `${priceValue.toFixed(3)}${unit}`;
     }
-    return `${gwei.toFixed(2)} gwei`;
+    return `${priceValue.toFixed(2)}${unit}`;
   };
 
   const formatGas = (gas: number | string): string => {
@@ -140,23 +143,21 @@ export default function ChainMetricsPage({
     return `${rateValue.toFixed(2)} ${unit}`;
   };
 
-  const formatEther = (wei: number | string): string => {
-    if (wei === "N/A" || wei === "") return "N/A";
-    const weiValue = typeof wei === "string" ? Number.parseFloat(wei) : wei;
-    if (isNaN(weiValue)) return "N/A";
-
-    const ether = weiValue / 1e18;
+  const formatEther = (avaxValue: number | string): string => {
+    if (avaxValue === "N/A" || avaxValue === "") return "N/A";
+    const value = typeof avaxValue === "string" ? Number.parseFloat(avaxValue) : avaxValue;
+    if (isNaN(value)) return "N/A";
     const isC_Chain = chainName.includes("C-Chain");
     const unit = isC_Chain ? " AVAX" : "";
 
-    if (ether >= 1e6) {
-      return `${(ether / 1e6).toFixed(2)}M${unit}`;
-    } else if (ether >= 1e3) {
-      return `${(ether / 1e3).toFixed(2)}K${unit}`;
-    } else if (ether >= 1) {
-      return `${ether.toFixed(2)}${unit}`;
+    if (value >= 1e6) {
+      return `${(value / 1e6).toFixed(2)}M${unit}`;
+    } else if (value >= 1e3) {
+      return `${(value / 1e3).toFixed(2)}K${unit}`;
+    } else if (value >= 1) {
+      return `${value.toFixed(2)}${unit}`;
     } else {
-      return `${ether.toFixed(6)}${unit}`;
+      return `${value.toFixed(6)}${unit}`;
     }
   };
 
