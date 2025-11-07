@@ -40,7 +40,7 @@ export function AutoRotateMedal({
   return (
     <group ref={groupRef}>
       <CircularFrame color="#999B9B" />
-      <ImageDisc url={badgeImage} isUnlocked={!!is_unlocked} Disc={Disc} />
+      <ImageDisc url={badgeImage} isUnlocked={!!is_unlocked} Disc={Disc}  />
       <BackFace name={name} description={description} DISC={Disc} />
     </group>
   );
