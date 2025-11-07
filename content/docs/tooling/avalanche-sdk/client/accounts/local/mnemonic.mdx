@@ -1,0 +1,742 @@
+---
+title: "Mnemonic Accounts"
+icon: "seedling"
+---
+
+## Overview
+
+Mnemonic Accounts create Avalanche accounts from mnemonic phrases (seed words). Mnemonics provide a human-readable way to backup and restore accounts, making them ideal for user-facing applications.
+
+**Best for:**
+
+- User-facing applications
+- Mobile wallets
+- Desktop wallets
+- Applications requiring easy account recovery
+
+## Creating Mnemonic Accounts
+
+### Basic Usage
+
+```typescript
+import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const mnemonic =
+  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+const account: AvalancheAccount = mnemonicsToAvalancheAccount(mnemonic);
+
+console.log("EVM Address:", account.getEVMAddress());
+console.log("X-Chain Address:", account.getXPAddress("X"));
+console.log("P-Chain Address:", account.getXPAddress("P"));
+```
+
+### Parameters
+
+- **`mnemonic: string`** - The mnemonic phrase (required)
+- **`options?: MnemonicToAccountOptions`** - Optional derivation path configuration
+
+### Options Interface
+
+```typescript
+interface MnemonicToAccountOptions {
+  accountIndex?: number; // Account index (default: 0)
+  addressIndex?: number; // Address index (default: 0)
+  changeIndex?: number; // Change index (default: 0)
+  path?: string; // Custom derivation path
+  xpAccountIndex?: number; // XP account index (default: 0)
+  xpAddressIndex?: number; // XP address index (default: 0)
+  xpChangeIndex?: number; // XP change index (default: 0)
+}
+```
+
+### Complete Example with Error Handling
+
+```typescript
+import {
+  mnemonicsToAvalancheAccount,
+  validateMnemonic,
+} from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+function createAccountFromMnemonic(
+  mnemonic: string,
+  accountIndex: number = 0,
+  addressIndex: number = 0
+): AvalancheAccount {
+  // Validate mnemonic
+  if (!mnemonic || typeof mnemonic !== "string") {
+    throw new Error("Mnemonic must be a non-empty string");
+  }
+
+  if (!validateMnemonic(mnemonic)) {
+    throw new Error("Invalid mnemonic phrase");
+  }
+
+  try {
+    return mnemonicsToAvalancheAccount(mnemonic, {
+      accountIndex,
+      addressIndex,
+      changeIndex: 0,
+    });
+  } catch (error) {
+    console.error("Failed to create account:", error);
+    throw new Error(`Account creation failed: ${error.message}`);
+  }
+}
+
+// Usage
+try {
+  const mnemonic = "abandon abandon abandon...";
+  const account = createAccountFromMnemonic(mnemonic);
+  console.log("Account created successfully");
+} catch (error) {
+  console.error("Account creation failed:", error);
+}
+```
+
+## Generating Mnemonics
+
+### Generate Random Mnemonic
+
+```typescript
+import {
+  generateMnemonic,
+  mnemonicsToAvalancheAccount,
+} from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const mnemonic: string = generateMnemonic();
+console.log("Generated mnemonic:", mnemonic);
+
+const account: AvalancheAccount = mnemonicsToAvalancheAccount(mnemonic);
+
+console.log("EVM address:", account.getEVMAddress());
+console.log("X-Chain address:", account.getXPAddress("X"));
+console.log("P-Chain address:", account.getXPAddress("P"));
+
+// ⚠️ IMPORTANT: Store mnemonic securely
+// Never log it in production or commit to version control
+```
+
+### Generate Mnemonic in Different Languages
+
+```typescript
+import {
+  generateMnemonic,
+  english,
+  spanish,
+  french,
+  italian,
+  portuguese,
+  czech,
+  japanese,
+  korean,
+  simplifiedChinese,
+  traditionalChinese,
+} from "@avalanche-sdk/client/accounts";
+
+// Generate mnemonic in different languages
+const englishMnemonic: string = generateMnemonic(english);
+const spanishMnemonic: string = generateMnemonic(spanish);
+const frenchMnemonic: string = generateMnemonic(french);
+const italianMnemonic: string = generateMnemonic(italian);
+const portugueseMnemonic: string = generateMnemonic(portuguese);
+const czechMnemonic: string = generateMnemonic(czech);
+const japaneseMnemonic: string = generateMnemonic(japanese);
+const koreanMnemonic: string = generateMnemonic(korean);
+const chineseMnemonic: string = generateMnemonic(simplifiedChinese);
+const traditionalChineseMnemonic: string = generateMnemonic(traditionalChinese);
+
+console.log("English:", englishMnemonic);
+console.log("Spanish:", spanishMnemonic);
+console.log("Japanese:", japaneseMnemonic);
+```
+
+## Derivation Paths
+
+### Default Derivation Paths
+
+The Avalanche Client SDK uses different derivation paths for EVM and XP accounts:
+
+```typescript
+// EVM (C-Chain) derivation path
+// Standard BIP44 path for Ethereum
+const evmPath = "m/44'/60'/0'/0/0"; // m/44'/60'/{accountIndex}'/{changeIndex}/{addressIndex}
+
+// XP (X/P-Chain) derivation path
+// Standard BIP44 path for Avalanche
+const xpPath = "m/44'/9000'/0'/0/0"; // m/44'/9000'/{accountIndex}'/{changeIndex}/{addressIndex}
+```
+
+### Custom Derivation Paths
+
+```typescript
+import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const mnemonic = "abandon abandon abandon...";
+
+// Create account with custom derivation paths
+const account: AvalancheAccount = mnemonicsToAvalancheAccount(mnemonic, {
+  accountIndex: 0,
+  addressIndex: 0,
+  changeIndex: 0,
+  path: "m/44'/60'/0'/0/0", // Custom path
+});
+```
+
+### Multiple Accounts from Same Mnemonic
+
+```typescript
+import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const mnemonic =
+  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+
+// Create multiple accounts from the same mnemonic
+const account0_0: AvalancheAccount = mnemonicsToAvalancheAccount(mnemonic, {
+  accountIndex: 0,
+  addressIndex: 0,
+});
+
+const account0_1: AvalancheAccount = mnemonicsToAvalancheAccount(mnemonic, {
+  accountIndex: 0,
+  addressIndex: 1,
+});
+
+const account1_0: AvalancheAccount = mnemonicsToAvalancheAccount(mnemonic, {
+  accountIndex: 1,
+  addressIndex: 0,
+});
+
+console.log("Account 0-0 EVM:", account0_0.getEVMAddress());
+console.log("Account 0-1 EVM:", account0_1.getEVMAddress());
+console.log("Account 1-0 EVM:", account1_0.getEVMAddress());
+```
+
+### Bulk Account Generation
+
+```typescript
+import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+function generateMultipleAccounts(
+  mnemonic: string,
+  count: number
+): AvalancheAccount[] {
+  const accounts: AvalancheAccount[] = [];
+
+  for (let i = 0; i < count; i++) {
+    accounts.push(
+      mnemonicsToAvalancheAccount(mnemonic, {
+        accountIndex: 0,
+        addressIndex: i,
+      })
+    );
+  }
+
+  return accounts;
+}
+
+// Generate 5 accounts from the same mnemonic
+const accounts = generateMultipleAccounts(mnemonic, 5);
+
+accounts.forEach((account, index) => {
+  console.log(`Account ${index}:`, account.getEVMAddress());
+});
+```
+
+## Account Properties
+
+### EVM Account
+
+```typescript
+import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const account = mnemonicsToAvalancheAccount(mnemonic);
+
+// Access EVM account properties
+const evmAccount = account.evmAccount;
+
+console.log("Address:", evmAccount.address);
+console.log("Type:", evmAccount.type); // "local"
+console.log("Source:", evmAccount.source); // "mnemonic"
+```
+
+### XP Account
+
+```typescript
+import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type {
+  AvalancheAccount,
+  LocalXPAccount,
+} from "@avalanche-sdk/client/accounts";
+
+const account = mnemonicsToAvalancheAccount(mnemonic);
+
+// Access XP account properties
+if (account.xpAccount) {
+  const xpAccount: LocalXPAccount = account.xpAccount;
+
+  console.log("Public Key:", xpAccount.publicKey);
+  console.log("Type:", xpAccount.type); // "local"
+  console.log("Source:", xpAccount.source); // "mnemonic"
+}
+```
+
+## Address Management
+
+### Get All Addresses
+
+```typescript
+import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const account: AvalancheAccount = mnemonicsToAvalancheAccount(mnemonic);
+
+const addresses = {
+  evm: account.getEVMAddress(),
+  xChain: account.getXPAddress("X"),
+  pChain: account.getXPAddress("P"),
+};
+
+console.log("EVM Address:", addresses.evm);
+console.log("X-Chain Address:", addresses.xChain);
+console.log("P-Chain Address:", addresses.pChain);
+```
+
+### Network-Specific Addresses
+
+```typescript
+import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const account: AvalancheAccount = mnemonicsToAvalancheAccount(mnemonic);
+
+// Mainnet addresses
+const mainnetAddresses = {
+  evm: account.getEVMAddress(),
+  xChain: account.getXPAddress("X", "avax"),
+  pChain: account.getXPAddress("P", "avax"),
+};
+
+// Testnet (Fuji) addresses
+const testnetAddresses = {
+  evm: account.getEVMAddress(),
+  xChain: account.getXPAddress("X", "fuji"),
+  pChain: account.getXPAddress("P", "fuji"),
+};
+```
+
+## Using with Wallet Client
+
+### Setup and Transaction
+
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+async function setupAndSendTransaction(mnemonic: string) {
+  try {
+    // Create account from mnemonic
+    const account: AvalancheAccount = mnemonicsToAvalancheAccount(mnemonic);
+
+    // Create wallet client
+    const walletClient = createAvalancheWalletClient({
+      account,
+      chain: avalanche,
+      transport: { type: "http" },
+    });
+
+    // Get all addresses
+    const addresses = {
+      evm: account.getEVMAddress(),
+      xChain: account.getXPAddress("X"),
+      pChain: account.getXPAddress("P"),
+    };
+
+    console.log("Addresses:", addresses);
+
+    // Send C-Chain transaction
+    const txHash = await walletClient.send({
+      to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+      amount: 0.001,
+    });
+
+    console.log("Transaction sent:", txHash);
+    return txHash;
+  } catch (error) {
+    console.error("Transaction failed:", error);
+    throw error;
+  }
+}
+
+const mnemonic = process.env.MNEMONIC!;
+await setupAndSendTransaction(mnemonic);
+```
+
+### Cross-Chain Operations
+
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+async function sendCrossChainTransactions(mnemonic: string) {
+  const account: AvalancheAccount = mnemonicsToAvalancheAccount(mnemonic);
+
+  const walletClient = createAvalancheWalletClient({
+    account,
+    chain: avalanche,
+    transport: { type: "http" },
+  });
+
+  try {
+    // P-Chain transaction
+    const pChainTx = await walletClient.pChain.prepareBaseTxn({
+      outputs: [
+        {
+          addresses: [account.getXPAddress("P")],
+          amount: 0.00001,
+        },
+      ],
+    });
+
+    const pChainTxHash = await walletClient.sendXPTransaction(pChainTx);
+    console.log("P-Chain transaction:", pChainTxHash);
+
+    // X-Chain transaction
+    const xChainTx = await walletClient.xChain.prepareBaseTxn({
+      outputs: [
+        {
+          addresses: [account.getXPAddress("X")],
+          amount: 1,
+        },
+      ],
+    });
+
+    const xChainTxHash = await walletClient.sendXPTransaction(xChainTx);
+    console.log("X-Chain transaction:", xChainTxHash);
+
+    return { pChainTxHash, xChainTxHash };
+  } catch (error) {
+    console.error("Transaction failed:", error);
+    throw error;
+  }
+}
+```
+
+## Account Recovery
+
+### Recover Account from Mnemonic
+
+```typescript
+import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+class AccountRecoveryService {
+  static recoverAccount(
+    mnemonic: string,
+    accountIndex: number = 0,
+    addressIndex: number = 0
+  ): AvalancheAccount {
+    return mnemonicsToAvalancheAccount(mnemonic, {
+      accountIndex,
+      addressIndex,
+      changeIndex: 0,
+    });
+  }
+
+  static recoverAllAccounts(
+    mnemonic: string,
+    maxAccounts: number = 10
+  ): AvalancheAccount[] {
+    const accounts: AvalancheAccount[] = [];
+
+    for (let i = 0; i < maxAccounts; i++) {
+      accounts.push(this.recoverAccount(mnemonic, 0, i));
+    }
+
+    return accounts;
+  }
+
+  static findAccountByAddress(
+    mnemonic: string,
+    targetAddress: string,
+    maxAccounts: number = 100
+  ): AvalancheAccount | null {
+    for (let i = 0; i < maxAccounts; i++) {
+      const account = this.recoverAccount(mnemonic, 0, i);
+
+      if (
+        account.getEVMAddress().toLowerCase() === targetAddress.toLowerCase()
+      ) {
+        return account;
+      }
+    }
+
+    return null;
+  }
+}
+
+// Usage
+const recoveredAccount = AccountRecoveryService.recoverAccount(mnemonic, 0, 0);
+console.log("Recovered EVM address:", recoveredAccount.getEVMAddress());
+```
+
+### Validate Mnemonic
+
+```typescript
+import {
+  validateMnemonic,
+  mnemonicsToAvalancheAccount,
+} from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+function isValidMnemonic(mnemonic: string): boolean {
+  try {
+    return validateMnemonic(mnemonic);
+  } catch {
+    return false;
+  }
+}
+
+function validateAndCreateAccount(mnemonic: string): AvalancheAccount {
+  if (!isValidMnemonic(mnemonic)) {
+    throw new Error("Invalid mnemonic phrase");
+  }
+
+  return mnemonicsToAvalancheAccount(mnemonic);
+}
+
+// Usage
+try {
+  const account = validateAndCreateAccount(mnemonic);
+  console.log("Account created successfully");
+} catch (error) {
+  console.error("Invalid mnemonic:", error);
+}
+```
+
+## Security Best Practices
+
+### Mnemonic Storage
+
+<Callout>
+  **Never expose mnemonics in client-side code or commit them to version
+  control.**
+</Callout>
+
+```typescript
+// ✅ Good: Use environment variables or secure storage
+const mnemonic: string = process.env.MNEMONIC!;
+const account: AvalancheAccount = mnemonicsToAvalancheAccount(mnemonic);
+```
+
+```typescript
+// ❌ Bad: Hardcoded mnemonic
+const account: AvalancheAccount = mnemonicsToAvalancheAccount(
+  "abandon abandon abandon..."
+);
+```
+
+### Secure Mnemonic Generation
+
+```typescript
+import {
+  generateMnemonic,
+  mnemonicsToAvalancheAccount,
+} from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+class SecureMnemonicManager {
+  static generateAccount(): {
+    mnemonic: string;
+    account: AvalancheAccount;
+  } {
+    // Generate secure mnemonic
+    const mnemonic: string = generateMnemonic();
+    const account: AvalancheAccount = mnemonicsToAvalancheAccount(mnemonic);
+
+    // Store mnemonic securely
+    // - Encrypted storage
+    // - Hardware wallets
+    // - Secure enclaves
+    // Never in plain text
+
+    return { mnemonic, account };
+  }
+
+  static validateMnemonicFormat(mnemonic: string): boolean {
+    // Check word count (12, 15, 18, 21, or 24 words)
+    const words = mnemonic.trim().split(/\s+/);
+    const validLengths = [12, 15, 18, 21, 24];
+
+    if (!validLengths.includes(words.length)) {
+      return false;
+    }
+
+    return true;
+  }
+}
+
+// Usage
+const { mnemonic, account } = SecureMnemonicManager.generateAccount();
+console.log("Generated mnemonic (store securely):", mnemonic);
+```
+
+### Mnemonic Validation
+
+```typescript
+import { validateMnemonic } from "viem/accounts";
+
+function validateMnemonicInput(mnemonic: string): {
+  valid: boolean;
+  error?: string;
+} {
+  // Check word count
+  const words = mnemonic.trim().split(/\s+/);
+  const validLengths = [12, 15, 18, 21, 24];
+
+  if (!validLengths.includes(words.length)) {
+    return {
+      valid: false,
+      error: `Invalid mnemonic length. Must be 12, 15, 18, 21, or 24 words`,
+    };
+  }
+
+  // Validate mnemonic checksum
+  try {
+    const isValid = validateMnemonic(mnemonic);
+    return { valid: isValid };
+  } catch (error) {
+    return {
+      valid: false,
+      error: `Invalid mnemonic: ${error.message}`,
+    };
+  }
+}
+```
+
+## Common Patterns
+
+### Mnemonic Account Factory
+
+```typescript
+import {
+  generateMnemonic,
+  mnemonicsToAvalancheAccount,
+  validateMnemonic,
+} from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type { MnemonicToAccountOptions } from "viem/accounts";
+
+class MnemonicAccountFactory {
+  static create(
+    mnemonic: string,
+    options?: MnemonicToAccountOptions
+  ): AvalancheAccount {
+    if (!this.isValidMnemonic(mnemonic)) {
+      throw new Error("Invalid mnemonic format");
+    }
+
+    return mnemonicsToAvalancheAccount(mnemonic, options);
+  }
+
+  static createRandom(options?: MnemonicToAccountOptions): {
+    mnemonic: string;
+    account: AvalancheAccount;
+  } {
+    const mnemonic: string = generateMnemonic();
+    return {
+      mnemonic,
+      account: this.create(mnemonic, options),
+    };
+  }
+
+  static createFromEnv(): AvalancheAccount {
+    const mnemonic: string | undefined = process.env.MNEMONIC;
+
+    if (!mnemonic) {
+      throw new Error("MNEMONIC environment variable not set");
+    }
+
+    return this.create(mnemonic);
+  }
+
+  static createMultiple(mnemonic: string, count: number): AvalancheAccount[] {
+    const accounts: AvalancheAccount[] = [];
+
+    for (let i = 0; i < count; i++) {
+      accounts.push(this.create(mnemonic, { addressIndex: i }));
+    }
+
+    return accounts;
+  }
+
+  private static isValidMnemonic(mnemonic: string): boolean {
+    try {
+      return validateMnemonic(mnemonic);
+    } catch {
+      return false;
+    }
+  }
+}
+
+// Usage
+const account = MnemonicAccountFactory.createFromEnv();
+const { mnemonic, account: newAccount } = MnemonicAccountFactory.createRandom();
+const multipleAccounts = MnemonicAccountFactory.createMultiple(mnemonic, 5);
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Invalid Mnemonic Format**
+
+```typescript
+// ✅ Correct format (12-24 words)
+const validMnemonic =
+  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+
+// ❌ Too few words
+const invalidMnemonic = "abandon abandon abandon";
+
+// ❌ Invalid words
+const invalidWords = "invalid words here...";
+```
+
+**Wrong Derivation Path**
+
+```typescript
+// Use correct derivation path for your use case
+const account = mnemonicsToAvalancheAccount(mnemonic, {
+  accountIndex: 0,
+  addressIndex: 0,
+  changeIndex: 0,
+});
+```
+
+**Mnemonic Language Mismatch**
+
+```typescript
+import { generateMnemonic, english } from "@avalanche-sdk/client/accounts";
+
+// Ensure mnemonic language matches the wordlist used
+const englishMnemonic = generateMnemonic(english);
+const account = mnemonicsToAvalancheAccount(englishMnemonic);
+```
+
+## Next Steps
+
+- **[HD Key Accounts](accounts/local/hd-key)** - Learn about hierarchical deterministic accounts
+- **[Account Utilities](accounts/local/utilities)** - Account validation and utilities
+- **[Using Accounts with Clients](accounts/local/clients)** - Client integration patterns
+- **[Network-Specific Addresses](accounts/local/addresses)** - Multi-network support

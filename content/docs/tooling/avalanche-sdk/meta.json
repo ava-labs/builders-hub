@@ -14,6 +14,8 @@
     "chainkit/custom-http",
     "---Client SDK---",
     "client/getting-started",
+    "client/clients-transports",
+    "client/accounts",
     "---Interchain SDK---",
     "interchain/getting-started"
   ]

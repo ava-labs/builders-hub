@@ -1,0 +1,335 @@
+---
+title: JSON-RPC Accounts
+icon: globe
+description: Learn how to use JSON-RPC accounts with browser wallets like MetaMask and Core in the Avalanche Client SDK.
+---
+
+## Overview
+
+A JSON-RPC Account is an Account whose signing keys are stored on an external Wallet. It **defers** signing of transactions & messages to the target Wallet over JSON-RPC. Examples of such wallets include Browser Extension Wallets (like MetaMask or Core) or Mobile Wallets over WalletConnect.
+
+## Supported Wallets
+
+### Core Browser Extension
+
+Core is Avalanche's official browser extension wallet that provides native support for Avalanche networks (C/P/X-Chains).
+
+```typescript
+import "@avalanche-sdk/client/window";
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+try {
+  // Check if Core extension is available
+  const provider = window.avalanche;
+  if (!provider) {
+    throw new Error(
+      "Core extension not found. Please install Core. https://core.app"
+    );
+  }
+
+  // Create wallet client with Core provider
+  const walletClient = createAvalancheWalletClient({
+    chain: avalanche,
+    transport: {
+      type: "custom",
+      provider,
+    },
+  });
+} catch (error) {
+  console.error("Failed to initialize Core provider:", error);
+}
+```
+
+### MetaMask
+
+MetaMask can be used with Avalanche networks through custom network configuration for C-Chain evm operations.
+
+```typescript
+import "@avalanche-sdk/client/window";
+import { createAvalancheWalletClient, custom } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+// Use MetaMask provider
+const provider = window.ethereum;
+if (!provider) {
+  throw new Error("MetaMask not found. Please install MetaMask.");
+}
+
+const walletClient = createAvalancheWalletClient({
+  chain: avalanche,
+  transport: {
+    type: "custom",
+    provider,
+  },
+});
+```
+
+## Basic Usage
+
+### 1. Request Account Connection
+
+```typescript
+try {
+  // Request accounts from the wallet
+  const accounts: string[] = await walletClient.requestAddresses();
+  const address: string = accounts[0]; // Get the first account
+  console.log("Connected address:", address);
+} catch (error) {
+  console.error("Failed to request addresses:", error);
+}
+```
+
+### 2. Send Transactions
+
+```typescript
+try {
+  // Send a transaction (will prompt user to sign)
+  const txHash: string = await walletClient.send({
+    to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+    amount: 0.001,
+  });
+  console.log("Transaction hash:", txHash);
+} catch (error) {
+  console.error("Failed to send transaction:", error);
+}
+```
+
+### 3. Switch Networks
+
+```typescript
+import { avalanche, avalancheFuji } from "@avalanche-sdk/client/chains";
+
+try {
+  // Switch to Avalanche mainnet
+  await walletClient.switchChain({
+    id: avalanche.id,
+  });
+  console.log("Switched to Avalanche mainnet");
+
+  // Switch to Fuji testnet
+  await walletClient.switchChain({
+    id: avalancheFuji.id,
+  });
+  console.log("Switched to Fuji testnet");
+} catch (error) {
+  console.error("Failed to switch chain:", error);
+}
+```
+
+## React Integration Example
+
+Here's a complete React component for wallet connection using Core:
+
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { avalanche, avalancheFuji } from "@avalanche-sdk/client/chains";
+import { useState, useCallback } from "react";
+import "@avalanche-sdk/client/window";
+
+export function ConnectWallet() {
+  const [connected, setConnected] = useState(false);
+  const [address, setAddress] = useState<string | null>(null);
+  const [chain, setChain] = useState<"mainnet" | "fuji">("fuji");
+
+  const selectedChain = chain === "fuji" ? avalancheFuji : avalanche;
+
+  const connect = useCallback(async () => {
+    try {
+      const provider = window.avalanche;
+      if (!provider) {
+        throw new Error("Core extension not found. Please install Core.");
+      }
+
+      const walletClient = createAvalancheWalletClient({
+        chain: selectedChain,
+        transport: { type: "custom", provider },
+      });
+
+      const accounts = await walletClient.requestAddresses();
+      const addr = accounts[0];
+
+      setAddress(addr);
+      setConnected(true);
+    } catch (error) {
+      console.error("Connection failed:", error);
+    }
+  }, [selectedChain]);
+
+  const sendTransaction = useCallback(async () => {
+    if (!connected || !address) return;
+
+    try {
+      const provider = (window as any).avalanche;
+      const walletClient = createAvalancheWalletClient({
+        chain: selectedChain,
+        transport: { type: "custom", provider },
+      });
+
+      const txHash = await walletClient.send({
+        to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+        amount: 0.001,
+      });
+
+      console.log("Transaction sent:", txHash);
+    } catch (error) {
+      console.error("Transaction failed:", error);
+    }
+  }, [connected, address, selectedChain]);
+
+  return (
+    <div>
+      <h2>Wallet Connection</h2>
+
+      {!connected ? (
+        <button onClick={connect}>Connect Core Wallet</button>
+      ) : (
+        <div>
+          <p>Connected: {address}</p>
+          <p>Network: {selectedChain.name}</p>
+
+          <div>
+            <label>
+              <input
+                type="radio"
+                value="fuji"
+                checked={chain === "fuji"}
+                onChange={(e) => setChain(e.target.value as "fuji")}
+              />
+              Fuji Testnet
+            </label>
+            <label>
+              <input
+                type="radio"
+                value="mainnet"
+                checked={chain === "mainnet"}
+                onChange={(e) => setChain(e.target.value as "mainnet")}
+              />
+              Mainnet
+            </label>
+          </div>
+
+          <button onClick={sendTransaction}>Send Transaction</button>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## Cross-Chain Operations
+
+JSON-RPC accounts support cross-chain operations through the Avalanche Client SDK:
+
+```typescript
+// P-Chain export transaction
+const pChainExportTxn = await walletClient.pChain.prepareExportTxn({
+  destinationChain: "C",
+  fromAddress: address,
+  exportedOutput: {
+    addresses: [address],
+    amount: 0.001,
+  },
+});
+
+const txHash = await walletClient.sendXPTransaction(pChainExportTxn);
+```
+
+## Error Handling
+
+```typescript
+try {
+  const accounts = await walletClient.requestAddresses();
+} catch (error) {
+  if (error.code === 4001) {
+    console.log("User rejected connection request");
+  } else if (error.code === -32002) {
+    console.log("Connection request already pending");
+  } else {
+    console.error("Connection failed:", error.message);
+  }
+}
+```
+
+## Best Practices
+
+### 1. Check Provider Availability
+
+```typescript
+// Always check if the provider is available
+if (typeof window !== "undefined" && window.avalanche) {
+  // Core is available
+} else if (typeof window !== "undefined" && window.ethereum) {
+  // MetaMask is available
+} else {
+  // No wallet provider found
+}
+```
+
+### 2. Handle Network Switching
+
+```typescript
+// Check if wallet is on the correct network
+const currentChainId = await walletClient.getChainId();
+if (currentChainId !== avalanche.id) {
+  await walletClient.switchChain({ id: avalanche.id });
+}
+```
+
+### 3. Graceful Error Handling
+
+```typescript
+const handleWalletError = (error: any) => {
+  switch (error.code) {
+    case 4001:
+      return "User rejected the request";
+    case -32002:
+      return "Request already pending";
+    case -32602:
+      return "Invalid parameters";
+    default:
+      return error.message || "Unknown error occurred";
+  }
+};
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Provider Not Found**
+
+```typescript
+// Check if provider exists
+if (!window.avalanche && !window.ethereum) {
+  throw new Error("No wallet provider found. Please install Core or MetaMask.");
+}
+```
+
+**Wrong Network**
+
+```typescript
+// Ensure wallet is on the correct network
+const chainId = await walletClient.getChainId();
+if (chainId !== avalanche.id) {
+  await walletClient.switchChain({ id: avalanche.id });
+}
+```
+
+**User Rejection**
+
+```typescript
+try {
+  await walletClient.send({ to: address, amount: 0.001 });
+} catch (error) {
+  if (error.code === 4001) {
+    console.log("User rejected transaction");
+  }
+}
+```
+
+## Next Steps
+
+- **[Local Accounts](/avalanche-sdk/client-sdk/accounts/local)** - Learn about local account management
+- **[Wallet Operations](/avalanche-sdk/client-sdk/wallet)** - Learn how to send transactions
+- **[Cross-Chain Transfers](/avalanche-sdk/client-sdk/cross-chain)** - Moving assets between chains
