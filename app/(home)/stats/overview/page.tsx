@@ -2,6 +2,7 @@
 import type React from "react";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useTheme } from "next-themes";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,8 @@ interface OverviewMetrics {
 type SortDirection = "asc" | "desc";
 
 export default function AvalancheMetrics() {
+  const { resolvedTheme } = useTheme();
+  const [isMounted, setIsMounted] = useState(false);
   const [overviewMetrics, setOverviewMetrics] =
     useState<OverviewMetrics | null>(null);
   const [loading, setLoading] = useState(false);
@@ -47,6 +50,10 @@ export default function AvalancheMetrics() {
   const [searchTerm, setSearchTerm] = useState("");
   const timeRange: TimeRange = "1y"; // Fixed time range
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const getChainSlug = (chainId: string, chainName: string): string | null => {
     const chain = l1ChainsData.find(
       (c) =>
@@ -54,6 +61,17 @@ export default function AvalancheMetrics() {
         c.chainName.toLowerCase() === chainName.toLowerCase()
     );
     return chain?.slug || null;
+  };
+
+  const getThemedLogoUrl = (logoUrl: string): string => {
+    if (!isMounted || !logoUrl) return logoUrl;
+
+    // fix to handle both light and dark mode logos
+    if (resolvedTheme === "dark") {
+      return logoUrl.replace(/Light/g, "Dark");
+    } else {
+      return logoUrl.replace(/Dark/g, "Light");
+    }
   };
 
   useEffect(() => {
@@ -588,7 +606,10 @@ export default function AvalancheMetrics() {
                           <div className="relative">
                             {chain.chainLogoURI ? (
                               <Image
-                                src={chain.chainLogoURI || "/placeholder.svg"}
+                                src={
+                                  getThemedLogoUrl(chain.chainLogoURI) ||
+                                  "/placeholder.svg"
+                                }
                                 alt={`${chain.chainName} logo`}
                                 width={32}
                                 height={32}
