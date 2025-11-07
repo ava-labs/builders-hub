@@ -32,7 +32,7 @@ export function RequirementsPanel({
         </CardTitle>
 
           <div className="px-6 pt-6 pb-2">
-            <h3 className="text-base text-center font-semibold dark:text-white text-gray-900 mb-4">
+            <h3 className="text-base  font-semibold dark:text-white text-gray-900 ">
               Requirements
             </h3>
           </div>
