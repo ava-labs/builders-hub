@@ -1,0 +1,250 @@
+---
+title: Avalanche Client
+---
+
+## Overview
+
+The Avalanche Client (also known as the Public Client) is the main client for read-only operations across all Avalanche chains. It provides a unified interface for querying data from P-Chain, X-Chain, C-Chain, and various API endpoints.
+
+**When to use:** Use the Avalanche Client when you need to query blockchain data but don't need to send transactions.
+
+## Installation & Setup
+
+For setup instructions, see the [Getting Started](/avalanche-sdk/client-sdk/getting-started) guide.
+
+```typescript
+import { createAvalancheClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+```
+
+## Available Clients
+
+The Avalanche Client automatically provides access to all chain-specific and API clients:
+
+```typescript
+// Chain clients
+client.pChain; // P-Chain operations (validators, staking, subnets)
+client.xChain; // X-Chain operations (assets, UTXOs)
+client.cChain; // C-Chain operations (EVM, atomic transactions)
+
+// API clients
+client.admin; // Admin API operations
+client.info; // Info API operations
+client.health; // Health API operations
+client.proposerVM.pChain; // ProposerVM API for P Chain
+client.proposerVM.xChain; // ProposerVM API for X Chain
+client.proposerVM.cChain; // ProposerVM API for C Chain
+client.indexBlock.pChain; // P-Chain block index
+client.indexBlock.cChain; // C-Chain block index
+client.indexBlock.xChain; // X-Chain block index
+client.indexTx.xChain; // X-Chain transaction index
+```
+
+## Available Methods
+
+The Avalanche Client extends viem's Public Client and provides additional Avalanche-specific methods:
+
+### Avalanche-Specific Methods
+
+- **Public Methods**: `baseFee`, `getChainConfig`, `maxPriorityFeePerGas`, `feeConfig`, `getActiveRulesAt`
+
+For complete documentation, see [Public Methods Reference](/avalanche-sdk/client-sdk/methods/public-methods/public).
+
+### Chain-Specific Methods
+
+Access methods through chain clients:
+
+- **P-Chain Methods**: See [P-Chain Client](/avalanche-sdk/client-sdk/clients/p-chain-client) and [P-Chain Methods Reference](/avalanche-sdk/client-sdk/methods/public-methods/p-chain)
+- **X-Chain Methods**: See [X-Chain Client](/avalanche-sdk/client-sdk/clients/x-chain-client) and [X-Chain Methods Reference](/avalanche-sdk/client-sdk/methods/public-methods/x-chain)
+- **C-Chain Methods**: See [C-Chain Client](/avalanche-sdk/client-sdk/clients/c-chain-client) and [C-Chain Methods Reference](/avalanche-sdk/client-sdk/methods/public-methods/c-chain)
+
+### viem Public Client Methods
+
+The client extends viem's Public Client, providing access to all standard EVM actions:
+
+- `getBalance`, `getBlock`, `getBlockNumber`, `getTransaction`, `getTransactionReceipt`
+- `readContract`, `call`, `estimateGas`, `getCode`, `getStorageAt`
+- And many more...
+
+See the [viem documentation](https://viem.sh/docs/getting-started) for all available EVM actions.
+
+## Common Operations
+
+### Query P-Chain Data
+
+```typescript
+// Get current block height
+const height = await client.pChain.getHeight();
+
+// Get current validators
+const validators = await client.pChain.getCurrentValidators({
+  subnetID: "11111111111111111111111111111111LpoYY",
+});
+
+// Get subnet information
+const subnet = await client.pChain.getSubnet({
+  subnetID: "11111111111111111111111111111111LpoYY",
+});
+
+// Get balance
+const balance = await client.pChain.getBalance({
+  addresses: ["P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p"],
+});
+```
+
+### Query X-Chain Data
+
+```typescript
+// Get balance for specific asset
+const balance = await client.xChain.getBalance({
+  addresses: ["X-avax18jma8ppw3nhx5r4ap8clazz0dps7rv5ukulre5"],
+  assetID: "AVAX",
+});
+
+// Get all balances
+const allBalances = await client.xChain.getAllBalances({
+  addresses: ["X-avax18jma8ppw3nhx5r4ap8clazz0dps7rv5ukulre5"],
+});
+
+// Get asset information
+const asset = await client.xChain.getAssetDescription({
+  assetID: "FvwEAhmxKfeiG8SnEvq42hc6whRyY3EFYAvebMqDNDGCgxN5Z",
+});
+```
+
+### Query C-Chain Data
+
+```typescript
+// Get EVM balance (viem action)
+const balance = await client.getBalance({
+  address: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+});
+
+// Get transaction receipt (viem action)
+const receipt = await client.getTransactionReceipt({
+  hash: "0x...",
+});
+
+// Get base fee (Avalanche-specific)
+const baseFee = await client.baseFee();
+
+// Get chain config
+const chainConfig = await client.getChainConfig();
+
+// Get atomic transaction
+const atomicTx = await client.cChain.getAtomicTx({
+  txID: "2QouvMUbQ6oy7yQ9tLvL3L8tGQG2QK1wJ1q1wJ1q1wJ1q1wJ1q1wJ1q1wJ1",
+});
+```
+
+### Query API Data
+
+```typescript
+// Admin API - Get peers
+const peers = await client.admin.getPeers();
+
+// Info API - Get node version
+const version = await client.info.getNodeVersion();
+
+// Health API - Get health status
+const health = await client.health.health();
+
+// Index API - Get block by index
+const block = await client.indexPChainBlock.getContainerByIndex({
+  index: 12345,
+});
+```
+
+## Error Handling
+
+Always handle errors appropriately:
+
+```typescript
+import { BaseError } from "viem";
+
+try {
+  const balance = await client.getBalance({
+    address: "0x...",
+  });
+} catch (error) {
+  if (error instanceof BaseError) {
+    console.error("RPC Error:", error.message);
+  } else {
+    console.error("Unknown error:", error);
+  }
+}
+```
+
+## When to Use This Client
+
+- ✅ Querying blockchain data
+- ✅ Reading balances and transaction history
+- ✅ Checking validator information
+- ✅ Monitoring network status
+- ✅ Inspecting smart contract state
+
+**Don't use this client for:**
+
+- ❌ Sending transactions (use [Wallet Client](/avalanche-sdk/client-sdk/clients/wallet-client))
+- ❌ Signing messages (use [Wallet Client](/avalanche-sdk/client-sdk/clients/wallet-client))
+- ❌ Cross-chain transfers (use [Wallet Client](/avalanche-sdk/client-sdk/clients/wallet-client))
+
+## Best Practices
+
+### Use Specific Clients
+
+```typescript
+// Good: Use P-Chain client for platform operations
+const validators = await client.pChain.getCurrentValidators({});
+
+// Good: Use X-Chain client for asset operations
+const balance = await client.xChain.getBalance({
+  addresses: ["X-avax..."],
+  assetID: "AVAX",
+});
+
+// Good: Use C-Chain client for EVM operations
+const atomicTx = await client.cChain.getAtomicTx({
+  txID: "0x...",
+});
+```
+
+### Using viem Actions
+
+Since the Avalanche Client extends viem's Public Client, you have access to all viem actions:
+
+```typescript
+// Use viem's readContract action
+const result = await client.readContract({
+  address: "0x...",
+  abi: contractABI,
+  functionName: "balanceOf",
+  args: ["0x..."],
+});
+
+// Use viem's getTransaction action
+const tx = await client.getTransaction({
+  hash: "0x...",
+});
+
+// Use viem's estimateGas action
+const gas = await client.estimateGas({
+  to: "0x...",
+  value: parseEther("0.001"),
+});
+```
+
+See the [viem documentation](https://viem.sh/docs/getting-started) for all available actions.
+
+## Next Steps
+
+- **[Wallet Client](/avalanche-sdk/client-sdk/clients/wallet-client)** - Transaction signing and sending
+- **[P-Chain Client](/avalanche-sdk/client-sdk/clients/p-chain-client)** - Detailed P-Chain operations
+- **[X-Chain Client](/avalanche-sdk/client-sdk/clients/x-chain-client)** - Asset and UTXO operations
+- **[C-Chain Client](/avalanche-sdk/client-sdk/clients/c-chain-client)** - EVM and atomic operations
+- **[Public Methods Reference](/avalanche-sdk/client-sdk/methods/public-methods/public)** - Complete public method documentation

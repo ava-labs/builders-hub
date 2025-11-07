@@ -1,0 +1,8 @@
+{
+    "title": "Methods",
+    "description": "Learn how to use the Avalanche Client SDK with different methods.",
+    "pages": [
+        "public-methods",
+        "wallet-methods"
+    ]
+}

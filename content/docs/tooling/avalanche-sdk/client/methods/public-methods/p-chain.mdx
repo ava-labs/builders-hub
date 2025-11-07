@@ -1,0 +1,1866 @@
+---
+title: P-Chain Methods
+description: Complete reference for P-Chain (Platform Chain) methods
+---
+
+## Overview
+
+The P-Chain (Platform Chain) is Avalanche's coordinating chain responsible for managing validators, delegators, subnets, and blockchains. This reference covers all read-only P-Chain operations available through the Avalanche Client SDK.
+
+## Balance Operations
+
+### getBalance
+
+Get the balance of AVAX controlled by a given address.
+
+**Function Signature:**
+
+```typescript
+function getBalance(
+  params: GetBalanceParameters
+): Promise<GetBalanceReturnType>;
+
+interface GetBalanceParameters {
+  addresses: string[];
+}
+
+interface GetBalanceReturnType {
+  balance: bigint;
+  unlocked: bigint;
+  lockedStakeable: bigint;
+  lockedNotStakeable: bigint;
+  utxoIDs: {
+    txID: string;
+    outputIndex: number;
+  }[];
+}
+```
+
+**Parameters:**
+
+| Name        | Type       | Required | Description                         |
+| ----------- | ---------- | -------- | ----------------------------------- |
+| `addresses` | `string[]` | Yes      | Array of P-Chain addresses to query |
+
+**Returns:**
+
+| Type                   | Description                |
+| ---------------------- | -------------------------- |
+| `GetBalanceReturnType` | Balance information object |
+
+**Return Object:**
+
+| Property             | Type     | Description                                 |
+| -------------------- | -------- | ------------------------------------------- |
+| `balance`            | `bigint` | Total balance                               |
+| `unlocked`           | `bigint` | Unlocked balance                            |
+| `lockedStakeable`    | `bigint` | Locked and stakeable balance                |
+| `lockedNotStakeable` | `bigint` | Locked but not stakeable balance            |
+| `utxoIDs`            | `array`  | Array of UTXO IDs referencing the addresses |
+
+**Example:**
+
+```typescript
+import { createAvalancheClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+const balance = await client.pChain.getBalance({
+  addresses: ["P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p"],
+});
+
+console.log("Total balance:", balance.balance);
+console.log("Unlocked:", balance.unlocked);
+console.log("Locked stakeable:", balance.lockedStakeable);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetbalance)
+- [getUTXOs](#getutxos) - Get UTXOs for addresses
+
+---
+
+### getUTXOs
+
+Get the UTXOs (Unspent Transaction Outputs) controlled by a set of addresses.
+
+**Function Signature:**
+
+```typescript
+function getUTXOs(params: GetUTXOsParameters): Promise<GetUTXOsReturnType>;
+
+interface GetUTXOsParameters {
+  addresses: string[];
+  sourceChain?: string;
+  limit?: number;
+  startIndex?: {
+    address: string;
+    utxo: string;
+  };
+  encoding?: "hex";
+}
+
+interface GetUTXOsReturnType {
+  numFetched: number;
+  utxos: string[];
+  endIndex: {
+    address: string;
+    utxo: string;
+  };
+  sourceChain?: string;
+  encoding: "hex";
+}
+```
+
+**Parameters:**
+
+| Name          | Type                                | Required | Description                                     |
+| ------------- | ----------------------------------- | -------- | ----------------------------------------------- |
+| `addresses`   | `string[]`                          | Yes      | Array of P-Chain addresses                      |
+| `sourceChain` | `string`                            | No       | Source chain ID (e.g., "X" for X-Chain)         |
+| `limit`       | `number`                            | No       | Maximum number of UTXOs to return               |
+| `startIndex`  | `{ address: string; utxo: string }` | No       | Pagination cursor for next page                 |
+| `encoding`    | `"hex"`                             | No       | Encoding format (can only be "hex" if provided) |
+
+**Returns:**
+
+| Type                 | Description               |
+| -------------------- | ------------------------- |
+| `GetUTXOsReturnType` | UTXO data with pagination |
+
+**Return Object:**
+
+| Property      | Type                                | Description                              |
+| ------------- | ----------------------------------- | ---------------------------------------- |
+| `numFetched`  | `number`                            | Number of UTXOs fetched in this response |
+| `utxos`       | `string[]`                          | Array of UTXO bytes (hex encoded)        |
+| `endIndex`    | `{ address: string; utxo: string }` | Pagination cursor for fetching next page |
+| `sourceChain` | `string`                            | Source chain ID (if specified)           |
+| `encoding`    | `"hex"`                             | Encoding format used                     |
+
+**Example:**
+
+```typescript
+// Get first page
+const utxos = await client.pChain.getUTXOs({
+  addresses: ["P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p"],
+  limit: 100,
+});
+
+console.log("Fetched UTXOs:", utxos.numFetched);
+console.log("UTXOs:", utxos.utxos);
+
+// Get next page if needed
+if (utxos.endIndex) {
+  const moreUTXOs = await client.pChain.getUTXOs({
+    addresses: ["P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p"],
+    startIndex: utxos.endIndex,
+    limit: 100,
+  });
+}
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetutxos)
+- [getBalance](#getbalance) - Get balance summary
+
+---
+
+## Validator Operations
+
+### getCurrentValidators
+
+Get the current validators of the specified Subnet.
+
+**Function Signature:**
+
+```typescript
+function getCurrentValidators(
+  params: GetCurrentValidatorsParameters
+): Promise<GetCurrentValidatorsReturnType>;
+
+interface GetCurrentValidatorsParameters {
+  subnetID?: string | Buffer;
+  nodeIDs?: string[];
+}
+
+interface GetCurrentValidatorsReturnType {
+  validators: Array<{
+    accruedDelegateeReward: string;
+    txID: string;
+    startTime: string;
+    endTime?: string;
+    stakeAmount: string;
+    nodeID: string;
+    weight: string;
+    validationRewardOwner?: {
+      locktime: string;
+      threshold: string;
+      addresses: string[];
+    };
+    delegationRewardOwner?: {
+      locktime: string;
+      threshold: string;
+      addresses: string[];
+    };
+    signer?: {
+      publicKey: string;
+      proofOfPosession: string;
+    };
+    delegatorCount?: string;
+    delegatorWeight?: string;
+    potentialReward?: string;
+    delegationFee?: string;
+    uptime?: string;
+    connected?: boolean;
+    delegators?: Array<{
+      txID: string;
+      startTime: string;
+      endTime: string;
+      stakeAmount: string;
+      nodeID: string;
+      rewardOwner: {
+        locktime: string;
+        threshold: string;
+        addresses: string[];
+      };
+      potentialReward: string;
+    }>;
+  }>;
+}
+```
+
+**Parameters:**
+
+| Name       | Type               | Required | Description                             |
+| ---------- | ------------------ | -------- | --------------------------------------- |
+| `subnetID` | `string \| Buffer` | No       | Subnet ID (defaults to Primary Network) |
+| `nodeIDs`  | `string[]`         | No       | Specific NodeIDs to query               |
+
+**Returns:**
+
+| Type                             | Description            |
+| -------------------------------- | ---------------------- |
+| `GetCurrentValidatorsReturnType` | Validators list object |
+
+**Return Object:**
+
+| Property     | Type    | Description                                 |
+| ------------ | ------- | ------------------------------------------- |
+| `validators` | `array` | List of validators for the specified Subnet |
+
+**Note:** Many fields in the validator object are omitted if `subnetID` is not the Primary Network. The `delegators` field is only included when `nodeIDs` specifies a single NodeID.
+
+**Example:**
+
+```typescript
+// Get all validators on Primary Network
+const validators = await client.pChain.getCurrentValidators({});
+
+console.log("Total validators:", validators.validators.length);
+
+// Get validators for specific subnet
+const subnetValidators = await client.pChain.getCurrentValidators({
+  subnetID: "11111111111111111111111111111111LpoYY",
+});
+
+// Get specific validators
+const specificValidators = await client.pChain.getCurrentValidators({
+  subnetID: "11111111111111111111111111111111LpoYY",
+  nodeIDs: ["NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg"],
+});
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetcurrentvalidators)
+- [getValidatorsAt](#getvalidatorsat) - Get validators at specific height
+- [getAllValidatorsAt](#getallvalidatorsat) - Get all validators at height
+- [sampleValidators](#samplevalidators) - Sample validators
+
+---
+
+### getValidatorsAt
+
+Get the validators at a specific height.
+
+**Function Signature:**
+
+```typescript
+function getValidatorsAt(
+  params: GetValidatorsAtParameters
+): Promise<GetValidatorsAtReturnType>;
+
+interface GetValidatorsAtParameters {
+  height: number;
+  subnetID?: string;
+}
+
+interface GetValidatorsAtReturnType {
+  validators: Record<string, number>;
+}
+```
+
+**Parameters:**
+
+| Name       | Type     | Required | Description                             |
+| ---------- | -------- | -------- | --------------------------------------- |
+| `height`   | `number` | Yes      | Block height to query                   |
+| `subnetID` | `string` | No       | Subnet ID (defaults to Primary Network) |
+
+**Returns:**
+
+| Type                        | Description           |
+| --------------------------- | --------------------- |
+| `GetValidatorsAtReturnType` | Validators map object |
+
+**Return Object:**
+
+| Property     | Type                     | Description                                 |
+| ------------ | ------------------------ | ------------------------------------------- |
+| `validators` | `Record<string, number>` | Map of validator IDs to their stake amounts |
+
+**Example:**
+
+```typescript
+const validators = await client.pChain.getValidatorsAt({
+  height: 1000001,
+  subnetID: "11111111111111111111111111111111LpoYY",
+});
+
+console.log("Validators at height:", validators.validators);
+```
+
+**Links:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetvalidatorsat)
+- [Related: getCurrentValidators](#getcurrentvalidators) - Get current validators
+- [Related: getAllValidatorsAt](#getallvalidatorsat) - Get all validators at height
+- [Related: getHeight](#getheight) - Get current height
+
+---
+
+### getAllValidatorsAt
+
+Get all validators at a specific height across all Subnets and the Primary Network.
+
+**Function Signature:**
+
+```typescript
+function getAllValidatorsAt(
+  params: GetAllValidatorsAtParameters
+): Promise<GetAllValidatorsAtReturnType>;
+
+interface GetAllValidatorsAtParameters {
+  height: number | "proposed";
+}
+
+interface GetAllValidatorsAtReturnType {
+  validatorSets: Record<
+    string,
+    {
+      validators: Array<{
+        publicKey: string;
+        weight: string;
+        nodeIDs: string[];
+      }>;
+      totalWeight: string;
+    }
+  >;
+}
+```
+
+**Parameters:**
+
+| Name     | Type                   | Required | Description                                        |
+| -------- | ---------------------- | -------- | -------------------------------------------------- |
+| `height` | `number \| "proposed"` | Yes      | P-Chain height or "proposed" for proposervm height |
+
+**Returns:**
+
+| Type                           | Description           |
+| ------------------------------ | --------------------- |
+| `GetAllValidatorsAtReturnType` | Validator sets object |
+
+**Return Object:**
+
+| Property        | Type     | Description                                      |
+| --------------- | -------- | ------------------------------------------------ |
+| `validatorSets` | `object` | Map of Subnet IDs to their validator information |
+
+**Note:** The public API (api.avax.network) only supports height within 1000 blocks from the P-Chain tip.
+
+**Example:**
+
+```typescript
+// Get all validators at specific height
+const validators = await client.pChain.getAllValidatorsAt({
+  height: 1000001,
+});
+
+// Get validators at proposed height
+const proposedValidators = await client.pChain.getAllValidatorsAt({
+  height: "proposed",
+});
+
+console.log("Subnet IDs:", Object.keys(validators.validatorSets));
+Object.entries(validators.validatorSets).forEach(([subnetID, set]) => {
+  console.log(`Subnet ${subnetID}:`);
+  console.log(`  Total weight: ${set.totalWeight}`);
+  console.log(`  Validators: ${set.validators.length}`);
+});
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetallvalidatorsat)
+- [getCurrentValidators](#getcurrentvalidators) - Get current validators
+- [getValidatorsAt](#getvalidatorsat) - Get validators at height for specific subnet
+
+---
+
+### sampleValidators
+
+Sample validators from the specified Subnet.
+
+**Function Signature:**
+
+```typescript
+function sampleValidators(
+  params: SampleValidatorsParameters
+): Promise<SampleValidatorsReturnType>;
+
+interface SampleValidatorsParameters {
+  samplingSize: number;
+  subnetID?: string;
+  pChainHeight?: number;
+}
+
+interface SampleValidatorsReturnType {
+  validators: string[];
+}
+```
+
+**Parameters:**
+
+| Name           | Type     | Required | Description                             |
+| -------------- | -------- | -------- | --------------------------------------- |
+| `samplingSize` | `number` | Yes      | Number of validators to sample          |
+| `subnetID`     | `string` | No       | Subnet ID (defaults to Primary Network) |
+| `pChainHeight` | `number` | No       | Block height (defaults to current)      |
+
+**Returns:**
+
+| Type                         | Description               |
+| ---------------------------- | ------------------------- |
+| `SampleValidatorsReturnType` | Sampled validators object |
+
+**Return Object:**
+
+| Property     | Type       | Description                        |
+| ------------ | ---------- | ---------------------------------- |
+| `validators` | `string[]` | Array of sampled validator NodeIDs |
+
+**Example:**
+
+```typescript
+const sampled = await client.pChain.sampleValidators({
+  samplingSize: 5,
+  subnetID: "11111111111111111111111111111111LpoYY",
+});
+
+console.log("Sampled validators:", sampled.validators);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformsamplevalidators)
+- [getCurrentValidators](#getcurrentvalidators) - Get all current validators
+
+---
+
+## Block Operations
+
+### getHeight
+
+Get the height of the last accepted block.
+
+**Function Signature:**
+
+```typescript
+function getHeight(): Promise<GetHeightReturnType>;
+
+interface GetHeightReturnType {
+  height: number;
+}
+```
+
+**Parameters:**
+
+No parameters required.
+
+**Returns:**
+
+| Type                  | Description   |
+| --------------------- | ------------- |
+| `GetHeightReturnType` | Height object |
+
+**Return Object:**
+
+| Property | Type     | Description                  |
+| -------- | -------- | ---------------------------- |
+| `height` | `number` | Current P-Chain block height |
+
+**Example:**
+
+```typescript
+const height = await client.pChain.getHeight();
+console.log("Current P-Chain height:", height.height);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetheight)
+- [getBlockByHeight](#getblockbyheight) - Get block by height
+- [getProposedHeight](#getproposedheight) - Get proposed height
+
+---
+
+### getBlockByHeight
+
+Get a block by its height.
+
+**Function Signature:**
+
+```typescript
+function getBlockByHeight(
+  params: GetBlockByHeightParameters
+): Promise<GetBlockByHeightReturnType>;
+
+interface GetBlockByHeightParameters {
+  height: number;
+  encoding?: "hex" | "json";
+}
+
+interface GetBlockByHeightReturnType {
+  encoding: "hex" | "json";
+  block: string | object;
+}
+```
+
+**Parameters:**
+
+| Name       | Type              | Required | Description                         |
+| ---------- | ----------------- | -------- | ----------------------------------- |
+| `height`   | `number`          | Yes      | Block height                        |
+| `encoding` | `"hex" \| "json"` | No       | Encoding format (defaults to "hex") |
+
+**Returns:**
+
+| Type                         | Description       |
+| ---------------------------- | ----------------- |
+| `GetBlockByHeightReturnType` | Block data object |
+
+**Return Object:**
+
+| Property   | Type               | Description                                 |
+| ---------- | ------------------ | ------------------------------------------- |
+| `encoding` | `"hex" \| "json"`  | Encoding format used                        |
+| `block`    | `string \| object` | Block data in the specified encoding format |
+
+**Example:**
+
+```typescript
+const block = await client.pChain.getBlockByHeight({
+  height: 12345,
+  encoding: "hex",
+});
+
+console.log("Block data:", block.block);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetblockbyheight)
+- [getBlock](#getblock) - Get block by ID
+- [getHeight](#getheight) - Get current height
+
+---
+
+### getBlock
+
+Get a block by its ID.
+
+**Function Signature:**
+
+```typescript
+function getBlock(params: GetBlockParameters): Promise<GetBlockReturnType>;
+
+interface GetBlockParameters {
+  blockId: string;
+  encoding?: "hex" | "json";
+}
+
+interface GetBlockReturnType {
+  encoding: "hex" | "json";
+  block: string | object;
+}
+```
+
+**Parameters:**
+
+| Name       | Type              | Required | Description                         |
+| ---------- | ----------------- | -------- | ----------------------------------- |
+| `blockId`  | `string`          | Yes      | Block ID in CB58 format             |
+| `encoding` | `"hex" \| "json"` | No       | Encoding format (defaults to "hex") |
+
+**Returns:**
+
+| Type                 | Description       |
+| -------------------- | ----------------- |
+| `GetBlockReturnType` | Block data object |
+
+**Return Object:**
+
+| Property   | Type               | Description                                 |
+| ---------- | ------------------ | ------------------------------------------- |
+| `encoding` | `"hex" \| "json"`  | Encoding format used                        |
+| `block`    | `string \| object` | Block data in the specified encoding format |
+
+**Example:**
+
+```typescript
+const block = await client.pChain.getBlock({
+  blockId: "d7WYmb8VeZNHsny3EJCwMm6QA37s1EHwMxw1Y71V3FqPZ5EFG",
+  encoding: "hex",
+});
+
+console.log("Block:", block.block);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetblock)
+- [getBlockByHeight](#getblockbyheight) - Get block by height
+
+---
+
+## Staking Operations
+
+### getStake
+
+Get the stake amount for a set of addresses.
+
+**Function Signature:**
+
+```typescript
+function getStake(params: GetStakeParameters): Promise<GetStakeReturnType>;
+
+interface GetStakeParameters {
+  addresses: string[];
+  subnetID: string;
+}
+
+interface GetStakeReturnType {
+  stakeAmount: bigint;
+}
+```
+
+**Parameters:**
+
+| Name        | Type       | Required | Description       |
+| ----------- | ---------- | -------- | ----------------- |
+| `addresses` | `string[]` | Yes      | P-Chain addresses |
+| `subnetID`  | `string`   | Yes      | Subnet ID         |
+
+**Returns:**
+
+| Type                 | Description         |
+| -------------------- | ------------------- |
+| `GetStakeReturnType` | Stake amount object |
+
+**Return Object:**
+
+| Property      | Type     | Description                          |
+| ------------- | -------- | ------------------------------------ |
+| `stakeAmount` | `bigint` | Total stake amount for the addresses |
+
+**Example:**
+
+```typescript
+const stake = await client.pChain.getStake({
+  addresses: ["P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p"],
+  subnetID: "11111111111111111111111111111111LpoYY",
+});
+
+console.log("Stake amount:", stake.stakeAmount);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetstake)
+- [getTotalStake](#gettotalstake) - Get total subnet stake
+- [getMinStake](#getminstake) - Get minimum stake requirements
+
+---
+
+### getTotalStake
+
+Get the total amount of stake for a Subnet.
+
+**Function Signature:**
+
+```typescript
+function getTotalStake(
+  params: GetTotalStakeParameters
+): Promise<GetTotalStakeReturnType>;
+
+interface GetTotalStakeParameters {
+  subnetID: string;
+}
+
+interface GetTotalStakeReturnType {
+  stake: bigint;
+  weight: bigint;
+}
+```
+
+**Parameters:**
+
+| Name       | Type     | Required | Description |
+| ---------- | -------- | -------- | ----------- |
+| `subnetID` | `string` | Yes      | Subnet ID   |
+
+**Returns:**
+
+| Type                      | Description        |
+| ------------------------- | ------------------ |
+| `GetTotalStakeReturnType` | Total stake object |
+
+**Return Object:**
+
+| Property | Type     | Description                       |
+| -------- | -------- | --------------------------------- |
+| `stake`  | `bigint` | Total stake amount for the subnet |
+| `weight` | `bigint` | Total weight for the subnet       |
+
+**Example:**
+
+```typescript
+const totalStake = await client.pChain.getTotalStake({
+  subnetID: "11111111111111111111111111111111LpoYY",
+});
+
+console.log("Total stake:", totalStake.stake);
+console.log("Total weight:", totalStake.weight);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgettotalstake)
+- [getStake](#getstake) - Get stake for addresses
+- [getMinStake](#getminstake) - Get minimum stake
+
+---
+
+### getMinStake
+
+Get the minimum stake required to validate or delegate.
+
+**Function Signature:**
+
+```typescript
+function getMinStake(
+  params: GetMinStakeParameters
+): Promise<GetMinStakeReturnType>;
+
+interface GetMinStakeParameters {
+  subnetID: string;
+}
+
+interface GetMinStakeReturnType {
+  minValidatorStake: bigint;
+  minDelegatorStake: bigint;
+}
+```
+
+**Parameters:**
+
+| Name       | Type     | Required | Description |
+| ---------- | -------- | -------- | ----------- |
+| `subnetID` | `string` | Yes      | Subnet ID   |
+
+**Returns:**
+
+| Type                    | Description          |
+| ----------------------- | -------------------- |
+| `GetMinStakeReturnType` | Minimum stake object |
+
+**Return Object:**
+
+| Property            | Type     | Description                                  |
+| ------------------- | -------- | -------------------------------------------- |
+| `minValidatorStake` | `bigint` | Minimum stake required to become a validator |
+| `minDelegatorStake` | `bigint` | Minimum stake required to delegate           |
+
+**Example:**
+
+```typescript
+const minStake = await client.pChain.getMinStake({
+  subnetID: "11111111111111111111111111111111LpoYY",
+});
+
+console.log("Min validator stake:", minStake.minValidatorStake);
+console.log("Min delegator stake:", minStake.minDelegatorStake);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetminstake)
+- [getTotalStake](#gettotalstake) - Get total subnet stake
+
+---
+
+## Subnet Operations
+
+### getSubnet
+
+Get information about a subnet.
+
+**Function Signature:**
+
+```typescript
+function getSubnet(params: GetSubnetParameters): Promise<GetSubnetReturnType>;
+
+interface GetSubnetParameters {
+  subnetID: string;
+}
+
+interface GetSubnetReturnType {
+  isPermissioned: boolean;
+  controlKeys: string[];
+  threshold: string;
+  locktime: string;
+  subnetTransformationTxID: string;
+  conversionID: string;
+  managerChainID: string;
+  managerAddress: string | null;
+}
+```
+
+**Parameters:**
+
+| Name       | Type     | Required | Description          |
+| ---------- | -------- | -------- | -------------------- |
+| `subnetID` | `string` | Yes      | The ID of the subnet |
+
+**Returns:**
+
+| Type                  | Description               |
+| --------------------- | ------------------------- |
+| `GetSubnetReturnType` | Subnet information object |
+
+**Return Object:**
+
+| Property                   | Type             | Description                          |
+| -------------------------- | ---------------- | ------------------------------------ |
+| `isPermissioned`           | `boolean`        | Whether the subnet is permissioned   |
+| `controlKeys`              | `string[]`       | Control keys for the subnet          |
+| `threshold`                | `string`         | Signature threshold                  |
+| `locktime`                 | `string`         | Locktime for the subnet              |
+| `subnetTransformationTxID` | `string`         | Subnet transformation transaction ID |
+| `conversionID`             | `string`         | Conversion ID                        |
+| `managerChainID`           | `string`         | Manager chain ID                     |
+| `managerAddress`           | `string \| null` | Manager address (null if not set)    |
+
+**Example:**
+
+```typescript
+const subnet = await client.pChain.getSubnet({
+  subnetID: "11111111111111111111111111111111LpoYY",
+});
+
+console.log("Is permissioned:", subnet.isPermissioned);
+console.log("Control keys:", subnet.controlKeys);
+console.log("Threshold:", subnet.threshold);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetsubnet)
+- [getSubnets](#getsubnets) - Get multiple subnets
+
+---
+
+### getSubnets
+
+Get information about multiple subnets.
+
+**Function Signature:**
+
+```typescript
+function getSubnets(
+  params: GetSubnetsParameters
+): Promise<GetSubnetsReturnType>;
+
+interface GetSubnetsParameters {
+  ids: string[];
+}
+
+interface GetSubnetsReturnType {
+  subnets: {
+    id: string;
+    controlKeys: string[];
+    threshold: string;
+  }[];
+}
+```
+
+**Parameters:**
+
+| Name  | Type       | Required | Description                  |
+| ----- | ---------- | -------- | ---------------------------- |
+| `ids` | `string[]` | Yes      | Array of subnet IDs to query |
+
+**Returns:**
+
+| Type                   | Description                |
+| ---------------------- | -------------------------- |
+| `GetSubnetsReturnType` | Subnets information object |
+
+**Return Object:**
+
+| Property  | Type    | Description                         |
+| --------- | ------- | ----------------------------------- |
+| `subnets` | `array` | Array of subnet information objects |
+
+**Example:**
+
+```typescript
+const subnets = await client.pChain.getSubnets({
+  ids: [
+    "11111111111111111111111111111111LpoYY",
+    "SubnetID-11111111111111111111111111111111LpoYY",
+  ],
+});
+
+console.log("Number of subnets:", subnets.subnets.length);
+subnets.subnets.forEach((subnet) => {
+  console.log("Subnet ID:", subnet.id);
+  console.log("Control keys:", subnet.controlKeys);
+});
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetsubnets)
+- [getSubnet](#getsubnet) - Get single subnet
+
+---
+
+### getStakingAssetID
+
+Get the staking asset ID for a subnet.
+
+**Function Signature:**
+
+```typescript
+function getStakingAssetID(
+  params: GetStakingAssetIDParameters
+): Promise<GetStakingAssetIDReturnType>;
+
+interface GetStakingAssetIDParameters {
+  subnetID: string;
+}
+
+interface GetStakingAssetIDReturnType {
+  assetID: string;
+}
+```
+
+**Parameters:**
+
+| Name       | Type     | Required | Description          |
+| ---------- | -------- | -------- | -------------------- |
+| `subnetID` | `string` | Yes      | The ID of the subnet |
+
+**Returns:**
+
+| Type                          | Description             |
+| ----------------------------- | ----------------------- |
+| `GetStakingAssetIDReturnType` | Staking asset ID object |
+
+**Return Object:**
+
+| Property  | Type     | Description                             |
+| --------- | -------- | --------------------------------------- |
+| `assetID` | `string` | Asset ID used for staking on the subnet |
+
+**Example:**
+
+```typescript
+const stakingAsset = await client.pChain.getStakingAssetID({
+  subnetID: "11111111111111111111111111111111LpoYY",
+});
+
+console.log("Staking asset ID:", stakingAsset.assetID);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetstakingassetid)
+- [getSubnet](#getsubnet) - Get subnet information
+
+---
+
+## Blockchain Operations
+
+### getBlockchains
+
+Get all the blockchains that exist (excluding the P-Chain).
+
+**Function Signature:**
+
+```typescript
+function getBlockchains(): Promise<GetBlockchainsReturnType>;
+
+interface GetBlockchainsReturnType {
+  blockchains: {
+    id: string;
+    name: string;
+    subnetID: string;
+    vmID: string;
+  }[];
+}
+```
+
+**Parameters:**
+
+No parameters required.
+
+**Returns:**
+
+| Type                       | Description             |
+| -------------------------- | ----------------------- |
+| `GetBlockchainsReturnType` | Blockchains list object |
+
+**Return Object:**
+
+| Property      | Type    | Description                             |
+| ------------- | ------- | --------------------------------------- |
+| `blockchains` | `array` | Array of blockchain information objects |
+
+**Example:**
+
+```typescript
+const blockchains = await client.pChain.getBlockchains();
+
+console.log("Number of blockchains:", blockchains.blockchains.length);
+
+blockchains.blockchains.forEach((blockchain) => {
+  console.log("Blockchain:", blockchain.name);
+  console.log("  ID:", blockchain.id);
+  console.log("  Subnet ID:", blockchain.subnetID);
+  console.log("  VM ID:", blockchain.vmID);
+});
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetblockchains)
+- [getBlockchainStatus](#getblockchainstatus) - Get blockchain status
+
+---
+
+### getBlockchainStatus
+
+Get the status of a blockchain.
+
+**Function Signature:**
+
+```typescript
+function getBlockchainStatus(
+  params: GetBlockchainStatusParameters
+): Promise<GetBlockchainStatusReturnType>;
+
+interface GetBlockchainStatusParameters {
+  blockchainId: string;
+}
+
+interface GetBlockchainStatusReturnType {
+  status: "Validating" | "Created" | "Preferred" | "Syncing" | "Unknown";
+}
+```
+
+**Parameters:**
+
+| Name           | Type     | Required | Description              |
+| -------------- | -------- | -------- | ------------------------ |
+| `blockchainId` | `string` | Yes      | The ID of the blockchain |
+
+**Returns:**
+
+| Type                            | Description              |
+| ------------------------------- | ------------------------ |
+| `GetBlockchainStatusReturnType` | Blockchain status object |
+
+**Return Object:**
+
+| Property | Type     | Description                                                                      |
+| -------- | -------- | -------------------------------------------------------------------------------- |
+| `status` | `string` | Blockchain status: "Validating", "Created", "Preferred", "Syncing", or "Unknown" |
+
+**Status Values:**
+
+- **Validating**: The blockchain is being validated by this node
+- **Created**: The blockchain exists but isn't being validated by this node
+- **Preferred**: The blockchain was proposed to be created and is likely to be created, but the transaction isn't yet accepted
+- **Syncing**: This node is participating in the blockchain as a non-validating node
+- **Unknown**: The blockchain either wasn't proposed or the proposal isn't preferred
+
+**Example:**
+
+```typescript
+const status = await client.pChain.getBlockchainStatus({
+  blockchainId: "11111111111111111111111111111111LpoYY",
+});
+
+console.log("Blockchain status:", status.status);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetblockchainstatus)
+- [getBlockchains](#getblockchains) - Get all blockchains
+
+---
+
+## Transaction Operations
+
+### getTx
+
+Get a transaction by its ID.
+
+**Function Signature:**
+
+```typescript
+function getTx(params: GetTxParameters): Promise<GetTxReturnType>;
+
+interface GetTxParameters {
+  txID: string;
+  encoding?: "hex" | "json";
+}
+
+interface GetTxReturnType {
+  encoding: "hex" | "json";
+  tx: string | object;
+}
+```
+
+**Parameters:**
+
+| Name       | Type              | Required | Description                         |
+| ---------- | ----------------- | -------- | ----------------------------------- |
+| `txID`     | `string`          | Yes      | Transaction ID in CB58 format       |
+| `encoding` | `"hex" \| "json"` | No       | Encoding format (defaults to "hex") |
+
+**Returns:**
+
+| Type              | Description             |
+| ----------------- | ----------------------- |
+| `GetTxReturnType` | Transaction data object |
+
+**Return Object:**
+
+| Property   | Type               | Description                                       |
+| ---------- | ------------------ | ------------------------------------------------- |
+| `encoding` | `"hex" \| "json"`  | Encoding format used                              |
+| `tx`       | `string \| object` | Transaction data in the specified encoding format |
+
+**Example:**
+
+```typescript
+const tx = await client.pChain.getTx({
+  txID: "11111111111111111111111111111111LpoYY",
+  encoding: "hex",
+});
+
+console.log("Transaction:", tx);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgettx)
+- [getTxStatus](#gettxstatus) - Get transaction status
+- [issueTx](#issuetx) - Issue a transaction
+
+---
+
+### getTxStatus
+
+Get the status of a transaction.
+
+**Function Signature:**
+
+```typescript
+function getTxStatus(
+  params: GetTxStatusParameters
+): Promise<GetTxStatusReturnType>;
+
+interface GetTxStatusParameters {
+  txID: string;
+}
+
+interface GetTxStatusReturnType {
+  status: "Committed" | "Pending" | "Dropped" | "Unknown";
+  reason?: string;
+}
+```
+
+**Parameters:**
+
+| Name   | Type     | Required | Description                   |
+| ------ | -------- | -------- | ----------------------------- |
+| `txID` | `string` | Yes      | Transaction ID in CB58 format |
+
+**Returns:**
+
+| Type                    | Description               |
+| ----------------------- | ------------------------- |
+| `GetTxStatusReturnType` | Transaction status object |
+
+**Return Object:**
+
+| Property | Type     | Description                                                         |
+| -------- | -------- | ------------------------------------------------------------------- |
+| `status` | `string` | Transaction status: "Committed", "Pending", "Dropped", or "Unknown" |
+| `reason` | `string` | Optional reason for the status (if dropped)                         |
+
+**Status Values:**
+
+- **Committed**: The transaction is (or will be) accepted by every node
+- **Pending**: The transaction is being voted on by this node
+- **Dropped**: The transaction will never be accepted by any node in the network
+- **Unknown**: The transaction hasn't been seen by this node
+
+**Example:**
+
+```typescript
+const txStatus = await client.pChain.getTxStatus({
+  txID: "11111111111111111111111111111111LpoYY",
+});
+
+console.log("Transaction status:", txStatus.status);
+if (txStatus.reason) {
+  console.log("Reason:", txStatus.reason);
+}
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgettxstatus)
+- [getTx](#gettx) - Get transaction details
+- [issueTx](#issuetx) - Issue a transaction
+
+---
+
+### issueTx
+
+Issue a transaction to the Platform Chain.
+
+**Function Signature:**
+
+```typescript
+function issueTx(params: IssueTxParameters): Promise<IssueTxReturnType>;
+
+interface IssueTxParameters {
+  tx: string;
+  encoding: "hex";
+}
+
+interface IssueTxReturnType {
+  txID: string;
+}
+```
+
+**Parameters:**
+
+| Name       | Type     | Required | Description                     |
+| ---------- | -------- | -------- | ------------------------------- |
+| `tx`       | `string` | Yes      | Transaction bytes in hex format |
+| `encoding` | `"hex"`  | Yes      | Encoding format (must be "hex") |
+
+**Returns:**
+
+| Type                | Description           |
+| ------------------- | --------------------- |
+| `IssueTxReturnType` | Transaction ID object |
+
+**Return Object:**
+
+| Property | Type     | Description                   |
+| -------- | -------- | ----------------------------- |
+| `txID`   | `string` | Transaction ID in CB58 format |
+
+**Example:**
+
+```typescript
+const txID = await client.pChain.issueTx({
+  tx: "0x00000009de31b4d8b22991d51aa6aa1fc733f23a851a8c9400000000000186a0...",
+  encoding: "hex",
+});
+
+console.log("Transaction issued:", txID.txID);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformissuetx)
+- [getTx](#gettx) - Get transaction details
+- [getTxStatus](#gettxstatus) - Get transaction status
+
+---
+
+## Block Operations
+
+### getProposedHeight
+
+Get the proposed height of the P-Chain.
+
+**Function Signature:**
+
+```typescript
+function getProposedHeight(): Promise<GetProposedHeightReturnType>;
+
+interface GetProposedHeightReturnType {
+  height: number;
+}
+```
+
+**Parameters:**
+
+No parameters required.
+
+**Returns:**
+
+| Type                          | Description            |
+| ----------------------------- | ---------------------- |
+| `GetProposedHeightReturnType` | Proposed height object |
+
+**Return Object:**
+
+| Property | Type     | Description                   |
+| -------- | -------- | ----------------------------- |
+| `height` | `number` | Proposed P-Chain block height |
+
+**Example:**
+
+```typescript
+const proposedHeight = await client.pChain.getProposedHeight();
+console.log("Proposed height:", proposedHeight.height);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetproposedheight)
+- [getHeight](#getheight) - Get current accepted height
+
+---
+
+### getTimestamp
+
+Get the current timestamp of the P-Chain.
+
+**Function Signature:**
+
+```typescript
+function getTimestamp(): Promise<GetTimestampReturnType>;
+
+interface GetTimestampReturnType {
+  timestamp: string;
+}
+```
+
+**Parameters:**
+
+No parameters required.
+
+**Returns:**
+
+| Type                     | Description      |
+| ------------------------ | ---------------- |
+| `GetTimestampReturnType` | Timestamp object |
+
+**Return Object:**
+
+| Property    | Type     | Description                          |
+| ----------- | -------- | ------------------------------------ |
+| `timestamp` | `string` | Current timestamp in ISO 8601 format |
+
+**Example:**
+
+```typescript
+const timestamp = await client.pChain.getTimestamp();
+console.log("Current timestamp:", timestamp.timestamp);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgettimestamp)
+- [getHeight](#getheight) - Get current height
+
+---
+
+## Fee Operations
+
+### getFeeConfig
+
+Get the fee configuration for the P-Chain.
+
+**Function Signature:**
+
+```typescript
+function getFeeConfig(): Promise<GetFeeConfigReturnType>;
+
+interface GetFeeConfigReturnType {
+  weights: [
+    bandwidth: number,
+    dbRead: number,
+    dbWrite: number,
+    compute: number,
+  ];
+  maxCapacity: bigint;
+  maxPerSecond: bigint;
+  targetPerSecond: bigint;
+  minPrice: bigint;
+  excessConversionConstant: bigint;
+}
+```
+
+**Parameters:**
+
+No parameters required.
+
+**Returns:**
+
+| Type                     | Description              |
+| ------------------------ | ------------------------ |
+| `GetFeeConfigReturnType` | Fee configuration object |
+
+**Return Object:**
+
+| Property                   | Type     | Description                                        |
+| -------------------------- | -------- | -------------------------------------------------- |
+| `weights`                  | `array`  | Fee weights: [bandwidth, dbRead, dbWrite, compute] |
+| `maxCapacity`              | `bigint` | Maximum capacity                                   |
+| `maxPerSecond`             | `bigint` | Maximum per second                                 |
+| `targetPerSecond`          | `bigint` | Target per second                                  |
+| `minPrice`                 | `bigint` | Minimum price                                      |
+| `excessConversionConstant` | `bigint` | Excess conversion constant                         |
+
+**Example:**
+
+```typescript
+const feeConfig = await client.pChain.getFeeConfig();
+
+console.log("Fee weights:", feeConfig.weights);
+console.log("Max capacity:", feeConfig.maxCapacity);
+console.log("Target per second:", feeConfig.targetPerSecond);
+console.log("Min price:", feeConfig.minPrice);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetfeeconfig)
+- [getFeeState](#getfeestate) - Get current fee state
+
+---
+
+### getFeeState
+
+Get the current fee state of the P-Chain.
+
+**Function Signature:**
+
+```typescript
+function getFeeState(): Promise<GetFeeStateReturnType>;
+
+interface GetFeeStateReturnType {
+  capacity: bigint;
+  excess: bigint;
+  price: bigint;
+  timestamp: string;
+}
+```
+
+**Parameters:**
+
+No parameters required.
+
+**Returns:**
+
+| Type                    | Description      |
+| ----------------------- | ---------------- |
+| `GetFeeStateReturnType` | Fee state object |
+
+**Return Object:**
+
+| Property    | Type     | Description                |
+| ----------- | -------- | -------------------------- |
+| `capacity`  | `bigint` | Current fee capacity       |
+| `excess`    | `bigint` | Current fee excess         |
+| `price`     | `bigint` | Current fee price          |
+| `timestamp` | `string` | Timestamp of the fee state |
+
+**Example:**
+
+```typescript
+const feeState = await client.pChain.getFeeState();
+
+console.log("Fee capacity:", feeState.capacity);
+console.log("Fee excess:", feeState.excess);
+console.log("Fee price:", feeState.price);
+console.log("Timestamp:", feeState.timestamp);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetfeestate)
+- [getFeeConfig](#getfeeconfig) - Get fee configuration
+
+---
+
+## Supply Operations
+
+### getCurrentSupply
+
+Get the current supply of AVAX tokens.
+
+**Function Signature:**
+
+```typescript
+function getCurrentSupply(
+  params?: GetCurrentSupplyParameters
+): Promise<GetCurrentSupplyReturnType>;
+
+interface GetCurrentSupplyParameters {
+  subnetId?: string;
+}
+
+interface GetCurrentSupplyReturnType {
+  supply: bigint;
+}
+```
+
+**Parameters:**
+
+| Name       | Type     | Required | Description                                        |
+| ---------- | -------- | -------- | -------------------------------------------------- |
+| `subnetId` | `string` | No       | Subnet ID (defaults to Primary Network if omitted) |
+
+**Returns:**
+
+| Type                         | Description   |
+| ---------------------------- | ------------- |
+| `GetCurrentSupplyReturnType` | Supply object |
+
+**Return Object:**
+
+| Property | Type     | Description                                    |
+| -------- | -------- | ---------------------------------------------- |
+| `supply` | `bigint` | Upper bound on the number of tokens that exist |
+
+**Example:**
+
+```typescript
+// Get Primary Network supply
+const supply = await client.pChain.getCurrentSupply();
+console.log("Primary Network supply:", supply.supply);
+
+// Get subnet-specific supply
+const subnetSupply = await client.pChain.getCurrentSupply({
+  subnetId: "11111111111111111111111111111111LpoYY",
+});
+console.log("Subnet supply:", subnetSupply.supply);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetcurrentsupply)
+- [getBalance](#getbalance) - Get address balance
+
+---
+
+## Reward Operations
+
+### getRewardUTXOs
+
+Get the reward UTXOs for a transaction.
+
+**Function Signature:**
+
+```typescript
+function getRewardUTXOs(
+  params: GetRewardUTXOsParameters
+): Promise<GetRewardUTXOsReturnType>;
+
+interface GetRewardUTXOsParameters {
+  txID: string;
+  encoding?: "hex";
+}
+
+interface GetRewardUTXOsReturnType {
+  numFetched: number;
+  utxos: string[];
+  encoding: "hex";
+}
+```
+
+**Parameters:**
+
+| Name       | Type     | Required | Description                         |
+| ---------- | -------- | -------- | ----------------------------------- |
+| `txID`     | `string` | Yes      | Transaction ID in CB58 format       |
+| `encoding` | `"hex"`  | No       | Encoding format (defaults to "hex") |
+
+**Returns:**
+
+| Type                       | Description         |
+| -------------------------- | ------------------- |
+| `GetRewardUTXOsReturnType` | Reward UTXOs object |
+
+**Return Object:**
+
+| Property     | Type       | Description                              |
+| ------------ | ---------- | ---------------------------------------- |
+| `numFetched` | `number`   | Number of reward UTXOs fetched           |
+| `utxos`      | `string[]` | Array of reward UTXO bytes (hex encoded) |
+| `encoding`   | `"hex"`    | Encoding format used                     |
+
+**Example:**
+
+```typescript
+const rewardUTXOs = await client.pChain.getRewardUTXOs({
+  txID: "11111111111111111111111111111111LpoYY",
+  encoding: "hex",
+});
+
+console.log("Reward UTXOs fetched:", rewardUTXOs.numFetched);
+console.log("UTXOs:", rewardUTXOs.utxos);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetrewardutxos)
+- [getUTXOs](#getutxos) - Get UTXOs for addresses
+
+---
+
+## L1 Validator Operations
+
+### getL1Validator
+
+Get information about an L1 validator.
+
+**Function Signature:**
+
+```typescript
+function getL1Validator(
+  params: GetL1ValidatorParameters
+): Promise<GetL1ValidatorReturnType>;
+
+interface GetL1ValidatorParameters {
+  validationID: string;
+}
+
+interface GetL1ValidatorReturnType {
+  subnetID: string;
+  nodeID: string;
+  publicKey: string;
+  remainingBalanceOwner: {
+    addresses: string[];
+    locktime: string;
+    threshold: string;
+  };
+  deactivationOwner: {
+    addresses: string[];
+    locktime: string;
+    threshold: string;
+  };
+  startTime: bigint;
+  weight: bigint;
+  minNonce?: bigint;
+  balance?: bigint;
+  height?: bigint;
+}
+```
+
+**Parameters:**
+
+| Name           | Type     | Required | Description                                             |
+| -------------- | -------- | -------- | ------------------------------------------------------- |
+| `validationID` | `string` | Yes      | The ID for L1 subnet validator registration transaction |
+
+**Returns:**
+
+| Type                       | Description                     |
+| -------------------------- | ------------------------------- |
+| `GetL1ValidatorReturnType` | L1 validator information object |
+
+**Return Object:**
+
+| Property                | Type     | Description                                   |
+| ----------------------- | -------- | --------------------------------------------- |
+| `subnetID`              | `string` | L1 subnet ID this validator is validating     |
+| `nodeID`                | `string` | Node ID of the validator                      |
+| `publicKey`             | `string` | Compressed BLS public key of the validator    |
+| `remainingBalanceOwner` | `object` | Owner that will receive any withdrawn balance |
+| `deactivationOwner`     | `object` | Owner that can withdraw the balance           |
+| `startTime`             | `bigint` | Unix timestamp when validator was added       |
+| `weight`                | `bigint` | Weight used for consensus voting and ICM      |
+| `minNonce`              | `bigint` | Minimum nonce for SetL1ValidatorWeightTx      |
+| `balance`               | `bigint` | Current remaining balance for continuous fee  |
+| `height`                | `bigint` | Height of the last accepted block             |
+
+**Example:**
+
+```typescript
+const validator = await client.pChain.getL1Validator({
+  validationID: "11111111111111111111111111111111LpoYY",
+});
+
+console.log("Subnet ID:", validator.subnetID);
+console.log("Node ID:", validator.nodeID);
+console.log("Weight:", validator.weight);
+console.log("Start time:", validator.startTime);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetl1validator)
+- [getCurrentValidators](#getcurrentvalidators) - Get current validators
+
+---
+
+## Chain Validation
+
+### validatedBy
+
+Get the subnet that validates a given blockchain.
+
+**Function Signature:**
+
+```typescript
+function validatedBy(
+  params: ValidatedByParameters
+): Promise<ValidatedByReturnType>;
+
+interface ValidatedByParameters {
+  blockchainID: string;
+}
+
+interface ValidatedByReturnType {
+  subnetID: string;
+}
+```
+
+**Parameters:**
+
+| Name           | Type     | Required | Description         |
+| -------------- | -------- | -------- | ------------------- |
+| `blockchainID` | `string` | Yes      | The blockchain's ID |
+
+**Returns:**
+
+| Type                    | Description      |
+| ----------------------- | ---------------- |
+| `ValidatedByReturnType` | Subnet ID object |
+
+**Return Object:**
+
+| Property   | Type     | Description                                    |
+| ---------- | -------- | ---------------------------------------------- |
+| `subnetID` | `string` | ID of the subnet that validates the blockchain |
+
+**Example:**
+
+```typescript
+const validatedBy = await client.pChain.validatedBy({
+  blockchainID: "11111111111111111111111111111111LpoYY",
+});
+
+console.log("Validated by subnet:", validatedBy.subnetID);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformvalidatedby)
+- [validates](#validates) - Get blockchains validated by subnet
+
+---
+
+### validates
+
+Get the IDs of the blockchains a subnet validates.
+
+**Function Signature:**
+
+```typescript
+function validates(params: ValidatesParameters): Promise<ValidatesReturnType>;
+
+interface ValidatesParameters {
+  subnetID: string;
+}
+
+interface ValidatesReturnType {
+  blockchainIDs: string[];
+}
+```
+
+**Parameters:**
+
+| Name       | Type     | Required | Description     |
+| ---------- | -------- | -------- | --------------- |
+| `subnetID` | `string` | Yes      | The subnet's ID |
+
+**Returns:**
+
+| Type                  | Description           |
+| --------------------- | --------------------- |
+| `ValidatesReturnType` | Blockchain IDs object |
+
+**Return Object:**
+
+| Property        | Type       | Description                                     |
+| --------------- | ---------- | ----------------------------------------------- |
+| `blockchainIDs` | `string[]` | Array of blockchain IDs validated by the subnet |
+
+**Example:**
+
+```typescript
+const validates = await client.pChain.validates({
+  subnetID: "11111111111111111111111111111111LpoYY",
+});
+
+console.log("Number of blockchains:", validates.blockchainIDs.length);
+validates.blockchainIDs.forEach((blockchainID) => {
+  console.log("Blockchain ID:", blockchainID);
+});
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformvalidates)
+- [validatedBy](#validatedby) - Get subnet validating blockchain
+
+## Next Steps
+
+- **[P-Chain Wallet Methods](../wallet-methods/p-chain-wallet)** - Transaction preparation and signing
+- **[Wallet Client](../../clients/wallet-client)** - Complete wallet operations
+- **[Account Management](../../accounts)** - Account types and management

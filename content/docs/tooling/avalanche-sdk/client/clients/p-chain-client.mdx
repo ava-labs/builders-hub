@@ -1,0 +1,184 @@
+---
+title: P-Chain Client
+---
+
+## Overview
+
+The P-Chain (Platform Chain) Client provides an interface for interacting with Avalanche's Platform Chain, which is responsible for coordinating validators, managing subnets, creating blockchains, and handling staking operations.
+
+**When to use:** Use the P-Chain Client for validator operations, staking, subnet management, and blockchain creation.
+
+## Installation & Setup
+
+For setup instructions, see the [Getting Started](/avalanche-sdk/client-sdk/getting-started) guide.
+
+```typescript
+import { createAvalancheClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+const pChainClient = client.pChain;
+```
+
+Or create a standalone P-Chain client:
+
+```typescript
+import { createPChainClient } from "@avalanche-sdk/client";
+
+const pChainClient = createPChainClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+```
+
+## Available Methods
+
+The P-Chain Client provides methods for:
+
+- **Balance Operations**: `getBalance`, `getUTXOs`
+- **Validator Operations**: `getCurrentValidators`, `getValidatorsAt`, `sampleValidators`, `getL1Validator`
+- **Staking Operations**: `getStake`, `getTotalStake`, `getMinStake`
+- **Subnet Operations**: `getSubnet`, `getSubnets`, `getStakingAssetID`
+- **Blockchain Operations**: `getBlockchains`, `getBlockchainStatus`, `validatedBy`, `validates`
+- **Block Operations**: `getHeight`, `getBlock`, `getBlockByHeight`, `getProposedHeight`, `getTimestamp`
+- **Transaction Operations**: `getTx`, `getTxStatus`, `issueTx`
+- **Fee Operations**: `getFeeConfig`, `getFeeState`
+- **Supply Operations**: `getCurrentSupply`
+- **Reward Operations**: `getRewardUTXOs`
+
+For complete method documentation with signatures, parameters, and examples, see the [P-Chain Methods Reference](/avalanche-sdk/client-sdk/methods/public-methods/p-chain).
+
+## Common Use Cases
+
+### Query Validators
+
+```typescript
+// Get current validators
+const validators = await client.pChain.getCurrentValidators({});
+
+console.log("Total validators:", validators.validators.length);
+
+// Get validators at specific height
+const validatorsAt = await client.pChain.getValidatorsAt({
+  height: 1000001,
+  subnetID: "11111111111111111111111111111111LpoYY",
+});
+```
+
+### Query Staking Information
+
+```typescript
+// Get minimum stake requirements
+const minStake = await client.pChain.getMinStake({
+  subnetID: "11111111111111111111111111111111LpoYY",
+});
+
+console.log("Min validator stake:", minStake.minValidatorStake);
+console.log("Min delegator stake:", minStake.minDelegatorStake);
+
+// Get total stake for a subnet
+const totalStake = await client.pChain.getTotalStake({
+  subnetID: "11111111111111111111111111111111LpoYY",
+});
+
+// Get stake for specific addresses
+const stake = await client.pChain.getStake({
+  addresses: ["P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p"],
+  subnetID: "11111111111111111111111111111111LpoYY",
+});
+```
+
+### Query Subnet Information
+
+```typescript
+// Get subnet information
+const subnet = await client.pChain.getSubnet({
+  subnetID: "11111111111111111111111111111111LpoYY",
+});
+
+console.log("Is permissioned:", subnet.isPermissioned);
+console.log("Control keys:", subnet.controlKeys);
+
+// Get all blockchains in the network
+const blockchains = await client.pChain.getBlockchains();
+
+// Get blockchains validated by a subnet
+const validatedBlockchains = await client.pChain.validates({
+  subnetID: "11111111111111111111111111111111LpoYY",
+});
+```
+
+### Query Balance and UTXOs
+
+```typescript
+// Get balance for addresses
+const balance = await client.pChain.getBalance({
+  addresses: ["P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p"],
+});
+
+console.log("Total balance:", balance.balance);
+console.log("Unlocked:", balance.unlocked);
+
+// Get UTXOs
+const utxos = await client.pChain.getUTXOs({
+  addresses: ["P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p"],
+  limit: 100,
+});
+```
+
+### Query Fee Information
+
+```typescript
+// Get fee configuration
+const feeConfig = await client.pChain.getFeeConfig();
+console.log("Fee weights:", feeConfig.weights);
+console.log("Min price:", feeConfig.minPrice);
+
+// Get current fee state
+const feeState = await client.pChain.getFeeState();
+console.log("Current fee price:", feeState.price);
+console.log("Fee capacity:", feeState.capacity);
+```
+
+## Wallet Operations
+
+For transaction operations (preparing and sending transactions), use the wallet client:
+
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const account = privateKeyToAvalancheAccount("0x...");
+const walletClient = createAvalancheWalletClient({
+  account,
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+// Prepare and send base transaction
+const baseTxn = await walletClient.pChain.prepareBaseTxn({
+  outputs: [
+    {
+      addresses: [account.getXPAddress("P")],
+      amount: 0.00001,
+    },
+  ],
+});
+
+const txID = await walletClient.sendXPTransaction(baseTxn);
+console.log("Transaction sent:", txID);
+```
+
+For complete wallet operations documentation, see [P-Chain Wallet Methods](/avalanche-sdk/client-sdk/methods/wallet-methods/p-chain-wallet).
+
+## Next Steps
+
+- **[P-Chain Methods Reference](/avalanche-sdk/client-sdk/methods/public-methods/p-chain)** - Complete method documentation
+- **[P-Chain Wallet Methods](/avalanche-sdk/client-sdk/methods/wallet-methods/p-chain-wallet)** - Transaction preparation and signing
+- **[Wallet Client](/avalanche-sdk/client-sdk/clients/wallet-client)** - Complete wallet operations
+- **[X-Chain Client](/avalanche-sdk/client-sdk/clients/x-chain-client)** - Asset transfers
+- **[C-Chain Client](/avalanche-sdk/client-sdk/clients/c-chain-client)** - EVM operations

@@ -1,34 +1,34 @@
-import type { Metadata } from "next";
-import {
-  DocsPage,
-  DocsBody,
-  DocsTitle,
-  DocsDescription,
-} from "fumadocs-ui/page";
-import { notFound } from "next/navigation";
-import { type ComponentProps, type FC, type ReactElement } from "react";
-import defaultComponents from "fumadocs-ui/mdx";
-import { Heading } from "fumadocs-ui/components/heading";
-import { Popup, PopupContent, PopupTrigger } from "fumadocs-twoslash/ui";
-import { Tab, Tabs } from "fumadocs-ui/components/tabs";
-import { Step, Steps } from "fumadocs-ui/components/steps";
-import { Callout } from "fumadocs-ui/components/callout";
-import { TypeTable } from "fumadocs-ui/components/type-table";
-import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
-import { createMetadata } from "@/utils/metadata";
-import { documentation } from "@/lib/source";
-import { AutoTypeTable } from "@/components/content-design/type-table";
-import { BackToTop } from "@/components/ui/back-to-top";
-import { File, Folder, Files } from "fumadocs-ui/components/files";
+import { APIStorageManager } from "@/components/content-design/api-storage-manager";
 import Mermaid from "@/components/content-design/mermaid";
-import type { MDXComponents } from "mdx/types";
+import { AutoTypeTable } from "@/components/content-design/type-table";
 import YouTube from "@/components/content-design/youtube";
+import { BackToTop } from "@/components/ui/back-to-top";
 import { Feedback } from "@/components/ui/feedback";
 import { SidebarActions } from "@/components/ui/sidebar-actions";
-import posthog from "posthog-js";
+import { cChainApi, dataApi, metricsApi, pChainApi } from "@/lib/openapi";
+import { documentation } from "@/lib/source";
+import { createMetadata } from "@/utils/metadata";
 import { APIPage } from "fumadocs-openapi/ui";
-import { dataApi, metricsApi, pChainApi, cChainApi } from "@/lib/openapi";
-import { APIStorageManager } from "@/components/content-design/api-storage-manager";
+import { Popup, PopupContent, PopupTrigger } from "fumadocs-twoslash/ui";
+import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
+import { Callout } from "fumadocs-ui/components/callout";
+import { File, Files, Folder } from "fumadocs-ui/components/files";
+import { Heading } from "fumadocs-ui/components/heading";
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { TypeTable } from "fumadocs-ui/components/type-table";
+import defaultComponents from "fumadocs-ui/mdx";
+import {
+  DocsBody,
+  DocsDescription,
+  DocsPage,
+  DocsTitle,
+} from "fumadocs-ui/page";
+import type { MDXComponents } from "mdx/types";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import posthog from "posthog-js";
+import { type ComponentProps, type FC, type ReactElement, type ReactNode } from "react";
 
 export const dynamicParams = false;
 export const revalidate = false;
@@ -99,6 +99,17 @@ export default async function Page(props: {
             PopupTrigger,
             Tabs,
             Tab,
+            InstallTabs: ({
+              items,
+              children,
+            }: {
+              items: string[];
+              children: ReactNode;
+            }) => (
+              <Tabs items={items} style={{ padding: '15px'}} id="package-manager">
+                {children}
+              </Tabs>
+            ),
             Step,
             Steps,
             YouTube,
