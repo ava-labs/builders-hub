@@ -6,9 +6,7 @@ description: Get started with the Avalanche Client SDK - your gateway to buildin
 
 ## Overview
 
-The Avalanche Client SDK provides a comprehensive TypeScript interface for interacting with the Avalanche network. Built on top of [viem](https://viem.sh), it offers full compatibility with Ethereum tooling while adding Avalanche-specific functionality for P-Chain, X-Chain, and C-Chain operations.
-
-The SDK is currently available in TypeScript, with more languages coming soon. If you are interested in a language that is not listed, please reach out to us in the [#avalanche-sdk](https://discord.com/channels/578992315641626624/1416238478915665961) channel in the [Avalanche Discord](https://discord.gg/avax).
+The Avalanche Client SDK provides a TypeScript interface for interacting with Avalanche. Built on [viem](https://viem.sh), it offers full Ethereum compatibility plus native support for P-Chain, X-Chain, and C-Chain operations.
 
 <Cards>
   <Card title="NPM Package">
@@ -49,15 +47,15 @@ bun add @avalanche-sdk/client
 
 ### Requirements
 
-- **Node.js**: >= 20.0.0
-- **TypeScript**: >= 5.0.0 (recommended)
-- **Modern Browsers**: Chrome 88+, Firefox 85+, Safari 14+, Edge 88+
+- Node.js >= 20.0.0
+- TypeScript >= 5.0.0 (recommended)
+- Modern browsers: Chrome 88+, Firefox 85+, Safari 14+, Edge 88+
 
 ## Quick Start
 
-### 1. Set up your Client
+### Public Client
 
-First, create a public client for read-only operations:
+Create a read-only client:
 
 ```typescript
 import { createAvalancheClient } from "@avalanche-sdk/client";
@@ -65,183 +63,28 @@ import { avalanche } from "@avalanche-sdk/client/chains";
 
 const client = createAvalancheClient({
   chain: avalanche,
-  transport: {
-    type: "http",
-  },
+  transport: { type: "http" },
 });
 
-// Access different chain clients
-const pChainClient = client.pChain; // Platform Chain
-const xChainClient = client.xChain; // Exchange Chain
-const cChainClient = client.cChain; // Contract Chain
-
-// Read operations across all chains
+// Read operations
 const pChainHeight = await client.pChain.getHeight();
-const cChainBalance = await client.getBalance({
+const balance = await client.getBalance({
   address: "0xA0Cf798816D4b9b9866b5330EEa46a18382f251e",
 });
 ```
 
-### 2. Create a Wallet Client
+### Wallet Client
 
-For transaction signing, create a wallet client with an account:
-
-```typescript
-import { createAvalancheWalletClient } from "@avalanche-sdk/client";
-import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import { avalanche } from "@avalanche-sdk/client/chains";
-
-// Create account from private key
-const account = privateKeyToAvalancheAccount("0x...");
-
-// Create wallet client
-const walletClient = createAvalancheWalletClient({
-  account,
-  chain: avalanche,
-  transport: { type: "http" },
-});
-
-// Send AVAX on C-Chain
-const hash = await walletClient.send({
-  to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
-  value: 1000000000000000n, // 0.001 AVAX in wei
-});
-```
-
-## Account Creation
-
-The SDK provides multiple ways to create Avalanche accounts:
-
-### Private Key Account
-
-```typescript
-import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-const account = privateKeyToAvalancheAccount("0x123...");
-
-// Access addresses
-const evmAddress = account.getEVMAddress(); // C-Chain address
-const pChainAddress = account.getXPAddress("P"); // P-Chain address
-const xChainAddress = account.getXPAddress("X"); // X-Chain address
-```
-
-### Mnemonic Account
-
-```typescript
-import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-const account = mnemonicsToAvalancheAccount(
-  "test test test test test test test test test test test junk"
-);
-
-// Derive addresses
-const evmAddress = account.getEVMAddress();
-const pChainAddress = account.getXPAddress("P");
-```
-
-### HD Key Account
-
-```typescript
-import { hdKeyToAvalancheAccount, HDKey } from "@avalanche-sdk/client/accounts";
-
-const hdKey = HDKey.fromMasterSeed(...)
-const hdKey = HDKey.fromExtendedKey(...)
-const hdKey = HDKey.fromJSON({ xpriv: ... })
-const account = hdKeyToAvalancheAccount(hdKey);
-```
-
-## Transport Configuration
-
-### HTTP Transport
-
-```typescript
-const client = createAvalancheClient({
-  chain: avalanche,
-  transport: {
-    type: "http",
-    url: "https://api.avax.network/ext/bc/C/rpc", // Optional: custom RPC URL
-  },
-});
-```
-
-### WebSocket Transport
-
-```typescript
-const client = createAvalancheClient({
-  chain: avalanche,
-  transport: {
-    type: "ws",
-    url: "wss://api.avax.network/ext/bc/C/ws",
-  },
-});
-```
-
-### With API Key Authentication
-
-```typescript
-const client = createAvalancheClient({
-  chain: avalanche,
-  transport: { type: "http" },
-  apiKey: "your-api-key-here",
-});
-```
-
-## Avalanche Chains Explained
-
-Avalanche has three primary chains, each with a specific purpose:
-
-- **P-Chain (Platform Chain)**: Coordinates validators, manages staking, and creates subnets
-- **X-Chain (Exchange Chain)**: Creates and transfers assets in the UTXO model
-- **C-Chain (Contract Chain)**: Smart contract platform compatible with Ethereum
-
-```typescript
-// P-Chain: Query validators and staking info
-const validators = await client.pChain.getCurrentValidators({});
-
-// X-Chain: Query AVAX balance
-const balance = await client.xChain.getBalance({
-  address: "X-avax1example...",
-  assetID: "AVAX",
-});
-
-// C-Chain: Query EVM balance
-const balance = await client.getBalance({
-  address: "0x...",
-});
-```
-
-## Using viem Features
-
-Since the SDK is built on viem, you have access to all viem functionality:
-
-```typescript
-import { formatEther, parseEther } from "@avalanche-sdk/client/utils";
-
-// Parse AVAX amounts
-const valueInWei = parseEther("1.0"); // 1000000000000000000n
-
-// Format to AVAX
-const valueInAvax = formatEther(1000000000000000000n); // '1.0'
-
-// Get transaction receipt
-const receipt = await walletClient.waitForTransactionReceipt({ hash });
-```
-
-See the [viem documentation](https://viem.sh/docs/getting-started) for more EVM utilities.
-
-## Example: Send AVAX
-
-Here's a complete example of sending AVAX on C-Chain:
+Create a wallet client for transactions:
 
 ```typescript
 import { createAvalancheWalletClient } from "@avalanche-sdk/client";
 import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
 import { avalanche } from "@avalanche-sdk/client/chains";
 import { avaxToWei } from "@avalanche-sdk/client/utils";
-// Create account
+
 const account = privateKeyToAvalancheAccount("0x...");
 
-// Create wallet client
 const walletClient = createAvalancheWalletClient({
   account,
   chain: avalanche,
@@ -249,32 +92,122 @@ const walletClient = createAvalancheWalletClient({
 });
 
 // Send AVAX
-try {
-  const res = await walletClient.send({
-    to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
-    value: avaxToWei(0.001),
-  });
-
-  console.log("Transaction hash:", res);
-} catch (error) {
-  console.error("Transaction failed:", error);
-}
+const hash = await walletClient.send({
+  to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  amount: avaxToWei(0.001),
+});
 ```
 
-## What's Next
+## Account Creation
 
-Now that you're set up, explore these topics:
+### Private Key
 
-1. **[Clients](mnemonicsclients/clients)** - Understanding the client architecture
-2. **[Account Management](mnemonicsaccounts)** - Creating and managing accounts
-3. **[Wallet Operations](mnemonicswallet)** - Sending transactions
-4. **[P-Chain Operations](mnemonicsmethods/public-methods/p-chain)** - Validator and staking operations
-5. **[X-Chain Operations](mnemonicsmethods/public-methods/x-chain)** - Asset transfers
-6. **[C-Chain Operations](mnemonicsmethods/public-methods/c-chain)** - EVM operations
+```typescript
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const account = privateKeyToAvalancheAccount("0x...");
+```
+
+### Mnemonic
+
+```typescript
+import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const account = mnemonicsToAvalancheAccount("test test test...");
+```
+
+### HD Key
+
+```typescript
+import { hdKeyToAvalancheAccount, HDKey } from "@avalanche-sdk/client/accounts";
+
+const hdKey = HDKey.fromMasterSeed(seed);
+const account = hdKeyToAvalancheAccount(hdKey);
+```
+
+[Learn more about accounts →](accounts)
+
+## Transport Configuration
+
+### HTTP
+
+```typescript
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+```
+
+### WebSocket
+
+```typescript
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "ws" },
+});
+```
+
+### Custom Endpoint
+
+```typescript
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: {
+    type: "http",
+    url: "https://your-custom-rpc-endpoint.com/ext/bc/C/rpc",
+  },
+});
+```
+
+[Learn more about transports →](clients-transports)
+
+## Avalanche Chains
+
+Avalanche has three primary chains:
+
+- **P-Chain (Platform Chain)**: Validators, staking, subnets
+- **X-Chain (Exchange Chain)**: Asset transfers (UTXO model)
+- **C-Chain (Contract Chain)**: Smart contracts (Ethereum-compatible)
+
+```typescript
+// P-Chain
+const validators = await client.pChain.getCurrentValidators({});
+
+// X-Chain
+const balance = await client.xChain.getBalance({
+  address: "X-avax1example...",
+  assetID: "AVAX",
+});
+
+// C-Chain
+const balance = await client.getBalance({ address: "0x..." });
+```
+
+## Using viem Features
+
+The SDK is built on viem, so you have access to all viem functionality:
+
+```typescript
+import { formatEther, parseEther } from "@avalanche-sdk/client/utils";
+
+const valueInWei = parseEther("1.0");
+const valueInAvax = formatEther(1000000000000000000n);
+const receipt = await walletClient.waitForTransactionReceipt({ hash });
+```
+
+See the [viem documentation](https://viem.sh/docs/getting-started) for more utilities.
+
+## Next Steps
+
+- **[Clients & Transports](clients-transports)** - Understanding clients and transports
+- **[Account Management](accounts)** - Creating and managing accounts
+- **[Wallet Operations](methods/wallet-methods/wallet)** - Sending transactions
+- **[P-Chain Operations](methods/public-methods/p-chain)** - Validator and staking
+- **[X-Chain Operations](methods/public-methods/x-chain)** - Asset transfers
+- **[C-Chain Operations](methods/public-methods/c-chain)** - EVM operations
 
 ## Need Help?
 
-- Join our [Discord community](https://discord.gg/avax)
-- Check the [API Reference](mnemonicsclients)
-- Browse [examples](https://github.com/ava-labs/avalanche-sdk-typescript/tree/main/client/examples)
-- Open an [issue](https://github.com/ava-labs/avalanche-sdk-typescript/issues)
+- [Discord community](https://discord.gg/avax)
+- [GitHub examples](https://github.com/ava-labs/avalanche-sdk-typescript/tree/main/client/examples)
+- [Open an issue](https://github.com/ava-labs/avalanche-sdk-typescript/issues)

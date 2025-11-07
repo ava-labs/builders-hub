@@ -36,57 +36,12 @@ console.log("X-Chain Address:", account.getXPAddress("X"));
 console.log("P-Chain Address:", account.getXPAddress("P"));
 ```
 
-### Complete Example with Error Handling
-
-```typescript
-import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-function createAccountFromPrivateKey(privateKey: string): AvalancheAccount {
-  if (!privateKey) {
-    throw new Error("Private key is required");
-  }
-
-  if (!privateKey.startsWith("0x")) {
-    throw new Error("Private key must start with 0x");
-  }
-
-  if (privateKey.length !== 66) {
-    throw new Error(
-      "Private key must be 66 characters (0x + 64 hex characters)"
-    );
-  }
-
-  try {
-    return privateKeyToAvalancheAccount(privateKey);
-  } catch (error) {
-    console.error("Failed to create account:", error);
-    throw new Error(`Account creation failed: ${error.message}`);
-  }
-}
-
-// Usage
-try {
-  const account = createAccountFromPrivateKey("0x...");
-  console.log("Account created successfully");
-} catch (error) {
-  console.error("Account creation failed:", error);
-}
-```
-
 ### Working with Environment Variables
 
 ```typescript
 import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
 
-const PRIVATE_KEY = process.env.PRIVATE_KEY;
-
-if (!PRIVATE_KEY) {
-  throw new Error("PRIVATE_KEY environment variable is not set");
-}
-
-const account: AvalancheAccount = privateKeyToAvalancheAccount(PRIVATE_KEY);
+const account = privateKeyToAvalancheAccount(process.env.PRIVATE_KEY!);
 ```
 
 ## Generating Private Keys
@@ -108,26 +63,6 @@ const account: AvalancheAccount = privateKeyToAvalancheAccount(privateKey);
 console.log("EVM Address:", account.getEVMAddress());
 console.log("X-Chain Address:", account.getXPAddress("X"));
 console.log("P-Chain Address:", account.getXPAddress("P"));
-```
-
-### Generate with Custom Entropy (Advanced)
-
-```typescript
-import {
-  generatePrivateKey,
-  privateKeyToAvalancheAccount,
-  setSignEntropy,
-} from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-// Set custom entropy source
-setSignEntropy(() => {
-  // Your custom entropy generation logic
-  return new Uint8Array(32).fill(1);
-});
-
-const privateKey: string = generatePrivateKey();
-const account: AvalancheAccount = privateKeyToAvalancheAccount(privateKey);
 ```
 
 ## Account Properties
@@ -227,416 +162,66 @@ console.log("Testnet:", testnetAddresses);
 
 ## Using with Wallet Client
 
-### Setup and Basic Transaction
-
 ```typescript
 import { createAvalancheWalletClient } from "@avalanche-sdk/client";
 import { avalanche } from "@avalanche-sdk/client/chains";
 import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
 
-async function setupWalletAndSendTransaction() {
-  try {
-    // 1. Create account
-    const privateKey = process.env.PRIVATE_KEY!;
-    const account: AvalancheAccount = privateKeyToAvalancheAccount(privateKey);
+const account = privateKeyToAvalancheAccount(process.env.PRIVATE_KEY!);
 
-    // 2. Create wallet client
-    const walletClient = createAvalancheWalletClient({
-      account,
-      chain: avalanche,
-      transport: { type: "http" },
-    });
+const walletClient = createAvalancheWalletClient({
+  account,
+  chain: avalanche,
+  transport: { type: "http" },
+});
 
-    // 3. Get addresses
-    const addresses = {
-      evm: account.getEVMAddress(),
-      xChain: account.getXPAddress("X"),
-      pChain: account.getXPAddress("P"),
-    };
+// C-Chain transaction
+const txHash = await walletClient.send({
+  to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  amount: 0.001,
+});
 
-    console.log("Addresses:", addresses);
-
-    // 4. Send C-Chain transaction
-    const txHash = await walletClient.send({
-      to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
-      amount: 0.001,
-    });
-
-    console.log("Transaction sent:", txHash);
-    return txHash;
-  } catch (error) {
-    console.error("Transaction failed:", error);
-    throw error;
-  }
-}
-
-await setupWalletAndSendTransaction();
-```
-
-### XP Chain Transactions
-
-```typescript
-import { createAvalancheWalletClient } from "@avalanche-sdk/client";
-import { avalanche } from "@avalanche-sdk/client/chains";
-import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-async function sendXPChainTransactions() {
-  try {
-    const account: AvalancheAccount = privateKeyToAvalancheAccount(
-      process.env.PRIVATE_KEY!
-    );
-
-    const walletClient = createAvalancheWalletClient({
-      account,
-      chain: avalanche,
-      transport: { type: "http" },
-    });
-
-    // P-Chain transaction
-    const pChainTx = await walletClient.pChain.prepareBaseTxn({
-      outputs: [
-        {
-          addresses: [account.getXPAddress("P")],
-          amount: 0.00001,
-        },
-      ],
-    });
-
-    const pChainTxHash = await walletClient.sendXPTransaction(pChainTx);
-    console.log("P-Chain transaction:", pChainTxHash);
-
-    // X-Chain transaction
-    const xChainTx = await walletClient.xChain.prepareBaseTxn({
-      outputs: [
-        {
-          addresses: [account.getXPAddress("X")],
-          amount: 1,
-        },
-      ],
-    });
-
-    const xChainTxHash = await walletClient.sendXPTransaction(xChainTx);
-    console.log("X-Chain transaction:", xChainTxHash);
-
-    return { pChainTxHash, xChainTxHash };
-  } catch (error) {
-    console.error("Transaction failed:", error);
-    throw error;
-  }
-}
+// X/P-Chain transaction
+const xpTx = await walletClient.xChain.prepareBaseTxn({
+  outputs: [{ addresses: [account.getXPAddress("X")], amount: 1 }],
+});
+await walletClient.sendXPTransaction(xpTx);
 ```
 
 ## Message Signing
 
-### EVM Message Signing
-
 ```typescript
 import { signMessage } from "@avalanche-sdk/client/accounts";
 import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
 
-async function signEVMMessage(account: AvalancheAccount, message: string) {
-  try {
-    const signature = await signMessage({
-      account: account.evmAccount,
-      message,
-    });
-
-    console.log("EVM Signature:", signature);
-    return signature;
-  } catch (error) {
-    console.error("Failed to sign message:", error);
-    throw error;
-  }
-}
-
-// Usage
 const account = privateKeyToAvalancheAccount("0x...");
-const signature = await signEVMMessage(account, "Hello Avalanche!");
-```
 
-### XP Message Signing
+// EVM message signing
+const evmSignature = await signMessage({
+  account: account.evmAccount,
+  message: "Hello Avalanche!",
+});
 
-```typescript
-import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-async function signXPMessage(account: AvalancheAccount, message: string) {
-  if (!account.xpAccount) {
-    throw new Error("XP account not available");
-  }
-
-  try {
-    const signature = await account.xpAccount.signMessage(message);
-    console.log("XP Signature:", signature);
-
-    // Verify signature
-    const isValid = await account.xpAccount.verify(message, signature);
-    console.log("Signature valid:", isValid);
-
-    return signature;
-  } catch (error) {
-    console.error("Failed to sign message:", error);
-    throw error;
-  }
+// XP message signing
+if (account.xpAccount) {
+  const xpSignature = await account.xpAccount.signMessage("Hello Avalanche!");
+  const isValid = account.xpAccount.verify("Hello Avalanche!", xpSignature);
 }
-
-// Usage
-const account = privateKeyToAvalancheAccount("0x...");
-const signature = await signXPMessage(account, "Hello Avalanche!");
 ```
 
-## Advanced Patterns
-
-### Account Factory Pattern
-
-```typescript
-import {
-  generatePrivateKey,
-  privateKeyToAvalancheAccount,
-} from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-class AccountFactory {
-  /**
-   * Create account from existing private key
-   */
-  static fromPrivateKey(privateKey: string): AvalancheAccount {
-    this.validatePrivateKey(privateKey);
-    return privateKeyToAvalancheAccount(privateKey);
-  }
-
-  /**
-   * Generate new account with random private key
-   */
-  static generateNew(): { privateKey: string; account: AvalancheAccount } {
-    const privateKey = generatePrivateKey();
-    const account = privateKeyToAvalancheAccount(privateKey);
-
-    return { privateKey, account };
-  }
-
-  /**
-   * Create account from environment variable
-   */
-  static fromEnvironment(): AvalancheAccount {
-    const privateKey = process.env.PRIVATE_KEY;
-
-    if (!privateKey) {
-      throw new Error("PRIVATE_KEY environment variable not set");
-    }
-
-    return this.fromPrivateKey(privateKey);
-  }
-
-  private static validatePrivateKey(privateKey: string): void {
-    if (!privateKey.startsWith("0x")) {
-      throw new Error("Private key must start with 0x");
-    }
-
-    if (privateKey.length !== 66) {
-      throw new Error("Invalid private key length");
-    }
-  }
-}
-
-// Usage
-const account = AccountFactory.fromEnvironment();
-const { privateKey, account: newAccount } = AccountFactory.generateNew();
-```
-
-### Multi-Chain Account Manager
-
-```typescript
-import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-import { createAvalancheWalletClient } from "@avalanche-sdk/client";
-import { avalanche } from "@avalanche-sdk/client/chains";
-
-class MultiChainAccountManager {
-  private account: AvalancheAccount;
-  private walletClient: ReturnType<typeof createAvalancheWalletClient>;
-
-  constructor(privateKey: string) {
-    this.account = privateKeyToAvalancheAccount(privateKey);
-    this.walletClient = createAvalancheWalletClient({
-      account: this.account,
-      chain: avalanche,
-      transport: { type: "http" },
-    });
-  }
-
-  getAddresses() {
-    return {
-      evm: this.account.getEVMAddress(),
-      xChain: this.account.getXPAddress("X"),
-      pChain: this.account.getXPAddress("P"),
-    };
-  }
-
-  async getBalances() {
-    const addresses = this.getAddresses();
-
-    // Get C-Chain balance
-    const evmBalance = await this.walletClient.getBalance({
-      address: addresses.evm,
-    });
-
-    // Get X-Chain balance
-    const xChainBalance = await this.walletClient.xChain.getBalance({
-      addresses: [addresses.xChain],
-    });
-
-    // Get P-Chain balance
-    const pChainBalance = await this.walletClient.pChain.getBalance({
-      addresses: [addresses.pChain],
-    });
-
-    return {
-      evm: evmBalance,
-      xChain: xChainBalance,
-      pChain: pChainBalance,
-    };
-  }
-
-  async sendCChainTransaction(to: string, amount: number) {
-    return await this.walletClient.send({ to, amount });
-  }
-
-  async sendXPChainTransaction(
-    chainAlias: "X" | "P",
-    to: string,
-    amount: number
-  ) {
-    const tx = await this.walletClient[
-      chainAlias.toLowerCase() as "x" | "p"
-    ].prepareBaseTxn({
-      outputs: [{ addresses: [to], amount }],
-    });
-    return await this.walletClient.sendXPTransaction(tx);
-  }
-}
-
-// Usage
-const manager = new MultiChainAccountManager(process.env.PRIVATE_KEY!);
-
-const addresses = manager.getAddresses();
-console.log("Addresses:", addresses);
-
-const balances = await manager.getBalances();
-console.log("Balances:", balances);
-
-await manager.sendCChainTransaction("0x...", 0.001);
-```
-
-## Security Best Practices
-
-### Private Key Storage
+## Security
 
 <Callout>
   **Never expose private keys in client-side code or commit them to version
-  control.**
+  control. Use environment variables.**
 </Callout>
 
 ```typescript
-// ✅ Good: Use environment variables
-import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-
+// ✅ Good
 const account = privateKeyToAvalancheAccount(process.env.PRIVATE_KEY!);
-```
 
-```typescript
-// ❌ Bad: Hardcoded private key
+// ❌ Bad
 const account = privateKeyToAvalancheAccount("0x1234...");
-```
-
-### Secure Key Generation
-
-```typescript
-import {
-  generatePrivateKey,
-  privateKeyToAvalancheAccount,
-} from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-function generateSecureAccount(): {
-  privateKey: string;
-  account: AvalancheAccount;
-} {
-  // Generate cryptographically secure private key
-  const privateKey = generatePrivateKey();
-  const account = privateKeyToAvalancheAccount(privateKey);
-
-  // Store private key securely (encrypted, hardware wallet, etc.)
-  // Do not store in plain text
-
-  return { privateKey, account };
-}
-```
-
-### Key Validation
-
-```typescript
-function validatePrivateKey(privateKey: string): void {
-  // Check format
-  if (!privateKey.startsWith("0x")) {
-    throw new Error("Private key must start with 0x");
-  }
-
-  // Check length
-  if (privateKey.length !== 66) {
-    throw new Error("Private key must be 66 characters");
-  }
-
-  // Check hex characters
-  const hexPattern = /^0x[0-9a-fA-F]+$/;
-  if (!hexPattern.test(privateKey)) {
-    throw new Error("Private key contains invalid characters");
-  }
-}
-
-// Usage
-try {
-  validatePrivateKey(process.env.PRIVATE_KEY!);
-} catch (error) {
-  console.error("Invalid private key:", error);
-  process.exit(1);
-}
-```
-
-## Troubleshooting
-
-### Common Issues
-
-**Invalid Private Key Format**
-
-```typescript
-// ✅ Correct format
-const account = privateKeyToAvalancheAccount("0x1234...");
-
-// ❌ Incorrect format
-const account = privateKeyToAvalancheAccount("1234...");
-```
-
-**Missing XP Account**
-
-```typescript
-// Check if XP account exists before using
-if (account.xpAccount) {
-  const signature = await account.xpAccount.signMessage("Hello");
-} else {
-  console.error("XP account not available");
-}
-```
-
-**Wrong Network HRP**
-
-```typescript
-// Use correct HRP for your network
-const mainnetAddress = account.getXPAddress("X", "avax"); // Mainnet
-const testnetAddress = account.getXPAddress("X", "fuji"); // Testnet
 ```
 
 ## Next Steps

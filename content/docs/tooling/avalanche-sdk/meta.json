@@ -16,6 +16,9 @@
     "client/getting-started",
     "client/clients-transports",
     "client/accounts",
+    "client/clients",
+    "client/methods",
+    "client/utils",
     "---Interchain SDK---",
     "interchain/getting-started"
   ]

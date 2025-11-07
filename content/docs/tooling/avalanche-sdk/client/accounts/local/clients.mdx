@@ -5,164 +5,87 @@ icon: "link"
 
 ## Overview
 
-Learn how to integrate Avalanche accounts with different client types for read-only operations and transaction signing.
+Accounts work with both public clients (read-only) and wallet clients (transactions). You can hoist the account into the client or pass it to each method.
 
-## Public Client (Read-Only Operations)
-
-### Basic Setup
+## Public Client (Read-Only)
 
 ```typescript
 import { createAvalancheClient } from "@avalanche-sdk/client";
 import { avalanche } from "@avalanche-sdk/client/chains";
 import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
 
 const client = createAvalancheClient({
   chain: avalanche,
   transport: { type: "http" },
 });
 
-const account: AvalancheAccount = privateKeyToAvalancheAccount(privateKey);
+const account = privateKeyToAvalancheAccount("0x...");
+
+// Read operations
+const balance = await client.getBalance({ address: account.getEVMAddress() });
+const height = await client.pChain.getHeight();
 ```
 
-### Read Operations
-
-```typescript
-// Get EVM balance
-try {
-  const evmBalance = await client.getBalance({
-    address: account.getEVMAddress(),
-  });
-  console.log("EVM Balance:", evmBalance);
-
-  // Get P-Chain height
-  const pChainHeight = await client.pChain.getHeight();
-  console.log("P-Chain Height:", pChainHeight);
-} catch (error) {
-  console.error("Failed to fetch data:", error);
-}
-```
-
-## Wallet Client (Transaction Operations)
-
-### Basic Setup
+## Wallet Client (Transactions)
 
 ```typescript
 import { createAvalancheWalletClient } from "@avalanche-sdk/client";
 import { avalanche } from "@avalanche-sdk/client/chains";
 import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+import { avaxToWei } from "@avalanche-sdk/client/utils";
 
-const account: AvalancheAccount = privateKeyToAvalancheAccount(privateKey);
+const account = privateKeyToAvalancheAccount("0x...");
 
-// Hoist the account in the client
-const walletClient = createAvalancheWalletClient({
-  account,
-  chain: avalanche,
-  transport: { type: "http" },
-});
-```
-
-### Transaction Operations
-
-```typescript
-try {
-  // Send EVM transaction
-  const txHash = await walletClient.send({
-    to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
-    amount: 0.001,
-  });
-  console.log("Transaction sent:", txHash);
-
-  // P-Chain transaction
-  const pChainTx = await walletClient.pChain.prepareBaseTxn({
-    outputs: [
-      {
-        addresses: [account.getXPAddress("P")],
-        amount: 0.00001,
-      },
-    ],
-  });
-
-  const pChainTxHash = await walletClient.sendXPTransaction(pChainTx);
-  console.log("P-Chain transaction sent:", pChainTxHash);
-
-  // X-Chain transaction
-  const xChainTx = await walletClient.xChain.prepareBaseTxn({
-    outputs: [
-      {
-        addresses: [account.getXPAddress("X")],
-        amount: 1,
-      },
-    ],
-  });
-
-  const xChainTxHash = await walletClient.sendXPTransaction(xChainTx);
-  console.log("X-Chain transaction sent:", xChainTxHash);
-} catch (error) {
-  console.error("Failed to send transaction:", error);
-}
-```
-
-## Cross-Chain Operations
-
-Cross-chain operations allow you to transfer assets between Avalanche chains (P-Chain, X-Chain, and C-Chain) using the import/export pattern.
-
-<Callout>
-  **Learn more:** For detailed cross-chain transfer workflows and patterns, see
-  [Cross-Chain Transfers](cross-chain).
-</Callout>
-
-### Basic Export/Import Flow
-
-The export/import pattern is fundamental to cross-chain transfers:
-
-1. **Export** from source chain (e.g., P-Chain)
-2. Wait for transaction confirmation
-3. **Import** to destination chain (e.g., C-Chain)
-
-<Callout>
-  **Note:** Both export and import transactions must be signed and broadcasted.
-  See the cross-chain documentation for complete examples.
-</Callout>
-
-## Account Hoisting
-
-### Hoist Account into Client
-
-```typescript
+// Hoist account (recommended)
 const walletClient = createAvalancheWalletClient({
   account, // Account is hoisted
   chain: avalanche,
   transport: { type: "http" },
 });
 
-// No need to pass account to each action
+// C-Chain transaction
 const txHash = await walletClient.send({
   to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
-  amount: 0.001,
+  amount: avaxToWei(0.001),
 });
+
+// X/P-Chain transaction
+const xpTx = await walletClient.xChain.prepareBaseTxn({
+  outputs: [{ addresses: [account.getXPAddress("X")], amount: 1 }],
+});
+await walletClient.sendXPTransaction(xpTx);
 ```
 
-### Pass Account per Action
+## Account Hoisting
+
+You can hoist the account into the client (recommended) or pass it to each method:
 
 ```typescript
+// Hoisted (recommended)
+const walletClient = createAvalancheWalletClient({
+  account, // No need to pass to each method
+  chain: avalanche,
+  transport: { type: "http" },
+});
+await walletClient.send({ to: "0x...", amount: 0.001 });
+
+// Or pass per method
 const walletClient = createAvalancheWalletClient({
   chain: avalanche,
   transport: { type: "http" },
 });
-
-// Pass account to each action
-const txHash = await walletClient.send({
-  account, // Account passed per action
-  to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
-  amount: 0.001,
-});
+await walletClient.send({ account, to: "0x...", amount: 0.001 });
 ```
+
+## Cross-Chain Operations
+
+Cross-chain transfers use the export/import pattern. Export from the source chain, wait for confirmation, then import to the destination chain.
+
+[Learn more about cross-chain transfers →](methods/wallet-methods/wallet#cross-chain-transfers)
 
 ## Next Steps
 
-- **[Wallet Operations](wallet)** - Learn how to send transactions
-- **[P-Chain Operations](p-chain)** - Validator and staking operations
-- **[X-Chain Operations](x-chain)** - Asset transfers and UTXO operations
-- **[C-Chain Operations](c-chain)** - EVM and smart contract operations
+- **[Wallet Operations](methods/wallet-methods/wallet)** - Learn how to send transactions
+- **[P-Chain Operations](methods/public-methods/p-chain)** - Validator and staking operations
+- **[X-Chain Operations](methods/public-methods/x-chain)** - Asset transfers and UTXO operations
+- **[C-Chain Operations](methods/public-methods/c-chain)** - EVM and smart contract operations

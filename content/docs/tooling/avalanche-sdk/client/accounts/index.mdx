@@ -6,31 +6,18 @@ description: Learn how to create and manage accounts in the Avalanche Client SDK
 
 ## Overview
 
-The Avalanche Client SDK provides comprehensive account management capabilities that extend beyond traditional EVM accounts. Unlike standard Ethereum wallets, Avalanche accounts can operate across multiple chains (P-Chain, X-Chain, and C-Chain) with different address formats and signing mechanisms.
+Avalanche accounts work across all three chains—P-Chain, X-Chain, and C-Chain—with a single account. Each account provides both EVM addresses (for C-Chain) and XP addresses (for X/P-Chain), so you can interact with the entire Avalanche network without managing separate accounts.
 
-**Key Features:**
+## Account Structure
 
-- Multi-chain account support (P, X, C chains)
-- Unified address management
-- Multiple account types (Private Key, Mnemonic, HD Key)
-- Native Avalanche and EVM compatibility
-- Cross-chain transaction signing
-
-## Architecture Overview
-
-Avalanche accounts extend standard Ethereum accounts with XP (X-Chain and P-Chain) capabilities, enabling seamless interaction across all Avalanche chains with a single account.
-
-### Account Structure
+Every Avalanche account has an EVM account for C-Chain and an optional XP account for X/P-Chain:
 
 ```typescript
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { Account, Address } from "@avalanche-sdk/client/accounts";
-
 type AvalancheAccount = {
-  evmAccount: Account; // For C-Chain operations
-  xpAccount?: XPAccount; // For X/P-Chain and C-Chain Atomic operations
-  getXPAddress: (chain?: "X" | "P" | "C", hrp?: string) => XPAddress;
+  evmAccount: Account; // C-Chain
+  xpAccount?: XPAccount; // X/P-Chain
   getEVMAddress: () => Address;
+  getXPAddress: (chain?: "X" | "P" | "C", hrp?: string) => XPAddress;
 };
 ```
 
@@ -40,464 +27,128 @@ type AvalancheAccount = {
 import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
 import { createAvalancheWalletClient } from "@avalanche-sdk/client";
 import { avalanche } from "@avalanche-sdk/client/chains";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-import { avaxToNanoAvax } from "@avalanche-sdk/client/utils";
 
-// 1. Create account from private key
-const account: AvalancheAccount = privateKeyToAvalancheAccount("0x...");
+const account = privateKeyToAvalancheAccount("0x...");
 
-// 2. Create wallet client
 const walletClient = createAvalancheWalletClient({
   account,
   chain: avalanche,
   transport: { type: "http" },
 });
 
-// 3. Get all addresses
-const addresses = {
-  evm: account.getEVMAddress(), // C-Chain: 0x742d35Cc...
-  xChain: account.getXPAddress("X"), // X-Chain: X-avax1...
-  pChain: account.getXPAddress("P"), // P-Chain: P-avax1...
-};
-
-// 4. Send transaction
-try {
-  const pChainExportTxnRequest = await walletClient.pChain.prepareExportTxn({
-    exportedOutputs: [
-      {
-        addresses: [account.getXPAddress("P", "fuji")], // P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz
-        amount: avaxToNanoAvax(0.00001), // 0.00001 AVAX = 10_000 nAVAX
-      },
-    ],
-    destinationChain: "C",
-  });
-
-  const sendTxnResponse = await walletClient.sendXPTransaction(
-    pChainExportTxnRequest
-  );
-
-  console.log("sendTxnResponse", sendTxnResponse);
-} catch (error) {
-  console.error("Transaction failed:", error);
-}
+// Get addresses for all chains
+const evmAddress = account.getEVMAddress(); // 0x742d35Cc...
+const xChainAddress = account.getXPAddress("X"); // X-avax1...
+const pChainAddress = account.getXPAddress("P"); // P-avax1...
 ```
 
 ## Account Types
 
 ### Local Accounts
 
-Local accounts store signing keys on your machine and perform signing **before** broadcasting transactions. The signing happens in your application's memory or secure storage.
+Local accounts store keys on your machine and sign transactions before broadcasting. Use these for server-side apps, bots, or when you need full control.
 
-<Callout>
-  **Security:** Private keys are stored locally. Never expose them in
-  client-side code or commit them to version control.
-</Callout>
-
-**Best for:**
-
-- Server-side applications
-- Command-line tools
-- Automated bots and services
-- Applications requiring full programmatic control
-
-**Features:**
-
-- Private keys stored locally
-- Signing performed before broadcasting
-- Full control over transaction signing
-- Support for all Avalanche chains (P, X, C)
-- No external wallet dependency
-
-**Account Creation Options:**
-
-- [Private Key Accounts](accounts/local/private-key) - Simple key-based accounts
-- [Mnemonic Accounts](accounts/local/mnemonic) - Human-readable recovery phrases
-- [HD Key Accounts](accounts/local/hd-key) - Hierarchical deterministic accounts
+- [Private Key Accounts](accounts/local/private-key) - Simple and direct
+- [Mnemonic Accounts](accounts/local/mnemonic) - Easy recovery with seed phrases
+- [HD Key Accounts](accounts/local/hd-key) - Advanced key derivation
 
 ### JSON-RPC Accounts
 
-JSON-RPC accounts defer signing to external wallets (like MetaMask or Core) over JSON-RPC. Signing happens in the user's browser extension or mobile wallet.
+JSON-RPC accounts use external wallets (MetaMask, Core, etc.) for signing. Perfect for browser-based dApps where users control their own keys.
 
-**Best for:**
+[Learn more about JSON-RPC accounts →](accounts/json-rpc)
 
-- Browser-based applications
-- User-facing dApps
-- Mobile applications
-- Applications requiring user approval for transactions
-
-**Features:**
-
-- Signing delegated to external wallet
-- Browser wallet integration
-- User controls private keys
-- Familiar user experience
-- No private key exposure in your app
-
-**Learn more:** [JSON-RPC Accounts](accounts/json-rpc)
-
-## Key Components
+## Working with Accounts
 
 ### EVM Account
 
-Each Avalanche account contains an EVM account for C-Chain operations:
+The `evmAccount` handles all C-Chain operations—smart contracts, ERC-20 transfers, and standard EVM interactions.
 
 ```typescript
-import type { Account } from "@avalanche-sdk/client/accounts";
-
-const evmAccount: Account = account.evmAccount;
-
-console.log("Address:", evmAccount.address);
-console.log("Type:", evmAccount.type); // "local" | "json-rpc"
-console.log("Source:", evmAccount.source); // "privateKey" | "mnemonic" | "hdKey"
+const evmAccount = account.evmAccount;
+console.log(evmAccount.address); // 0x742d35Cc...
 ```
-
-**Use cases:**
-
-- Smart contract interactions
-- C-Chain transactions
-- ERC-20 token transfers
-- Standard EVM operations
 
 ### XP Account
 
-Each Avalanche account contains an XP account for X-Chain and P-Chain operations:
+The `xpAccount` handles X-Chain and P-Chain operations—UTXO transactions, asset transfers, and staking.
 
 ```typescript
-import type { LocalXPAccount } from "@avalanche-sdk/client/accounts";
-
 if (account.xpAccount) {
-  const xpAccount: LocalXPAccount = account.xpAccount;
-
-  console.log("Public Key:", xpAccount.publicKey);
-  console.log("Type:", xpAccount.type); // "local" | "json-rpc"
-  console.log("Source:", xpAccount.source); // "privateKey" | "mnemonic" | "hdKey"
+  const xpAccount = account.xpAccount;
+  console.log(xpAccount.publicKey);
 }
 ```
 
-**Example Use cases:**
-
-- UTXO transactions
-- X-Chain asset transfers
-- P-Chain staking operations
-- C-Chain Atomic transactions
-
-### Address Methods
+### Getting Addresses
 
 ```typescript
-// Get EVM address (C-Chain)
-const evmAddress: string = account.getEVMAddress();
-// Example: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
+// C-Chain address
+const evmAddress = account.getEVMAddress(); // 0x742d35Cc...
 
-// Get XP addresses for different chains
-const xChainAddress: string = account.getXPAddress("X"); // X-avax1...
-const pChainAddress: string = account.getXPAddress("P"); // P-avax1...
-const baseAddress: string = account.getXPAddress(); // avax1...
+// X/P-Chain addresses
+const xChainAddress = account.getXPAddress("X"); // X-avax1...
+const pChainAddress = account.getXPAddress("P"); // P-avax1...
 
-// Network-specific addresses
-const mainnetAddress: string = account.getXPAddress("X", "avax"); // X-avax1...
-const testnetAddress: string = account.getXPAddress("X", "fuji"); // X-fuji1...
+// Network-specific (mainnet vs testnet)
+const mainnet = account.getXPAddress("X", "avax");
+const testnet = account.getXPAddress("X", "fuji");
 ```
 
 ## Creating Accounts
 
-### Private Key Accounts
-
-The simplest way to create an Avalanche account:
+### Private Key
 
 ```typescript
 import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
 
-const account: AvalancheAccount = privateKeyToAvalancheAccount("0x...");
+const account = privateKeyToAvalancheAccount("0x...");
 ```
 
-**When to use:** Server-side apps, bots, testing
+[Private Key Accounts →](accounts/local/private-key)
 
-**Learn more:** [Private Key Accounts](accounts/local/private-key)
-
-### Mnemonic Accounts
-
-User-friendly account creation with recovery phrases:
+### Mnemonic
 
 ```typescript
 import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
 
-const account: AvalancheAccount = mnemonicsToAvalancheAccount(
-  "abandon abandon abandon..."
-);
+const account = mnemonicsToAvalancheAccount("abandon abandon abandon...");
 ```
 
-**When to use:** User-facing applications, mobile wallets
+[Mnemonic Accounts →](accounts/local/mnemonic)
 
-**Learn more:** [Mnemonic Accounts](accounts/local/mnemonic)
-
-### HD Key Accounts
-
-Hierarchical deterministic account management:
+### HD Key
 
 ```typescript
 import { hdKeyToAvalancheAccount, HDKey } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
 
-const hdKey: HDKey = HDKey.fromMasterSeed(seed);
-const account: AvalancheAccount = hdKeyToAvalancheAccount(hdKey, {
-  accountIndex: 0,
-  addressIndex: 0,
-});
+const hdKey = HDKey.fromMasterSeed(seed);
+const account = hdKeyToAvalancheAccount(hdKey, { accountIndex: 0 });
 ```
 
-**When to use:** Multi-account management, advanced key derivation
-
-**Learn more:** [HD Key Accounts](accounts/local/hd-key)
+[HD Key Accounts →](accounts/local/hd-key)
 
 ## Address Formats
 
-Avalanche supports multiple address formats across its chains. EVM addresses (C-Chain) follow standard Ethereum format, while XP addresses (X-Chain and P-Chain) use Bech32 encoding.
+- **C-Chain:** `0x...` (Ethereum-compatible)
+- **X/P-Chain:** `avax1...` or `X-avax1...` / `P-avax1...` (Bech32-encoded)
 
-**Address Types:**
+[Network-Specific Addresses →](accounts/local/addresses)
 
-- **EVM Addresses:** `0x...` format for C-Chain (Ethereum-compatible)
-- **XP Addresses:** `avax1...` format for X/P-Chain (Bech32-encoded)
-- **Chain-Prefixed:** `X-avax1...` or `P-avax1...` for explicit chain identification
-
-**Learn more:** [Network-Specific Addresses](accounts/local/addresses)
-
-## Complete Examples
-
-### Example 1: Multi-Chain Balance Checker
-
-```typescript
-import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import { createAvalancheWalletClient } from "@avalanche-sdk/client";
-import { avalanche } from "@avalanche-sdk/client/chains";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-async function checkAllChainBalances() {
-  const account: AvalancheAccount = privateKeyToAvalancheAccount(
-    process.env.PRIVATE_KEY!
-  );
-
-  const walletClient = createAvalancheWalletClient({
-    account,
-    chain: avalanche,
-    transport: { type: "http" },
-  });
-
-  // Get all addresses
-  const addresses = {
-    evm: account.getEVMAddress(),
-    xChain: account.getXPAddress("X"),
-    pChain: account.getXPAddress("P"),
-  };
-
-  console.log("Checking balances for:", addresses);
-
-  try {
-    // C-Chain balance
-    const evmBalance = await walletClient.getBalance({
-      address: addresses.evm,
-    });
-    console.log("C-Chain balance:", evmBalance);
-
-    // X-Chain balance
-    const xChainBalance = await walletClient.xChain.getBalance({
-      addresses: [addresses.xChain],
-    });
-    console.log("X-Chain balance:", xChainBalance);
-
-    // P-Chain balance
-    const pChainBalance = await walletClient.pChain.getBalance({
-      addresses: [addresses.pChain],
-    });
-    console.log("P-Chain balance:", pChainBalance);
-
-    return { evmBalance, xChainBalance, pChainBalance };
-  } catch (error) {
-    console.error("Failed to check balances:", error);
-    throw error;
-  }
-}
-```
-
-### Example 2: Cross-Chain Transfer
-
-```typescript
-import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import { createAvalancheWalletClient } from "@avalanche-sdk/client";
-import { avalanche } from "@avalanche-sdk/client/chains";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-async function transferBetweenChains(
-  sourceChain: "P" | "X" | "C",
-  amount: number
-) {
-  const account: AvalancheAccount = privateKeyToAvalancheAccount(
-    process.env.PRIVATE_KEY!
-  );
-
-  const walletClient = createAvalancheWalletClient({
-    account,
-    chain: avalanche,
-    transport: { type: "http" },
-  });
-
-  try {
-    // Creating a export transaction request from the C-chain to the P-chain
-    const cChainExportTxnRequest = await walletClient.cChain.prepareExportTxn({
-      destinationChain: "P",
-      fromAddress: account.getEVMAddress(), // 0x76Dd3d7b2f635c2547B861e55aE8A374E587742D
-      exportedOutput: {
-        addresses: [account.getXPAddress("P", "fuji")], // P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz
-        amount: avaxToNanoAvax(0.0001), // 0.0001 AVAX = 100_000 nAVAX
-      },
-    });
-
-    // Signing and sending the export transaction request to the C-chain
-    const sendTxnResponse = await walletClient.sendXPTransaction(
-      cChainExportTxnRequest
-    );
-
-    // Waiting for the export transaction to be confirmed on the C-chain
-    await walletClient.waitForTxn(sendTxnResponse);
-
-    // Logging the export transaction response
-    console.log(
-      "Avax exported to Atomic Memory for C-chain to P-chain transfer",
-      sendTxnResponse
-    );
-
-    // Creating a import transaction request in P-chain
-    const pChainImportTxnRequest = await walletClient.pChain.prepareImportTxn({
-      sourceChain: "C",
-      importedOutput: {
-        addresses: [account.getXPAddress("P", "fuji")], // P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz
-      },
-    });
-
-    // Signing and sending the import transaction request to the P-chain
-    const sendTxnResponse2 = await walletClient.sendXPTransaction(
-      pChainImportTxnRequest
-    );
-
-    // Waiting for the import transaction to be confirmed on the P-chain
-    await walletClient.waitForTxn(sendTxnResponse2);
-
-    // Logging the import transaction response
-    console.log(
-      "Avax imported from Atomic Memory from C-chain to P-chain transfer",
-      sendTxnResponse2
-    );
-  } catch (error) {
-    console.error("Cross-chain transfer failed:", error);
-    throw error;
-  }
-}
-```
-
-## Security Best Practices
-
-### Private Key Management
+## Security
 
 <Callout>
-  **Never expose private keys in client-side code or commit them to version
-  control.**
+  **Never expose private keys or mnemonics in client-side code or commit them to
+  version control. Use environment variables.**
 </Callout>
 
 ```typescript
-// ✅ Good: Use environment variables
+// ✅ Good
 const account = privateKeyToAvalancheAccount(process.env.PRIVATE_KEY!);
 
-// ❌ Bad: Hardcoded private key
+// ❌ Bad
 const account = privateKeyToAvalancheAccount("0x1234...");
 ```
-
-### Mnemonic Security
-
-<Callout>
-  **Never expose mnemonics in client-side code or commit them to version
-  control.**
-</Callout>
-
-```typescript
-// ✅ Good: Use environment variables
-const account = mnemonicsToAvalancheAccount(process.env.MNEMONIC!);
-
-// ❌ Bad: Hardcoded mnemonic
-const account = mnemonicsToAvalancheAccount("abandon abandon...");
-```
-
-## Progressive Learning Path
-
-### 1. Get Started (Basic)
-
-Start with simple account creation and basic operations:
-
-```typescript
-import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-// Create account
-const account: AvalancheAccount = privateKeyToAvalancheAccount("0x...");
-
-// Get addresses
-console.log("EVM:", account.getEVMAddress());
-console.log("X-Chain:", account.getXPAddress("X"));
-console.log("P-Chain:", account.getXPAddress("P"));
-```
-
-**Learn more:**
-
-- [Private Key Accounts](accounts/local/private-key) - Simplest account type
-- [Using with Clients](accounts/local/clients) - Connect to blockchain
-
-### 2. Common Patterns (Intermediate)
-
-Learn practical account management patterns:
-
-```typescript
-import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-// Create from mnemonic
-const account: AvalancheAccount = mnemonicsToAvalancheAccount(mnemonic);
-
-// Create multiple accounts from one mnemonic
-const accounts: AvalancheAccount[] = Array.from({ length: 5 }, (_, i) =>
-  mnemonicsToAvalancheAccount(mnemonic, { addressIndex: i })
-);
-```
-
-**Learn more:**
-
-- [Mnemonic Accounts](accounts/local/mnemonic) - User-friendly recovery
-- [Network-Specific Addresses](accounts/local/addresses) - Multi-network support
-- [Account Utilities](accounts/local/utilities) - Helper functions
-
-### 3. Advanced Usage (Advanced)
-
-Master complex account management:
-
-```typescript
-import { hdKeyToAvalancheAccount, HDKey } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-// HD wallet with custom derivation paths
-const seed: Uint8Array = generateSeed();
-const hdKey: HDKey = HDKey.fromMasterSeed(seed);
-
-const account: AvalancheAccount = hdKeyToAvalancheAccount(hdKey, {
-  accountIndex: 0,
-  addressIndex: 0,
-  xpAccountIndex: 0,
-  xpAddressIndex: 0,
-});
-```
-
-**Learn more:**
-
-- [HD Key Accounts](accounts/local/hd-key) - Advanced key management
-- [Account Validation](accounts/local/utilities) - Type-safe validation
 
 ## Comparison Table
 
@@ -511,34 +162,9 @@ const account: AvalancheAccount = hdKeyToAvalancheAccount(hdKey, {
 
 ## Next Steps
 
-Choose your path:
-
-**For Backend/Server Applications:**
-
 - [Private Key Accounts](accounts/local/private-key) - Simple and direct
-- [Local Accounts](accounts/local) - Full control, local signing
-- [Wallet Operations](methods/wallet-methods/wallet) - Send and manage transactions
-
-**For Frontend/Browser Applications:**
-
-- [JSON-RPC Accounts](accounts/json-rpc) - User wallet integration
-- [Wallet Operations](methods/wallet-methods/wallet) - Connect and transact
-
-**For User-Facing Applications:**
-
 - [Mnemonic Accounts](accounts/local/mnemonic) - Easy recovery
-- [HD Key Accounts](accounts/local/hd-key) - Multi-account support
-
-**For Specific Operations:**
-
-- [P-Chain Operations](methods/public-methods/p-chain) - Validator and staking
-- [X-Chain Operations](methods/public-methods/x-chain) - Asset transfers and UTXO
-- [C-Chain Operations](methods/public-methods/c-chain) - EVM and smart contracts
-
-## API Reference
-
-For complete method documentation, see:
-
-- [Account Functions](accounts/local)
-- [Account Utilities](accounts/local/utilities)
-- [Address Utilities](accounts/local/addresses)
+- [HD Key Accounts](accounts/local/hd-key) - Advanced key derivation
+- [JSON-RPC Accounts](accounts/json-rpc) - Browser wallet integration
+- [Account Utilities](accounts/local/utilities) - Helper functions
+- [Wallet Operations](methods/wallet-methods/wallet) - Send transactions

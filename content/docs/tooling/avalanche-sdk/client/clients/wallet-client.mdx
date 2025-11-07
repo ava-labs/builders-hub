@@ -1,0 +1,143 @@
+---
+title: Avalanche Wallet Client
+---
+
+## Overview
+
+The Avalanche Wallet Client extends the Public Client with full transaction signing and sending capabilities. It enables cross-chain operations, atomic transactions, and comprehensive wallet management across all Avalanche chains.
+
+**When to use:** Use the Wallet Client when you need to sign and send transactions, sign messages, or manage accounts.
+
+## Installation & Setup
+
+For setup instructions, see the [Getting Started](/avalanche-sdk/client-sdk/getting-started) guide.
+
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const account = privateKeyToAvalancheAccount("0x...");
+
+const walletClient = createAvalancheWalletClient({
+  account, // Hoist the account, otherwise we can pass a custom provider for injected provider or pass a account for each method
+  chain: avalanche,
+  transport: { type: "http" },
+});
+```
+
+## Available Wallet Operations
+
+The Wallet Client provides access to:
+
+```typescript
+// Chain wallet operations
+walletClient.pChain; // P-Chain wallet operations
+walletClient.xChain; // X-Chain wallet operations
+walletClient.cChain; // C-Chain wallet operations
+
+// Core wallet methods
+walletClient.send(); // Send transactions
+walletClient.sendXPTransaction(); // Send XP transactions
+walletClient.signXPMessage(); // Sign XP messages
+walletClient.signXPTransaction(); // Sign XP transactions
+walletClient.waitForTxn(); // Wait for transaction confirmation
+walletClient.getAccountPubKey(); // Get account public key
+```
+
+For complete method documentation, see:
+
+- **[Wallet Methods](/avalanche-sdk/client-sdk/methods/wallet-methods/wallet)** - Core wallet operations
+- **[P-Chain Wallet Methods](/avalanche-sdk/client-sdk/methods/wallet-methods/p-chain-wallet)** - P-Chain transactions
+- **[X-Chain Wallet Methods](/avalanche-sdk/client-sdk/methods/wallet-methods/x-chain-wallet)** - X-Chain transactions
+- **[C-Chain Wallet Methods](/avalanche-sdk/client-sdk/methods/wallet-methods/c-chain-wallet)** - C-Chain transactions
+
+## Common Operations
+
+### Send AVAX on C-Chain
+
+```typescript
+import { avaxToNanoAvax } from "@avalanche-sdk/client/utils";
+
+const hash = await walletClient.send({
+  to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  value: avaxToNanoAvax(0.001), // 0.001 AVAX
+});
+
+console.log("Transaction hash:", hash);
+```
+
+### P-Chain Wallet Operations
+
+```typescript
+// Prepare and send base transaction
+const baseTxn = await walletClient.pChain.prepareBaseTxn({
+  outputs: [
+    {
+      addresses: [account.getXPAddress("P")],
+      amount: avaxToNanoAvax(0.00001),
+    },
+  ],
+});
+
+const txID = await walletClient.sendXPTransaction(baseTxn);
+console.log("P-Chain transaction:", txID);
+```
+
+### X-Chain Wallet Operations
+
+```typescript
+// Prepare and send base transaction
+const xChainTx = await walletClient.xChain.prepareBaseTxn({
+  outputs: [
+    {
+      addresses: ["X-avax18jma8ppw3nhx5r4ap8clazz0dps7rv5ukulre5"],
+      amount: avaxToNanoAvax(1), // 1 AVAX
+    },
+  ],
+});
+
+const txID = await walletClient.sendXPTransaction(xChainTx);
+console.log("X-Chain transaction:", txID);
+```
+
+### Sign Messages
+
+```typescript
+// Sign XP message
+const signedMessage = await walletClient.signXPMessage({
+  message: "Hello Avalanche",
+});
+
+console.log("Signed message:", signedMessage);
+```
+
+### Wait for Transaction Confirmation
+
+```typescript
+try {
+  await walletClient.waitForTxn({
+    txID: "0x...",
+    chainAlias: "P",
+  });
+  console.log("Transaction confirmed!");
+} catch (error) {
+  console.error("chain confirmation failed:", error);
+}
+```
+
+## When to Use This Client
+
+- ✅ Sending transactions
+- ✅ Signing messages and transactions
+- ✅ Cross-chain transfers
+- ✅ Managing accounts
+- ✅ All wallet operations
+
+## Next Steps
+
+- **[Wallet Methods Reference](/avalanche-sdk/client-sdk/methods/wallet-methods/wallet)** - Complete wallet method documentation
+- **[P-Chain Wallet Methods](/avalanche-sdk/client-sdk/methods/wallet-methods/p-chain-wallet)** - P-Chain transaction operations
+- **[X-Chain Wallet Methods](/avalanche-sdk/client-sdk/methods/wallet-methods/x-chain-wallet)** - X-Chain transaction operations
+- **[C-Chain Wallet Methods](/avalanche-sdk/client-sdk/methods/wallet-methods/c-chain-wallet)** - C-Chain transaction operations
+- **[Account Management](/avalanche-sdk/client-sdk/accounts)** - Account types and management

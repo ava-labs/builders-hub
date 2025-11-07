@@ -228,27 +228,11 @@ const pChainExportTxn = await walletClient.pChain.prepareExportTxn({
   fromAddress: address,
   exportedOutput: {
     addresses: [address],
-    amount: 0.001,
+    amount: avaxToWei(0.001),
   },
 });
 
 const txHash = await walletClient.sendXPTransaction(pChainExportTxn);
-```
-
-## Error Handling
-
-```typescript
-try {
-  const accounts = await walletClient.requestAddresses();
-} catch (error) {
-  if (error.code === 4001) {
-    console.log("User rejected connection request");
-  } else if (error.code === -32002) {
-    console.log("Connection request already pending");
-  } else {
-    console.error("Connection failed:", error.message);
-  }
-}
 ```
 
 ## Best Practices
@@ -330,6 +314,6 @@ try {
 
 ## Next Steps
 
-- **[Local Accounts](/avalanche-sdk/client-sdk/accounts/local)** - Learn about local account management
-- **[Wallet Operations](/avalanche-sdk/client-sdk/wallet)** - Learn how to send transactions
-- **[Cross-Chain Transfers](/avalanche-sdk/client-sdk/cross-chain)** - Moving assets between chains
+- **[Local Accounts](accounts/local)** - Learn about local account management
+- **[Wallet Operations](methods/wallet-methods/wallet)** - Learn how to send transactions
+- **[Cross-Chain Transfers](methods/wallet-methods/wallet#cross-chain-transfers)** - Moving assets between chains

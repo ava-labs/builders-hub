@@ -5,116 +5,48 @@ icon: "map-pin"
 
 ## Overview
 
-Avalanche supports different networks (mainnet, testnet, custom) with specific address formats. Each network uses different Human-Readable Prefixes (HRP) for XP addresses.
+Avalanche uses different address formats for each chain. EVM addresses work the same across networks, but XP addresses use network-specific HRPs (Human-Readable Prefixes).
 
 ## Address Formats
 
 ### EVM Addresses (C-Chain)
 
-EVM addresses are consistent across all networks:
+EVM addresses are the same across all networks:
 
 ```typescript
-const evmAddress = account.getEVMAddress();
-// Example: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
+const evmAddress = account.getEVMAddress(); // 0x742d35Cc...
 ```
 
-### XP Addresses (X-Chain and P-Chain)
+### XP Addresses (X/P-Chain)
 
 XP addresses use network-specific HRPs:
 
 ```typescript
-// Mainnet addresses
-const mainnetXAddress = account.getXPAddress("X", "avax"); // X-avax1...
-const mainnetPAddress = account.getXPAddress("P", "avax"); // P-avax1...
+// Mainnet
+const mainnetX = account.getXPAddress("X", "avax"); // X-avax1...
+const mainnetP = account.getXPAddress("P", "avax"); // P-avax1...
 
-// Testnet addresses
-const fujiXAddress = account.getXPAddress("X", "fuji"); // X-fuji1...
-const fujiPAddress = account.getXPAddress("P", "fuji"); // P-fuji1...
+// Testnet (Fuji)
+const fujiX = account.getXPAddress("X", "fuji"); // X-fuji1...
+const fujiP = account.getXPAddress("P", "fuji"); // P-fuji1...
 ```
 
 ## Network Configuration
 
-### Mainnet (Production)
-
 ```typescript
-import { avalanche } from "@avalanche-sdk/client/chains";
-import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-const account: AvalancheAccount = privateKeyToAvalancheAccount("0x...");
-
 // Mainnet addresses
-const mainnetAddresses = {
+const mainnet = {
   evm: account.getEVMAddress(),
   xChain: account.getXPAddress("X", "avax"),
   pChain: account.getXPAddress("P", "avax"),
 };
 
-console.log("Mainnet addresses:", mainnetAddresses);
-```
-
-### Testnet (Fuji)
-
-```typescript
-import { avalancheFuji } from "@avalanche-sdk/client/chains";
-import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-const account: AvalancheAccount = privateKeyToAvalancheAccount("0x...");
-
 // Testnet addresses
-const testnetAddresses = {
+const testnet = {
   evm: account.getEVMAddress(),
   xChain: account.getXPAddress("X", "fuji"),
   pChain: account.getXPAddress("P", "fuji"),
 };
-
-console.log("Testnet addresses:", testnetAddresses);
-```
-
-### Custom Networks
-
-```typescript
-import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-const account: AvalancheAccount = privateKeyToAvalancheAccount("0x...");
-
-// Custom network addresses
-const customAddresses = {
-  evm: account.getEVMAddress(),
-  xChain: account.getXPAddress("X", "custom"),
-  pChain: account.getXPAddress("P", "custom"),
-};
-
-console.log("Custom network addresses:", customAddresses);
-```
-
-## Network Detection
-
-### Detect Network from Chain
-
-```typescript
-import { avalanche, avalancheFuji } from "@avalanche-sdk/client/chains";
-
-function getNetworkHRP(chainId: number): string {
-  switch (chainId) {
-    case avalanche.id:
-      return "avax";
-    case avalancheFuji.id:
-      return "fuji";
-    default:
-      return "avax"; // Default to mainnet
-  }
-}
-
-try {
-  const hrp: string = getNetworkHRP(client.chain.id);
-  const xChainAddress: string = account.getXPAddress("X", hrp);
-  console.log("X-Chain Address:", xChainAddress);
-} catch (error) {
-  console.error("Failed to get network HRP:", error);
-}
 ```
 
 ## Next Steps

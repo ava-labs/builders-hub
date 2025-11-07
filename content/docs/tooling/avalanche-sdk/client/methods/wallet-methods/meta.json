@@ -1,0 +1,10 @@
+{
+    "title": "Wallet Methods",
+    "description": "Complete reference for Avalanche-specific wallet methods",
+    "pages": [
+        "wallet",
+        "p-chain-wallet",
+        "x-chain-wallet",
+        "c-chain-wallet"
+    ]
+}

@@ -6,131 +6,29 @@ description: Learn how to create and manage local accounts in the Avalanche Clie
 
 ## Overview
 
-A Local Account stores signing keys on your machine and performs signing **before** broadcasting transactions. All signing operations happen in your application's memory or secure storage.
+Local accounts store keys on your machine and sign transactions before broadcasting. Use these for server-side apps, bots, or when you need full control.
 
 <Callout>
-  **Security:** Private keys are stored locally. Always use environment
-  variables or secure storage. Never commit keys to version control.
+  **Security:** Never expose private keys or mnemonics in client-side code or
+  commit them to version control. Use environment variables.
 </Callout>
 
 ## Quick Start
 
-The simplest way to create a local account is from a private key:
-
 ```typescript
 import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
 
-const account: AvalancheAccount = privateKeyToAvalancheAccount("0x...");
+const account = privateKeyToAvalancheAccount(process.env.PRIVATE_KEY!);
 
-// Use the account
-console.log("EVM Address:", account.getEVMAddress());
-console.log("X-Chain Address:", account.getXPAddress("X"));
+console.log(account.getEVMAddress()); // 0x742d35Cc...
+console.log(account.getXPAddress("X")); // X-avax1...
 ```
 
-<Callout>
-  **Best practice:** Always load private keys from environment variables:
-  `process.env.PRIVATE_KEY`
-</Callout>
+## Account Types
 
-## Account Creation Types
+### Private Key
 
-There are three types of Local Accounts in the Avalanche Client SDK:
-
-### Private Key Accounts
-
-**Simplest option** - Create an account directly from a private key string.
-
-```typescript
-import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-const account: AvalancheAccount = privateKeyToAvalancheAccount("0x...");
-```
-
-**Parameters:**
-
-- `privateKey: string` - The private key with `0x` prefix (required)
-- `options?: PrivateKeyToAccountOptions` - Optional configuration
-
-<Callout>
-  **Learn more:** See [Private Key Accounts](local/private-key) for detailed
-  documentation.
-</Callout>
-
-### Mnemonic Accounts
-
-**User-friendly option** - Create an account from a mnemonic phrase (12-24 words).
-
-```typescript
-import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-const account: AvalancheAccount = mnemonicsToAvalancheAccount(
-  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
-);
-```
-
-**Parameters:**
-
-- `mnemonic: string` - The mnemonic phrase (12, 15, 18, 21, or 24 words) (required)
-- `options?: MnemonicToAccountOptions` - Optional derivation path configuration
-
-<Callout>
-  **Learn more:** See [Mnemonic Accounts](local/mnemonic) for detailed
-  documentation.
-</Callout>
-
-### HD Key Accounts
-
-**Advanced option** - Create accounts from hierarchical deterministic keys with custom derivation paths.
-
-```typescript
-import { hdKeyToAvalancheAccount, HDKey } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-const seed: Uint8Array = new Uint8Array(64); // Your seed
-const hdKey: HDKey = HDKey.fromMasterSeed(seed);
-
-const account: AvalancheAccount = hdKeyToAvalancheAccount(hdKey, {
-  accountIndex: 0,
-  addressIndex: 0,
-  changeIndex: 0,
-  xpAccountIndex: 0,
-  xpAddressIndex: 0,
-  xpChangeIndex: 0,
-});
-```
-
-**Parameters:**
-
-- `hdKey: HDKey` - The HD key instance (required)
-- `options?: HDKeyToAvalancheAccountOptions` - Custom derivation path options
-
-<Callout>
-  **Learn more:** See [HD Key Accounts](local/hd-key) for detailed
-  documentation.
-</Callout>
-
-## Instantiation
-
-### 1. Initialize a Wallet Client
-
-Before setting up your Account and consuming Wallet Methods, set up your Wallet Client with the http Transport:
-
-```typescript
-import { createAvalancheWalletClient } from "@avalanche-sdk/client";
-import { avalanche } from "@avalanche-sdk/client/chains";
-
-const walletClient = createAvalancheWalletClient({
-  chain: avalanche,
-  transport: { type: "http" },
-});
-```
-
-### 2. Set up your Local Account
-
-Next, instantiate a Private Key Account using `privateKeyToAvalancheAccount`:
+Simplest option—create an account directly from a private key.
 
 ```typescript
 import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
@@ -138,61 +36,61 @@ import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
 const account = privateKeyToAvalancheAccount("0x...");
 ```
 
-### 3. Consume Wallet Methods
+[Private Key Accounts →](local/private-key)
 
-Now you can use that Account within Wallet Methods that need a signature:
+### Mnemonic
+
+User-friendly option—create an account from a seed phrase.
 
 ```typescript
-try {
-  const txHash = await walletClient.send({
-    account,
-    to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
-    amount: 0.001,
-  });
-  console.log("Transaction sent:", txHash);
-} catch (error) {
-  console.error("Failed to send transaction:", error);
-}
+import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const account = mnemonicsToAvalancheAccount("abandon abandon abandon...");
 ```
 
-### 4. Optional: Hoist the Account
+[Mnemonic Accounts →](local/mnemonic)
 
-If you do not wish to pass an account around to every Action that requires an `account`, you can hoist the account into the Wallet Client:
+### HD Key
+
+Advanced option—create accounts from HD keys with custom derivation paths.
 
 ```typescript
+import { hdKeyToAvalancheAccount, HDKey } from "@avalanche-sdk/client/accounts";
+
+const hdKey = HDKey.fromMasterSeed(seed);
+const account = hdKeyToAvalancheAccount(hdKey, { accountIndex: 0 });
+```
+
+[HD Key Accounts →](local/hd-key)
+
+## Instantiation
+
+### Setup Wallet Client
+
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import { avaxToWei } from "@avalanche-sdk/client/utils";
+
+const account = privateKeyToAvalancheAccount(process.env.PRIVATE_KEY!);
+
 const walletClient = createAvalancheWalletClient({
-  account,
+  account, // Hoist account to avoid passing it to each method
   chain: avalanche,
   transport: { type: "http" },
 });
 
-try {
-  const txHash = await walletClient.send({
-    to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
-    amount: 0.001,
-  });
-  console.log("Transaction sent:", txHash);
-} catch (error) {
-  console.error("Failed to send transaction:", error);
-}
-```
-
-### 5. Using Public and Wallet Methods
-
-The `AvalancheWalletClient` already extends the `createPublicClient`, so you have access to both public and wallet methods:
-
-```typescript
-const walletClient = createAvalancheWalletClient({
-  account,
-  chain: avalanche,
-  transport: { type: "http" },
+// Use wallet methods
+const txHash = await walletClient.send({
+  to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  amount: avaxToWei(0.001),
 });
 
-// Use both public and wallet methods without extending
+// Use public methods
 const balance = await walletClient.getBalance({
   address: account.getEVMAddress(),
 });
-const txHash = await walletClient.send({ to: "0x...", amount: 0.001 });
 ```
 
 ## Account Generation
@@ -244,72 +142,26 @@ console.log("P-Chain Address:", addresses.pChain);
   examples, see [Network-Specific Addresses](local/addresses).
 </Callout>
 
-## Security Considerations
-
-### Private Key Storage
+## Security
 
 <Callout>
-  **Never expose private keys in client-side code or commit them to version
-  control.**
+  **Never expose private keys or mnemonics in client-side code or commit them to
+  version control. Always use environment variables.**
 </Callout>
 
 ```typescript
-// Good: Use environment variables
+// ✅ Good: Use environment variables
 const account = privateKeyToAvalancheAccount(process.env.PRIVATE_KEY!);
 
-// Bad: Hardcoded private key
+// ❌ Bad: Hardcoded private key
 const account = privateKeyToAvalancheAccount("0x1234...");
 ```
 
-### Mnemonic Security
-
-```typescript
-// Good: Generate secure mnemonics
-const mnemonic = generateMnemonic();
-const account = mnemonicsToAvalancheAccount(mnemonic);
-
-// Store mnemonic securely (encrypted storage, hardware wallet, etc.)
-```
-
-## Progressive Learning
-
-### Level 1: Basic Setup (5 minutes)
-
-Create and use a simple account:
-
-```typescript
-import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
-import { createAvalancheWalletClient } from "@avalanche-sdk/client";
-import { avalanche } from "@avalanche-sdk/client/chains";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
-
-const account: AvalancheAccount = privateKeyToAvalancheAccount(
-  process.env.PRIVATE_KEY!
-);
-
-const walletClient = createAvalancheWalletClient({
-  account,
-  chain: avalanche,
-  transport: { type: "http" },
-});
-
-// Get addresses
-console.log(account.getEVMAddress());
-console.log(account.getXPAddress("X"));
-```
-
-### Level 2: Common Patterns (15 minutes)
-
-Master production-ready patterns:
+## Learn More
 
 - [Account Generation](#account-generation) - Create secure accounts
 - [Address Management](#address-management) - Multi-network addresses
 - [Using with Clients](local/clients) - Client integration
-
-### Level 3: Advanced Features (30+ minutes)
-
-Expert-level account management:
-
 - [HD Key Accounts](local/hd-key) - Hierarchical deterministic accounts
 - [Account Utilities](local/utilities) - Validation and helpers
 - [Network-Specific Addresses](local/addresses) - Advanced address management

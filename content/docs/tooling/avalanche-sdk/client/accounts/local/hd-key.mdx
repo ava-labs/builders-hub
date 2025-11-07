@@ -56,7 +56,7 @@ m/44'/60'/{accountIndex}'/{changeIndex}/{addressIndex}
 **XP (X/P-Chain) Path:**
 
 ```
-m/44'/9000'/{accountIndex}'/{changeIndex}/{addressIndex}
+m/44'/9000'/{xpAccountIndex}'/{xpChangeIndex}/{xpAddressIndex}
 ```
 
 **Path Components:**
@@ -137,109 +137,42 @@ const account: AvalancheAccount = hdKeyToAvalancheAccount(hdKey, {
 
 ### Examples
 
-#### Example 1: Using Default Paths
-
 ```typescript
 import { hdKeyToAvalancheAccount, HDKey } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
 
-const hdKey: HDKey = HDKey.fromMasterSeed(seed);
+const hdKey = HDKey.fromMasterSeed(seed);
 
-// Uses default paths:
-// EVM: m/44'/60'/0'/0/0
-// XP:  m/44'/9000'/0'/0/0
-const account: AvalancheAccount = hdKeyToAvalancheAccount(hdKey);
-```
+// Default paths (EVM: m/44'/60'/0'/0/0, XP: m/44'/9000'/0'/0/0)
+const account = hdKeyToAvalancheAccount(hdKey);
 
-#### Example 2: Different Account Indices
+// Different indices
+const account1 = hdKeyToAvalancheAccount(hdKey, { accountIndex: 1 });
+const account2 = hdKeyToAvalancheAccount(hdKey, { addressIndex: 1 });
 
-```typescript
-// Create account with account index 1
-// EVM: m/44'/60'/1'/0/0
-// XP:  m/44'/9000'/1'/0/0
-const account1: AvalancheAccount = hdKeyToAvalancheAccount(hdKey, {
-  accountIndex: 1,
-  xpAccountIndex: 1,
+// Separate EVM and XP indices
+const account3 = hdKeyToAvalancheAccount(hdKey, {
+  accountIndex: 0, // EVM
+  xpAccountIndex: 2, // XP
 });
 
-// Create account with different address indices
-// EVM: m/44'/60'/0'/0/1
-// XP:  m/44'/9000'/0'/0/1
-const account2: AvalancheAccount = hdKeyToAvalancheAccount(hdKey, {
-  addressIndex: 1,
-  xpAddressIndex: 1,
+// Custom path (⚠️ applies to both EVM and XP)
+const account4 = hdKeyToAvalancheAccount(hdKey, {
+  path: "m/44'/60'/0'/0/0",
 });
-```
-
-#### Example 3: Separate Indices for EVM and XP
-
-```typescript
-// EVM uses account index 0, XP uses account index 2
-// EVM: m/44'/60'/0'/0/0
-// XP:  m/44'/9000'/2'/0/0
-const account: AvalancheAccount = hdKeyToAvalancheAccount(hdKey, {
-  accountIndex: 0, // Used for EVM
-  xpAccountIndex: 2, // Used for XP (overrides accountIndex for XP only)
-});
-```
-
-#### Example 5: Custom Path (Use with Caution)
-
-```typescript
-// ⚠️ Both EVM and XP will use the same custom path
-const account: AvalancheAccount = hdKeyToAvalancheAccount(hdKey, {
-  path: "m/44'/60'/0'/0/0", // Used for BOTH EVM and XP
-});
-
-// This may cause issues if you need XP-specific functionality
-// because the path doesn't match the standard XP coin type (9000)
 ```
 
 ## Multiple Accounts
 
-### From Same HD Key
+Generate multiple accounts from the same HD key:
 
 ```typescript
 import { hdKeyToAvalancheAccount, HDKey } from "@avalanche-sdk/client/accounts";
-import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
 
-const hdKey: HDKey = HDKey.fromMasterSeed(seed);
+const hdKey = HDKey.fromMasterSeed(seed);
 
-const account1: AvalancheAccount = hdKeyToAvalancheAccount(hdKey, {
-  addressIndex: 0,
-});
-const account2: AvalancheAccount = hdKeyToAvalancheAccount(hdKey, {
-  addressIndex: 1,
-});
-const account3: AvalancheAccount = hdKeyToAvalancheAccount(hdKey, {
-  addressIndex: 2,
-});
-
-console.log("Account 1:", account1.getEVMAddress());
-console.log("Account 2:", account2.getEVMAddress());
-console.log("Account 3:", account3.getEVMAddress());
-```
-
-## Account Properties
-
-### EVM Account
-
-```typescript
-const account = hdKeyToAvalancheAccount(hdKey);
-
-console.log("EVM Address:", account.evmAccount.address);
-console.log("Account Type:", account.evmAccount.type); // "local"
-console.log("Source:", account.evmAccount.source); // "hdKey"
-```
-
-### XP Account
-
-```typescript
-if (account.xpAccount) {
-  console.log("Public Key:", account.xpAccount.publicKey);
-  console.log("Account Type:", account.xpAccount.type); // "local"
-  console.log("Source:", account.xpAccount.source); // "hdKey"
-}
+const account1 = hdKeyToAvalancheAccount(hdKey, { addressIndex: 0 });
+const account2 = hdKeyToAvalancheAccount(hdKey, { addressIndex: 1 });
+const account3 = hdKeyToAvalancheAccount(hdKey, { addressIndex: 2 });
 ```
 
 ## Using with Wallet Client
@@ -247,70 +180,33 @@ if (account.xpAccount) {
 ```typescript
 import { createAvalancheWalletClient } from "@avalanche-sdk/client";
 import { avalanche } from "@avalanche-sdk/client/chains";
-import { avaxToWei } from "@avalanche-sdk/client/utils";
+
 const walletClient = createAvalancheWalletClient({
   account,
   chain: avalanche,
   transport: { type: "http" },
 });
 
-try {
-  const txHash = await walletClient.send({
-    to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
-    amount: avaxToWei(0.001),
-  });
-  console.log("Transaction sent:", txHash);
-} catch (error) {
-  console.error("Failed to send transaction:", error);
-}
+const txHash = await walletClient.send({
+  to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  amount: avaxToWei(0.001),
+});
 ```
 
-## Common Patterns
-
-### HD Key Factory
-
-```typescript
-class HDKeyAccountFactory {
-  static createFromSeed(
-    seed: Uint8Array,
-    options?: HDKeyToAvalancheAccountOptions
-  ): AvalancheAccount {
-    const hdKey = HDKey.fromMasterSeed(seed);
-    return hdKeyToAvalancheAccount(hdKey, options);
-  }
-
-  static createFromMnemonic(
-    mnemonic: string,
-    options?: HDKeyToAvalancheAccountOptions
-  ): AvalancheAccount {
-    const seed = mnemonicToSeedSync(mnemonic);
-    return this.createFromSeed(seed, options);
-  }
-
-  static createMultiple(seed: Uint8Array, count: number): AvalancheAccount[] {
-    const accounts: AvalancheAccount[] = [];
-
-    for (let i = 0; i < count; i++) {
-      accounts.push(this.createFromSeed(seed, { addressIndex: i }));
-    }
-
-    return accounts;
-  }
-}
-```
-
-## Security Best Practices
-
-### Seed Management
+## Security
 
 <Callout>
-  **Never expose seeds in client-side code or commit them to version control.**
+  **Never expose seeds in client-side code or commit them to version control.
+  Use environment variables.**
 </Callout>
 
 ```typescript
-// Good: Use environment variables
+// ✅ Good
 const seed = new Uint8Array(Buffer.from(process.env.SEED!, "hex"));
-const account = HDKeyAccountFactory.createFromSeed(seed);
+const hdKey = HDKey.fromMasterSeed(seed);
+
+// ❌ Bad
+const seed = new Uint8Array(64); // Hardcoded seed
 ```
 
 ## Next Steps
