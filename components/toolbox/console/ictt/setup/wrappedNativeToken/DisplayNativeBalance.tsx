@@ -30,8 +30,8 @@ export default function DisplayNativeBalance({ onError }: DisplayNativeBalancePr
         if (!cachedNativeCurrency && viemChain?.nativeCurrency) {
             setNativeCurrencyInfo(walletChainId, viemChain.nativeCurrency);
         }
-    }, [cachedNativeCurrency, viemChain?.nativeCurrency, walletChainId, setNativeCurrencyInfo]);
-
+    }, [cachedNativeCurrency, viemChain?.nativeCurrency, walletChainId]);
+   
     if (isLoading) {
         return (
             <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-lg">
