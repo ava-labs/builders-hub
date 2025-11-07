@@ -48,8 +48,7 @@ export default function WrapNativeToken({ wrappedNativeTokenAddress, onError }: 
             setWrappedNativeToken(wrappedNativeTokenAddress);
         }
     }, [viemChain, walletEVMAddress, wrappedNativeTokenAddress, walletChainId, cachedWrappedToken, cachedNativeCurrency]);
-    // Note: setWrappedNativeToken and setNativeCurrencyInfo are stable functions from the store and should not be in dependencies
-
+   
     async function handleWrap() {
         if (!wrappedNativeToken.isReady) {
             onError(new Error('Wrapped native token contract not ready'));

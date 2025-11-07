@@ -31,8 +31,7 @@ export default function DisplayNativeBalance({ onError }: DisplayNativeBalancePr
             setNativeCurrencyInfo(walletChainId, viemChain.nativeCurrency);
         }
     }, [cachedNativeCurrency, viemChain?.nativeCurrency, walletChainId]);
-    // Note: setNativeCurrencyInfo is a stable function from the store and should not be in dependencies
-
+   
     if (isLoading) {
         return (
             <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-lg">

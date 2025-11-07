@@ -65,8 +65,7 @@ export default function DisplayWrappedBalance({ wrappedNativeTokenAddress, onErr
 
         fetchWrappedBalance();
     }, [wrappedNativeToken.isReady, walletEVMAddress, viemChain, wrappedNativeTokenAddress, walletChainId]);
-    // Note: setNativeCurrencyInfo and setWrappedNativeToken are stable, cachedWrappedToken and cachedNativeCurrency are not in deps to avoid loops
-
+    
     if (isLoading) {
         return (
             <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-lg">

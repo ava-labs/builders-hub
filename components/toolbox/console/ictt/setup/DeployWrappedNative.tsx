@@ -178,8 +178,7 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
 
         checkToken();
     }, [isMounted, viemChain, walletEVMAddress, selectedL1, walletChainId, cachedWrappedToken, cachedNativeCurrency, wrappedNativeTokenAddress]);
-    // Note: setNativeCurrencyInfo and setWrappedNativeToken are stable functions from the store and should not be in dependencies
-
+   
     async function handleDeploy() {
         if (!coreWalletClient) {
             setCriticalError(new Error("Core wallet not found"));
