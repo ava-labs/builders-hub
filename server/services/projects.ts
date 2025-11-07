@@ -44,9 +44,9 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
       has: options.track,
     };
   }
-  // if (options.winningProjects) {
-  //   filters.winningProjects = true
-  // }
+  if (options.winningProjects) {
+    filters.is_winner = true
+  }
   if (options.search) {
     const searchWords = options.search.split(/\s+/);
     let searchFilters: any[] = [];

@@ -1,4 +1,5 @@
 import { prisma } from "@/prisma/prisma";
+import { Prisma } from "@prisma/client";
 
 import ExcelJS from 'exceljs';
 
@@ -17,20 +18,31 @@ interface ProjectExport {
     hackathon: string;
 }
 
-//TODO: Add filters to the query, now, body is not used and is not typed
-export async function exportShowcase(body: any) {
+type ExportShowcaseFilters = {
+    event?: string;
+    track?: string;
+    search?: string;
+    winningProjects?: boolean;
+};
 
-    const projects = await prisma.project.findMany({include: {
-        members: true,
-        hackathon: true,
-        prizes: true,
-    }})
+export async function exportShowcase(rawFilters: unknown) {
+    const filters = normalizeFilters(rawFilters);
+    const where = buildProjectWhere(filters);
 
-    if (!projects) {
+    const projects = await prisma.project.findMany({
+        include: {
+            members: true,
+            hackathon: true,
+            prizes: true,
+        },
+        where,
+    });
+
+    if (!projects.length) {
         return null;
     }
 
-    const projectsExport: ProjectExport[] = projects.map(project => ({
+    const projectsExport: ProjectExport[] = projects.map((project) => ({
         project_name: project.project_name,
         short_description: project.short_description,
         full_description: project.full_description ?? '',
@@ -38,14 +50,106 @@ export async function exportShowcase(body: any) {
         github_repository: project.github_repository ?? '',
         demo_link: project.demo_link ?? '',
         demo_video_link: project.demo_video_link ?? '',
-        tracks: project.tracks.join(', '),
-        tags: project.tags.join(', '),
-        members: project.members.map(member => member.email).join(', '),
-        prizes: project.prizes.map(prize => prize.prize).join(', '),
-        hackathon: project.hackathon.title,
+        tracks: (project.tracks ?? []).join(', '),
+        tags: (project.tags ?? []).join(', '),
+        members: project.members
+            .map((member) => member.email ?? member.user_id ?? '')
+            .filter(Boolean)
+            .join(', '),
+        prizes: project.prizes.map((prize) => prize.prize).join(', '),
+        hackathon: project.hackathon?.title ?? '',
     }));
     const buffer = await createWorkbook(projectsExport);
     return buffer;
+}
+
+function normalizeFilters(body: unknown): ExportShowcaseFilters {
+    if (!body || typeof body !== 'object') {
+        return {};
+    }
+
+    const filters = body as Record<string, unknown>;
+
+    return {
+        event: typeof filters.event === 'string' ? filters.event : undefined,
+        track: typeof filters.track === 'string' ? filters.track : undefined,
+        search: typeof filters.search === 'string' ? filters.search : undefined,
+        winningProjects: parseBoolean(filters.winningProjects ?? filters.winningProjecs),
+    };
+}
+
+function parseBoolean(value: unknown): boolean | undefined {
+    if (typeof value === 'boolean') {
+        return value;
+    }
+
+    if (typeof value === 'string') {
+        const lowered = value.trim().toLowerCase();
+        if (lowered === 'true') {
+            return true;
+        }
+        if (lowered === 'false') {
+            return false;
+        }
+    }
+
+    return undefined;
+}
+
+function buildProjectWhere(filters: ExportShowcaseFilters): Prisma.ProjectWhereInput {
+    const where: Prisma.ProjectWhereInput = {};
+
+    if (filters.event) {
+        where.hackaton_id = filters.event;
+    }
+
+    if (filters.track) {
+        where.tracks = {
+            has: filters.track,
+        };
+    }
+
+    if (filters.winningProjects) {
+        where.is_winner = true;
+    }
+
+    if (filters.search) {
+        const searchTerms = filters.search
+            .split(/\s+/)
+            .map((term) => term.trim())
+            .filter((term) => term.length > 0);
+
+        if (searchTerms.length > 0) {
+            const orConditions: Prisma.ProjectWhereInput[] = [];
+
+            searchTerms.forEach((term) => {
+                orConditions.push(
+                    {
+                        project_name: {
+                            contains: term,
+                            mode: 'insensitive',
+                        },
+                    },
+                    {
+                        full_description: {
+                            contains: term,
+                            mode: 'insensitive',
+                        },
+                    }
+                );
+            });
+
+            orConditions.push({
+                tracks: {
+                    has: filters.search,
+                },
+            });
+
+            where.OR = orConditions;
+        }
+    }
+
+    return where;
 }
 
  async function createWorkbook(projects: ProjectExport[]) {

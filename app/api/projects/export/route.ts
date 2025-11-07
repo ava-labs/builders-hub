@@ -8,7 +8,7 @@ export const POST = withAuthRole('hackathonCreator', async (req: NextRequest) =>
         const buffer = await exportShowcase(body);
         if (!buffer) {
             return NextResponse.json(
-                { message: 'no projects found' },
+                { message: 'No projects found' },
                 { status: 404 }
             );
         }
