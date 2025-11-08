@@ -34,6 +34,16 @@ export const avalancheLearningPaths: CourseNode[] = [
         position: { x: 20, y: 150 },
         mobileOrder: 9
     },
+    {
+        id: "x402-payment-infrastructure",
+        name: "x402 Payment Infrastructure",
+        description: "Learn about instant, permissionless HTTP-native payments on Avalanche",
+        slug: "x402-payment-infrastructure",
+        category: "Fundamentals",
+        dependencies: ["avalanche-fundamentals"],
+        position: { x: 80, y: 150 },
+        mobileOrder: 10
+    },
 
     // Third Layer - Branching paths
     {
