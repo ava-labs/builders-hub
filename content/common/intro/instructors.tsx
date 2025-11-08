@@ -103,6 +103,14 @@ const instructors: Instructor[] = [
         x: "https://x.com/alejandro99so",
         linkedin: "https://www.linkedin.com/in/alejandro99so/",
         github: "https://github.com/alejandro99so",
+    },
+    {
+        name: "Federico Nardelli",
+        title: "Developer Relations Engineer",
+        image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/instructors/federico-nardelli.jpeg",
+        x: "https://x.com/federico_nardo7",
+        linkedin: "https://www.linkedin.com/in/federico-nardelli-a2969b26a/",
+        github: "https://github.com/federiconardelli7",
     }
 ];
 
