@@ -50,10 +50,11 @@ function EVMFaucetCard({ chain }: { chain: L1ListItem }) {
 
       <EVMFaucetButton
         chainId={chain.evmChainId}
+        faucetChainId={chain.id}
         className="w-full px-4 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         <Droplets className="w-4 h-4" />
-        Request {chain.name} Tokens
+        Request {chain.coinName} Tokens
       </EVMFaucetButton>
     </div>
   );

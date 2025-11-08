@@ -32,6 +32,7 @@ export type L1ListItem = {
         symbol: string;
         decimals: number;
     };
+    erc20TokenAddress?: string; // If provided, faucet will drip this ERC20 token instead of native tokens
 };
 
 const l1ListInitialStateFuji = {
@@ -109,6 +110,32 @@ const l1ListInitialStateFuji = {
             features: [
                 "EVM-compatible L1 chain",
                 "Deploy dApps & test interoperability with Dispatch"
+            ]
+        },
+        {
+            id: "dexalot-alot-cchain-fuji",
+            name: "Dexalot (ALOT on C-Chain)",
+            description: "Get ALOT ERC20 tokens on Fuji C-Chain for testing",
+            rpcUrl: "https://api.avax-test.network/ext/bc/C/rpc",
+            evmChainId: 43113,
+            coinName: "ALOT",
+            isTestnet: true,
+            subnetId: "11111111111111111111111111111111LpoYY",
+            wrappedTokenAddress: "0xd00ae08403B9bbb9124bB305C09058E32C39A48c",
+            validatorManagerAddress: "",
+            logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/6tKCXL3AqxfxSUzXLGfN6r/be31715b87bc30c0e4d3da01a3d24e9a/dexalot-subnet.png",
+            wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
+            hasBuilderHubFaucet: true,
+            externalFaucetUrl: "https://core.app/tools/testnet-faucet",
+            explorerUrl: "https://testnet.snowtrace.io",
+            faucetThresholds: {
+                threshold: 10,
+                dripAmount: 0.2
+            },
+            erc20TokenAddress: "0x9983F755Bbd60d1886CbfE103c98C272AA0F03d6",
+            features: [
+                "ERC20 ALOT tokens on C-Chain",
+                "Get testnet ALOT for Dexalot"
             ]
         }
     ] as L1ListItem[],

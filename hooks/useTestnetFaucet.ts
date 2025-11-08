@@ -28,11 +28,14 @@ export const useTestnetFaucet = () => {
     return l1List.filter((chain: L1ListItem) => chain.hasBuilderHubFaucet);
   }, [l1List]);
 
-  const claimEVMTokens = useCallback(async (chainId: number, silent: boolean = false): Promise<FaucetClaimResult> => {
+  const claimEVMTokens = useCallback(async (chainId: number, silent: boolean = false, faucetChainId?: string): Promise<FaucetClaimResult> => {
     if (!walletEVMAddress) { throw new Error("Wallet address is required") }
     if (!isTestnet) { throw new Error("Faucet is only available on testnet") }
 
-    const chainConfig = l1List.find((chain: L1ListItem) => chain.evmChainId === chainId && chain.hasBuilderHubFaucet);
+    // If faucetChainId is provided, find by ID, otherwise find by evmChainId for backward compatibility
+    const chainConfig = faucetChainId
+      ? l1List.find((chain: L1ListItem) => chain.id === faucetChainId)
+      : l1List.find((chain: L1ListItem) => chain.evmChainId === chainId && chain.hasBuilderHubFaucet);
 
     if (!chainConfig) { throw new Error(`Unsupported chain or faucet not available for chain ID ${chainId}`) }
     
@@ -40,7 +43,9 @@ export const useTestnetFaucet = () => {
 
     try {
       const faucetRequest = async () => {
-        const response = await fetch(`/api/evm-chain-faucet?address=${walletEVMAddress}&chainId=${chainId}`);
+        // Include the faucet ID to distinguish between multiple faucets on the same chain
+        const faucetIdParam = chainConfig.id ? `&faucetId=${encodeURIComponent(chainConfig.id)}` : '';
+        const response = await fetch(`/api/evm-chain-faucet?address=${walletEVMAddress}&chainId=${chainId}${faucetIdParam}`);
         const rawText = await response.text();
         
         let data;
