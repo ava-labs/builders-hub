@@ -41,6 +41,19 @@ const officialCourses: Course[] = [
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
+        name: "x402 Payment Infrastructure",
+        description: "Learn about the x402 protocol for instant, permissionless HTTP-native payments on Avalanche",
+        slug: "x402-payment-infrastructure",
+        icon: <Coins />,
+        status: "featured",
+        duration: "2 hours",
+        languages: ["JavaScript", "Typescript"],
+        tools: ["Thirdweb x402", "PayAI", "Ultravioleta DAO", "x402-rs"],
+        instructors: ["Federico Nardelli"],
+        category: "Fundamentals",
+        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
+    },
+    {
         name: "Interchain Messaging",
         description: "Utilize Avalanche Interchain Messaging to build cross-chain dApps in the Avalanche network",
         slug: "interchain-messaging",
