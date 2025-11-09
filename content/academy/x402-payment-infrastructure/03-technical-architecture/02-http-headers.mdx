@@ -1,0 +1,417 @@
+---
+title: HTTP Headers in x402
+description: Understanding X-PAYMENT and X-PAYMENT-RESPONSE headers for payment communication.
+updated: 2025-11-03
+authors: [Federico Nardelli]
+icon: Code
+---
+
+## Overview
+
+The x402 protocol uses custom HTTP headers to communicate payment requirements and verification between clients and servers. These headers make payments a native part of HTTP communication.
+
+## HTTP 402 Payment Required Response
+
+When a server requires payment for a resource, it responds with **HTTP 402 Payment Required** and includes payment details in the **response body** as JSON (not in a custom header).
+
+### Response Structure
+
+```http
+HTTP/1.1 402 Payment Required
+Content-Type: application/json
+
+{
+  "x402Version": 1,
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "avalanche-fuji",
+      "maxAmountRequired": "10000",
+      "resource": "/api/premium-data",
+      "description": "Real-time market analysis",
+      "payTo": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+      "asset": "0x5425890298aed601595a70AB815c96711a31Bc65",
+      "maxTimeoutSeconds": 60
+    }
+  ],
+  "error": "X-PAYMENT header is required"
+}
+```
+
+### Field Definitions
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `x402Version` | number | Yes | Protocol version (currently 1) |
+| `accepts` | array | Yes | Array of accepted payment options |
+| `error` | string | No | Error message explaining why payment is required |
+
+### Payment Requirements Object (`accepts` array)
+
+Each payment option in the `accepts` array contains:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `scheme` | string | Yes | Payment scheme |
+| `network` | string | Yes | Blockchain network identifier |
+| `maxAmountRequired` | string | Yes | Maximum payment amount required (in token base units) |
+| `resource` | string | Yes | Resource path being requested |
+| `payTo` | string | Yes | Recipient blockchain address |
+| `asset` | string | Yes | Token contract address |
+| `maxTimeoutSeconds` | number | No | Maximum time to complete payment |
+| `description` | string | No | Human-readable description |
+
+### Amount Specification
+
+Amounts are always strings representing **base units** (smallest denomination):
+
+```javascript
+// For USDC (6 decimals): 10000 = 0.01 USDC
+"maxAmountRequired": "10000"
+
+// For USDC (6 decimals): 1000000 = 1.0 USDC
+"maxAmountRequired": "1000000"
+```
+
+**Important**: USDC has 6 decimals, so:
+- 1 USDC = 1,000,000 base units
+- 0.01 USDC = 10,000 base units
+- 0.0001 USDC = 100 base units
+
+### Asset (Token Contract Address)
+
+The `asset` field contains the smart contract address of the payment token:
+
+```javascript
+// USDC on Avalanche Fuji testnet
+"asset": "0x5425890298aed601595a70AB815c96711a31Bc65"
+
+// USDC on Avalanche C-Chain mainnet
+"asset": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E"
+
+// USDC on Ethereum mainnet
+"asset": "0xA0b86991C6218b36c1d19D4a2e9Eb0cE3606EB48"
+```
+
+**Note**: The asset is identified by contract address, not by symbol like "USDC".
+
+### Network Identifiers
+
+Standard network identifiers for Avalanche and other chains:
+
+```javascript
+"network": "avalanche-c-chain" // Avalanche C-Chain Mainnet
+"network": "avalanche-fuji"    // Avalanche Fuji Testnet
+"network": "ethereum-mainnet"  // Ethereum Mainnet
+"network": "base-mainnet"      // Base Mainnet
+"network": "base-sepolia"      // Base Sepolia Testnet
+```
+
+### Payment Schemes
+
+The `scheme` field specifies how payments are settled. x402 supports multiple schemes to handle different payment models:
+
+**`exact` Scheme (Implemented)**:
+- Fixed payment amount known upfront
+- Use cases: Pay $0.10 to read an article, fixed-price API calls
+- Implementations: EVM (EIP-3009), Solana, Sui
+- Example: `"scheme": "exact", "maxAmountRequired": "100000"`
+
+**`up-to` Scheme (Proposed)**:
+- Variable payment based on resource consumption
+- Use cases: LLM token-based pricing, pay-per-token generation, usage-metered services
+- Status: Not yet implemented - under development
+- Example use: Pay up to $1.00, actual charge depends on tokens consumed
+
+The protocol is designed to be extensible, allowing new schemes to be added as payment models evolve. Current implementations focus on the `exact` scheme across multiple blockchains.
+
+**Reference**: See [x402 Schemes Specification](https://github.com/coinbase/x402/tree/main/specs/schemes) for technical details.
+
+### Multiple Payment Options
+
+Servers can offer multiple payment options (different networks or tokens):
+
+```json
+{
+  "x402Version": 1,
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "avalanche-fuji",
+      "maxAmountRequired": "10000",
+      "payTo": "0x742d35...",
+      "asset": "0x5425890...",
+      "resource": "/api/data"
+    },
+    {
+      "scheme": "exact",
+      "network": "base-sepolia",
+      "maxAmountRequired": "10000",
+      "payTo": "0x742d35...",
+      "asset": "0x036CbD...",
+      "resource": "/api/data"
+    }
+  ]
+}
+```
+
+## X-PAYMENT Header
+
+When making a payment, the client includes the `X-PAYMENT` header with the request. This header contains a **base64-encoded JSON payload** with the payment authorization.
+
+### Header Structure
+
+```http
+GET /api/premium-data HTTP/1.1
+Host: example.com
+X-PAYMENT: <base64-encoded-payment-payload>
+```
+
+### Payment Payload Structure (before base64 encoding)
+
+```json
+{
+  "x402Version": 1,
+  "scheme": "exact",
+  "network": "avalanche-fuji",
+  "payload": {
+    "signature": "0x1234567890abcdef...",
+    "authorization": {
+      "from": "0x1234567890abcdef1234567890abcdef12345678",
+      "to": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+      "value": "10000",
+      "validAfter": "1740672089",
+      "validBefore": "1740672154",
+      "nonce": "0x3456789012345678901234567890123456789012345678901234567890123456"
+    }
+  }
+}
+```
+
+### Field Definitions
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `x402Version` | number | Yes | Protocol version (currently 1) |
+| `scheme` | string | Yes | Payment scheme ("exact" for EVM) |
+| `network` | string | Yes | Blockchain network used |
+| `payload` | object | Yes | Scheme-specific payment data |
+
+### Payload for "exact" Scheme (EVM Chains)
+
+The payload for EVM chains using the "exact" scheme contains:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `signature` | string | Yes | EIP-712 signature of the authorization |
+| `authorization` | object | Yes | Payment authorization details |
+
+### Authorization Object
+
+The authorization object follows EIP-3009 TransferWithAuthorization:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `from` | string | Yes | Payer's wallet address |
+| `to` | string | Yes | Recipient's wallet address |
+| `value` | string | Yes | Amount in token base units |
+| `validAfter` | string | Yes | Unix timestamp (seconds) - payment valid after this time |
+| `validBefore` | string | Yes | Unix timestamp (seconds) - payment expires after this time |
+| `nonce` | string | Yes | Unique 32-byte hex string for replay protection |
+
+### EIP-712 Signature
+
+The signature field contains an EIP-712 signature of the authorization object:
+
+```javascript
+// The user's wallet signs the authorization using EIP-712
+const signature = await wallet.signTypedData({
+  domain: {
+    name: "USD Coin",
+    version: "2",
+    chainId: 43113, // Avalanche Fuji
+    verifyingContract: "0x5425890298aed601595a70AB815c96711a31Bc65"
+  },
+  types: {
+    TransferWithAuthorization: [
+      { name: "from", type: "address" },
+      { name: "to", type: "address" },
+      { name: "value", type: "uint256" },
+      { name: "validAfter", type: "uint256" },
+      { name: "validBefore", type: "uint256" },
+      { name: "nonce", type: "bytes32" }
+    ]
+  },
+  primaryType: "TransferWithAuthorization",
+  message: authorization
+});
+```
+
+This signature:
+- ✓ Proves user consent without requiring a transaction
+- ✓ Cannot be forged (cryptographically secure)
+- ✓ Includes all payment details in the signature
+- ✓ Enables gasless payments (server submits the transaction)
+
+### Complete Example
+
+```javascript
+// 1. Client receives 402 response with payment requirements
+const paymentReq = response.data.accepts[0];
+
+// 2. Client creates authorization object
+const authorization = {
+  from: userAddress,
+  to: paymentReq.payTo,
+  value: paymentReq.maxAmountRequired,
+  validAfter: Math.floor(Date.now() / 1000).toString(),
+  validBefore: (Math.floor(Date.now() / 1000) + 300).toString(), // 5 minutes
+  nonce: ethers.randomBytes(32)
+};
+
+// 3. User signs authorization
+const signature = await wallet.signTypedData(...);
+
+// 4. Client creates payment payload
+const paymentPayload = {
+  x402Version: 1,
+  scheme: paymentReq.scheme,
+  network: paymentReq.network,
+  payload: {
+    signature: signature,
+    authorization: authorization
+  }
+};
+
+// 5. Base64 encode and send
+const encoded = btoa(JSON.stringify(paymentPayload));
+await fetch('/api/premium-data', {
+  headers: {
+    'X-PAYMENT': encoded
+  }
+});
+```
+
+## X-PAYMENT-RESPONSE Header
+
+After verifying and settling payment, the server includes the `X-PAYMENT-RESPONSE` header in its response. This header is also **base64-encoded JSON**.
+
+### Header Structure
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-PAYMENT-RESPONSE: <base64-encoded-settlement-response>
+```
+
+### Settlement Response Structure (before base64 encoding)
+
+```json
+{
+  "success": true,
+  "transaction": "0x8f3d1a2b4c5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a",
+  "network": "avalanche-fuji",
+  "payer": "0x1234567890abcdef1234567890abcdef12345678",
+  "errorReason": null
+}
+```
+
+### Field Definitions
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `success` | boolean | Yes | Whether settlement was successful |
+| `transaction` | string | Yes (if success) | Transaction hash on blockchain |
+| `network` | string | Yes | Network where transaction was settled |
+| `payer` | string | Yes | Address of the payer |
+| `errorReason` | string | Yes (if failed) | Error message if settlement failed |
+
+### Success Response
+
+When payment is successfully verified and settled:
+
+```json
+{
+  "success": true,
+  "transaction": "0x8f3d1a2b4c5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a",
+  "network": "avalanche-fuji",
+  "payer": "0x1234567890abcdef1234567890abcdef12345678",
+  "errorReason": null
+}
+```
+
+The transaction hash can be used to:
+- ✓ Verify the transaction on a block explorer
+- ✓ Check transaction details (amount, timestamp, block number)
+- ✓ Provide proof of payment to users
+- ✓ Audit payment history
+
+### Payment Failure Response
+
+When payment verification or settlement fails, the server returns **HTTP 402 Payment Required** with both a JSON body containing payment requirements and an `X-PAYMENT-RESPONSE` header with failure details:
+
+```http
+HTTP/1.1 402 Payment Required
+Content-Type: application/json
+X-PAYMENT-RESPONSE: eyJzdWNjZXNzIjpmYWxzZSwidHJhbnNhY3Rpb24iOm51bGwsIm5ldHdvcmsiOiJhdmFsYW5jaGUtZnVqaSIsInBheWVyIjoiMHgxMjM0NTY3ODkwYWJjZGVmMTIzNDU2Nzg5MGFiY2RlZjEyMzQ1Njc4IiwiZXJyb3JSZWFzb24iOiJJbnN1ZmZpY2llbnQgYXV0aG9yaXphdGlvbiBhbW91bnQifQ==
+
+{
+  "x402Version": 1,
+  "accepts": [{
+    "scheme": "exact",
+    "network": "avalanche-fuji",
+    "maxAmountRequired": "10000",
+    "payTo": "0x742d35...",
+    "asset": "0x5425890...",
+    "resource": "/api/data"
+  }],
+  "error": "Insufficient payment: required 10000, received 5000"
+}
+```
+
+The `X-PAYMENT-RESPONSE` header (when decoded) contains:
+
+```json
+{
+  "success": false,
+  "transaction": null,
+  "network": "avalanche-fuji",
+  "payer": "0x1234567890abcdef1234567890abcdef12345678",
+  "errorReason": "Insufficient authorization amount"
+}
+```
+
+**Common error reasons**:
+- `"Insufficient authorization amount"` - Payment amount too low
+- `"Authorization expired"` - validBefore timestamp passed
+- `"Invalid signature"` - Signature verification failed
+- `"Nonce already used"` - Replay attack detected
+- `"Insufficient balance"` - Payer doesn't have enough tokens
+
+**Why both body and header?**
+- **JSON body**: Provides new payment requirements so the client can retry
+- **X-PAYMENT-RESPONSE header**: Communicates what went wrong with the settlement attempt
+
+## Header Best Practices
+
+### For Servers
+
+1. **Support multiple networks**: Include options for different blockchains in `accepts` array
+2. **Set reasonable timeouts**: Use `maxTimeoutSeconds` to prevent stale payments
+3. **Use base units consistently**: Always specify amounts in smallest token denomination
+4. **Validate signatures carefully**: Use EIP-712 verification libraries
+5. **Implement replay protection**: Track used nonces to prevent double-spending
+
+### For Clients
+
+1. **Decode and parse carefully**: Base64 decode and JSON parse all headers
+2. **Check authorization expiry**: Don't sign authorizations with past `validBefore` timestamps
+3. **Generate unique nonces**: Use cryptographically secure random 32-byte values
+4. **Store transaction receipts**: Keep `X-PAYMENT-RESPONSE` data for proof of payment
+5. **Handle errors gracefully**: Implement retry logic with exponential backoff
+
+For detailed security considerations including signature validation, nonce-based replay prevention, and authorization timing validation, see [Security Considerations](./05-security-considerations)
+
+## Summary
+
+The x402 protocol uses HTTP 402 responses with JSON bodies and two custom HTTP headers (`X-PAYMENT` and `X-PAYMENT-RESPONSE`) to enable payment communication. When a payment is required, the server responds with HTTP 402 and a JSON body containing payment requirements. The client submits a signed authorization in the base64-encoded `X-PAYMENT` header. After settlement, the server returns the resource with an `X-PAYMENT-RESPONSE` header containing the transaction hash. All payloads are base64-encoded JSON structures following the EIP-3009 TransferWithAuthorization standard for secure, verifiable blockchain payments.
