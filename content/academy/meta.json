@@ -10,6 +10,7 @@
     "interchain-token-transfer",
     "icm-chainlink",
     "avacloudapis",
-    "encrypted-erc"
+    "encrypted-erc",
+    "x402-payment-infrastructure"
   ]
 }
