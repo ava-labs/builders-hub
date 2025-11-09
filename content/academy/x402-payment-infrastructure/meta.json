@@ -1,0 +1,17 @@
+{
+  "title": "x402 Payment Infrastructure",
+  "icon": "Coins",
+  "root": true,
+  "pages": [
+    "index",
+    "---Introduction to x402---",
+    "...02-introduction",
+    "---Technical Architecture---",
+    "...03-technical-architecture",
+    "---x402 on Avalanche---",
+    "...04-x402-on-avalanche",
+    "---Implementation Guide---",
+    "...05-implementation",
+    "get-certificate"
+  ]
+}
