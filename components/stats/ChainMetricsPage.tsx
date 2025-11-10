@@ -467,25 +467,25 @@ export default function ChainMetricsPage({
                 key: "activeAddresses",
                 icon: Users,
                 color: themeColor,
-                label: "Active Addresses",
+                label: "Daily Active Addresses",
               },
               {
                 key: "txCount",
                 icon: Activity,
                 color: themeColor,
-                label: "Transactions",
+                label: "Daily Transactions",
               },
               {
                 key: "cumulativeContracts",
                 icon: FileText,
                 color: themeColor,
-                label: "Total Contracts",
+                label: "Total Contracts Deployed",
               },
               {
                 key: "icmMessages",
                 icon: MessageSquare,
                 color: themeColor,
-                label: "ICM Messages",
+                label: "Daily Interchain Messages",
               },
             ].map((item) => {
               const currentValue = getCurrentValue(
