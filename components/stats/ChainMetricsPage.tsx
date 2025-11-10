@@ -263,7 +263,7 @@ export default function ChainMetricsPage({
       chartType: "area" as const,
     },
     {
-      title: "Daily Transactions",
+      title: "Transactions",
       icon: Activity,
       metricKey: "txCount" as const,
       description: "Transaction volume over time",
@@ -473,7 +473,7 @@ export default function ChainMetricsPage({
                 key: "txCount",
                 icon: Activity,
                 color: themeColor,
-                label: "Daily Transactions",
+                label: "Transactions",
               },
               {
                 key: "cumulativeContracts",
@@ -648,7 +648,7 @@ function ChartCard({
     return Array.from(grouped.values())
       .map((group) => ({
         day: group.date,
-        value: group.sum / group.count,
+        value: group.sum,
       }))
       .sort((a, b) => a.day.localeCompare(b.day));
   }, [rawData, period]);
@@ -993,7 +993,7 @@ function ChartCard({
                     yAxisId="left"
                     name={
                       config.metricKey === "txCount"
-                        ? "Daily Transactions"
+                        ? "Transactions"
                         : "Active Addresses"
                     }
                   />
