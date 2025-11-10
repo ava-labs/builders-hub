@@ -232,7 +232,7 @@ export default function ChainMetricsPage({
       case "feesPaid":
         return formatEther(value);
       case "icmMessages":
-        return `${formatNumber(roundedValue)} ICM Messages`;
+        return `${formatNumber(roundedValue)} Interchain Messages`;
       default:
         return formatNumber(value);
     }
@@ -367,7 +367,7 @@ export default function ChainMetricsPage({
       chartType: "bar" as const,
     },
     {
-      title: "ICM Messages",
+      title: "Interchain Messages",
       icon: MessageSquare,
       metricKey: "icmMessages" as const,
       description: "Interchain messaging activity",
