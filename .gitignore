@@ -298,4 +298,10 @@ content/docs/cross-chain/teleporter/deep-dive.mdx
 content/docs/cross-chain/teleporter/overview.mdx
 content/docs/cross-chain/teleporter/upgradeability.mdx
  
+# Playwright test artifacts
+/tests/extensions/
+/tests/screenshots/
+/test-results/
+/playwright-report/
+/playwright/.cache/
 
