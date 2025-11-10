@@ -1,0 +1,232 @@
+---
+title: "Private Key Accounts"
+icon: "key"
+---
+
+## Overview
+
+Private Key Accounts provide the simplest way to create an Avalanche account from a single private key. They support both EVM (C-Chain) and X/P (X-Chain/P-Chain) operations with unified address management.
+
+**Best for:**
+
+- Server-side applications
+- Automated bots and services
+- Testing and development
+- Scripts and tools
+
+<Callout>
+  **Security:** Private keys must be kept secure. Never expose private keys in
+  client-side code or commit them to version control. Use environment variables
+  in production.
+</Callout>
+
+## Creating Private Key Accounts
+
+### Basic Usage
+
+```typescript
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const privateKey = "0x1234...your_private_key_here";
+const account: AvalancheAccount = privateKeyToAvalancheAccount(privateKey);
+
+console.log("EVM Address:", account.getEVMAddress());
+console.log("X-Chain Address:", account.getXPAddress("X"));
+console.log("P-Chain Address:", account.getXPAddress("P"));
+```
+
+### Working with Environment Variables
+
+```typescript
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const account = privateKeyToAvalancheAccount(process.env.PRIVATE_KEY!);
+```
+
+## Generating Private Keys
+
+### Generate Random Private Key
+
+```typescript
+import {
+  generatePrivateKey,
+  privateKeyToAvalancheAccount,
+} from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const privateKey: string = generatePrivateKey();
+console.log("Generated private key:", privateKey);
+
+const account: AvalancheAccount = privateKeyToAvalancheAccount(privateKey);
+
+console.log("EVM Address:", account.getEVMAddress());
+console.log("X-Chain Address:", account.getXPAddress("X"));
+console.log("P-Chain Address:", account.getXPAddress("P"));
+```
+
+## Account Properties
+
+### EVM Account
+
+Each Avalanche account contains an EVM account for C-Chain operations:
+
+```typescript
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const account: AvalancheAccount = privateKeyToAvalancheAccount("0x...");
+
+// Access EVM account properties
+const evmAccount = account.evmAccount;
+
+console.log("Address:", evmAccount.address);
+console.log("Type:", evmAccount.type); // "local"
+console.log("Source:", evmAccount.source); // "privateKey"
+
+// Get public key (if available)
+if (evmAccount.publicKey) {
+  console.log("Public Key:", evmAccount.publicKey);
+}
+```
+
+### XP Account
+
+Each Avalanche account contains an XP account for X-Chain and P-Chain operations:
+
+```typescript
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type {
+  AvalancheAccount,
+  LocalXPAccount,
+} from "@avalanche-sdk/client/accounts";
+
+const account: AvalancheAccount = privateKeyToAvalancheAccount("0x...");
+
+// Access XP account properties
+if (account.xpAccount) {
+  const xpAccount: LocalXPAccount = account.xpAccount;
+
+  console.log("Public Key:", xpAccount.publicKey);
+  console.log("Type:", xpAccount.type); // "local"
+  console.log("Source:", xpAccount.source); // "privateKey"
+}
+```
+
+## Address Management
+
+### Get All Addresses
+
+```typescript
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const account: AvalancheAccount = privateKeyToAvalancheAccount("0x...");
+
+// Get all addresses
+const addresses = {
+  evm: account.getEVMAddress(), // "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
+  xChain: account.getXPAddress("X"), // "X-avax1..."
+  pChain: account.getXPAddress("P"), // "P-avax1..."
+  base: account.getXPAddress(), // "avax1..." (without chain prefix)
+};
+
+console.log("All Addresses:", addresses);
+```
+
+### Network-Specific Addresses
+
+```typescript
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const account: AvalancheAccount = privateKeyToAvalancheAccount("0x...");
+
+// Mainnet addresses (default)
+const mainnetAddresses = {
+  evm: account.getEVMAddress(),
+  xChain: account.getXPAddress("X", "avax"),
+  pChain: account.getXPAddress("P", "avax"),
+};
+
+// Testnet (Fuji) addresses
+const testnetAddresses = {
+  evm: account.getEVMAddress(),
+  xChain: account.getXPAddress("X", "fuji"),
+  pChain: account.getXPAddress("P", "fuji"),
+};
+
+console.log("Mainnet:", mainnetAddresses);
+console.log("Testnet:", testnetAddresses);
+```
+
+## Using with Wallet Client
+
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const account = privateKeyToAvalancheAccount(process.env.PRIVATE_KEY!);
+
+const walletClient = createAvalancheWalletClient({
+  account,
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+// C-Chain transaction
+const txHash = await walletClient.send({
+  to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  amount: 0.001,
+});
+
+// X/P-Chain transaction
+const xpTx = await walletClient.xChain.prepareBaseTxn({
+  outputs: [{ addresses: [account.getXPAddress("X")], amount: 1 }],
+});
+await walletClient.sendXPTransaction(xpTx);
+```
+
+## Message Signing
+
+```typescript
+import { signMessage } from "@avalanche-sdk/client/accounts";
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const account = privateKeyToAvalancheAccount("0x...");
+
+// EVM message signing
+const evmSignature = await signMessage({
+  account: account.evmAccount,
+  message: "Hello Avalanche!",
+});
+
+// XP message signing
+if (account.xpAccount) {
+  const xpSignature = await account.xpAccount.signMessage("Hello Avalanche!");
+  const isValid = account.xpAccount.verify("Hello Avalanche!", xpSignature);
+}
+```
+
+## Security
+
+<Callout>
+  **Never expose private keys in client-side code or commit them to version
+  control. Use environment variables.**
+</Callout>
+
+```typescript
+// ✅ Good
+const account = privateKeyToAvalancheAccount(process.env.PRIVATE_KEY!);
+
+// ❌ Bad
+const account = privateKeyToAvalancheAccount("0x1234...");
+```
+
+## Next Steps
+
+- **[Mnemonic Accounts](mnemonic)** - Learn about mnemonic-based accounts
+- **[HD Key Accounts](hd-key)** - Learn about hierarchical deterministic accounts
+- **[Account Utilities](utilities)** - Account validation and utilities
+- **[Network-Specific Addresses](addresses)** - Working with different network addresses

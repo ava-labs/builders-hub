@@ -1,0 +1,305 @@
+---
+title: API Clients
+---
+
+## Overview
+
+API clients provide access to node-level operations. They're included with the main Avalanche Client and handle administrative tasks, node information, health monitoring, and indexed blockchain queries.
+
+## Accessing from Avalanche Client
+
+All API clients are available on the main Avalanche Client:
+
+```typescript
+import { createAvalancheClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+// Admin API - Node configuration and profiling
+const admin = client.admin;
+
+// Info API - Node and network information
+const info = client.info;
+
+// Health API - Node health monitoring
+const health = client.health;
+
+// ProposerVM API - ProposerVM operations per chain
+const proposervmPChain = client.proposerVM.pChain;
+const proposervmXChain = client.proposerVM.xChain;
+const proposervmCChain = client.proposerVM.cChain;
+
+// Index API - Indexed blockchain queries
+const indexPChainBlock = client.indexBlock.pChain;
+const indexCChainBlock = client.indexBlock.cChain;
+const indexXChainBlock = client.indexBlock.xChain;
+const indexXChainTx = client.indexTx.xChain;
+```
+
+## Admin API Client
+
+Node configuration, aliases, logging, and profiling.
+
+### From Avalanche Client
+
+```typescript
+const admin = client.admin;
+
+// Example: Set logger level
+await admin.setLoggerLevel({
+  loggerName: "C",
+  logLevel: "DEBUG",
+});
+```
+
+### Create Standalone Client
+
+```typescript
+import { createAdminApiClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+const adminClient = createAdminApiClient({
+  chain: avalanche,
+  transport: {
+    type: "http",
+    url: "https://api.avax.network/ext/admin",
+  },
+});
+
+await adminClient.alias({
+  endpoint: "bc/X",
+  alias: "myAlias",
+});
+```
+
+[View all Admin API methods →](methods/public-methods/api#admin-api-client)
+
+## Info API Client
+
+Node and network information, statistics, and status.
+
+### From Avalanche Client
+
+```typescript
+const info = client.info;
+
+// Example: Get network info
+const networkID = await info.getNetworkID();
+const version = await info.getNodeVersion();
+```
+
+### Create Standalone Client
+
+```typescript
+import { createInfoApiClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+const infoClient = createInfoApiClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+const networkID = await infoClient.getNetworkID();
+const version = await infoClient.getNodeVersion();
+```
+
+[View all Info API methods →](methods/public-methods/api#info-api-client)
+
+## Health API Client
+
+Node health monitoring and status checks.
+
+### From Avalanche Client
+
+```typescript
+const health = client.health;
+
+// Example: Check node health
+const status = await health.health({});
+const isAlive = await health.liveness();
+```
+
+### Create Standalone Client
+
+```typescript
+import { createHealthApiClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+const healthClient = createHealthApiClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+const health = await healthClient.health({});
+const liveness = await healthClient.liveness();
+```
+
+[View all Health API methods →](methods/public-methods/api#health-api-client)
+
+## ProposerVM API Client
+
+ProposerVM operations for each chain.
+
+### From Avalanche Client
+
+```typescript
+// Access ProposerVM for each chain
+const proposervmPChain = client.proposerVM.pChain;
+const proposervmXChain = client.proposerVM.xChain;
+const proposervmCChain = client.proposerVM.cChain;
+```
+
+### Create Standalone Client
+
+```typescript
+import { createProposervmApiClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+// P-Chain ProposerVM
+const proposervmPChain = createProposervmApiClient({
+  chain: avalanche,
+  transport: { type: "http" },
+  clientType: "proposervmPChain",
+});
+
+// X-Chain ProposerVM
+const proposervmXChain = createProposervmApiClient({
+  chain: avalanche,
+  transport: { type: "http" },
+  clientType: "proposervmXChain",
+});
+
+// C-Chain ProposerVM
+const proposervmCChain = createProposervmApiClient({
+  chain: avalanche,
+  transport: { type: "http" },
+  clientType: "proposervmCChain",
+});
+
+// Example: Get proposed height
+const pChainHeight = await proposervmPChain.getProposedHeight();
+```
+
+## Index API Clients
+
+Fast indexed queries for blockchain data.
+
+### From Avalanche Client
+
+```typescript
+// Block indexes
+const indexPChainBlock = client.indexBlock.pChain;
+const indexCChainBlock = client.indexBlock.cChain;
+const indexXChainBlock = client.indexBlock.xChain;
+
+// Transaction index
+const indexXChainTx = client.indexTx.xChain;
+
+// Example: Get last accepted block
+const lastBlock = await indexPChainBlock.getLastAccepted({
+  encoding: "hex",
+});
+```
+
+### Create Standalone Client
+
+```typescript
+import { createIndexApiClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+// P-Chain block index
+const indexPChainBlock = createIndexApiClient({
+  chain: avalanche,
+  transport: { type: "http" },
+  clientType: "indexPChainBlock",
+});
+
+// C-Chain block index
+const indexCChainBlock = createIndexApiClient({
+  chain: avalanche,
+  transport: { type: "http" },
+  clientType: "indexCChainBlock",
+});
+
+// X-Chain block index
+const indexXChainBlock = createIndexApiClient({
+  chain: avalanche,
+  transport: { type: "http" },
+  clientType: "indexXChainBlock",
+});
+
+// X-Chain transaction index
+const indexXChainTx = createIndexApiClient({
+  chain: avalanche,
+  transport: { type: "http" },
+  clientType: "indexXChainTx",
+});
+
+// Example: Get container by index
+const block = await indexPChainBlock.getContainerByIndex({
+  index: 12345,
+  encoding: "hex",
+});
+```
+
+[View all Index API methods →](methods/public-methods/api#index-api-clients)
+
+## Quick Examples
+
+### Node Health Check
+
+```typescript
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+const health = await client.health.health({});
+const liveness = await client.health.liveness();
+console.log("Node healthy:", health.healthy);
+```
+
+### Get Node Information
+
+```typescript
+const version = await client.info.getNodeVersion();
+const networkID = await client.info.getNetworkID();
+const nodeID = await client.info.getNodeID();
+console.log(`Node ${nodeID.nodeID} v${version} on network ${networkID}`);
+```
+
+### Query Indexed Blocks
+
+```typescript
+const lastBlock = await client.indexBlock.pChain.getLastAccepted({
+  encoding: "hex",
+});
+
+const block = await client.indexBlock.cChain.getContainerByIndex({
+  index: 12345,
+  encoding: "hex",
+});
+```
+
+## When to Use
+
+- **Admin API**: Node configuration, profiling, logging (requires admin access)
+- **Info API**: Node and network information
+- **Health API**: Health monitoring and status checks
+- **Index API**: Fast indexed queries for blocks and transactions
+- **ProposerVM API**: ProposerVM operations per chain
+
+<Callout>
+  **Note:** Admin API operations require administrative access and may not be
+  available on public endpoints.
+</Callout>
+
+## Next Steps
+
+- **[API Methods Reference](methods/public-methods/api)** - Complete method documentation
+- **[Avalanche Client](clients/avalanche-client)** - Main client operations
+- **[Wallet Client](clients/wallet-client)** - Transaction operations

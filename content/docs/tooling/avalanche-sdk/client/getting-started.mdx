@@ -1,28 +1,12 @@
 ---
 title: Getting Started
-description: Getting Started with the Client SDK
 icon: Rocket
+description: Get started with the Avalanche Client SDK - your gateway to building on Avalanche with TypeScript.
 ---
 
-### Client SDK
+## Overview
 
-The main Avalanche client SDK for interacting with Avalanche nodes and building blockchain applications.
-
-Features:
-
-- Complete API coverage for P-Chain, X-Chain, and C-Chain.
-- Full viem compatibility - anything you can do with viem works here.
-- TypeScript-first design with full type safety.
-- Abstractions over the JSON-RPC API to make your life easier.
-- Wallet integration and transaction management.
-- First-class APIs for interacting with Smart Contracts.
-- Retrieve balances and UTXOs for addresses..
-- Build, sign, and issue transactions to any chain.
-- Perform cross-chain transfers between X, P and C chains.
-- Add validators and delegators.
-- Create subnets and blockchains, convert subnets to L1s.
-
-The SDK is currently available in TypeScript, with more languages coming soon. If you are interested in a language that is not listed, please reach out to us in the [#dev-tools](https://discord.com/channels/578992315641626624/1280920394236297257) channel in the [Avalanche Discord](https://discord.gg/avax).
+The Avalanche Client SDK provides a TypeScript interface for interacting with Avalanche. Built on [viem](https://viem.sh), it offers full Ethereum compatibility plus native support for P-Chain, X-Chain, and C-Chain operations.
 
 <Cards>
   <Card title="NPM Package">
@@ -33,57 +17,197 @@ The SDK is currently available in TypeScript, with more languages coming soon. I
   </Card>
 </Cards>
 
-### SDK Installation
+## Installation
 
-<Tabs items={['npm', 'pnpm', 'bun', 'yarn']}>
-  <Tab value="npm">
-  ```bash
-  npm add @avalanche-sdk/client
-  ```
+Install the Avalanche Client SDK using your preferred package manager:
 
-  </Tab>
-  <Tab value="pnpm">
-  ```bash
-  pnpm add @avalanche-sdk/client
-  ```
+<InstallTabs items={['npm', 'yarn', 'bun']}>
+<Tab value="npm">
 
-  </Tab>
-  <Tab value="bun">
-  ```bash
-  bun add @avalanche-sdk/client
-  ```
+```bash
+npm install @avalanche-sdk/client
+```
 
-  </Tab>
-  <Tab value="yarn">
-  ```bash
-  yarn add @avalanche-sdk/client zod
-  ```
-  <Callout title="Note">
-  Yarn does not install peer dependencies automatically. You will need
-  to install zod as shown above.
-  </Callout>
+</Tab>
+<Tab value="yarn">
 
-  </Tab>
-</Tabs>
+```bash
+yarn add @avalanche-sdk/client
+```
 
-### SDK Example Usage
+</Tab>
+<Tab value="bun">
 
-```javascript
+```bash
+bun add @avalanche-sdk/client
+```
+
+</Tab>
+</InstallTabs>
+
+### Requirements
+
+- Node.js >= 20.0.0
+- TypeScript >= 5.0.0 (recommended)
+- Modern browsers: Chrome 88+, Firefox 85+, Safari 14+, Edge 88+
+
+## Quick Start
+
+### Public Client
+
+Create a read-only client:
+
+```typescript
 import { createAvalancheClient } from "@avalanche-sdk/client";
 import { avalanche } from "@avalanche-sdk/client/chains";
 
 const client = createAvalancheClient({
   chain: avalanche,
-  transport: {
-    type: "http",
-  },
+  transport: { type: "http" },
 });
 
-// Get account balance
+// Read operations
+const pChainHeight = await client.pChain.getHeight();
 const balance = await client.getBalance({
   address: "0xA0Cf798816D4b9b9866b5330EEa46a18382f251e",
 });
 ```
 
-Refer to the code samples provided for each route to see examples of how to use them in the SDK. Explore routes here [Data API](/docs/api-reference/data-api/getting-started),
-[Metrics API](/docs/api-reference/metrics-api/getting-started) & [Webhooks API](/docs/api-reference/webhook-api/getting-started).
+### Wallet Client
+
+Create a wallet client for transactions:
+
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import { avalanche } from "@avalanche-sdk/client/chains";
+import { avaxToWei } from "@avalanche-sdk/client/utils";
+
+const account = privateKeyToAvalancheAccount("0x...");
+
+const walletClient = createAvalancheWalletClient({
+  account,
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+// Send AVAX
+const hash = await walletClient.send({
+  to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  amount: avaxToWei(0.001),
+});
+```
+
+## Account Creation
+
+### Private Key
+
+```typescript
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const account = privateKeyToAvalancheAccount("0x...");
+```
+
+### Mnemonic
+
+```typescript
+import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const account = mnemonicsToAvalancheAccount("test test test...");
+```
+
+### HD Key
+
+```typescript
+import { hdKeyToAvalancheAccount, HDKey } from "@avalanche-sdk/client/accounts";
+
+const hdKey = HDKey.fromMasterSeed(seed);
+const account = hdKeyToAvalancheAccount(hdKey);
+```
+
+[Learn more about accounts →](accounts)
+
+## Transport Configuration
+
+### HTTP
+
+```typescript
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+```
+
+### WebSocket
+
+```typescript
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "ws" },
+});
+```
+
+### Custom Endpoint
+
+```typescript
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: {
+    type: "http",
+    url: "https://your-custom-rpc-endpoint.com/ext/bc/C/rpc",
+  },
+});
+```
+
+[Learn more about transports →](clients-transports)
+
+## Avalanche Chains
+
+Avalanche has three primary chains:
+
+- **P-Chain (Platform Chain)**: Validators, staking, subnets
+- **X-Chain (Exchange Chain)**: Asset transfers (UTXO model)
+- **C-Chain (Contract Chain)**: Smart contracts (Ethereum-compatible)
+
+```typescript
+// P-Chain
+const validators = await client.pChain.getCurrentValidators({});
+
+// X-Chain
+const balance = await client.xChain.getBalance({
+  address: "X-avax1example...",
+  assetID: "AVAX",
+});
+
+// C-Chain
+const balance = await client.getBalance({ address: "0x..." });
+```
+
+## Using viem Features
+
+The SDK is built on viem, so you have access to all viem functionality:
+
+```typescript
+import { formatEther, parseEther } from "@avalanche-sdk/client/utils";
+
+const valueInWei = parseEther("1.0");
+const valueInAvax = formatEther(1000000000000000000n);
+const receipt = await walletClient.waitForTransactionReceipt({ hash });
+```
+
+See the [viem documentation](https://viem.sh/docs/getting-started) for more utilities.
+
+## Next Steps
+
+- **[Clients & Transports](clients-transports)** - Understanding clients and transports
+- **[Account Management](accounts)** - Creating and managing accounts
+- **[Wallet Operations](methods/wallet-methods/wallet)** - Sending transactions
+- **[P-Chain Operations](methods/public-methods/p-chain)** - Validator and staking
+- **[X-Chain Operations](methods/public-methods/x-chain)** - Asset transfers
+- **[C-Chain Operations](methods/public-methods/c-chain)** - EVM operations
+
+## Need Help?
+
+- [Discord community](https://discord.gg/avax)
+- [GitHub examples](https://github.com/ava-labs/avalanche-sdk-typescript/tree/main/client/examples)
+- [Open an issue](https://github.com/ava-labs/avalanche-sdk-typescript/issues)

@@ -8,7 +8,7 @@ info:
 servers:
   - url: https://api.avax.network
     description: Mainnet
-  - url: https://api-test.avax.network
+  - url: https://api.avax-test.network
     description: Testnet
 paths:
   /ext/bc/P#platform.getHeight:
