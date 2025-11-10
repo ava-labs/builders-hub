@@ -58,6 +58,21 @@ const config = {
   async redirects() {
     return [
       {
+        source: '/docs/api-reference/p-chain/txn-format',
+        destination: '/docs/rpcs/p-chain/txn-format',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/c-chain/txn-format',
+        destination: '/docs/rpcs/c-chain/txn-format',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/x-chain/txn-format',
+        destination: '/docs/rpcs/x-chain/txn-format',
+        permanent: true,
+      },
+      {
         source: '/docs/api-reference/c-chain/api',
         destination: '/docs/rpcs/c-chain',
         permanent: true,

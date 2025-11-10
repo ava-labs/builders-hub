@@ -11,6 +11,8 @@ interface ChainMetrics {
   txCount: TimeSeriesMetric;
   cumulativeTxCount: TimeSeriesMetric;
   cumulativeContracts: TimeSeriesMetric;
+  contracts: TimeSeriesMetric;
+  deployers: TimeSeriesMetric;
   gasUsed: TimeSeriesMetric;
   avgGps: TimeSeriesMetric;
   maxGps: TimeSeriesMetric;
@@ -185,6 +187,8 @@ export async function GET(
       txCountData,
       cumulativeTxCountData,
       cumulativeContractsData,
+      contractsData,
+      deployersData,
       gasUsedData,
       avgGpsData,
       maxGpsData,
@@ -202,6 +206,8 @@ export async function GET(
       getTimeSeriesData('txCount', chainId, timeRange, pageSize, fetchAllPages),
       getTimeSeriesData('cumulativeTxCount', chainId, timeRange, pageSize, fetchAllPages),
       getTimeSeriesData('cumulativeContracts', chainId, timeRange, pageSize, fetchAllPages),
+      getTimeSeriesData('contracts', chainId, timeRange, pageSize, fetchAllPages),
+      getTimeSeriesData('deployers', chainId, timeRange, pageSize, fetchAllPages),
       getTimeSeriesData('gasUsed', chainId, timeRange, pageSize, fetchAllPages),
       getTimeSeriesData('avgGps', chainId, timeRange, pageSize, fetchAllPages),
       getTimeSeriesData('maxGps', chainId, timeRange, pageSize, fetchAllPages),
@@ -221,6 +227,8 @@ export async function GET(
       txCount: createTimeSeriesMetric(txCountData), 
       cumulativeTxCount: createTimeSeriesMetric(cumulativeTxCountData), 
       cumulativeContracts: createTimeSeriesMetric(cumulativeContractsData), 
+      contracts: createTimeSeriesMetric(contractsData), 
+      deployers: createTimeSeriesMetric(deployersData), 
       gasUsed: createTimeSeriesMetric(gasUsedData), 
       avgGps: createTimeSeriesMetric(avgGpsData), 
       maxGps: createTimeSeriesMetric(maxGpsData), 
