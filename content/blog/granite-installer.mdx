@@ -1,0 +1,238 @@
+---
+title: How to Upgrade AvalancheGo to Granite
+description: This guide shows how to upgrade AvalancheGo to Granite v1.14.0, the latest network upgrade with major improvements.
+date: 2025-10-21
+authors: [owenwg]
+topics: [Granite Upgrade, AvalancheGo, Upgrade]
+comments: true
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+## Introduction
+
+Avalanche Granite is the latest upgrade to the Avalanche network. It includes major improvements including P-Chain epoched views for ICM, secp256r1 support for biometric authentication, and dynamic minimum block times for faster transactions.
+
+## Prerequisites
+
+- An existing AvalancheGo node running any version prior to v1.14.0
+- Basic command line knowledge
+- Access to your node's terminal or SSH
+
+## Backup Your Node First
+
+Before upgrading your node, it's crucial to backup your staker files which identify your node on the network. These files are essential for recovering your node if anything goes wrong.
+
+Run the following commands to backup your staker files:
+
+```bash
+cd
+cp ~/.avalanchego/staking/staker.crt .
+cp ~/.avalanchego/staking/staker.key .
+```
+
+Download these `staker.crt` and `staker.key` files and store them in a secure, private location. These files can be used to fully recreate your node if needed.
+
+<Callout type="warning">
+If you use your node for development purposes and have keystore users on your node, make sure to back those up as well.
+</Callout>
+
+## Primary Network Nodes
+
+Choose one of the following methods to upgrade your Primary Network node to Granite:
+
+### Method 1: Using the Installer Script (Recommended)
+
+The easiest way to upgrade is using the AvalancheGo installer script.
+
+<Steps>
+<Step>
+
+#### Get the Installer Script
+
+If you don't already have the installer script, download it:
+
+```bash
+wget -nd -m https://raw.githubusercontent.com/ava-labs/avalanche-docs/master/scripts/avalanchego-installer.sh
+chmod 755 avalanchego-installer.sh
+```
+
+</Step>
+<Step>
+
+#### Run the Installer
+
+Execute the installer script:
+
+```bash
+./avalanchego-installer.sh
+```
+
+The script will automatically detect your existing installation and switch to upgrade mode:
+
+```bash
+AvalancheGo installer
+---------------------
+Preparing environment...
+Found amd64 architecture...
+Looking for amd64 version latest...
+Node version found.
+Attempting to download: 
+   https://github.com/ava-labs/avalanchego/releases/download/v1.14.0/avalanchego-linux-amd64-v1.14.0.tar.gz
+```
+
+</Step>
+<Step>
+
+#### Automatic Upgrade
+
+The script will:
+1. Stop your current node
+2. Download and install AvalancheGo v1.14.0 (Granite)
+3. Restart your node with the new version
+
+You'll see output similar to:
+
+```bash
+Node upgraded, starting service...
+New node version:
+avalanche/1.14.0 [network=mainnet, database=v1.4.0, commit=...]
+Done!
+```
+
+</Step>
+</Steps>
+
+### Method 2: Docker
+
+For Docker users, pull the new Granite image:
+
+- **Docker Image**: [`avaplatform/avalanchego:v1.14.0`](https://hub.docker.com/r/avaplatform/avalanchego/tags?name=v1.14.0)
+
+```bash
+docker pull avaplatform/avalanchego:v1.14.0
+```
+
+### Method 3: Pre-Built Binary
+
+1. Go to the [AvalancheGo releases page](https://github.com/ava-labs/avalanchego/releases)
+2. Find version v1.14.0 (Granite release)
+3. Download the appropriate file for your system:
+   - **Linux (AMD64)**: `avalanchego-linux-amd64-v1.14.0.tar.gz`
+   - **Linux (ARM64)**: `avalanchego-linux-arm64-v1.14.0.tar.gz`
+
+4. Extract and run:
+
+```bash
+tar -xvf avalanchego-linux-amd64-v1.14.0.tar.gz
+./avalanchego-v1.14.0-linux/avalanchego
+```
+
+### Method 4: Build from Source
+
+For developers who want to build from source:
+
+```bash
+# Clone the repository (skip if already cloned)
+git clone https://github.com/ava-labs/avalanchego.git
+cd avalanchego
+
+# Fetch and checkout Granite release
+git fetch --all --tags
+git checkout --force tags/v1.14.0
+
+# Build the binary
+./scripts/build.sh
+
+# Verify the version
+./build/avalanchego --version
+
+# Run the node
+./build/avalanchego
+```
+
+## L1s/Subnets Nodes
+
+For nodes running L1s (formerly Subnets), you need to upgrade both AvalancheGo and the Subnet-EVM plugin:
+
+### Method 1: Docker (Easiest)
+
+Use the Docker image that includes both AvalancheGo v1.14.0 and Subnet-EVM v0.8.0:
+
+- **Docker Image**: [`avaplatform/subnet-evm_avalanchego:v0.8.0_v1.14.0`](https://hub.docker.com/r/avaplatform/subnet-evm_avalanchego/tags?name=v0.8.0_v1.14.0)
+
+```bash
+docker pull avaplatform/subnet-evm_avalanchego:v0.8.0_v1.14.0
+```
+
+<Callout type="info">
+This Docker image includes the Subnet-EVM v0.8.0 binary pre-installed, so no additional plugin installation is needed.
+</Callout>
+
+### Method 2: Manual Binary Update
+
+If running AvalancheGo manually, you need to:
+
+1. **Upgrade AvalancheGo** using any method from the Primary Network section above
+2. **Update the Subnet-EVM plugin**:
+
+```bash
+# Stop your node first
+sudo systemctl stop avalanchego
+
+# Download the plugin (example for Linux AMD64)
+wget https://github.com/ava-labs/subnet-evm/releases/download/v0.8.0/subnet-evm_0.8.0_linux_amd64.tar.gz
+tar -xvf subnet-evm_0.8.0_linux_amd64.tar.gz
+
+# Copy to plugins folder and rename to your VM ID
+cp subnet-evm ~/.avalanchego/plugins/<YOUR_VM_ID>
+
+# Restart your node
+sudo systemctl start avalanchego
+```
+
+<Callout type="warning">
+Ensure the plugin binary has the correct permissions and is renamed to match your L1's VM ID in the plugins directory.
+</Callout>
+
+## Verifying the Upgrade
+
+After upgrading, verify you're running Granite by checking the node version.
+
+### API Health Check
+
+Run this curl command on your node machine to get detailed version information. You can also use the [API Health Check](/docs/api-reference/health-api#healthhealth) to check the node version.
+
+```bash
+curl -X POST --data '{
+    "jsonrpc":"2.0",
+    "id"     :1,
+    "method" :"info.getNodeVersion"
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/info
+```
+
+You should see a response similar to:
+
+```json
+{"jsonrpc":"2.0","result":{"version":"avalanchego/1.14.0","databaseVersion":"v1.4.5","rpcProtocolVersion":"44","gitCommit":"dce38e90b1542fafa3c2b8efa8ef864d7a370eb6","vmVersions":{"avm":"v1.14.0","evm":"v0.15.4","platform":"v1.14.0"}},"id":1}
+```
+
+The `version` field should show `avalanche/1.14.0` confirming your node is running Granite.
+
+## Stay Updated
+
+To receive notifications about future upgrades:
+
+1. **Avalanche Notify**: If you have a node, subscribe to the [Avalanche Notify service](/docs/nodes/maintain/enroll-in-avalanche-notify) with your node ID
+2. **GitHub Notifications**: Watch the [AvalancheGo repository](https://github.com/ava-labs/avalanchego) and select "Releases" under custom notifications
+3. **For L1s/Subnets**: Also watch the [Subnet-EVM repository](https://github.com/ava-labs/subnet-evm) for plugin updates
+
+## Troubleshooting
+
+If you encounter issues during the upgrade:
+
+- Ensure you've properly backed up your staker files
+- Check that your previous node version is completely stopped before upgrading
+- For service-based installations, verify the service name (could be `avalanchego.service` or `avalanche.service`)
+- For L1s/Subnets, ensure the Subnet-EVM plugin is updated to v0.8.0 and renamed to match your VM ID
+- Join the [Avalanche Discord](https://discord.gg/avax) for community support

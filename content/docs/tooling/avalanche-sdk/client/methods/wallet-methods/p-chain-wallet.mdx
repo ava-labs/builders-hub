@@ -1,0 +1,1249 @@
+---
+title: P-Chain Wallet Methods
+description: Complete reference for P-Chain transaction preparation methods
+---
+
+## Overview
+
+The P-Chain Wallet Methods provide transaction preparation capabilities for the Platform Chain. These methods allow you to create unsigned transactions for various operations including base transfers, validator operations, delegator operations, subnet management, and cross-chain transfers.
+
+**Access:** `walletClient.pChain`
+
+## prepareBaseTxn
+
+Prepare a base P-Chain transaction for transferring AVAX.
+
+**Function Signature:**
+
+```typescript
+function prepareBaseTxn(
+  params: PrepareBaseTxnParameters
+): Promise<PrepareBaseTxnReturnType>;
+
+interface PrepareBaseTxnParameters {
+  outputs?: Output[];
+  fromAddresses?: string[];
+  changeAddresses?: string[];
+  utxos?: Utxo[];
+  memo?: string;
+  minIssuanceTime?: bigint;
+  context?: Context;
+}
+
+interface Output {
+  addresses: string[];
+  amount: bigint;
+  assetId?: string;
+  locktime?: bigint;
+  threshold?: number;
+}
+
+interface PrepareBaseTxnReturnType {
+  tx: UnsignedTx;
+  baseTx: BaseTx;
+  chainAlias: "P";
+}
+```
+
+**Parameters:**
+
+| Name              | Type       | Required | Description                                   |
+| ----------------- | ---------- | -------- | --------------------------------------------- |
+| `outputs`         | `Output[]` | No       | Array of outputs to send funds to             |
+| `fromAddresses`   | `string[]` | No       | Addresses to send funds from                  |
+| `changeAddresses` | `string[]` | No       | Addresses to receive change                   |
+| `utxos`           | `Utxo[]`   | No       | UTXOs to use as inputs                        |
+| `memo`            | `string`   | No       | Transaction memo                              |
+| `minIssuanceTime` | `bigint`   | No       | Earliest time this transaction can be issued  |
+| `context`         | `Context`  | No       | Transaction context (auto-fetched if omitted) |
+
+**Output Object:**
+
+| Name        | Type       | Required | Description                                                        |
+| ----------- | ---------- | -------- | ------------------------------------------------------------------ |
+| `addresses` | `string[]` | Yes      | Addresses who can sign the consuming of this UTXO                  |
+| `amount`    | `bigint`   | Yes      | Amount in nano AVAX                                                |
+| `assetId`   | `string`   | No       | Asset ID of the UTXO                                               |
+| `locktime`  | `bigint`   | No       | Timestamp in seconds after which this UTXO can be consumed         |
+| `threshold` | `number`   | No       | Threshold of `addresses`' signatures required to consume this UTXO |
+
+**Returns:**
+
+| Type                       | Description             |
+| -------------------------- | ----------------------- |
+| `PrepareBaseTxnReturnType` | Base transaction object |
+
+**Return Object:**
+
+| Property     | Type         | Description                   |
+| ------------ | ------------ | ----------------------------- |
+| `tx`         | `UnsignedTx` | The unsigned transaction      |
+| `baseTx`     | `BaseTx`     | The base transaction instance |
+| `chainAlias` | `"P"`        | The chain alias               |
+
+**Example:**
+
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import { avalanche } from "@avalanche-sdk/client/chains";
+import { avaxToNanoAvax } from "@avalanche-sdk/client/utils";
+
+const account = privateKeyToAvalancheAccount("0x...");
+
+const walletClient = createAvalancheWalletClient({
+  account,
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+const unsignedTx = await walletClient.pChain.prepareBaseTxn({
+  outputs: [
+    {
+      addresses: ["P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz"],
+      amount: avaxToNanoAvax(1),
+    },
+  ],
+});
+
+// Sign and send
+const signedTx = await walletClient.signXPTransaction({
+  tx: unsignedTx.tx,
+  chainAlias: "P",
+});
+
+const { txHash } = await walletClient.sendXPTransaction({
+  txOrTxHex: signedTx.signedTxHex,
+  chainAlias: "P",
+});
+
+console.log("Transaction hash:", txHash);
+```
+
+**Related:**
+
+- [prepareExportTxn](#prepareexporttxn) - Cross-chain exports
+- [prepareImportTxn](#prepareimporttxn) - Cross-chain imports
+
+---
+
+## prepareAddPermissionlessValidatorTxn
+
+Prepare a transaction to add a permissionless validator to the Primary Network.
+
+**Function Signature:**
+
+```typescript
+function prepareAddPermissionlessValidatorTxn(
+  params: PrepareAddPermissionlessValidatorTxnParameters
+): Promise<PrepareAddPermissionlessValidatorTxnReturnType>;
+
+interface PrepareAddPermissionlessValidatorTxnParameters {
+  nodeId: string;
+  stakeInAvax: bigint;
+  end: bigint;
+  rewardAddresses: string[];
+  delegatorRewardAddresses: string[];
+  delegatorRewardPercentage: number;
+  publicKey?: string;
+  signature?: string;
+  threshold?: number;
+  locktime?: bigint;
+  fromAddresses?: string[];
+  changeAddresses?: string[];
+  utxos?: Utxo[];
+  memo?: string;
+  minIssuanceTime?: bigint;
+  context?: Context;
+}
+
+interface PrepareAddPermissionlessValidatorTxnReturnType {
+  tx: UnsignedTx;
+  addPermissionlessValidatorTx: AddPermissionlessValidatorTx;
+  chainAlias: "P";
+}
+```
+
+**Parameters:**
+
+| Name                        | Type       | Required | Description                                                                       |
+| --------------------------- | ---------- | -------- | --------------------------------------------------------------------------------- |
+| `nodeId`                    | `string`   | Yes      | Node ID of the validator being added                                              |
+| `stakeInAvax`               | `bigint`   | Yes      | Amount of AVAX to stake (in nano AVAX)                                            |
+| `end`                       | `bigint`   | Yes      | Unix time in seconds when validator will be removed                               |
+| `rewardAddresses`           | `string[]` | Yes      | Addresses which will receive validator rewards                                    |
+| `delegatorRewardAddresses`  | `string[]` | Yes      | Addresses which will receive delegator fee rewards                                |
+| `delegatorRewardPercentage` | `number`   | Yes      | Percentage of delegator rewards as delegation fee (2-100, up to 3 decimal places) |
+| `publicKey`                 | `string`   | No       | BLS public key (in hex format)                                                    |
+| `signature`                 | `string`   | No       | BLS signature (in hex format)                                                     |
+| `threshold`                 | `number`   | No       | Number of signatures required to spend reward UTXO (default: 1)                   |
+| `locktime`                  | `bigint`   | No       | Unix timestamp after which reward UTXO can be spent (default: 0)                  |
+| `fromAddresses`             | `string[]` | No       | Addresses to send funds from                                                      |
+| `changeAddresses`           | `string[]` | No       | Addresses to receive change                                                       |
+| `utxos`                     | `Utxo[]`   | No       | UTXOs to use as inputs                                                            |
+| `memo`                      | `string`   | No       | Transaction memo                                                                  |
+| `minIssuanceTime`           | `bigint`   | No       | Earliest time this transaction can be issued                                      |
+| `context`                   | `Context`  | No       | Transaction context (auto-fetched if omitted)                                     |
+
+**Returns:**
+
+| Type                                             | Description                      |
+| ------------------------------------------------ | -------------------------------- |
+| `PrepareAddPermissionlessValidatorTxnReturnType` | Add validator transaction object |
+
+**Return Object:**
+
+| Property                       | Type                           | Description                            |
+| ------------------------------ | ------------------------------ | -------------------------------------- |
+| `tx`                           | `UnsignedTx`                   | The unsigned transaction               |
+| `addPermissionlessValidatorTx` | `AddPermissionlessValidatorTx` | The add validator transaction instance |
+| `chainAlias`                   | `"P"`                          | The chain alias                        |
+
+**Example:**
+
+```typescript
+import { avaxToNanoAvax } from "@avalanche-sdk/client/utils";
+
+const validatorTx =
+  await walletClient.pChain.prepareAddPermissionlessValidatorTxn({
+    nodeId: "NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg",
+    stakeInAvax: avaxToNanoAvax(2000),
+    end: BigInt(1716441600),
+    rewardAddresses: ["P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz"],
+    delegatorRewardAddresses: ["P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz"],
+    delegatorRewardPercentage: 2.5,
+    threshold: 1,
+  });
+
+// Sign and send
+const signedTx = await walletClient.signXPTransaction({
+  tx: validatorTx.tx,
+  chainAlias: "P",
+});
+
+const { txHash } = await walletClient.sendXPTransaction({
+  txOrTxHex: signedTx.signedTxHex,
+  chainAlias: "P",
+});
+```
+
+**Related:**
+
+- [prepareAddSubnetValidatorTxn](#prepareaddsubnetvalidatortxn) - Add to subnet
+- [prepareAddPermissionlessDelegatorTxn](#prepareaddpermissionlessdelegatortxn) - Add delegator
+
+---
+
+## prepareAddPermissionlessDelegatorTxn
+
+Prepare a transaction to add a permissionless delegator to a validator.
+
+**Function Signature:**
+
+```typescript
+function prepareAddPermissionlessDelegatorTxn(
+  params: PrepareAddPermissionlessDelegatorTxnParameters
+): Promise<PrepareAddPermissionlessDelegatorTxnReturnType>;
+
+interface PrepareAddPermissionlessDelegatorTxnParameters {
+  nodeId: string;
+  stakeInAvax: bigint;
+  end: bigint;
+  rewardAddresses: string[];
+  threshold?: number;
+  locktime?: bigint;
+  fromAddresses?: string[];
+  changeAddresses?: string[];
+  utxos?: Utxo[];
+  memo?: string;
+  minIssuanceTime?: bigint;
+  context?: Context;
+}
+
+interface PrepareAddPermissionlessDelegatorTxnReturnType {
+  tx: UnsignedTx;
+  addPermissionlessDelegatorTx: AddPermissionlessDelegatorTx;
+  chainAlias: "P";
+}
+```
+
+**Parameters:**
+
+| Name              | Type       | Required | Description                                                      |
+| ----------------- | ---------- | -------- | ---------------------------------------------------------------- |
+| `nodeId`          | `string`   | Yes      | Node ID of the validator to delegate to                          |
+| `stakeInAvax`     | `bigint`   | Yes      | Amount of AVAX to stake (in nano AVAX)                           |
+| `end`             | `bigint`   | Yes      | Unix time in seconds when delegation stops                       |
+| `rewardAddresses` | `string[]` | Yes      | Addresses which will receive rewards                             |
+| `threshold`       | `number`   | No       | Number of signatures required to spend reward UTXO (default: 1)  |
+| `locktime`        | `bigint`   | No       | Unix timestamp after which reward UTXO can be spent (default: 0) |
+| `fromAddresses`   | `string[]` | No       | Addresses to send funds from                                     |
+| `changeAddresses` | `string[]` | No       | Addresses to receive change                                      |
+| `utxos`           | `Utxo[]`   | No       | UTXOs to use as inputs                                           |
+| `memo`            | `string`   | No       | Transaction memo                                                 |
+| `minIssuanceTime` | `bigint`   | No       | Earliest time this transaction can be issued                     |
+| `context`         | `Context`  | No       | Transaction context (auto-fetched if omitted)                    |
+
+**Returns:**
+
+| Type                                             | Description                      |
+| ------------------------------------------------ | -------------------------------- |
+| `PrepareAddPermissionlessDelegatorTxnReturnType` | Add delegator transaction object |
+
+**Return Object:**
+
+| Property                       | Type                           | Description                            |
+| ------------------------------ | ------------------------------ | -------------------------------------- |
+| `tx`                           | `UnsignedTx`                   | The unsigned transaction               |
+| `addPermissionlessDelegatorTx` | `AddPermissionlessDelegatorTx` | The add delegator transaction instance |
+| `chainAlias`                   | `"P"`                          | The chain alias                        |
+
+**Example:**
+
+```typescript
+const delegatorTx =
+  await walletClient.pChain.prepareAddPermissionlessDelegatorTxn({
+    nodeId: "NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg",
+    stakeInAvax: avaxToNanoAvax(25),
+    end: BigInt(1716441600),
+    rewardAddresses: ["P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz"],
+    threshold: 1,
+  });
+```
+
+**Related:**
+
+- [prepareAddPermissionlessValidatorTxn](#prepareaddpermissionlessvalidatortxn) - Add validator
+
+---
+
+## prepareExportTxn
+
+Prepare a transaction to export AVAX from P-Chain to another chain.
+
+**Function Signature:**
+
+```typescript
+function prepareExportTxn(
+  params: PrepareExportTxnParameters
+): Promise<PrepareExportTxnReturnType>;
+
+interface PrepareExportTxnParameters {
+  destinationChain: "X" | "C";
+  exportedOutputs: Output[];
+  fromAddresses?: string[];
+  changeAddresses?: string[];
+  utxos?: Utxo[];
+  memo?: string;
+  minIssuanceTime?: bigint;
+  context?: Context;
+}
+
+interface PrepareExportTxnReturnType {
+  tx: UnsignedTx;
+  exportTx: ExportTx;
+  chainAlias: "P";
+}
+```
+
+**Parameters:**
+
+| Name               | Type         | Required | Description                                   |
+| ------------------ | ------------ | -------- | --------------------------------------------- |
+| `destinationChain` | `"X" \| "C"` | Yes      | Chain alias to export funds to                |
+| `exportedOutputs`  | `Output[]`   | Yes      | Outputs to export                             |
+| `fromAddresses`    | `string[]`   | No       | Addresses to send funds from                  |
+| `changeAddresses`  | `string[]`   | No       | Addresses to receive change                   |
+| `utxos`            | `Utxo[]`     | No       | UTXOs to use as inputs                        |
+| `memo`             | `string`     | No       | Transaction memo                              |
+| `minIssuanceTime`  | `bigint`     | No       | Earliest time this transaction can be issued  |
+| `context`          | `Context`    | No       | Transaction context (auto-fetched if omitted) |
+
+**Returns:**
+
+| Type                         | Description               |
+| ---------------------------- | ------------------------- |
+| `PrepareExportTxnReturnType` | Export transaction object |
+
+**Return Object:**
+
+| Property     | Type         | Description                     |
+| ------------ | ------------ | ------------------------------- |
+| `tx`         | `UnsignedTx` | The unsigned transaction        |
+| `exportTx`   | `ExportTx`   | The export transaction instance |
+| `chainAlias` | `"P"`        | The chain alias                 |
+
+**Example:**
+
+```typescript
+const exportTx = await walletClient.pChain.prepareExportTxn({
+  destinationChain: "C",
+  exportedOutputs: [
+    {
+      addresses: [account.getEVMAddress()],
+      amount: avaxToNanoAvax(0.001),
+    },
+  ],
+});
+
+// Sign and send
+const signedTx = await walletClient.signXPTransaction({
+  tx: exportTx.tx,
+  chainAlias: "P",
+});
+
+const { txHash } = await walletClient.sendXPTransaction({
+  txOrTxHex: signedTx.signedTxHex,
+  chainAlias: "P",
+});
+```
+
+**Related:**
+
+- [prepareImportTxn](#prepareimporttxn) - Import to P-Chain
+- [Wallet send method](./wallet#send) - Simplified cross-chain transfers
+
+---
+
+## prepareImportTxn
+
+Prepare a transaction to import AVAX from another chain to P-Chain.
+
+**Function Signature:**
+
+```typescript
+function prepareImportTxn(
+  params: PrepareImportTxnParameters
+): Promise<PrepareImportTxnReturnType>;
+
+interface PrepareImportTxnParameters {
+  sourceChain: "X" | "C";
+  importedOutput: ImportedOutput;
+  fromAddresses?: string[];
+  utxos?: Utxo[];
+  memo?: string;
+  minIssuanceTime?: bigint;
+  context?: Context;
+}
+
+interface ImportedOutput {
+  addresses: string[];
+  locktime?: bigint;
+  threshold?: number;
+}
+
+interface PrepareImportTxnReturnType {
+  tx: UnsignedTx;
+  importTx: ImportTx;
+  chainAlias: "P";
+}
+```
+
+**Parameters:**
+
+| Name              | Type             | Required | Description                                     |
+| ----------------- | ---------------- | -------- | ----------------------------------------------- |
+| `sourceChain`     | `"X" \| "C"`     | Yes      | Chain alias to import funds from                |
+| `importedOutput`  | `ImportedOutput` | Yes      | Consolidated imported output from atomic memory |
+| `fromAddresses`   | `string[]`       | No       | Addresses to send funds from                    |
+| `utxos`           | `Utxo[]`         | No       | UTXOs to use as inputs                          |
+| `memo`            | `string`         | No       | Transaction memo                                |
+| `minIssuanceTime` | `bigint`         | No       | Earliest time this transaction can be issued    |
+| `context`         | `Context`        | No       | Transaction context (auto-fetched if omitted)   |
+
+**Imported Output Object:**
+
+| Name        | Type       | Required | Description                                                                         |
+| ----------- | ---------- | -------- | ----------------------------------------------------------------------------------- |
+| `addresses` | `string[]` | Yes      | Addresses who can sign the consuming of this UTXO                                   |
+| `locktime`  | `bigint`   | No       | Timestamp in seconds after which this UTXO can be consumed                          |
+| `threshold` | `number`   | No       | Number of signatures required out of total `addresses` to spend the imported output |
+
+**Returns:**
+
+| Type                         | Description               |
+| ---------------------------- | ------------------------- |
+| `PrepareImportTxnReturnType` | Import transaction object |
+
+**Return Object:**
+
+| Property     | Type         | Description                     |
+| ------------ | ------------ | ------------------------------- |
+| `tx`         | `UnsignedTx` | The unsigned transaction        |
+| `importTx`   | `ImportTx`   | The import transaction instance |
+| `chainAlias` | `"P"`        | The chain alias                 |
+
+**Example:**
+
+```typescript
+const importTx = await walletClient.pChain.prepareImportTxn({
+  sourceChain: "C",
+  importedOutput: {
+    addresses: ["P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz"],
+    threshold: 1,
+  },
+});
+
+// Sign and send
+const signedTx = await walletClient.signXPTransaction({
+  tx: importTx.tx,
+  chainAlias: "P",
+});
+
+const { txHash } = await walletClient.sendXPTransaction({
+  txOrTxHex: signedTx.signedTxHex,
+  chainAlias: "P",
+});
+```
+
+**Related:**
+
+- [prepareExportTxn](#prepareexporttxn) - Export from P-Chain
+
+---
+
+## prepareAddSubnetValidatorTxn
+
+Prepare a transaction to add a validator to a subnet.
+
+**Function Signature:**
+
+```typescript
+function prepareAddSubnetValidatorTxn(
+  params: PrepareAddSubnetValidatorTxnParameters
+): Promise<PrepareAddSubnetValidatorTxnReturnType>;
+
+interface PrepareAddSubnetValidatorTxnParameters {
+  subnetId: string;
+  nodeId: string;
+  weight: bigint;
+  end: bigint;
+  subnetAuth: readonly number[];
+  fromAddresses?: string[];
+  changeAddresses?: string[];
+  utxos?: Utxo[];
+  memo?: string;
+  minIssuanceTime?: bigint;
+  context?: Context;
+}
+
+interface PrepareAddSubnetValidatorTxnReturnType {
+  tx: UnsignedTx;
+  addSubnetValidatorTx: AddSubnetValidatorTx;
+  subnetOwners: PChainOwner;
+  subnetAuth: number[];
+  chainAlias: "P";
+}
+```
+
+**Parameters:**
+
+| Name              | Type                | Required | Description                                                                |
+| ----------------- | ------------------- | -------- | -------------------------------------------------------------------------- |
+| `subnetId`        | `string`            | Yes      | Subnet ID to add the validator to                                          |
+| `nodeId`          | `string`            | Yes      | Node ID of the validator being added                                       |
+| `weight`          | `bigint`            | Yes      | Weight of the validator used during consensus                              |
+| `end`             | `bigint`            | Yes      | End timestamp in seconds after which validator will be removed             |
+| `subnetAuth`      | `readonly number[]` | Yes      | Array of indices from subnet's owners array who will sign this transaction |
+| `fromAddresses`   | `string[]`          | No       | Addresses to send funds from                                               |
+| `changeAddresses` | `string[]`          | No       | Addresses to receive change                                                |
+| `utxos`           | `Utxo[]`            | No       | UTXOs to use as inputs                                                     |
+| `memo`            | `string`            | No       | Transaction memo                                                           |
+| `minIssuanceTime` | `bigint`            | No       | Earliest time this transaction can be issued                               |
+| `context`         | `Context`           | No       | Transaction context (auto-fetched if omitted)                              |
+
+**Returns:**
+
+| Type                                     | Description                             |
+| ---------------------------------------- | --------------------------------------- |
+| `PrepareAddSubnetValidatorTxnReturnType` | Add subnet validator transaction object |
+
+**Return Object:**
+
+| Property               | Type                   | Description                                   |
+| ---------------------- | ---------------------- | --------------------------------------------- |
+| `tx`                   | `UnsignedTx`           | The unsigned transaction                      |
+| `addSubnetValidatorTx` | `AddSubnetValidatorTx` | The add subnet validator transaction instance |
+| `subnetOwners`         | `PChainOwner`          | The subnet owners                             |
+| `subnetAuth`           | `number[]`             | Array of indices from subnet's owners array   |
+| `chainAlias`           | `"P"`                  | The chain alias                               |
+
+**Example:**
+
+```typescript
+const addSubnetValidatorTx =
+  await walletClient.pChain.prepareAddSubnetValidatorTxn({
+    subnetId: "2b175hLJhGdj3CzgXNUHXDPVY3wQo3y3VWqPjKpF5vK",
+    nodeId: "NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg",
+    weight: BigInt(1000000),
+    end: BigInt(1716441600),
+    subnetAuth: [0, 1],
+  });
+```
+
+**Related:**
+
+- [prepareRemoveSubnetValidatorTxn](#prepareremovesubnetvalidatortxn) - Remove subnet validator
+
+---
+
+## prepareRemoveSubnetValidatorTxn
+
+Prepare a transaction to remove a validator from a subnet.
+
+**Function Signature:**
+
+```typescript
+function prepareRemoveSubnetValidatorTxn(
+  params: PrepareRemoveSubnetValidatorTxnParameters
+): Promise<PrepareRemoveSubnetValidatorTxnReturnType>;
+
+interface PrepareRemoveSubnetValidatorTxnParameters {
+  subnetId: string;
+  nodeId: string;
+  subnetAuth: readonly number[];
+  fromAddresses?: string[];
+  changeAddresses?: string[];
+  utxos?: Utxo[];
+  memo?: string;
+  minIssuanceTime?: bigint;
+  context?: Context;
+}
+
+interface PrepareRemoveSubnetValidatorTxnReturnType {
+  tx: UnsignedTx;
+  removeSubnetValidatorTx: RemoveSubnetValidatorTx;
+  subnetOwners: PChainOwner;
+  subnetAuth: number[];
+  chainAlias: "P";
+}
+```
+
+**Parameters:**
+
+| Name              | Type                | Required | Description                                                                |
+| ----------------- | ------------------- | -------- | -------------------------------------------------------------------------- |
+| `subnetId`        | `string`            | Yes      | Subnet ID to remove the validator from                                     |
+| `nodeId`          | `string`            | Yes      | Node ID of the validator being removed                                     |
+| `subnetAuth`      | `readonly number[]` | Yes      | Array of indices from subnet's owners array who will sign this transaction |
+| `fromAddresses`   | `string[]`          | No       | Addresses to send funds from                                               |
+| `changeAddresses` | `string[]`          | No       | Addresses to receive change                                                |
+| `utxos`           | `Utxo[]`            | No       | UTXOs to use as inputs                                                     |
+| `memo`            | `string`            | No       | Transaction memo                                                           |
+| `minIssuanceTime` | `bigint`            | No       | Earliest time this transaction can be issued                               |
+| `context`         | `Context`           | No       | Transaction context (auto-fetched if omitted)                              |
+
+**Returns:**
+
+| Type                                        | Description                                |
+| ------------------------------------------- | ------------------------------------------ |
+| `PrepareRemoveSubnetValidatorTxnReturnType` | Remove subnet validator transaction object |
+
+**Return Object:**
+
+| Property                  | Type                      | Description                                      |
+| ------------------------- | ------------------------- | ------------------------------------------------ |
+| `tx`                      | `UnsignedTx`              | The unsigned transaction                         |
+| `removeSubnetValidatorTx` | `RemoveSubnetValidatorTx` | The remove subnet validator transaction instance |
+| `subnetOwners`            | `PChainOwner`             | The subnet owners                                |
+| `subnetAuth`              | `number[]`                | Array of indices from subnet's owners array      |
+| `chainAlias`              | `"P"`                     | The chain alias                                  |
+
+**Example:**
+
+```typescript
+const removeSubnetValidatorTx =
+  await walletClient.pChain.prepareRemoveSubnetValidatorTxn({
+    subnetId: "2b175hLJhGdj3CzgXNUHXDPVY3wQo3y3VWqPjKpF5vK",
+    nodeId: "NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg",
+    subnetAuth: [0, 1],
+  });
+```
+
+**Related:**
+
+- [prepareAddSubnetValidatorTxn](#prepareaddsubnetvalidatortxn) - Add subnet validator
+
+---
+
+## prepareCreateSubnetTxn
+
+Prepare a transaction to create a new subnet.
+
+**Function Signature:**
+
+```typescript
+function prepareCreateSubnetTxn(
+  params: PrepareCreateSubnetTxnParameters
+): Promise<PrepareCreateSubnetTxnReturnType>;
+
+interface PrepareCreateSubnetTxnParameters {
+  subnetOwners: SubnetOwners;
+  fromAddresses?: string[];
+  changeAddresses?: string[];
+  utxos?: Utxo[];
+  memo?: string;
+  minIssuanceTime?: bigint;
+  context?: Context;
+}
+
+interface SubnetOwners {
+  addresses: string[];
+  threshold?: number;
+  locktime?: bigint;
+}
+
+interface PrepareCreateSubnetTxnReturnType {
+  tx: UnsignedTx;
+  createSubnetTx: CreateSubnetTx;
+  chainAlias: "P";
+}
+```
+
+**Parameters:**
+
+| Name              | Type           | Required | Description                                   |
+| ----------------- | -------------- | -------- | --------------------------------------------- |
+| `subnetOwners`    | `SubnetOwners` | Yes      | Subnet owners configuration                   |
+| `fromAddresses`   | `string[]`     | No       | Addresses to send funds from                  |
+| `changeAddresses` | `string[]`     | No       | Addresses to receive change                   |
+| `utxos`           | `Utxo[]`       | No       | UTXOs to use as inputs                        |
+| `memo`            | `string`       | No       | Transaction memo                              |
+| `minIssuanceTime` | `bigint`       | No       | Earliest time this transaction can be issued  |
+| `context`         | `Context`      | No       | Transaction context (auto-fetched if omitted) |
+
+**Subnet Owners Object:**
+
+| Name        | Type       | Required | Description                                                                              |
+| ----------- | ---------- | -------- | ---------------------------------------------------------------------------------------- |
+| `addresses` | `string[]` | Yes      | List of unique addresses (must be sorted lexicographically)                              |
+| `threshold` | `number`   | No       | Number of unique signatures required to spend the output (must be ≤ length of addresses) |
+| `locktime`  | `bigint`   | No       | Unix timestamp after which the output can be spent                                       |
+
+**Returns:**
+
+| Type                               | Description                      |
+| ---------------------------------- | -------------------------------- |
+| `PrepareCreateSubnetTxnReturnType` | Create subnet transaction object |
+
+**Return Object:**
+
+| Property         | Type             | Description                            |
+| ---------------- | ---------------- | -------------------------------------- |
+| `tx`             | `UnsignedTx`     | The unsigned transaction               |
+| `createSubnetTx` | `CreateSubnetTx` | The create subnet transaction instance |
+| `chainAlias`     | `"P"`            | The chain alias                        |
+
+**Example:**
+
+```typescript
+const createSubnetTx = await walletClient.pChain.prepareCreateSubnetTxn({
+  subnetOwners: {
+    addresses: [
+      "P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz",
+      "P-fuji1y8zrxh9cvdny0e8n8n4n7h4q4h4q4h4q4h4q4h",
+    ],
+    threshold: 2,
+  },
+});
+```
+
+**Related:**
+
+- [prepareCreateChainTxn](#preparecreatechaintxn) - Create chain on subnet
+
+---
+
+## prepareCreateChainTxn
+
+Prepare a transaction to create a new blockchain on a subnet.
+
+**Function Signature:**
+
+```typescript
+function prepareCreateChainTxn(
+  params: PrepareCreateChainTxnParameters
+): Promise<PrepareCreateChainTxnReturnType>;
+
+interface PrepareCreateChainTxnParameters {
+  subnetId: string;
+  vmId: string;
+  chainName: string;
+  genesisData: Record<string, unknown>;
+  subnetAuth: readonly number[];
+  fxIds?: readonly string[];
+  fromAddresses?: string[];
+  changeAddresses?: string[];
+  utxos?: Utxo[];
+  memo?: string;
+  minIssuanceTime?: bigint;
+  context?: Context;
+}
+
+interface PrepareCreateChainTxnReturnType {
+  tx: UnsignedTx;
+  createChainTx: CreateChainTx;
+  subnetOwners: PChainOwner;
+  subnetAuth: number[];
+  chainAlias: "P";
+}
+```
+
+**Parameters:**
+
+| Name              | Type                      | Required | Description                                                                |
+| ----------------- | ------------------------- | -------- | -------------------------------------------------------------------------- |
+| `subnetId`        | `string`                  | Yes      | Subnet ID to create the chain on                                           |
+| `vmId`            | `string`                  | Yes      | VM ID of the chain being created                                           |
+| `chainName`       | `string`                  | Yes      | Name of the chain being created                                            |
+| `genesisData`     | `Record<string, unknown>` | Yes      | Genesis JSON data of the chain being created                               |
+| `subnetAuth`      | `readonly number[]`       | Yes      | Array of indices from subnet's owners array who will sign this transaction |
+| `fxIds`           | `readonly string[]`       | No       | Array of FX IDs to be added to the chain                                   |
+| `fromAddresses`   | `string[]`                | No       | Addresses to send funds from                                               |
+| `changeAddresses` | `string[]`                | No       | Addresses to receive change                                                |
+| `utxos`           | `Utxo[]`                  | No       | UTXOs to use as inputs                                                     |
+| `memo`            | `string`                  | No       | Transaction memo                                                           |
+| `minIssuanceTime` | `bigint`                  | No       | Earliest time this transaction can be issued                               |
+| `context`         | `Context`                 | No       | Transaction context (auto-fetched if omitted)                              |
+
+**Returns:**
+
+| Type                              | Description                     |
+| --------------------------------- | ------------------------------- |
+| `PrepareCreateChainTxnReturnType` | Create chain transaction object |
+
+**Return Object:**
+
+| Property        | Type            | Description                                 |
+| --------------- | --------------- | ------------------------------------------- |
+| `tx`            | `UnsignedTx`    | The unsigned transaction                    |
+| `createChainTx` | `CreateChainTx` | The create chain transaction instance       |
+| `subnetOwners`  | `PChainOwner`   | The subnet owners                           |
+| `subnetAuth`    | `number[]`      | Array of indices from subnet's owners array |
+| `chainAlias`    | `"P"`           | The chain alias                             |
+
+**Example:**
+
+```typescript
+const createChainTx = await walletClient.pChain.prepareCreateChainTxn({
+  subnetId: "2b175hLJhGdj3CzgXNUHXDPVY3wQo3y3VWqPjKpF5vK",
+  vmId: "avm",
+  chainName: "MyCustomChain",
+  genesisData: {
+    // Genesis configuration
+  },
+  subnetAuth: [0, 1],
+});
+```
+
+**Related:**
+
+- [prepareCreateSubnetTxn](#preparecreatesubnettxn) - Create subnet
+
+---
+
+## prepareConvertSubnetToL1Txn
+
+Prepare a transaction to convert a subnet to an L1 (Layer 1) blockchain.
+
+**Function Signature:**
+
+```typescript
+function prepareConvertSubnetToL1Txn(
+  params: PrepareConvertSubnetToL1TxnParameters
+): Promise<PrepareConvertSubnetToL1TxnReturnType>;
+
+interface PrepareConvertSubnetToL1TxnParameters {
+  subnetId: string;
+  blockchainId: string;
+  managerContractAddress: string;
+  validators: L1Validator[];
+  subnetAuth: readonly number[];
+  fromAddresses?: string[];
+  changeAddresses?: string[];
+  utxos?: Utxo[];
+  memo?: string;
+  minIssuanceTime?: bigint;
+  context?: Context;
+}
+
+interface L1Validator {
+  nodeId: string;
+  nodePoP: {
+    publicKey: string;
+    proofOfPossession: string;
+  };
+  weight: bigint;
+  initialBalanceInAvax: bigint;
+  remainingBalanceOwner: PChainOwnerJSON;
+  deactivationOwner: PChainOwnerJSON;
+}
+
+interface PrepareConvertSubnetToL1TxnReturnType {
+  tx: UnsignedTx;
+  convertSubnetToL1Tx: ConvertSubnetToL1Tx;
+  subnetOwners: PChainOwner;
+  subnetAuth: number[];
+  chainAlias: "P";
+}
+```
+
+**Parameters:**
+
+| Name                     | Type                | Required | Description                                                                |
+| ------------------------ | ------------------- | -------- | -------------------------------------------------------------------------- |
+| `subnetId`               | `string`            | Yes      | Subnet ID of the subnet to convert                                         |
+| `blockchainId`           | `string`            | Yes      | Blockchain ID of the L1 where validator manager contract is deployed       |
+| `managerContractAddress` | `string`            | Yes      | Address of the validator manager contract                                  |
+| `validators`             | `L1Validator[]`     | Yes      | Initial set of L1 validators after conversion                              |
+| `subnetAuth`             | `readonly number[]` | Yes      | Array of indices from subnet's owners array who will sign this transaction |
+| `fromAddresses`          | `string[]`          | No       | Addresses to send funds from                                               |
+| `changeAddresses`        | `string[]`          | No       | Addresses to receive change                                                |
+| `utxos`                  | `Utxo[]`            | No       | UTXOs to use as inputs                                                     |
+| `memo`                   | `string`            | No       | Transaction memo                                                           |
+| `minIssuanceTime`        | `bigint`            | No       | Earliest time this transaction can be issued                               |
+| `context`                | `Context`           | No       | Transaction context (auto-fetched if omitted)                              |
+
+**L1 Validator Object:**
+
+| Name                        | Type              | Description                                                              |
+| --------------------------- | ----------------- | ------------------------------------------------------------------------ |
+| `nodeId`                    | `string`          | Node ID of the validator                                                 |
+| `nodePoP.publicKey`         | `string`          | Public key of the validator                                              |
+| `nodePoP.proofOfPossession` | `string`          | Proof of possession of the public key                                    |
+| `weight`                    | `bigint`          | Weight of the validator on the L1 used during consensus participation    |
+| `initialBalanceInAvax`      | `bigint`          | Initial balance in nano AVAX required for paying contiguous fee          |
+| `remainingBalanceOwner`     | `PChainOwnerJSON` | Owner information for remaining balance if validator is removed/disabled |
+| `deactivationOwner`         | `PChainOwnerJSON` | Owner information which can remove or disable the validator              |
+
+**Returns:**
+
+| Type                                    | Description                             |
+| --------------------------------------- | --------------------------------------- |
+| `PrepareConvertSubnetToL1TxnReturnType` | Convert subnet to L1 transaction object |
+
+**Return Object:**
+
+| Property              | Type                  | Description                                   |
+| --------------------- | --------------------- | --------------------------------------------- |
+| `tx`                  | `UnsignedTx`          | The unsigned transaction                      |
+| `convertSubnetToL1Tx` | `ConvertSubnetToL1Tx` | The convert subnet to L1 transaction instance |
+| `subnetOwners`        | `PChainOwner`         | The subnet owners                             |
+| `subnetAuth`          | `number[]`            | Array of indices from subnet's owners array   |
+| `chainAlias`          | `"P"`                 | The chain alias                               |
+
+**Example:**
+
+```typescript
+const convertSubnetToL1Tx =
+  await walletClient.pChain.prepareConvertSubnetToL1Txn({
+    subnetId: "2b175hLJhGdj3CzgXNUHXDPVY3wQo3y3VWqPjKpF5vK",
+    blockchainId: "2oYMBNV4eNHyqk2fjjV5nVwDzxvbmovtDAOwPJCTc9wqg8k9t",
+    managerContractAddress: "0x1234567890123456789012345678901234567890",
+    validators: [
+      {
+        nodeId: "NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg",
+        nodePoP: {
+          publicKey: "0x...",
+          proofOfPossession: "0x...",
+        },
+        weight: BigInt(1000000),
+        initialBalanceInAvax: avaxToNanoAvax(1000),
+        remainingBalanceOwner: {
+          addresses: ["P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz"],
+          threshold: 1,
+        },
+        deactivationOwner: {
+          addresses: ["P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz"],
+          threshold: 1,
+        },
+      },
+    ],
+    subnetAuth: [0, 1],
+  });
+```
+
+---
+
+## prepareRegisterL1ValidatorTxn
+
+Prepare a transaction to register an L1 validator.
+
+**Function Signature:**
+
+```typescript
+function prepareRegisterL1ValidatorTxn(
+  params: PrepareRegisterL1ValidatorTxnParameters
+): Promise<PrepareRegisterL1ValidatorTxnReturnType>;
+
+interface PrepareRegisterL1ValidatorTxnParameters {
+  initialBalanceInAvax: bigint;
+  blsSignature: string;
+  message: string;
+  fromAddresses?: string[];
+  changeAddresses?: string[];
+  utxos?: Utxo[];
+  memo?: string;
+  minIssuanceTime?: bigint;
+  context?: Context;
+}
+
+interface PrepareRegisterL1ValidatorTxnReturnType {
+  tx: UnsignedTx;
+  registerL1ValidatorTx: RegisterL1ValidatorTx;
+  chainAlias: "P";
+}
+```
+
+**Parameters:**
+
+| Name                   | Type       | Required | Description                                                                                  |
+| ---------------------- | ---------- | -------- | -------------------------------------------------------------------------------------------- |
+| `initialBalanceInAvax` | `bigint`   | Yes      | Initial balance in nano AVAX required for paying contiguous fee                              |
+| `blsSignature`         | `string`   | Yes      | BLS signature of the validator                                                               |
+| `message`              | `string`   | Yes      | Signed warp message hex with `AddressedCall` payload containing `RegisterL1ValidatorMessage` |
+| `fromAddresses`        | `string[]` | No       | Addresses to send funds from                                                                 |
+| `changeAddresses`      | `string[]` | No       | Addresses to receive change                                                                  |
+| `utxos`                | `Utxo[]`   | No       | UTXOs to use as inputs                                                                       |
+| `memo`                 | `string`   | No       | Transaction memo                                                                             |
+| `minIssuanceTime`      | `bigint`   | No       | Earliest time this transaction can be issued                                                 |
+| `context`              | `Context`  | No       | Transaction context (auto-fetched if omitted)                                                |
+
+**Returns:**
+
+| Type                                      | Description                              |
+| ----------------------------------------- | ---------------------------------------- |
+| `PrepareRegisterL1ValidatorTxnReturnType` | Register L1 validator transaction object |
+
+**Return Object:**
+
+| Property                | Type                    | Description                                    |
+| ----------------------- | ----------------------- | ---------------------------------------------- |
+| `tx`                    | `UnsignedTx`            | The unsigned transaction                       |
+| `registerL1ValidatorTx` | `RegisterL1ValidatorTx` | The register L1 validator transaction instance |
+| `chainAlias`            | `"P"`                   | The chain alias                                |
+
+**Example:**
+
+```typescript
+const registerL1ValidatorTx =
+  await walletClient.pChain.prepareRegisterL1ValidatorTxn({
+    initialBalanceInAvax: avaxToNanoAvax(1000),
+    blsSignature: "0x...",
+    message: "0x...",
+  });
+```
+
+---
+
+## prepareDisableL1ValidatorTxn
+
+Prepare a transaction to disable an L1 validator.
+
+**Function Signature:**
+
+```typescript
+function prepareDisableL1ValidatorTxn(
+  params: PrepareDisableL1ValidatorTxnParameters
+): Promise<PrepareDisableL1ValidatorTxnReturnType>;
+
+interface PrepareDisableL1ValidatorTxnParameters {
+  validationId: string;
+  disableAuth: number[];
+  fromAddresses?: string[];
+  changeAddresses?: string[];
+  utxos?: Utxo[];
+  memo?: string;
+  minIssuanceTime?: bigint;
+  context?: Context;
+}
+
+interface PrepareDisableL1ValidatorTxnReturnType {
+  tx: UnsignedTx;
+  disableL1ValidatorTx: DisableL1ValidatorTx;
+  disableOwners: PChainOwner;
+  disableAuth: number[];
+  chainAlias: "P";
+}
+```
+
+**Parameters:**
+
+| Name              | Type       | Required | Description                                                                              |
+| ----------------- | ---------- | -------- | ---------------------------------------------------------------------------------------- |
+| `validationId`    | `string`   | Yes      | Validation ID of the L1 validator                                                        |
+| `disableAuth`     | `number[]` | Yes      | Array of indices from L1 validator's disable owners array who will sign this transaction |
+| `fromAddresses`   | `string[]` | No       | Addresses to send funds from                                                             |
+| `changeAddresses` | `string[]` | No       | Addresses to receive change                                                              |
+| `utxos`           | `Utxo[]`   | No       | UTXOs to use as inputs                                                                   |
+| `memo`            | `string`   | No       | Transaction memo                                                                         |
+| `minIssuanceTime` | `bigint`   | No       | Earliest time this transaction can be issued                                             |
+| `context`         | `Context`  | No       | Transaction context (auto-fetched if omitted)                                            |
+
+**Returns:**
+
+| Type                                     | Description                             |
+| ---------------------------------------- | --------------------------------------- |
+| `PrepareDisableL1ValidatorTxnReturnType` | Disable L1 validator transaction object |
+
+**Return Object:**
+
+| Property               | Type                   | Description                                   |
+| ---------------------- | ---------------------- | --------------------------------------------- |
+| `tx`                   | `UnsignedTx`           | The unsigned transaction                      |
+| `disableL1ValidatorTx` | `DisableL1ValidatorTx` | The disable L1 validator transaction instance |
+| `disableOwners`        | `PChainOwner`          | The disable owners                            |
+| `disableAuth`          | `number[]`             | Array of indices from disable owners array    |
+| `chainAlias`           | `"P"`                  | The chain alias                               |
+
+**Example:**
+
+```typescript
+const disableL1ValidatorTx =
+  await walletClient.pChain.prepareDisableL1ValidatorTxn({
+    validationId: "0x...",
+    disableAuth: [0, 1],
+  });
+```
+
+---
+
+## prepareSetL1ValidatorWeightTxn
+
+Prepare a transaction to set the weight of an L1 validator.
+
+**Function Signature:**
+
+```typescript
+function prepareSetL1ValidatorWeightTxn(
+  params: PrepareSetL1ValidatorWeightTxnParameters
+): Promise<PrepareSetL1ValidatorWeightTxnReturnType>;
+
+interface PrepareSetL1ValidatorWeightTxnParameters {
+  message: string;
+  fromAddresses?: string[];
+  changeAddresses?: string[];
+  utxos?: Utxo[];
+  memo?: string;
+  minIssuanceTime?: bigint;
+  context?: Context;
+}
+
+interface PrepareSetL1ValidatorWeightTxnReturnType {
+  tx: UnsignedTx;
+  setL1ValidatorWeightTx: SetL1ValidatorWeightTx;
+  chainAlias: "P";
+}
+```
+
+**Parameters:**
+
+| Name              | Type       | Required | Description                                                                                   |
+| ----------------- | ---------- | -------- | --------------------------------------------------------------------------------------------- |
+| `message`         | `string`   | Yes      | Signed warp message hex with `AddressedCall` payload containing `SetL1ValidatorWeightMessage` |
+| `fromAddresses`   | `string[]` | No       | Addresses to send funds from                                                                  |
+| `changeAddresses` | `string[]` | No       | Addresses to receive change                                                                   |
+| `utxos`           | `Utxo[]`   | No       | UTXOs to use as inputs                                                                        |
+| `memo`            | `string`   | No       | Transaction memo                                                                              |
+| `minIssuanceTime` | `bigint`   | No       | Earliest time this transaction can be issued                                                  |
+| `context`         | `Context`  | No       | Transaction context (auto-fetched if omitted)                                                 |
+
+**Returns:**
+
+| Type                                       | Description                                |
+| ------------------------------------------ | ------------------------------------------ |
+| `PrepareSetL1ValidatorWeightTxnReturnType` | Set L1 validator weight transaction object |
+
+**Return Object:**
+
+| Property                 | Type                     | Description                                      |
+| ------------------------ | ------------------------ | ------------------------------------------------ |
+| `tx`                     | `UnsignedTx`             | The unsigned transaction                         |
+| `setL1ValidatorWeightTx` | `SetL1ValidatorWeightTx` | The set L1 validator weight transaction instance |
+| `chainAlias`             | `"P"`                    | The chain alias                                  |
+
+**Example:**
+
+```typescript
+const setL1ValidatorWeightTx =
+  await walletClient.pChain.prepareSetL1ValidatorWeightTxn({
+    message: "0x...",
+  });
+```
+
+---
+
+## prepareIncreaseL1ValidatorBalanceTxn
+
+Prepare a transaction to increase the balance of an L1 validator.
+
+**Function Signature:**
+
+```typescript
+function prepareIncreaseL1ValidatorBalanceTxn(
+  params: PrepareIncreaseL1ValidatorBalanceTxnParameters
+): Promise<PrepareIncreaseL1ValidatorBalanceTxnReturnType>;
+
+interface PrepareIncreaseL1ValidatorBalanceTxnParameters {
+  balanceInAvax: bigint;
+  validationId: string;
+  fromAddresses?: string[];
+  changeAddresses?: string[];
+  utxos?: Utxo[];
+  memo?: string;
+  minIssuanceTime?: bigint;
+  context?: Context;
+}
+
+interface PrepareIncreaseL1ValidatorBalanceTxnReturnType {
+  tx: UnsignedTx;
+  increaseL1ValidatorBalanceTx: IncreaseL1ValidatorBalanceTx;
+  chainAlias: "P";
+}
+```
+
+**Parameters:**
+
+| Name              | Type       | Required | Description                                              |
+| ----------------- | ---------- | -------- | -------------------------------------------------------- |
+| `balanceInAvax`   | `bigint`   | Yes      | Amount of AVAX to increase the balance by (in nano AVAX) |
+| `validationId`    | `string`   | Yes      | Validation ID of the L1 validator                        |
+| `fromAddresses`   | `string[]` | No       | Addresses to send funds from                             |
+| `changeAddresses` | `string[]` | No       | Addresses to receive change                              |
+| `utxos`           | `Utxo[]`   | No       | UTXOs to use as inputs                                   |
+| `memo`            | `string`   | No       | Transaction memo                                         |
+| `minIssuanceTime` | `bigint`   | No       | Earliest time this transaction can be issued             |
+| `context`         | `Context`  | No       | Transaction context (auto-fetched if omitted)            |
+
+**Returns:**
+
+| Type                                             | Description                                      |
+| ------------------------------------------------ | ------------------------------------------------ |
+| `PrepareIncreaseL1ValidatorBalanceTxnReturnType` | Increase L1 validator balance transaction object |
+
+**Return Object:**
+
+| Property                       | Type                           | Description                                            |
+| ------------------------------ | ------------------------------ | ------------------------------------------------------ |
+| `tx`                           | `UnsignedTx`                   | The unsigned transaction                               |
+| `increaseL1ValidatorBalanceTx` | `IncreaseL1ValidatorBalanceTx` | The increase L1 validator balance transaction instance |
+| `chainAlias`                   | `"P"`                          | The chain alias                                        |
+
+**Example:**
+
+```typescript
+const increaseL1ValidatorBalanceTx =
+  await walletClient.pChain.prepareIncreaseL1ValidatorBalanceTxn({
+    balanceInAvax: avaxToNanoAvax(500),
+    validationId: "0x...",
+  });
+```
+
+---
+
+## Next Steps
+
+- **[Wallet Methods](./wallet)** - General wallet operations
+- **[X-Chain Wallet Methods](./x-chain-wallet)** - X-Chain transaction preparation
+- **[C-Chain Wallet Methods](./c-chain-wallet)** - C-Chain atomic transactions
+- **[Account Management](../accounts)** - Account types and management

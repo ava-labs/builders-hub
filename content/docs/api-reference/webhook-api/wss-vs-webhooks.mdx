@@ -1,0 +1,169 @@
+---
+title: WebSockets vs Webhooks
+description: WebSockets vs Webhooks for the Webhook API
+icon: GitCompare
+---
+
+Reacting to real-time events from Avalanche smart contracts allows for immediate responses and automation, improving user experience and streamlining application functionality. It ensures that applications stay synchronized with the blockchain state.
+
+There are two primary methods for receiving these on-chain events:
+
+* **WebSockets**, using libraries like Ethers.js or Viem
+* **Webhooks**, which send structured event data directly to your app via HTTP POST.
+
+Both approaches enable real-time interactions, but they differ drastically in their reliability, ease of implementation, and long-term maintainability. In this post, we break down why Webhooks are the better, more resilient choice for most Avalanche developers.
+
+## Architecture Overview
+
+The diagram below compares the two models side-by-side:
+<img src="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/wss_vs_webhooks.png?fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=bd1fc923c99a1a26bb714cc16bd2894a" alt="wss_vs_webhooks" data-og-width="3968" width="3968" data-og-height="2452" height="2452" data-path="images/wss_vs_webhooks.png" data-optimize="true" data-opv="3" srcset="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/wss_vs_webhooks.png?w=280&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=5b0ad33c8f800b1f34d6e7efe4247620 280w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/wss_vs_webhooks.png?w=560&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=0ec85d4d7acdd3562d3ea22b8404bec8 560w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/wss_vs_webhooks.png?w=840&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=88baf84f807b5a021c8d4c647638914c 840w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/wss_vs_webhooks.png?w=1100&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=b8c5dbe183dba6503bab65585619b3ad 1100w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/wss_vs_webhooks.png?w=1650&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=880cd9dd1c8ac1cee9918967c0843b93 1650w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/wss_vs_webhooks.png?w=2500&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=8269d5dea94c0284a683fda9d6815e85 2500w" />
+**WebSockets**
+
+* The app connects to the Avalanche RPC API over WSS to receive raw log data.
+* It must decode logs, manage connection state, and store data locally.
+* On disconnection, it must re-sync via an external Data API or using standard `eth_*` RPC calls (e.g., `eth_getLogs`, `eth_getBlockByNumber`).
+
+<Callout>Important: WSS is a transport protocol—not real-time by itself. Real-time capabilities come from the availability of `eth_subscribe`, which requires node support.</Callout>
+
+**Webhooks**
+
+* The app exposes a simple HTTP endpoint.
+* Decoded event data is pushed directly via POST, including token metadata.
+* Built-in retries ensure reliable delivery, even during downtime.
+
+<Callout>Important: Webhooks have a 48-hour retry window. If your app is down for longer, you still need a re-sync strategy using `eth_*` calls to recover older missed events.</Callout>
+
+***
+
+## Using WebSockets: Real-time but high maintenance
+
+WebSockets allow you to subscribe to events using methods like eth\_subscribe. These subscriptions notify your app in real-time whenever new logs, blocks, or pending transactions meet your criteria.
+
+```javascript
+import { createPublicClient, webSocket, formatUnits } from 'viem';
+import { avalancheFuji } from 'viem/chains';
+import { usdcAbi } from './usdc-abi.mjs'; // Ensure this includes the Transfer event
+
+// Your wallet address (case-insensitive comparison)
+const MY_WALLET = '0x8ae323046633A07FB162043f28Cea39FFc23B50A'.toLowerCase(); //Chrome
+
+async function monitorTransfers() {
+    try {
+        // USDC.e contract address on Avalanche Fuji
+        const usdcAddress = '0x5425890298aed601595a70AB815c96711a31Bc65';
+
+        // Set up the WebSocket client for Avalanche Fuji
+        const client = createPublicClient({
+            chain: avalancheFuji,
+            transport: webSocket('wss://api.avax-test.network/ext/bc/C/ws'),
+        });
+
+        // Watch for Transfer events on the USDC contract
+        client.watchContractEvent({
+            address: usdcAddress,
+            abi: usdcAbi,
+            eventName: 'Transfer',
+            onLogs: (logs) => {
+                logs.forEach((log) => {
+                    const { from, to, value } = log.args;
+                    const fromLower = from.toLowerCase();
+
+                    // Filter for transactions where 'from' matches your wallet
+                    if (fromLower === MY_WALLET) {
+                        console.log('*******');
+                        console.log('Transfer from my wallet:');
+                        console.log(`From: ${from}`);
+                        console.log(`To: ${to}`);
+                        console.log(`Value: ${formatUnits(value, 6)} USDC`); // USDC has 6 decimals
+                        console.log(`Transaction Hash: ${log.transactionHash}`);
+                    }
+                });
+            },
+            onError: (error) => {
+                console.error('Event watching error:', error.message);
+            },
+        });
+
+        console.log('Monitoring USDC Transfer events on Fuji...');
+    } catch (error) {
+        console.error('Error setting up transfer monitoring:', error.message);
+    }
+}
+
+// Start monitoring
+monitorTransfers();
+```
+
+The downside? If your connection drops, you lose everything in between. You’ll need to:
+
+* Set up a database to track the latest processed block and log index.
+* Correctly handling dropped connections and reconnection by hand can be challenging to get right.
+* Use `eth_getLogs` to re-fetch missed logs.
+* Decode and process raw logs yourself to rebuild app state.
+  This requires extra infrastructure, custom recovery logic, and significant maintenance overhead.
+
+***
+
+## Webhooks: Resilient and developer-friendly
+
+Webhooks eliminate the complexity of managing live connections. Instead, you register an HTTP endpoint to receive blockchain event payloads when they occur.
+
+Webhook payload example:
+
+```json
+{
+  "eventType": "address_activity",
+  "event": {
+    "transaction": {
+      "txHash": "0x1d8f...",
+      "from": "0x3D3B...",
+      "to": "0x9702...",
+      "erc20Transfers": [
+        {
+          "valueWithDecimals": "110.56",
+          "erc20Token": {
+            "symbol": "USDt",
+            "decimals": 6
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+You get everything you need:
+
+* Decoded event data
+* Token metadata (name, symbol, decimals)
+* Full transaction context
+* No extra calls. No parsing. No manual re-sync logic.
+
+***
+
+## Key Advantages of Webhooks
+
+* **Reliable delivery with zero effort:** Built-in retries ensure no missed events during downtime
+* **Instant enrichment:** Payloads contain decoded logs, token metadata, and transaction context
+* **No extra infrastructure:** No WebSocket connections, no DB, no external APIs
+* **Faster development:**  Go from idea to production with fewer moving parts
+* **Lower operational cost:** Less compute, fewer network calls, smaller surface area to manage
+
+If we compare using a table:
+
+| Feature                        | WebSockets (Ethers.js/Viem)                        | Webhooks                                             |   |   |
+| :----------------------------- | :------------------------------------------------- | :--------------------------------------------------- | - | - |
+| **Interruption Handling**      | Manual; Requires complex custom logic              | Automatic; Built-in queues & retries                 |   |   |
+| **Data Recovery**              | Requires DB + External API for re-sync             | Handled by provider; No re-sync logic needed         |   |   |
+| **Dev Complexity**             | High; Error-prone custom resilience code           | Low; Focus on processing incoming POST data          |   |   |
+| **Infrastructure**             | WSS connection + DB + Potential Data API cost      | Application API endpoint                             |   |   |
+| **Data Integrity**             | Risk of gaps if recovery logic fails               | High; Ensures eventual delivery                      |   |   |
+| **Payload**                    | Often raw; Requires extra calls for context        | Typically enriched and ready-to-use                  |   |   |
+| **Multiple addresses**         | Manual filtering or separate listeners per address | Supports direct configuration for multiple addresses |   |   |
+| **Listen to wallet addresses** | Requires manual block/transaction filtering        | Can monitor wallet addresses and smart contracts     |   |   |
+
+## Summary
+
+* WebSockets offer real-time access to Avalanche data, but come with complexity: raw logs, reconnect logic, re-sync handling, and decoding responsibilities.
+* Webhooks flip the model: the data comes to you, pre-processed and reliable. You focus on your product logic instead of infrastructure.
+* If you want to ship faster, operate more reliably, and reduce overhead, Webhooks are the better path forward for Avalanche event monitoring.

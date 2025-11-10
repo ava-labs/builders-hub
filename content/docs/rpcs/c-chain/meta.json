@@ -1,0 +1,20 @@
+{
+  "title": "C-Chain",
+  "description": "Contract Chain RPC methods",
+  "icon": "Code",
+  "root": true,
+  "pages": [
+    "index",
+    "---RPC Methods---",
+    "eth",
+    "web3",
+    "net",
+    "personal",
+    "txpool",
+    "debug",
+    "avalanche",
+    "warp",
+    "---Reference---",
+    "txn-format"
+  ]
+}

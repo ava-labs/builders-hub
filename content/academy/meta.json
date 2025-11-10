@@ -1,6 +1,7 @@
 {
   "pages": [
     "blockchain-fundamentals",
+    "solidity-foundry",
     "avalanche-fundamentals",
     "permissioned-l1s",
     "l1-native-tokenomics",

@@ -1,0 +1,31 @@
+---
+title: Pagination
+description: Pagination for the ChainKit SDK
+icon: StickyNote
+---
+Some of the endpoints in this SDK support pagination. To use pagination, you make your SDK calls as usual, but the returned response object will also be an async iterable that can be consumed using the `for await...of` syntax.
+
+Here's an example of one such pagination call:
+
+```javascript
+import { Avalanche } from "@avalanche-sdk/chainkit";
+
+const avalancheSDK = new Avalanche({
+  apiKey: "<YOUR_API_KEY_HERE>",
+  chainId: "43114",
+  network: "mainnet",
+});
+
+async function run() {
+  const result = await avalancheSDK.metrics.chains.list({
+    network: "mainnet",
+  });
+
+  for await (const page of result) {
+    // Handle the page
+    console.log(page);
+  }
+}
+
+run();
+```

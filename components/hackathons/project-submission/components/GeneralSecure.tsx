@@ -132,7 +132,7 @@ export default function GeneralSecureComponent({
     
       dispatch({ type: "SET_PROJECT_ID", payload: project.id || "" });
     }
-  }, [project, isEditing, setFormData, dispatch]); // ✅ 'dispatch' es estable
+  }, [project, isEditing, setFormData, dispatch]); 
 
   const handleStepChange = (newStep: number) => {
     if (newStep >= 1 && newStep <= 3) {

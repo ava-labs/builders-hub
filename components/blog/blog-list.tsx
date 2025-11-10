@@ -63,7 +63,7 @@ export function BlogList({ blogs }: BlogListProps) {
               <div className="flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">
                   {new Date(
-                    featured.data.date ?? featured.file.name
+                    featured.data.date ?? featured.url
                   ).toDateString()}
                 </p>
                 <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
@@ -126,7 +126,7 @@ export function BlogList({ blogs }: BlogListProps) {
                 className="flex flex-col gap-2 rounded-lg border border-white/20 bg-card p-4 shadow-sm transition duration-300 hover:border-[#E84142]/60 hover:shadow-[0_0_0_1px_rgba(232,65,66,0.6),0_0_24px_5px_rgba(232,65,66,0.3)] dark:bg-card-dark"
               >
                 <p className="text-xs text-muted-foreground">
-                  {new Date(g.data.date ?? g.file.name).toDateString()}
+                  {new Date(g.data.date ?? g.url).toDateString()}
                 </p>
                 <h4 className="text-xl font-semibold tracking-tight">
                   {g.data.title}

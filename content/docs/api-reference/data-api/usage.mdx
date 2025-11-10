@@ -1,0 +1,111 @@
+---
+title: Usage Guide
+description: Usage Guide for the Data API
+icon: Code
+---
+
+### Setup and Authentication
+
+In order to utilize your accounts rate limits, you will need to make API requests with an API key. You can generate API Keys from the AvaCloud portal. Once you've created and retrieved that, you will be able to make authenticated queries by passing in your API key in the `x-glacier-api-key` header of your HTTP request.
+
+An example curl request can be found below:
+
+```bash
+curl -H "Content-Type: Application/json" -H "x-glacier-api-key: your_api_key" \
+  "https://glacier-api.avax.network/v1/chains"
+```
+
+### Rate Limits
+
+The Data API has rate limits in place to maintain it's stability and protect from bursts of incoming traffic. The rate limits associated with various plans can be found within AvaCloud.
+
+When you hit your rate limit, the server will respond with a 429 http response code, and response headers to help you determine when you should start to make additional requests. The response headers follow the standards set in the RateLimit header fields for HTTP draft from the Internet Engineering Task Force.
+
+With every response with a valid api key, the server will include the following headers:
+
+* `ratelimit-policy` - The rate limit policy tied to your api key.
+* `ratelimit-limit` - The number of requests you can send according to your policy.
+* `ratelimit-remaining` - How many request remaining you can send in the period for your policy
+
+For any request after the rate limit has been reached, the server will also respond with these headers:
+
+* `ratelimit-reset`
+* `retry-after`
+  Both of these headers are set to the number of seconds until your period is over and requests will start succeeding again.
+
+If you start receiving rate limit errors with the 429 response code, we recommend you discontinue sending requests to the server. You should wait to retry requests for the duration specified in the response headers. Alternatively, you can implement an exponential backoff algorithm to prevent continuous errors. Failure to discontinue requests may result in being temporarily blocked from accessing the API.
+
+Error Types
+The Data API generates standard error responses along with error codes based on provided requests and parameters.
+
+Typically, response codes within the `2XX` range signifies successful requests, while those within the `4XX` range points to errors originating from the client's side. Meanwhile, response codes within the `5XX` range indicates problems on the server's side.
+
+### Error Types
+
+The Glacier API generates standard error responses along with error codes based on provided requests and parameters.
+
+Typically, response codes within the `2XX` range signifies successful requests, while those within the `4XX` range points to errors originating from the client's side. Meanwhile, response codes within the `5XX` range indicates problems on the server's side.
+
+The error response body is formatted like this:
+
+```json
+{
+  "message": ["Invalid address format"], // route specific error message
+  "error": "Bad Request", // error type
+  "statusCode": 400 // http response code
+}
+```
+
+Let's go through every error code that we can respond with:
+
+| Error Code | Error Type            | Description                                                                                                                                                                                                                   |
+| :--------- | :-------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **400**    | Bad Request           | Bad requests generally mean the client has passed invalid or malformed parameters. Error messages in the response could help in evaluating the error.                                                                         |
+| **401**    | Unauthorized          | When a client attempts to access resources that require authorization credentials but the client lacks proper authentication in the request, the server responds with 401.                                                    |
+| **403**    | Forbidden             | When a client attempts to access resources with valid credentials but doesn't have the privilege to perform that action, the server responds with 403.                                                                        |
+| **404**    | Not Found             | The 404 error is mostly returned when the client requests with either mistyped URL, or the passed resource is moved or deleted, or the resource doesn't exist.                                                                |
+| **500**    | Internal Server Error | The 500 error is a generic server-side error that is returned for any uncaught and unexpected issues on the server side. This should be very rare, and you may reach out to us if the problem persists for a longer duration. |
+| **502**    | Bad Gateway           | This is an internal error indicating invalid response received by the client-facing proxy or gateway from the upstream server.                                                                                                |
+| **503**    | Service Unavailable   | The 503 error is returned for certain routes on a particular Subnet. This indicates an internal problem with our Subnet node, and may not necessarily mean the Subnet is down or affected.                                    |
+
+The above list is not exhaustive of all the errors that you'll receive, but is categorized on the basis of error codes. You may see route-specific errors along with detailed error messages for better evaluating the response.
+
+<Callout>Reach out to our team when you see an error in the `5XX` range for a longer duration. These errors should be very rare, but we try to fix them as soon as possible once detected.</Callout>
+
+### Pagination
+
+When utilizing pagination for endpoints that return lists of data such as transactions, UTXOs, or blocks, our API uses a straightforward mechanism to manage the navigation through large datasets. We divide data into pages and each page is limited with a `pageSize` number of elements as passed in the request. Users can navigate to subsequent pages using the page token received in the `nextPageToken` field. This method ensures efficient retrieval.
+
+Routes with pagination have a following common response format:
+
+```json
+{
+  "blocks": ["<blocks>"], // This field name will vary by route
+  "nextPageToken": "3d22deea-ea64-4d30-8a1e-c2a353b67e90"
+}
+```
+
+### Page Token Structure
+
+* If there's more data in the dataset for the request, the API will include a UUID-based page token in the response. This token acts as a pointer to the next page of data.
+* The UUID page token is generated randomly and uniquely for each pagination scenario, enhancing security and minimizing predictability.
+* It's important to note that the page token is only returned when a next page is present. If there's no further data to retrieve, a page token will not be included in the response.
+* The generated page token has an expiration window of 24 hours. Beyond this timeframe, the token will no longer be valid for accessing subsequent pages.
+
+### Integration and Usage:
+
+To make use of the pagination system, simply examine the API response. If a UUID page token is present, it indicates the availability of additional data on the next page. You can extract this token and include it in the subsequent request to access the subsequent page of results.
+
+Please note that you must ensure that the subsequent request is made within the 24-hour timeframe after the original token's generation. Beyond this duration, the token will expire, and you will need to initiate a fresh request from the initial page.
+
+By incorporating UUID page tokens, our API offers a secure, efficient, and user-friendly approach to navigating large datasets, streamlining your data retrieval proces
+
+### Swagger API Reference
+
+You can explore the full API definitions and interact with the endpoints in the Swagger documentation at:
+
+<Cards cols={1}>
+  <Card title="Swagger API Reference">
+    [https://glacier-api.avax.network/api](https://glacier-api.avax.network/api)
+  </Card>
+</Cards>

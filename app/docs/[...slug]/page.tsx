@@ -1,30 +1,34 @@
-import type { Metadata } from "next";
-import {
-  DocsPage,
-  DocsBody,
-  DocsTitle,
-  DocsDescription,
-} from "fumadocs-ui/page";
-import { notFound } from "next/navigation";
-import { type ComponentProps, type FC, type ReactElement } from "react";
-import defaultComponents from "fumadocs-ui/mdx";
-import { Popup, PopupContent, PopupTrigger } from "fumadocs-twoslash/ui";
-import { Tab, Tabs } from "fumadocs-ui/components/tabs";
-import { Step, Steps } from "fumadocs-ui/components/steps";
-import { Callout } from "fumadocs-ui/components/callout";
-import { TypeTable } from "fumadocs-ui/components/type-table";
-import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
-import { createMetadata } from "@/utils/metadata";
-import { documentation } from "@/lib/source";
-import { AutoTypeTable } from "@/components/content-design/type-table";
-import { BackToTop } from "@/components/ui/back-to-top";
-import { File, Folder, Files } from "fumadocs-ui/components/files";
+import { APIStorageManager } from "@/components/content-design/api-storage-manager";
 import Mermaid from "@/components/content-design/mermaid";
-import type { MDXComponents } from "mdx/types";
+import { AutoTypeTable } from "@/components/content-design/type-table";
 import YouTube from "@/components/content-design/youtube";
+import { BackToTop } from "@/components/ui/back-to-top";
 import { Feedback } from "@/components/ui/feedback";
 import { SidebarActions } from "@/components/ui/sidebar-actions";
+import { cChainApi, dataApi, metricsApi, pChainApi } from "@/lib/openapi";
+import { documentation } from "@/lib/source";
+import { createMetadata } from "@/utils/metadata";
+import { APIPage } from "fumadocs-openapi/ui";
+import { Popup, PopupContent, PopupTrigger } from "fumadocs-twoslash/ui";
+import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
+import { Callout } from "fumadocs-ui/components/callout";
+import { File, Files, Folder } from "fumadocs-ui/components/files";
+import { Heading } from "fumadocs-ui/components/heading";
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { TypeTable } from "fumadocs-ui/components/type-table";
+import defaultComponents from "fumadocs-ui/mdx";
+import {
+  DocsBody,
+  DocsDescription,
+  DocsPage,
+  DocsTitle,
+} from "fumadocs-ui/page";
+import type { MDXComponents } from "mdx/types";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import posthog from "posthog-js";
+import { type ComponentProps, type FC, type ReactElement, type ReactNode } from "react";
 
 export const dynamicParams = false;
 export const revalidate = false;
@@ -37,7 +41,7 @@ export default async function Page(props: {
   if (!page) notFound();
 
   const { body: MDX, toc } = await page.data.load();
-  const path = `content/docs/${page.file?.path || page.url}`;
+  const path = `content/docs${page.url.replace('/docs/', '/')}.mdx`;
 
   // Use custom edit URL if provided in frontmatter, otherwise use default path
   const editUrl =
@@ -53,12 +57,12 @@ export default async function Page(props: {
         single: false,
         footer: (
           <>
-            <SidebarActions
-              editUrl={editUrl}
-              title={(page.data.title as string) || "Untitled"}
-              pagePath={`/${params.slug.join("/")}`}
-              pageType="docs"
-            />
+        <SidebarActions
+          editUrl={editUrl}
+          title={(page.data.title as string) || "Untitled"}
+          pagePath={`/${params.slug.join("/")}`}
+          pageType="docs"
+        />
             <BackToTop />
           </>
         ),
@@ -72,14 +76,40 @@ export default async function Page(props: {
       <DocsBody className="text-fd-foreground/80">
         <MDX
           components={{
-            ...defaultComponents,
+            ...(() => {
+              const { h1, h2, h3, h4, h5, h6, img, ...restComponents } = defaultComponents;
+              return restComponents;
+            })(),
             ...((await import("lucide-react")) as unknown as MDXComponents),
 
+            h1: (props) => <Heading as="h1" {...props} />,
+            h2: (props) => <Heading as="h2" {...props} />,
+            h3: (props) => <Heading as="h3" {...props} />,
+            h4: (props) => <Heading as="h4" {...props} />,
+            h5: (props) => <Heading as="h5" {...props} />,
+            h6: (props) => <Heading as="h6" {...props} />,
+            // Fix srcset -> srcSet for React 19 compatibility
+            img: (props: any) => {
+              const { srcset, ...imgProps } = props;
+              // eslint-disable-next-line jsx-a11y/alt-text, @next/next/no-img-element
+              return <img {...imgProps} {...(srcset && { srcSet: srcset })} />;
+            },
             Popup,
             PopupContent,
             PopupTrigger,
             Tabs,
             Tab,
+            InstallTabs: ({
+              items,
+              children,
+            }: {
+              items: string[];
+              children: ReactNode;
+            }) => (
+              <Tabs items={items} style={{ padding: '15px'}} id="package-manager">
+                {children}
+              </Tabs>
+            ),
             Step,
             Steps,
             YouTube,
@@ -91,6 +121,36 @@ export default async function Page(props: {
             File,
             Folder,
             Files,
+            APIPage: (props: any) => {
+              // Determine which API instance to use based on document path
+              const document = props.document || '';
+              const isMetricsApi = document.includes('popsicle.json');
+              const isPChainApi = document.includes('platformvm.yaml');
+              const isCChainApi = document.includes('coreth.yaml');
+              
+              let apiInstance;
+              let storageKey;
+              if (isPChainApi) {
+                apiInstance = pChainApi;
+                storageKey = 'apiBaseUrl-pchain';
+              } else if (isCChainApi) {
+                apiInstance = cChainApi;
+                storageKey = 'apiBaseUrl-cchain';
+              } else if (isMetricsApi) {
+                apiInstance = metricsApi;
+                storageKey = 'apiBaseUrl-metrics';
+              } else {
+                apiInstance = dataApi;
+                storageKey = 'apiBaseUrl-data';
+              }
+              
+              return (
+                <>
+                  <APIStorageManager storageKey={storageKey} />
+                  <APIPage {...apiInstance.getAPIPageProps(props)} />
+                </>
+              );
+            },
             blockquote: Callout as unknown as FC<ComponentProps<"blockquote">>,
           }}
         />

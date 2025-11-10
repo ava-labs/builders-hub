@@ -111,6 +111,13 @@ const instructors: Instructor[] = [
         x: "https://x.com/federico_nardo7",
         linkedin: "https://www.linkedin.com/in/federico-nardelli-a2969b26a/",
         github: "https://github.com/federiconardelli7",
+    },
+        name: "Katherine Sullivan",
+        title: "Developer Relations Intern",
+        image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/instructors/katherine-sullivan.jpeg",
+        x: "https://x.com/katherine_xoxos",
+        linkedin: "https://www.linkedin.com/in/katherine-sullivan-45aa4326a//",
+        github: "https://github.com/katherineavalabs",
     }
 ];
 

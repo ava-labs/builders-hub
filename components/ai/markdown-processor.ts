@@ -1,6 +1,8 @@
 import { remark } from 'remark';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
 import remarkRehype from 'remark-rehype';
+import rehypeKatex from 'rehype-katex';
 import { type Components, toJsxRuntime } from 'hast-util-to-jsx-runtime';
 import { type ReactNode } from 'react';
 import { Fragment, jsx, jsxs } from 'react/jsx-runtime';
@@ -13,7 +15,11 @@ export interface Processor {
 }
 
 export function createProcessor(): Processor {
-  const processor = remark().use(remarkGfm).use(remarkRehype);
+  const processor = remark()
+    .use(remarkGfm)
+    .use(remarkMath)
+    .use(remarkRehype)
+    .use(rehypeKatex);
 
   return {
     async process(content, components) {

@@ -1,32 +1,31 @@
 import { DocsLayout, type DocsLayoutProps } from 'fumadocs-ui/layouts/notebook';
 import type { ReactNode } from 'react';
-import { baseOptions, docsMenu, consoleMenu, integrationsMenu, userMenu } from '@/app/layout.config';
+import { baseOptions } from '@/app/layout.config';
 import { academy } from '@/lib/source';
-import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
+import { LayoutWrapper } from '@/app/layout-wrapper.client';
+import { DocsNavbarToggle } from '@/components/navigation/docs-navbar-toggle';
+import { ForceMobileSidebar } from '@/components/navigation/force-mobile-sidebar';
+import { NavbarDropdownInjector } from '@/components/navigation/navbar-dropdown-injector';
+import { AcademyLayoutClient } from './layout.client';
+import './styles.css';
 
 const academyOptions: DocsLayoutProps = {
-  ...baseOptions,
-  nav: {
-    mode: "top" as const,
-    title: (
-      <>
-        {<AvalancheLogo className="size-7" fill="currentColor" />}
-        <span style={{ fontSize: "large" }}>Academy</span>
-      </>
-    ),
-    url: '/academy',
-  },
   tree: academy.pageTree,
-  links: [
-    consoleMenu,
-    docsMenu,
-    integrationsMenu,
-    userMenu
-  ],
+  nav: {
+    enabled: false,
+  },
+  sidebar: {
+    collapsible: false, // Disable sidebar collapse - academy doesn't need it
+  },
 };
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
+    <LayoutWrapper baseOptions={baseOptions}>
+      <NavbarDropdownInjector />
+      <ForceMobileSidebar />
+      <AcademyLayoutClient />
+      <DocsNavbarToggle />
       <DocsLayout {...academyOptions}>
         <span
           className="absolute inset-0 z-[-1] h-[64rem] max-h-screen overflow-hidden"
@@ -123,5 +122,6 @@ export default function Layout({ children }: { children: ReactNode }) {
         </span>
         {children}
       </DocsLayout>
+    </LayoutWrapper>
   );
 }

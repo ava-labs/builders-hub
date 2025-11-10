@@ -1,13 +1,13 @@
 # Avalanche Builder Hub
 
 <div align="center">
-  <img src="public/logo.png?raw=true">
+  <img src="public/logo-white.png?raw=true">
 </div>
 
 ## Overview
 
 This repository contains the contents for the Avalanche Builder Hub. It hosts the Docs, the
-Avalanche Academy and the integrations directory and is deployed at [https://build.avax.network/docs](https://build.avax.network/docs).
+Avalanche Academy and the integrations directory and is deployed at [https://build.avax.network](https://build.avax.network).
 
 ## Contributing
 
@@ -58,10 +58,16 @@ To propose new docs or large edits to our existing pages, follow the steps accor
 yarn install
 ```
 
+### Download Remote MDX Files (APIs, RPC Reference, etc)
+
+```bash
+yarn build:remote
+```
+
 ### Local Development
 
 ```bash
-yarn run start
+yarn dev
 ```
 
 This command starts a local development server and opens up a browser window. Most changes are

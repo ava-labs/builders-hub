@@ -1,0 +1,794 @@
+---
+title: X-Chain Methods
+description: Complete reference for X-Chain (Exchange Chain) methods
+---
+
+## Overview
+
+The X-Chain (Exchange Chain) is Avalanche's DAG-based chain designed for creating and trading digital smart assets. It handles asset creation, transfers, UTXO management, and provides the foundation for the Avalanche ecosystem. This reference covers all read-only X-Chain operations available through the Avalanche Client SDK.
+
+## Balance Operations
+
+### getBalance
+
+Get the balance of a specific asset controlled by a given address.
+
+**Function Signature:**
+
+```typescript
+function getBalance(
+  params: GetBalanceParameters
+): Promise<GetBalanceReturnType>;
+
+interface GetBalanceParameters {
+  address: string;
+  assetID: string;
+}
+
+interface GetBalanceReturnType {
+  balance: bigint;
+  utxoIDs: {
+    txID: string;
+    outputIndex: number;
+  }[];
+}
+```
+
+**Parameters:**
+
+| Name      | Type     | Required | Description              |
+| --------- | -------- | -------- | ------------------------ |
+| `address` | `string` | Yes      | X-Chain address to query |
+| `assetID` | `string` | Yes      | Asset ID to query        |
+
+**Returns:**
+
+| Type                   | Description                |
+| ---------------------- | -------------------------- |
+| `GetBalanceReturnType` | Balance information object |
+
+**Return Object:**
+
+| Property  | Type     | Description                               |
+| --------- | -------- | ----------------------------------------- |
+| `balance` | `bigint` | Balance amount for the specified asset    |
+| `utxoIDs` | `array`  | Array of UTXO IDs referencing the address |
+
+**Example:**
+
+```typescript
+import { createAvalancheClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+const balance = await client.xChain.getBalance({
+  address: "X-avax18jma8ppw3nhx5r4ap8clazz0dps7rv5ukulre5",
+  assetID: "FvwEAhmxKfeiG8SnEvq42hc6whRyY3EFYAvebMqDNDGCgxN5Z", // AVAX
+});
+
+console.log("Balance:", balance.balance);
+console.log("UTXO IDs:", balance.utxoIDs);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgetbalance)
+- [getAllBalances](#getallbalances) - Get balances for all assets
+- [getUTXOs](#getutxos) - Get UTXOs for addresses
+
+---
+
+### getAllBalances
+
+Get the balances of all assets controlled by given addresses.
+
+**Function Signature:**
+
+```typescript
+function getAllBalances(
+  params: GetAllBalancesParameters
+): Promise<GetAllBalancesReturnType>;
+
+interface GetAllBalancesParameters {
+  addresses: string[];
+}
+
+interface GetAllBalancesReturnType {
+  balances: Array<{
+    assetID: string;
+    balance: bigint;
+  }>;
+}
+```
+
+**Parameters:**
+
+| Name        | Type       | Required | Description                         |
+| ----------- | ---------- | -------- | ----------------------------------- |
+| `addresses` | `string[]` | Yes      | Array of X-Chain addresses to query |
+
+**Returns:**
+
+| Type                       | Description           |
+| -------------------------- | --------------------- |
+| `GetAllBalancesReturnType` | Balances array object |
+
+**Return Object:**
+
+| Property   | Type    | Description                                       |
+| ---------- | ------- | ------------------------------------------------- |
+| `balances` | `array` | Array of balance objects with assetID and balance |
+
+**Example:**
+
+```typescript
+const allBalances = await client.xChain.getAllBalances({
+  addresses: ["X-avax18jma8ppw3nhx5r4ap8clazz0dps7rv5ukulre5"],
+});
+
+// Iterate over all assets
+allBalances.balances.forEach(({ assetID, balance }) => {
+  console.log(`Asset ${assetID}: ${balance}`);
+});
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgetallbalances)
+- [getBalance](#getbalance) - Get balance for specific asset
+- [getAssetDescription](#getassetdescription) - Get asset information
+
+---
+
+## Asset Operations
+
+### getAssetDescription
+
+Get information about an asset.
+
+**Function Signature:**
+
+```typescript
+function getAssetDescription(
+  params: GetAssetDescriptionParameters
+): Promise<GetAssetDescriptionReturnType>;
+
+interface GetAssetDescriptionParameters {
+  assetID: string;
+}
+
+interface GetAssetDescriptionReturnType {
+  assetID: string;
+  name: string;
+  symbol: string;
+  denomination: number;
+}
+```
+
+**Parameters:**
+
+| Name      | Type     | Required | Description |
+| --------- | -------- | -------- | ----------- |
+| `assetID` | `string` | Yes      | Asset ID    |
+
+**Returns:**
+
+| Type                            | Description              |
+| ------------------------------- | ------------------------ |
+| `GetAssetDescriptionReturnType` | Asset information object |
+
+**Return Object:**
+
+| Property       | Type     | Description                                   |
+| -------------- | -------- | --------------------------------------------- |
+| `assetID`      | `string` | Asset ID                                      |
+| `name`         | `string` | Asset name                                    |
+| `symbol`       | `string` | Asset symbol                                  |
+| `denomination` | `number` | Asset denomination (number of decimal places) |
+
+**Example:**
+
+```typescript
+const asset = await client.xChain.getAssetDescription({
+  assetID: "FvwEAhmxKfeiG8SnEvq42hc6whRyY3EFYAvebMqDNDGCgxN5Z",
+});
+
+console.log("Asset name:", asset.name);
+console.log("Asset symbol:", asset.symbol);
+console.log("Denomination:", asset.denomination);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgetassetdescription)
+- [getBalance](#getbalance) - Get balance for this asset
+
+---
+
+## Block Operations
+
+### getHeight
+
+Get the current block height of the X-Chain.
+
+**Function Signature:**
+
+```typescript
+function getHeight(): Promise<GetHeightReturnType>;
+
+interface GetHeightReturnType {
+  height: number;
+}
+```
+
+**Parameters:**
+
+No parameters required.
+
+**Returns:**
+
+| Type                  | Description   |
+| --------------------- | ------------- |
+| `GetHeightReturnType` | Height object |
+
+**Return Object:**
+
+| Property | Type     | Description                  |
+| -------- | -------- | ---------------------------- |
+| `height` | `number` | Current X-Chain block height |
+
+**Example:**
+
+```typescript
+const height = await client.xChain.getHeight();
+console.log("Current X-Chain height:", height.height);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgetheight)
+- [getBlockByHeight](#getblockbyheight) - Get block at height
+
+---
+
+### getBlockByHeight
+
+Get a block by its height.
+
+**Function Signature:**
+
+```typescript
+function getBlockByHeight(
+  params: GetBlockByHeightParameters
+): Promise<GetBlockByHeightReturnType>;
+
+interface GetBlockByHeightParameters {
+  height: number;
+  encoding?: "hex" | "json";
+}
+
+interface GetBlockByHeightReturnType {
+  encoding: "hex" | "json";
+  block: string | object;
+}
+```
+
+**Parameters:**
+
+| Name       | Type              | Required | Description                          |
+| ---------- | ----------------- | -------- | ------------------------------------ |
+| `height`   | `number`          | Yes      | Block height                         |
+| `encoding` | `"hex" \| "json"` | No       | Encoding format (defaults to "json") |
+
+**Returns:**
+
+| Type                         | Description       |
+| ---------------------------- | ----------------- |
+| `GetBlockByHeightReturnType` | Block data object |
+
+**Return Object:**
+
+| Property   | Type               | Description                                 |
+| ---------- | ------------------ | ------------------------------------------- |
+| `encoding` | `"hex" \| "json"`  | Encoding format used                        |
+| `block`    | `string \| object` | Block data in the specified encoding format |
+
+**Example:**
+
+```typescript
+const block = await client.xChain.getBlockByHeight({
+  height: 12345,
+  encoding: "hex",
+});
+
+console.log("Block data:", block.block);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgetblockbyheight)
+- [getBlock](#getblock) - Get block by ID
+- [getHeight](#getheight) - Get current height
+
+---
+
+### getBlock
+
+Get a block by its ID.
+
+**Function Signature:**
+
+```typescript
+function getBlock(params: GetBlockParameters): Promise<GetBlockReturnType>;
+
+interface GetBlockParameters {
+  blockId: string;
+  encoding?: "hex" | "json";
+}
+
+interface GetBlockReturnType {
+  encoding: "hex" | "json";
+  block: string | object;
+}
+```
+
+**Parameters:**
+
+| Name       | Type              | Required | Description                          |
+| ---------- | ----------------- | -------- | ------------------------------------ |
+| `blockId`  | `string`          | Yes      | Block ID in CB58 format              |
+| `encoding` | `"hex" \| "json"` | No       | Encoding format (defaults to "json") |
+
+**Returns:**
+
+| Type                 | Description       |
+| -------------------- | ----------------- |
+| `GetBlockReturnType` | Block data object |
+
+**Return Object:**
+
+| Property   | Type               | Description                                 |
+| ---------- | ------------------ | ------------------------------------------- |
+| `encoding` | `"hex" \| "json"`  | Encoding format used                        |
+| `block`    | `string \| object` | Block data in the specified encoding format |
+
+**Example:**
+
+```typescript
+const block = await client.xChain.getBlock({
+  blockId: "block-id-in-cb58-format",
+  encoding: "hex",
+});
+
+console.log("Block:", block.block);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgetblock)
+- [getBlockByHeight](#getblockbyheight) - Get block by height
+
+---
+
+## Transaction Operations
+
+### getTx
+
+Get a transaction by its ID.
+
+**Function Signature:**
+
+```typescript
+function getTx(params: GetTxParameters): Promise<GetTxReturnType>;
+
+interface GetTxParameters {
+  txID: string;
+  encoding?: "hex" | "json";
+}
+
+interface GetTxReturnType {
+  encoding: "hex" | "json";
+  tx: string | object;
+}
+```
+
+**Parameters:**
+
+| Name       | Type              | Required | Description                          |
+| ---------- | ----------------- | -------- | ------------------------------------ |
+| `txID`     | `string`          | Yes      | Transaction ID in CB58 format        |
+| `encoding` | `"hex" \| "json"` | No       | Encoding format (defaults to "json") |
+
+**Returns:**
+
+| Type              | Description             |
+| ----------------- | ----------------------- |
+| `GetTxReturnType` | Transaction data object |
+
+**Return Object:**
+
+| Property   | Type               | Description                                       |
+| ---------- | ------------------ | ------------------------------------------------- |
+| `encoding` | `"hex" \| "json"`  | Encoding format used                              |
+| `tx`       | `string \| object` | Transaction data in the specified encoding format |
+
+**Example:**
+
+```typescript
+const tx = await client.xChain.getTx({
+  txID: "transaction-id",
+  encoding: "hex",
+});
+
+console.log("Transaction:", tx.tx);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgettx)
+- [getTxStatus](#gettxstatus) - Get transaction status
+- [issueTx](#issuetx) - Submit transaction
+
+---
+
+### getTxStatus
+
+Get the status of a transaction.
+
+**Function Signature:**
+
+```typescript
+function getTxStatus(
+  params: GetTxStatusParameters
+): Promise<GetTxStatusReturnType>;
+
+interface GetTxStatusParameters {
+  txID: string;
+  includeReason?: boolean | true;
+}
+
+interface GetTxStatusReturnType {
+  status: "Accepted" | "Processing" | "Rejected" | "Unknown";
+  reason?: string;
+}
+```
+
+**Parameters:**
+
+| Name            | Type              | Required | Description                                  |
+| --------------- | ----------------- | -------- | -------------------------------------------- |
+| `txID`          | `string`          | Yes      | Transaction ID in CB58 format                |
+| `includeReason` | `boolean \| true` | No       | Whether to include the reason for the status |
+
+**Returns:**
+
+| Type                    | Description               |
+| ----------------------- | ------------------------- |
+| `GetTxStatusReturnType` | Transaction status object |
+
+**Return Object:**
+
+| Property | Type     | Description                                                            |
+| -------- | -------- | ---------------------------------------------------------------------- |
+| `status` | `string` | Transaction status: "Accepted", "Processing", "Rejected", or "Unknown" |
+| `reason` | `string` | Optional reason for the status (if rejected)                           |
+
+**Status Values:**
+
+- **Accepted**: Transaction has been accepted and included in a block
+- **Processing**: Transaction is being processed
+- **Rejected**: Transaction was rejected
+- **Unknown**: Transaction status cannot be determined
+
+**Example:**
+
+```typescript
+const status = await client.xChain.getTxStatus({
+  txID: "transaction-id",
+});
+
+if (status.status === "Accepted") {
+  console.log("Transaction accepted!");
+} else if (status.status === "Rejected") {
+  console.log("Transaction rejected");
+  if (status.reason) {
+    console.log("Reason:", status.reason);
+  }
+} else {
+  console.log("Transaction status:", status.status);
+}
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgettxstatus)
+- [getTx](#gettx) - Get transaction details
+
+---
+
+### getTxFee
+
+Get the transaction fee for the X-Chain.
+
+**Function Signature:**
+
+```typescript
+function getTxFee(): Promise<GetTxFeeReturnType>;
+
+interface GetTxFeeReturnType {
+  txFee: number;
+  createAssetTxFee: number;
+}
+```
+
+**Parameters:**
+
+No parameters required.
+
+**Returns:**
+
+| Type                 | Description            |
+| -------------------- | ---------------------- |
+| `GetTxFeeReturnType` | Transaction fee object |
+
+**Return Object:**
+
+| Property           | Type     | Description                  |
+| ------------------ | -------- | ---------------------------- |
+| `txFee`            | `number` | Standard transaction fee     |
+| `createAssetTxFee` | `number` | Fee for creating a new asset |
+
+**Example:**
+
+```typescript
+const fees = await client.xChain.getTxFee();
+
+console.log("Standard transaction fee:", fees.txFee);
+console.log("Create asset fee:", fees.createAssetTxFee);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgettxfee)
+
+---
+
+## UTXO Operations
+
+### getUTXOs
+
+Get the UTXOs controlled by a set of addresses.
+
+**Function Signature:**
+
+```typescript
+function getUTXOs(params: GetUTXOsParameters): Promise<GetUTXOsReturnType>;
+
+interface GetUTXOsParameters {
+  addresses: string[];
+  sourceChain?: string;
+  limit?: number;
+  startIndex?: {
+    address: string;
+    utxo: string;
+  };
+  encoding?: "hex";
+}
+
+interface GetUTXOsReturnType {
+  numFetched: number;
+  utxos: string[];
+  endIndex: {
+    address: string;
+    utxo: string;
+  };
+  sourceChain?: string;
+  encoding: "hex";
+}
+```
+
+**Parameters:**
+
+| Name          | Type                                | Required | Description                                     |
+| ------------- | ----------------------------------- | -------- | ----------------------------------------------- |
+| `addresses`   | `string[]`                          | Yes      | Array of X-Chain addresses                      |
+| `sourceChain` | `string`                            | No       | Source chain ID (e.g., "P" for P-Chain)         |
+| `limit`       | `number`                            | No       | Maximum number of UTXOs to return               |
+| `startIndex`  | `{ address: string; utxo: string }` | No       | Pagination cursor for next page                 |
+| `encoding`    | `"hex"`                             | No       | Encoding format (can only be "hex" if provided) |
+
+**Returns:**
+
+| Type                 | Description               |
+| -------------------- | ------------------------- |
+| `GetUTXOsReturnType` | UTXO data with pagination |
+
+**Return Object:**
+
+| Property      | Type                                | Description                              |
+| ------------- | ----------------------------------- | ---------------------------------------- |
+| `numFetched`  | `number`                            | Number of UTXOs fetched in this response |
+| `utxos`       | `string[]`                          | Array of UTXO bytes (hex encoded)        |
+| `endIndex`    | `{ address: string; utxo: string }` | Pagination cursor for fetching next page |
+| `sourceChain` | `string`                            | Source chain ID (if specified)           |
+| `encoding`    | `"hex"`                             | Encoding format used                     |
+
+**Example:**
+
+```typescript
+// Get first page
+const utxos = await client.xChain.getUTXOs({
+  addresses: ["X-avax18jma8ppw3nhx5r4ap8clazz0dps7rv5ukulre5"],
+  limit: 100,
+});
+
+console.log("Number of UTXOs:", utxos.numFetched);
+
+// Get next page if needed
+if (utxos.endIndex) {
+  const moreUTXOs = await client.xChain.getUTXOs({
+    addresses: ["X-avax18jma8ppw3nhx5r4ap8clazz0dps7rv5ukulre5"],
+    startIndex: utxos.endIndex,
+    limit: 100,
+  });
+}
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgetutxos)
+- [getBalance](#getbalance) - Get balance summary
+
+---
+
+## Transaction Submission
+
+### issueTx
+
+Issue a transaction to the X-Chain.
+
+**Function Signature:**
+
+```typescript
+function issueTx(params: IssueTxParameters): Promise<IssueTxReturnType>;
+
+interface IssueTxParameters {
+  tx: string;
+  encoding: "hex";
+}
+
+interface IssueTxReturnType {
+  txID: string;
+}
+```
+
+**Parameters:**
+
+| Name       | Type     | Required | Description                     |
+| ---------- | -------- | -------- | ------------------------------- |
+| `tx`       | `string` | Yes      | Transaction bytes in hex format |
+| `encoding` | `"hex"`  | Yes      | Encoding format (must be "hex") |
+
+**Returns:**
+
+| Type                | Description           |
+| ------------------- | --------------------- |
+| `IssueTxReturnType` | Transaction ID object |
+
+**Return Object:**
+
+| Property | Type     | Description                   |
+| -------- | -------- | ----------------------------- |
+| `txID`   | `string` | Transaction ID in CB58 format |
+
+**Example:**
+
+```typescript
+const txID = await client.xChain.issueTx({
+  tx: "0x00000009de31b4d8b22991d51aa6aa1fc733f23a851a8c9400000000000186a0...",
+  encoding: "hex",
+});
+
+console.log("Transaction ID:", txID.txID);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmissuetx)
+- [getTxStatus](#gettxstatus) - Check transaction status
+
+---
+
+## Genesis Operations
+
+### buildGenesis
+
+Build a genesis block for a custom blockchain.
+
+**Function Signature:**
+
+```typescript
+function buildGenesis(
+  params: BuildGenesisParameters
+): Promise<BuildGenesisReturnType>;
+
+interface BuildGenesisParameters {
+  networkID: number;
+  genesisData: {
+    name: string;
+    symbol: string;
+    denomination: number;
+    initialState: {
+      fixedCap: {
+        amount: number;
+        addresses: string[];
+      };
+    };
+  };
+  encoding: "hex";
+}
+
+interface BuildGenesisReturnType {
+  bytes: string;
+  encoding: "hex";
+}
+```
+
+**Parameters:**
+
+| Name          | Type     | Required | Description                                 |
+| ------------- | -------- | -------- | ------------------------------------------- |
+| `networkID`   | `number` | Yes      | Network ID                                  |
+| `genesisData` | `object` | Yes      | Genesis block data with asset configuration |
+| `encoding`    | `"hex"`  | Yes      | Encoding format (must be "hex")             |
+
+**Returns:**
+
+| Type                     | Description                |
+| ------------------------ | -------------------------- |
+| `BuildGenesisReturnType` | Genesis block bytes object |
+
+**Return Object:**
+
+| Property   | Type     | Description                       |
+| ---------- | -------- | --------------------------------- |
+| `bytes`    | `string` | Genesis block bytes in hex format |
+| `encoding` | `"hex"`  | Encoding format used              |
+
+**Example:**
+
+```typescript
+const genesis = await client.xChain.buildGenesis({
+  networkID: 16,
+  genesisData: {
+    name: "myFixedCapAsset",
+    symbol: "MFCA",
+    denomination: 0,
+    initialState: {
+      fixedCap: {
+        amount: 100000,
+        addresses: ["X-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p"],
+      },
+    },
+  },
+  encoding: "hex",
+});
+
+console.log("Genesis bytes:", genesis.bytes);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmbuildgenesis)
+
+---
+
+## Next Steps
+
+- **[X-Chain Wallet Methods](../wallet-methods/x-chain-wallet)** - Transaction preparation and signing
+- **[Wallet Client](../../clients/wallet-client)** - Complete wallet operations
+- **[Account Management](../../accounts)** - Account types and management
