@@ -12,6 +12,16 @@ Send arbitrary messages between Avalanche chains and subnets using the Teleporte
 ```typescript
 import { createICMClient } from "@avalanche-sdk/interchain";
 import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import { avalancheFuji, dispatch } from "@avalanche-sdk/interchain/chains";
+
+// Setup wallet
+const account = privateKeyToAvalancheAccount("0x...");
+const wallet = createAvalancheWalletClient({
+  account,
+  chain: avalancheFuji,
+  transport: { type: "http" },
+});
 
 const icm = createICMClient(wallet);
 // Or with default chains
