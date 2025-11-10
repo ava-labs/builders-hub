@@ -82,7 +82,7 @@ export default function BubbleNavigation({
       }}
     >
       <nav className={cn(
-        "bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-full p-4 shadow-lg",
+        "bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-full p-3 shadow-lg",
         config.buttonScale
       )}>
         <div className={cn("flex items-center justify-center", config.buttonSpacing || "space-x-2")}>
@@ -98,8 +98,6 @@ export default function BubbleNavigation({
                 onMouseLeave={() => setHoveredItem(null)}
                 className={cn(
                   "relative flex items-center justify-center",
-                  config.buttonPadding || "px-4 py-2",
-                  "rounded-full",
                   "transition-all duration-300 ease-out",
                   "transform-gpu",
                   isActive
@@ -112,6 +110,7 @@ export default function BubbleNavigation({
                   "group",
                   "whitespace-nowrap text-sm font-medium"
                 )}
+                style={{ padding: "0.625rem", borderRadius: "1.25rem" }}
                 aria-label={item.label}
               >
                 <span

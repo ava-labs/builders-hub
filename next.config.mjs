@@ -58,6 +58,66 @@ const config = {
   async redirects() {
     return [
       {
+        source: '/docs/api-reference/p-chain/txn-format',
+        destination: '/docs/rpcs/p-chain/txn-format',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/c-chain/txn-format',
+        destination: '/docs/rpcs/c-chain/txn-format',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/x-chain/txn-format',
+        destination: '/docs/rpcs/x-chain/txn-format',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/c-chain/api',
+        destination: '/docs/rpcs/c-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/p-chain/api',
+        destination: '/docs/rpcs/p-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/x-chain/api',
+        destination: '/docs/rpcs/x-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/info-api',
+        destination: '/docs/rpcs/other/info-rpc',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/index-api',
+        destination: '/docs/rpcs/other/index-rpc',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/health-api',
+        destination: '/docs/rpcs/other/health-rpc',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/admin-api',
+        destination: '/docs/rpcs/other',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/proposervm-api',
+        destination: '/docs/rpcs/other/proposervm-rpc',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/subnet-evm-api',
+        destination: '/docs/rpcs/subnet-evm',
+        permanent: true,
+      },
+      {
         source: '/docs/rpcs',
         destination: '/docs/rpcs/c-chain',
         permanent: true,
