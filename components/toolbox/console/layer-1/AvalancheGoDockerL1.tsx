@@ -12,6 +12,7 @@ import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Button } from "../../components/Button";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { SyntaxHighlightedJSON } from "../../components/genesis/SyntaxHighlightedJSON";
+import { ReverseProxySetup } from "../../components/ReverseProxySetup";
 import { SUBNET_EVM_VM_ID } from "@/constants/console";
 import { generateChainConfig, generateDockerCommand, generateConfigFileCommand } from "./node-config";
 
@@ -41,6 +42,10 @@ export default function AvalanchegoDocker() {
     const [apiMaxBlocksPerRequest, setApiMaxBlocksPerRequest] = useState<number>(0);
     const [allowUnfinalizedQueries, setAllowUnfinalizedQueries] = useState<boolean>(false);
     
+    // State and history
+    const [acceptedCacheSize, setAcceptedCacheSize] = useState<number>(32);
+    const [transactionHistory, setTransactionHistory] = useState<number>(0);
+    
     // Show advanced settings
     const [showAdvancedSettings, setShowAdvancedSettings] = useState<boolean>(false);
 
@@ -67,20 +72,39 @@ export default function AvalanchegoDocker() {
                 commitInterval,
                 rpcGasCap,
                 apiMaxBlocksPerRequest,
-                allowUnfinalizedQueries
+                allowUnfinalizedQueries,
+                acceptedCacheSize,
+                transactionHistory
             );
             setConfigJson(JSON.stringify(config, null, 2));
         } catch (error) {
             setConfigJson(`Error: ${(error as Error).message}`);
         }
-    }, [subnetId, chainId, nodeType, enableDebugTrace, pruningEnabled, blockchainInfo, minDelayTarget, trieCleanCache, trieDirtyCache, snapshotCache, commitInterval, rpcGasCap, apiMaxBlocksPerRequest, allowUnfinalizedQueries]);
+    }, [subnetId, chainId, nodeType, enableDebugTrace, pruningEnabled, blockchainInfo, minDelayTarget, trieCleanCache, trieDirtyCache, snapshotCache, commitInterval, rpcGasCap, apiMaxBlocksPerRequest, allowUnfinalizedQueries, acceptedCacheSize, transactionHistory]);
 
     useEffect(() => {
         if (nodeType === "validator") {
+            // Validator node defaults - optimized for block production
             setDomain("");
             setEnableDebugTrace(false);
             setPruningEnabled(true);
-            setMinDelayTarget(250); // Reset to default for L1
+            setMinDelayTarget(250); // Fast block times for L1
+            setAllowUnfinalizedQueries(false);
+            // Standard cache sizes for validators
+            setTrieCleanCache(512);
+            setTrieDirtyCache(512);
+            setSnapshotCache(256);
+            setAcceptedCacheSize(32);
+            setTransactionHistory(0); // Keep all tx history by default
+        } else if (nodeType === "public-rpc") {
+            // RPC node defaults - optimized for query performance
+            setAllowUnfinalizedQueries(true); // Enable real-time queries
+            // Larger caches for better RPC performance
+            setTrieCleanCache(1024); // 2x for better read performance
+            setTrieDirtyCache(1024);
+            setSnapshotCache(512); // 2x for snapshot queries
+            setAcceptedCacheSize(64); // Larger for more recent history
+            setTransactionHistory(0); // Keep all tx history by default for getLogs
         }
     }, [nodeType]);
 
@@ -169,6 +193,8 @@ export default function AvalanchegoDocker() {
         setRpcGasCap(50000000);
         setApiMaxBlocksPerRequest(0);
         setAllowUnfinalizedQueries(false);
+        setAcceptedCacheSize(32);
+        setTransactionHistory(0);
         setShowAdvancedSettings(false);
     };
 
@@ -278,23 +304,7 @@ export default function AvalanchegoDocker() {
                                                 This blockchain will be used for the RPC endpoint URL generation.
                                             </p>
                                         </div>
-                                    )}
-
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                    Domain (optional)
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={domain}
-                                                    onChange={(e) => setDomain(e.target.value)}
-                                                    placeholder="example.com"
-                                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                                                />
-                                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                                    If you plan to expose this RPC publicly, enter your domain name.
-                                                </p>
-                                            </div>
+                                            )}
                                         </>
                                     )}
 
@@ -381,6 +391,21 @@ export default function AvalanchegoDocker() {
                                                                 className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
                                                             />
                                                         </div>
+
+                                                        <div>
+                                                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                                Accepted Cache Size (blocks)
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                value={acceptedCacheSize}
+                                                                onChange={(e) => setAcceptedCacheSize(Math.max(1, parseInt(e.target.value) || 1))}
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                            />
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                Depth of accepted headers and logs cache
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 </div>
 
@@ -415,6 +440,21 @@ export default function AvalanchegoDocker() {
                                                             />
                                                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                                                 Maximum gas limit for RPC calls
+                                                            </p>
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                                Transaction History (blocks)
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                value={transactionHistory}
+                                                                onChange={(e) => setTransactionHistory(Math.max(0, parseInt(e.target.value) || 0))}
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                            />
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                Maximum blocks from head to keep tx indices. 0 = no limit (archive mode)
                                                             </p>
                                                         </div>
                                                     </div>
@@ -518,27 +558,31 @@ export default function AvalanchegoDocker() {
                                             <li><strong>log-level:</strong> Logging level (trace, debug, info, warn, error, crit)</li>
                                             <li><strong>min-delay-target:</strong> Minimum delay between blocks in milliseconds</li>
                                             <li><strong>warp-api-enabled:</strong> Enables the Warp API for cross-chain messaging (ICM)</li>
+                                            <li><strong>eth-apis:</strong> List of enabled Ethereum API namespaces</li>
                                         </ul>
                                         
                                         <p className="pt-2"><strong>Cache Settings:</strong></p>
                                         <ul className="list-disc pl-5 space-y-1">
-                                            <li><strong>trie-clean-cache:</strong> Size of the trie clean cache in MB (default: 512)</li>
-                                            <li><strong>trie-dirty-cache:</strong> Size of the trie dirty cache in MB (default: 512)</li>
-                                            <li><strong>snapshot-cache:</strong> Size of the snapshot disk layer clean cache in MB (default: 256)</li>
+                                            <li><strong>trie-clean-cache:</strong> Size of the trie clean cache in MB (validator: 512, RPC: 1024)</li>
+                                            <li><strong>trie-dirty-cache:</strong> Size of the trie dirty cache in MB (validator: 512, RPC: 1024)</li>
+                                            <li><strong>snapshot-cache:</strong> Size of the snapshot disk layer clean cache in MB (validator: 256, RPC: 512)</li>
+                                            <li><strong>accepted-cache-size:</strong> Depth to keep in accepted headers/logs cache (validator: 32, RPC: 64)</li>
                                         </ul>
 
                                         <p className="pt-2"><strong>Performance Settings:</strong></p>
                                         <ul className="list-disc pl-5 space-y-1">
-                                            <li><strong>commit-interval:</strong> Interval at which to persist EVM and atomic tries (blocks, default: 4096)</li>
+                                            <li><strong>commit-interval:</strong> Interval to persist EVM and atomic tries in blocks (default: 4096)</li>
                                             <li><strong>rpc-gas-cap:</strong> Maximum gas limit for RPC calls (default: 50,000,000)</li>
+                                            <li><strong>transaction-history:</strong> Max blocks from head to keep tx indices. 0 = archive mode (all history)</li>
                                         </ul>
 
                                         {isRPC && (
                                             <>
                                                 <p className="pt-2"><strong>RPC-Specific Settings:</strong></p>
                                                 <ul className="list-disc pl-5 space-y-1">
+                                                    <li><strong>api-max-duration:</strong> Maximum duration for API calls (0 = no limit)</li>
                                                     <li><strong>api-max-blocks-per-request:</strong> Maximum blocks per getLogs request (0 = no limit)</li>
-                                                    <li><strong>allow-unfinalized-queries:</strong> Allows queries for unfinalized blocks</li>
+                                                    <li><strong>allow-unfinalized-queries:</strong> Allows queries for unfinalized/pending blocks</li>
                                                 </ul>
                                             </>
                                         )}
@@ -547,7 +591,7 @@ export default function AvalanchegoDocker() {
                                             <>
                                                 <p className="pt-2"><strong>Debug Settings:</strong></p>
                                                 <ul className="list-disc pl-5 space-y-1">
-                                                    <li><strong>eth-apis:</strong> Extended list of Ethereum APIs including debug and tracing capabilities</li>
+                                                    <li><strong>eth-apis:</strong> Extended APIs including debug-tracer, debug-file-tracer, internal-* APIs</li>
                                                     <li><strong>admin-api-enabled:</strong> Enables administrative operations API</li>
                                                 </ul>
                                             </>
@@ -629,6 +673,17 @@ export default function AvalanchegoDocker() {
                                     </Accordion>
                                 </Accordions>
                             </Step>
+
+                            {nodeType === "public-rpc" && (
+                                <Step>
+                                    <ReverseProxySetup
+                                        domain={domain}
+                                        setDomain={setDomain}
+                                    chainId={selectedRPCBlockchainId || chainId}
+                                        showHealthCheck={true}
+                                    />
+                                </Step>
+                            )}
                     </>
                 )}
             </Steps>

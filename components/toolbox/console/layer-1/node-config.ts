@@ -17,7 +17,9 @@ export const generateChainConfig = (
     commitInterval: number = 4096,
     rpcGasCap: number = 50000000,
     apiMaxBlocksPerRequest: number = 0,
-    allowUnfinalizedQueries: boolean = false
+    allowUnfinalizedQueries: boolean = false,
+    acceptedCacheSize: number = 32,
+    transactionHistory: number = 0
 ) => {
     const isRPC = nodeType === 'public-rpc';
 
@@ -31,7 +33,7 @@ export const generateChainConfig = (
         "rpc-gas-cap": rpcGasCap,
         "log-level": enableDebugTrace ? "debug" : "info",
         "metrics-expensive-enabled": true,
-        "accepted-cache-size": 32,
+        "accepted-cache-size": acceptedCacheSize,
         "min-delay-target": minDelayTarget
     };
 
@@ -59,8 +61,16 @@ export const generateChainConfig = (
         ];
         config["admin-api-enabled"] = true;
     } else {
-        // Standard APIs
-        config["eth-apis"] = ["eth", "eth-filter", "net", "web3"];
+        // Standard APIs (includes internal APIs required for basic eth methods)
+        config["eth-apis"] = [
+            "eth",
+            "eth-filter",
+            "net",
+            "web3",
+            "internal-eth",
+            "internal-blockchain",
+            "internal-transaction"
+        ];
     }
 
     // RPC-specific settings
@@ -68,6 +78,11 @@ export const generateChainConfig = (
         config["api-max-duration"] = 0; // No time limit
         config["api-max-blocks-per-request"] = apiMaxBlocksPerRequest;
         config["allow-unfinalized-queries"] = allowUnfinalizedQueries;
+    }
+
+    // Transaction history (0 = no limit, keeps all tx indices)
+    if (transactionHistory > 0) {
+        config["transaction-history"] = transactionHistory;
     }
 
     return config;
@@ -157,7 +172,8 @@ export const generateDockerCommand = (
         AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns",
         AVAGO_HTTP_HOST: "0.0.0.0",
         AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: "true",
-        AVAGO_TRACK_SUBNETS: subnetId
+        AVAGO_TRACK_SUBNETS: subnetId,
+        AVAGO_CHAIN_CONFIG_DIR: "/root/.avalanchego/configs/chains"
     };
 
     // Set network ID
