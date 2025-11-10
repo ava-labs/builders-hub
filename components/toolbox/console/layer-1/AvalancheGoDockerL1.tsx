@@ -7,18 +7,13 @@ import { Container } from "../../components/Container";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import InputSubnetId from "../../components/InputSubnetId";
 import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay";
-import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Button } from "../../components/Button";
-import { Success } from "../../components/Success";
-import { DockerInstallation } from "../../components/DockerInstallation";
-import { NodeBootstrapCheck } from "../../components/NodeBootstrapCheck";
-import { ReverseProxySetup } from "../../components/ReverseProxySetup";
-import { AddToWalletStep } from "../../components/AddToWalletStep";
-import { ConfigureNodeType } from "../../components/ConfigureNodeType";
-import { generateDockerCommand } from "./create/config";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+import { SyntaxHighlightedJSON } from "../../components/genesis/SyntaxHighlightedJSON";
 import { SUBNET_EVM_VM_ID } from "@/constants/console";
+import { generateChainConfig, generateDockerCommand, generateConfigFileCommand } from "./node-config";
 
 export default function AvalanchegoDocker() {
     const [chainId, setChainId] = useState("");
@@ -27,38 +22,58 @@ export default function AvalanchegoDocker() {
     const [blockchainInfo, setBlockchainInfo] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [nodeType, setNodeType] = useState<"validator" | "public-rpc">("validator");
-    const [rpcCommand, setRpcCommand] = useState("");
     const [domain, setDomain] = useState("");
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
     const [pruningEnabled, setPruningEnabled] = useState<boolean>(true);
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
-    const [chainAddedToWallet, setChainAddedToWallet] = useState<string | null>(null);
-    const [nodeIsReady, setNodeIsReady] = useState<boolean>(false);
     const [selectedRPCBlockchainId, setSelectedRPCBlockchainId] = useState<string>("");
     const [minDelayTarget, setMinDelayTarget] = useState<number>(250);
+    const [configJson, setConfigJson] = useState<string>("");
+    
+    // Advanced cache settings
+    const [trieCleanCache, setTrieCleanCache] = useState<number>(512);
+    const [trieDirtyCache, setTrieDirtyCache] = useState<number>(512);
+    const [snapshotCache, setSnapshotCache] = useState<number>(256);
+    const [commitInterval, setCommitInterval] = useState<number>(4096);
+    
+    // API settings
+    const [rpcGasCap, setRpcGasCap] = useState<number>(50000000);
+    const [apiMaxBlocksPerRequest, setApiMaxBlocksPerRequest] = useState<number>(0);
+    const [allowUnfinalizedQueries, setAllowUnfinalizedQueries] = useState<boolean>(false);
+    
+    // Show advanced settings
+    const [showAdvancedSettings, setShowAdvancedSettings] = useState<boolean>(false);
 
     const { avalancheNetworkID } = useWalletStore();
 
     const isRPC = nodeType === "public-rpc";
 
+    // Generate Subnet-EVM chain configuration JSON when parameters change
     useEffect(() => {
+        if (!subnetId || !chainId || !blockchainInfo) {
+            setConfigJson("");
+            return;
+        }
+
         try {
-            const vmId = blockchainInfo?.vmId || SUBNET_EVM_VM_ID;
-            setRpcCommand(generateDockerCommand(
-                [subnetId],
-                isRPC,
-                avalancheNetworkID,
-                chainId,
-                vmId,
+            const config = generateChainConfig(
+                nodeType,
                 enableDebugTrace,
                 pruningEnabled,
-                false, // isPrimaryNetwork = false
-                isRPC ? null : minDelayTarget // Pass minDelayTarget only for validators
-            ));
+                minDelayTarget,
+                trieCleanCache,
+                trieDirtyCache,
+                snapshotCache,
+                commitInterval,
+                rpcGasCap,
+                apiMaxBlocksPerRequest,
+                allowUnfinalizedQueries
+            );
+            setConfigJson(JSON.stringify(config, null, 2));
         } catch (error) {
-            setRpcCommand((error as Error).message);
+            setConfigJson(`Error: ${(error as Error).message}`);
         }
-    }, [subnetId, isRPC, avalancheNetworkID, enableDebugTrace, chainId, pruningEnabled, blockchainInfo, minDelayTarget]);
+    }, [subnetId, chainId, nodeType, enableDebugTrace, pruningEnabled, blockchainInfo, minDelayTarget, trieCleanCache, trieDirtyCache, snapshotCache, commitInterval, rpcGasCap, apiMaxBlocksPerRequest, allowUnfinalizedQueries]);
 
     useEffect(() => {
         if (nodeType === "validator") {
@@ -140,57 +155,38 @@ export default function AvalanchegoDocker() {
         setSubnet(null);
         setBlockchainInfo(null);
         setNodeType("validator");
-        setChainAddedToWallet(null);
-        setRpcCommand("");
         setDomain("");
         setEnableDebugTrace(false);
         setPruningEnabled(true);
         setSubnetIdError(null);
-        setNodeIsReady(false);
         setSelectedRPCBlockchainId("");
         setMinDelayTarget(250);
+        setConfigJson("");
+        setTrieCleanCache(512);
+        setTrieDirtyCache(512);
+        setSnapshotCache(256);
+        setCommitInterval(4096);
+        setRpcGasCap(50000000);
+        setApiMaxBlocksPerRequest(0);
+        setAllowUnfinalizedQueries(false);
+        setShowAdvancedSettings(false);
     };
 
     // Check if this blockchain uses a custom VM
     const isCustomVM = blockchainInfo && blockchainInfo.vmId !== SUBNET_EVM_VM_ID;
 
     return (
-        <>
             <Container
                 title="L1 Node Setup with Docker"
-                description="This will start a Docker container running an RPC or validator node that tracks your L1."
+            description="Configure your node settings, preview the Subnet-EVM chain config, create it on your server, and run Docker to start your L1 node."
                 githubUrl="https://github.com/ava-labs/builders-hub/edit/master/components/toolbox/console/layer-1/AvalancheGoDockerL1.tsx"
             >
                 <Steps>
                     <Step>
-                        <h3 className="text-xl font-bold mb-4">Set up Instance</h3>
-                        <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. Low specs (e.g. 2 vCPUs, 4GB RAM,  20GB storage) are sufficient for basic tests. For more extensive test and production L1s use a larger instance with appropriate resources (e.g. 8 vCPUs, 16GB RAM, 1 TB storage).</p>
-
-                        <p>If you do not have access to a server, you can also run a node for educational purposes locally. Simply select the "RPC Node (Local)" option in the next step.</p>
-
-                    </Step>
-                    <Step>
-                        <DockerInstallation
-                            includeCompose={false}
-                        />
-
-                        <p className="mt-4">
-                            If you do not want to use Docker, you can follow the instructions{" "}
-                            <a
-                                href="https://github.com/ava-labs/avalanchego?tab=readme-ov-file#installation"
-                                target="_blank"
-                                className="text-blue-600 dark:text-blue-400 hover:underline"
-                                rel="noreferrer"
-                            >
-                                here
-                            </a>
-                            .
-                        </p>
-                    </Step>
-
-                    <Step>
-                        <h3 className="text-xl font-bold mb-4">Select L1</h3>
-                        <p>Enter the Avalanche Subnet ID of the L1 you want to run a node for.</p>
+                    <h3 className="text-xl font-bold mb-4">Select L1</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Enter the Avalanche Subnet ID of the L1 you want to run a node for
+                    </p>
 
                         <InputSubnetId
                             value={subnetId}
@@ -198,9 +194,8 @@ export default function AvalanchegoDocker() {
                             error={subnetIdError}
                         />
 
-                        {/* Show subnet details if available */}
                         {subnet && subnet.blockchains && subnet.blockchains.length > 0 && (
-                            <div className="space-y-4">
+                        <div className="space-y-4 mt-4">
                                 {subnet.blockchains.map((blockchain: { blockchainId: string; blockchainName: string; createBlockTimestamp: number; createBlockNumber: string; vmId: string; subnetId: string; evmChainId: number }) => (
                                     <BlockchainDetailsDisplay
                                         key={blockchain.blockchainId}
@@ -219,18 +214,52 @@ export default function AvalanchegoDocker() {
                     {subnetId && blockchainInfo && (
                         <>
                             <Step>
-                                <ConfigureNodeType
-                                    nodeType={nodeType}
-                                    setNodeType={setNodeType}
-                                    isRPC={isRPC}
-                                    enableDebugTrace={enableDebugTrace}
-                                    setEnableDebugTrace={setEnableDebugTrace}
-                                    pruningEnabled={pruningEnabled}
-                                    setPruningEnabled={setPruningEnabled}
-                                >
-                                    {/* Blockchain selection for multiple blockchains */}
-                                    {nodeType === "public-rpc" && subnet && subnet.blockchains && subnet.blockchains.length > 1 && (
-                                        <div className="mt-6">
+                            <h3 className="text-xl font-bold mb-4">Configure Node Settings</h3>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                            Node Type
+                                        </label>
+                                        <select
+                                            value={nodeType}
+                                            onChange={(e) => setNodeType(e.target.value as "validator" | "public-rpc")}
+                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                                        >
+                                            <option value="validator">Validator Node</option>
+                                            <option value="public-rpc">Public RPC Node</option>
+                                        </select>
+                                    </div>
+
+                                    {nodeType === "public-rpc" && (
+                                        <>
+                                            <div>
+                                                <label className="flex items-center space-x-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={enableDebugTrace}
+                                                        onChange={(e) => setEnableDebugTrace(e.target.checked)}
+                                                        className="rounded"
+                                                    />
+                                                    <span className="text-sm">Enable Debug Trace</span>
+                                                </label>
+                                            </div>
+
+                                            <div>
+                                                <label className="flex items-center space-x-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={pruningEnabled}
+                                                        onChange={(e) => setPruningEnabled(e.target.checked)}
+                                                        className="rounded"
+                                                    />
+                                                    <span className="text-sm">Enable Pruning</span>
+                                                </label>
+                                            </div>
+
+                                            {subnet && subnet.blockchains && subnet.blockchains.length > 1 && (
+                                                <div>
                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                 Select Blockchain for RPC Endpoint
                                             </label>
@@ -251,9 +280,26 @@ export default function AvalanchegoDocker() {
                                         </div>
                                     )}
 
-                                    {/* Min delay target for validator nodes */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    Domain (optional)
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={domain}
+                                                    onChange={(e) => setDomain(e.target.value)}
+                                                    placeholder="example.com"
+                                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                                                />
+                                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                    If you plan to expose this RPC publicly, enter your domain name.
+                                                </p>
+                                            </div>
+                                        </>
+                                    )}
+
                                     {nodeType === "validator" && (
-                                        <div className="mt-6">
+                                        <div>
                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                 Min Delay Target (ms)
                                             </label>
@@ -269,20 +315,307 @@ export default function AvalanchegoDocker() {
                                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                                             />
                                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                                The minimum delay between blocks (in milliseconds) that this node will attempt to use when creating blocks. Maximum: 2000ms. Default for L1: 250ms.
+                                                The minimum delay between blocks (in milliseconds). Maximum: 2000ms. Default: 250ms.
                                             </p>
                                         </div>
                                     )}
-                                </ConfigureNodeType>
+
+                                    {/* Advanced Settings */}
+                                    <div className="border-t pt-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+                                            className="flex items-center justify-between w-full text-left"
+                                        >
+                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                Advanced Settings
+                                            </span>
+                                            <svg
+                                                className={`w-5 h-5 transition-transform ${showAdvancedSettings ? 'rotate-180' : ''}`}
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </button>
+
+                                        {showAdvancedSettings && (
+                                            <div className="space-y-4 mt-4">
+                                                <div>
+                                                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Cache Settings</h4>
+                                                    
+                                                    <div className="space-y-3">
+                                                        <div>
+                                                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                                Trie Clean Cache (MB)
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                value={trieCleanCache}
+                                                                onChange={(e) => setTrieCleanCache(Math.max(0, parseInt(e.target.value) || 0))}
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                                Trie Dirty Cache (MB)
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                value={trieDirtyCache}
+                                                                onChange={(e) => setTrieDirtyCache(Math.max(0, parseInt(e.target.value) || 0))}
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                                Snapshot Cache (MB)
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                value={snapshotCache}
+                                                                onChange={(e) => setSnapshotCache(Math.max(0, parseInt(e.target.value) || 0))}
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="border-t pt-3">
+                                                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Performance Settings</h4>
+                                                    
+                                                    <div className="space-y-3">
+                                                        <div>
+                                                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                                Commit Interval (blocks)
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                value={commitInterval}
+                                                                onChange={(e) => setCommitInterval(Math.max(1, parseInt(e.target.value) || 1))}
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                            />
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                Interval to persist EVM and atomic tries
+                                                            </p>
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                                RPC Gas Cap
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                value={rpcGasCap}
+                                                                onChange={(e) => setRpcGasCap(Math.max(0, parseInt(e.target.value) || 0))}
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                            />
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                Maximum gas limit for RPC calls
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {isRPC && (
+                                                    <div className="border-t pt-3">
+                                                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">RPC Settings</h4>
+                                                        
+                                                        <div className="space-y-3">
+                                                            <div>
+                                                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                                    API Max Blocks Per Request
+                                                                </label>
+                                                                <input
+                                                                    type="number"
+                                                                    value={apiMaxBlocksPerRequest}
+                                                                    onChange={(e) => setApiMaxBlocksPerRequest(Math.max(0, parseInt(e.target.value) || 0))}
+                                                                    className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                                />
+                                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                    0 = no limit. Limits blocks per getLogs request
+                                                                </p>
+                                                            </div>
+
+                                                            <div>
+                                                                <label className="flex items-center space-x-2">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={allowUnfinalizedQueries}
+                                                                        onChange={(e) => setAllowUnfinalizedQueries(e.target.checked)}
+                                                                        className="rounded"
+                                                                    />
+                                                                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                                                                        Allow Unfinalized Queries
+                                                                    </span>
+                                                                </label>
+                                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
+                                                                    Allows queries for unfinalized blocks
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Configuration Preview */}
+                                <div className="lg:sticky lg:top-4 h-fit">
+                                    <div className="border rounded-lg bg-white dark:bg-zinc-950 overflow-hidden">
+                                        <div className="border-b p-3 bg-gray-50 dark:bg-gray-900">
+                                            <h4 className="text-sm font-semibold">Configuration Preview</h4>
+                                        </div>
+                                        <div className="max-h-[600px] overflow-auto p-3 bg-zinc-50 dark:bg-zinc-950">
+                                            {configJson && !configJson.startsWith("Error:") ? (
+                                                <SyntaxHighlightedJSON
+                                                    code={configJson}
+                                                    highlightedLine={null}
+                                                />
+                                            ) : (
+                                                <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
+                                                    {configJson.startsWith("Error:") ? configJson : "Configure your node to see the Subnet-EVM chain config"}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             </Step>
 
                             <Step>
-                                <h3 className="text-xl font-bold">Start AvalancheGo Node</h3>
-                                <p>Run the following Docker command to start your node:</p>
+                            <h3 className="text-xl font-bold mb-4">Create Configuration File</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                Run this command on your server to create the Subnet-EVM chain configuration file:
+                            </p>
 
-                                <DynamicCodeBlock lang="bash" code={rpcCommand} />
+                            <DynamicCodeBlock 
+                                lang="bash" 
+                                code={(() => {
+                                    try {
+                                        const config = JSON.parse(configJson);
+                                        return generateConfigFileCommand(chainId, config);
+                                    } catch {
+                                        return "# Error generating config file command";
+                                    }
+                                })()} 
+                            />
+                            
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                                This creates the configuration file at <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">~/.avalanchego/configs/chains/{chainId}/config.json</code>
+                            </p>
+
+                            <Accordions type="single" className="mt-4">
+                                <Accordion title="Understanding the Configuration">
+                                    <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                                        <p><strong>Basic Settings:</strong></p>
+                                        <ul className="list-disc pl-5 space-y-1">
+                                            <li><strong>pruning-enabled:</strong> Enables state pruning to save disk space</li>
+                                            <li><strong>log-level:</strong> Logging level (trace, debug, info, warn, error, crit)</li>
+                                            <li><strong>min-delay-target:</strong> Minimum delay between blocks in milliseconds</li>
+                                            <li><strong>warp-api-enabled:</strong> Enables the Warp API for cross-chain messaging (ICM)</li>
+                                        </ul>
+                                        
+                                        <p className="pt-2"><strong>Cache Settings:</strong></p>
+                                        <ul className="list-disc pl-5 space-y-1">
+                                            <li><strong>trie-clean-cache:</strong> Size of the trie clean cache in MB (default: 512)</li>
+                                            <li><strong>trie-dirty-cache:</strong> Size of the trie dirty cache in MB (default: 512)</li>
+                                            <li><strong>snapshot-cache:</strong> Size of the snapshot disk layer clean cache in MB (default: 256)</li>
+                                        </ul>
+
+                                        <p className="pt-2"><strong>Performance Settings:</strong></p>
+                                        <ul className="list-disc pl-5 space-y-1">
+                                            <li><strong>commit-interval:</strong> Interval at which to persist EVM and atomic tries (blocks, default: 4096)</li>
+                                            <li><strong>rpc-gas-cap:</strong> Maximum gas limit for RPC calls (default: 50,000,000)</li>
+                                        </ul>
+
+                                        {isRPC && (
+                                            <>
+                                                <p className="pt-2"><strong>RPC-Specific Settings:</strong></p>
+                                                <ul className="list-disc pl-5 space-y-1">
+                                                    <li><strong>api-max-blocks-per-request:</strong> Maximum blocks per getLogs request (0 = no limit)</li>
+                                                    <li><strong>allow-unfinalized-queries:</strong> Allows queries for unfinalized blocks</li>
+                                                </ul>
+                                            </>
+                                        )}
+
+                                        {enableDebugTrace && (
+                                            <>
+                                                <p className="pt-2"><strong>Debug Settings:</strong></p>
+                                                <ul className="list-disc pl-5 space-y-1">
+                                                    <li><strong>eth-apis:</strong> Extended list of Ethereum APIs including debug and tracing capabilities</li>
+                                                    <li><strong>admin-api-enabled:</strong> Enables administrative operations API</li>
+                                                </ul>
+                                            </>
+                                        )}
+                                    </div>
+                                </Accordion>
+
+                                {isCustomVM && (
+                                    <Accordion title="Custom VM Configuration">
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                                            This blockchain uses a non-standard Virtual Machine ID. The Docker command includes VM aliases mapping.
+                                        </p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                                            <strong>VM ID:</strong> {blockchainInfo.vmId}<br />
+                                            <strong>Aliases to:</strong> {SUBNET_EVM_VM_ID}
+                                        </p>
+                                    </Accordion>
+                                )}
+                            </Accordions>
+                        </Step>
+
+                        <Step>
+                            <h3 className="text-xl font-bold mb-4">Run Docker Command</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                Start the node using Docker:
+                            </p>
+
+                            <DynamicCodeBlock 
+                                lang="bash" 
+                                code={(() => {
+                                    try {
+                                        const config = JSON.parse(configJson);
+                                        const vmId = blockchainInfo?.vmId || SUBNET_EVM_VM_ID;
+                                        return generateDockerCommand(
+                                            subnetId,
+                                            chainId,
+                                            config,
+                                            nodeType,
+                                            avalancheNetworkID,
+                                            vmId
+                                        );
+                                    } catch {
+                                        return "# Error generating Docker command";
+                                    }
+                                })()} 
+                            />
 
                                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                                The container will read the config from <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">~/.avalanchego/configs/chains/{chainId}/config.json</code> via the mounted volume.
+                            </p>
+
+                            <Accordions type="single" className="mt-4">
+                                <Accordion title="Running Multiple Nodes">
+                                    <p className="text-sm">To run multiple nodes on the same machine, ensure each node has:</p>
+                                    <ul className="list-disc pl-5 mt-1 text-sm">
+                                        <li>Unique container name (change <code>--name</code> parameter)</li>
+                                        <li>Different ports (modify port mappings)</li>
+                                        <li>Separate data directories (change <code>~/.avalanchego</code> path)</li>
+                                    </ul>
+                                </Accordion>
+
+                                <Accordion title="Monitoring Logs">
+                                    <p className="text-sm mb-2">Monitor your node with:</p>
+                                    <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
+                                </Accordion>
+
+                                <Accordion title="Advanced Configuration">
+                                    <p className="text-sm">
                                     For advanced node configuration options, see the{" "}
                                     <a
                                         href="https://build.avax.network/docs/nodes/configure/configs-flags"
@@ -293,131 +626,20 @@ export default function AvalanchegoDocker() {
                                         AvalancheGo configuration flags documentation
                                     </a>.
                                 </p>
-
-                                {isCustomVM && (
-                                    <Accordions type="single" className="mt-4">
-                                        <Accordion title="Custom VM Configuration">
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                This blockchain uses a non-standard Virtual Machine ID. The Docker command automatically includes the <code>AVAGO_VM_ALIASES_FILE_CONTENT</code> environment variable with base64 encoded VM aliases configuration.
-                                            </p>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                                                <strong>VM ID:</strong> {blockchainInfo.vmId}<br />
-                                                <strong>Aliases to:</strong> {SUBNET_EVM_VM_ID}
-                                            </p>
-                                        </Accordion>
-                                    </Accordions>
-                                )}
-
-                                <Accordions type="single" className="mt-8">
-                                    <Accordion title="Running Multiple Nodes on the same machine">
-                                        <p>To run multiple validator nodes on the same machine, ensure each node has:</p>
-                                        <ul className="list-disc pl-5 mt-1">
-                                            <li>Unique container name (change <code>--name</code> parameter)</li>
-                                            <li>Different ports (modify <code>AVAGO_HTTP_PORT</code> and <code>AVAGO_STAKING_PORT</code>)</li>
-                                            <li>Separate data directories (change the local volume path <code>~/.avalanchego</code> to a unique directory)</li>
-                                        </ul>
-                                        <p className="mt-1">Example for second node: Use ports 9652/9653 (HTTP/staking), container name "avago2", and data directory "~/.avalanchego2"</p>
                                     </Accordion>
                                 </Accordions>
                             </Step>
-
-
-                            {/* Conditional steps based on nodeType */}
-                            {nodeType === "public-rpc" && (
-                                <Step>
-                                    <ReverseProxySetup
-                                        domain={domain}
-                                        setDomain={setDomain}
-                                        chainId={selectedRPCBlockchainId}
-                                        showHealthCheck={true}
-                                    />
-                                </Step>
-                            )}
-                            {((nodeType === "public-rpc" && !!domain)) && (
-                                <Step>
-                                    <AddToWalletStep
-                                        chainId={selectedRPCBlockchainId || chainId}
-                                        domain={domain}
-                                        nodeRunningMode={nodeType === 'public-rpc' ? 'server' : 'localhost'}
-                                        onChainAdded={setChainAddedToWallet}
-                                    />
-                                </Step>
-                            )}
-
-                            {nodeType === "validator" && (
-                                <Step>
-                                    <h3 className="text-xl font-bold">Wait for the Node to Bootstrap</h3>
-                                    <p>Your node will now bootstrap and sync the P-Chain and your L1. This process should take a <strong>few minutes</strong>. You can follow the process by checking the logs with the following command:</p>
-
-                                    <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
-
-                                    <Accordions type="single" className="mt-8">
-                                        <Accordion title="Understanding the Logs">
-                                            <p>The bootstrapping has three phases:</p>
-
-                                            <ul className="list-disc pl-5 mt-1">
-                                                <li>
-                                                    <strong>Fetching the blocks of the P-Chain:</strong>
-                                                    The node fetches all the P-Chain blocks. The <code>eta</code> field is giving the estimated remaining time for the fetching process.
-                                                    <DynamicCodeBlock lang="bash" code='[05-04|17:14:13.793] INFO <P Chain> bootstrap/bootstrapper.go:615 fetching blocks {"numFetchedBlocks": 10099, "numTotalBlocks": 23657, "eta": "37s"}' />
-                                                </li>
-                                                <li>
-                                                    <strong>Executing the blocks of the P-Chain:</strong>
-                                                    The node will sync the P-Chain and your L1.
-                                                    <DynamicCodeBlock lang="bash" code='[05-04|17:14:45.641] INFO <P Chain> bootstrap/storage.go:244 executing blocks {"numExecuted": 9311, "numToExecute": 23657, "eta": "15s"}' />
-                                                </li>
-                                            </ul>
-                                            <p>After the P-Chain is fetched and executed the process is repeated for the tracked Subnet.</p>
-                                        </Accordion>
-                                    </Accordions>
-
-                                    <NodeBootstrapCheck
-                                        chainId={chainId}
-                                        domain={domain || "127.0.0.1:9650"}
-                                        isDebugTrace={enableDebugTrace}
-                                        onBootstrapCheckChange={(checked: boolean) => setNodeIsReady(checked)}
-                                    />
-                                </Step>
-                            )}
-
-                            {/* Show success message when node is ready for validator mode */}
-                            {nodeIsReady && nodeType === "validator" && (
-                                <Step>
-                                    <h3 className="text-xl font-bold mb-4">Node Setup Complete</h3>
-                                    <p>Your AvalancheGo node is now fully bootstrapped and ready to be used as a validator node.</p>
-
-                                    <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                                        <div className="flex items-center">
-                                            <div className="flex-shrink-0">
-                                                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                </svg>
-                                            </div>
-                                            <div className="ml-3">
-                                                <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                                                    Node is ready for validation
-                                                </p>
-                                                <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                                                    Your node has successfully synced with the network and is ready to be added as a validator.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Step>
-                            )}
-                        </>)}
-
-
-                </Steps>
-
-                {chainAddedToWallet && (
-                    <>
-                        <Success label="Node Setup Complete" value={chainAddedToWallet} />
-                        <Button onClick={handleReset} className="mt-4 w-full">Reset</Button>
                     </>
                 )}
+            </Steps>
 
-            </Container >
-        </>
+            {configJson && !configJson.startsWith("Error:") && (
+                <div className="mt-6 flex justify-center">
+                    <Button onClick={handleReset} variant="outline">
+                        Start Over
+                    </Button>
+                </div>
+            )}
+        </Container>
     );
 };
