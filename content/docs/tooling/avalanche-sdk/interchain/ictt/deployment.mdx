@@ -1,0 +1,135 @@
+---
+title: Deployment Methods
+icon: package
+---
+
+## deployERC20Token
+
+Deploys a new ERC20 token on the source chain.
+
+### Parameters
+
+| Parameter       | Type           | Required | Description                                              |
+| --------------- | -------------- | -------- | -------------------------------------------------------- |
+| `walletClient`  | `WalletClient` | Yes      | Wallet client for signing                                |
+| `sourceChain`   | `ChainConfig`  | Yes\*    | Source chain configuration                               |
+| `name`          | `string`       | Yes      | Token name                                               |
+| `symbol`        | `string`       | Yes      | Token symbol                                             |
+| `initialSupply` | `number`       | Yes      | Initial token supply                                     |
+| `recipient`     | `Address`      | No       | Recipient of initial supply (defaults to wallet address) |
+
+\* Required if not set in client constructor
+
+### Returns
+
+| Type                                                             | Description                           |
+| ---------------------------------------------------------------- | ------------------------------------- |
+| `Promise<{ txHash: 0x${string}, contractAddress: 0x${string} }>` | Transaction hash and contract address |
+
+### Example
+
+```typescript
+const { txHash, contractAddress } = await ictt.deployERC20Token({
+  walletClient: wallet,
+  sourceChain: avalancheFuji,
+  name: "My Token",
+  symbol: "MTK",
+  initialSupply: 1000000,
+});
+```
+
+## deployTokenHomeContract
+
+Deploys a token home contract on the source chain.
+
+### Parameters
+
+| Parameter                  | Type           | Required | Description                |
+| -------------------------- | -------------- | -------- | -------------------------- |
+| `walletClient`             | `WalletClient` | Yes      | Wallet client for signing  |
+| `sourceChain`              | `ChainConfig`  | Yes\*    | Source chain configuration |
+| `erc20TokenAddress`        | `Address`      | Yes      | ERC20 token address        |
+| `minimumTeleporterVersion` | `number`       | Yes      | Minimum Teleporter version |
+| `tokenHomeCustomByteCode`  | `string`       | No       | Custom bytecode            |
+| `tokenHomeCustomABI`       | `ABI`          | No       | Custom ABI                 |
+
+### Returns
+
+| Type                                                             | Description                           |
+| ---------------------------------------------------------------- | ------------------------------------- |
+| `Promise<{ txHash: 0x${string}, contractAddress: 0x${string} }>` | Transaction hash and contract address |
+
+### Example
+
+```typescript
+const { txHash, contractAddress } = await ictt.deployTokenHomeContract({
+  walletClient: wallet,
+  sourceChain: avalancheFuji,
+  erc20TokenAddress: tokenAddress,
+  minimumTeleporterVersion: 1,
+});
+```
+
+## deployTokenRemoteContract
+
+Deploys a token remote contract on the destination chain.
+
+### Parameters
+
+| Parameter                   | Type           | Required | Description                     |
+| --------------------------- | -------------- | -------- | ------------------------------- |
+| `walletClient`              | `WalletClient` | Yes      | Wallet client for signing       |
+| `sourceChain`               | `ChainConfig`  | Yes\*    | Source chain configuration      |
+| `destinationChain`          | `ChainConfig`  | Yes\*    | Destination chain configuration |
+| `tokenHomeContract`         | `Address`      | Yes      | Token home contract address     |
+| `tokenRemoteCustomByteCode` | `string`       | No       | Custom bytecode                 |
+| `tokenRemoteCustomABI`      | `ABI`          | No       | Custom ABI                      |
+
+### Returns
+
+| Type                                                             | Description                           |
+| ---------------------------------------------------------------- | ------------------------------------- |
+| `Promise<{ txHash: 0x${string}, contractAddress: 0x${string} }>` | Transaction hash and contract address |
+
+### Example
+
+```typescript
+const { txHash, contractAddress } = await ictt.deployTokenRemoteContract({
+  walletClient: wallet,
+  sourceChain: avalancheFuji,
+  destinationChain: dispatch,
+  tokenHomeContract: tokenHomeAddress,
+});
+```
+
+## registerRemoteWithHome
+
+Registers the token remote contract with the token home contract.
+
+### Parameters
+
+| Parameter             | Type           | Required | Description                     |
+| --------------------- | -------------- | -------- | ------------------------------- |
+| `walletClient`        | `WalletClient` | Yes      | Wallet client for signing       |
+| `sourceChain`         | `ChainConfig`  | Yes\*    | Source chain configuration      |
+| `destinationChain`    | `ChainConfig`  | Yes\*    | Destination chain configuration |
+| `tokenRemoteContract` | `Address`      | Yes      | Token remote contract address   |
+| `feeTokenAddress`     | `Address`      | No       | Fee token address               |
+| `feeAmount`           | `number`       | No       | Fee amount                      |
+
+### Returns
+
+| Type                               | Description      |
+| ---------------------------------- | ---------------- |
+| `Promise<{ txHash: 0x${string} }>` | Transaction hash |
+
+### Example
+
+```typescript
+const { txHash } = await ictt.registerRemoteWithHome({
+  walletClient: wallet,
+  sourceChain: avalancheFuji,
+  destinationChain: dispatch,
+  tokenRemoteContract: tokenRemoteAddress,
+});
+```

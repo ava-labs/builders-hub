@@ -10,17 +10,17 @@ The main Avalanche client SDK for interacting with Avalanche nodes and building 
 
 Features:
 
-* Complete API coverage for P-Chain, X-Chain, and C-Chain.
-* Full viem compatibility - anything you can do with viem works here.
-* TypeScript-first design with full type safety.
-* Abstractions over the JSON-RPC API to make your life easier.
-* Wallet integration and transaction management.
-* First-class APIs for interacting with Smart Contracts.
-* Retrieve balances and UTXOs for addresses..
-* Build, sign, and issue transactions to any chain.
-* Perform cross-chain transfers between X, P and C chains.
-* Add validators and delegators.
-* Create subnets and blockchains, convert subnets to L1s.
+- Complete API coverage for P-Chain, X-Chain, and C-Chain.
+- Full viem compatibility - anything you can do with viem works here.
+- TypeScript-first design with full type safety.
+- Abstractions over the JSON-RPC API to make your life easier.
+- Wallet integration and transaction management.
+- First-class APIs for interacting with Smart Contracts.
+- Retrieve balances and UTXOs for addresses..
+- Build, sign, and issue transactions to any chain.
+- Perform cross-chain transfers between X, P and C chains.
+- Add validators and delegators.
+- Create subnets and blockchains, convert subnets to L1s.
 
 The SDK is currently available in TypeScript, with more languages coming soon. If you are interested in a language that is not listed, please reach out to us in the [#dev-tools](https://discord.com/channels/578992315641626624/1280920394236297257) channel in the [Avalanche Discord](https://discord.gg/avax).
 
@@ -28,7 +28,7 @@ The SDK is currently available in TypeScript, with more languages coming soon. I
   <Card title="NPM Package">
     [https://www.npmjs.com/package/@avalanche-sdk/client](https://www.npmjs.com/package/@avalanche-sdk/client)
   </Card>
-   <Card title="GitHub Repository">
+  <Card title="GitHub Repository">
     [https://github.com/ava-labs/avalanche-sdk-typescript](https://github.com/ava-labs/avalanche-sdk-typescript)
   </Card>
 </Cards>
@@ -69,21 +69,20 @@ The SDK is currently available in TypeScript, with more languages coming soon. I
 ### SDK Example Usage
 
 ```javascript
-import { createAvalancheClient } from '@avalanche-sdk/client'
-import { avalanche } from '@avalanche-sdk/client/chains'
+import { createAvalancheClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
 
 const client = createAvalancheClient({
   chain: avalanche,
   transport: {
-    type: "http"
-  }
-})
+    type: "http",
+  },
+});
 
 // Get account balance
-const balance = await client.getBalance({ 
-  address: '0xA0Cf798816D4b9b9866b5330EEa46a18382f251e',
-})
-
+const balance = await client.getBalance({
+  address: "0xA0Cf798816D4b9b9866b5330EEa46a18382f251e",
+});
 ```
 
 Refer to the code samples provided for each route to see examples of how to use them in the SDK. Explore routes here [Data API](/docs/api-reference/data-api/getting-started),

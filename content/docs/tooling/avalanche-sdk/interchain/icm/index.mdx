@@ -1,0 +1,34 @@
+---
+title: Interchain Messaging
+icon: message-square
+---
+
+## Overview
+
+Send arbitrary messages between Avalanche chains and subnets using the Teleporter protocol. Messages are encoded as strings and delivered cross-chain.
+
+## Create Client
+
+```typescript
+import { createICMClient } from "@avalanche-sdk/interchain";
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+
+const icm = createICMClient(wallet);
+// Or with default chains
+const icm = createICMClient(wallet, sourceChain, destinationChain);
+```
+
+<Callout type="warn">
+  The wallet client's chain configuration must match the `sourceChain` used in
+  your interchain operations. For example, if you're sending messages from Fuji
+  testnet, ensure your wallet client is configured with the Fuji chain.
+  Mismatched chains will result in an "invalid sender" error.
+</Callout>
+
+## Methods
+
+<Cards>
+  <Card title="sendMsg" href="/avalanche-sdk/interchain/icm/methods">
+    Send a cross-chain message
+  </Card>
+</Cards>
