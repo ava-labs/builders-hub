@@ -6,7 +6,9 @@
     "subnetId": "2qJPnDkDH6hn3PVzxzkUdTqDD1HeAnTT8FL4t2BJagc2iuq8j7",
     "slug": "aibmainnet",
     "color": "#3B82F6",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "8787",
@@ -15,7 +17,13 @@
     "subnetId": "TfTBHvcxpBfxPntMpadskcZTH8AG5rgkrNyz2DzeByNMsZkMo",
     "slug": "animalia",
     "color": "#10B981",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Snowtrace",
+        "link": "https://8787.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "4313",
@@ -24,7 +32,17 @@
     "subnetId": "25VdGtdQPejyffNLpTqh4BH2NABXT8Zxup6ee3B4htrMryofUB",
     "slug": "artery",
     "color": "#8B5CF6",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/artery"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://4313.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "65713",
@@ -33,7 +51,9 @@
     "subnetId": "2vL4TMT23mZzTsdkSSMFWZArFNWskR3xRWvCLxdrgd4rCe6vVy",
     "slug": "as0314t1tp",
     "color": "#F59E0B",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "43114",
@@ -42,7 +62,17 @@
     "subnetId": "11111111111111111111111111111111LpoYY",
     "slug": "c-chain",
     "color": "#E57373",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Snowtrace",
+        "link": "https://snowtrace.io"
+      },
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/c-chain"
+      }
+    ]
   },
   {
     "chainId": "40404",
@@ -51,7 +81,9 @@
     "subnetId": "2r7mmEKg3R2gTD22TtErn8KD8TmLeSjVXHdwMpH2S9BESUxH7q",
     "slug": "bango",
     "color": "#EC4899",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "5506",
@@ -60,7 +92,9 @@
     "subnetId": "4Wuefof5Lp2v5KfmJRnsGJz9HPX4UzWP7DZC5SyhQcXRQkyPp",
     "slug": "bangochain",
     "color": "#6366F1",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "4337",
@@ -69,7 +103,17 @@
     "subnetId": "eYwmVU67LmSfZb1RwqCMhBYkFyG8ftxn6jAwqzFmxC9STBWLC",
     "slug": "beam",
     "color": "#14B8A6",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Snowtrace",
+        "link": "https://4337.snowtrace.io"
+      },
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/beam"
+      }
+    ]
   },
   {
     "chainId": "836",
@@ -78,7 +122,13 @@
     "subnetId": "23dqTMHK186m4Rzcn1ukJdmHy13nqido4LjTp5Kh9W6qBKaFib",
     "slug": "binary-holdings",
     "color": "#F97316",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Zeeve Chains",
+        "link": "https://explorer-binaryholdings.cogitus.io"
+      }
+    ]
   },
   {
     "chainId": "46975",
@@ -87,7 +137,13 @@
     "subnetId": "j6HXQWdpRhX7yHMWLehUyYDjypHa455vP5tuiXZ81nkPgveFV",
     "slug": "blaze",
     "color": "#EF4444",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/blaze"
+      }
+    ]
   },
   {
     "chainId": "1344",
@@ -96,7 +152,13 @@
     "subnetId": "yPUx56ffTBML1QfomcBvwfBxfE3LSgqkBNfxTCpx5dr4NNFGB",
     "slug": "blitz",
     "color": "#A855F7",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Snowtrace",
+        "link": "https://1344.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "28530",
@@ -105,7 +167,17 @@
     "subnetId": "2Ypm6RVhddu5Ps8DEbb35Y1PgX4uXE76yyxn6JMhnZy8ftAFLW",
     "slug": "btic",
     "color": "#06B6D4",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/btic"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://28530.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "35414",
@@ -114,7 +186,9 @@
     "subnetId": "2LyJdHSdQDwg84nrbLrmtvEoAuudg41dWnhrbjMQUq78bdDHnT",
     "slug": "cedomis",
     "color": "#84CC16",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "2053",
@@ -123,7 +197,9 @@
     "subnetId": "2hZa4RMWAkiQAQ5zpbPSkNziYSHyCqBGeKNnbqWfJL2GKmy8eq",
     "slug": "certalink",
     "color": "#F43F5E",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "33210",
@@ -132,7 +208,9 @@
     "subnetId": "4YtJVNm6KnytRaEDeezC3mHK5FnsP75Sjgxa5eiav3sxNUQD9",
     "slug": "cloudverse",
     "color": "#0EA5E9",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "235235",
@@ -141,7 +219,9 @@
     "subnetId": "o4Eariv2Cx1fTvPFXYofpJfS9KgwFaiGN8KFGcCeZM9t87GJr",
     "slug": "codenekt",
     "color": "#22C55E",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "42069",
@@ -150,7 +230,13 @@
     "subnetId": "5moznRzaAEhzWkNTQVdT1U4Kb9EU7dbsKZQNmHwtN5MGVQRyT",
     "slug": "coqnet",
     "color": "#D946EF",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/coqnet"
+      }
+    ]
   },
   {
     "chainId": "737373",
@@ -159,7 +245,13 @@
     "subnetId": "WChFQ1twkXBLxZGo4qojC9AgizFrRdMRnPCK9FZmisY7z6pUs",
     "slug": "cx",
     "color": "#F59E0B",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/cx"
+      }
+    ]
   },
   {
     "chainId": "326663",
@@ -168,7 +260,9 @@
     "subnetId": "fmmMAGwEYQZMGN7BC4b86gqmukSMEc6rAkG1SXapq3cz1W7y7",
     "slug": "dcomm",
     "color": "#10B981",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "96786",
@@ -177,7 +271,13 @@
     "subnetId": "2ocjsdpN9czPYmHqS4Tc5Aydj4zk2WWVdX9jdXtqvMjQuf9pgV",
     "slug": "delaunch",
     "color": "#3B82F6",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Snowtrace",
+        "link": "https://96786.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "75685",
@@ -186,7 +286,9 @@
     "subnetId": "2ZKrfJUwXDsp27ggtxTqhWnzV87GpHppu2XJsv2nmFkHefHZZ5",
     "slug": "demol1",
     "color": "#10B981",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "20250320",
@@ -195,7 +297,9 @@
     "subnetId": "B7hA9WibSJu2fKdHT2XZs2RYg1rZTtxwg6cMYBKYjvcJjbqsp",
     "slug": "deraalpha",
     "color": "#8B5CF6",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "432204",
@@ -204,7 +308,17 @@
     "subnetId": "wenKDikJWAYQs3f2v9JhV86fC6kHZwkFZsuUBftnmgZ4QXPnu",
     "slug": "dexalot",
     "color": "#F59E0B",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/dexalot"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://432204.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "202110",
@@ -213,7 +327,13 @@
     "subnetId": "2Ee4oBUute1PV5XaeS4b256eLH98r4NE8YgzX5nSX4cUxvtgre",
     "slug": "dinari-financial-network",
     "color": "#E57373",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/dinari"
+      }
+    ]
   },
   {
     "chainId": "53935",
@@ -222,7 +342,17 @@
     "subnetId": "Vn3aX6hNRstj5VHHm63TCgPNaeGnRSqCYXQqemSqDd2TQH4qJ",
     "slug": "defikingdoms",
     "color": "#EC4899",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/defi-kingdoms"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://53935.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "7979",
@@ -231,7 +361,13 @@
     "subnetId": "nQCwF6V9y8VFjvMuPeQVWWYn6ba75518Dpf6ZMWZNb3NyTA94",
     "slug": "dos",
     "color": "#6366F1",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Snowtrace",
+        "link": "https://7979.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "389",
@@ -240,7 +376,13 @@
     "subnetId": "q54cgHa9RN2NFp9qsfpPzVkhgn8xqDgKEQR1G997xZ1P5Dc8o",
     "slug": "etx",
     "color": "#14B8A6",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/etx"
+      }
+    ]
   },
   {
     "chainId": "33345",
@@ -249,7 +391,13 @@
     "subnetId": "VsxF67NQTACc2fLQL9fD3F8LzJ5eezcSGFNitGsk7VxKbPwcD",
     "slug": "even",
     "color": "#F97316",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/even"
+      }
+    ]
   },
   {
     "chainId": "33311",
@@ -258,7 +406,17 @@
     "subnetId": "29p4FdSKaXQPyw8sqhzJSK37FXuPHdyECau186qZSUNRhk3QuB",
     "slug": "feature",
     "color": "#EF4444",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/feature"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://33311.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "13322",
@@ -267,7 +425,17 @@
     "subnetId": "h7egyVb6fKHMDpVaEsTEcy7YaEnXrayxZS4A1AEU4pyBzmwGp",
     "slug": "fifa",
     "color": "#A855F7",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/fifa"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://13322.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "62786",
@@ -276,7 +444,9 @@
     "subnetId": "FAjUPxhRewh9vk8dSzcgRFZRLaCaNVg6gb5TcHwKsehuQ7k6p",
     "slug": "frqtal",
     "color": "#06B6D4",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "62789",
@@ -285,7 +455,13 @@
     "subnetId": "5vcCHz5fgd1hWyXaKiLnMAVjmh4qW7yFxNbASBjxCXZYE445N",
     "slug": "frqtalnet",
     "color": "#84CC16",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/frqtalnet"
+      }
+    ]
   },
   {
     "chainId": "741741",
@@ -294,7 +470,9 @@
     "subnetId": "2TqrQau4E99KoUXcFjyf1Pek3rUHpDpqtN9rC5GDaCKFu7dfPo",
     "slug": "goodcare",
     "color": "#F43F5E",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "6765897101",
@@ -303,7 +481,9 @@
     "subnetId": "VzsCkPm6MjStgT2v5Qmcn5ycgMhj68rxPN4gX9eMgBbBXHYEu",
     "slug": "greendot",
     "color": "#0EA5E9",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "7084",
@@ -312,7 +492,9 @@
     "subnetId": "BCDGWbjqYBJLsXEzHNc2qy9VYPTrF3aGaSMbTGyjn7qJ7RxH8",
     "slug": "growfitter",
     "color": "#22C55E",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "43419",
@@ -321,7 +503,17 @@
     "subnetId": "2MbQjnTg3yxEtZBfnamboi7K9AajwNq7WExiwReBQSBtwbBVer",
     "slug": "gunzilla",
     "color": "#D946EF",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/gunzilla"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://43419.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "43512",
@@ -330,7 +522,9 @@
     "subnetId": "9ewhue9Lyryt1G4H1icgZotc6wRVwiPgmiVemSN24JXwg91JH",
     "slug": "gunzilla-testnet",
     "color": "#F59E0B",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "7272",
@@ -339,7 +533,13 @@
     "subnetId": "2LwJgsZLT52eAaxLTMLtBQeiUnEZuMibCqpAzJSQWHvRPs1iWN",
     "slug": "hashfire",
     "color": "#F59E0B",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/hashfire"
+      }
+    ]
   },
   {
     "chainId": "68414",
@@ -348,7 +548,17 @@
     "subnetId": "jmLmezoViv3F72XLzpdmSNk3qLEGb72g5EYkp3ij4wHXPF2KN",
     "slug": "henesys",
     "color": "#3B82F6",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/henesys"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://68414.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "1992",
@@ -357,7 +567,9 @@
     "subnetId": "2mxZY7A2t1tuRMALW4BcBUPVGNR3LH1DXhftdbLAHm1QtDkFp8",
     "slug": "hubblenet",
     "color": "#10B981",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "2345",
@@ -366,7 +578,9 @@
     "subnetId": "7SeGzzeirxi9tAn594hTSmZb8BQdYzwNgWSHa9DqJ9hCUYbFx",
     "slug": "ienium",
     "color": "#3B82F6",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "10036",
@@ -375,7 +589,17 @@
     "subnetId": "oerPWBbtbe13eWbo3AegYUrHuSETeTwyNy7szoHJJ1QQBL9nu",
     "slug": "innovo",
     "color": "#3B82F6",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/innovo"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://10036.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "151122",
@@ -384,7 +608,9 @@
     "subnetId": "2UEGsEEjRyMSgD7cNufCGEXbPXsma7RctBgfRw3Haqkk8oByFa",
     "slug": "intainmkt",
     "color": "#10B981",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "1216",
@@ -393,7 +619,17 @@
     "subnetId": "2UPuVAx5yFubvDPm6CYywT4mYAdTW3zM1XXD7R7ic8s2zQhF8U",
     "slug": "intersect",
     "color": "#8B5CF6",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/intersect"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://1216.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "6533",
@@ -402,7 +638,17 @@
     "subnetId": "x1C95jnFyLV3x8tiiCW7ZFRoRFgq9SX1Yprwfxx4GCTujggYB",
     "slug": "kalichain",
     "color": "#F59E0B",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/kalichain"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://6533.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "379",
@@ -411,7 +657,13 @@
     "subnetId": "pchqewRRQHwx1B3XJEq9p2HGSdjrHsyv48YzVUWXZbrmH4TM6",
     "slug": "koroshi",
     "color": "#E57373",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Snowtrace",
+        "link": "https://379.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "10849",
@@ -420,7 +672,17 @@
     "subnetId": "2hoHzxcZktxrTNoqCZhR9bEctc5oCuBqSp6SpRn6uvwxzLkvnD",
     "slug": "lamina1",
     "color": "#EC4899",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/lamina1"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://10849.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "10850",
@@ -429,7 +691,17 @@
     "subnetId": "2T4gpnissLkoezQ36XKxhrFAH5yynqKGa1u47XxCYTdfvePuNz",
     "slug": "lamina1id",
     "color": "#EC4899",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/lamina1id"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://10850.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "50776",
@@ -438,7 +710,13 @@
     "subnetId": "f6ewGNYxGRjQ1SFfhL2tiHCMHzz9AHdTuPe11dRNarGbp3dES",
     "slug": "letsbuyhc",
     "color": "#6366F1",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/letsbuyhc"
+      }
+    ]
   },
   {
     "chainId": "72379",
@@ -447,7 +725,13 @@
     "subnetId": "fZu9D9Ldxq9svbgRNdycWCSbLyEZLmTfKNxEnSqF3UXQztHP7",
     "slug": "loyal",
     "color": "#F97316",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/loyal"
+      }
+    ]
   },
   {
     "chainId": "62521",
@@ -456,7 +740,13 @@
     "subnetId": "hbP3PrnQS71Py1VVxvHfnCnr7MWos3XQesEsCKQoA9hpciyVR",
     "slug": "lucid",
     "color": "#14B8A6",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Snowtrace",
+        "link": "https://62521.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "17177",
@@ -465,7 +755,13 @@
     "subnetId": "2iumcj2wiV9BQ96LRHpYNpD1SHhb8Vcvm8YUebZSqcFeJakTo6",
     "slug": "lylty",
     "color": "#F97316",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/lylty"
+      }
+    ]
   },
   {
     "chainId": "5419",
@@ -474,7 +770,9 @@
     "subnetId": "sZ1zmoQx3NeV8WB5D3np8xYUJ2p5hKfWFXDeuSGvxyZkCABs2",
     "slug": "marnisa",
     "color": "#EF4444",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "3454",
@@ -483,7 +781,9 @@
     "subnetId": "P8teobyNzpvniT7XGhXdEnkXiXvkk3eM4vSYtHUTAJcuV3jLb",
     "slug": "masa",
     "color": "#A855F7",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "13396",
@@ -492,7 +792,17 @@
     "subnetId": "yEQe3LdJgjxBqG28gRjLUu86qFCcNbWnkPtPr7ZHg8pLx1SUJ",
     "slug": "masanetwork",
     "color": "#06B6D4",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/masanetwork"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://13396.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "333000333",
@@ -501,7 +811,9 @@
     "subnetId": "2ibTg9ruyJRQf4NpRbkd1Utcfayo3gRRpkoWGCWNC3oXTZoYCe",
     "slug": "meld",
     "color": "#84CC16",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "1888",
@@ -510,7 +822,13 @@
     "subnetId": "2sF5Pb165jhdeNSy2kT4WyDYazu3buh1WGh77oTBA9dDjBPtsy",
     "slug": "memoria",
     "color": "#F43F5E",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Snowtrace",
+        "link": "https://1888.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "29111",
@@ -519,7 +837,9 @@
     "subnetId": "LbvSkGmUJSpUby1gUrk4g9mmdeZQWcVGiFCXv57CJHBrxxEos",
     "slug": "mugen",
     "color": "#0EA5E9",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "8021",
@@ -528,7 +848,17 @@
     "subnetId": "2nCzBViQ5jxLaxkg9TABx6oXu1UGU7chM7G6XzPvW9ehP8RfrJ",
     "slug": "numi",
     "color": "#22C55E",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/numi"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://8021.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "1188811",
@@ -537,7 +867,9 @@
     "subnetId": "4iDWVgCCSu4Tafpg4bdhxu8q1ap8Rp2hMzG4UPxUhL9UVX6iU",
     "slug": "numine",
     "color": "#D946EF",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "5041",
@@ -546,7 +878,9 @@
     "subnetId": "2mBbfPEFbdEqeaBvRLgvmQQA3cG5mbpqbC8fcXCTZaycXZrXDq",
     "slug": "omochi",
     "color": "#F59E0B",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "5040",
@@ -555,7 +889,13 @@
     "subnetId": "2QiTdY87qfDRav1pSdxkGMqjRD6YXFscVd64W3L3V8v4re9CCo",
     "slug": "onigiri",
     "color": "#3B82F6",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Snowtrace",
+        "link": "https://5040.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "58166",
@@ -564,7 +904,9 @@
     "subnetId": "HXtMMwc6UwS8zK1G3kA9u6NGtUHrm56cnPm2WZBCU1bs2hHsM",
     "slug": "oumla",
     "color": "#10B981",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "7776",
@@ -573,7 +915,9 @@
     "subnetId": "26NzZkCTeUHfqdxRcUXDTAurNxDsT6mYLwSEqTz3s11G1rQV14",
     "slug": "pandasea",
     "color": "#3B82F6",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "3011",
@@ -582,7 +926,17 @@
     "subnetId": "2wLe8Ma7YcUmxMJ57JVWETMSHz1mjXmJc5gmssvKm3Pw8GkcFq",
     "slug": "playa3ull",
     "color": "#10B981",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/playa3ull"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://3011.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "504441",
@@ -591,7 +945,9 @@
     "subnetId": "2bSdrPJaGvsDFeJtC7v9ut4m2vLKBgs2dJzRsDpxYKbqTyBmr9",
     "slug": "playdappne",
     "color": "#8B5CF6",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "1080",
@@ -600,7 +956,9 @@
     "subnetId": "T6XNCf5qHYhJigDcGtjTaGvfiQGRW8JVXTyPza9eZBfCGyDF",
     "slug": "playthink",
     "color": "#F59E0B",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "16180",
@@ -609,7 +967,17 @@
     "subnetId": "axp7DUSPvFghTM883ug2B8btAReBAACxD1VyENmRDStH4Lfed",
     "slug": "plyr",
     "color": "#E57373",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/plyr"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://16180.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "357",
@@ -618,7 +986,13 @@
     "subnetId": "DxanjptkyaeM1eUew2gzUMngHM3n5ttUyMj7BuHw9riXh9pJC",
     "slug": "pulsar",
     "color": "#EC4899",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Snowtrace",
+        "link": "https://357.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "77757",
@@ -627,7 +1001,13 @@
     "subnetId": "TsijYHafTXCUZGoisGnMorh2HGwY9Vg2YzviEo8nrmtZZESp9",
     "slug": "qr0723t1ms",
     "color": "#F59E0B",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/qr0723t1ms"
+      }
+    ]
   },
   {
     "chainId": "12150",
@@ -636,7 +1016,17 @@
     "subnetId": "26wQKuvA5kjwrKDaje7nmuJAx6Ke2bGvDDr3EiypNr53rH1pMc",
     "slug": "qchain",
     "color": "#6366F1",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/qchain"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://12150.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "2044",
@@ -645,7 +1035,17 @@
     "subnetId": "Cv1gyKNUtPNAtFw8YcjbsD4a3HNRbNvinY7t2gnGK4J54rQK3",
     "slug": "shrapnel",
     "color": "#14B8A6",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/shrapnel"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://2044.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "6119",
@@ -654,7 +1054,17 @@
     "subnetId": "yDxaSh2hoVxQKRHmacV1xFpuSgHf6Q6cCMu4v3GoLQnqQWk6L",
     "slug": "skplanet",
     "color": "#F97316",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/uptn"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://6119.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "9899",
@@ -663,7 +1073,17 @@
     "subnetId": "2An23jRoEGZc5Fr9CQSw4vNnBRDX5Y56F27ChYz9Sa5Bg8L6JK",
     "slug": "solert",
     "color": "#EF4444",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/solert"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://9899.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "8227",
@@ -672,7 +1092,17 @@
     "subnetId": "hkugVjqegihrQcggCnScNW8yQctyY7Z7oj2Mj5tGxWGXNa5iQ",
     "slug": "space",
     "color": "#A855F7",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/space"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://8227.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "1234",
@@ -681,7 +1111,13 @@
     "subnetId": "7f9jciLEX25NPJEaAz1X7XF44B1Q9UBwq6PdnCHm5mnUq1e1C",
     "slug": "stepnetwork",
     "color": "#06B6D4",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Snowtrace",
+        "link": "https://1234.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "5566",
@@ -690,7 +1126,17 @@
     "subnetId": "2W9sERL7Zf7NrWpz7Bzg3fKSEt46gSQaKAU7ntTMSShLy64yMz",
     "slug": "straitsx",
     "color": "#84CC16",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/straitsx"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://5566.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "62707",
@@ -699,7 +1145,9 @@
     "subnetId": "V9cD5JH4TYcw9241zgxrXXEj3k3rZJJLNL2UEPv5ujDip1m3m",
     "slug": "tele1",
     "color": "#F43F5E",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "70953",
@@ -708,7 +1156,9 @@
     "subnetId": "2BNnJuF7QiSjnEhvRStKE6ksugnAyF1e42j3u6VWMCL4c8D3bJ",
     "slug": "tele2",
     "color": "#0EA5E9",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "61587",
@@ -717,7 +1167,17 @@
     "subnetId": "2eq3DtJp4cWzvGd8Q3ZFo8VpZmmD235Xoxgq6CmX8anZ69M54",
     "slug": "tgp",
     "color": "#22C55E",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/tgp"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://61587.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "710420",
@@ -726,7 +1186,17 @@
     "subnetId": "23LsHpx3wTPtNC4PUaTdtNQkaGbLxwiGimnZjHaUc28qLHs7Dn",
     "slug": "tiltyard",
     "color": "#D946EF",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/tiltyard"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://710420.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "84358",
@@ -735,7 +1205,17 @@
     "subnetId": "2LbGgyVZE5aMMYPp3h1F2MkKbjefR51nSZWaZzarDZf8GThCcX",
     "slug": "titan",
     "color": "#F59E0B",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/titan"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://84358.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "13790",
@@ -744,7 +1224,13 @@
     "subnetId": "2BLtazsGwYAFEHpvZQGQUPavjQZ2YUqpvfYPdAdTtKpJ1m3eRK",
     "slug": "tixchain",
     "color": "#3B82F6",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/tixchain"
+      }
+    ]
   },
   {
     "chainId": "21024",
@@ -753,7 +1239,17 @@
     "subnetId": "JD8MbaUp75twdVJ7A4j2ryk7gFJ8FCgQeNLhvDv3y4up9bExp",
     "slug": "trx",
     "color": "#10B981",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/trx"
+      },
+      {
+        "name": "Snowtrace",
+        "link": "https://21024.snowtrace.io"
+      }
+    ]
   },
   {
     "chainId": "62334",
@@ -762,7 +1258,13 @@
     "subnetId": "7e3ziXMNuq29Y6nBBvWQZYAWYKyvhN5bhvmoNquNEbvFR51ad",
     "slug": "turf",
     "color": "#22C55E",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/turf"
+      }
+    ]
   },
   {
     "chainId": "237007",
@@ -771,7 +1273,9 @@
     "subnetId": "sopy3uXvCFVLorg4kmqQfZpqVg9GXzs8GmjSwM18GZJtf66h6",
     "slug": "ulalo",
     "color": "#3B82F6",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "40875",
@@ -780,7 +1284,9 @@
     "subnetId": "kf1sMrGJSA2x9yZfvjBJCHu3ZdTievrCyrbEEPKXbHMH2tXuA",
     "slug": "v1migrate",
     "color": "#10B981",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "299792",
@@ -789,7 +1295,13 @@
     "subnetId": "9L3hT5PtJVhiyJt1FHVqeJKtguyTM7V98KZobBeCUhYCQEHeQ",
     "slug": "warp",
     "color": "#F59E0B",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/warp"
+      }
+    ]
   },
   {
     "chainId": "192",
@@ -798,7 +1310,9 @@
     "subnetId": "QL49tBK9T84NSHQYYSP33Ru7h1KcybDR6MGA8dARVWhw1zLB8",
     "slug": "watr",
     "color": "#8B5CF6",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "98968",
@@ -807,7 +1321,9 @@
     "subnetId": "hqqtt4VGmzSACDn2yYxTFMhHu9RpFTECEhbexb4bXu2w6Pxtf",
     "slug": "wow",
     "color": "#F59E0B",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "8888",
@@ -816,7 +1332,9 @@
     "subnetId": "ii7zCu8JNnYYgPT8PwpVYiTS1gcK5RWJfsyuPXTDv8Bn9wspY",
     "slug": "xanachain",
     "color": "#E57373",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+    ]
   },
   {
     "chainId": "61360",
@@ -825,7 +1343,13 @@
     "subnetId": "ZjyoAfPS1qaSzLKkCVCc3koXf7KLqop7G9viy93oSkxJf6odZ",
     "slug": "youmio",
     "color": "#F59E0B",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/youmio"
+      }
+    ]
   },
   {
     "chainId": "27827",
@@ -834,6 +1358,12 @@
     "subnetId": "nKJuE11HePLrmp391sfoFVqZR7Fw5VJ1XjyznsogsjebxwiAg",
     "slug": "zeroonemainnet",
     "color": "#EC4899",
-    "category": "General"
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Snowtrace",
+        "link": "https://27827.snowtrace.io"
+      }
+    ]
   }
 ]
