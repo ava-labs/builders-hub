@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Zap, Gauge, DollarSign, TrendingDown, Clock, Fuel, ExternalLink } from "lucide-react";
+import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
@@ -38,6 +38,8 @@ interface CChainMetrics {
   txCount: TimeSeriesMetric;
   cumulativeTxCount: TimeSeriesMetric;
   cumulativeContracts: TimeSeriesMetric;
+  contracts: TimeSeriesMetric;
+  deployers: TimeSeriesMetric;
   gasUsed: TimeSeriesMetric;
   avgGps: TimeSeriesMetric;
   maxGps: TimeSeriesMetric;
@@ -148,6 +150,14 @@ export default function ChainMetricsPage({
     if (rate === "N/A" || rate === "") return "N/A";
     const rateValue = typeof rate === "string" ? Number.parseFloat(rate) : rate;
     if (isNaN(rateValue)) return "N/A";
+
+    if (rateValue >= 1e9) {
+      return `${(rateValue / 1e9).toFixed(2)}B ${unit}`;
+    } else if (rateValue >= 1e6) {
+      return `${(rateValue / 1e6).toFixed(2)}M ${unit}`;
+    } else if (rateValue >= 1e3) {
+      return `${(rateValue / 1e3).toFixed(2)}K ${unit}`;
+    }
     return `${rateValue.toFixed(2)} ${unit}`;
   };
 
@@ -205,6 +215,8 @@ export default function ChainMetricsPage({
       "cumulativeDeployers",
       "cumulativeTxCount",
       "cumulativeContracts",
+      "contracts",
+      "deployers",
       "icmMessages"
     ].includes(metricKey) ? Math.round(value) : value;
 
@@ -223,6 +235,10 @@ export default function ChainMetricsPage({
         return `${formatNumber(roundedValue)} Total Transactions`;
       case "cumulativeContracts":
         return `${formatNumber(roundedValue)} Total Contracts`;
+      case "contracts":
+        return `${formatNumber(roundedValue)} Contracts Deployed`;
+      case "deployers":
+        return `${formatNumber(roundedValue)} Contract Deployers`;
       case "gasUsed":
         return formatGas(value);
       case "avgGps":
@@ -240,7 +256,7 @@ export default function ChainMetricsPage({
       case "feesPaid":
         return formatEther(value);
       case "icmMessages":
-        return `${formatNumber(roundedValue)} ICM Messages`;
+        return `${formatNumber(roundedValue)} Interchain Messages`;
       default:
         return formatNumber(value);
     }
@@ -271,7 +287,7 @@ export default function ChainMetricsPage({
       chartType: "area" as const,
     },
     {
-      title: "Daily Transactions",
+      title: "Transactions",
       icon: Activity,
       metricKey: "txCount" as const,
       description: "Transaction volume over time",
@@ -287,14 +303,6 @@ export default function ChainMetricsPage({
       chartType: "area" as const,
     },
     {
-      title: "Total Deployers",
-      icon: Code2,
-      metricKey: "cumulativeDeployers" as const,
-      description: "Cumulative contract deployers since genesis",
-      color: themeColor,
-      chartType: "area" as const,
-    },
-    {
       title: "Total Transactions",
       icon: Hash,
       metricKey: "cumulativeTxCount" as const,
@@ -303,12 +311,20 @@ export default function ChainMetricsPage({
       chartType: "area" as const,
     },
     {
-      title: "Total Contracts",
+      title: "Smart Contracts",
       icon: FileText,
-      metricKey: "cumulativeContracts" as const,
-      description: "Cumulative smart contracts deployed since genesis",
+      metricKey: "contracts" as const,
+      description: "New smart contracts deployed over time",
       color: themeColor,
-      chartType: "area" as const,
+      chartType: "bar" as const,
+    },
+    {
+      title: "Contract Deployers",
+      icon: Code2,
+      metricKey: "deployers" as const,
+      description: "Unique addresses deploying contracts",
+      color: themeColor,
+      chartType: "bar" as const,
     },
     {
       title: "Gas Used",
@@ -316,55 +332,34 @@ export default function ChainMetricsPage({
       metricKey: "gasUsed" as const,
       description: "Gas consumption over time",
       color: themeColor,
-      chartType: "bar" as const,
+      chartType: "area" as const,
     },
     {
-      title: "Avg GPS",
+      title: "Gas Per Second",
       icon: Gauge,
       metricKey: "avgGps" as const,
-      description: "Average gas per second",
+      secondaryMetricKey: "maxGps" as const,
+      description: "Average and peak gas per second",
       color: themeColor,
-      chartType: "area" as const,
+      chartType: "dual" as const,
     },
     {
-      title: "Max GPS",
-      icon: Zap,
-      metricKey: "maxGps" as const,
-      description: "Peak gas per second",
-      color: themeColor,
-      chartType: "area" as const,
-    },
-    {
-      title: "Avg TPS",
+      title: "Transactions Per Second",
       icon: Clock,
       metricKey: "avgTps" as const,
-      description: "Average transactions per second",
+      secondaryMetricKey: "maxTps" as const,
+      description: "Average and peak transactions per second",
       color: themeColor,
-      chartType: "area" as const,
+      chartType: "dual" as const,
     },
     {
-      title: "Max TPS",
-      icon: TrendingUp,
-      metricKey: "maxTps" as const,
-      description: "Peak transactions per second",
-      color: themeColor,
-      chartType: "area" as const,
-    },
-    {
-      title: "Avg Gas Price",
+      title: "Gas Price",
       icon: DollarSign,
       metricKey: "avgGasPrice" as const,
-      description: "Average gas price over time",
+      secondaryMetricKey: "maxGasPrice" as const,
+      description: "Average and peak gas price over time",
       color: themeColor,
-      chartType: "area" as const,
-    },
-    {
-      title: "Max Gas Price",
-      icon: TrendingDown,
-      metricKey: "maxGasPrice" as const,
-      description: "Peak gas price over time",
-      color: themeColor,
-      chartType: "area" as const,
+      chartType: "dual" as const,
     },
     {
       title: "Fees Paid",
@@ -375,7 +370,7 @@ export default function ChainMetricsPage({
       chartType: "bar" as const,
     },
     {
-      title: "ICM Messages",
+      title: "Interchain Messages",
       icon: MessageSquare,
       metricKey: "icmMessages" as const,
       description: "Interchain messaging activity",
@@ -465,7 +460,7 @@ export default function ChainMetricsPage({
                 key: "activeAddresses",
                 icon: Users,
                 color: themeColor,
-                label: "Active Addresses",
+                label: "Daily Active Addresses",
               },
               {
                 key: "txCount",
@@ -477,13 +472,13 @@ export default function ChainMetricsPage({
                 key: "cumulativeContracts",
                 icon: FileText,
                 color: themeColor,
-                label: "Total Contracts",
+                label: "Total Contracts Deployed",
               },
               {
                 key: "icmMessages",
                 icon: MessageSquare,
                 color: themeColor,
-                label: "ICM Messages",
+                label: "Daily Interchain Messages",
               },
             ].map((item) => {
               const currentValue = getCurrentValue(
@@ -529,7 +524,8 @@ export default function ChainMetricsPage({
               .filter(
                 (config) =>
                   config.metricKey !== "cumulativeTxCount" &&
-                  config.metricKey !== "cumulativeAddresses"
+                  config.metricKey !== "cumulativeAddresses" &&
+                  config.metricKey !== "activeSenders"
               )
               .map((config) => {
                 const rawData =
@@ -547,6 +543,18 @@ export default function ChainMetricsPage({
                   cumulativeData = getChartData("cumulativeTxCount");
                 } else if (config.metricKey === "activeAddresses") {
                   cumulativeData = getChartData("cumulativeAddresses");
+                } else if (config.metricKey === "contracts") {
+                  cumulativeData = getChartData("cumulativeContracts");
+                } else if (config.metricKey === "deployers") {
+                  cumulativeData = getChartData("cumulativeDeployers");
+                }
+
+                // secondary data for dual y-axis charts
+                let secondaryData = null;
+                let secondaryCurrentValue = null;
+                if (config.chartType === "dual" && config.secondaryMetricKey) {
+                  secondaryData = getChartData(config.secondaryMetricKey);
+                  secondaryCurrentValue = getCurrentValue(config.secondaryMetricKey);
                 }
 
                 return (
@@ -555,8 +563,10 @@ export default function ChainMetricsPage({
                     config={config}
                     rawData={rawData}
                     cumulativeData={cumulativeData}
+                    secondaryData={secondaryData}
                     period={period}
                     currentValue={currentValue}
+                    secondaryCurrentValue={secondaryCurrentValue}
                     onPeriodChange={(newPeriod) =>
                       setChartPeriods((prev) => ({
                         ...prev,
@@ -584,8 +594,10 @@ function ChartCard({
   config,
   rawData,
   cumulativeData,
+  secondaryData,
   period,
   currentValue,
+  secondaryCurrentValue,
   onPeriodChange,
   formatTooltipValue,
   formatYAxisValue,
@@ -593,8 +605,10 @@ function ChartCard({
   config: any;
   rawData: any[];
   cumulativeData?: any[] | null;
+  secondaryData?: any[] | null;
   period: "D" | "W" | "M" | "Q" | "Y";
   currentValue: number | string;
+  secondaryCurrentValue?: number | string | null;
   onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
   formatTooltipValue: (value: number) => string;
   formatYAxisValue: (value: number) => string;
@@ -646,7 +660,7 @@ function ChartCard({
     return Array.from(grouped.values())
       .map((group) => ({
         day: group.date,
-        value: group.sum / group.count,
+        value: group.sum,
       }))
       .sort((a, b) => a.day.localeCompare(b.day));
   }, [rawData, period]);
@@ -694,6 +708,53 @@ function ChartCard({
       .sort((a, b) => a.day.localeCompare(b.day));
   }, [cumulativeData, period]);
 
+  // Aggregate secondary data for dual y-axis charts
+  const aggregatedSecondaryData = useMemo(() => {
+    if (!secondaryData || period === "D") return secondaryData;
+
+    const grouped = new Map<
+      string,
+      { sum: number; count: number; date: string }
+    >();
+
+    secondaryData.forEach((point) => {
+      const date = new Date(point.day);
+      let key: string;
+
+      if (period === "W") {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
+      } else if (period === "M") {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}`;
+      } else if (period === "Q") {
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
+      } else {
+        // Y
+        key = String(date.getFullYear());
+      }
+
+      if (!grouped.has(key)) {
+        grouped.set(key, { sum: 0, count: 0, date: key });
+      }
+
+      const group = grouped.get(key)!;
+      group.sum += point.value;
+      group.count += 1;
+    });
+
+    return Array.from(grouped.values())
+      .map((group) => ({
+        day: group.date,
+        value: group.sum,
+      }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+  }, [secondaryData, period]);
+
   // Set default brush range based on period
   useEffect(() => {
     if (aggregatedData.length === 0) return;
@@ -720,21 +781,38 @@ function ChartCard({
 
   // Merge actual cumulative transaction data with daily data
   const displayDataWithCumulative = useMemo(() => {
-    if (!aggregatedCumulativeData || aggregatedCumulativeData.length === 0) {
-      return displayData;
+    let result = displayData;
+
+    // Add cumulative data if available
+    if (aggregatedCumulativeData && aggregatedCumulativeData.length > 0) {
+      const cumulativeMap = new Map(
+        aggregatedCumulativeData.map((point) => [point.day, point.value])
+      );
+      result = result.map((point) => ({
+        ...point,
+        cumulative: cumulativeMap.get(point.day) || null,
+      }));
     }
 
-    // Create a map of cumulative values by date for quick lookup
-    const cumulativeMap = new Map(
-      aggregatedCumulativeData.map((point) => [point.day, point.value])
-    );
+    // Add secondary data for dual y-axis charts (stacked bars)
+    if (aggregatedSecondaryData && aggregatedSecondaryData.length > 0) {
+      const secondaryMap = new Map(
+        aggregatedSecondaryData.map((point) => [point.day, point.value])
+      );
+      result = result.map((point) => {
+        const secondary = secondaryMap.get(point.day) || null;
+        const avg = point.value;
+        const maxMinusAvg = secondary && avg ? secondary - avg : 0;
+        return {
+          ...point,
+          secondary: secondary,
+          maxMinusAvg: maxMinusAvg,
+        };
+      });
+    }
 
-    // Merge the data
-    return displayData.map((point) => ({
-      ...point,
-      cumulative: cumulativeMap.get(point.day) || null,
-    }));
-  }, [displayData, aggregatedCumulativeData]);
+    return result;
+  }, [displayData, aggregatedCumulativeData, aggregatedSecondaryData]);
 
   // Calculate percentage change based on brush selection
   const dynamicChange = useMemo(() => {
@@ -882,10 +960,33 @@ function ChartCard({
         <div className="px-5 pt-6 pb-6">
           {/* Current Value and Change */}
           <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4 flex-wrap">
-            <div className="text-md sm:text-base font-mono break-all">
-              {formatTooltipValue(typeof currentValue === "string"? parseFloat(currentValue) : currentValue)}
-            </div>
-            {dynamicChange.change > 0 && (
+            {config.chartType === "dual" &&
+            secondaryCurrentValue !== null &&
+            secondaryCurrentValue !== undefined ? (
+              <div className="text-md sm:text-base font-mono">
+                Avg:{" "}
+                {formatTooltipValue(
+                  typeof currentValue === "string"
+                    ? parseFloat(currentValue)
+                    : currentValue
+                )}{" "}
+                / Max:{" "}
+                {formatTooltipValue(
+                  typeof secondaryCurrentValue === "string"
+                    ? parseFloat(secondaryCurrentValue)
+                    : secondaryCurrentValue
+                )}
+              </div>
+            ) : (
+              <div className="text-md sm:text-base font-mono break-all">
+                {formatTooltipValue(
+                  typeof currentValue === "string"
+                    ? parseFloat(currentValue)
+                    : currentValue
+                )}
+              </div>
+            )}
+            {dynamicChange.change > 0 && config.chartType !== "dual" && (
               <div
                 className={`flex items-center gap-1 text-xs sm:text-sm ${dynamicChange.isPositive ? "text-green-600" : "text-red-600"}`}
                 title={`Change over selected time range`}
@@ -901,7 +1002,7 @@ function ChartCard({
               </div>
             )}
             {/* for cumulative charts */}
-            {config.chartType === "bar" && (config.metricKey === "txCount" || config.metricKey === "activeAddresses") && (
+            {config.chartType === "bar" && (config.metricKey === "txCount" || config.metricKey === "activeAddresses" || config.metricKey === "contracts" || config.metricKey === "deployers") && (
                 <div className="flex items-center gap-3 ml-auto text-xs">
                   <div className="flex items-center gap-1.5">
                     <div className="w-3 h-3 rounded" style={{ backgroundColor: config.color }}/>
@@ -912,19 +1013,40 @@ function ChartCard({
                   <div className="flex items-center gap-1.5">
                     <div
                       className="w-3 h-0.5"
-                      style={{ backgroundColor: "#10b981" }}
+                      style={{ backgroundColor: "#a855f7" }}
                     />
-                    <span style={{ color: "#10b981" }}>Total</span>
+                    <span style={{ color: "#a855f7" }}>Total</span>
                   </div>
                 </div>
               )}
+            {/* for dual charts */}
+            {config.chartType === "dual" && (
+              <div className="flex items-center gap-3 ml-auto text-xs">
+                <div className="flex items-center gap-1.5">
+                  <div
+                    className="w-3 h-3 rounded"
+                    style={{ backgroundColor: config.color }}
+                  />
+                  <span className="text-muted-foreground">Avg</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div
+                    className="w-3 h-3 rounded"
+                    style={{ backgroundColor: "#a855f7" }}
+                  />
+                  <span style={{ color: "#a855f7" }}>Max</span>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mb-6">
             <ResponsiveContainer width="100%" height={400}>
               {config.chartType === "bar" &&
               (config.metricKey === "txCount" ||
-                config.metricKey === "activeAddresses") ? (
+                config.metricKey === "activeAddresses" ||
+                config.metricKey === "contracts" ||
+                config.metricKey === "deployers") ? (
                 <ComposedChart
                   data={displayDataWithCumulative}
                   margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
@@ -991,18 +1113,30 @@ function ChartCard({
                     yAxisId="left"
                     name={
                       config.metricKey === "txCount"
-                        ? "Daily Transactions"
-                        : "Active Addresses"
+                        ? "Transactions"
+                        : config.metricKey === "activeAddresses"
+                          ? "Active Addresses"
+                          : config.metricKey === "contracts"
+                            ? "Contracts Deployed"
+                            : "Contract Deployers"
                     }
                   />
                   <Line
                     type="monotone"
                     dataKey="cumulative"
-                    stroke="#10b981"
+                    stroke="#a855f7"
                     strokeWidth={1}
                     dot={false}
                     yAxisId="right"
-                    name={config.metricKey === "txCount" ? "Total Transactions" : "Total Addresses"}
+                    name={
+                      config.metricKey === "txCount"
+                        ? "Total Transactions"
+                        : config.metricKey === "activeAddresses"
+                          ? "Total Addresses"
+                          : config.metricKey === "contracts"
+                            ? "Total Contracts"
+                            : "Total Deployers"
+                    }
                     strokeOpacity={0.9}
                   />
                 </ComposedChart>
@@ -1124,6 +1258,86 @@ function ChartCard({
                     strokeWidth={1}
                   />
                 </AreaChart>
+              ) : config.chartType === "dual" ? (
+                <BarChart
+                  data={displayDataWithCumulative}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-gray-200 dark:stroke-gray-700"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={formatXAxis}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tickFormatter={formatYAxisValue}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: `${config.color}20` }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const formattedDate = formatTooltipDate(
+                        payload[0].payload.day
+                      );
+                      return (
+                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                          <div className="grid gap-2">
+                            <div className="font-medium text-sm">
+                              {formattedDate}
+                            </div>
+                            {payload[0].payload.secondary && (
+                              <div className="text-xs flex items-center gap-1.5">
+                                <div
+                                  className="w-2 h-2 rounded"
+                                  style={{ backgroundColor: "#a855f7" }}
+                                />
+                                <span style={{ color: "#a855f7" }}>
+                                  Max:{" "}
+                                  {formatTooltipValue(
+                                    payload[0].payload.secondary
+                                  )}
+                                </span>
+                              </div>
+                            )}
+                            <div className="text-xs flex items-center gap-1.5">
+                              <div
+                                className="w-2 h-2 rounded"
+                                style={{ backgroundColor: config.color }}
+                              />
+                              <span style={{ color: config.color }}>
+                                Avg:{" "}
+                                {formatTooltipValue(payload[0].payload.value)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar
+                    dataKey="value"
+                    stackId="stack"
+                    fill={config.color}
+                    radius={[0, 0, 0, 0]}
+                    name="Average"
+                  />
+                  <Bar
+                    dataKey="maxMinusAvg"
+                    stackId="stack"
+                    fill="#a855f7"
+                    radius={[4, 4, 0, 0]}
+                    name="Max (additional)"
+                  />
+                </BarChart>
               ) : (
                 <LineChart
                   data={displayDataWithCumulative}

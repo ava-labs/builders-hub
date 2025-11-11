@@ -1,0 +1,128 @@
+---
+title: Building Warp Messages
+icon: hammer
+---
+
+## Building Messages
+
+Build unsigned Warp messages for signing and broadcasting.
+
+## RegisterL1ValidatorMessage
+
+### Methods
+
+| Method       | Parameters                                             | Returns                      | Description       |
+| ------------ | ------------------------------------------------------ | ---------------------------- | ----------------- |
+| `fromValues` | `nodeID: string, publicKey: string, signature: string` | `RegisterL1ValidatorMessage` | Build from values |
+| `toHex`      | -                                                      | `string`                     | Convert to hex    |
+
+### Example
+
+```typescript
+import { RegisterL1ValidatorMessage } from "@avalanche-sdk/interchain/warp";
+
+const msg = RegisterL1ValidatorMessage.fromValues(
+  "NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg",
+  "0x...",
+  "0x..."
+);
+
+const hex = msg.toHex();
+```
+
+## L1ValidatorWeightMessage
+
+### Methods
+
+| Method       | Parameters                                          | Returns                    | Description       |
+| ------------ | --------------------------------------------------- | -------------------------- | ----------------- |
+| `fromValues` | `nodeID: string, weight: bigint, startTime: bigint` | `L1ValidatorWeightMessage` | Build from values |
+| `toHex`      | -                                                   | `string`                   | Convert to hex    |
+
+### Example
+
+```typescript
+import { L1ValidatorWeightMessage } from "@avalanche-sdk/interchain/warp";
+
+const msg = L1ValidatorWeightMessage.fromValues(
+  "NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg",
+  4n,
+  41n
+);
+
+const hex = msg.toHex();
+```
+
+## AddressedCall
+
+Build AddressedCall payload from a message.
+
+### Methods
+
+| Method       | Parameters                                | Returns         | Description       |
+| ------------ | ----------------------------------------- | --------------- | ----------------- |
+| `fromValues` | `sourceAddress: Address, payload: string` | `AddressedCall` | Build from values |
+| `toHex`      | -                                         | `string`        | Convert to hex    |
+
+### Example
+
+```typescript
+import {
+  AddressedCall,
+  L1ValidatorWeightMessage,
+} from "@avalanche-sdk/interchain/warp";
+
+const msg = L1ValidatorWeightMessage.fromValues(
+  "NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg",
+  4n,
+  41n
+);
+
+const addressedCall = AddressedCall.fromValues(
+  "0x35F884853114D298D7aA8607f4e7e0DB52205f07",
+  msg.toHex()
+);
+```
+
+## WarpUnsignedMessage
+
+Build unsigned Warp message from AddressedCall.
+
+### Methods
+
+| Method       | Parameters                                                               | Returns               | Description       |
+| ------------ | ------------------------------------------------------------------------ | --------------------- | ----------------- |
+| `fromValues` | `networkID: number, sourceChainID: string, addressedCallPayload: string` | `WarpUnsignedMessage` | Build from values |
+| `toHex`      | -                                                                        | `string`              | Convert to hex    |
+
+### Example
+
+```typescript
+import {
+  AddressedCall,
+  L1ValidatorWeightMessage,
+  WarpUnsignedMessage,
+} from "@avalanche-sdk/interchain/warp";
+
+// Build message
+const msg = L1ValidatorWeightMessage.fromValues(
+  "NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg",
+  4n,
+  41n
+);
+
+// Build AddressedCall
+const addressedCall = AddressedCall.fromValues(
+  "0x35F884853114D298D7aA8607f4e7e0DB52205f07",
+  msg.toHex()
+);
+
+// Build unsigned Warp message
+const warpUnsignedMsg = WarpUnsignedMessage.fromValues(
+  1,
+  "251q44yFiimeVSHaQbBk69TzoeYqKu9VagGtLVqo92LphUxjmR",
+  addressedCall.toHex()
+);
+
+const hex = warpUnsignedMsg.toHex();
+```

@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { Relayer, RelayerConfig } from "@/components/toolbox/console/testnet-infra/ManagedTestnetRelayers/types";
+import posthog from 'posthog-js';
 
 export function useManagedTestnetRelayers() {
     const [relayers, setRelayers] = useState<Relayer[]>([]);
@@ -82,8 +83,22 @@ export function useManagedTestnetRelayers() {
             const data = await response.json();
 
             if (!response.ok || data.error) {
+                // Track error
+                posthog.capture('managed_testnet_relayer_delete_error', {
+                    relayer_id: relayer.relayerId,
+                    config_count: relayer.configs.length,
+                    error_message: data.message || data.error || 'Failed to delete relayer',
+                    context: 'console'
+                });
                 throw new Error(data.message || data.error || 'Failed to delete relayer');
             }
+
+            // Track successful deletion
+            posthog.capture('managed_testnet_relayer_deleted', {
+                relayer_id: relayer.relayerId,
+                config_count: relayer.configs.length,
+                context: 'console'
+            });
 
             // Refresh relayers
             await fetchRelayers();
@@ -113,11 +128,26 @@ export function useManagedTestnetRelayers() {
             const data = await response.json();
 
             if (!response.ok || data.error) {
+                // Track error
+                posthog.capture('managed_testnet_relayer_restart_error', {
+                    relayer_id: relayer.relayerId,
+                    config_count: relayer.configs.length,
+                    error_message: data.message || data.error || 'Failed to restart relayer',
+                    is_rate_limited: response.status === 429,
+                    context: 'console'
+                });
                 if (response.status === 429) {
                     throw new Error('Rate limit exceeded. Please wait before restarting again.');
                 }
                 throw new Error(data.message || data.error || 'Failed to restart relayer');
             }
+
+            // Track successful restart
+            posthog.capture('managed_testnet_relayer_restarted', {
+                relayer_id: relayer.relayerId,
+                config_count: relayer.configs.length,
+                context: 'console'
+            });
 
             // Refresh relayers to get updated status
             await fetchRelayers();
