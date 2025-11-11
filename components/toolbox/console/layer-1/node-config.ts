@@ -13,13 +13,27 @@ export const generateChainConfig = (
     minDelayTarget: number = 250,
     trieCleanCache: number = 512,
     trieDirtyCache: number = 512,
+    trieDirtyCommitTarget: number = 20,
+    triePrefetcherParallelism: number = 16,
     snapshotCache: number = 256,
     commitInterval: number = 4096,
+    stateSyncServerTrieCache: number = 64,
     rpcGasCap: number = 50000000,
+    rpcTxFeeCap: number = 100,
     apiMaxBlocksPerRequest: number = 0,
     allowUnfinalizedQueries: boolean = false,
+    batchRequestLimit: number = 1000,
+    batchResponseMaxSize: number = 25000000,
     acceptedCacheSize: number = 32,
-    transactionHistory: number = 0
+    transactionHistory: number = 0,
+    stateSyncEnabled: boolean = false,
+    skipTxIndexing: boolean = false,
+    preimagesEnabled: boolean = false,
+    localTxsEnabled: boolean = false,
+    pushGossipNumValidators: number = 100,
+    pushGossipPercentStake: number = 0.9,
+    continuousProfilerDir: string = "",
+    continuousProfilerFrequency: string = "15m"
 ) => {
     const isRPC = nodeType === 'public-rpc';
 
@@ -29,16 +43,40 @@ export const generateChainConfig = (
         "commit-interval": commitInterval,
         "trie-clean-cache": trieCleanCache,
         "trie-dirty-cache": trieDirtyCache,
+        "trie-dirty-commit-target": trieDirtyCommitTarget,
+        "trie-prefetcher-parallelism": triePrefetcherParallelism,
         "snapshot-cache": snapshotCache,
+        "state-sync-server-trie-cache": stateSyncServerTrieCache,
         "rpc-gas-cap": rpcGasCap,
+        "rpc-tx-fee-cap": rpcTxFeeCap,
         "log-level": enableDebugTrace ? "debug" : "info",
         "metrics-expensive-enabled": true,
         "accepted-cache-size": acceptedCacheSize,
-        "min-delay-target": minDelayTarget
+        "min-delay-target": minDelayTarget,
+        "batch-request-limit": batchRequestLimit,
+        "batch-response-max-size": batchResponseMaxSize
     };
 
     // Add warp API for cross-chain messaging (enabled by default for L1s)
     config["warp-api-enabled"] = true;
+
+    // State sync configuration
+    config["state-sync-enabled"] = stateSyncEnabled;
+
+    // Transaction indexing
+    if (skipTxIndexing) {
+        config["skip-tx-indexing"] = true;
+    } else if (transactionHistory > 0) {
+        config["transaction-history"] = transactionHistory;
+    }
+
+    // Transaction settings
+    if (preimagesEnabled) {
+        config["preimages-enabled"] = true;
+    }
+    if (localTxsEnabled) {
+        config["local-txs-enabled"] = true;
+    }
 
     // Configure APIs based on node type
     if (enableDebugTrace) {
@@ -80,9 +118,16 @@ export const generateChainConfig = (
         config["allow-unfinalized-queries"] = allowUnfinalizedQueries;
     }
 
-    // Transaction history (0 = no limit, keeps all tx indices)
-    if (transactionHistory > 0) {
-        config["transaction-history"] = transactionHistory;
+    // Gossip settings (primarily for validators)
+    if (nodeType === 'validator') {
+        config["push-gossip-num-validators"] = pushGossipNumValidators;
+        config["push-gossip-percent-stake"] = pushGossipPercentStake;
+    }
+
+    // Continuous profiling (if enabled)
+    if (continuousProfilerDir) {
+        config["continuous-profiler-dir"] = continuousProfilerDir;
+        config["continuous-profiler-frequency"] = continuousProfilerFrequency;
     }
 
     return config;
@@ -141,10 +186,10 @@ export const generateConfigFileCommand = (
 ) => {
     const configJson = JSON.stringify(chainConfig, null, 2);
     const configPath = `~/.avalanchego/configs/chains/${blockchainId}`;
-    
+
     // Escape single quotes in the JSON for the shell command
     const escapedJson = configJson.replace(/'/g, "'\\''");
-    
+
     return `# Create the chain config directory and file
 mkdir -p ${configPath} && cat > ${configPath}/config.json << 'EOF'
 ${configJson}

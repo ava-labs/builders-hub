@@ -13,10 +13,13 @@ import { Button } from "../../components/Button";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { SyntaxHighlightedJSON } from "../../components/genesis/SyntaxHighlightedJSON";
 import { ReverseProxySetup } from "../../components/ReverseProxySetup";
+import { GenesisHighlightProvider, useGenesisHighlight } from "../../components/genesis/GenesisHighlightContext";
 import { SUBNET_EVM_VM_ID } from "@/constants/console";
 import { generateChainConfig, generateDockerCommand, generateConfigFileCommand } from "./node-config";
+import { useNodeConfigHighlighting } from "./useNodeConfigHighlighting";
 
-export default function AvalanchegoDocker() {
+function AvalanchegoDockerInner() {
+    const { setHighlightPath, clearHighlight, highlightPath } = useGenesisHighlight();
     const [chainId, setChainId] = useState("");
     const [subnetId, setSubnetId] = useState("");
     const [subnet, setSubnet] = useState<any>(null);
@@ -30,28 +33,51 @@ export default function AvalanchegoDocker() {
     const [selectedRPCBlockchainId, setSelectedRPCBlockchainId] = useState<string>("");
     const [minDelayTarget, setMinDelayTarget] = useState<number>(250);
     const [configJson, setConfigJson] = useState<string>("");
-    
+
     // Advanced cache settings
     const [trieCleanCache, setTrieCleanCache] = useState<number>(512);
     const [trieDirtyCache, setTrieDirtyCache] = useState<number>(512);
+    const [trieDirtyCommitTarget, setTrieDirtyCommitTarget] = useState<number>(20);
+    const [triePrefetcherParallelism, setTriePrefetcherParallelism] = useState<number>(16);
     const [snapshotCache, setSnapshotCache] = useState<number>(256);
     const [commitInterval, setCommitInterval] = useState<number>(4096);
-    
+    const [stateSyncServerTrieCache, setStateSyncServerTrieCache] = useState<number>(64);
+
     // API settings
     const [rpcGasCap, setRpcGasCap] = useState<number>(50000000);
+    const [rpcTxFeeCap, setRpcTxFeeCap] = useState<number>(100);
     const [apiMaxBlocksPerRequest, setApiMaxBlocksPerRequest] = useState<number>(0);
     const [allowUnfinalizedQueries, setAllowUnfinalizedQueries] = useState<boolean>(false);
-    
+    const [batchRequestLimit, setBatchRequestLimit] = useState<number>(1000);
+    const [batchResponseMaxSize, setBatchResponseMaxSize] = useState<number>(25000000);
+
     // State and history
     const [acceptedCacheSize, setAcceptedCacheSize] = useState<number>(32);
     const [transactionHistory, setTransactionHistory] = useState<number>(0);
-    
+    const [stateSyncEnabled, setStateSyncEnabled] = useState<boolean>(false);
+    const [skipTxIndexing, setSkipTxIndexing] = useState<boolean>(false);
+
+    // Transaction settings
+    const [preimagesEnabled, setPreimagesEnabled] = useState<boolean>(false);
+    const [localTxsEnabled, setLocalTxsEnabled] = useState<boolean>(false);
+
+    // Gossip settings (validator specific)
+    const [pushGossipNumValidators, setPushGossipNumValidators] = useState<number>(100);
+    const [pushGossipPercentStake, setPushGossipPercentStake] = useState<number>(0.9);
+
+    // Profiling
+    const [continuousProfilerDir, setContinuousProfilerDir] = useState<string>("");
+    const [continuousProfilerFrequency, setContinuousProfilerFrequency] = useState<string>("15m");
+
     // Show advanced settings
     const [showAdvancedSettings, setShowAdvancedSettings] = useState<boolean>(false);
 
     const { avalancheNetworkID } = useWalletStore();
 
     const isRPC = nodeType === "public-rpc";
+
+    // Get highlighted lines for JSON preview
+    const highlightedLines = useNodeConfigHighlighting(highlightPath, configJson);
 
     // Generate Subnet-EVM chain configuration JSON when parameters change
     useEffect(() => {
@@ -68,19 +94,33 @@ export default function AvalanchegoDocker() {
                 minDelayTarget,
                 trieCleanCache,
                 trieDirtyCache,
+                trieDirtyCommitTarget,
+                triePrefetcherParallelism,
                 snapshotCache,
                 commitInterval,
+                stateSyncServerTrieCache,
                 rpcGasCap,
+                rpcTxFeeCap,
                 apiMaxBlocksPerRequest,
                 allowUnfinalizedQueries,
+                batchRequestLimit,
+                batchResponseMaxSize,
                 acceptedCacheSize,
-                transactionHistory
+                transactionHistory,
+                stateSyncEnabled,
+                skipTxIndexing,
+                preimagesEnabled,
+                localTxsEnabled,
+                pushGossipNumValidators,
+                pushGossipPercentStake,
+                continuousProfilerDir,
+                continuousProfilerFrequency
             );
             setConfigJson(JSON.stringify(config, null, 2));
         } catch (error) {
             setConfigJson(`Error: ${(error as Error).message}`);
         }
-    }, [subnetId, chainId, nodeType, enableDebugTrace, pruningEnabled, blockchainInfo, minDelayTarget, trieCleanCache, trieDirtyCache, snapshotCache, commitInterval, rpcGasCap, apiMaxBlocksPerRequest, allowUnfinalizedQueries, acceptedCacheSize, transactionHistory]);
+    }, [subnetId, chainId, nodeType, enableDebugTrace, pruningEnabled, blockchainInfo, minDelayTarget, trieCleanCache, trieDirtyCache, trieDirtyCommitTarget, triePrefetcherParallelism, snapshotCache, commitInterval, stateSyncServerTrieCache, rpcGasCap, rpcTxFeeCap, apiMaxBlocksPerRequest, allowUnfinalizedQueries, batchRequestLimit, batchResponseMaxSize, acceptedCacheSize, transactionHistory, stateSyncEnabled, skipTxIndexing, preimagesEnabled, localTxsEnabled, pushGossipNumValidators, pushGossipPercentStake, continuousProfilerDir, continuousProfilerFrequency]);
 
     useEffect(() => {
         if (nodeType === "validator") {
@@ -188,13 +228,27 @@ export default function AvalanchegoDocker() {
         setConfigJson("");
         setTrieCleanCache(512);
         setTrieDirtyCache(512);
+        setTrieDirtyCommitTarget(20);
+        setTriePrefetcherParallelism(16);
         setSnapshotCache(256);
         setCommitInterval(4096);
+        setStateSyncServerTrieCache(64);
         setRpcGasCap(50000000);
+        setRpcTxFeeCap(100);
         setApiMaxBlocksPerRequest(0);
         setAllowUnfinalizedQueries(false);
+        setBatchRequestLimit(1000);
+        setBatchResponseMaxSize(25000000);
         setAcceptedCacheSize(32);
         setTransactionHistory(0);
+        setStateSyncEnabled(false);
+        setSkipTxIndexing(false);
+        setPreimagesEnabled(false);
+        setLocalTxsEnabled(false);
+        setPushGossipNumValidators(100);
+        setPushGossipPercentStake(0.9);
+        setContinuousProfilerDir("");
+        setContinuousProfilerFrequency("15m");
         setShowAdvancedSettings(false);
     };
 
@@ -202,44 +256,44 @@ export default function AvalanchegoDocker() {
     const isCustomVM = blockchainInfo && blockchainInfo.vmId !== SUBNET_EVM_VM_ID;
 
     return (
-            <Container
-                title="L1 Node Setup with Docker"
+        <Container
+            title="L1 Node Setup with Docker"
             description="Configure your node settings, preview the Subnet-EVM chain config, create it on your server, and run Docker to start your L1 node."
-                githubUrl="https://github.com/ava-labs/builders-hub/edit/master/components/toolbox/console/layer-1/AvalancheGoDockerL1.tsx"
-            >
-                <Steps>
-                    <Step>
+            githubUrl="https://github.com/ava-labs/builders-hub/edit/master/components/toolbox/console/layer-1/AvalancheGoDockerL1.tsx"
+        >
+            <Steps>
+                <Step>
                     <h3 className="text-xl font-bold mb-4">Select L1</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                         Enter the Avalanche Subnet ID of the L1 you want to run a node for
                     </p>
 
-                        <InputSubnetId
-                            value={subnetId}
-                            onChange={setSubnetId}
-                            error={subnetIdError}
-                        />
+                    <InputSubnetId
+                        value={subnetId}
+                        onChange={setSubnetId}
+                        error={subnetIdError}
+                    />
 
-                        {subnet && subnet.blockchains && subnet.blockchains.length > 0 && (
+                    {subnet && subnet.blockchains && subnet.blockchains.length > 0 && (
                         <div className="space-y-4 mt-4">
-                                {subnet.blockchains.map((blockchain: { blockchainId: string; blockchainName: string; createBlockTimestamp: number; createBlockNumber: string; vmId: string; subnetId: string; evmChainId: number }) => (
-                                    <BlockchainDetailsDisplay
-                                        key={blockchain.blockchainId}
-                                        blockchain={{
-                                            ...blockchain,
-                                            isTestnet: avalancheNetworkID === networkIDs.FujiID
-                                        }}
-                                        isLoading={isLoading}
-                                        customTitle={`${blockchain.blockchainName} Blockchain Details`}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </Step>
+                            {subnet.blockchains.map((blockchain: { blockchainId: string; blockchainName: string; createBlockTimestamp: number; createBlockNumber: string; vmId: string; subnetId: string; evmChainId: number }) => (
+                                <BlockchainDetailsDisplay
+                                    key={blockchain.blockchainId}
+                                    blockchain={{
+                                        ...blockchain,
+                                        isTestnet: avalancheNetworkID === networkIDs.FujiID
+                                    }}
+                                    isLoading={isLoading}
+                                    customTitle={`${blockchain.blockchainName} Blockchain Details`}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </Step>
 
-                    {subnetId && blockchainInfo && (
-                        <>
-                            <Step>
+                {subnetId && blockchainInfo && (
+                    <>
+                        <Step>
                             <h3 className="text-xl font-bold mb-4">Configure Node Settings</h3>
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -260,7 +314,7 @@ export default function AvalanchegoDocker() {
 
                                     {nodeType === "public-rpc" && (
                                         <>
-                                            <div>
+                                            <div onMouseEnter={() => setHighlightPath('ethApis')} onMouseLeave={clearHighlight}>
                                                 <label className="flex items-center space-x-2">
                                                     <input
                                                         type="checkbox"
@@ -272,7 +326,7 @@ export default function AvalanchegoDocker() {
                                                 </label>
                                             </div>
 
-                                            <div>
+                                            <div onMouseEnter={() => setHighlightPath('pruning')} onMouseLeave={clearHighlight}>
                                                 <label className="flex items-center space-x-2">
                                                     <input
                                                         type="checkbox"
@@ -286,30 +340,30 @@ export default function AvalanchegoDocker() {
 
                                             {subnet && subnet.blockchains && subnet.blockchains.length > 1 && (
                                                 <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Select Blockchain for RPC Endpoint
-                                            </label>
-                                            <select
-                                                value={selectedRPCBlockchainId}
-                                                onChange={(e) => setSelectedRPCBlockchainId(e.target.value)}
-                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                                            >
-                                                {subnet.blockchains.map((blockchain: { blockchainId: string; blockchainName: string }) => (
-                                                    <option key={blockchain.blockchainId} value={blockchain.blockchainId}>
-                                                        {blockchain.blockchainName} ({blockchain.blockchainId})
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                                This blockchain will be used for the RPC endpoint URL generation.
-                                            </p>
-                                        </div>
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                        Select Blockchain for RPC Endpoint
+                                                    </label>
+                                                    <select
+                                                        value={selectedRPCBlockchainId}
+                                                        onChange={(e) => setSelectedRPCBlockchainId(e.target.value)}
+                                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                                                    >
+                                                        {subnet.blockchains.map((blockchain: { blockchainId: string; blockchainName: string }) => (
+                                                            <option key={blockchain.blockchainId} value={blockchain.blockchainId}>
+                                                                {blockchain.blockchainName} ({blockchain.blockchainId})
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                        This blockchain will be used for the RPC endpoint URL generation.
+                                                    </p>
+                                                </div>
                                             )}
                                         </>
                                     )}
 
                                     {nodeType === "validator" && (
-                                        <div>
+                                        <div onMouseEnter={() => setHighlightPath('minDelayTarget')} onMouseLeave={clearHighlight}>
                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                 Min Delay Target (ms)
                                             </label>
@@ -320,6 +374,8 @@ export default function AvalanchegoDocker() {
                                                     const value = Math.min(2000, Math.max(0, parseInt(e.target.value) || 0));
                                                     setMinDelayTarget(value);
                                                 }}
+                                                onFocus={() => setHighlightPath('minDelayTarget')}
+                                                onBlur={clearHighlight}
                                                 min="0"
                                                 max="2000"
                                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
@@ -352,11 +408,31 @@ export default function AvalanchegoDocker() {
 
                                         {showAdvancedSettings && (
                                             <div className="space-y-4 mt-4">
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                    For advanced configuration options, see the{" "}
+                                                    <a
+                                                        href="https://build.avax.network/docs/nodes/configure/configs-flags"
+                                                        target="_blank"
+                                                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                                                        rel="noreferrer"
+                                                    >
+                                                        AvalancheGo configuration
+                                                    </a>{" "}
+                                                    and{" "}
+                                                    <a
+                                                        href="https://build.avax.network/docs/nodes/chain-configs/subnet-evm"
+                                                        target="_blank"
+                                                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                                                        rel="noreferrer"
+                                                    >
+                                                        Subnet-EVM configuration
+                                                    </a> documentation.
+                                                </span>
                                                 <div>
                                                     <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Cache Settings</h4>
-                                                    
+
                                                     <div className="space-y-3">
-                                                        <div>
+                                                        <div onMouseEnter={() => setHighlightPath('trieCleanCache')} onMouseLeave={clearHighlight}>
                                                             <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                                                 Trie Clean Cache (MB)
                                                             </label>
@@ -364,11 +440,13 @@ export default function AvalanchegoDocker() {
                                                                 type="number"
                                                                 value={trieCleanCache}
                                                                 onChange={(e) => setTrieCleanCache(Math.max(0, parseInt(e.target.value) || 0))}
+                                                                onFocus={() => setHighlightPath('trieCleanCache')}
+                                                                onBlur={clearHighlight}
                                                                 className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
                                                             />
                                                         </div>
 
-                                                        <div>
+                                                        <div onMouseEnter={() => setHighlightPath('trieDirtyCache')} onMouseLeave={clearHighlight}>
                                                             <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                                                 Trie Dirty Cache (MB)
                                                             </label>
@@ -376,11 +454,13 @@ export default function AvalanchegoDocker() {
                                                                 type="number"
                                                                 value={trieDirtyCache}
                                                                 onChange={(e) => setTrieDirtyCache(Math.max(0, parseInt(e.target.value) || 0))}
+                                                                onFocus={() => setHighlightPath('trieDirtyCache')}
+                                                                onBlur={clearHighlight}
                                                                 className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
                                                             />
                                                         </div>
 
-                                                        <div>
+                                                        <div onMouseEnter={() => setHighlightPath('snapshotCache')} onMouseLeave={clearHighlight}>
                                                             <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                                                 Snapshot Cache (MB)
                                                             </label>
@@ -388,11 +468,13 @@ export default function AvalanchegoDocker() {
                                                                 type="number"
                                                                 value={snapshotCache}
                                                                 onChange={(e) => setSnapshotCache(Math.max(0, parseInt(e.target.value) || 0))}
+                                                                onFocus={() => setHighlightPath('snapshotCache')}
+                                                                onBlur={clearHighlight}
                                                                 className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
                                                             />
                                                         </div>
 
-                                                        <div>
+                                                        <div onMouseEnter={() => setHighlightPath('acceptedCacheSize')} onMouseLeave={clearHighlight}>
                                                             <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                                                 Accepted Cache Size (blocks)
                                                             </label>
@@ -400,10 +482,63 @@ export default function AvalanchegoDocker() {
                                                                 type="number"
                                                                 value={acceptedCacheSize}
                                                                 onChange={(e) => setAcceptedCacheSize(Math.max(1, parseInt(e.target.value) || 1))}
+                                                                onFocus={() => setHighlightPath('acceptedCacheSize')}
+                                                                onBlur={clearHighlight}
                                                                 className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
                                                             />
                                                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                                                 Depth of accepted headers and logs cache
+                                                            </p>
+                                                        </div>
+
+                                                        <div onMouseEnter={() => setHighlightPath('trieDirtyCommitTarget')} onMouseLeave={clearHighlight}>
+                                                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                                Trie Dirty Commit Target (MB)
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                value={trieDirtyCommitTarget}
+                                                                onChange={(e) => setTrieDirtyCommitTarget(Math.max(1, parseInt(e.target.value) || 1))}
+                                                                onFocus={() => setHighlightPath('trieDirtyCommitTarget')}
+                                                                onBlur={clearHighlight}
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                            />
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                Memory limit before commit
+                                                            </p>
+                                                        </div>
+
+                                                        <div onMouseEnter={() => setHighlightPath('triePrefetcherParallelism')} onMouseLeave={clearHighlight}>
+                                                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                                Trie Prefetcher Parallelism
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                value={triePrefetcherParallelism}
+                                                                onChange={(e) => setTriePrefetcherParallelism(Math.max(1, parseInt(e.target.value) || 1))}
+                                                                onFocus={() => setHighlightPath('triePrefetcherParallelism')}
+                                                                onBlur={clearHighlight}
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                            />
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                Max concurrent disk reads
+                                                            </p>
+                                                        </div>
+
+                                                        <div onMouseEnter={() => setHighlightPath('stateSyncServerTrieCache')} onMouseLeave={clearHighlight}>
+                                                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                                State Sync Server Trie Cache (MB)
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                value={stateSyncServerTrieCache}
+                                                                onChange={(e) => setStateSyncServerTrieCache(Math.max(0, parseInt(e.target.value) || 0))}
+                                                                onFocus={() => setHighlightPath('stateSyncServerTrieCache')}
+                                                                onBlur={clearHighlight}
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                            />
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                Trie cache for state sync server
                                                             </p>
                                                         </div>
                                                     </div>
@@ -411,9 +546,9 @@ export default function AvalanchegoDocker() {
 
                                                 <div className="border-t pt-3">
                                                     <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Performance Settings</h4>
-                                                    
+
                                                     <div className="space-y-3">
-                                                        <div>
+                                                        <div onMouseEnter={() => setHighlightPath('commitInterval')} onMouseLeave={clearHighlight}>
                                                             <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                                                 Commit Interval (blocks)
                                                             </label>
@@ -421,6 +556,8 @@ export default function AvalanchegoDocker() {
                                                                 type="number"
                                                                 value={commitInterval}
                                                                 onChange={(e) => setCommitInterval(Math.max(1, parseInt(e.target.value) || 1))}
+                                                                onFocus={() => setHighlightPath('commitInterval')}
+                                                                onBlur={clearHighlight}
                                                                 className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
                                                             />
                                                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -428,7 +565,7 @@ export default function AvalanchegoDocker() {
                                                             </p>
                                                         </div>
 
-                                                        <div>
+                                                        <div onMouseEnter={() => setHighlightPath('rpcGasCap')} onMouseLeave={clearHighlight}>
                                                             <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                                                 RPC Gas Cap
                                                             </label>
@@ -436,6 +573,8 @@ export default function AvalanchegoDocker() {
                                                                 type="number"
                                                                 value={rpcGasCap}
                                                                 onChange={(e) => setRpcGasCap(Math.max(0, parseInt(e.target.value) || 0))}
+                                                                onFocus={() => setHighlightPath('rpcGasCap')}
+                                                                onBlur={clearHighlight}
                                                                 className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
                                                             />
                                                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -443,7 +582,70 @@ export default function AvalanchegoDocker() {
                                                             </p>
                                                         </div>
 
-                                                        <div>
+                                                        <div onMouseEnter={() => setHighlightPath('rpcTxFeeCap')} onMouseLeave={clearHighlight}>
+                                                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                                RPC Tx Fee Cap (AVAX)
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                value={rpcTxFeeCap}
+                                                                onChange={(e) => setRpcTxFeeCap(Math.max(0, parseInt(e.target.value) || 0))}
+                                                                onFocus={() => setHighlightPath('rpcTxFeeCap')}
+                                                                onBlur={clearHighlight}
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                            />
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                Maximum transaction fee cap
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="border-t pt-3">
+                                                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">API Limits</h4>
+
+                                                    <div className="space-y-3">
+                                                        <div onMouseEnter={() => setHighlightPath('batchRequestLimit')} onMouseLeave={clearHighlight}>
+                                                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                                Batch Request Limit
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                value={batchRequestLimit}
+                                                                onChange={(e) => setBatchRequestLimit(Math.max(0, parseInt(e.target.value) || 0))}
+                                                                onFocus={() => setHighlightPath('batchRequestLimit')}
+                                                                onBlur={clearHighlight}
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                            />
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                Max batched requests (0 = no limit)
+                                                            </p>
+                                                        </div>
+
+                                                        <div onMouseEnter={() => setHighlightPath('batchResponseMaxSize')} onMouseLeave={clearHighlight}>
+                                                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                                Batch Response Max Size (bytes)
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                value={batchResponseMaxSize}
+                                                                onChange={(e) => setBatchResponseMaxSize(Math.max(0, parseInt(e.target.value) || 0))}
+                                                                onFocus={() => setHighlightPath('batchResponseMaxSize')}
+                                                                onBlur={clearHighlight}
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                            />
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                Max batch response size (default: 25MB)
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="border-t pt-3">
+                                                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Transaction & State</h4>
+
+                                                    <div className="space-y-3">
+                                                        <div onMouseEnter={() => setHighlightPath('transactionHistory')} onMouseLeave={clearHighlight}>
                                                             <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                                                 Transaction History (blocks)
                                                             </label>
@@ -451,21 +653,144 @@ export default function AvalanchegoDocker() {
                                                                 type="number"
                                                                 value={transactionHistory}
                                                                 onChange={(e) => setTransactionHistory(Math.max(0, parseInt(e.target.value) || 0))}
+                                                                onFocus={() => setHighlightPath('transactionHistory')}
+                                                                onBlur={clearHighlight}
                                                                 className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
                                                             />
                                                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                                Maximum blocks from head to keep tx indices. 0 = no limit (archive mode)
+                                                                Max blocks to keep tx indices. 0 = archive mode (all history)
+                                                            </p>
+                                                        </div>
+
+                                                        <div onMouseEnter={() => setHighlightPath('skipTxIndexing')} onMouseLeave={clearHighlight}>
+                                                            <label className="flex items-center space-x-2">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={skipTxIndexing}
+                                                                    onChange={(e) => setSkipTxIndexing(e.target.checked)}
+                                                                    onFocus={() => setHighlightPath('skipTxIndexing')}
+                                                                    onBlur={clearHighlight}
+                                                                    className="rounded"
+                                                                />
+                                                                <span className="text-xs text-gray-600 dark:text-gray-400">
+                                                                    Skip Transaction Indexing
+                                                                </span>
+                                                            </label>
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
+                                                                Disable tx indexing entirely (saves disk space)
+                                                            </p>
+                                                        </div>
+
+                                                        <div onMouseEnter={() => setHighlightPath('stateSyncEnabled')} onMouseLeave={clearHighlight}>
+                                                            <label className="flex items-center space-x-2">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={stateSyncEnabled}
+                                                                    onChange={(e) => setStateSyncEnabled(e.target.checked)}
+                                                                    onFocus={() => setHighlightPath('stateSyncEnabled')}
+                                                                    onBlur={clearHighlight}
+                                                                    className="rounded"
+                                                                />
+                                                                <span className="text-xs text-gray-600 dark:text-gray-400">
+                                                                    Enable State Sync
+                                                                </span>
+                                                            </label>
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
+                                                                Fast sync from state summary
+                                                            </p>
+                                                        </div>
+
+                                                        <div onMouseEnter={() => setHighlightPath('preimagesEnabled')} onMouseLeave={clearHighlight}>
+                                                            <label className="flex items-center space-x-2">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={preimagesEnabled}
+                                                                    onChange={(e) => setPreimagesEnabled(e.target.checked)}
+                                                                    onFocus={() => setHighlightPath('preimagesEnabled')}
+                                                                    onBlur={clearHighlight}
+                                                                    className="rounded"
+                                                                />
+                                                                <span className="text-xs text-gray-600 dark:text-gray-400">
+                                                                    Enable Preimages
+                                                                </span>
+                                                            </label>
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
+                                                                Record preimages (uses more disk)
+                                                            </p>
+                                                        </div>
+
+                                                        <div onMouseEnter={() => setHighlightPath('localTxsEnabled')} onMouseLeave={clearHighlight}>
+                                                            <label className="flex items-center space-x-2">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={localTxsEnabled}
+                                                                    onChange={(e) => setLocalTxsEnabled(e.target.checked)}
+                                                                    onFocus={() => setHighlightPath('localTxsEnabled')}
+                                                                    onBlur={clearHighlight}
+                                                                    className="rounded"
+                                                                />
+                                                                <span className="text-xs text-gray-600 dark:text-gray-400">
+                                                                    Enable Local Transactions
+                                                                </span>
+                                                            </label>
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
+                                                                Treat local account txs as local
                                                             </p>
                                                         </div>
                                                     </div>
                                                 </div>
 
+                                                {nodeType === "validator" && (
+                                                    <div className="border-t pt-3">
+                                                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Gossip Settings (Validator)</h4>
+
+                                                        <div className="space-y-3">
+                                                            <div onMouseEnter={() => setHighlightPath('pushGossipNumValidators')} onMouseLeave={clearHighlight}>
+                                                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                                    Push Gossip Num Validators
+                                                                </label>
+                                                                <input
+                                                                    type="number"
+                                                                    value={pushGossipNumValidators}
+                                                                    onChange={(e) => setPushGossipNumValidators(Math.max(0, parseInt(e.target.value) || 0))}
+                                                                    onFocus={() => setHighlightPath('pushGossipNumValidators')}
+                                                                    onBlur={clearHighlight}
+                                                                    className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                                />
+                                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                    Number of validators to push gossip to
+                                                                </p>
+                                                            </div>
+
+                                                            <div onMouseEnter={() => setHighlightPath('pushGossipPercentStake')} onMouseLeave={clearHighlight}>
+                                                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                                    Push Gossip Percent Stake
+                                                                </label>
+                                                                <input
+                                                                    type="number"
+                                                                    step="0.1"
+                                                                    min="0"
+                                                                    max="1"
+                                                                    value={pushGossipPercentStake}
+                                                                    onChange={(e) => setPushGossipPercentStake(Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)))}
+                                                                    onFocus={() => setHighlightPath('pushGossipPercentStake')}
+                                                                    onBlur={clearHighlight}
+                                                                    className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                                />
+                                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                    Percentage of total stake to gossip to (0-1)
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 {isRPC && (
                                                     <div className="border-t pt-3">
-                                                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">RPC Settings</h4>
-                                                        
+                                                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">RPC-Specific Settings</h4>
+
                                                         <div className="space-y-3">
-                                                            <div>
+                                                            <div onMouseEnter={() => setHighlightPath('apiMaxBlocksPerRequest')} onMouseLeave={clearHighlight}>
                                                                 <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                                                     API Max Blocks Per Request
                                                                 </label>
@@ -473,6 +798,8 @@ export default function AvalanchegoDocker() {
                                                                     type="number"
                                                                     value={apiMaxBlocksPerRequest}
                                                                     onChange={(e) => setApiMaxBlocksPerRequest(Math.max(0, parseInt(e.target.value) || 0))}
+                                                                    onFocus={() => setHighlightPath('apiMaxBlocksPerRequest')}
+                                                                    onBlur={clearHighlight}
                                                                     className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
                                                                 />
                                                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -480,12 +807,14 @@ export default function AvalanchegoDocker() {
                                                                 </p>
                                                             </div>
 
-                                                            <div>
+                                                            <div onMouseEnter={() => setHighlightPath('allowUnfinalizedQueries')} onMouseLeave={clearHighlight}>
                                                                 <label className="flex items-center space-x-2">
                                                                     <input
                                                                         type="checkbox"
                                                                         checked={allowUnfinalizedQueries}
                                                                         onChange={(e) => setAllowUnfinalizedQueries(e.target.checked)}
+                                                                        onFocus={() => setHighlightPath('allowUnfinalizedQueries')}
+                                                                        onBlur={clearHighlight}
                                                                         className="rounded"
                                                                     />
                                                                     <span className="text-xs text-gray-600 dark:text-gray-400">
@@ -493,12 +822,56 @@ export default function AvalanchegoDocker() {
                                                                     </span>
                                                                 </label>
                                                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
-                                                                    Allows queries for unfinalized blocks
+                                                                    Allows queries for unfinalized/pending blocks
                                                                 </p>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 )}
+
+                                                <div className="border-t pt-3">
+                                                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Profiling (Optional)</h4>
+
+                                                    <div className="space-y-3">
+                                                        <div onMouseEnter={() => setHighlightPath('continuousProfilerDir')} onMouseLeave={clearHighlight}>
+                                                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                                Continuous Profiler Directory
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={continuousProfilerDir}
+                                                                onChange={(e) => setContinuousProfilerDir(e.target.value)}
+                                                                onFocus={() => setHighlightPath('continuousProfilerDir')}
+                                                                onBlur={clearHighlight}
+                                                                placeholder="./profiles (leave empty to disable)"
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                            />
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                Directory for continuous profiler output
+                                                            </p>
+                                                        </div>
+
+                                                        {continuousProfilerDir && (
+                                                            <div onMouseEnter={() => setHighlightPath('continuousProfilerFrequency')} onMouseLeave={clearHighlight}>
+                                                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                                    Profiler Frequency
+                                                                </label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={continuousProfilerFrequency}
+                                                                    onChange={(e) => setContinuousProfilerFrequency(e.target.value)}
+                                                                    onFocus={() => setHighlightPath('continuousProfilerFrequency')}
+                                                                    onBlur={clearHighlight}
+                                                                    placeholder="15m"
+                                                                    className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                                />
+                                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                    How often to create profiles (e.g., 15m, 1h)
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -514,7 +887,7 @@ export default function AvalanchegoDocker() {
                                             {configJson && !configJson.startsWith("Error:") ? (
                                                 <SyntaxHighlightedJSON
                                                     code={configJson}
-                                                    highlightedLine={null}
+                                                    highlightedLines={highlightedLines}
                                                 />
                                             ) : (
                                                 <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
@@ -525,16 +898,16 @@ export default function AvalanchegoDocker() {
                                     </div>
                                 </div>
                             </div>
-                            </Step>
+                        </Step>
 
-                            <Step>
+                        <Step>
                             <h3 className="text-xl font-bold mb-4">Create Configuration File</h3>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                                 Run this command on your server to create the Subnet-EVM chain configuration file:
                             </p>
 
-                            <DynamicCodeBlock 
-                                lang="bash" 
+                            <DynamicCodeBlock
+                                lang="bash"
                                 code={(() => {
                                     try {
                                         const config = JSON.parse(configJson);
@@ -542,63 +915,33 @@ export default function AvalanchegoDocker() {
                                     } catch {
                                         return "# Error generating config file command";
                                     }
-                                })()} 
+                                })()}
                             />
-                            
+
                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                                 This creates the configuration file at <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">~/.avalanchego/configs/chains/{chainId}/config.json</code>
                             </p>
-
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Read the documentation for more information on the configuration options. {" "}
+                                <a
+                                    href="https://build.avax.network/docs/nodes/configure/configs-flags"
+                                    target="_blank"
+                                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                                    rel="noreferrer"
+                                >
+                                    AvalancheGo configuration
+                                </a>
+                                {" "}and{" "}
+                                <a
+                                    href="https://build.avax.network/docs/nodes/chain-configs/subnet-evm"
+                                    target="_blank"
+                                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                                    rel="noreferrer"
+                                >
+                                    Subnet-EVM configuration
+                                </a>
+                            </p>
                             <Accordions type="single" className="mt-4">
-                                <Accordion title="Understanding the Configuration">
-                                    <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                                        <p><strong>Basic Settings:</strong></p>
-                                        <ul className="list-disc pl-5 space-y-1">
-                                            <li><strong>pruning-enabled:</strong> Enables state pruning to save disk space</li>
-                                            <li><strong>log-level:</strong> Logging level (trace, debug, info, warn, error, crit)</li>
-                                            <li><strong>min-delay-target:</strong> Minimum delay between blocks in milliseconds</li>
-                                            <li><strong>warp-api-enabled:</strong> Enables the Warp API for cross-chain messaging (ICM)</li>
-                                            <li><strong>eth-apis:</strong> List of enabled Ethereum API namespaces</li>
-                                        </ul>
-                                        
-                                        <p className="pt-2"><strong>Cache Settings:</strong></p>
-                                        <ul className="list-disc pl-5 space-y-1">
-                                            <li><strong>trie-clean-cache:</strong> Size of the trie clean cache in MB (validator: 512, RPC: 1024)</li>
-                                            <li><strong>trie-dirty-cache:</strong> Size of the trie dirty cache in MB (validator: 512, RPC: 1024)</li>
-                                            <li><strong>snapshot-cache:</strong> Size of the snapshot disk layer clean cache in MB (validator: 256, RPC: 512)</li>
-                                            <li><strong>accepted-cache-size:</strong> Depth to keep in accepted headers/logs cache (validator: 32, RPC: 64)</li>
-                                        </ul>
-
-                                        <p className="pt-2"><strong>Performance Settings:</strong></p>
-                                        <ul className="list-disc pl-5 space-y-1">
-                                            <li><strong>commit-interval:</strong> Interval to persist EVM and atomic tries in blocks (default: 4096)</li>
-                                            <li><strong>rpc-gas-cap:</strong> Maximum gas limit for RPC calls (default: 50,000,000)</li>
-                                            <li><strong>transaction-history:</strong> Max blocks from head to keep tx indices. 0 = archive mode (all history)</li>
-                                        </ul>
-
-                                        {isRPC && (
-                                            <>
-                                                <p className="pt-2"><strong>RPC-Specific Settings:</strong></p>
-                                                <ul className="list-disc pl-5 space-y-1">
-                                                    <li><strong>api-max-duration:</strong> Maximum duration for API calls (0 = no limit)</li>
-                                                    <li><strong>api-max-blocks-per-request:</strong> Maximum blocks per getLogs request (0 = no limit)</li>
-                                                    <li><strong>allow-unfinalized-queries:</strong> Allows queries for unfinalized/pending blocks</li>
-                                                </ul>
-                                            </>
-                                        )}
-
-                                        {enableDebugTrace && (
-                                            <>
-                                                <p className="pt-2"><strong>Debug Settings:</strong></p>
-                                                <ul className="list-disc pl-5 space-y-1">
-                                                    <li><strong>eth-apis:</strong> Extended APIs including debug-tracer, debug-file-tracer, internal-* APIs</li>
-                                                    <li><strong>admin-api-enabled:</strong> Enables administrative operations API</li>
-                                                </ul>
-                                            </>
-                                        )}
-                                    </div>
-                                </Accordion>
-
                                 {isCustomVM && (
                                     <Accordion title="Custom VM Configuration">
                                         <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -619,8 +962,8 @@ export default function AvalanchegoDocker() {
                                 Start the node using Docker:
                             </p>
 
-                            <DynamicCodeBlock 
-                                lang="bash" 
+                            <DynamicCodeBlock
+                                lang="bash"
                                 code={(() => {
                                     try {
                                         const config = JSON.parse(configJson);
@@ -636,10 +979,10 @@ export default function AvalanchegoDocker() {
                                     } catch {
                                         return "# Error generating Docker command";
                                     }
-                                })()} 
+                                })()}
                             />
 
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                                 The container will read the config from <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">~/.avalanchego/configs/chains/{chainId}/config.json</code> via the mounted volume.
                             </p>
 
@@ -657,33 +1000,19 @@ export default function AvalanchegoDocker() {
                                     <p className="text-sm mb-2">Monitor your node with:</p>
                                     <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
                                 </Accordion>
+                            </Accordions>
+                        </Step>
 
-                                <Accordion title="Advanced Configuration">
-                                    <p className="text-sm">
-                                    For advanced node configuration options, see the{" "}
-                                    <a
-                                        href="https://build.avax.network/docs/nodes/configure/configs-flags"
-                                        target="_blank"
-                                        className="text-blue-600 dark:text-blue-400 hover:underline"
-                                        rel="noreferrer"
-                                    >
-                                        AvalancheGo configuration flags documentation
-                                    </a>.
-                                </p>
-                                    </Accordion>
-                                </Accordions>
-                            </Step>
-
-                            {nodeType === "public-rpc" && (
-                                <Step>
-                                    <ReverseProxySetup
-                                        domain={domain}
-                                        setDomain={setDomain}
+                        {nodeType === "public-rpc" && (
+                            <Step>
+                                <ReverseProxySetup
+                                    domain={domain}
+                                    setDomain={setDomain}
                                     chainId={selectedRPCBlockchainId || chainId}
-                                        showHealthCheck={true}
-                                    />
-                                </Step>
-                            )}
+                                    showHealthCheck={true}
+                                />
+                            </Step>
+                        )}
                     </>
                 )}
             </Steps>
@@ -697,4 +1026,12 @@ export default function AvalanchegoDocker() {
             )}
         </Container>
     );
-};
+}
+
+export default function AvalanchegoDocker() {
+    return (
+        <GenesisHighlightProvider>
+            <AvalanchegoDockerInner />
+        </GenesisHighlightProvider>
+    );
+}
