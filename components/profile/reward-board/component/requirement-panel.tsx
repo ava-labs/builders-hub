@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Check } from "lucide-react";
 
@@ -11,8 +11,10 @@ type Requirement = {
 
 export function RequirementsPanel({
   requirements = [],
+  title 
 }: {
   requirements?: Requirement[];
+  title?: string;
 }) {
   // COMMENTED OUT: Points feature disabled
   // const total = requirements.reduce(
@@ -23,14 +25,20 @@ export function RequirementsPanel({
   return (
     <div >
       <Card className="h-full dark:bg-zinc-600 shadow-none ">
+
+    
         <CardContent className="p-0 h-full flex flex-col">
+        <CardTitle className="text-center text-lg font-semibold dark:text-white text-gray-900 ">
+          {title}
+        </CardTitle>
+
           <div className="px-6 pt-6 pb-2">
-            <h3 className="text-base text-center font-semibold dark:text-white text-gray-900 mb-4">
+            <h3 className="text-base  font-semibold dark:text-white text-gray-900 ">
               Requirements
             </h3>
           </div>
 
-          <div className="px-6 pb-6 h-35 overflow-y-auto">
+          <div className="px-6 pb-6 ">
             <ul className="text-left ">
               {requirements.map((requirement) => (
                 <li
