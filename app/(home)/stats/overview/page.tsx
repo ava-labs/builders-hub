@@ -17,9 +17,10 @@ import {
 } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import l1ChainsData from "@/constants/l1-chains.json";
-import { TimeSeriesMetric, ICMMetric, TimeRange } from "@/types/stats";
+import { TimeSeriesMetric, ICMMetric, TimeRange, L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
+import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 
 interface ChainOverviewMetrics {
   chainId: string;
@@ -590,13 +591,20 @@ export default function AvalancheMetrics() {
                       </SortButton>
                     </div>
                   </th>
-                  <th className="px-6 py-4 text-left">
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-4 text-left">
                     <div className="flex items-center gap-2">
                       <SortButton field="category">
                         <span className="text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
                           Category
                         </span>
                       </SortButton>
+                    </div>
+                  </th>
+                  <th className="px-6 py-4 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
+                        Block Explorer
+                      </span>
                     </div>
                   </th>
                 </tr>
@@ -696,7 +704,7 @@ export default function AvalancheMetrics() {
                           {getChainTPS(chain)} TPS
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
                         <span
                           className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(
                             getChainCategory(chain.chainId, chain.chainName)
@@ -704,6 +712,21 @@ export default function AvalancheMetrics() {
                         >
                           {getChainCategory(chain.chainId, chain.chainName)}
                         </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-center">
+                          <ExplorerDropdown
+                            explorers={
+                              (l1ChainsData.find(
+                                (c) => c.chainId === chain.chainId
+                              ) as L1Chain)?.explorers
+                            }
+                            size="sm"
+                            variant="outline"
+                            showIcon={true}
+                            buttonText="Open"
+                          />
+                        </div>
                       </td>
                     </tr>
                   );
