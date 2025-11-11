@@ -1,0 +1,102 @@
+---
+title: Parsing Warp Messages
+icon: search
+---
+
+## WarpMessage
+
+Parse a signed Warp message from hex.
+
+### Methods
+
+| Method    | Parameters    | Returns       | Description               |
+| --------- | ------------- | ------------- | ------------------------- |
+| `fromHex` | `hex: string` | `WarpMessage` | Parse signed Warp message |
+
+### Example
+
+```typescript
+import { WarpMessage } from "@avalanche-sdk/interchain/warp";
+
+const signedWarpMsgHex = "0x...";
+const warpMsg = WarpMessage.fromHex(signedWarpMsgHex);
+
+// Access message properties
+console.log(warpMsg.networkID);
+console.log(warpMsg.sourceChainID);
+console.log(warpMsg.addressedCallPayload);
+console.log(warpMsg.signatures);
+```
+
+## RegisterL1ValidatorMessage
+
+Parse a Register L1 Validator message.
+
+### Methods
+
+| Method    | Parameters    | Returns                      | Description    |
+| --------- | ------------- | ---------------------------- | -------------- |
+| `fromHex` | `hex: string` | `RegisterL1ValidatorMessage` | Parse from hex |
+
+### Example
+
+```typescript
+import { RegisterL1ValidatorMessage } from "@avalanche-sdk/interchain/warp";
+
+const msg = RegisterL1ValidatorMessage.fromHex(signedWarpMsgHex);
+console.log(msg.nodeID);
+console.log(msg.publicKey);
+console.log(msg.signature);
+```
+
+## L1ValidatorWeightMessage
+
+Parse an L1 Validator Weight message.
+
+### Methods
+
+| Method    | Parameters    | Returns                    | Description    |
+| --------- | ------------- | -------------------------- | -------------- |
+| `fromHex` | `hex: string` | `L1ValidatorWeightMessage` | Parse from hex |
+
+### Example
+
+```typescript
+import { L1ValidatorWeightMessage } from "@avalanche-sdk/interchain/warp";
+
+const msg = L1ValidatorWeightMessage.fromHex(signedWarpMsgHex);
+console.log(msg.nodeID);
+console.log(msg.weight);
+console.log(msg.startTime);
+```
+
+## L1ValidatorRegistrationMessage
+
+Parse an L1 Validator Registration message.
+
+### Methods
+
+| Method    | Parameters    | Returns                          | Description    |
+| --------- | ------------- | -------------------------------- | -------------- |
+| `fromHex` | `hex: string` | `L1ValidatorRegistrationMessage` | Parse from hex |
+
+## SubnetToL1ConversionMessage
+
+Parse a Subnet to L1 Conversion message.
+
+### Methods
+
+| Method    | Parameters    | Returns                       | Description    |
+| --------- | ------------- | ----------------------------- | -------------- |
+| `fromHex` | `hex: string` | `SubnetToL1ConversionMessage` | Parse from hex |
+
+### Example
+
+```typescript
+import { SubnetToL1ConversionMessage } from "@avalanche-sdk/interchain/warp";
+
+const msg = SubnetToL1ConversionMessage.fromHex(signedWarpMsgHex);
+console.log(msg.subnetID);
+console.log(msg.assetID);
+console.log(msg.initialSupply);
+```
