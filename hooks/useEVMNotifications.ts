@@ -4,6 +4,7 @@ import { useConsoleLog } from './use-console-log';
 import { Chain, createPublicClient, http } from 'viem';
 import { usePathname } from 'next/navigation';
 import { showCustomErrorToast } from '@/components/ui/custom-error-toast';
+import posthog from 'posthog-js';
 
 const getEVMExplorerUrl = (txHash: string, viemChain: Chain) => {
     if (viemChain.blockExplorers?.default?.url) {
@@ -140,6 +141,20 @@ const useEVMNotifications = () => {
                     actionPath,
                     data: logData
                 });
+
+                // Track successful action in PostHog
+                posthog.capture('console_action_success', {
+                    action_type: options.type,
+                    action_name: options.name,
+                    action_path: actionPath,
+                    network: isTestnet ? 'testnet' : 'mainnet',
+                    chain_id: viemChain?.id,
+                    chain_name: viemChain?.name,
+                    tx_hash: logData.txHash,
+                    contract_address: logData.address,
+                    context: pathname?.includes('/academy') ? 'academy' : pathname?.includes('/docs') ? 'docs' : 'console',
+                    chain_type: 'evm'
+                });
             })
             .catch((error) => {
                 const errorMessage = messages.error + error.message;
@@ -151,6 +166,19 @@ const useEVMNotifications = () => {
                     status: 'error',
                     actionPath,
                     data: { error: error.message, network: isTestnet ? 'testnet' : 'mainnet' }
+                });
+
+                // Track error in PostHog
+                posthog.capture('console_action_error', {
+                    action_type: options.type,
+                    action_name: options.name,
+                    action_path: actionPath,
+                    network: isTestnet ? 'testnet' : 'mainnet',
+                    chain_id: viemChain?.id,
+                    chain_name: viemChain?.name,
+                    error_message: error.message,
+                    context: pathname?.includes('/academy') ? 'academy' : pathname?.includes('/docs') ? 'docs' : 'console',
+                    chain_type: 'evm'
                 });
             });
     };

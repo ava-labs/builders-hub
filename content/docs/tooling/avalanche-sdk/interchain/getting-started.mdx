@@ -1,116 +1,94 @@
 ---
 title: Getting Started
-description: Getting Started with the Interchain SDK
-icon: Rocket
+description: Install and configure the Interchain SDK
+icon: rocket
 ---
 
-### Interchain SDK
+## Installation
 
-Interchain SDK
-The Interchain SDK is a TypeScript SDK for interacting with the Interchain Messaging Protocol (ICM) and Teleporter on Avalanche.
-
-
-Features:
-
-* Type-safe ICM client for sending cross-chain messages
-* Works seamlessly with wallet clients
-* Built-in support for Avalanche C-Chain and custom subnets
-* Built-in support for Avalanche C-Chain and custom subnets
-
-The SDK is currently available in TypeScript, with more languages coming soon. If you are interested in a language that is not listed, please reach out to us in the [#dev-tools](https://discord.com/channels/578992315641626624/1280920394236297257) channel in the [Avalanche Discord](https://discord.gg/avax).
-
-<Cards>
-  <Card title="NPM Package">
-    [https://www.npmjs.com/package/@avalanche-sdk/interchain](https://www.npmjs.com/package/@avalanche-sdk/interchain)
-  </Card>
-   <Card title="GitHub Repository">
-    [https://github.com/ava-labs/avalanche-sdk-typescript](https://github.com/ava-labs/avalanche-sdk-typescript)
-  </Card>
-</Cards>
-
-### SDK Installation
-
-<Tabs items={['npm', 'pnpm', 'bun', 'yarn']}>
+<Tabs items={["npm", "pnpm", "yarn", "bun"]}>
   <Tab value="npm">
-  ```bash
-  npm add @avalanche-sdk/interchain
-  ```
-
+    npm install @avalanche-sdk/interchain @avalanche-sdk/client
   </Tab>
   <Tab value="pnpm">
-  ```bash
-  pnpm add @avalanche-sdk/interchain
-  ```
-
-  </Tab>
-  <Tab value="bun">
-  ```bash
-  bun add @avalanche-sdk/interchain
-  ```
-
+    pnpm add @avalanche-sdk/interchain @avalanche-sdk/client
   </Tab>
   <Tab value="yarn">
-  ```bash
-  yarn add @avalanche-sdk/interchain zod
-  ```
-  <Callout title="Note">
-  Yarn does not install peer dependencies automatically. You will need
-  to install zod as shown above.
-  </Callout>
-
+    yarn add @avalanche-sdk/interchain @avalanche-sdk/client
   </Tab>
+  <Tab value="bun">bun add @avalanche-sdk/interchain @avalanche-sdk/client</Tab>
 </Tabs>
 
-### SDK Example Usage
+## Setup
 
-```javascript
-import { createWalletClient, http } from "viem";
-import { createICMClient } from "@avalanche-sdk/interchain";
-import { privateKeyToAccount } from "viem/accounts";
-import * as dotenv from 'dotenv';
+### 1. Create Wallet Client
 
-// Load environment variables
-dotenv.config();
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { avalancheFuji } from "@avalanche-sdk/client/chains";
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
 
-// these will be made available in a separate SDK soon
-import { avalancheFuji, dispatch } from "@avalanche-sdk/interchain/chains";
-
-// Get private key from environment
-const privateKey = process.env.PRIVATE_KEY;
-if (!privateKey) {
-  throw new Error("PRIVATE_KEY not found in environment variables");
-}
-
-// Load your signer/account
-const account = privateKeyToAccount(privateKey as `0x${string}`);
-
-// Create a viem wallet client connected to Avalanche Fuji
-const wallet = createWalletClient({
-  transport: http('https://api.avax-test.network/ext/bc/C/rpc'),
+const account = privateKeyToAvalancheAccount("0x...");
+const wallet = createAvalancheWalletClient({
   account,
+  chain: avalancheFuji,
+  transport: { type: "http" },
 });
-
-// Initialize the ICM client
-const icmClient = createICMClient(wallet);
-
-// Send a message across chains
-async function main() {
-  try {
-    const hash = await icmClient.sendMsg({
-      sourceChain: avalancheFuji,
-      destinationChain: dispatch,
-      message: 'Hello from Avalanche Fuji to Dispatch Fuji!',
-    });
-    console.log('Message sent with hash:', hash);
-  } catch (error) {
-    console.error('Error sending message:', error);
-    process.exit(1);
-  }
-}
-
-main();
-
 ```
 
-Refer to the code samples provided for each route to see examples of how to use them in the SDK. Explore routes here [Data API](/docs/api-reference/data-api/getting-started),
-[Metrics API](/docs/api-reference/metrics-api/getting-started) & [Webhooks API](/docs/api-reference/webhook-api/getting-started).
+### 2. Initialize ICM Client
+
+```typescript
+import { createICMClient } from "@avalanche-sdk/interchain";
+import { avalancheFuji, dispatch } from "@avalanche-sdk/interchain/chains";
+
+const icm = createICMClient(wallet, avalancheFuji, dispatch);
+```
+
+## Send Your First Message
+
+```typescript
+async function sendMessage() {
+  const hash = await icm.sendMsg({
+    sourceChain: avalancheFuji,
+    destinationChain: dispatch,
+    message: "Hello from Avalanche!",
+  });
+
+  console.log("Message sent:", hash);
+}
+```
+
+## Send Your First Token Transfer
+
+```typescript
+import { createICTTClient } from "@avalanche-sdk/interchain";
+
+const ictt = createICTTClient(avalancheFuji, dispatch);
+
+// Deploy token and contracts (one-time setup)
+const { contractAddress: tokenAddress } = await ictt.deployERC20Token({
+  walletClient: wallet,
+  sourceChain: avalancheFuji,
+  name: "My Token",
+  symbol: "MTK",
+  initialSupply: 1000000,
+});
+
+// Send tokens
+const { txHash } = await ictt.sendToken({
+  walletClient: wallet,
+  sourceChain: avalancheFuji,
+  destinationChain: dispatch,
+  tokenHomeContract: "0x...",
+  tokenRemoteContract: "0x...",
+  recipient: "0x...",
+  amountInBaseUnit: 100,
+});
+```
+
+## Next Steps
+
+- Learn about [Interchain Messaging](/avalanche-sdk/interchain/icm)
+- Explore [Token Transfers](/avalanche-sdk/interchain/ictt)
+- Understand [Warp Messages](/avalanche-sdk/interchain/warp)

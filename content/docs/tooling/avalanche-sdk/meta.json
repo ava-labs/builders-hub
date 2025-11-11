@@ -20,6 +20,11 @@
     "client/methods",
     "client/utils",
     "---Interchain SDK---",
-    "interchain/getting-started"
+    "interchain/getting-started",
+    "interchain/index",
+    "interchain/icm",
+    "interchain/ictt",
+    "interchain/warp",
+    "interchain/chains"
   ]
 }

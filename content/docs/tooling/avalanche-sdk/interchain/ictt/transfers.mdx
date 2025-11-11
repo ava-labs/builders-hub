@@ -1,0 +1,142 @@
+---
+title: Transfer Methods
+icon: arrow-right
+---
+
+## approveToken
+
+Approves the token home contract to spend tokens on the source chain.
+
+### Parameters
+
+| Parameter           | Type           | Required | Description                       |
+| ------------------- | -------------- | -------- | --------------------------------- |
+| `walletClient`      | `WalletClient` | Yes      | Wallet client for signing         |
+| `sourceChain`       | `ChainConfig`  | Yes\*    | Source chain configuration        |
+| `tokenHomeContract` | `Address`      | Yes      | Token home contract address       |
+| `tokenAddress`      | `Address`      | Yes      | ERC20 token address               |
+| `amountInBaseUnit`  | `number`       | Yes      | Amount to approve (in base units) |
+
+\* Required if not set in client constructor
+
+### Returns
+
+| Type                               | Description      |
+| ---------------------------------- | ---------------- |
+| `Promise<{ txHash: 0x${string} }>` | Transaction hash |
+
+### Example
+
+```typescript
+const { txHash } = await ictt.approveToken({
+  walletClient: wallet,
+  sourceChain: avalancheFuji,
+  tokenHomeContract: tokenHomeAddress,
+  tokenAddress: tokenAddress,
+  amountInBaseUnit: 1000,
+});
+```
+
+## sendToken
+
+Sends tokens from the source chain to the destination chain.
+
+### Parameters
+
+| Parameter             | Type           | Required | Description                            |
+| --------------------- | -------------- | -------- | -------------------------------------- |
+| `walletClient`        | `WalletClient` | Yes      | Wallet client for signing              |
+| `sourceChain`         | `ChainConfig`  | Yes\*    | Source chain configuration             |
+| `destinationChain`    | `ChainConfig`  | Yes\*    | Destination chain configuration        |
+| `tokenHomeContract`   | `Address`      | Yes      | Token home contract address            |
+| `tokenRemoteContract` | `Address`      | Yes      | Token remote contract address          |
+| `recipient`           | `Address`      | Yes      | Recipient address on destination chain |
+| `amountInBaseUnit`    | `number`       | Yes      | Amount to send (in base units)         |
+| `feeTokenAddress`     | `Address`      | No       | Fee token address                      |
+| `feeAmount`           | `number`       | No       | Fee amount                             |
+
+\* Required if not set in client constructor
+
+### Returns
+
+| Type                               | Description      |
+| ---------------------------------- | ---------------- |
+| `Promise<{ txHash: 0x${string} }>` | Transaction hash |
+
+### Example
+
+```typescript
+const { txHash } = await ictt.sendToken({
+  walletClient: wallet,
+  sourceChain: avalancheFuji,
+  destinationChain: dispatch,
+  tokenHomeContract: tokenHomeAddress,
+  tokenRemoteContract: tokenRemoteAddress,
+  recipient: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  amountInBaseUnit: 100,
+});
+```
+
+## Complete Workflow
+
+```typescript
+import { createICTTClient } from "@avalanche-sdk/interchain";
+import { avalancheFuji, dispatch } from "@avalanche-sdk/interchain/chains";
+
+const ictt = createICTTClient(avalancheFuji, dispatch);
+
+// 1. Deploy token
+const { contractAddress: tokenAddress } = await ictt.deployERC20Token({
+  walletClient: wallet,
+  sourceChain: avalancheFuji,
+  name: "My Token",
+  symbol: "MTK",
+  initialSupply: 1000000,
+});
+
+// 2. Deploy home contract
+const { contractAddress: tokenHomeAddress } =
+  await ictt.deployTokenHomeContract({
+    walletClient: wallet,
+    sourceChain: avalancheFuji,
+    erc20TokenAddress: tokenAddress,
+    minimumTeleporterVersion: 1,
+  });
+
+// 3. Deploy remote contract
+const { contractAddress: tokenRemoteAddress } =
+  await ictt.deployTokenRemoteContract({
+    walletClient: wallet,
+    sourceChain: avalancheFuji,
+    destinationChain: dispatch,
+    tokenHomeContract: tokenHomeAddress,
+  });
+
+// 4. Register remote with home
+await ictt.registerRemoteWithHome({
+  walletClient: wallet,
+  sourceChain: avalancheFuji,
+  destinationChain: dispatch,
+  tokenRemoteContract: tokenRemoteAddress,
+});
+
+// 5. Approve tokens
+await ictt.approveToken({
+  walletClient: wallet,
+  sourceChain: avalancheFuji,
+  tokenHomeContract: tokenHomeAddress,
+  tokenAddress: tokenAddress,
+  amountInBaseUnit: 1000,
+});
+
+// 6. Send tokens
+const { txHash } = await ictt.sendToken({
+  walletClient: wallet,
+  sourceChain: avalancheFuji,
+  destinationChain: dispatch,
+  tokenHomeContract: tokenHomeAddress,
+  tokenRemoteContract: tokenRemoteAddress,
+  recipient: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  amountInBaseUnit: 100,
+});
+```
