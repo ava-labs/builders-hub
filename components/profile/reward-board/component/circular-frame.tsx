@@ -1,9 +1,9 @@
 export function CircularFrame({ color = "#999B9B" }: { color?: string }) {
     const FRAME = {
-        majorRadius: 0.93, 
-        tubeRadius: 0.07, 
-        tubularSegments: 50,
-        radialSegments: 20,
+        majorRadius: 1.3, 
+        tubeRadius: 0.09, 
+        tubularSegments: 200,
+        radialSegments: 200,
       };
     return (
       <mesh>

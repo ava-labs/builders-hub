@@ -9,7 +9,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { StaticMedal } from "./static-metal";
 import { AutoRotateMedal } from "./auto-rotate-badge";
 
-const DISC = { radius: 0.92, segments: 90 };
+const DISC = { radius: 1.3, segments: 200 };
 
 export const RewardCard = ({
   name,
@@ -24,28 +24,29 @@ export const RewardCard = ({
   return (
     <>
       <div
-        className={`w-full max-w-sm mx-auto ${className ?? ""}`}
+        className={` ${className ?? ""}`}
         style={{ userSelect: "none" }}
       >
         <div
-          style={{ width: "100%", height: 300, cursor: "pointer" }}
+
+          className=" h-[230px] cursor-pointer"
           onClick={() => setOpen(true)}
-          title="details"
         >
           <Canvas
+
             shadows={false}
             dpr={[1, 2]}
             camera={{ position: [0, 0, 4.1], fov: 45 }}
             frameloop="demand"
             gl={{
-              antialias: false,
+              antialias: true,
               alpha: true,
               outputColorSpace: THREE.SRGBColorSpace,
               toneMapping: THREE.ACESFilmicToneMapping,
               toneMappingExposure: 0.8,
 
             }}
-            style={{ background: "transparent" }}
+
           >
             <ambientLight intensity={1} />
             <directionalLight position={[2.2, 3, 5]} intensity={1.15} />
@@ -61,13 +62,14 @@ export const RewardCard = ({
         </VisuallyHidden>
         <DialogContent
           hideCloseButton={true}
-          onOpenAutoFocus={(e) => e.preventDefault()} 
-          onCloseAutoFocus={(e) => e.preventDefault()}  
-          className="max-w-lg w-[360px]  bg-transparent shadow-none border-none  p-0 flex flex-col items-center gap-6"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onCloseAutoFocus={(e) => e.preventDefault()}
+          className="max-w-lg   bg-transparent shadow-none border-none  p-0 flex flex-col items-center"
           style={{ filter: "none", WebkitFilter: "none" }}
         >
-          <div style={{ width: "100%", height: 360 }}>
+          <div style={{ width: "100%", height: 250 }}>
             <Canvas
+              className="block align-top"
               dpr={[1, 2]}
               camera={{ position: [0, 0, 4.3], fov: 45 }}
               gl={{
@@ -94,8 +96,8 @@ export const RewardCard = ({
           </div>
 
           {requirements && requirements.length > 0 && (
-            <div className="w-full">
-              <RequirementsPanel requirements={requirements as any} />
+            <div >
+              <RequirementsPanel requirements={requirements as any} title={name} />
             </div>
           )}
         </DialogContent>

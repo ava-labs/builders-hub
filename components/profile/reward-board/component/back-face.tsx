@@ -22,7 +22,7 @@ export function BackFace({
   const GAP_Y       = R * 0.06; 
 
   return (
-    <group rotation={[0, Math.PI, 0]}>
+    <group rotation={[0, Math.PI, 0]} renderOrder={0}>
       
       <mesh position={[0, 0, -0.010]}>
         <circleGeometry args={[plateRadius, DISC.segments]} />
@@ -53,7 +53,9 @@ export function BackFace({
         sdfGlyphSize={128}
         glyphGeometryDetail={16}
         material-toneMapped={false}
-        
+        material-transparent={false}   
+        material-depthWrite={true}
+        material-depthTest={true}
         onSync={(troika: any) => {
         
           const b = troika.textRenderInfo?.blockBounds;
@@ -85,6 +87,9 @@ export function BackFace({
           sdfGlyphSize={128}
           glyphGeometryDetail={16}
           material-toneMapped={false}
+          material-transparent={false}   
+          material-depthWrite={true}
+          material-depthTest={true}
           font={fontUrl}
         >
           {description}

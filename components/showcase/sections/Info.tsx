@@ -1,13 +1,26 @@
+"use client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Project } from "@/types/showcase";
 import { MapPin, Trophy } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 type Props = {
   project: Project;
 };
 export default function Info({ project }: Props) {
+  const parseLinks = (linkString: string | null | undefined): string[] => {
+    if (!linkString) return [];
+    return linkString.split(',').map(link => link.trim()).filter(link => link.length > 0);
+  };
+  const [demoLinks, setDemoLinks] = useState<string[]>([]);
+  const [githubLinks, setGithubLinks] = useState<string[]>([]);
+
+  useEffect(() => {
+    setDemoLinks(parseLinks(project.demo_link));
+    setGithubLinks(parseLinks(project.github_repository));
+  }, [project.demo_link, project.github_repository]);
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
       <div className="flex flex-col sm:flex-row justify-between gap-8 lg:gap-24">
@@ -52,28 +65,28 @@ export default function Info({ project }: Props) {
           </Badge>
         ))}
       </div>
-      
-      <div className="flex gap-4">
-        {project.demo_link && (
-          <Link href={project.demo_link} target="_blank">
+
+      <div className="flex gap-4 flex-wrap">
+        {demoLinks.map((link, index) => (
+          <Link key={`demo-${index}`} href={link} target="_blank">
             <Button
               variant="secondary"
-              className="flex-1 md:flex-none bg-red-500 hover:bg-red-500 text-zinc-50"
+              className="flex-1 md:flex-none bg-red-500 hover:bg-red-600 text-zinc-50"
             >
-              Live Demo
+              Link {demoLinks.length > 1 ? `${index + 1}` : ''}
             </Button>
           </Link>
-        )}
-        {project.github_repository && (
-          <Link href={project.github_repository} target="_blank">
+        ))}
+        {githubLinks.map((link, index) => (
+          <Link key={`github-${index}`} href={link} target="_blank">
             <Button
               variant="secondary"
-              className="flex-1 md:flex-none bg-zinc-900 hover:bg-zinc-900 dark:bg-zinc-50 hover:dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900"
+              className="flex-1 md:flex-none bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-50 hover:dark:bg-zinc-200 text-zinc-50 dark:text-zinc-900"
             >
-              Source Code
+              Source Code {githubLinks.length > 1 ? `${index + 1}` : ''}
             </Button>
           </Link>
-        )}
+        ))}
       </div>
     </div>
   );
