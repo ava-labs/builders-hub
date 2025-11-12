@@ -76,22 +76,6 @@ export async function getRewardBoard(user_id: string): Promise<UserBadge[]> {
 //   }
 // });
 
-  badges.forEach((badge) => {
-    if (Array.isArray(badge.evidence)) {
-      badge.points = badge.evidence.reduce(
-        (acc: number, requirement: any) => {
-          if (requirement && typeof requirement.points !== "undefined" && requirement.points !== null) {
-            return acc + parseInt(requirement.points.toString(), 10);
-          }
-          return acc;
-        },
-        0
-      );
-    } else {
-      badge.points = 0;
-    }
-  });
-
   return badges as unknown as UserBadge[];
 }
 
