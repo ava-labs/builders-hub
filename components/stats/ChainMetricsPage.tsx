@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
+import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
+import l1ChainsData from "@/constants/l1-chains.json";
+import { L1Chain } from "@/types/stats";
 
 interface TimeSeriesDataPoint {
   date: string;
@@ -65,6 +68,11 @@ export default function ChainMetricsPage({
   const [metrics, setMetrics] = useState<CChainMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Find the current chain to get explorers
+  const currentChain = useMemo(() => {
+    return l1ChainsData.find((chain) => chain.chainId === chainId) as L1Chain | undefined;
+  }, [chainId]);
 
   const fetchData = async () => {
     try {
@@ -430,18 +438,9 @@ export default function ChainMetricsPage({
                 {description}
               </p>
             </div>
-            {!chainName.includes("C-Chain") && (
+            {!chainName.includes("C-Chain") && currentChain?.explorers && (
               <div className="shrink-0 mt-1">
-                <Button
-                  size="sm"
-                  onClick={() =>
-                    window.open(`https://${chainId}.snowtrace.io`, "_blank")
-                  }
-                  className="flex-shrink-0 bg-black dark:bg-white text-white dark:text-black transition-colors hover:bg-neutral-800 dark:hover:bg-neutral-200"
-                >
-                  View Explorer
-                  <ArrowUpRight className="ml-1.5 h-4 w-4" />
-                </Button>
+                <ExplorerDropdown explorers={currentChain.explorers} />
               </div>
             )}
           </div>

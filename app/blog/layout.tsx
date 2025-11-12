@@ -5,6 +5,7 @@ import { Footer } from '@/components/navigation/footer';
 import { baseOptions } from '@/app/layout.config';
 import { SessionProvider } from 'next-auth/react';
 import { LayoutWrapper } from '@/app/layout-wrapper.client';
+import { NavbarDropdownInjector } from '@/components/navigation/navbar-dropdown-injector';
 
 export default function Layout({
   children,
@@ -14,6 +15,7 @@ export default function Layout({
   return (
     <SessionProvider>
       <LayoutWrapper baseOptions={baseOptions}>
+        <NavbarDropdownInjector />
         {children}
         <Footer />
       </LayoutWrapper>
