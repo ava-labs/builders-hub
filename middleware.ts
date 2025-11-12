@@ -33,7 +33,9 @@ export async function middleware(req: NextRequest) {
       "/hackathons/registration-form",
       "/hackathons/project-submission",
       "/showcase",
-      "/profile"
+      "/profile",
+      "/ambassador-dao/profile",
+      "/ambassador-dao/onboard"
     ];
     
     const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
@@ -80,5 +82,7 @@ export const config = {
     "/showcase/:path*",
     "/login/:path*",
     "/profile/:path*",
+    "/ambassador-dao/profile/:path*",
+    "/ambassador-dao/onboard/:path*",
   ],
 };

@@ -314,7 +314,7 @@ export default function ProjectSection() {
             (
               userProjects?.data?.opportunities ||
               userProjects?.data?.submissions
-            ).length === 0 && (
+            )?.length === 0 && (
               <div className="flex flex-col items-center justify-center h-40 text-[var(--secondary-text-color)]">
                 <Search size={48} className="mb-2 opacity-30" />
                 <p>No projects found matching your filters</p>

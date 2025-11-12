@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { LoadingButton } from "@/components/ui/loading-button";
 import Modal from "@/components/ui/Modal";
+import axios from "axios";
 import { BadgeAlert } from "lucide-react";
 import React, { useState } from "react";
 
@@ -24,6 +25,8 @@ export default function SignOutComponent({
         onConfirm(),
         new Promise((resolve) => setTimeout(resolve, 300)), 
       ]);
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/auth/logout`;
+      await axios.post(url);
       onOpenChange(false); 
     } finally {
       setIsConfirm(false);

@@ -57,6 +57,7 @@ export async function updateProfile(id: string, profileData: Partial<Profile>) {
             notifications: data.notifications,
             profile_privacy: data.profile_privacy,
             social_media: data.social_media,
+            accepted_terms: data.accepted_terms,
         }
     })
 

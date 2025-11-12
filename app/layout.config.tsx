@@ -510,10 +510,6 @@ export const baseOptions: BaseLayoutProps = {
     integrationsMenu,
     github,
     userMenu,
-    ambassadorMenu,
-    // {
-    //   type: "custom",
-    //   children: <AuthButton />,
-    // },
+    ambassadorMenu
   ],
 };

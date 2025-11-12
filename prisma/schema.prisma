@@ -45,6 +45,7 @@ model User {
   profile_privacy     String?       @default("public")
   social_media        String[]
   notifications       Boolean?
+  accepted_terms      Boolean  @default(false)
   custom_attributes   String[]
   telegram_user       String?
   created_at          DateTime      @default(now()) @db.Timestamptz(3)
