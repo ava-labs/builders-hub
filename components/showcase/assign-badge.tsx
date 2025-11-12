@@ -26,16 +26,19 @@ export const AssignBadge = ({
   const [isLoading, setIsLoading] = useState(false);
   useEffect(() => {
     const fetchBadges = async () => {
-      const response = await axios.get("/api/badge/get-all");
-      const filteredBadges = response.data.filter(
-        (badge: Badge) => badge.category == "hackathon"
-      );
-      setOptionsWithLabel(
-        filteredBadges.map((option: Badge) => ({
-          label: option.name,
-          value: option.id,
-        }))
-      );
+      // COMMENTED OUT: Hackathon badges feature disabled
+      // const response = await axios.get("/api/badge/get-all");
+      // const filteredBadges = response.data.filter(
+      //   (badge: Badge) => badge.category == "hackathon"
+      // );
+      // setOptionsWithLabel(
+      //   filteredBadges.map((option: Badge) => ({
+      //     label: option.name,
+      //     value: option.id,
+      //   }))
+      // );
+      // Return empty array since hackathon badges are disabled
+      setOptionsWithLabel([]);
     };
     fetchBadges();
   }, []);
