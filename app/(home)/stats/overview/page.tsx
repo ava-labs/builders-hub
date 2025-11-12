@@ -17,9 +17,10 @@ import {
 } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import l1ChainsData from "@/constants/l1-chains.json";
-import { TimeSeriesMetric, ICMMetric, TimeRange } from "@/types/stats";
+import { TimeSeriesMetric, ICMMetric, TimeRange, L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
+import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 
 interface ChainOverviewMetrics {
   chainId: string;
@@ -527,7 +528,7 @@ export default function AvalancheMetrics() {
             <table className="w-full border-collapse">
               <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
                 <tr className="border-b border-neutral-200 dark:border-neutral-800">
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-4 text-left">
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
                     <div className="flex items-center gap-2">
                       <SortButton field="chainName">
                         <span className="text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
@@ -536,7 +537,7 @@ export default function AvalancheMetrics() {
                       </SortButton>
                     </div>
                   </th>
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-4 text-left">
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
                     <div className="flex items-center gap-2">
                       <SortButton field="weeklyActiveAddresses">
                         <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
@@ -548,7 +549,7 @@ export default function AvalancheMetrics() {
                       </SortButton>
                     </div>
                   </th>
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-4 text-left">
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
                     <div className="flex items-center gap-2">
                       <SortButton field="weeklyTxCount">
                         <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
@@ -560,7 +561,7 @@ export default function AvalancheMetrics() {
                       </SortButton>
                     </div>
                   </th>
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-4 text-left">
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
                     <div className="flex items-center gap-2">
                       <SortButton field="totalIcmMessages">
                         <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
@@ -572,7 +573,7 @@ export default function AvalancheMetrics() {
                       </SortButton>
                     </div>
                   </th>
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-4 text-left">
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
                     <div className="flex items-center gap-2">
                       <SortButton field="validatorCount">
                         <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
@@ -581,7 +582,7 @@ export default function AvalancheMetrics() {
                       </SortButton>
                     </div>
                   </th>
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-4 text-left">
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
                     <div className="flex items-center gap-2">
                       <SortButton field="throughput">
                         <span className="text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
@@ -590,13 +591,20 @@ export default function AvalancheMetrics() {
                       </SortButton>
                     </div>
                   </th>
-                  <th className="px-6 py-4 text-left">
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
                     <div className="flex items-center gap-2">
                       <SortButton field="category">
                         <span className="text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
                           Category
                         </span>
                       </SortButton>
+                    </div>
+                  </th>
+                  <th className="px-4 py-2 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
+                        Block Explorer
+                      </span>
                     </div>
                   </th>
                 </tr>
@@ -619,7 +627,7 @@ export default function AvalancheMetrics() {
                         }
                       }}
                     >
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                         <div className="flex items-center gap-3 group">
                           <div className="relative">
                             {chain.chainLogoURI ? (
@@ -654,7 +662,7 @@ export default function AvalancheMetrics() {
                           )}
                         </div>
                       </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                         <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {typeof chain.activeAddresses.current_value ===
                           "number"
@@ -664,7 +672,7 @@ export default function AvalancheMetrics() {
                             : chain.activeAddresses.current_value}
                         </span>
                       </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                         <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {typeof chain.txCount.current_value === "number"
                             ? formatFullNumber(
@@ -673,7 +681,7 @@ export default function AvalancheMetrics() {
                             : chain.txCount.current_value}
                         </span>
                       </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                         <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {typeof chain.icmMessages.current_value === "number"
                             ? formatFullNumber(
@@ -684,19 +692,19 @@ export default function AvalancheMetrics() {
                             : chain.icmMessages.current_value}
                         </span>
                       </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                         <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {typeof chain.validatorCount === "number"
                             ? formatFullNumber(chain.validatorCount)
                             : chain.validatorCount}
                         </span>
                       </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-6 py-4">
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                         <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {getChainTPS(chain)} TPS
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                         <span
                           className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(
                             getChainCategory(chain.chainId, chain.chainName)
@@ -704,6 +712,21 @@ export default function AvalancheMetrics() {
                         >
                           {getChainCategory(chain.chainId, chain.chainName)}
                         </span>
+                      </td>
+                      <td className="px-4 py-2">
+                        <div className="flex items-center justify-center">
+                          <ExplorerDropdown
+                            explorers={
+                              (l1ChainsData.find(
+                                (c) => c.chainId === chain.chainId
+                              ) as L1Chain)?.explorers
+                            }
+                            size="sm"
+                            variant="outline"
+                            showIcon={true}
+                            buttonText="Open"
+                          />
+                        </div>
                       </td>
                     </tr>
                   );
