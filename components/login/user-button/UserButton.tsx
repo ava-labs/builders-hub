@@ -80,7 +80,7 @@ export function UserButton() {
               <Link href='/profile'>Profile</Link>
             </DropdownMenuItem>
            <DropdownMenuItem asChild className='cursor-pointer'>
-              <Link href='/profile/rewards-board'>Reward Board</Link>
+              <Link href='/profile/rewards-board'>Achievements Board</Link>
             </DropdownMenuItem>
            
             <DropdownMenuItem

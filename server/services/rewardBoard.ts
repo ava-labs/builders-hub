@@ -9,7 +9,7 @@ export function parseBadgeMetadata(metadata: JsonValue): Requirement | null {
     course_id: metadataObject.course_id || undefined,
     hackathon: metadataObject.hackathon || null,
     type: metadataObject.type || undefined,
-    points: metadataObject.points || undefined,
+    // points: metadataObject.points || undefined, // COMMENTED OUT: Points feature disabled
     description: metadataObject.description || undefined,
     id: metadataObject.id || "",
     unlocked: false,
@@ -51,7 +51,7 @@ export async function getRewardBoard(user_id: string): Promise<UserBadge[]> {
       awarded_by: userBadge.awarded_by,
       name: userBadge.badge.name,
       description: userBadge.badge.description,
-      points: 0,
+      // points: 0, // COMMENTED OUT: Points calculation disabled
       image_path: userBadge.badge.image_path,
       category: userBadge.badge.category,
       evidence: userBadge.evidence,
@@ -59,22 +59,22 @@ export async function getRewardBoard(user_id: string): Promise<UserBadge[]> {
     };
   });
 
-
-  badges.forEach((badge) => {
-    if (Array.isArray(badge.evidence)) {
-      badge.points = badge.evidence.reduce(
-        (acc: number, requirement: any) => {
-          if (requirement && typeof requirement.points !== "undefined" && requirement.points !== null) {
-            return acc + parseInt(requirement.points.toString(), 10);
-          }
-          return acc;
-        },
-        0
-      );
-    } else {
-      badge.points = 0;
-    }
-  });
+// COMMENTED OUT: Points calculation disabled
+// badges.forEach((badge) => {
+//   if (Array.isArray(badge.evidence)) {
+//     badge.points = badge.evidence.reduce(
+//       (acc: number, requirement: any) => {
+//         if (requirement && typeof requirement.points !== "undefined" && requirement.points !== null) {
+//           return acc + parseInt(requirement.points.toString(), 10);
+//         }
+//         return acc;
+//       },
+//       0
+//     );
+//   } else {
+//     badge.points = 0;
+//   }
+// });
 
   return badges as unknown as UserBadge[];
 }
