@@ -1,0 +1,13 @@
+{
+    "title": "Local Accounts",
+    "description": "Learn how to create and manage local accounts in the Avalanche Client SDK with private keys, mnemonics, and HD keys.",
+    "pages": [
+      "index",
+      "private-key",
+      "mnemonic",
+      "hd-key",
+      "addresses",
+      "utilities",
+      "clients"
+    ]
+}

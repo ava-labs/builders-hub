@@ -420,7 +420,7 @@ function AddCollateral() {
 
             const writePromise = coreWalletClient.writeContract({
                 ...request,
-                account: walletEVMAddress,
+                account: walletEVMAddress as `0x${string}`,
             });
             notify({
                 type: 'call',

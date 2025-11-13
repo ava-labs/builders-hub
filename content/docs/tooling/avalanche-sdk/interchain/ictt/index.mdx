@@ -1,0 +1,45 @@
+---
+title: Interchain Token Transfers
+icon: coins
+---
+
+## Overview
+
+Transfer ERC20 tokens between Avalanche chains using the Teleporter protocol. Requires deploying token home and remote contracts for each token pair.
+
+## Create Client
+
+```typescript
+import { createICTTClient } from "@avalanche-sdk/interchain";
+
+const ictt = createICTTClient();
+// Or with default chains
+const ictt = createICTTClient(sourceChain, destinationChain);
+```
+
+## Workflow
+
+1. **Deploy ERC20 Token** - Deploy your token on the source chain
+2. **Deploy Token Home** - Deploy home contract on source chain
+3. **Deploy Token Remote** - Deploy remote contract on destination chain
+4. **Register Remote** - Register remote with home contract
+5. **Approve Token** - Approve home contract to spend tokens
+6. **Send Tokens** - Transfer tokens cross-chain
+
+<Callout type="warn">
+  The wallet client's chain configuration must match the `sourceChain` used in
+  your interchain operations. For example, if you're sending messages from Fuji
+  testnet, ensure your wallet client is configured with the Fuji chain.
+  Mismatched chains will result in an "invalid sender" error.
+</Callout>
+
+## Methods
+
+<Cards>
+  <Card title="Deployment" href="/avalanche-sdk/interchain/ictt/deployment">
+    Deploy tokens and contracts
+  </Card>
+  <Card title="Transfers" href="/avalanche-sdk/interchain/ictt/transfers">
+    Transfer tokens cross-chain
+  </Card>
+</Cards>

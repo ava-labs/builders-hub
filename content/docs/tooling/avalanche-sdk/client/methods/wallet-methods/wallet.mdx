@@ -1,0 +1,605 @@
+---
+title: Wallet Methods
+description: Complete reference for Avalanche wallet operations
+---
+
+## Overview
+
+The Avalanche Wallet Client provides methods for sending transactions, signing messages and transactions, and managing accounts across all Avalanche chains (P-Chain, X-Chain, and C-Chain). This reference covers all wallet-specific methods available through the Avalanche Wallet Client SDK.
+
+**Access:** `walletClient`
+
+## send
+
+Send tokens from the source chain to the destination chain. Automatically handles cross-chain transfers when needed.
+
+**Function Signature:**
+
+```typescript
+function send(params: SendParameters): Promise<SendReturnType>;
+
+interface SendParameters {
+  account?: AvalancheAccount;
+  amount: bigint;
+  to: Address | XPAddress;
+  from?: Address | XPAddress;
+  sourceChain?: "P" | "C";
+  destinationChain?: "P" | "C";
+  token?: "AVAX";
+  context?: Context;
+}
+
+interface SendReturnType {
+  txHashes: TransactionDetails[];
+}
+
+interface TransactionDetails {
+  txHash: string;
+  chainAlias: "P" | "C";
+}
+```
+
+**Parameters:**
+
+| Name               | Type                   | Required | Description                                           |
+| ------------------ | ---------------------- | -------- | ----------------------------------------------------- |
+| `account`          | `AvalancheAccount`     | No       | Account to send from (uses client account if omitted) |
+| `amount`           | `bigint`               | Yes      | Amount to send in wei                                 |
+| `to`               | `Address \| XPAddress` | Yes      | Destination address                                   |
+| `from`             | `Address \| XPAddress` | No       | Source address (defaults to account address)          |
+| `sourceChain`      | `"P" \| "C"`           | No       | Source chain (default: "C")                           |
+| `destinationChain` | `"P" \| "C"`           | No       | Destination chain (default: "C")                      |
+| `token`            | `"AVAX"`               | No       | Token to send (only AVAX supported)                   |
+| `context`          | `Context`              | No       | Transaction context (auto-fetched if omitted)         |
+
+**Returns:**
+
+| Type             | Description               |
+| ---------------- | ------------------------- |
+| `SendReturnType` | Transaction hashes object |
+
+**Return Object:**
+
+| Property   | Type                   | Description                  |
+| ---------- | ---------------------- | ---------------------------- |
+| `txHashes` | `TransactionDetails[]` | Array of transaction details |
+
+**Transaction Details Object:**
+
+| Property     | Type         | Description                        |
+| ------------ | ------------ | ---------------------------------- |
+| `txHash`     | `string`     | The hash of the transaction        |
+| `chainAlias` | `"P" \| "C"` | The chain alias of the transaction |
+
+**Example:**
+
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import { avalanche } from "@avalanche-sdk/client/chains";
+import { avaxToWei, avaxToNanoAvax } from "@avalanche-sdk/client/utils";
+
+const account = privateKeyToAvalancheAccount("0x...");
+
+const walletClient = createAvalancheWalletClient({
+  account,
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+// Send AVAX on C-Chain
+const result = await walletClient.send({
+  to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  amount: avaxToWei(0.001),
+  destinationChain: "C",
+});
+
+console.log("Transaction hash:", result.txHashes[0].txHash);
+
+// Send AVAX from C-Chain to P-Chain
+const crossChainResult = await walletClient.send({
+  to: "P-avax1example...",
+  amount: avaxToWei(1),
+  sourceChain: "C",
+  destinationChain: "P",
+});
+
+console.log("Transfer transactions:", crossChainResult.txHashes);
+```
+
+**Related:**
+
+- [waitForTxn](#waitfortxn) - Wait for transaction confirmation
+- [signXPMessage](#signxpmessage) - Sign messages
+
+---
+
+## getAccountPubKey
+
+Get the public key associated with the wallet account in both EVM and XP formats.
+
+**Function Signature:**
+
+```typescript
+function getAccountPubKey(): Promise<GetAccountPubKeyReturnType>;
+
+interface GetAccountPubKeyReturnType {
+  evm: string;
+  xp: string;
+}
+```
+
+**Returns:**
+
+| Type                         | Description        |
+| ---------------------------- | ------------------ |
+| `GetAccountPubKeyReturnType` | Public keys object |
+
+**Return Object:**
+
+| Property | Type     | Description              |
+| -------- | -------- | ------------------------ |
+| `evm`    | `string` | Public key in EVM format |
+| `xp`     | `string` | Public key in XP format  |
+
+**Example:**
+
+```typescript
+const pubKeys = await walletClient.getAccountPubKey();
+
+console.log("EVM public key:", pubKeys.evm);
+console.log("XP public key:", pubKeys.xp);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgetaccountpubkey)
+- [Account Management](../accounts) - Account types and management
+
+---
+
+## waitForTxn
+
+Wait for a transaction to be confirmed on the network.
+
+**Function Signature:**
+
+```typescript
+function waitForTxn(params: WaitForTxnParameters): Promise<void>;
+
+interface WaitForTxnParameters {
+  txHash: string;
+  chainAlias: "X" | "P" | "C";
+  sleepTime?: number;
+  maxRetries?: number;
+}
+```
+
+**Parameters:**
+
+| Name         | Type                | Required | Description                                                  |
+| ------------ | ------------------- | -------- | ------------------------------------------------------------ |
+| `txHash`     | `string`            | Yes      | Transaction hash                                             |
+| `chainAlias` | `"X" \| "P" \| "C"` | Yes      | Chain where transaction was submitted                        |
+| `sleepTime`  | `number`            | No       | Time to sleep between retries in milliseconds (default: 300) |
+| `maxRetries` | `number`            | No       | Maximum number of retries (default: 10)                      |
+
+**Returns:**
+
+| Type            | Description                                                                         |
+| --------------- | ----------------------------------------------------------------------------------- |
+| `Promise<void>` | Promise that resolves when transaction is confirmed or rejects if transaction fails |
+
+**Example:**
+
+```typescript
+const txHash = "0x...";
+
+try {
+  await walletClient.waitForTxn({
+    txHash,
+    chainAlias: "C",
+    sleepTime: 500, // Wait 500ms between checks
+    maxRetries: 20, // Check up to 20 times
+  });
+
+  console.log("Transaction confirmed!");
+} catch (error) {
+  console.error("Transaction failed:", error);
+}
+```
+
+**Related:**
+
+- [send](#send) - Send transactions
+- [Client tx status methods](../public-methods) - Check transaction status manually
+
+---
+
+## sendXPTransaction
+
+Send a signed XP transaction to the network (X-Chain, P-Chain, or C-Chain).
+
+**Function Signature:**
+
+```typescript
+function sendXPTransaction(
+  params: SendXPTransactionParameters
+): Promise<SendXPTransactionReturnType>;
+
+interface SendXPTransactionParameters {
+  account?: AvalancheAccount | Address;
+  tx: string | UnsignedTx;
+  chainAlias: "X" | "P" | "C";
+  externalIndices?: number[];
+  internalIndices?: number[];
+  utxoIds?: string[];
+  feeTolerance?: number;
+  subnetAuth?: number[];
+  subnetOwners?: PChainOwner;
+  disableOwners?: PChainOwner;
+  disableAuth?: number[];
+}
+
+interface SendXPTransactionReturnType {
+  txHash: string;
+  chainAlias: "X" | "P" | "C";
+}
+```
+
+**Parameters:**
+
+| Name              | Type                          | Required | Description                                           |
+| ----------------- | ----------------------------- | -------- | ----------------------------------------------------- |
+| `account`         | `AvalancheAccount \| Address` | No       | Account to use for the transaction                    |
+| `tx`              | `string \| UnsignedTx`        | Yes      | Transaction to send (hex string or UnsignedTx object) |
+| `chainAlias`      | `"X" \| "P" \| "C"`           | Yes      | Target chain                                          |
+| `externalIndices` | `number[]`                    | No       | External indices to use for the transaction           |
+| `internalIndices` | `number[]`                    | No       | Internal indices to use for the transaction           |
+| `utxoIds`         | `string[]`                    | No       | UTXO IDs to use for the transaction                   |
+| `feeTolerance`    | `number`                      | No       | Fee tolerance to use for the transaction              |
+| `subnetAuth`      | `number[]`                    | No       | Subnet auth to use for the transaction                |
+| `subnetOwners`    | `PChainOwner`                 | No       | Subnet owners to use for the transaction              |
+| `disableOwners`   | `PChainOwner`                 | No       | Disable owners to use for the transaction             |
+| `disableAuth`     | `number[]`                    | No       | Disable auth to use for the transaction               |
+
+**Returns:**
+
+| Type                          | Description             |
+| ----------------------------- | ----------------------- |
+| `SendXPTransactionReturnType` | Transaction hash object |
+
+**Return Object:**
+
+| Property     | Type                | Description                 |
+| ------------ | ------------------- | --------------------------- |
+| `txHash`     | `string`            | The hash of the transaction |
+| `chainAlias` | `"X" \| "P" \| "C"` | The chain alias             |
+
+**Example:**
+
+```typescript
+// This is typically used with prepare methods from chain-specific wallets
+const unsignedTx = await walletClient.pChain.prepareBaseTxn({
+  outputs: [
+    {
+      addresses: ["P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz"],
+      amount: avaxToNanoAvax(1),
+    },
+  ],
+});
+
+const signedTx = await walletClient.signXPTransaction({
+  tx: unsignedTx.tx,
+  chainAlias: "P",
+});
+
+const { txHash } = await walletClient.sendXPTransaction({
+  tx: signedTx.signedTxHex,
+  chainAlias: "P",
+});
+
+console.log("Transaction hash:", txHash);
+```
+
+**Related:**
+
+- [signXPTransaction](#signxptransaction) - Sign transactions
+- [P-Chain Wallet Methods](./p-chain-wallet) - P-Chain transaction preparation
+- [X-Chain Wallet Methods](./x-chain-wallet) - X-Chain transaction preparation
+
+---
+
+## signXPTransaction
+
+Sign an XP transaction (X-Chain, P-Chain, or C-Chain).
+
+**Function Signature:**
+
+```typescript
+function signXPTransaction(
+  params: SignXPTransactionParameters
+): Promise<SignXPTransactionReturnType>;
+
+interface SignXPTransactionParameters {
+  account?: AvalancheAccount | Address;
+  tx?: string | UnsignedTx;
+  signedTxHex?: string;
+  chainAlias: "X" | "P" | "C";
+  utxoIds?: string[];
+  subnetAuth?: number[];
+  subnetOwners?: PChainOwner;
+  disableOwners?: PChainOwner;
+  disableAuth?: number[];
+  context?: Context;
+}
+
+interface Signatures {
+  signature: string;
+  sigIndices: number[];
+}
+
+interface SignXPTransactionReturnType {
+  signedTxHex: string;
+  signatures: Signatures[];
+  chainAlias: "X" | "P" | "C";
+  subnetAuth?: number[];
+  subnetOwners?: PChainOwner;
+  disableOwners?: PChainOwner;
+  disableAuth?: number[];
+}
+```
+
+**Parameters:**
+
+| Name            | Type                          | Required | Description                                                                  |
+| --------------- | ----------------------------- | -------- | ---------------------------------------------------------------------------- |
+| `account`       | `AvalancheAccount \| Address` | No       | Account to use for the transaction                                           |
+| `tx`            | `string \| UnsignedTx`        | No       | Unsigned transaction (either `tx` or `signedTxHex` must be provided)         |
+| `signedTxHex`   | `string`                      | No       | Pre-signed transaction bytes (either `tx` or `signedTxHex` must be provided) |
+| `chainAlias`    | `"X" \| "P" \| "C"`           | Yes      | Target chain                                                                 |
+| `utxoIds`       | `string[]`                    | No       | UTXO IDs to use for the transaction                                          |
+| `subnetAuth`    | `number[]`                    | No       | Subnet auth to use for the transaction                                       |
+| `subnetOwners`  | `PChainOwner`                 | No       | Subnet owners to use for the transaction                                     |
+| `disableOwners` | `PChainOwner`                 | No       | Disable owners to use for the transaction                                    |
+| `disableAuth`   | `number[]`                    | No       | Disable auth to use for the transaction                                      |
+| `context`       | `Context`                     | No       | Transaction context (auto-fetched if omitted)                                |
+
+**Returns:**
+
+| Type                          | Description               |
+| ----------------------------- | ------------------------- |
+| `SignXPTransactionReturnType` | Signed transaction object |
+
+**Return Object:**
+
+| Property        | Type                | Description                             |
+| --------------- | ------------------- | --------------------------------------- |
+| `signedTxHex`   | `string`            | The signed transaction in hex format    |
+| `signatures`    | `Signatures[]`      | Array of signatures for the transaction |
+| `chainAlias`    | `"X" \| "P" \| "C"` | The chain alias                         |
+| `subnetAuth`    | `number[]?`         | Subnet auth used for the transaction    |
+| `subnetOwners`  | `PChainOwner?`      | Subnet owners used for the transaction  |
+| `disableOwners` | `PChainOwner?`      | Disable owners used for the transaction |
+| `disableAuth`   | `number[]?`         | Disable auth used for the transaction   |
+
+**Signatures Object:**
+
+| Property     | Type       | Description                                                               |
+| ------------ | ---------- | ------------------------------------------------------------------------- |
+| `signature`  | `string`   | The signature of the transaction with the current account                 |
+| `sigIndices` | `number[]` | The indices of the signatures. Contains [inputIndex, signatureIndex] pair |
+
+**Example:**
+
+```typescript
+const unsignedTx = await walletClient.pChain.prepareBaseTxn({
+  outputs: [
+    {
+      addresses: ["P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz"],
+      amount: avaxToNanoAvax(0.1),
+    },
+  ],
+});
+
+const signedTx = await walletClient.signXPTransaction({
+  tx: unsignedTx.tx,
+  chainAlias: "P",
+});
+
+// Now send the signed transaction
+const { txHash } = await walletClient.sendXPTransaction({
+  tx: signedTx.signedTxHex,
+  chainAlias: "P",
+});
+
+console.log("Transaction hash:", txHash);
+```
+
+**Related:**
+
+- [sendXPTransaction](#sendxptransaction) - Send signed transaction
+- [signXPMessage](#signxpmessage) - Sign messages
+
+---
+
+## signXPMessage
+
+Sign a message with an XP account (P-Chain or X-Chain addresses).
+
+**Function Signature:**
+
+```typescript
+function signXPMessage(
+  params: SignXPMessageParameters
+): Promise<SignXPMessageReturnType>;
+
+interface SignXPMessageParameters {
+  account?: AvalancheAccount | Address;
+  message: string;
+  accountIndex?: number;
+}
+
+interface SignXPMessageReturnType {
+  signature: string;
+}
+```
+
+**Parameters:**
+
+| Name           | Type                          | Required | Description                                                                       |
+| -------------- | ----------------------------- | -------- | --------------------------------------------------------------------------------- |
+| `account`      | `AvalancheAccount \| Address` | No       | Account to use for the message                                                    |
+| `message`      | `string`                      | Yes      | Message to sign                                                                   |
+| `accountIndex` | `number`                      | No       | Account index to use for the message from custom transport (e.g., core extension) |
+
+**Returns:**
+
+| Type                      | Description              |
+| ------------------------- | ------------------------ |
+| `SignXPMessageReturnType` | Message signature object |
+
+**Return Object:**
+
+| Property    | Type     | Description                          |
+| ----------- | -------- | ------------------------------------ |
+| `signature` | `string` | Hex-encoded signature of the message |
+
+**Example:**
+
+```typescript
+const { signature } = await walletClient.signXPMessage({
+  message: "Hello Avalanche",
+});
+
+console.log("Signature:", signature);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmsignmessage)
+- [signXPTransaction](#signxptransaction) - Sign transactions
+
+---
+
+## EVM Transaction Methods
+
+The Avalanche Wallet Client extends viem's Wallet Client, providing access to all standard Ethereum transaction methods.
+
+### Standard viem Methods
+
+```typescript
+// Send transaction
+const hash = await walletClient.sendTransaction({
+  to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  value: parseEther("0.001"),
+});
+
+// Sign message
+const signature = await walletClient.signMessage({
+  message: "Hello World",
+});
+
+// Sign typed data (EIP-712)
+const typedSignature = await walletClient.signTypedData({
+  domain: { ... },
+  types: { ... },
+  primaryType: "Message",
+  message: { ... },
+});
+```
+
+**For complete EVM wallet method reference, see:** [Viem Documentation](https://viem.sh/docs)
+
+---
+
+## Chain-Specific Wallet Operations
+
+### P-Chain Wallet Operations
+
+Access through `walletClient.pChain`:
+
+```typescript
+// Prepare base transaction
+const baseTx = await walletClient.pChain.prepareBaseTxn({
+  outputs: [
+    {
+      addresses: ["P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz"],
+      amount: avaxToNanoAvax(1),
+    },
+  ],
+});
+
+// Prepare export transaction
+const exportTx = await walletClient.pChain.prepareExportTxn({
+  destinationChain: "C",
+  exportedOutputs: [
+    {
+      addresses: ["0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"],
+      amount: avaxToNanoAvax(1),
+    },
+  ],
+});
+
+// Prepare import transaction
+const importTx = await walletClient.pChain.prepareImportTxn({
+  sourceChain: "C",
+  importedOutput: {
+    addresses: ["P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz"],
+  },
+});
+```
+
+See [P-Chain Wallet Methods](./p-chain-wallet) for complete reference.
+
+### X-Chain Wallet Operations
+
+Access through `walletClient.xChain`:
+
+```typescript
+// Prepare base transaction
+const baseTx = await walletClient.xChain.prepareBaseTxn({
+  outputs: [
+    {
+      addresses: ["X-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz"],
+      amount: avaxToNanoAvax(1),
+    },
+  ],
+});
+```
+
+See [X-Chain Wallet Methods](./x-chain-wallet) for complete reference.
+
+### C-Chain Wallet Operations
+
+Access through `walletClient.cChain`:
+
+```typescript
+// Prepare export transaction
+const exportTx = await walletClient.cChain.prepareExportTxn({
+  destinationChain: "P",
+  fromAddress: account.getEVMAddress(),
+  exportedOutput: {
+    addresses: [account.getXPAddress("P")],
+    amount: avaxToNanoAvax(1),
+  },
+});
+
+// Prepare import transaction
+const importTx = await walletClient.cChain.prepareImportTxn({
+  sourceChain: "P",
+  toAddress: account.getEVMAddress(),
+});
+```
+
+See [C-Chain Wallet Methods](./c-chain-wallet) for complete reference.
+
+---
+
+## Next Steps
+
+- **[P-Chain Wallet Methods](./p-chain-wallet)** - P-Chain transaction preparation
+- **[X-Chain Wallet Methods](./x-chain-wallet)** - X-Chain transaction preparation
+- **[C-Chain Wallet Methods](./c-chain-wallet)** - C-Chain atomic transactions
+- **[Account Management](../accounts)** - Account types and creation
+- **[Viem Documentation](https://viem.sh/docs)** - Complete EVM wallet reference

@@ -17,7 +17,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "allowImportingTsExtensions": true,
     "paths": {
@@ -39,7 +39,7 @@
       {
         "name": "next"
       }
-    ],
+    ]
   },
   "include": [
     "next-env.d.ts",
@@ -47,7 +47,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "utils/remote-content.mts",
-    "hooks/getLucideIcon.tsz"
+    "hooks/getLucideIcon.tsz",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

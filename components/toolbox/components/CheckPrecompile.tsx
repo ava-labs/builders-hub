@@ -59,7 +59,9 @@ export const CheckPrecompile = ({
                 });
 
                 const data = await getActiveRulesAt(rpcPublicClient);
-                const isActive = Boolean(data.precompiles?.[configKey]?.timestamp);
+                // Treat presence of a timestamp (including 0) as active.
+                // Some networks may report 0 when enabled at genesis.
+                const isActive = (data.precompiles?.[configKey]?.timestamp !== undefined);
                 setState({ isLoading: false, isActive, error: null });
             } catch (err) {
                 console.error('Error checking precompile:', err);

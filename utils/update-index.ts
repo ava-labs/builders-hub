@@ -19,7 +19,7 @@ async function main() {
 
     await sync(client, {
       documents: records,
-      document: 'builder-hub',
+      indexName: 'builder-hub',
     });
   } catch (error) {
     console.error('Algolia sync failed:', error);

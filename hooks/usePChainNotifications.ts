@@ -5,6 +5,7 @@ import { PChainClient, createPChainClient } from '@avalanche-sdk/client';
 import { avalanche, avalancheFuji } from '@avalanche-sdk/client/chains';
 import { usePathname } from 'next/navigation';
 import { showCustomErrorToast } from '@/components/ui/custom-error-toast';
+import posthog from 'posthog-js';
 
 const getPChainTxExplorerURL = (txID: string, isTestnet: boolean) => {
     return `https://${isTestnet ? "subnets-test" : "subnets"}.avax.network/p-chain/tx/${txID}`;
@@ -128,6 +129,17 @@ const usePChainNotifications = () => {
                         actionPath,
                         data
                     });
+
+                    // Track successful action in PostHog
+                    posthog.capture('console_action_success', {
+                        action_type: config.eventType,
+                        action_name: action,
+                        action_path: actionPath,
+                        network: isTestnet ? 'testnet' : 'mainnet',
+                        tx_id: txID,
+                        context: pathname?.includes('/academy') ? 'academy' : (pathname?.includes('/docs') ? 'docs' : 'console'),
+                        chain_type: 'p-chain'
+                    });
                 } catch (error) {
                     const errorMessage = config.errorMessagePrefix + (error as Error).message;
 
@@ -138,6 +150,17 @@ const usePChainNotifications = () => {
                         status: 'error',
                         actionPath,
                         data: { error: (error as Error).message, network: isTestnet ? 'testnet' : 'mainnet' }
+                    });
+
+                    // Track error in PostHog
+                    posthog.capture('console_action_error', {
+                        action_type: config.eventType,
+                        action_name: action,
+                        action_path: actionPath,
+                        network: isTestnet ? 'testnet' : 'mainnet',
+                        error_message: (error as Error).message,
+                        context: pathname?.includes('/academy') ? 'academy' : (pathname?.includes('/docs') ? 'docs' : 'console'),
+                        chain_type: 'p-chain'
                     });
                 }
             })
@@ -151,6 +174,17 @@ const usePChainNotifications = () => {
                     status: 'error',
                     actionPath,
                     data: { error: error.message, network: isTestnet ? 'testnet' : 'mainnet' }
+                });
+
+                // Track error in PostHog
+                posthog.capture('console_action_error', {
+                    action_type: config.eventType,
+                    action_name: action,
+                    action_path: actionPath,
+                    network: isTestnet ? 'testnet' : 'mainnet',
+                    error_message: error.message,
+                    context: pathname?.includes('/academy') ? 'academy' : (pathname?.includes('/docs') ? 'docs' : 'console'),
+                    chain_type: 'p-chain'
                 });
             });
     };

@@ -1,0 +1,119 @@
+---
+title: Usage Guide
+description: Usage Guide for the Metrics API
+icon: Code
+---
+
+The Metrics API does not require authentication, making it straightforward to integrate into your applications. You can start making API requests without the need for an API key or any authentication headers.
+
+#### Making Requests
+
+You can interact with the Metrics API by sending HTTP GET requests to the provided endpoints. Below is an example of a simple `curl` request.
+
+```bash
+curl -H "Content-Type: Application/json" "https://metrics.avax.network/v1/avg_tps/{chainId}"
+```
+
+In the above request Replace `chainId` with the specific chain ID you want to query. For example, to retrieve the average transactions per second (TPS) for a specific chain (in this case, chain ID 43114), you can use the following endpoint:
+
+```bash
+curl "https://metrics.avax.network/v1/avg_tps/43114"
+```
+
+The API will return a JSON response containing the average TPS for the specified chain over a series of timestamps and `lastRun` is a timestamp indicating when the last data point was updated:
+
+```json
+{
+  "results": [
+    {"timestamp": 1724716800, "value": 1.98},
+    {"timestamp": 1724630400, "value": 2.17},
+    {"timestamp": 1724544000, "value": 1.57},
+    {"timestamp": 1724457600, "value": 1.82},
+    // Additional data points...
+  ],
+  "status": 200,
+  "lastRun": 1724780812
+}
+```
+
+### Rate Limits
+
+Even though the Metrics API does not require authentication, it still enforces rate limits to ensure stability and performance. If you exceed these limits, the server will respond with a 429 Too Many Requests HTTP response code.
+
+### Error Types
+
+The API generates standard error responses along with error codes based on provided requests and parameters.
+
+Typically, response codes within the `2XX` range signifies successful requests, while those within the `4XX` range points to errors originating from the client's side. Meanwhile, response codes within the `5XX` range indicates problems on the server's side.
+
+The error response body is formatted like this:
+
+```json
+{
+  "message": ["Invalid address format"], // route specific error message
+  "error": "Bad Request", // error type
+  "statusCode": 400 // http response code
+}
+```
+
+Let's go through every error code that we can respond with:
+
+| Error Code | Error Type            | Description                                                                                                                                                                                                                   |
+| ---------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **400**    | Bad Request           | Bad requests generally mean the client has passed invalid or malformed parameters. Error messages in the response could help in evaluating the error.                                                                         |
+| **401**    | Unauthorized          | When a client attempts to access resources that require authorization credentials but the client lacks proper authentication in the request, the server responds with 401.                                                    |
+| **403**    | Forbidden             | When a client attempts to access resources with valid credentials but doesn't have the privilege to perform that action, the server responds with 403.                                                                        |
+| **404**    | Not Found             | The 404 error is mostly returned when the client requests with either mistyped URL, or the passed resource is moved or deleted, or the resource doesn't exist.                                                                |
+| **500**    | Internal Server Error | The 500 error is a generic server-side error that is returned for any uncaught and unexpected issues on the server side. This should be very rare, and you may reach out to us if the problem persists for a longer duration. |
+| **502**    | Bad Gateway           | This is an internal error indicating invalid response received by the client-facing proxy or gateway from the upstream server.                                                                                                |
+| **503**    | Service Unavailable   | The 503 error is returned for certain routes on a particular Subnet. This indicates an internal problem with our Subnet node, and may not necessarily mean the Subnet is down or affected.                                    |
+
+### Pagination
+
+For endpoints that return large datasets, the Metrics API employs pagination to manage the results. When querying for lists of data, you may receive a nextPageToken in the response, which can be used to request the next page of data.
+
+Example response with pagination:
+
+```json
+{
+  "results": [...],
+  "nextPageToken": "3d22deea-ea64-4d30-8a1e-c2a353b67e90"
+}
+```
+
+To retrieve the next set of results, include the nextPageToken in your subsequent request:
+
+```bash
+curl -H "Content-Type: Application/json" \
+  "https://metrics.avax.network/v1/avg_tps/{chainId}?pageToken=3d22deea-ea64-4d30-8a1e-c2a353b67e90"
+```
+
+### Pagination Details
+
+#### Page Token Structure
+
+The `nextPageToken` is a UUID-based token provided in the response when additional pages of data are available. This token serves as a pointer to the next set of data.
+
+* **UUID Generation**: The `nextPageToken` is generated uniquely for each pagination scenario, ensuring security and ensuring predictability.
+* **Expiration**: The token is valid for 24 hours from the time it is generated. After this period, the token will expire, and a new request starting from the initial page will be required.
+* **Presence**: The token is only included in the response when there is additional data available. If no more data exists, the token will not be present.
+
+#### Integration and Usage
+
+To use the pagination system effectively:
+
+* Check if the `nextPageToken` is present in the response.
+* If present, include this token in the subsequent request to fetch the next page of results.
+* Ensure that the follow-up request is made within the 24-hour window after the token was generated to avoid token expiration.
+
+By utilizing the pagination mechanism, you can efficiently manage and navigate through large datasets, ensuring a smooth data retrieval process.
+
+### Swagger API Reference
+
+You can explore the full API definitions and interact with the endpoints in the Swagger documentation at:
+
+<Cards cols={1}>
+  <Card title="Swagger API Reference">
+    [https://metrics.avax.network/api](https://metrics.avax.network/api)
+  </Card>
+</Cards>

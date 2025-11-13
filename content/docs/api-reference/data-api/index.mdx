@@ -1,0 +1,72 @@
+---
+title: Data API
+description: Access comprehensive blockchain data for Avalanche networks
+icon: Database
+---
+
+### What is the Data API?
+
+The Data API provides web3 application developers with multi-chain data related to Avalanche's primary network, Avalanche L1s, and Ethereum. With the Data API, you can easily build products that leverage real-time and historical transaction and transfer history, native and token balances, and various types of token metadata.
+
+<img src="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/data-api.png?fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=8de5972a10c0c85d6e54a310c3a8c2cc" alt="Data API" data-og-width="3126" width="3126" data-og-height="2807" height="2807" data-path="images/data-api.png" data-optimize="true" data-opv="3" srcset="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/data-api.png?w=280&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=f26740e5df60f89cb7a2995bb1cf3f69 280w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/data-api.png?w=560&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=2c9319348ada91f26f8b315e4ca479c6 560w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/data-api.png?w=840&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=da79bcd6b56c5bba79bd3df8ec641d94 840w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/data-api.png?w=1100&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=e9bd34bb1bb349e2b3bc59f1805ca2d4 1100w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/data-api.png?w=1650&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=6b235051a376fd4d54720b9ad1ae346e 1650w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/data-api.png?w=2500&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=ce2f4992fd320a6dccf87677b63fb380 2500w" />
+
+The [Data API](/docs/api-reference/data-api), along with the [Metrics API](/docs/api-reference/metrics-api), are the engines behind the [Avalanche Explorer](https://subnets.avax.network/stats/) and the [Core wallet](https://core.app/en/). They are used to display transactions, logs, balances, NFTs, and more. The data and visualizations presented are all powered by these APIs, offering real-time and historical insights that are essential for building sophisticated, data-driven blockchain products.
+
+### Features
+
+* **Extensive L1 Support**: Gain access to data from over 100+ L1s across both mainnet and testnet. If an L1 is listed on the [Avalanche Explorer](https://subnets.avax.network/), you can query its data using the Data API.
+* **Transactions and UTXOs**: easily retrieve details related to transactions, UTXOs, and token transfers from Avalanche EVMs, Ethereum, and Avalanche's Primary Network - the P-Chain, X-Chain and C-Chain.
+* **Blocks**: retrieve latest blocks and block details
+* **Balances**: fetch balances of native, ERC-20, ERC-721, and ERC-1155 tokens along with relevant metadata.
+* **Tokens**: augment your user experience with asset details.
+* **Staking**: get staking related data for active and historical validations.
+
+### Supported Chains
+
+Avalanche’s architecture supports a diverse ecosystem of interconnected L1 blockchains, each operating independently while retaining the ability to seamlessly communicate with other L1s within the network. Central to this architecture is the Primary Network—Avalanche’s foundational network layer, which all validators are required to validate prior to [ACP-77](/docs/acps/77-reinventing-subnets). The Primary Network runs three essential blockchains:
+
+* The Contract Chain (C-Chain)
+* The Platform Chain (P-Chain)
+* The Exchange Chain (X-Chain)
+
+However, with the implementation of [ACP-77](/docs/acps/77-reinventing-subnets), this requirement will change. Subnet Validators will be able to operate independently of the Primary Network, allowing for more flexible and affordable Subnet creation and management.
+
+The **Data API** supports a wide range of L1 blockchains (**over 100**) across both **mainnet** and **testnet**, including popular ones like Beam, DFK, Lamina1, Dexalot, Shrapnel, and Pulsar. In fact, every L1 you see on the [Avalanche Explorer](https://explorer.avax.network/) can be queried through the Data API. This list is continually expanding as we keep adding more L1s. For a full list of supported chains, visit [List chains](/docs/api-reference/data-api/evm-chains/list-chains).
+
+#### The Contract Chain (C-Chain)
+
+The C-Chain is an implementation of the Ethereum Virtual Machine (EVM). The primary network endpoints only provide information related to C-Chain atomic memory balances and import/export transactions. For additional data, please reference the [EVM APIs](/docs/rpcs/c-chain/rpc).
+
+#### The Platform Chain (P-Chain)
+
+The P-Chain is responsible for all validator and L1-level operations. The P-Chain supports the creation of new blockchains and L1s, the addition of validators to L1s, staking operations, and other platform-level operations.
+
+#### The Exchange Chain (X-Chain)
+
+The X-Chain is responsible for operations on digital smart assets known as Avalanche Native Tokens. A smart asset is a representation of a real-world resource (for example, equity, or a bond) with sets of rules that govern its behavior, like "can’t be traded until tomorrow." The X-Chain supports the creation and trade of Avalanche Native Tokens.
+
+| Feature          | Description                                                                                                                                                                                                                                                                                                                                                                              |
+| :--------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Chains**       | Utilize this endpoint to retrieve the Primary Network chains that an address has transaction history associated with.                                                                                                                                                                                                                                                                    |
+| **Blocks**       | Blocks are the container for transactions executed on the Primary Network. Retrieve the latest blocks, a specific block by height or hash, or a list of blocks proposed by a specified NodeID on Primary Network chains.                                                                                                                                                                 |
+| **Vertices**     | Prior to Avalanche Cortina (v1.10.0), the X-Chain functioned as a DAG with vertices rather than blocks. These endpoints allow developers to retrieve historical data related to that period of chain history. Retrieve the latest vertices, a specific vertex, or a list of vertices at a specific height from the X-Chain.                                                              |
+| **Transactions** | Transactions are a user's primary form of interaction with a chain and provide details around their on-chain activity, including staking-related behavior. Retrieve a list of the latest transactions, a specific transaction, a list of active staking transactions for a specified address, or a list of transactions associated with a provided asset id from Primary Network chains. |
+| **UTXOs**        | UTXOs are fundamental elements that denote the funds a user has available. Get a list of UTXOs for provided addresses from the Primary Network chains.                                                                                                                                                                                                                                   |
+| **Balances**     | User balances are an essential function of the blockchain. Retrieve balances related to the X and P-Chains, as well as atomic memory balances for the C-Chain.                                                                                                                                                                                                                           |
+| **Rewards**      | Staking is the process where users lock up their tokens to support a blockchain network and, in return, receive rewards. It is an essential part of proof-of-stake (PoS) consensus mechanisms used by many blockchain networks, including Avalanche. Using the Data API, you can easily access pending and historical rewards associated with a set of addresses.                        |
+| **Assets**       | Get asset details corresponding to the given asset id on the X-Chain.                                                                                                                                                                                                                                                                                                                    |
+
+#### EVM
+
+The C-Chain is an instance of the Coreth Virtual Machine, and many Avalanche L1s are instances of the *Subnet-EVM*, which is a Virtual Machine (VM) that defines the L1 Contract Chains. *Subnet-EVM* is a simplified version of *Coreth VM* (C-Chain).
+
+| Feature          | Description                                                                                                                                                                                                                                                                                                   |
+| :--------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Chains**       | There are a number of chains supported by the Data API. These endpoints can be used to understand which chains are included/indexed as part of the API and retrieve information related to a specific chain.                                                                                                  |
+| **Blocks**       | Blocks are the container for transactions executed within the EVM. Retrieve the latest blocks or a specific block by height or hash.                                                                                                                                                                          |
+| **Transactions** | Transactions are a user's primary form of interaction with a chain and provide details around their on-chain activity. These endpoints can be used to retrieve information related to specific transaction details, internal transactions, contract deployments, specific token standard transfers, and more! |
+| **Balances**     | User balances are an essential function of the blockchain. Easily retrieve native token, collectible, and fungible token balances related to an EVM chain with these endpoints.                                                                                                                               |
+
+#### Operations
+
+The Operations API allows users to easily access their on-chain history by creating transaction exports returned in a CSV format. This API supports EVMs as well as non-EVM Primary Network chains.

@@ -1,0 +1,315 @@
+---
+title: Public Methods
+description: Complete reference for Avalanche-specific public client methods
+---
+
+## Overview
+
+The Avalanche Client extends viem's Public Client with Avalanche-specific methods for querying fee information, chain configuration, and active rules. These methods are available on both the main Avalanche Client and the C-Chain client.
+
+## Fee Operations
+
+### baseFee
+
+Get the base fee for the next block on the C-Chain.
+
+**Function Signature:**
+
+```typescript
+function baseFee(): Promise<string>;
+```
+
+**Parameters:**
+
+No parameters required.
+
+**Returns:**
+
+| Type     | Description                                                    |
+| -------- | -------------------------------------------------------------- |
+| `string` | Base fee for the next block as hex string (e.g., "0x3b9aca00") |
+
+**Example:**
+
+```typescript
+import { createAvalancheClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+const baseFee = await client.baseFee();
+console.log("Base fee:", baseFee); // "0x3b9aca00"
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/c-chain/api#eth_basefee)
+- [maxPriorityFeePerGas](#maxpriorityfeepergas) - Get max priority fee per gas
+
+---
+
+### maxPriorityFeePerGas
+
+Get the maximum priority fee per gas for the next block.
+
+**Function Signature:**
+
+```typescript
+function maxPriorityFeePerGas(): Promise<string>;
+```
+
+**Parameters:**
+
+No parameters required.
+
+**Returns:**
+
+| Type     | Description                                                     |
+| -------- | --------------------------------------------------------------- |
+| `string` | Maximum priority fee per gas as hex string (e.g., "0x3b9aca00") |
+
+**Example:**
+
+```typescript
+const maxPriorityFee = await client.maxPriorityFeePerGas();
+console.log("Max priority fee per gas:", maxPriorityFee);
+
+// Use in EIP-1559 transaction
+const txHash = await walletClient.sendTransaction({
+  to: "0x...",
+  value: avaxToWei(1),
+  maxFeePerGas: baseFee + maxPriorityFee,
+  maxPriorityFeePerGas: maxPriorityFee,
+});
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/c-chain/api#eth_maxpriorityfeepergas)
+- [baseFee](#basefee) - Get base fee
+
+---
+
+### feeConfig
+
+Get the fee configuration for a specific block. Returns fee settings and when they were last changed.
+
+**Function Signature:**
+
+```typescript
+function feeConfig(params: FeeConfigParameters): Promise<FeeConfigReturnType>;
+
+interface FeeConfigParameters {
+  blk?: string; // Block number or hash, defaults to "latest"
+}
+
+interface FeeConfigReturnType {
+  feeConfig: {
+    [key: string]: string;
+  };
+  lastChangedAt: string;
+}
+```
+
+**Parameters:**
+
+| Name  | Type     | Required | Description                                             |
+| ----- | -------- | -------- | ------------------------------------------------------- |
+| `blk` | `string` | No       | Block number or hash (hex string), defaults to "latest" |
+
+**Returns:**
+
+| Type                  | Description              |
+| --------------------- | ------------------------ |
+| `FeeConfigReturnType` | Fee configuration object |
+
+**Return Object:**
+
+| Property        | Type     | Description                                |
+| --------------- | -------- | ------------------------------------------ |
+| `feeConfig`     | `object` | Fee configuration key-value pairs          |
+| `lastChangedAt` | `string` | Timestamp when fee config was last changed |
+
+**Example:**
+
+```typescript
+// Get fee config for latest block
+const feeConfig = await client.feeConfig({});
+console.log("Fee config:", feeConfig.feeConfig);
+console.log("Last changed:", feeConfig.lastChangedAt);
+
+// Get fee config for specific block
+const blockFeeConfig = await client.feeConfig({ blk: "0x123456" });
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/subnet-evm-api#eth_feeconfig)
+- [baseFee](#basefee) - Get base fee
+
+---
+
+## Chain Configuration
+
+### getChainConfig
+
+Get the chain configuration for the C-Chain, including fork blocks and Avalanche-specific upgrade timestamps.
+
+**Function Signature:**
+
+```typescript
+function getChainConfig(): Promise<GetChainConfigReturnType>;
+
+interface GetChainConfigReturnType {
+  chainId: number;
+  homesteadBlock: number;
+  daoForkBlock: number;
+  daoForkSupport: boolean;
+  eip150Block: number;
+  eip150Hash: string;
+  eip155Block: number;
+  eip158Block: number;
+  byzantiumBlock: number;
+  constantinopleBlock: number;
+  petersburgBlock: number;
+  istanbulBlock: number;
+  muirGlacierBlock: number;
+  apricotPhase1BlockTimestamp: number;
+  apricotPhase2BlockTimestamp: number;
+  apricotPhase3BlockTimestamp: number;
+  apricotPhase4BlockTimestamp: number;
+  apricotPhase5BlockTimestamp: number;
+}
+```
+
+**Parameters:**
+
+No parameters required.
+
+**Returns:**
+
+| Type                       | Description                |
+| -------------------------- | -------------------------- |
+| `GetChainConfigReturnType` | Chain configuration object |
+
+**Return Object:**
+
+| Property                      | Type      | Description                       |
+| ----------------------------- | --------- | --------------------------------- |
+| `chainId`                     | `number`  | Chain ID                          |
+| `homesteadBlock`              | `number`  | Homestead fork block              |
+| `daoForkBlock`                | `number`  | DAO fork block                    |
+| `daoForkSupport`              | `boolean` | DAO fork support flag             |
+| `eip150Block`                 | `number`  | EIP-150 fork block                |
+| `eip150Hash`                  | `string`  | EIP-150 fork hash                 |
+| `eip155Block`                 | `number`  | EIP-155 fork block                |
+| `eip158Block`                 | `number`  | EIP-158 fork block                |
+| `byzantiumBlock`              | `number`  | Byzantium fork block              |
+| `constantinopleBlock`         | `number`  | Constantinople fork block         |
+| `petersburgBlock`             | `number`  | Petersburg fork block             |
+| `istanbulBlock`               | `number`  | Istanbul fork block               |
+| `muirGlacierBlock`            | `number`  | Muir Glacier fork block           |
+| `apricotPhase1BlockTimestamp` | `number`  | Apricot Phase 1 upgrade timestamp |
+| `apricotPhase2BlockTimestamp` | `number`  | Apricot Phase 2 upgrade timestamp |
+| `apricotPhase3BlockTimestamp` | `number`  | Apricot Phase 3 upgrade timestamp |
+| `apricotPhase4BlockTimestamp` | `number`  | Apricot Phase 4 upgrade timestamp |
+| `apricotPhase5BlockTimestamp` | `number`  | Apricot Phase 5 upgrade timestamp |
+
+**Example:**
+
+```typescript
+const chainConfig = await client.getChainConfig();
+console.log("Chain ID:", chainConfig.chainId);
+console.log("Apricot Phase 1:", chainConfig.apricotPhase1BlockTimestamp);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/c-chain/api#eth_getchainconfig)
+
+---
+
+## Active Rules
+
+### getActiveRulesAt
+
+Get the active rules (EIPs, precompiles) at a specific timestamp. Useful for determining which features are enabled at a given time.
+
+**Function Signature:**
+
+```typescript
+function getActiveRulesAt(
+  params: GetActiveRulesAtParameters
+): Promise<GetActiveRulesAtReturnType>;
+
+interface GetActiveRulesAtParameters {
+  timestamp: string; // Unix timestamp as hex string or "latest"
+}
+
+interface GetActiveRulesAtReturnType {
+  ethRules: Map<string, true>;
+  avalancheRules: Map<string, true>;
+  precompiles: Map<string, object>;
+}
+```
+
+**Parameters:**
+
+| Name        | Type     | Required | Description                                                     |
+| ----------- | -------- | -------- | --------------------------------------------------------------- |
+| `timestamp` | `string` | Yes      | Unix timestamp as hex string (e.g., "0x1234567890") or "latest" |
+
+**Returns:**
+
+| Type                         | Description         |
+| ---------------------------- | ------------------- |
+| `GetActiveRulesAtReturnType` | Active rules object |
+
+**Return Object:**
+
+| Property         | Type                  | Description                                  |
+| ---------------- | --------------------- | -------------------------------------------- |
+| `ethRules`       | `Map<string, true>`   | Active Ethereum rules (EIPs)                 |
+| `avalancheRules` | `Map<string, true>`   | Active Avalanche-specific rules              |
+| `precompiles`    | `Map<string, object>` | Active precompiles with their configurations |
+
+**Example:**
+
+```typescript
+// Get active rules at current time
+const activeRules = await client.getActiveRulesAt({
+  timestamp: "latest",
+});
+
+console.log("Ethereum rules:", Array.from(activeRules.ethRules.keys()));
+console.log("Avalanche rules:", Array.from(activeRules.avalancheRules.keys()));
+console.log("Precompiles:", Array.from(activeRules.precompiles.keys()));
+
+// Get active rules at specific timestamp
+const historicalRules = await client.getActiveRulesAt({
+  timestamp: "0x1234567890",
+});
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/subnet-evm-api#eth_getactiverulesat)
+
+---
+
+## Viem Integration
+
+The Avalanche Client extends viem's Public Client, providing access to all standard Ethereum RPC methods. For complete method reference, see:
+
+- **[viem Documentation](https://viem.sh/docs)** - Complete EVM method reference
+- **[viem Actions](https://viem.sh/docs/actions/public)** - Public client actions
+- **[viem Utilities](https://viem.sh/docs/utilities)** - Utility functions
+
+## Next Steps
+
+- **[C-Chain Methods](c-chain)** - C-Chain-specific methods
+- **[Wallet Client](../clients/wallet-client)** - Transaction operations
+- **[Account Management](../../accounts)** - Account types and management

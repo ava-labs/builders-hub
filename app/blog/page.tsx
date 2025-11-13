@@ -19,8 +19,8 @@ export const metadata: Metadata = createMetadata({
 export default function Page(): React.ReactElement {
   const blogPages = [...blog.getPages()].sort(
     (a, b) =>
-      new Date((b.data.date as string) ?? b.file.name).getTime() -
-      new Date((a.data.date as string) ?? a.file.name).getTime()
+      new Date((b.data.date as string) ?? b.url).getTime() -
+      new Date((a.data.date as string) ?? a.url).getTime()
   );
 
   const blogs = blogPages.map((page) => ({
@@ -32,11 +32,11 @@ export default function Page(): React.ReactElement {
       date:
         page.data.date instanceof Date
           ? page.data.date.toISOString()
-          : (page.data.date as string) || page.file.name,
+          : (page.data.date as string) || page.url,
       authors: (page.data.authors as string[]) || [],
     },
     file: {
-      name: page.file.name,
+      name: page.url,
     },
   }));
 
