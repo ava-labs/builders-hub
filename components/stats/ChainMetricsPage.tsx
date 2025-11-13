@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
+import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
+import l1ChainsData from "@/constants/l1-chains.json";
+import { L1Chain } from "@/types/stats";
 
 interface TimeSeriesDataPoint {
   date: string;
@@ -54,6 +57,7 @@ interface ChainMetricsPageProps {
   chainName?: string;
   description?: string;
   themeColor?: string;
+  chainLogoURI?: string;
 }
 
 export default function ChainMetricsPage({
@@ -61,10 +65,16 @@ export default function ChainMetricsPage({
   chainName = "Avalanche C-Chain",
   description = "Real-time metrics and analytics for the Avalanche C-Chain",
   themeColor = "#E57373",
+  chainLogoURI,
 }: ChainMetricsPageProps) {
   const [metrics, setMetrics] = useState<CChainMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Find the current chain to get explorers
+  const currentChain = useMemo(() => {
+    return l1ChainsData.find((chain) => chain.chainId === chainId) as L1Chain | undefined;
+  }, [chainId]);
 
   const fetchData = async () => {
     try {
@@ -418,32 +428,71 @@ export default function ChainMetricsPage({
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
       <div className="container mx-auto mt-4 p-4 sm:p-6 pb-24 space-y-8 sm:space-y-12">
         {/* Header */}
-        <div className="space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-2xl md:text-5xl break-words mb-2">
-                {chainName.includes("C-Chain")
-                  ? "Avalanche C-Chain Metrics"
-                  : `${chainName} L1 Metrics`}
-              </h1>
-              <p className="text-zinc-400 text-sm sm:text-md text-left">
-                {description}
-              </p>
-            </div>
-            {!chainName.includes("C-Chain") && (
-              <div className="shrink-0 mt-1">
-                <Button
-                  size="sm"
-                  onClick={() =>
-                    window.open(`https://${chainId}.snowtrace.io`, "_blank")
-                  }
-                  className="flex-shrink-0 bg-black dark:bg-white text-white dark:text-black transition-colors hover:bg-neutral-800 dark:hover:bg-neutral-200"
-                >
-                  View Explorer
-                  <ArrowUpRight className="ml-1.5 h-4 w-4" />
-                </Button>
+        <div className="relative overflow-hidden rounded-2xl p-8 sm:p-12">
+          {/* Multi-layer gradient background */}
+          <div className="absolute inset-0 bg-black" />
+          <div
+            className="absolute inset-0 opacity-60"
+            style={{
+              background: `linear-gradient(140deg, ${themeColor}88 0%, transparent 70%)`
+            }}
+          />
+          <div
+            className="absolute inset-0 opacity-40"
+            style={{
+              background: `linear-gradient(to top left, ${themeColor}66 0%, transparent 50%)`
+            }}
+          />
+          <div
+            className="absolute inset-0 opacity-30"
+            style={{
+              background: `radial-gradient(circle at 50% 50%, ${themeColor}44 0%, transparent 70%)`
+            }}
+          />
+
+          {/* Content */}
+          <div className="relative z-10">
+            {/* Top row with ExplorerDropdown */}
+            {!chainName.includes("C-Chain") && currentChain?.explorers && (
+              <div className="flex justify-end mb-4">
+                <div className="[&_button]:border-neutral-300 dark:[&_button]:border-white/30 [&_button]:text-neutral-800 dark:[&_button]:text-white [&_button]:hover:bg-neutral-100 dark:[&_button]:hover:bg-white/10 [&_button]:hover:border-neutral-400 dark:[&_button]:hover:border-white/50">
+                  <ExplorerDropdown
+                    explorers={currentChain.explorers}
+                    variant="outline"
+                    size="sm"
+                  />
+                </div>
               </div>
             )}
+
+            {/* Main content row */}
+            <div className="flex flex-col sm:flex-row items-start gap-6">
+              {/* Logo */}
+              {chainLogoURI && (
+                <div className="shrink-0">
+                  <img
+                    src={chainLogoURI}
+                    alt={`${chainName} logo`}
+                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-contain bg-white/10 p-2"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Title and description */}
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-3 break-words">
+                  {chainName.includes("C-Chain")
+                    ? "Avalanche C-Chain Metrics"
+                    : `${chainName} L1 Metrics`}
+                </h1>
+                <p className="text-white/80 text-sm sm:text-base max-w-3xl">
+                  {description}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 

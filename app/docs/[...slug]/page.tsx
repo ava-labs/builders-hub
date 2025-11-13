@@ -1,14 +1,12 @@
-import { APIStorageManager } from "@/components/content-design/api-storage-manager";
 import Mermaid from "@/components/content-design/mermaid";
 import { AutoTypeTable } from "@/components/content-design/type-table";
 import YouTube from "@/components/content-design/youtube";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { Feedback } from "@/components/ui/feedback";
 import { SidebarActions } from "@/components/ui/sidebar-actions";
-import { cChainApi, dataApi, metricsApi, pChainApi } from "@/lib/openapi";
+import { CChainAPIPage, DataAPIPage, MetricsAPIPage, PChainAPIPage, XChainAPIPage } from "@/components/api/api-pages";
 import { documentation } from "@/lib/source";
 import { createMetadata } from "@/utils/metadata";
-import { APIPage } from "fumadocs-openapi/ui";
 import { Popup, PopupContent, PopupTrigger } from "fumadocs-twoslash/ui";
 import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 import { Callout } from "fumadocs-ui/components/callout";
@@ -127,29 +125,19 @@ export default async function Page(props: {
               const isMetricsApi = document.includes('popsicle.json');
               const isPChainApi = document.includes('platformvm.yaml');
               const isCChainApi = document.includes('coreth.yaml');
+              const isXChainApi = document.includes('xchain.yaml');
               
-              let apiInstance;
-              let storageKey;
               if (isPChainApi) {
-                apiInstance = pChainApi;
-                storageKey = 'apiBaseUrl-pchain';
+                return <PChainAPIPage {...props} />;
               } else if (isCChainApi) {
-                apiInstance = cChainApi;
-                storageKey = 'apiBaseUrl-cchain';
+                return <CChainAPIPage {...props} />;
+              } else if (isXChainApi) {
+                return <XChainAPIPage {...props} />;
               } else if (isMetricsApi) {
-                apiInstance = metricsApi;
-                storageKey = 'apiBaseUrl-metrics';
+                return <MetricsAPIPage {...props} />;
               } else {
-                apiInstance = dataApi;
-                storageKey = 'apiBaseUrl-data';
+                return <DataAPIPage {...props} />;
               }
-              
-              return (
-                <>
-                  <APIStorageManager storageKey={storageKey} />
-                  <APIPage {...apiInstance.getAPIPageProps(props)} />
-                </>
-              );
             },
             blockquote: Callout as unknown as FC<ComponentProps<"blockquote">>,
           }}

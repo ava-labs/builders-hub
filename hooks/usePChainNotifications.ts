@@ -137,7 +137,7 @@ const usePChainNotifications = () => {
                         action_path: actionPath,
                         network: isTestnet ? 'testnet' : 'mainnet',
                         tx_id: txID,
-                        context: pathname?.includes('/academy') ? 'academy' : pathname?.includes('/docs') ? 'docs' : 'console',
+                        context: pathname?.includes('/academy') ? 'academy' : (pathname?.includes('/docs') ? 'docs' : 'console'),
                         chain_type: 'p-chain'
                     });
                 } catch (error) {
@@ -159,7 +159,7 @@ const usePChainNotifications = () => {
                         action_path: actionPath,
                         network: isTestnet ? 'testnet' : 'mainnet',
                         error_message: (error as Error).message,
-                        context: pathname?.includes('/academy') ? 'academy' : pathname?.includes('/docs') ? 'docs' : 'console',
+                        context: pathname?.includes('/academy') ? 'academy' : (pathname?.includes('/docs') ? 'docs' : 'console'),
                         chain_type: 'p-chain'
                     });
                 }
@@ -183,7 +183,7 @@ const usePChainNotifications = () => {
                     action_path: actionPath,
                     network: isTestnet ? 'testnet' : 'mainnet',
                     error_message: error.message,
-                    context: pathname?.includes('/academy') ? 'academy' : pathname?.includes('/docs') ? 'docs' : 'console',
+                    context: pathname?.includes('/academy') ? 'academy' : (pathname?.includes('/docs') ? 'docs' : 'console'),
                     chain_type: 'p-chain'
                 });
             });

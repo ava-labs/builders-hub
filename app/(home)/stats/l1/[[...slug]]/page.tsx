@@ -2,15 +2,7 @@ import { notFound } from "next/navigation";
 import ChainMetricsPage from "@/components/stats/ChainMetricsPage";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { Metadata } from "next";
-
-interface L1Chain {
-  chainId: string;
-  chainName: string;
-  chainLogoURI: string;
-  subnetId: string;
-  slug: string;
-  color?: string;
-}
+import { L1Chain } from "@/types/stats";
 
 export async function generateMetadata({
   params,
@@ -70,6 +62,7 @@ export default async function L1Metrics({
       chainName={currentChain.chainName}
       description={`Real-time insights into ${currentChain.chainName} L1 activity and network usage`}
       themeColor={currentChain.color || "#E57373"}
+      chainLogoURI={currentChain.chainLogoURI}
     />
   );
 }
