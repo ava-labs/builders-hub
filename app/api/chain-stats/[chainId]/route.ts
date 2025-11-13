@@ -87,7 +87,7 @@ async function getTimeSeriesData(
 }
 
 // Separate active addresses fetching with proper time intervals (optimize other metrics as needed)
-async function getActiveAddressesData(chainId: string, timeRange: string, interval: 'day' | 'week' | 'month'): Promise<TimeSeriesDataPoint[]> {
+async function getActiveAddressesData(chainId: string, timeRange: string, interval: 'day' | 'week' | 'month', pageSize: number = 365, fetchAllPages: boolean = false): Promise<TimeSeriesDataPoint[]> {
   try {
     const { startTimestamp, endTimestamp } = getTimestampsFromTimeRange(timeRange);
     let allResults: any[] = [];
@@ -103,7 +103,7 @@ async function getActiveAddressesData(chainId: string, timeRange: string, interv
       startTimestamp,
       endTimestamp,
       timeInterval: interval,
-      pageSize: 365,
+      pageSize,
     };
     
     if (rlToken) { params.rltoken = rlToken; }
@@ -117,7 +117,10 @@ async function getActiveAddressesData(chainId: string, timeRange: string, interv
       }
       
       allResults = allResults.concat(page.result.results);
-      break; // Only fetch first page for active addresses
+      
+      if (!fetchAllPages) {
+        break;
+      }
     }
     
     return allResults
@@ -252,9 +255,9 @@ export async function GET(
       feesPaidData,
       icmData,
     ] = await Promise.all([
-      getActiveAddressesData(chainId, timeRange, 'day'),
-      getActiveAddressesData(chainId, timeRange, 'week'),
-      getActiveAddressesData(chainId, timeRange, 'month'),
+      getActiveAddressesData(chainId, timeRange, 'day', pageSize, fetchAllPages),
+      getActiveAddressesData(chainId, timeRange, 'week', pageSize, fetchAllPages),
+      getActiveAddressesData(chainId, timeRange, 'month', pageSize, fetchAllPages),
       getTimeSeriesData('activeSenders', chainId, timeRange, pageSize, fetchAllPages),
       getTimeSeriesData('cumulativeAddresses', chainId, timeRange, pageSize, fetchAllPages),
       getTimeSeriesData('cumulativeDeployers', chainId, timeRange, pageSize, fetchAllPages),
