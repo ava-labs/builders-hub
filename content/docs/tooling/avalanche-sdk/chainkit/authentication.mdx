@@ -1,0 +1,41 @@
+---
+title: Authentication
+description: Authentication for the ChainKit SDK
+icon: Lock
+---
+### Per-Client Security Schemes
+
+This SDK supports the following security scheme globally:
+
+| Name     | Type   | Scheme  |
+| -------- | ------ | ------- |
+| `apiKey` | apiKey | API key |
+
+The ChainKit SDK can be used without an API key, but rate limits will be lower. Adding an API key allows for higher rate limits. To get an API key, create one via [Builder Console](/console/utilities/data-api-keys) and securely store it. Whether or not you use an API key, you can still interact with the SDK effectively, but the API key provides performance benefits for higher request volumes.
+
+```javascript
+import { Avalanche } from "@avalanche-sdk/chainkit";
+
+const avalancheSDK = new Avalanche({
+  apiKey: "<YOUR_API_KEY_HERE>",
+  chainId: "43114",
+  network: "mainnet",
+});
+
+async function run() {
+  const result = await avalancheSDK.metrics.healthCheck();
+
+  // Handle the result
+  console.log(result);
+}
+
+run();
+```
+
+<Callout type="warning">
+  Never hardcode your API key directly into your code. Instead, securely store
+  it and retrieve it from an environment variable, a secrets manager, or a
+  dedicated configuration storage mechanism. This ensures that sensitive
+  information remains protected and is not exposed in version control or
+  publicly accessible code.
+</Callout>

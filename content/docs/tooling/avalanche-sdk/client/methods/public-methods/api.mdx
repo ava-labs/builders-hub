@@ -1,0 +1,1564 @@
+---
+title: API Methods
+description: Complete reference for Admin, Info, Health, Index, and ProposerVM API methods
+---
+
+## Overview
+
+The Avalanche Client SDK provides access to node-level API methods through specialized API clients. These include administrative operations, informational queries, health monitoring, indexed blockchain data access, and ProposerVM operations.
+
+## Admin API Client
+
+Provides administrative operations for managing node aliases, logging, and profiling.
+
+**Access:** `client.admin`
+
+### alias
+
+Assign an API endpoint an alias.
+
+**Function Signature:**
+
+```typescript
+function alias(params: AliasParameters): Promise<void>;
+
+interface AliasParameters {
+  endpoint: string;
+  alias: string;
+}
+```
+
+**Parameters:**
+
+| Name       | Type     | Required | Description            |
+| ---------- | -------- | -------- | ---------------------- |
+| `endpoint` | `string` | Yes      | API endpoint to alias  |
+| `alias`    | `string` | Yes      | Alias for the endpoint |
+
+**Returns:**
+
+| Type            | Description     |
+| --------------- | --------------- |
+| `Promise<void>` | No return value |
+
+**Example:**
+
+```typescript
+import { createAvalancheClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+await client.admin.alias({
+  endpoint: "bc/X",
+  alias: "myAlias",
+});
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/admin-api#adminalias)
+
+---
+
+### aliasChain
+
+Give a blockchain an alias.
+
+**Function Signature:**
+
+```typescript
+function aliasChain(params: AliasChainParameters): Promise<void>;
+
+interface AliasChainParameters {
+  chain: string;
+  alias: string;
+}
+```
+
+**Parameters:**
+
+| Name    | Type     | Required | Description              |
+| ------- | -------- | -------- | ------------------------ |
+| `chain` | `string` | Yes      | Blockchain ID to alias   |
+| `alias` | `string` | Yes      | Alias for the blockchain |
+
+**Returns:**
+
+| Type            | Description     |
+| --------------- | --------------- |
+| `Promise<void>` | No return value |
+
+**Example:**
+
+```typescript
+await client.admin.aliasChain({
+  chain: "sV6o671RtkGBcno1FiaDbVcFv2sG5aVXMZYzKdP4VQAWmJQnM",
+  alias: "myBlockchainAlias",
+});
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/admin-api#adminaliaschain)
+
+---
+
+### getChainAliases
+
+Get the aliases of a chain.
+
+**Function Signature:**
+
+```typescript
+function getChainAliases(params: GetChainAliasesParameters): Promise<string[]>;
+
+interface GetChainAliasesParameters {
+  chain: string;
+}
+```
+
+**Parameters:**
+
+| Name    | Type     | Required | Description            |
+| ------- | -------- | -------- | ---------------------- |
+| `chain` | `string` | Yes      | Blockchain ID to query |
+
+**Returns:**
+
+| Type                | Description                    |
+| ------------------- | ------------------------------ |
+| `Promise<string[]>` | Array of aliases for the chain |
+
+**Example:**
+
+```typescript
+const aliases = await client.admin.getChainAliases({
+  chain: "sV6o671RtkGBcno1FiaDbVcFv2sG5aVXMZYzKdP4VQAWmJQnM",
+});
+
+console.log("Chain aliases:", aliases);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/admin-api#admingetchainaliases)
+
+---
+
+### Additional Admin API Methods
+
+- **getLoggerLevel** - Get log and display levels of loggers
+- **setLoggerLevel** - Set log and display levels of loggers
+- **loadVMs** - Dynamically loads virtual machines
+- **lockProfile** - Writes mutex statistics to `lock.profile`
+- **memoryProfile** - Writes memory profile to `mem.profile`
+- **startCPUProfiler** - Start CPU profiling
+- **stopCPUProfiler** - Stop CPU profiler
+
+See the [Admin API documentation](clients/api-clients#admin-api-client) for complete details.
+
+---
+
+## Info API Client
+
+Provides node information and network statistics.
+
+**Access:** `client.info`
+
+### getNetworkID
+
+Get the ID of the network this node is participating in.
+
+**Function Signature:**
+
+```typescript
+function getNetworkID(): Promise<GetNetworkIDReturnType>;
+
+interface GetNetworkIDReturnType {
+  networkID: string;
+}
+```
+
+**Returns:**
+
+| Type                     | Description       |
+| ------------------------ | ----------------- |
+| `GetNetworkIDReturnType` | Network ID object |
+
+**Return Object:**
+
+| Property    | Type     | Description                                    |
+| ----------- | -------- | ---------------------------------------------- |
+| `networkID` | `string` | Network ID (1 for Mainnet, 5 for Fuji testnet) |
+
+**Example:**
+
+```typescript
+const result = await client.info.getNetworkID();
+
+if (result.networkID === "1") {
+  console.log("Connected to Mainnet");
+} else if (result.networkID === "5") {
+  console.log("Connected to Fuji testnet");
+}
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/info-api#infogetnetworkid)
+
+---
+
+### getNetworkName
+
+Get the name of the network this node is participating in.
+
+**Function Signature:**
+
+```typescript
+function getNetworkName(): Promise<GetNetworkNameReturnType>;
+
+interface GetNetworkNameReturnType {
+  networkName: string;
+}
+```
+
+**Returns:**
+
+| Type                       | Description         |
+| -------------------------- | ------------------- |
+| `GetNetworkNameReturnType` | Network name object |
+
+**Return Object:**
+
+| Property      | Type     | Description                            |
+| ------------- | -------- | -------------------------------------- |
+| `networkName` | `string` | Network name (e.g., "mainnet", "fuji") |
+
+**Example:**
+
+```typescript
+const result = await client.info.getNetworkName();
+console.log("Network:", result.networkName);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/info-api#infogetnetworkname)
+
+---
+
+### getNodeVersion
+
+Get the version of this node.
+
+**Function Signature:**
+
+```typescript
+function getNodeVersion(): Promise<GetNodeVersionReturnType>;
+
+interface GetNodeVersionReturnType {
+  version: string;
+  databaseVersion: string;
+  gitCommit: string;
+  vmVersions: Map<string, string>;
+  rpcProtocolVersion: string;
+}
+```
+
+**Returns:**
+
+| Type                       | Description         |
+| -------------------------- | ------------------- |
+| `GetNodeVersionReturnType` | Node version object |
+
+**Return Object:**
+
+| Property             | Type                  | Description                            |
+| -------------------- | --------------------- | -------------------------------------- |
+| `version`            | `string`              | Node version (e.g., "avalanche/1.9.4") |
+| `databaseVersion`    | `string`              | Database version                       |
+| `gitCommit`          | `string`              | Git commit hash                        |
+| `vmVersions`         | `Map<string, string>` | Map of VM IDs to their versions        |
+| `rpcProtocolVersion` | `string`              | RPC protocol version                   |
+
+**Example:**
+
+```typescript
+const version = await client.info.getNodeVersion();
+console.log("Node version:", version.version);
+console.log("Database version:", version.databaseVersion);
+console.log("VM versions:", Object.fromEntries(version.vmVersions));
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/info-api#infogetnodeversion)
+
+---
+
+### getNodeID
+
+Get the node ID, BLS key, and proof of possession.
+
+**Function Signature:**
+
+```typescript
+function getNodeID(): Promise<GetNodeIDReturnType>;
+
+interface GetNodeIDReturnType {
+  nodeID: string;
+  nodePOP: {
+    publicKey: string;
+    proofOfPossession: string;
+  };
+}
+```
+
+**Returns:**
+
+| Type                  | Description    |
+| --------------------- | -------------- |
+| `GetNodeIDReturnType` | Node ID object |
+
+**Return Object:**
+
+| Property                    | Type     | Description                                     |
+| --------------------------- | -------- | ----------------------------------------------- |
+| `nodeID`                    | `string` | Unique identifier of the node                   |
+| `nodePOP.publicKey`         | `string` | 48 byte hex representation of the BLS key       |
+| `nodePOP.proofOfPossession` | `string` | 96 byte hex representation of the BLS signature |
+
+**Example:**
+
+```typescript
+const nodeID = await client.info.getNodeID();
+console.log("Node ID:", nodeID.nodeID);
+console.log("BLS Public Key:", nodeID.nodePOP.publicKey);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/info-api#infogetnodeid)
+
+---
+
+### getNodeIP
+
+Get the IP address of the node.
+
+**Function Signature:**
+
+```typescript
+function getNodeIP(): Promise<GetNodeIPReturnType>;
+
+interface GetNodeIPReturnType {
+  ip: string;
+}
+```
+
+**Returns:**
+
+| Type                  | Description    |
+| --------------------- | -------------- |
+| `GetNodeIPReturnType` | Node IP object |
+
+**Return Object:**
+
+| Property | Type     | Description            |
+| -------- | -------- | ---------------------- |
+| `ip`     | `string` | IP address of the node |
+
+**Example:**
+
+```typescript
+const result = await client.info.getNodeIP();
+console.log("Node IP:", result.ip);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/info-api#infogetnodeip)
+
+---
+
+### getBlockchainID
+
+Get blockchain ID from alias.
+
+**Function Signature:**
+
+```typescript
+function getBlockchainID(
+  params: GetBlockchainIDParameters
+): Promise<GetBlockchainIDReturnType>;
+
+interface GetBlockchainIDParameters {
+  alias: string;
+}
+
+interface GetBlockchainIDReturnType {
+  blockchainID: string;
+}
+```
+
+**Parameters:**
+
+| Name    | Type     | Required | Description                       |
+| ------- | -------- | -------- | --------------------------------- |
+| `alias` | `string` | Yes      | Blockchain alias (e.g., "X", "P") |
+
+**Returns:**
+
+| Type                        | Description          |
+| --------------------------- | -------------------- |
+| `GetBlockchainIDReturnType` | Blockchain ID object |
+
+**Return Object:**
+
+| Property       | Type     | Description          |
+| -------------- | -------- | -------------------- |
+| `blockchainID` | `string` | ID of the blockchain |
+
+**Example:**
+
+```typescript
+const result = await client.info.getBlockchainID({ alias: "X" });
+console.log("X-Chain ID:", result.blockchainID);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/info-api#infogetblockchainid)
+
+---
+
+### getTxFee
+
+Get transaction fees for various operations.
+
+**Function Signature:**
+
+```typescript
+function getTxFee(): Promise<GetTxFeeReturnType>;
+
+interface GetTxFeeReturnType {
+  txFee: bigint;
+  createAssetTxFee: bigint;
+  createSubnetTxFee: bigint;
+  transformSubnetTxFee: bigint;
+  createBlockchainTxFee: bigint;
+  addPrimaryNetworkValidatorFee: bigint;
+  addPrimaryNetworkDelegatorFee: bigint;
+  addSubnetValidatorFee: bigint;
+  addSubnetDelegatorFee: bigint;
+}
+```
+
+**Returns:**
+
+| Type                 | Description             |
+| -------------------- | ----------------------- |
+| `GetTxFeeReturnType` | Transaction fees object |
+
+**Return Object:**
+
+| Property                        | Type     | Description                                |
+| ------------------------------- | -------- | ------------------------------------------ |
+| `txFee`                         | `bigint` | Base transaction fee                       |
+| `createAssetTxFee`              | `bigint` | Fee for creating an asset                  |
+| `createSubnetTxFee`             | `bigint` | Fee for creating a subnet                  |
+| `transformSubnetTxFee`          | `bigint` | Fee for transforming a subnet              |
+| `createBlockchainTxFee`         | `bigint` | Fee for creating a blockchain              |
+| `addPrimaryNetworkValidatorFee` | `bigint` | Fee for adding a primary network validator |
+| `addPrimaryNetworkDelegatorFee` | `bigint` | Fee for adding a primary network delegator |
+| `addSubnetValidatorFee`         | `bigint` | Fee for adding a subnet validator          |
+| `addSubnetDelegatorFee`         | `bigint` | Fee for adding a subnet delegator          |
+
+**Example:**
+
+```typescript
+const fees = await client.info.getTxFee();
+console.log("Base transaction fee:", fees.txFee);
+console.log("Create asset fee:", fees.createAssetTxFee);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/info-api#infogettxfee)
+
+---
+
+### getVMs
+
+Get supported virtual machines.
+
+**Function Signature:**
+
+```typescript
+function getVMs(): Promise<GetVMsReturnType>;
+
+interface GetVMsReturnType {
+  vms: {
+    [key: string]: string[];
+  };
+}
+```
+
+**Returns:**
+
+| Type               | Description |
+| ------------------ | ----------- |
+| `GetVMsReturnType` | VMs object  |
+
+**Return Object:**
+
+| Property | Type                          | Description                    |
+| -------- | ----------------------------- | ------------------------------ |
+| `vms`    | `{ [key: string]: string[] }` | Map of VM IDs to their aliases |
+
+**Example:**
+
+```typescript
+const vms = await client.info.getVMs();
+console.log("Supported VMs:", vms.vms);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/info-api#infogetvms)
+
+---
+
+### isBootstrapped
+
+Check whether a given chain is done bootstrapping.
+
+**Function Signature:**
+
+```typescript
+function isBootstrapped(
+  params: IsBootstrappedParameters
+): Promise<IsBootstrappedReturnType>;
+
+interface IsBootstrappedParameters {
+  chain: string;
+}
+
+interface IsBootstrappedReturnType {
+  isBootstrapped: boolean;
+}
+```
+
+**Parameters:**
+
+| Name    | Type     | Required | Description                   |
+| ------- | -------- | -------- | ----------------------------- |
+| `chain` | `string` | Yes      | Chain ID or alias (e.g., "X") |
+
+**Returns:**
+
+| Type                       | Description         |
+| -------------------------- | ------------------- |
+| `IsBootstrappedReturnType` | Bootstrapped status |
+
+**Return Object:**
+
+| Property         | Type      | Description                             |
+| ---------------- | --------- | --------------------------------------- |
+| `isBootstrapped` | `boolean` | Whether the chain is done bootstrapping |
+
+**Example:**
+
+```typescript
+const result = await client.info.isBootstrapped({ chain: "X" });
+
+if (result.isBootstrapped) {
+  console.log("X-Chain is bootstrapped");
+} else {
+  console.log("X-Chain is still bootstrapping");
+}
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/info-api#infoisbootstrapped)
+
+---
+
+### peers
+
+Get peer information.
+
+**Function Signature:**
+
+```typescript
+function peers(params: PeersParameters): Promise<PeersReturnType>;
+
+interface PeersParameters {
+  nodeIDs?: string[];
+}
+
+interface PeersReturnType {
+  numPeers: number;
+  peers: {
+    ip: string;
+    publicIP: string;
+    nodeID: string;
+    version: string;
+    lastSent: string;
+    lastReceived: string;
+    benched: string[];
+    observedUptime: number;
+  }[];
+}
+```
+
+**Parameters:**
+
+| Name      | Type       | Required | Description                          |
+| --------- | ---------- | -------- | ------------------------------------ |
+| `nodeIDs` | `string[]` | No       | Optional array of node IDs to filter |
+
+**Returns:**
+
+| Type              | Description  |
+| ----------------- | ------------ |
+| `PeersReturnType` | Peers object |
+
+**Return Object:**
+
+| Property   | Type     | Description                       |
+| ---------- | -------- | --------------------------------- |
+| `numPeers` | `number` | Number of connected peers         |
+| `peers`    | `array`  | Array of peer information objects |
+
+**Peer Object:**
+
+| Property         | Type       | Description                                        |
+| ---------------- | ---------- | -------------------------------------------------- |
+| `ip`             | `string`   | Remote IP of the peer                              |
+| `publicIP`       | `string`   | Public IP of the peer                              |
+| `nodeID`         | `string`   | Prefixed Node ID of the peer                       |
+| `version`        | `string`   | Version the peer is running                        |
+| `lastSent`       | `string`   | Timestamp of last message sent to the peer         |
+| `lastReceived`   | `string`   | Timestamp of last message received from the peer   |
+| `benched`        | `string[]` | Array of chain IDs the peer is benched on          |
+| `observedUptime` | `number`   | Node's primary network uptime observed by the peer |
+
+**Example:**
+
+```typescript
+const peers = await client.info.peers();
+console.log("Number of peers:", peers.numPeers);
+console.log("Peer details:", peers.peers);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/info-api#infopeers)
+
+---
+
+### uptime
+
+Get node uptime statistics.
+
+**Function Signature:**
+
+```typescript
+function uptime(): Promise<UptimeReturnType>;
+
+interface UptimeReturnType {
+  rewardingStakePercentage: number;
+  weightedAveragePercentage: number;
+}
+```
+
+**Returns:**
+
+| Type               | Description   |
+| ------------------ | ------------- |
+| `UptimeReturnType` | Uptime object |
+
+**Return Object:**
+
+| Property                    | Type     | Description                                                             |
+| --------------------------- | -------- | ----------------------------------------------------------------------- |
+| `rewardingStakePercentage`  | `number` | Percent of stake which thinks this node is above the uptime requirement |
+| `weightedAveragePercentage` | `number` | Stake-weighted average of all observed uptimes for this node            |
+
+**Example:**
+
+```typescript
+const uptime = await client.info.uptime();
+console.log("Rewarding stake percentage:", uptime.rewardingStakePercentage);
+console.log("Weighted average percentage:", uptime.weightedAveragePercentage);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/info-api#infouptime)
+
+---
+
+### upgrades
+
+Get upgrade history.
+
+**Function Signature:**
+
+```typescript
+function upgrades(): Promise<UpgradesReturnType>;
+
+interface UpgradesReturnType {
+  apricotPhase1Time: string;
+  apricotPhase2Time: string;
+  apricotPhase3Time: string;
+  apricotPhase4Time: string;
+  apricotPhase4MinPChainHeight: number;
+  apricotPhase5Time: string;
+  apricotPhasePre6Time: string;
+  apricotPhase6Time: string;
+  apricotPhasePost6Time: string;
+  banffTime: string;
+  cortinaTime: string;
+  cortinaXChainStopVertexID: string;
+  durangoTime: string;
+  etnaTime: string;
+  fortunaTime?: string;
+}
+```
+
+**Returns:**
+
+| Type                 | Description     |
+| -------------------- | --------------- |
+| `UpgradesReturnType` | Upgrades object |
+
+**Return Object:**
+
+| Property                       | Type      | Description                                |
+| ------------------------------ | --------- | ------------------------------------------ |
+| `apricotPhase1Time`            | `string`  | Timestamp of Apricot Phase 1 upgrade       |
+| `apricotPhase2Time`            | `string`  | Timestamp of Apricot Phase 2 upgrade       |
+| `apricotPhase3Time`            | `string`  | Timestamp of Apricot Phase 3 upgrade       |
+| `apricotPhase4Time`            | `string`  | Timestamp of Apricot Phase 4 upgrade       |
+| `apricotPhase4MinPChainHeight` | `number`  | Minimum P-Chain height for Apricot Phase 4 |
+| `apricotPhase5Time`            | `string`  | Timestamp of Apricot Phase 5 upgrade       |
+| `apricotPhasePre6Time`         | `string`  | Timestamp of Apricot Phase Pre-6 upgrade   |
+| `apricotPhase6Time`            | `string`  | Timestamp of Apricot Phase 6 upgrade       |
+| `apricotPhasePost6Time`        | `string`  | Timestamp of Apricot Phase Post-6 upgrade  |
+| `banffTime`                    | `string`  | Timestamp of Banff upgrade                 |
+| `cortinaTime`                  | `string`  | Timestamp of Cortina upgrade               |
+| `cortinaXChainStopVertexID`    | `string`  | X-Chain stop vertex ID for Cortina upgrade |
+| `durangoTime`                  | `string`  | Timestamp of Durango upgrade               |
+| `etnaTime`                     | `string`  | Timestamp of Etna upgrade                  |
+| `fortunaTime`                  | `string?` | Timestamp of Fortuna upgrade (optional)    |
+
+**Example:**
+
+```typescript
+const upgrades = await client.info.upgrades();
+console.log("Apricot Phase 1:", upgrades.apricotPhase1Time);
+console.log("Banff upgrade:", upgrades.banffTime);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/info-api#infoupgrades)
+
+---
+
+### acps
+
+Get peer preferences for Avalanche Community Proposals.
+
+**Function Signature:**
+
+```typescript
+function acps(): Promise<AcpsReturnType>;
+
+interface AcpsReturnType {
+  acps: Map<
+    number,
+    {
+      supportWeight: bigint;
+      supporters: Set<string>;
+      objectWeight: bigint;
+      objectors: Set<string>;
+      abstainWeight: bigint;
+    }
+  >;
+}
+```
+
+**Returns:**
+
+| Type             | Description |
+| ---------------- | ----------- |
+| `AcpsReturnType` | ACPs object |
+
+**Return Object:**
+
+| Property | Type  | Description                              |
+| -------- | ----- | ---------------------------------------- |
+| `acps`   | `Map` | Map of ACP IDs to their peer preferences |
+
+**ACP Object:**
+
+| Property        | Type          | Description                             |
+| --------------- | ------------- | --------------------------------------- |
+| `supportWeight` | `bigint`      | Weight of stake supporting the ACP      |
+| `supporters`    | `Set<string>` | Set of node IDs supporting the ACP      |
+| `objectWeight`  | `bigint`      | Weight of stake objecting to the ACP    |
+| `objectors`     | `Set<string>` | Set of node IDs objecting to the ACP    |
+| `abstainWeight` | `bigint`      | Weight of stake abstaining from the ACP |
+
+**Example:**
+
+```typescript
+const acps = await client.info.acps();
+console.log("ACP preferences:", acps.acps);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/info-api#infoacps)
+
+---
+
+## Health API Client
+
+Provides health monitoring for the node.
+
+**Access:** `client.health`
+
+### health
+
+Get health check results for the node.
+
+**Function Signature:**
+
+```typescript
+function health(params: HealthParameters): Promise<HealthReturnType>;
+
+interface HealthParameters {
+  tags?: string[];
+}
+
+interface HealthReturnType {
+  healthy: boolean;
+  checks: {
+    C: ChainHealthCheck;
+    P: ChainHealthCheck;
+    X: ChainHealthCheck;
+    bootstrapped: {
+      message: any[];
+      timestamp: string;
+      duration: number;
+    };
+    database: {
+      timestamp: string;
+      duration: number;
+    };
+    diskspace: {
+      message: {
+        availableDiskBytes: number;
+      };
+      timestamp: string;
+      duration: number;
+    };
+    network: {
+      message: {
+        connectedPeers: number;
+        sendFailRate: number;
+        timeSinceLastMsgReceived: string;
+        timeSinceLastMsgSent: string;
+      };
+      timestamp: string;
+      duration: number;
+    };
+    router: {
+      message: {
+        longestRunningRequest: string;
+        outstandingRequests: number;
+      };
+      timestamp: string;
+      duration: number;
+    };
+  };
+}
+
+type ChainHealthCheck = {
+  message: {
+    engine: {
+      consensus: {
+        lastAcceptedHeight: number;
+        lastAcceptedID: string;
+        longestProcessingBlock: string;
+        processingBlocks: number;
+      };
+      vm: null;
+    };
+    networking: {
+      percentConnected: number;
+    };
+  };
+  timestamp: string;
+  duration: number;
+};
+```
+
+**Parameters:**
+
+| Name   | Type       | Required | Description                           |
+| ------ | ---------- | -------- | ------------------------------------- |
+| `tags` | `string[]` | No       | Optional tags to filter health checks |
+
+**Returns:**
+
+| Type               | Description          |
+| ------------------ | -------------------- |
+| `HealthReturnType` | Health check results |
+
+**Return Object:**
+
+| Property  | Type      | Description                             |
+| --------- | --------- | --------------------------------------- |
+| `healthy` | `boolean` | Overall health status of the node       |
+| `checks`  | `object`  | Health check results for each component |
+
+**Example:**
+
+```typescript
+const healthStatus = await client.health.health({
+  tags: ["11111111111111111111111111111111LpoYY"],
+});
+
+console.log("Node healthy:", healthStatus.healthy);
+console.log("C-Chain health:", healthStatus.checks.C);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/health-api#healthhealth)
+
+---
+
+### liveness
+
+Get liveness check indicating if the node is alive and can handle requests.
+
+**Function Signature:**
+
+```typescript
+function liveness(): Promise<LivenessReturnType>;
+
+interface LivenessReturnType {
+  checks: object;
+  healthy: boolean;
+}
+```
+
+**Returns:**
+
+| Type                 | Description           |
+| -------------------- | --------------------- |
+| `LivenessReturnType` | Liveness check result |
+
+**Return Object:**
+
+| Property  | Type      | Description                                            |
+| --------- | --------- | ------------------------------------------------------ |
+| `checks`  | `object`  | Liveness check details                                 |
+| `healthy` | `boolean` | Indicates if the node is alive and can handle requests |
+
+**Example:**
+
+```typescript
+const livenessStatus = await client.health.liveness();
+
+if (livenessStatus.healthy) {
+  console.log("Node is alive and responding");
+}
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/health-api#healthliveness)
+
+---
+
+### readiness
+
+Get readiness check indicating if the node has finished initializing.
+
+**Function Signature:**
+
+```typescript
+function readiness(params: ReadinessParameters): Promise<ReadinessReturnType>;
+
+interface ReadinessParameters {
+  tags?: string[];
+}
+
+interface ReadinessReturnType {
+  checks: {
+    [key: string]: {
+      message: {
+        timestamp: string;
+        duration: number;
+        contiguousFailures: number;
+        timeOfFirstFailure: string | null;
+      };
+      healthy: boolean;
+    };
+  };
+  healthy: boolean;
+}
+```
+
+**Parameters:**
+
+| Name   | Type       | Required | Description                              |
+| ------ | ---------- | -------- | ---------------------------------------- |
+| `tags` | `string[]` | No       | Optional tags to filter readiness checks |
+
+**Returns:**
+
+| Type                  | Description            |
+| --------------------- | ---------------------- |
+| `ReadinessReturnType` | Readiness check result |
+
+**Return Object:**
+
+| Property  | Type      | Description                                |
+| --------- | --------- | ------------------------------------------ |
+| `checks`  | `object`  | Readiness check results for each component |
+| `healthy` | `boolean` | Overall readiness status of the node       |
+
+**Example:**
+
+```typescript
+const readinessStatus = await client.health.readiness({
+  tags: ["11111111111111111111111111111111LpoYY"],
+});
+
+if (readinessStatus.healthy) {
+  console.log("Node is ready to handle requests");
+}
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/health-api#healthreadiness)
+
+---
+
+## Index API Clients
+
+Provides indexed blockchain data queries for fast container lookups.
+
+**Access:**
+
+- `client.indexBlock.pChain` - P-Chain block index
+- `client.indexBlock.cChain` - C-Chain block index
+- `client.indexBlock.xChain` - X-Chain block index
+- `client.indexTx.xChain` - X-Chain transaction index
+
+### getContainerByIndex
+
+Get container by its index.
+
+**Function Signature:**
+
+```typescript
+function getContainerByIndex(
+  params: GetContainerByIndexParameters
+): Promise<GetContainerByIndexReturnType>;
+
+interface GetContainerByIndexParameters {
+  index: number;
+  encoding: "hex";
+}
+
+interface GetContainerByIndexReturnType {
+  id: string;
+  bytes: string;
+  timestamp: string;
+  encoding: "hex";
+  index: string;
+}
+```
+
+**Parameters:**
+
+| Name       | Type     | Required | Description                                     |
+| ---------- | -------- | -------- | ----------------------------------------------- |
+| `index`    | `number` | Yes      | Container index (first container is at index 0) |
+| `encoding` | `"hex"`  | Yes      | Encoding format (only "hex" is supported)       |
+
+**Returns:**
+
+| Type                            | Description      |
+| ------------------------------- | ---------------- |
+| `GetContainerByIndexReturnType` | Container object |
+
+**Return Object:**
+
+| Property    | Type     | Description                                       |
+| ----------- | -------- | ------------------------------------------------- |
+| `id`        | `string` | Container's ID                                    |
+| `bytes`     | `string` | Byte representation of the container              |
+| `timestamp` | `string` | Time at which this node accepted the container    |
+| `encoding`  | `"hex"`  | Encoding format used                              |
+| `index`     | `string` | How many containers were accepted before this one |
+
+**Example:**
+
+```typescript
+const container = await client.indexBlock.pChain.getContainerByIndex({
+  index: 12345,
+  encoding: "hex",
+});
+
+console.log("Container ID:", container.id);
+console.log("Container bytes:", container.bytes);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/index-api#indexgetcontainerbyindex)
+
+---
+
+### getContainerByID
+
+Get container by its ID.
+
+**Function Signature:**
+
+```typescript
+function getContainerByID(
+  params: GetContainerByIDParameters
+): Promise<GetContainerByIDReturnType>;
+
+interface GetContainerByIDParameters {
+  id: string;
+  encoding: "hex";
+}
+
+interface GetContainerByIDReturnType {
+  id: string;
+  bytes: string;
+  timestamp: string;
+  encoding: "hex";
+  index: string;
+}
+```
+
+**Parameters:**
+
+| Name       | Type     | Required | Description                               |
+| ---------- | -------- | -------- | ----------------------------------------- |
+| `id`       | `string` | Yes      | Container's ID                            |
+| `encoding` | `"hex"`  | Yes      | Encoding format (only "hex" is supported) |
+
+**Returns:**
+
+| Type                         | Description      |
+| ---------------------------- | ---------------- |
+| `GetContainerByIDReturnType` | Container object |
+
+**Return Object:**
+
+| Property    | Type     | Description                                       |
+| ----------- | -------- | ------------------------------------------------- |
+| `id`        | `string` | Container's ID                                    |
+| `bytes`     | `string` | Byte representation of the container              |
+| `timestamp` | `string` | Time at which this node accepted the container    |
+| `encoding`  | `"hex"`  | Encoding format used                              |
+| `index`     | `string` | How many containers were accepted before this one |
+
+**Example:**
+
+```typescript
+const container = await client.indexBlock.cChain.getContainerByID({
+  id: "0x123...",
+  encoding: "hex",
+});
+
+console.log("Container index:", container.index);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/index-api#indexgetcontainerbyid)
+
+---
+
+### getContainerRange
+
+Get range of containers by index.
+
+**Function Signature:**
+
+```typescript
+function getContainerRange(
+  params: GetContainerRangeParameters
+): Promise<GetContainerRangeReturnType>;
+
+interface GetContainerRangeParameters {
+  startIndex: number;
+  endIndex: number;
+  encoding: "hex";
+}
+
+interface GetContainerRangeReturnType {
+  containers: Array<{
+    id: string;
+    bytes: string;
+    timestamp: string;
+    encoding: "hex";
+    index: string;
+  }>;
+}
+```
+
+**Parameters:**
+
+| Name         | Type     | Required | Description                                         |
+| ------------ | -------- | -------- | --------------------------------------------------- |
+| `startIndex` | `number` | Yes      | Index of the first container to retrieve            |
+| `endIndex`   | `number` | Yes      | Index of the last container to retrieve (inclusive) |
+| `encoding`   | `"hex"`  | Yes      | Encoding format (only "hex" is supported)           |
+
+**Returns:**
+
+| Type                          | Description            |
+| ----------------------------- | ---------------------- |
+| `GetContainerRangeReturnType` | Container range object |
+
+**Return Object:**
+
+| Property     | Type    | Description                |
+| ------------ | ------- | -------------------------- |
+| `containers` | `array` | Array of container details |
+
+**Container Object:**
+
+| Property    | Type     | Description                                       |
+| ----------- | -------- | ------------------------------------------------- |
+| `id`        | `string` | Container's ID                                    |
+| `bytes`     | `string` | Byte representation of the container              |
+| `timestamp` | `string` | Time at which this node accepted the container    |
+| `encoding`  | `"hex"`  | Encoding format used                              |
+| `index`     | `string` | How many containers were accepted before this one |
+
+**Example:**
+
+```typescript
+const range = await client.indexBlock.xChain.getContainerRange({
+  startIndex: 1000,
+  endIndex: 1010,
+  encoding: "hex",
+});
+
+console.log("Containers:", range.containers.length);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/index-api#indexgetcontainerrange)
+
+---
+
+### getIndex
+
+Get container index by ID.
+
+**Function Signature:**
+
+```typescript
+function getIndex(params: GetIndexParameters): Promise<GetIndexReturnType>;
+
+interface GetIndexParameters {
+  id: string;
+  encoding: "hex";
+}
+
+interface GetIndexReturnType {
+  index: string;
+}
+```
+
+**Parameters:**
+
+| Name       | Type     | Required | Description                               |
+| ---------- | -------- | -------- | ----------------------------------------- |
+| `id`       | `string` | Yes      | Container's ID                            |
+| `encoding` | `"hex"`  | Yes      | Encoding format (only "hex" is supported) |
+
+**Returns:**
+
+| Type                 | Description  |
+| -------------------- | ------------ |
+| `GetIndexReturnType` | Index object |
+
+**Return Object:**
+
+| Property | Type     | Description                                            |
+| -------- | -------- | ------------------------------------------------------ |
+| `index`  | `string` | Index of the container (first container is at index 0) |
+
+**Example:**
+
+```typescript
+const result = await client.indexTx.xChain.getIndex({
+  id: "0x123...",
+  encoding: "hex",
+});
+
+console.log("Container index:", result.index);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/index-api#indexgetindex)
+
+---
+
+### getLastAccepted
+
+Get last accepted container.
+
+**Function Signature:**
+
+```typescript
+function getLastAccepted(
+  params: GetLastAcceptedParameters
+): Promise<GetLastAcceptedReturnType>;
+
+interface GetLastAcceptedParameters {
+  encoding: "hex";
+}
+
+interface GetLastAcceptedReturnType {
+  id: string;
+  bytes: string;
+  timestamp: string;
+  encoding: "hex";
+  index: string;
+}
+```
+
+**Parameters:**
+
+| Name       | Type    | Required | Description                               |
+| ---------- | ------- | -------- | ----------------------------------------- |
+| `encoding` | `"hex"` | Yes      | Encoding format (only "hex" is supported) |
+
+**Returns:**
+
+| Type                        | Description                    |
+| --------------------------- | ------------------------------ |
+| `GetLastAcceptedReturnType` | Last accepted container object |
+
+**Return Object:**
+
+| Property    | Type     | Description                                       |
+| ----------- | -------- | ------------------------------------------------- |
+| `id`        | `string` | Container's ID                                    |
+| `bytes`     | `string` | Byte representation of the container              |
+| `timestamp` | `string` | Time at which this node accepted the container    |
+| `encoding`  | `"hex"`  | Encoding format used                              |
+| `index`     | `string` | How many containers were accepted before this one |
+
+**Example:**
+
+```typescript
+const lastAccepted = await client.indexBlock.pChain.getLastAccepted({
+  encoding: "hex",
+});
+
+console.log("Last accepted container ID:", lastAccepted.id);
+console.log("Last accepted index:", lastAccepted.index);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/index-api#indexgetlastaccepted)
+
+---
+
+### isAccepted
+
+Check if container is accepted in the index.
+
+**Function Signature:**
+
+```typescript
+function isAccepted(
+  params: IsAcceptedParameters
+): Promise<IsAcceptedReturnType>;
+
+interface IsAcceptedParameters {
+  id: string;
+  encoding: "hex";
+}
+
+interface IsAcceptedReturnType {
+  isAccepted: boolean;
+}
+```
+
+**Parameters:**
+
+| Name       | Type     | Required | Description                               |
+| ---------- | -------- | -------- | ----------------------------------------- |
+| `id`       | `string` | Yes      | Container's ID                            |
+| `encoding` | `"hex"`  | Yes      | Encoding format (only "hex" is supported) |
+
+**Returns:**
+
+| Type                   | Description              |
+| ---------------------- | ------------------------ |
+| `IsAcceptedReturnType` | Acceptance status object |
+
+**Return Object:**
+
+| Property     | Type      | Description                            |
+| ------------ | --------- | -------------------------------------- |
+| `isAccepted` | `boolean` | Whether the container is in this index |
+
+**Example:**
+
+```typescript
+const result = await client.indexBlock.cChain.isAccepted({
+  id: "0x123...",
+  encoding: "hex",
+});
+
+if (result.isAccepted) {
+  console.log("Container is accepted");
+} else {
+  console.log("Container is not accepted");
+}
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/index-api#indexisaccepted)
+
+---
+
+## ProposerVM API Client
+
+Provides ProposerVM operations for each chain. ProposerVM is responsible for proposing blocks and managing consensus.
+
+**Access:**
+
+- `client.proposerVM.pChain` - P-Chain ProposerVM
+- `client.proposerVM.xChain` - X-Chain ProposerVM
+- `client.proposerVM.cChain` - C-Chain ProposerVM
+
+### getProposedHeight
+
+Get the current proposed height for the chain.
+
+**Function Signature:**
+
+```typescript
+function getProposedHeight(): Promise<GetProposedHeightReturnType>;
+
+interface GetProposedHeightReturnType {
+  height: string;
+}
+```
+
+**Returns:**
+
+| Type                          | Description            |
+| ----------------------------- | ---------------------- |
+| `GetProposedHeightReturnType` | Proposed height object |
+
+**Return Object:**
+
+| Property | Type     | Description                            |
+| -------- | -------- | -------------------------------------- |
+| `height` | `string` | This node's current proposer VM height |
+
+**Example:**
+
+```typescript
+const pChainHeight = await client.proposerVM.pChain.getProposedHeight();
+console.log("P-Chain proposed height:", pChainHeight.height);
+
+const xChainHeight = await client.proposerVM.xChain.getProposedHeight();
+console.log("X-Chain proposed height:", xChainHeight.height);
+
+const cChainHeight = await client.proposerVM.cChain.getProposedHeight();
+console.log("C-Chain proposed height:", cChainHeight.height);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/proposervm-api#proposervmgetproposedheight)
+
+---
+
+### getCurrentEpoch
+
+Get the current epoch information.
+
+**Function Signature:**
+
+```typescript
+function getCurrentEpoch(): Promise<GetCurrentEpochReturnType>;
+
+interface GetCurrentEpochReturnType {
+  number: string;
+  startTime: string;
+  pChainHeight: string;
+}
+```
+
+**Returns:**
+
+| Type                        | Description          |
+| --------------------------- | -------------------- |
+| `GetCurrentEpochReturnType` | Current epoch object |
+
+**Return Object:**
+
+| Property       | Type     | Description                                   |
+| -------------- | -------- | --------------------------------------------- |
+| `number`       | `string` | The current epoch number                      |
+| `startTime`    | `string` | The epoch start time (Unix timestamp)         |
+| `pChainHeight` | `string` | The P-Chain height at the start of this epoch |
+
+**Example:**
+
+```typescript
+const epoch = await client.proposerVM.pChain.getCurrentEpoch();
+console.log("Current epoch:", epoch.number);
+console.log("Epoch start time:", epoch.startTime);
+console.log("P-Chain height at epoch start:", epoch.pChainHeight);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/proposervm-api#proposervmgetcurrentepoch)
+
+---
+
+## Next Steps
+
+- **[API Clients Documentation](clients/api-clients)** - Detailed API client reference
+- **[Main Clients](clients)** - Client architecture overview
+- **[Getting Started](getting-started)** - Quick start guide

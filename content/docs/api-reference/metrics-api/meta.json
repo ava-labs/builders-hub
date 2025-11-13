@@ -1,0 +1,20 @@
+{
+  "title": "Metrics API",
+  "description": "Popsicle Metrics API for Avalanche network metrics",
+  "icon": "ChartLine",
+  "root": true,
+  "pages": [
+    "index",
+    "getting-started",
+    "usage-guide",
+    "rate-limits",
+    "health-check",
+    "---Chains---",
+    "evm-chains",
+    "chain-metrics",
+    "---Staking & Validators---",
+    "l1-validator-metrics",
+    "---Advanced---",
+    "looking-glass"
+  ]
+}

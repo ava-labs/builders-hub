@@ -1,0 +1,55 @@
+---
+title: "Network-Specific Addresses"
+icon: "map-pin"
+---
+
+## Overview
+
+Avalanche uses different address formats for each chain. EVM addresses work the same across networks, but XP addresses use network-specific HRPs (Human-Readable Prefixes).
+
+## Address Formats
+
+### EVM Addresses (C-Chain)
+
+EVM addresses are the same across all networks:
+
+```typescript
+const evmAddress = account.getEVMAddress(); // 0x742d35Cc...
+```
+
+### XP Addresses (X/P-Chain)
+
+XP addresses use network-specific HRPs:
+
+```typescript
+// Mainnet
+const mainnetX = account.getXPAddress("X", "avax"); // X-avax1...
+const mainnetP = account.getXPAddress("P", "avax"); // P-avax1...
+
+// Testnet (Fuji)
+const fujiX = account.getXPAddress("X", "fuji"); // X-fuji1...
+const fujiP = account.getXPAddress("P", "fuji"); // P-fuji1...
+```
+
+## Network Configuration
+
+```typescript
+// Mainnet addresses
+const mainnet = {
+  evm: account.getEVMAddress(),
+  xChain: account.getXPAddress("X", "avax"),
+  pChain: account.getXPAddress("P", "avax"),
+};
+
+// Testnet addresses
+const testnet = {
+  evm: account.getEVMAddress(),
+  xChain: account.getXPAddress("X", "fuji"),
+  pChain: account.getXPAddress("P", "fuji"),
+};
+```
+
+## Next Steps
+
+- **[Account Utilities](accounts/local/utilities)** - Account validation and utilities
+- **[Using Accounts with Clients](accounts/local/clients)** - Client integration patterns

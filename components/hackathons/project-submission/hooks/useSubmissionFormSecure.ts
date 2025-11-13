@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
+'use client';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -29,44 +30,27 @@ export const FormSchema = z
         if (typeof val === 'string') return [];
         return val;
       },
-      z.array(
-        z.string()
-          .min(1, { message: 'Repository link is required' })
-      )
-      .min(1, { message: 'At least one link is required' })
-      .refine(
-        (links) => {
-          const uniqueLinks = new Set(links);
-          return uniqueLinks.size === links.length;
-        },
-        { message: 'Duplicate repository links are not allowed' }
-      )
-      .transform((val) => {
-        const invalidLinks = val.filter(link => {
-          if (link.startsWith('http')) {
-            try {
-              new URL(link);
-              return false; // URL válida
-            } catch {
-              return true; // URL inválida
+      z.array(z.string().min(1, { message: 'Repository link is required' }))
+        .min(1, { message: 'At least one link is required' })
+        .refine((links) => new Set(links).size === links.length, {
+          message: 'Duplicate repository links are not allowed',
+        })
+        .superRefine((links, ctx) => {
+          const invalidLinks = links.filter((link) => {
+            if (link.startsWith('http')) {
+              try { new URL(link); return false; } catch { return true; }
             }
+            return link.trim().length === 0;
+          });
+
+          if (invalidLinks.length > 0) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'Please enter valid links (URLs or other formats)',
+              path: [], // o ['github_repository'] si prefieres
+            });
           }
-          
-          // Si no es una URL, verificar que tenga formato válido (opcional)
-          return link.trim().length === 0;
-        });
-        
-        if (invalidLinks.length > 0) {
-          throw new z.ZodError([
-            {
-              code: 'custom',
-              message: 'Please enter valid  links (URLs or other formats)',
-              path: ['github_repository']
-            }
-          ]);
-        }
-        return val;
-      })
+        })
     ),
     explanation: z.string().optional(),
     demo_link: z.preprocess(
@@ -79,27 +63,27 @@ export const FormSchema = z
         z.string()
           .min(1, { message: 'Demo link cannot be empty' })
       )
-      .min(1, { message: 'At least one demo link is required' })
-      .refine(
-        (links) => {
-          const uniqueLinks = new Set(links);
-          return uniqueLinks.size === links.length;
-        },
-        { message: 'Duplicate demo links are not allowed' }
-      )
-      .refine(
-        (links) => {
-          return links.every(url => {
-            try {
-              new URL(url);
-              return true;
-            } catch {
-              return false;
-            }
-          });
-        },
-        { message: 'Please enter a valid URL' }
-      )
+        .min(1, { message: 'At least one demo link is required' })
+        .refine(
+          (links) => {
+            const uniqueLinks = new Set(links);
+            return uniqueLinks.size === links.length;
+          },
+          { message: 'Duplicate demo links are not allowed' }
+        )
+        .refine(
+          (links) => {
+            return links.every(url => {
+              try {
+                new URL(url);
+                return true;
+              } catch {
+                return false;
+              }
+            });
+          },
+          { message: 'Please enter a valid URL' }
+        )
     ),
     is_preexisting_idea: z.boolean(),
     logoFile: z.any().optional(),
@@ -148,13 +132,37 @@ export const FormSchema = z
   );
 
 export type SubmissionForm = z.infer<typeof FormSchema>;
+export const Step1Schema = FormSchema.pick({
+  project_name: true,
+  short_description: true,
+  full_description: true,
+  tracks: true,
+});
 
+export const Step2Schema = FormSchema.pick({
+  tech_stack: true,
+  github_repository: true,
+  explanation: true,
+  demo_link: true,
+  is_preexisting_idea: true,
+}).refine(
+  (data) => {
+    if (data.is_preexisting_idea) {
+      return data.explanation && data.explanation.length >= 2;
+    }
+    return true;
+  },
+  {
+    message: 'explanation is required when the idea is pre-existing',
+    path: ['explanation'],
+  }
+);
 export const useSubmissionFormSecure = () => {
   const { data: session } = useSession();
   const { toast } = useToast();
   const { state, actions } = useProjectSubmission();
   const router = useRouter();
-  
+  const timersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const [originalImages, setOriginalImages] = useState<{
     logoFile?: string;
     coverFile?: string;
@@ -162,28 +170,81 @@ export const useSubmissionFormSecure = () => {
   }>({});
 
   const form = useForm<SubmissionForm>({
-    resolver: zodResolver(FormSchema),
+    resolver: zodResolver(FormSchema, undefined, { mode: 'async' }),
+    reValidateMode: 'onChange',
+    mode: 'onSubmit',
     defaultValues: {
       project_name: '',
       short_description: '',
       full_description: '',
+      tech_stack: '',
       tracks: [],
       is_preexisting_idea: false,
       github_repository: [],
       demo_link: [],
+      explanation: '',
+      demo_video_link: '',
     },
   });
 
   const canSubmit = state.isEditing && state.hackathonId;
- 
+
   useEffect(() => {
+    const step1Fields: (keyof SubmissionForm)[] = [
+      "project_name",
+      "short_description",
+      "full_description",
+      "tracks",
+    ];
+
+    const step2Fields: (keyof SubmissionForm)[] = [
+      "tech_stack",
+      "github_repository",
+      "explanation",
+      "demo_link",
+      "is_preexisting_idea",
+    ];
+
     const subscription = form.watch((value, { name, type }) => {
       if (type === 'change' && name) {
-        form.trigger(name as keyof SubmissionForm);
+        const fieldName = name as keyof SubmissionForm;
+        if (form.formState.errors[fieldName]) {
+          const allFields = [...step1Fields, ...step2Fields];
+
+          if (allFields.includes(fieldName)) {
+
+            if (timersRef.current[fieldName]) {
+              clearTimeout(timersRef.current[fieldName]);
+            }
+
+            timersRef.current[fieldName] = setTimeout(() => {
+              const schema = FormSchema.pick({
+                [fieldName]: true,
+              });
+
+              schema.safeParseAsync(form.getValues()).then(result => {
+                if (result.success) {
+                  form.clearErrors(fieldName);
+                } else {
+                  const fieldError = result.error.issues.find(
+                    issue => issue.path[0] === fieldName
+                  );
+
+                  if (!fieldError) {
+                    form.clearErrors(fieldName);
+                  }
+                }
+              });
+            }, 300);
+          }
+        }
       }
     });
-    
-    return () => subscription.unsubscribe();
+
+    return () => {
+      subscription.unsubscribe();
+      Object.values(timersRef.current).forEach(clearTimeout);
+    };
   }, [form]);
 
   const uploadFile = useCallback(async (file: File): Promise<string> => {
@@ -226,15 +287,15 @@ export const useSubmissionFormSecure = () => {
     if (!fileName) throw new Error('Invalid old image URL');
 
     try {
-      await axios.delete('/api/file', { 
-        params: { 
+      await axios.delete('/api/file', {
+        params: {
           fileName,
           hackaton_id: state.hackathonId,
-          user_id: session?.user?.id 
-        } 
+          user_id: session?.user?.id
+        }
       });
       const newUrl = await uploadFile(newFile);
-      
+
       toast({
         title: 'Image replaced',
         description: 'The image has been replaced successfully.',
@@ -263,7 +324,7 @@ export const useSubmissionFormSecure = () => {
       await fetch(`/api/file?fileName=${encodeURIComponent(fileName)}&hackathon_id=${state.hackathonId}&user_id=${session?.user?.id}`, {
         method: 'DELETE',
       });
-      
+
       toast({
         title: 'Image deleted',
         description: 'The image has been deleted successfully.',
@@ -281,7 +342,7 @@ export const useSubmissionFormSecure = () => {
 
   const saveProject = useCallback(async (data: SubmissionForm): Promise<boolean> => {
     try {
-   
+
       if (!canSubmit) {
         throw new Error('Project is not ready for submission');
       }
@@ -289,54 +350,54 @@ export const useSubmissionFormSecure = () => {
       const uploadedFiles = {
         logoFileUrl:
           data.logoFile &&
-          (!Array.isArray(data.logoFile) || data.logoFile.length > 0)
+            (!Array.isArray(data.logoFile) || data.logoFile.length > 0)
             ? typeof data.logoFile === 'string'
               ? data.logoFile
               : originalImages.logoFile
-              ? await replaceImage(originalImages.logoFile, data.logoFile)
-              : await uploadFile(data.logoFile)
+                ? await replaceImage(originalImages.logoFile, data.logoFile)
+                : await uploadFile(data.logoFile)
             : originalImages.logoFile
-            ? (await deleteImage(originalImages.logoFile), null)
-            : null,
+              ? (await deleteImage(originalImages.logoFile), null)
+              : null,
 
         coverFileUrl:
           data.coverFile &&
-          (!Array.isArray(data.coverFile) || data.logoFile.length > 0)
+            (!Array.isArray(data.coverFile) || data.logoFile.length > 0)
             ? typeof data.coverFile === 'string'
               ? data.coverFile
               : originalImages.coverFile
-              ? await replaceImage(originalImages.coverFile, data.coverFile)
-              : await uploadFile(data.coverFile)
+                ? await replaceImage(originalImages.coverFile, data.coverFile)
+                : await uploadFile(data.coverFile)
             : originalImages.coverFile
-            ? (await deleteImage(originalImages.coverFile), null)
-            : null,
+              ? (await deleteImage(originalImages.coverFile), null)
+              : null,
 
         screenshotsUrls:
           data.screenshots &&
-          Array.isArray(data.screenshots) &&
-          data.screenshots.length > 0
+            Array.isArray(data.screenshots) &&
+            data.screenshots.length > 0
             ? await Promise.all(
-                data.screenshots.map(async (item: any, index: any) => {
-                  if (typeof item === 'string') return item;
-                  const originalUrl = originalImages.screenshots?.[index];
-                  return originalUrl
-                    ? await replaceImage(originalUrl, item)
-                    : await uploadFile(item);
-                })
-              )
+              data.screenshots.map(async (item: any, index: any) => {
+                if (typeof item === 'string') return item;
+                const originalUrl = originalImages.screenshots?.[index];
+                return originalUrl
+                  ? await replaceImage(originalUrl, item)
+                  : await uploadFile(item);
+              })
+            )
             : originalImages.screenshots &&
               originalImages.screenshots.length > 0
-            ? (await Promise.all(
+              ? (await Promise.all(
                 originalImages.screenshots.map(async (oldUrl) => {
                   await deleteImage(oldUrl);
                   return null;
                 })
               ),
-              [])
-            : [],
+                [])
+              : [],
       };
 
- 
+
       form.setValue('logoFile', uploadedFiles.logoFileUrl);
       form.setValue('coverFile', uploadedFiles.coverFileUrl);
       form.setValue('screenshots', uploadedFiles.screenshotsUrls);
@@ -346,7 +407,7 @@ export const useSubmissionFormSecure = () => {
         screenshots: uploadedFiles.screenshotsUrls,
       });
 
-   
+
       const finalData = {
         ...data,
         logo_url: uploadedFiles.logoFileUrl ?? '',
@@ -377,8 +438,8 @@ export const useSubmissionFormSecure = () => {
     deleteImage,
     form,
     actions,
-    state.hackathonId, 
-    session?.user?.id, 
+    state.hackathonId,
+    session?.user?.id,
     state.id,
     toast
   ]);
@@ -389,7 +450,7 @@ export const useSubmissionFormSecure = () => {
       const currentValues = form.getValues();
       const saveData = { ...currentValues, isDraft: true };
       await saveProject(saveData);
- 
+
       toast({
         title: 'Project saved',
         description: 'Your project has been saved successfully.',
@@ -398,7 +459,7 @@ export const useSubmissionFormSecure = () => {
       console.error('Error in handleSaveWithoutRoute:', error);
       throw error;
     }
-  }, [form, saveProject, toast]); 
+  }, [form, saveProject, toast]);
 
 
   const handleSave = useCallback(async (): Promise<void> => {

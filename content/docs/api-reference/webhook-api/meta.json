@@ -1,0 +1,30 @@
+{
+  "title": "Webhook API",
+  "description": "Webhook API for real-time blockchain notifications",
+  "icon": "Webhook",
+  "root": true,
+  "pages": [
+    "index",
+    "webhooks-signature",
+    "wss-vs-webhooks",
+    "retries",
+    "rate-limits",
+    "---Tutorials---",
+    "tutorials/erc20transfer",
+    "tutorials/erc721transfer",
+    "tutorials/monitor-multiple-addresses",
+    "tutorials/push",
+    "---Webhooks---",
+    "webhooks/createWebhook",
+    "webhooks/getWebhook",
+    "webhooks/listWebhooks",
+    "webhooks/deactivateWebhook",
+    "webhooks/getAddressesFromWebhook",
+    "webhooks/addAddressesToWebhook",
+    "webhooks/removeAddressesFromWebhook",
+    "webhooks/updateWebhook",
+    "webhooks/getSharedSecret",
+    "webhooks/generateOrRotateSharedSecret"
+  ]
+}
+

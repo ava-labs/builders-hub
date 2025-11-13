@@ -1,7 +1,260 @@
 ---
 title: Smart Contracts
-description: TBD
-updated: 2024-05-31
-authors: [martineckardt]
+description: Discover how smart contracts revolutionize digital agreements by automatically executing code when conditions are met. Learn how these self-enforcing programs enable decentralized applications, eliminate intermediaries, and create trustless systems on blockchain networks.
+updated: 2025-10-29
+authors: [martineckardt, katherineavalabs]
 icon: Book
 ---
+
+Blockchains began as systems for recording and transferring digital currency, but they evolved into something much more powerful: platforms for running code. **Smart contracts** are self-executing programs that run on blockchains, automatically enforcing agreements without intermediaries. They represent one of the most transformative applications of blockchain technology.
+
+## What Are Smart Contracts?
+
+A **smart contract** is a program stored on a blockchain that automatically executes when predetermined conditions are met. Think of it as a digital agreement written in code rather than legal language, where the blockchain automatically enforces the terms without requiring trust in any person or institution.
+
+### Traditional Contracts vs. Smart Contracts
+
+**Traditional Contract:**
+- Written in legal language
+- Requires trusted intermediaries (lawyers, courts, escrow services) to enforce
+- Enforcement can be slow, expensive, and subjective
+- Parties must trust the legal system to be fair
+
+**Smart Contract:**
+- Written in programming code
+- Automatically enforced by the blockchain network
+- Execution is immediate and deterministic
+- No need to trust intermediaries—the code and blockchain guarantee execution
+
+## How Smart Contracts Work
+
+Smart contracts are deployed on blockchain platforms that support programmable logic, with Ethereum being the most well-known example and Avalanche being out favorite one ;).
+
+### The Basic Process
+
+1. **Write the Code**: A developer writes a smart contract in a programming language. The contract defines:
+   - The conditions that must be met
+   - The actions to take when conditions are satisfied
+   - The data the contract stores and manages
+
+2. **Deploy to Blockchain**: The compiled contract is deployed to the blockchain by submitting a special transaction. Once deployed:
+   - The contract gets a unique address on the blockchain
+   - The code becomes permanent and immutable
+   - Anyone can interact with the contract at its address
+
+3. **Interact with the Contract**: Users send transactions to the contract's address to:
+   - Call functions defined in the contract
+   - Send cryptocurrency or tokens to the contract
+   - Read data stored in the contract
+   - Trigger the contract's automatic behaviors
+
+4. **Automatic Execution**: When someone interacts with the contract:
+   - Every node on the network executes the contract code
+   - The contract's logic determines what happens (transfer funds, update data, etc.)
+   - All nodes reach consensus on the outcome
+   - The blockchain records the state changes
+
+### Key Characteristics
+
+**Deterministic**: Given the same inputs and blockchain state, the contract always produces the same outputs. There's no randomness or external influence.
+
+**Autonomous**: Once deployed, the contract runs exactly as programmed without human intervention. No one can stop it or change how it behaves.
+
+**Transparent**: The contract's code and its current state are visible to everyone on the blockchain. Anyone can verify what it does and audit its behavior.
+
+**Immutable**: After deployment, the contract's code cannot be changed. This ensures that the rules can't be altered after people start using it.
+
+**Trustless**: Users don't need to trust the contract creator or any third party—they only need to trust that the code does what it says (which they can verify) and that the blockchain will execute it correctly.
+
+## Real-World Applications
+
+Smart contracts enable a vast ecosystem of decentralized applications (dApps) across many domains:
+
+### Decentralized Finance (DeFi)
+
+DeFi uses smart contracts to recreate traditional financial services without banks or brokers:
+
+- **Lending Protocols**: Automatically lend cryptocurrency and calculate interest in real-time
+- **Decentralized Exchanges**: Trade tokens directly with others without a centralized exchange
+- **Stablecoins**: Maintain stable cryptocurrency values through algorithmic smart contracts
+- **Yield Farming**: Automatically optimize returns across multiple platforms
+
+### Non-Fungible Tokens (NFTs)
+
+Smart contracts power the creation, ownership, and trading of unique digital assets:
+
+- Prove ownership of digital art, collectibles, or virtual items
+- Automatically pay royalties to creators on secondary sales
+- Enable fractional ownership of high-value assets
+
+### Supply Chain Management
+
+Track goods as they move through complex supply chains:
+
+- Record each step in a product's journey automatically
+- Verify authenticity and prevent counterfeits
+- Trigger payments automatically
+
+### Decentralized Autonomous Organizations (DAOs)
+
+Organizations governed entirely by smart contracts:
+
+- Members vote on proposals using tokens
+- Approved proposals execute automatically
+- Treasury funds are managed transparently by code
+
+### Gaming and Virtual Worlds
+
+Enable true ownership and interoperability of digital items:
+
+- Players truly own their in-game items as tokens
+- Items can be traded or used across different games
+- Game economies run on transparent, automated smart contracts
+
+### Insurance
+
+Automate claims processing and payouts:
+
+- Parametric insurance that pays out automatically based on data (e.g., weather data for crop insurance)
+- No claims adjusters needed for straightforward cases
+- Faster payouts with lower overhead
+
+## A Detailed Example: Token Swap
+
+Let's walk through how a smart contract enables a trustless cryptocurrency exchange:
+
+**Scenario**: Alice has 100 AVAX and wants to trade it for Bob's 2,000 USDC. Neither party trusts the other.
+
+**Traditional Solution**: Use a centralized exchange to facilitate the trade. Both parties must trust the exchange to handle their funds honestly and not freeze accounts.
+
+**Smart Contract Solution**:
+
+```solidity
+contract TokenSwap {
+    address public alice;
+    address public bob;
+    uint256 public avaxAmount;
+    uint256 public usdcAmount;
+    bool public aliceDeposited;
+    bool public bobDeposited;
+    uint256 public deadline;
+    
+    IERC20 public usdcToken;
+    
+    // Alice creates the swap offer
+    constructor(address _bob, uint256 _usdcAmount, address _usdcToken) payable {
+        alice = msg.sender;
+        bob = _bob;
+        avaxAmount = msg.value;  // Alice deposits AVAX
+        usdcAmount = _usdcAmount;
+        usdcToken = IERC20(_usdcToken);
+        aliceDeposited = true;
+        deadline = block.timestamp + 1 hours;  // 1 hour to complete
+    }
+    
+    // Bob deposits his USDC to complete the swap
+    function depositUSDC() public {
+        require(msg.sender == bob, "Only Bob can deposit");
+        require(block.timestamp < deadline, "Swap expired");
+        
+        usdcToken.transferFrom(bob, address(this), usdcAmount);
+        bobDeposited = true;
+        
+        // Automatically execute the swap
+        executeSwap();
+    }
+    
+    // Execute the swap once both have deposited
+    function executeSwap() private {
+        require(aliceDeposited && bobDeposited, "Both must deposit");
+        
+        // Send AVAX to Bob
+        payable(bob).transfer(avaxAmount);
+        
+        // Send USDC to Alice
+        usdcToken.transfer(alice, usdcAmount);
+    }
+    
+    // If Bob doesn't deposit before deadline, Alice gets her AVAX back
+    function refund() public {
+        require(block.timestamp >= deadline, "Deadline not reached");
+        require(!bobDeposited, "Swap already completed");
+        
+        payable(alice).transfer(avaxAmount);
+    }
+}
+```
+
+**How It Works**:
+
+1. Alice creates the swap contract, specifying Bob's address and the amount of USDC she wants
+2. Alice sends 100 AVAX to the contract when creating it
+3. Bob has 1 hour to deposit 2,000 USDC into the contract
+4. **If Bob deposits**: The contract automatically swaps—Bob gets the AVAX, Alice gets the USDC
+5. **If Bob doesn't deposit**: After the deadline, Alice can call `refund()` to get her AVAX back
+
+This is truly trustless! Neither Alice nor Bob can cheat because:
+- Alice can't take back her AVAX once Bob deposits (the swap executes automatically)
+- Bob can't get the AVAX without depositing his USDC
+- If Bob doesn't participate, Alice simply gets her funds back
+- No centralized exchange can freeze, confiscate, or misuse the funds, they are just put on a contract that can't do anything other than executing the swap with them.
+- The swap is atomic: either both sides happen, or neither happens
+
+## Challenges and Limitations
+
+While powerful, smart contracts face several challenges:
+
+### Security Vulnerabilities
+
+**The Problem**: Bugs in smart contract code can be exploited. Because contracts are immutable, bugs can't be fixed after deployment.
+
+**Famous Example**: The DAO hack in 2016 resulted in $50 million stolen due to a reentrancy vulnerability.
+
+**Solution**: Rigorous testing, professional audits, formal verification, and secure coding patterns.
+
+### Oracle Problem
+
+**The Problem**: Smart contracts can't access external data (weather, stock prices, sports scores) on their own. They need "oracles" to feed them real-world information.
+
+**Challenge**: Oracles reintroduce trust and potential points of failure into the system.
+
+**Solution**: Decentralized oracle networks that aggregate data from multiple sources.
+
+### Legal Uncertainty
+
+**The Problem**: The legal status of smart contracts is unclear in many jurisdictions. What happens when code conflicts with law?
+
+**Challenge**: Dispute resolution and liability are not always clear.
+
+**Evolution**: Legal frameworks are gradually adapting to recognize smart contracts.
+
+### Immutability Double-Edged Sword
+
+**Benefit**: No one can change the rules
+
+**Risk**: No way to fix bugs or upgrade functionality
+
+**Solutions**: Upgradeable contract patterns or designing migration paths into new contracts.
+
+## The Future of Smart Contracts
+
+Smart contracts are still evolving, with exciting developments on the horizon:
+
+- **New Languages**: Enabling more complex logic and safer programming
+- **Cross-Chain Contracts**: Contracts that operate across multiple blockchains
+- **Formal Verification**: Mathematical proofs that contracts behave correctly
+- **Privacy-Preserving Contracts**: Using zero-knowledge proofs to execute contracts privately
+
+Smart contracts represent a fundamental shift in how we create and enforce agreements. By removing intermediaries and automating execution, they enable new forms of trust, coordination, and economic activity that were previously impossible. As the technology matures, smart contracts are poised to reshape industries from finance to governance to entertainment, creating a more automated, transparent, and accessible digital economy.
+
+## Key Takeaways
+
+- Smart contracts are self-executing programs on blockchains that automatically enforce agreements
+- They eliminate the need for trusted intermediaries in many situations
+- Once deployed, they are immutable, transparent, and execute deterministically
+- They enable decentralized applications across finance, gaming, supply chain, and more
+- While powerful, they require careful design to avoid security vulnerabilities
+
+Understanding smart contracts is essential for anyone looking to build on or understand modern blockchain platforms. They're the foundation of the decentralized application ecosystem and represent one of blockchain technology's most significant innovations beyond simple currency.
+
+<Quiz quizId="1005"/>

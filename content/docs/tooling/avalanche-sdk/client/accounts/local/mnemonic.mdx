@@ -1,0 +1,207 @@
+---
+title: "Mnemonic Accounts"
+icon: "seedling"
+---
+
+## Overview
+
+Mnemonic Accounts create Avalanche accounts from mnemonic phrases (seed words). Mnemonics provide a human-readable way to backup and restore accounts, making them ideal for user-facing applications.
+
+**Best for:**
+
+- User-facing applications
+- Mobile wallets
+- Desktop wallets
+- Applications requiring easy account recovery
+
+## Creating Mnemonic Accounts
+
+### Basic Usage
+
+```typescript
+import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const mnemonic =
+  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+const account: AvalancheAccount = mnemonicsToAvalancheAccount(mnemonic);
+
+console.log("EVM Address:", account.getEVMAddress());
+console.log("X-Chain Address:", account.getXPAddress("X"));
+console.log("P-Chain Address:", account.getXPAddress("P"));
+```
+
+### Parameters
+
+- **`mnemonic: string`** - The mnemonic phrase (required)
+- **`options?: MnemonicToAccountOptions`** - Optional derivation path configuration
+
+### Options Interface
+
+```typescript
+interface MnemonicToAccountOptions {
+  accountIndex?: number; // Account index (default: 0)
+  addressIndex?: number; // Address index (default: 0)
+  changeIndex?: number; // Change index (default: 0)
+  xpAccountIndex?: number; // XP account index (default: 0)
+  xpAddressIndex?: number; // XP address index (default: 0)
+  xpChangeIndex?: number; // XP change index (default: 0)
+  path?: string; // Custom derivation path for EVM Account
+  xpPath?: string; // Custom derivation path for XP Account
+}
+```
+
+## Generating Mnemonics
+
+### Generate Random Mnemonic
+
+```typescript
+import {
+  generateMnemonic,
+  mnemonicsToAvalancheAccount,
+} from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const mnemonic: string = generateMnemonic();
+console.log("Generated mnemonic:", mnemonic);
+
+const account: AvalancheAccount = mnemonicsToAvalancheAccount(mnemonic);
+
+console.log("EVM address:", account.getEVMAddress());
+console.log("X-Chain address:", account.getXPAddress("X"));
+console.log("P-Chain address:", account.getXPAddress("P"));
+
+// ⚠️ IMPORTANT: Store mnemonic securely
+// Never log it in production or commit to version control
+```
+
+### Generate Mnemonic in Different Languages
+
+```typescript
+import {
+  generateMnemonic,
+  english,
+  spanish,
+  japanese,
+} from "@avalanche-sdk/client/accounts";
+
+// Generate mnemonic in different languages
+const englishMnemonic = generateMnemonic(english);
+const spanishMnemonic = generateMnemonic(spanish);
+const japaneseMnemonic = generateMnemonic(japanese);
+// Also available: french, italian, portuguese, czech, korean, simplifiedChinese, traditionalChinese
+```
+
+## Derivation Paths
+
+### Default Derivation Paths
+
+The Avalanche Client SDK uses different derivation paths for EVM and XP accounts:
+
+```typescript
+// EVM (C-Chain) derivation path
+// Standard BIP44 path for Ethereum
+const evmPath = "m/44'/60'/0'/0/0"; // m/44'/60'/{accountIndex}'/{changeIndex}/{addressIndex}
+
+// XP (X/P-Chain) derivation path
+// Standard BIP44 path for Avalanche
+const xpPath = "m/44'/9000'/0'/0/0"; // m/44'/9000'/{xpAccountIndex}'/{xpChangeIndex}/{xpAddressIndex}
+```
+
+### Custom Derivation Paths
+
+```typescript
+import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const mnemonic = "abandon abandon abandon...";
+
+// Create account with custom derivation paths
+const account: AvalancheAccount = mnemonicsToAvalancheAccount(mnemonic, {
+  accountIndex: 0,
+  addressIndex: 0,
+  changeIndex: 0,
+  path: "m/44'/60'/0'/0/0", // Custom path
+});
+```
+
+### Multiple Accounts from Same Mnemonic
+
+```typescript
+import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const mnemonic = "abandon abandon abandon...";
+
+// Different account indices
+const account0 = mnemonicsToAvalancheAccount(mnemonic, { accountIndex: 0 });
+const account1 = mnemonicsToAvalancheAccount(mnemonic, { accountIndex: 1 });
+
+// Different address indices
+const addr0 = mnemonicsToAvalancheAccount(mnemonic, { addressIndex: 0 });
+const addr1 = mnemonicsToAvalancheAccount(mnemonic, { addressIndex: 1 });
+```
+
+## Getting Addresses
+
+```typescript
+const account = mnemonicsToAvalancheAccount(mnemonic);
+
+// All chain addresses
+const evmAddress = account.getEVMAddress();
+const xChainAddress = account.getXPAddress("X");
+const pChainAddress = account.getXPAddress("P");
+
+// Network-specific
+const mainnet = account.getXPAddress("X", "avax");
+const testnet = account.getXPAddress("X", "fuji");
+```
+
+## Using with Wallet Client
+
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+import { mnemonicsToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const account = mnemonicsToAvalancheAccount(process.env.MNEMONIC!);
+
+const walletClient = createAvalancheWalletClient({
+  account,
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+// C-Chain transaction
+const txHash = await walletClient.send({
+  to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  amount: 0.001,
+});
+
+// X/P-Chain transaction
+const xpTx = await walletClient.xChain.prepareBaseTxn({
+  outputs: [{ addresses: [account.getXPAddress("X")], amount: 1 }],
+});
+await walletClient.sendXPTransaction(xpTx);
+```
+
+## Security
+
+<Callout>
+  **Never expose mnemonics in client-side code or commit them to version
+  control. Use environment variables.**
+</Callout>
+
+```typescript
+// ✅ Good
+const account = mnemonicsToAvalancheAccount(process.env.MNEMONIC!);
+
+// ❌ Bad
+const account = mnemonicsToAvalancheAccount("abandon abandon abandon...");
+```
+
+## Next Steps
+
+- **[HD Key Accounts](accounts/local/hd-key)** - Learn about hierarchical deterministic accounts
+- **[Account Utilities](accounts/local/utilities)** - Account validation and utilities
+- **[Using Accounts with Clients](accounts/local/clients)** - Client integration patterns
+- **[Network-Specific Addresses](accounts/local/addresses)** - Multi-network support

@@ -48,7 +48,7 @@ export default function UnwrapNativeToken({ wrappedNativeTokenAddress, onError }
         if (wrappedNativeTokenAddress && !cachedWrappedToken) {
             setWrappedNativeToken(wrappedNativeTokenAddress);
         }
-    }, [viemChain, walletEVMAddress, wrappedNativeTokenAddress, walletChainId, cachedWrappedToken, cachedNativeCurrency, setWrappedNativeToken, setNativeCurrencyInfo]);
+    }, [viemChain, walletEVMAddress, wrappedNativeTokenAddress, walletChainId, cachedWrappedToken, cachedNativeCurrency]);
 
     async function handleUnwrap() {
         if (!wrappedNativeToken.isReady) {
