@@ -47,7 +47,7 @@ export default async function Page(props: {
   const page = codebaseEntrepreneurAcademy.getPage(params.slug);
   if (!page) notFound();
 
-  const path = `content/codebase-entrepreneur${page.url.replace('/codebase-entrepreneur/', '/')}.mdx`;
+  const path = `content/academy/avalanche-entrepreneur${page.url.replace('/codebase-entrepreneur-academy/', '/')}.mdx`;
   const editUrl = `https://github.com/ava-labs/builders-hub/edit/master/${path}`;
   const MDX = page.data.body;
   const course = COURSES.codebaseEntrepreneur.find(

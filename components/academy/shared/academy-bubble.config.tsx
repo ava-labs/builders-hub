@@ -6,6 +6,7 @@ import type { BubbleNavigationConfig } from '@/components/navigation/bubble-navi
 export const academyBubbleConfig: BubbleNavigationConfig = {
     items: [
         { id: "avalanche", label: "Avalanche Developer", href: "/academy" },
+        { id: "blockchain", label: "Blockchain Developer", href: "/blockchain-developer-academy" },
         { id: "entrepreneur", label: "Codebase Entrepreneur", href: "/codebase-entrepreneur-academy" },
     ],
     activeColor: "bg-red-600",
@@ -19,9 +20,11 @@ export const academyBubbleConfig: BubbleNavigationConfig = {
 
 export function AcademyBubbleNav() {
     const getActiveItem = (pathname: string, items: typeof academyBubbleConfig.items) => {
-        if (pathname === "/codebase-entrepreneur-academy") {
+        if (pathname === "/codebase-entrepreneur-academy" || pathname.startsWith("/codebase-entrepreneur-academy/")) {
             return "entrepreneur";
-        } else if (pathname === "/academy" || pathname.startsWith("/academy/avalanche")) {
+        } else if (pathname === "/blockchain-developer-academy" || pathname.startsWith("/blockchain-developer-academy/")) {
+            return "blockchain";
+        } else if (pathname === "/academy" || pathname.startsWith("/academy/")) {
             return "avalanche";
         }
         return "avalanche";

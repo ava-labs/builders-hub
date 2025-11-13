@@ -6,7 +6,7 @@ export interface AcademyLandingPageConfig {
     heroTitle: string;
     heroAccent: string;
     heroDescription: string;
-    pathType: 'avalanche' | 'entrepreneur';
+    pathType: 'avalanche' | 'entrepreneur' | 'blockchain';
     customContent?: ReactNode;
     showBlogs?: boolean;
     features?: {

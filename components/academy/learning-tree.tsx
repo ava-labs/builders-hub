@@ -21,9 +21,10 @@ export interface CourseNode {
 // Import configs
 import { avalancheLearningPaths, avalancheCategoryStyles } from './learning-path-configs/avalanche-developer.config';
 import { entrepreneurLearningPaths, entrepreneurCategoryStyles } from './learning-path-configs/codebase-entrepreneur.config';
+import { blockchainLearningPaths, blockchainCategoryStyles } from './learning-path-configs/blockchain-developer.config';
 
 interface LearningTreeProps {
-  pathType?: 'avalanche' | 'entrepreneur';
+  pathType?: 'avalanche' | 'entrepreneur' | 'blockchain';
 }
 
 export default function LearningTree({ pathType = 'avalanche' }: LearningTreeProps) {
@@ -31,8 +32,16 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
   const isMobile = useIsMobile();
 
   // Select the appropriate learning paths and styles based on pathType
-  const learningPaths = pathType === 'avalanche' ? avalancheLearningPaths : entrepreneurLearningPaths;
-  const categoryStyles = pathType === 'avalanche' ? avalancheCategoryStyles : entrepreneurCategoryStyles;
+  const learningPaths = pathType === 'avalanche' 
+    ? avalancheLearningPaths 
+    : pathType === 'blockchain' 
+    ? blockchainLearningPaths 
+    : entrepreneurLearningPaths;
+  const categoryStyles = pathType === 'avalanche' 
+    ? avalancheCategoryStyles 
+    : pathType === 'blockchain' 
+    ? blockchainCategoryStyles 
+    : entrepreneurCategoryStyles;
 
   // Function to get all ancestor nodes (dependencies) of a given node
   const getAncestors = (nodeId: string, ancestors: Set<string> = new Set()): Set<string> => {

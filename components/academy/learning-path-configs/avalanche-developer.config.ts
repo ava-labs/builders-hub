@@ -2,120 +2,87 @@ import { BookOpen, ArrowLeftRight, Layers, Coins, Code, Shield } from 'lucide-re
 import type { CourseNode } from '../learning-tree';
 
 export const avalancheLearningPaths: CourseNode[] = [
-    // Foundation Layer
-    {
-        id: "blockchain-fundamentals",
-        name: "Blockchain Fundamentals",
-        description: "Start here to learn about blockchain and solidity basics",
-        slug: "blockchain-fundamentals",
-        category: "Fundamentals",
-        position: { x: 50, y: 0 },
-        mobileOrder: 1
-    },
-     // Second Layer - Intro to Solidity
-    {
-        id: "intro-to-solidity",
-        name: "Intro to Solidity",
-        description: "Start here to learn about Solidity basics with Foundry",
-        slug: "solidity-foundry",
-        category: "Fundamentals",
-        dependencies: ["avalanche-fundamentals"],
-        position: { x: 20, y: 300 },
-        mobileOrder: 2
-    },
-
-    // Third Layer - Avalanche Fundamentals
+    // Foundation Layer - Avalanche Fundamentals
     {
         id: "avalanche-fundamentals",
         name: "Avalanche Fundamentals",
         description: "Learn about Avalanche Consensus, Multi-Chain Architecture, and VMs",
-        slug: "avalanche-fundamentals",
+        slug: "avalanche-developer/avalanche-fundamentals",
         category: "Fundamentals",
-        dependencies: ["blockchain-fundamentals"],
-        position: { x: 50, y: 150 },
-        mobileOrder: 3
+        position: { x: 50, y: 0 },
+        mobileOrder: 1
     },
-    // Fourth Layer - Branching paths
+    // Second Layer - Branching paths
     {
         id: "customizing-evm",
         name: "Customizing the EVM",
         description: "Add custom precompiles and configure the EVM",
-        slug: "customizing-evm",
+        slug: "avalanche-developer/customizing-evm",
         category: "VM Customization",
         dependencies: ["avalanche-fundamentals"],
-        position: { x:80, y: 300 },
-        mobileOrder: 10
-    },
-    {
-        id: "encrypted-erc",
-        name: "Encrypted ERC",
-        description: "Learn about eERC tokens to add privacy to your applications",
-        slug: "encrypted-erc",
-        category: "Privacy",
-        dependencies: ["intro-to-solidity"],
-        position: { x: 20, y: 450 },
-        mobileOrder: 11
+        position: { x:80, y: 200 },
+        mobileOrder: 2
     },
     {
         id: "interchain-messaging",
         name: "Interchain Messaging",
         description: "Build apps leveraging Avalanche's Interchain Messaging",
-        slug: "interchain-messaging",
+        slug: "avalanche-developer/interchain-messaging",
         category: "Interoperability",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 65, y: 450 },
-        mobileOrder: 4
+        position: { x: 65, y: 200 },
+        mobileOrder: 3
     },
     {
         id: "permissioned-l1s",
         name: "Permissioned L1s",
         description: "Create and manage permissioned blockchains with Proof of Authority",
-        slug: "permissioned-l1s",
+        slug: "avalanche-developer/permissioned-l1s",
         category: "L1 Development",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 35, y: 600 },
-        mobileOrder: 7
+        position: { x: 35, y: 350 },
+        mobileOrder: 6
     },
     {
         id: "l1-native-tokenomics",
         name: "L1 Native Tokenomics",
         description: "Design L1 economics with custom token, native minting rights and transaction fees",
-        slug: "l1-native-tokenomics",
+        slug: "avalanche-developer/l1-native-tokenomics",
         category: "L1 Tokenomics",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 50, y: 750 },
-        mobileOrder: 8
+        position: { x: 50, y: 500 },
+        mobileOrder: 7
     },
-    // Fifth Layer - Advanced topics (adjusted for no overlap)
+    // Third Layer - Advanced topics
     {
         id: "interchain-token-transfer",
         name: "Interchain Token Transfer",
         description: "Transfer assets between chains using Interchain Messaging",
-        slug: "interchain-token-transfer",
+        slug: "avalanche-developer/interchain-token-transfer",
         category: "Interoperability",
         dependencies: ["interchain-messaging"],
-        position: { x: 80, y: 600 },
-        mobileOrder: 5
+        position: { x: 80, y: 350 },
+        mobileOrder: 4
     },
     {
         id: "icm-chainlink",
         name: "Chainlink via ICM",
         description: "Use Chainlink services on an L1 through the Interchain Messaging",
-        slug: "icm-chainlink",
+        slug: "avalanche-developer/icm-chainlink",
         category: "Interoperability",
         dependencies: ["interchain-messaging"],
-        position: { x: 65, y: 900 },
-        mobileOrder: 6
+        position: { x: 65, y: 500 },
+        mobileOrder: 5
     },
     {
         id: "permissionless-l1s",
         name: "Permissionless L1s",
         description: "Create and manage permissionless blockchains with Proof of Stake",
-        slug: "permissionless-l1s",
+        slug: "avalanche-developer/permissionless-l1s",
         category: "L1 Development",
         dependencies: ["permissioned-l1s", "l1-native-tokenomics"],
-        position: { x: 35, y: 900 },
-        mobileOrder: 9
+        position: { x: 35, y: 650 },
+        mobileOrder: 8
     },
 ];
 

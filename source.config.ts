@@ -59,7 +59,7 @@ export const courseMeta = defineCollections({
 
 export const codebaseEntrepreneur = defineCollections({
   type: 'doc',
-  dir: 'content/codebase-entrepreneur',
+  dir: 'content/academy/avalanche-entrepreneur',
   schema: frontmatterSchema.extend({
     preview: z.string().optional(),
     index: z.boolean().default(false),
@@ -78,7 +78,7 @@ export const codebaseEntrepreneur = defineCollections({
 
 export const codebaseEntrepreneurMeta = defineCollections({
   type: 'meta',
-  dir: 'content/codebase-entrepreneur',
+  dir: 'content/academy/avalanche-entrepreneur',
   schema: metaSchema.extend({
     description: z.string().optional(),
   }),
