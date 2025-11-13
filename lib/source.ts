@@ -96,8 +96,8 @@ export const academy = loader({
   source: createMDXSource(course, courseMeta as any),
 });
 
-export const codebaseEntrepreneurAcademy = loader({
-  baseUrl: '/codebase-entrepreneur-academy',
+export const entrepreneurAcademy = loader({
+  baseUrl: '/academy/entrepreneur',
   icon(icon) {
     if (icon && icon in icons)
       return createElement(icons[icon as keyof typeof icons]);

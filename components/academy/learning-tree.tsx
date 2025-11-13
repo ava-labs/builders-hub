@@ -19,9 +19,9 @@ export interface CourseNode {
 }
 
 // Import configs
-import { avalancheLearningPaths, avalancheCategoryStyles } from './learning-path-configs/avalanche-developer.config';
-import { entrepreneurLearningPaths, entrepreneurCategoryStyles } from './learning-path-configs/codebase-entrepreneur.config';
-import { blockchainLearningPaths, blockchainCategoryStyles } from './learning-path-configs/blockchain-developer.config';
+import { avalancheLearningPaths, avalancheCategoryStyles } from './learning-path-configs/avalanche.config';
+import { entrepreneurLearningPaths, entrepreneurCategoryStyles } from './learning-path-configs/entrepreneur.config';
+import { blockchainLearningPaths, blockchainCategoryStyles } from './learning-path-configs/blockchain.config';
 
 interface LearningTreeProps {
   pathType?: 'avalanche' | 'entrepreneur' | 'blockchain';
@@ -42,6 +42,14 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
     : pathType === 'blockchain' 
     ? blockchainCategoryStyles 
     : entrepreneurCategoryStyles;
+
+  const resolveSlug = (slug: string) => {
+    if (pathType === 'entrepreneur') {
+      const cleanSlug = slug.replace(/^entrepreneur\//, '');
+      return `/academy/entrepreneur/${cleanSlug}`;
+    }
+    return `/academy/${slug}`;
+  };
 
   // Function to get all ancestor nodes (dependencies) of a given node
   const getAncestors = (nodeId: string, ancestors: Set<string> = new Set()): Set<string> => {
@@ -187,7 +195,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
                 )}
 
                 <Link
-                  href={pathType === 'entrepreneur' ? `/codebase-entrepreneur-academy/${node.slug}` : `/academy/${node.slug}`}
+                  href={resolveSlug(node.slug)}
                   className="block relative group"
                 >
                   <div
@@ -301,7 +309,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
               onMouseLeave={() => setHoveredNode(null)}
             >
               <Link
-                href={pathType === 'entrepreneur' ? `/codebase-entrepreneur-academy/${node.slug}` : `/academy/${node.slug}`}
+                href={resolveSlug(node.slug)}
                 className="block relative group w-full"
               >
                 <div

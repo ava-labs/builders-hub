@@ -33,6 +33,7 @@ export function AcademyLayout({ config, blogs = [], children, afterLearningPath 
                 <AcademyHero
                     title={config.heroTitle}
                     accent={config.heroAccent}
+                    accentWords={config.heroAccentWords}
                     description={config.heroDescription}
                 />
 

@@ -5,9 +5,9 @@ import type { BubbleNavigationConfig } from '@/components/navigation/bubble-navi
 
 export const academyBubbleConfig: BubbleNavigationConfig = {
     items: [
-        { id: "avalanche", label: "Avalanche Developer", href: "/academy" },
-        { id: "blockchain", label: "Blockchain Developer", href: "/blockchain-developer-academy" },
-        { id: "entrepreneur", label: "Codebase Entrepreneur", href: "/codebase-entrepreneur-academy" },
+        { id: "avalanche", label: "Avalanche", href: "/academy" },
+        { id: "blockchain", label: "Blockchain", href: "/academy/blockchain" },
+        { id: "entrepreneur", label: "Entrepreneur", href: "/academy/entrepreneur" },
     ],
     activeColor: "bg-red-600",
     darkActiveColor: "dark:bg-red-500",
@@ -20,11 +20,17 @@ export const academyBubbleConfig: BubbleNavigationConfig = {
 
 export function AcademyBubbleNav() {
     const getActiveItem = (pathname: string, items: typeof academyBubbleConfig.items) => {
-        if (pathname === "/codebase-entrepreneur-academy" || pathname.startsWith("/codebase-entrepreneur-academy/")) {
+        if (pathname === "/academy/entrepreneur" || pathname.startsWith("/academy/entrepreneur/")) {
             return "entrepreneur";
-        } else if (pathname === "/blockchain-developer-academy" || pathname.startsWith("/blockchain-developer-academy/")) {
+        } else if (pathname === "/academy/blockchain" || pathname.startsWith("/academy/blockchain/")) {
             return "blockchain";
-        } else if (pathname === "/academy" || pathname.startsWith("/academy/")) {
+        } else if (
+            pathname === "/academy" ||
+            pathname.startsWith("/academy/avalanche") ||
+            (pathname.startsWith("/academy/") &&
+                !pathname.startsWith("/academy/blockchain") &&
+                !pathname.startsWith("/academy/entrepreneur"))
+        ) {
             return "avalanche";
         }
         return "avalanche";

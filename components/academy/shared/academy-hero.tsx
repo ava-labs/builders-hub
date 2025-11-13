@@ -1,20 +1,117 @@
 'use client';
 
 import { ChevronDown } from 'lucide-react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 
 interface AcademyHeroProps {
     title: string;
     accent: string;
+    accentWords?: string[];
     description: string;
 }
 
-export function AcademyHero({ title, accent, description }: AcademyHeroProps) {
+const ROTATION_INTERVAL = 2600;
+const TRANSITION_DURATION = 600;
+
+function RotatingAccent({ words }: { words: string[] }) {
+    const uniqueWords = useMemo(
+        () =>
+            [...new Set(words.map((word) => word.trim()).filter((word) => word.length > 0))],
+        [words],
+    );
+
+    const displayWords = useMemo(() => {
+        if (uniqueWords.length <= 1) {
+            return uniqueWords;
+        }
+
+        return [...uniqueWords, uniqueWords[0]];
+    }, [uniqueWords]);
+
+    const [index, setIndex] = useState(0);
+    const [isResetting, setIsResetting] = useState(false);
+
+    useEffect(() => {
+        setIndex(0);
+    }, [uniqueWords.length]);
+
+    useEffect(() => {
+        if (displayWords.length <= 1) return;
+
+        const timer = setInterval(() => {
+            setIndex((prev) => prev + 1);
+        }, ROTATION_INTERVAL);
+
+        return () => clearInterval(timer);
+    }, [displayWords.length]);
+
+    useEffect(() => {
+        if (displayWords.length <= 1) return;
+
+        if (index === displayWords.length - 1) {
+            const timeout = setTimeout(() => {
+                setIsResetting(true);
+                setIndex(0);
+            }, TRANSITION_DURATION);
+
+            return () => clearTimeout(timeout);
+        }
+    }, [index, displayWords.length]);
+
+    useEffect(() => {
+        if (!isResetting) return;
+
+        const frame = requestAnimationFrame(() => {
+            setIsResetting(false);
+        });
+
+        return () => cancelAnimationFrame(frame);
+    }, [isResetting]);
+
+    if (uniqueWords.length === 0) {
+        return null;
+    }
+
+    if (uniqueWords.length === 1) {
+        return (
+            <span className="bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent font-semibold">
+                {uniqueWords[0]}
+            </span>
+        );
+    }
+
+    const transformStyle: CSSProperties = {
+        transform: `translateY(-${index * 100}%)`,
+        transition: isResetting ? 'none' : 'transform 600ms cubic-bezier(0.76, 0, 0.24, 1)',
+    };
+
+    return (
+        <span className="inline-block h-[1.3em] min-w-[8.5rem] overflow-hidden align-middle">
+            <span className="flex flex-col" style={transformStyle}>
+                {displayWords.map((word, idx) => (
+                    <span
+                        key={`${word}-${idx}`}
+                        className="h-[1.3em] flex items-center justify-center bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent font-semibold tracking-tight"
+                    >
+                        {word}
+                    </span>
+                ))}
+            </span>
+        </span>
+    );
+}
+
+export function AcademyHero({ title, accent, accentWords, description }: AcademyHeroProps) {
     const handleScrollToLearningPath = () => {
         const learningPathSection = document.getElementById('learning-path-section');
         if (learningPathSection) {
             learningPathSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     };
+
+    const rotatingAccentWords = accentWords && accentWords.length > 0
+        ? accentWords
+        : [accent];
 
     return (
         <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -29,9 +126,7 @@ export function AcademyHero({ title, accent, description }: AcademyHeroProps) {
                             <span className="text-zinc-900 dark:text-white">
                                 {title}{" "}
                             </span>
-                            <span className="text-red-600">
-                                {accent}
-                            </span>
+                            <RotatingAccent words={rotatingAccentWords} />
                             <span className="text-zinc-900 dark:text-white">
                                 {" "}Academy
                             </span>
