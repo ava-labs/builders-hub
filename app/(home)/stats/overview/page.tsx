@@ -382,15 +382,15 @@ export default function AvalancheMetrics() {
 
   const getCategoryColor = (category: string): string => {
     const colors: { [key: string]: string } = {
-      General:
-        "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300",
-      DeFi: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-      Gaming:
-        "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
-      Institutions:
-        "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-      RWAs: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-      Payments: "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300",
+      General: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+      Finance: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+      Gaming: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
+      Telecom: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+      Loyalty: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+      SocialFi: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
+      Fitness: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300",
+      Ticketing: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300",
+      Sports: "bg-lime-100 text-lime-700 dark:bg-lime-900 dark:text-lime-300",
     };
     return (
       colors[category] ||

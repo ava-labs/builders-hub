@@ -470,7 +470,7 @@
     "subnetId": "VzsCkPm6MjStgT2v5Qmcn5ycgMhj68rxPN4gX9eMgBbBXHYEu",
     "slug": "greendot",
     "color": "#0EA5E9",
-    "category": "Institutions",
+    "category": "Finance",
     "explorers": [
     ]
   },
@@ -597,7 +597,7 @@
     "subnetId": "2UEGsEEjRyMSgD7cNufCGEXbPXsma7RctBgfRw3Haqkk8oByFa",
     "slug": "intainmkt",
     "color": "#10B981",
-    "category": "Institutions",
+    "category": "Finance",
     "explorers": [
     ]
   },
@@ -1280,7 +1280,7 @@
     "subnetId": "QL49tBK9T84NSHQYYSP33Ru7h1KcybDR6MGA8dARVWhw1zLB8",
     "slug": "watr",
     "color": "#8B5CF6",
-    "category": "Institutions",
+    "category": "Finance",
     "explorers": [
     ]
   },
