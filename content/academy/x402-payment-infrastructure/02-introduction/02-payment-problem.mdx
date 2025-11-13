@@ -15,59 +15,29 @@ Traditional payment systems create significant friction for both users and devel
 Every traditional payment interaction requires users to complete at least five time-consuming steps:
 
 ### 1. Create Account
-
-Before making any payment, users must:
-- Sign up for a service account
-- Provide personal information
-- Verify email addresses
-- Set up passwords and security
-
-**Time Impact**: 5-15 minutes per service<br/>
-**User Experience**: High abandonment rates during signup
+- Sign up for a service account with personal information
+- Verify email addresses and set up passwords
+- 5-15 minutes per service with high abandonment rates
 
 ### 2. Add Payment Method
-
-After creating an account, users must:
-- Enter credit card details
-- Complete bank verification
-- Wait for payment method approval
+- Enter credit card details and complete bank verification
 - Navigate complex payment forms
-
-**Time Impact**: 3-10 minutes<br/>
-**User Experience**: Security concerns and data privacy issues
+- 3-10 minutes with security and privacy concerns
 
 ### 3. Complete KYC (Know Your Customer)
-
-Many services require additional identity verification:
-- Submit government-issued ID
-- Provide proof of address
-- Complete video verification
-- Wait for manual approval
-
-**Time Impact**: Hours to days<br/>
-**User Experience**: Privacy concerns and verification delays
+- Submit government-issued ID and proof of address
+- Complete verification and wait for approval
+- Hours to days with privacy concerns
 
 ### 4. Buy Credits or Subscribe
-
-Traditional payment models force prepayment:
-- Purchase credits you may not use
-- Subscribe to monthly plans
-- Commit to minimum purchases
-- Lock in before trying the service
-
-**Time Impact**: Variable<br/>
-**User Experience**: Financial commitment before knowing value
+- Purchase credits or subscribe to monthly plans before trying
+- Commit to minimum purchases without knowing value
+- Forces prepayment for uncertain utility
 
 ### 5. Manage API Keys
-
-For API access, developers must:
-- Generate and store API keys
-- Implement key rotation policies
-- Secure keys in environment variables
+- Generate, store, and rotate API keys securely
 - Monitor for key compromise
-
-**Time Impact**: Ongoing maintenance<br/>
-**User Experience**: Security risk and complexity
+- Ongoing maintenance and security risk
 
 ## Cost Structure Problems
 
@@ -92,13 +62,7 @@ Payment processors hold funds for 2-7 days, creating cash flow challenges for me
 
 ## Barriers to Automation
 
-Traditional payments were designed for human-to-merchant interactions, not for automated systems. This creates fundamental barriers:
-
-- **Manual Account Setup**: Automated systems cannot complete human-centric signup flows (CAPTCHA, email verification, identity checks)
-- **Credential Management**: Storing payment credentials creates security and compliance risks
-- **Pre-Approval Requirements**: Automated payments require human authorization, preventing autonomous operation
-
-These barriers make it impossible for AI agents and automated systems to participate in the payment economy.
+Traditional payments were designed for human-to-merchant interactions, not for automated systems. Automated systems cannot complete human-centric signup flows like CAPTCHA or email verification, storing payment credentials creates security risks, and pre-approval requirements prevent autonomous operation. These barriers make it impossible for AI agents and automated systems to participate in the payment economy.
 
 ## The Micropayment Impossibility
 
@@ -139,26 +103,6 @@ Developers face a painful choice when monetizing APIs:
 
 **None of these options are optimal**, creating a gap in the market for pay-per-use API models.
 
-## The AI Agent Problem
-
-As AI agents become more prevalent, traditional payment systems create impossible barriers:
-
-### AI Agents Cannot:
-1. **Create Accounts**: Most signup flows require human verification (CAPTCHA, email confirmation)
-2. **Complete KYC**: Identity verification is designed for humans, not autonomous agents
-3. **Store Credentials Securely**: API keys and payment tokens create security vulnerabilities
-4. **Make Autonomous Decisions**: Pre-approved payment methods limit AI flexibility
-5. **Handle Micropayments**: Transaction fees make small payments impossible
-
-### What AI Agents Need:
-- Instant, permissionless access to resources
-- Pay-per-use pricing with no minimums
-- Autonomous payment execution
-- No account creation or KYC
-- Micropayment support (fractions of a cent)
-
-![AI agents blocked by traditional payment systems](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/x402-payment-infrastructure/HowAIAgentsMakePayments.png)
-
 ## Real-World Impact
 
 These limitations have real consequences:
@@ -175,19 +119,13 @@ These limitations have real consequences:
 - Share payment details with many services
 - Pay for unused capacity
 
-### For AI Builders
-- Cannot create autonomous payment systems
-- Limited to pre-approved payment rails
-- Unable to enable AI-to-AI commerce
-- Forced into complex workarounds
-
 ## The Need for a New Approach
 
-Traditional payment systems were designed for a different era—before micropayments, before API economies, and before AI agents. We need a payment protocol that:
+Traditional payment systems were designed for a different era—before micropayments and before API economies. We need a payment protocol that:
 
 1. **Eliminates Account Requirements**: Instant, permissionless access
 2. **Supports Micropayments**: Economically viable payments of any size
-3. **Enables Automation**: AI agents can pay autonomously
+3. **Enables Automation**: Autonomous payment execution without human intervention
 4. **Settles Instantly**: No 2-7 day delays
 5. **Charges Fairly**: No percentage fees or high fixed costs
 6. **Works with HTTP**: Native integration with web infrastructure
@@ -196,4 +134,4 @@ This is exactly what the x402 protocol provides.
 
 ## Summary
 
-Traditional payment systems create insurmountable barriers for modern digital commerce through account requirements, high fees, settlement delays, and automation limitations. These systems make micropayments impossible, force developers into suboptimal business models, and prevent AI agents from participating in the economy. The x402 protocol addresses all of these limitations by providing instant, permissionless, HTTP-native payments with minimal fees.
+Traditional payment systems create insurmountable barriers for modern digital commerce through account requirements, high fees, settlement delays, and automation limitations. These systems make micropayments impossible and force developers into suboptimal business models. The x402 protocol addresses all of these limitations by providing instant, permissionless, HTTP-native payments with minimal fees.
