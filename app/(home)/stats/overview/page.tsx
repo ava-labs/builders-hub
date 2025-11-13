@@ -7,6 +7,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -14,10 +19,18 @@ import {
   BarChart3,
   Search,
   ArrowUpRight,
+  Info,
 } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import l1ChainsData from "@/constants/l1-chains.json";
-import { TimeSeriesMetric, ICMMetric, TimeRange, L1Chain } from "@/types/stats";
+import {
+  TimeSeriesMetric,
+  ICMMetric,
+  TimeRange,
+  L1Chain,
+  TimeSeriesDataPoint,
+  ICMDataPoint,
+} from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
@@ -27,7 +40,11 @@ interface ChainOverviewMetrics {
   chainName: string;
   chainLogoURI: string;
   txCount: TimeSeriesMetric;
-  activeAddresses: TimeSeriesMetric;
+  activeAddresses: {
+    daily: TimeSeriesMetric;
+    weekly: TimeSeriesMetric;
+    monthly: TimeSeriesMetric;
+  };
   icmMessages: ICMMetric;
   validatorCount: number | string;
 }
@@ -36,7 +53,11 @@ interface OverviewMetrics {
   chains: ChainOverviewMetrics[];
   aggregated: {
     totalTxCount: TimeSeriesMetric;
-    totalActiveAddresses: TimeSeriesMetric;
+    totalActiveAddresses: {
+      daily: TimeSeriesMetric;
+      weekly: TimeSeriesMetric;
+      monthly: TimeSeriesMetric;
+    };
     totalICMMessages: ICMMetric;
     totalValidators: number;
     activeChains: number;
@@ -53,11 +74,100 @@ export default function AvalancheMetrics() {
     useState<OverviewMetrics | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sortField, setSortField] = useState<string>("weeklyActiveAddresses");
+  const [sortField, setSortField] = useState<string>("activeAddresses");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [visibleCount, setVisibleCount] = useState(25);
   const [searchTerm, setSearchTerm] = useState("");
-  const timeRange: TimeRange = "1y"; // Fixed time range
+  const [selectedPeriod, setSelectedPeriod] = useState<"D" | "W" | "M">("D");
+
+  // Always fetch 30 days of data to support all period views
+  const timeRange: TimeRange = "30d";
+
+  // Returns the latest aggregated value based on the selected period
+  const aggregateLatestValue = (
+    data: TimeSeriesDataPoint[],
+    period: "D" | "W" | "M"
+  ): number => {
+    if (!data || data.length === 0) return 0;
+
+    // For daily, return the most recent complete day's value
+    // Use index 1 (yesterday) since index 0 might be today's incomplete data
+    if (period === "D") {
+      const latestValue = data.length > 1 ? data[1]?.value : data[0]?.value;
+      return typeof latestValue === "string"
+        ? parseFloat(latestValue) || 0
+        : latestValue || 0;
+    }
+
+    // Group data by period (same logic as ChainMetricsPage)
+    const grouped = new Map<string, number>();
+
+    data.forEach((point) => {
+      const date = new Date(point.date);
+      let key: string;
+
+      if (period === "W") {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
+      } else {
+        // M
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      }
+
+      const value =
+        typeof point.value === "string" ? parseFloat(point.value) : point.value;
+      const currentSum = grouped.get(key) || 0;
+      grouped.set(key, currentSum + (isNaN(value) ? 0 : value));
+    });
+
+    // Return the latest aggregated value (most recent key)
+    const sortedKeys = Array.from(grouped.keys()).sort((a, b) =>
+      b.localeCompare(a)
+    );
+    return sortedKeys.length > 0 ? grouped.get(sortedKeys[0]) || 0 : 0;
+  };
+
+  const aggregateLatestICMValue = (
+    data: ICMDataPoint[],
+    period: "D" | "W" | "M"
+  ): number => {
+    if (!data || data.length === 0) return 0;
+
+    // For daily, return the most recent complete day's value
+    // Use index 1 (yesterday) since index 0 might be today's incomplete data
+    if (period === "D") {
+      const latestValue =
+        data.length > 1 ? data[1]?.messageCount : data[0]?.messageCount;
+      return latestValue || 0;
+    }
+
+    // Group data by period
+    const grouped = new Map<string, number>();
+
+    data.forEach((point) => {
+      const date = new Date(point.date);
+      let key: string;
+
+      if (period === "W") {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
+      } else {
+        // M
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      }
+
+      const currentSum = grouped.get(key) || 0;
+      grouped.set(key, currentSum + point.messageCount);
+    });
+
+    // Return the latest aggregated value
+    const sortedKeys = Array.from(grouped.keys()).sort((a, b) =>
+      b.localeCompare(a)
+    );
+    return sortedKeys.length > 0 ? grouped.get(sortedKeys[0]) || 0 : 0;
+  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -127,10 +237,6 @@ export default function AvalancheMetrics() {
     return numValue.toLocaleString();
   };
 
-  const formatFullNumber = (num: number): string => {
-    return num.toLocaleString();
-  };
-
   const handleSort = (field: string) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -156,35 +262,40 @@ export default function AvalancheMetrics() {
         aValue = a.chainName;
         bValue = b.chainName;
         break;
-      case "weeklyTxCount":
+      case "txCount":
+        aValue = aggregateLatestValue(a.txCount.data, selectedPeriod);
+        bValue = aggregateLatestValue(b.txCount.data, selectedPeriod);
+        break;
+      case "activeAddresses":
+        const aActiveData =
+          selectedPeriod === "D"
+            ? a.activeAddresses.daily.data
+            : selectedPeriod === "W"
+              ? a.activeAddresses.weekly.data
+              : a.activeAddresses.monthly.data;
+        const bActiveData =
+          selectedPeriod === "D"
+            ? b.activeAddresses.daily.data
+            : selectedPeriod === "W"
+              ? b.activeAddresses.weekly.data
+              : b.activeAddresses.monthly.data;
+        // Use most recent value (index 0 after sorting descending by timestamp)
         aValue =
-          typeof a.txCount.current_value === "number"
-            ? a.txCount.current_value / 365
+          aActiveData.length > 0
+            ? typeof aActiveData[0].value === "number"
+              ? aActiveData[0].value
+              : parseFloat(aActiveData[0].value as string) || 0
             : 0;
         bValue =
-          typeof b.txCount.current_value === "number"
-            ? b.txCount.current_value / 365
+          bActiveData.length > 0
+            ? typeof bActiveData[0].value === "number"
+              ? bActiveData[0].value
+              : parseFloat(bActiveData[0].value as string) || 0
             : 0;
         break;
-      case "weeklyActiveAddresses":
-        aValue =
-          typeof a.activeAddresses.current_value === "number"
-            ? a.activeAddresses.current_value
-            : 0;
-        bValue =
-          typeof b.activeAddresses.current_value === "number"
-            ? b.activeAddresses.current_value
-            : 0;
-        break;
-      case "totalIcmMessages":
-        aValue =
-          typeof a.icmMessages.current_value === "number"
-            ? a.icmMessages.current_value / 365
-            : 0;
-        bValue =
-          typeof b.icmMessages.current_value === "number"
-            ? b.icmMessages.current_value / 365
-            : 0;
+      case "icmMessages":
+        aValue = aggregateLatestICMValue(a.icmMessages.data, selectedPeriod);
+        bValue = aggregateLatestICMValue(b.icmMessages.data, selectedPeriod);
         break;
       case "validatorCount":
         aValue = typeof a.validatorCount === "number" ? a.validatorCount : 0;
@@ -224,25 +335,39 @@ export default function AvalancheMetrics() {
   const SortButton = ({
     field,
     children,
+    tooltip,
   }: {
     field: string;
     children: React.ReactNode;
+    tooltip?: string;
   }) => (
-    <button
-      className="flex items-center gap-2 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100"
-      onClick={() => handleSort(field)}
-    >
-      {children}
-      {sortField === field ? (
-        sortDirection === "asc" ? (
-          <ArrowUp className="h-3.5 w-3.5" />
+    <div className="flex items-center gap-2">
+      <button
+        className="flex items-center gap-2 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100"
+        onClick={() => handleSort(field)}
+      >
+        {children}
+        {sortField === field ? (
+          sortDirection === "asc" ? (
+            <ArrowUp className="h-3.5 w-3.5" />
+          ) : (
+            <ArrowDown className="h-3.5 w-3.5" />
+          )
         ) : (
-          <ArrowDown className="h-3.5 w-3.5" />
-        )
-      ) : (
-        <ArrowUpDown className="h-3.5 w-3.5" />
+          <ArrowUpDown className="h-3.5 w-3.5" />
+        )}
+      </button>
+      {tooltip && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Info className="h-3.5 w-3.5 text-neutral-400 dark:text-neutral-500 cursor-help" />
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{tooltip}</p>
+          </TooltipContent>
+        </Tooltip>
       )}
-    </button>
+    </div>
   );
 
   const getChainCategory = (chainId: string, chainName: string): string => {
@@ -274,12 +399,10 @@ export default function AvalancheMetrics() {
   };
 
   const getChainTPS = (chain: ChainOverviewMetrics): string => {
-    const txCount =
-      typeof chain.txCount.current_value === "number"
-        ? chain.txCount.current_value
-        : 0;
-    const secondsInYear = 365 * 24 * 60 * 60;
-    const tps = txCount / secondsInYear;
+    // This function is only called when selectedPeriod === "D"
+    const txCount = aggregateLatestValue(chain.txCount.data, "D");
+    const secondsInDay = 24 * 60 * 60;
+    const tps = txCount / secondsInDay;
     return tps.toFixed(2);
   };
 
@@ -390,7 +513,7 @@ export default function AvalancheMetrics() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-6 text-center">
-              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                 Mainnet Avalanche L1s
               </p>
               <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
@@ -401,18 +524,17 @@ export default function AvalancheMetrics() {
 
           <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-6 text-center">
-              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                 Daily Transactions
               </p>
               <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
                 {formatNumber(
-                  typeof overviewMetrics.aggregated.totalTxCount
-                    .current_value === "number"
-                    ? Math.round(
-                        overviewMetrics.aggregated.totalTxCount.current_value /
-                          365
-                      )
-                    : 0
+                  Math.round(
+                    aggregateLatestValue(
+                      overviewMetrics.aggregated.totalTxCount.data,
+                      "D"
+                    )
+                  )
                 )}
               </p>
             </div>
@@ -420,19 +542,18 @@ export default function AvalancheMetrics() {
 
           <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-6 text-center">
-              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                Combined Throughput
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                Avg Daily Throughput
               </p>
               <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
                 {(() => {
-                  // Calculate total TPS from all chains
-                  const totalTxs =
-                    typeof overviewMetrics.aggregated.totalTxCount
-                      .current_value === "number"
-                      ? overviewMetrics.aggregated.totalTxCount.current_value
-                      : 0;
-                  const secondsInYear = 365 * 24 * 60 * 60;
-                  const tps = (totalTxs / secondsInYear).toFixed(2);
+                  // Calculate average TPS for latest day
+                  const latestDayTxs = aggregateLatestValue(
+                    overviewMetrics.aggregated.totalTxCount.data,
+                    "D"
+                  );
+                  const secondsInDay = 24 * 60 * 60;
+                  const tps = (latestDayTxs / secondsInDay).toFixed(2);
                   return tps;
                 })()}{" "}
                 TPS
@@ -444,14 +565,29 @@ export default function AvalancheMetrics() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-5 text-center">
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                Daily ICM Count
-              </p>
+              <div className="flex items-center justify-center gap-1.5 mb-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                  Daily ICM Count
+                </p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-neutral-400 dark:text-neutral-500 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      Total Interchain Messages sent between Avalanche L1s in
+                      the last 24 hours.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <p className="text-2xl font-semibold text-black dark:text-white">
                 {formatNumber(
                   Math.round(
-                    overviewMetrics.aggregated.totalICMMessages.current_value /
-                      365
+                    aggregateLatestICMValue(
+                      overviewMetrics.aggregated.totalICMMessages.data,
+                      "D"
+                    )
                   )
                 )}
               </p>
@@ -471,13 +607,25 @@ export default function AvalancheMetrics() {
 
           <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-5 text-center">
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                All-Time Validation Fees
-              </p>
+              <div className="flex items-center justify-center gap-1.5 mb-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                  All-Time Validation Fees
+                </p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-neutral-400 dark:text-neutral-500 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      Total validation fees paid by Avalanche L1 Validators.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <div className="flex items-center justify-center gap-2">
                 <AvalancheLogo className="w-6 h-6" fill="#E84142" />
                 <p className="text-2xl font-semibold text-black dark:text-white">
-                  8,310
+                  8,561
                 </p>
               </div>
             </div>
@@ -485,13 +633,26 @@ export default function AvalancheMetrics() {
 
           <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
             <div className="p-5 text-center">
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                Total Network Fees Burned
-              </p>
+              <div className="flex items-center justify-center gap-1.5 mb-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                  Total Network Fees Burned
+                </p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-neutral-400 dark:text-neutral-500 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      Total AVAX burned on the Primary Network (includes X, P,
+                      and C chains).
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <div className="flex items-center justify-center gap-2">
                 <AvalancheLogo className="w-6 h-6" fill="#E84142" />
                 <p className="text-2xl font-semibold text-black dark:text-white">
-                  {formatNumber(4930978)}
+                  {formatNumber("4939960")}
                 </p>
               </div>
             </div>
@@ -500,27 +661,51 @@ export default function AvalancheMetrics() {
 
         <div className="border-t border-neutral-200 dark:border-neutral-800 my-8"></div>
 
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500" />
-            <Input
-              placeholder="Search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 rounded-full border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
-            />
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-2 flex-1 min-w-[300px]">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500" />
+              <Input
+                placeholder="Search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 rounded-full border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
+              />
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSearchTerm("");
+                setVisibleCount(25);
+              }}
+              className="text-neutral-600 dark:text-neutral-400 hover:bg-[#fcfcfd] dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white rounded-full"
+            >
+              Clear Search
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setSearchTerm("");
-              setVisibleCount(25);
-            }}
-            className="text-neutral-600 dark:text-neutral-400 hover:bg-[#fcfcfd] dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white rounded-full"
-          >
-            Clear Search
-          </Button>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+              Select Time Range:
+            </span>
+            <div className="flex gap-1">
+              {(["D", "W", "M"] as const).map((label) => {
+                return (
+                  <button
+                    key={label}
+                    onClick={() => setSelectedPeriod(label)}
+                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                      selectedPeriod === label
+                        ? "bg-black dark:bg-white text-white dark:text-black"
+                        : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         <Card className="overflow-hidden border border-neutral-200 dark:border-neutral-800 py-0">
@@ -528,82 +713,102 @@ export default function AvalancheMetrics() {
             <table className="w-full border-collapse">
               <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
                 <tr className="border-b border-neutral-200 dark:border-neutral-800">
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-3 text-left">
                     <div className="flex items-center gap-2">
                       <SortButton field="chainName">
-                        <span className="text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
-                          L1 Name
+                        <span className="text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300">
+                          Avalanche L1
                         </span>
                       </SortButton>
                     </div>
                   </th>
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
-                    <div className="flex items-center gap-2">
-                      <SortButton field="weeklyActiveAddresses">
-                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
-                          Active Addresses
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-3 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <SortButton
+                        field="activeAddresses"
+                        tooltip="Number of distinct addresses recorded within the selected time-range"
+                      >
+                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300">
+                          Active Addrs
                         </span>
-                        <span className="lg:hidden text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">
+                        <span className="lg:hidden text-xs font-medium tracking-wide text-neutral-600 dark:text-neutral-400">
                           Addresses
                         </span>
                       </SortButton>
                     </div>
                   </th>
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
-                    <div className="flex items-center gap-2">
-                      <SortButton field="weeklyTxCount">
-                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
-                          Transactions
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-3 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <SortButton
+                        field="txCount"
+                        tooltip="Total number of transactions within the selected time-range"
+                      >
+                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300">
+                          Tx Count
                         </span>
-                        <span className="lg:hidden text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">
-                          Transactions
+                        <span className="lg:hidden text-xs font-medium tracking-wide text-neutral-600 dark:text-neutral-400">
+                          Txs
                         </span>
                       </SortButton>
                     </div>
                   </th>
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
-                    <div className="flex items-center gap-2">
-                      <SortButton field="totalIcmMessages">
-                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
-                          Interchain Messages
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-3 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <SortButton
+                        field="icmMessages"
+                        tooltip="Total number of Interchain Messages sent to/from an Avalanche L1"
+                      >
+                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300">
+                          ICM Activity
                         </span>
-                        <span className="lg:hidden text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">
+                        <span className="lg:hidden text-xs font-medium tracking-wide text-neutral-600 dark:text-neutral-400">
                           ICM
                         </span>
                       </SortButton>
                     </div>
                   </th>
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
-                    <div className="flex items-center gap-2">
-                      <SortButton field="validatorCount">
-                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-3 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <SortButton
+                        field="validatorCount"
+                        tooltip="Total number of an Avalanche L1's Validators"
+                      >
+                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300">
                           Validators
                         </span>
                       </SortButton>
                     </div>
                   </th>
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
-                    <div className="flex items-center gap-2">
-                      <SortButton field="throughput">
-                        <span className="text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
-                          Throughput
-                        </span>
-                      </SortButton>
-                    </div>
-                  </th>
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
-                    <div className="flex items-center gap-2">
-                      <SortButton field="category">
-                        <span className="text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
+                  {selectedPeriod === "D" && (
+                    <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-3 text-center animate-in fade-in slide-in-from-right-2 duration-300">
+                      <div className="flex items-center justify-center gap-2">
+                        <SortButton
+                          field="throughput"
+                          tooltip="Average Throughput (TPS) for the selected time-range (only available for daily view)"
+                        >
+                          <span className="text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300">
+                            Avg TPS
+                          </span>
+                        </SortButton>
+                      </div>
+                    </th>
+                  )}
+                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-3 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <SortButton
+                        field="category"
+                        tooltip="Category of the Avalanche L1"
+                      >
+                        <span className="text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300">
                           Category
                         </span>
                       </SortButton>
                     </div>
                   </th>
-                  <th className="px-4 py-2 text-center">
+                  <th className="px-6 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
-                      <span className="text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
-                        Block Explorer
+                      <span className="text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
+                        Explorer
                       </span>
                     </div>
                   </th>
@@ -637,22 +842,22 @@ export default function AvalancheMetrics() {
                                   "/placeholder.svg"
                                 }
                                 alt={`${chain.chainName} logo`}
-                                width={32}
-                                height={32}
+                                width={24}
+                                height={24}
                                 className="rounded-full flex-shrink-0 shadow-sm"
                                 onError={(e) => {
                                   e.currentTarget.style.display = "none";
                                 }}
                               />
                             ) : (
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 shadow-sm">
+                              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 shadow-sm">
                                 <span className="text-sm font-bold text-white">
                                   {chain.chainName.charAt(0)}
                                 </span>
                               </div>
                             )}
                           </div>
-                          <span className="font-medium text-black dark:text-white">
+                          <span className="text-sm font-medium text-black dark:text-white">
                             {chain.chainName}
                           </span>
                           {chainSlug && (
@@ -662,49 +867,64 @@ export default function AvalancheMetrics() {
                           )}
                         </div>
                       </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-center">
                         <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                          {typeof chain.activeAddresses.current_value ===
-                          "number"
-                            ? formatFullNumber(
-                                chain.activeAddresses.current_value
-                              )
-                            : chain.activeAddresses.current_value}
+                          {(() => {
+                            const activeData =
+                              selectedPeriod === "D"
+                                ? chain.activeAddresses.daily.data
+                                : selectedPeriod === "W"
+                                  ? chain.activeAddresses.weekly.data
+                                  : chain.activeAddresses.monthly.data;
+                            const latestValue =
+                              activeData.length > 0 ? activeData[0].value : 0;
+                            const numValue =
+                              typeof latestValue === "number"
+                                ? latestValue
+                                : parseFloat(latestValue as string) || 0;
+                            return formatNumber(Math.round(numValue));
+                          })()}
                         </span>
                       </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-center">
                         <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                          {typeof chain.txCount.current_value === "number"
-                            ? formatFullNumber(
-                                Math.round(chain.txCount.current_value / 365)
+                          {formatNumber(
+                            Math.round(
+                              aggregateLatestValue(
+                                chain.txCount.data,
+                                selectedPeriod
                               )
-                            : chain.txCount.current_value}
+                            )
+                          )}
                         </span>
                       </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-center">
                         <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                          {typeof chain.icmMessages.current_value === "number"
-                            ? formatFullNumber(
-                                Math.round(
-                                  chain.icmMessages.current_value / 365
-                                )
+                          {formatNumber(
+                            Math.round(
+                              aggregateLatestICMValue(
+                                chain.icmMessages.data,
+                                selectedPeriod
                               )
-                            : chain.icmMessages.current_value}
+                            )
+                          )}
                         </span>
                       </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-center">
                         <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {typeof chain.validatorCount === "number"
-                            ? formatFullNumber(chain.validatorCount)
+                            ? formatNumber(chain.validatorCount)
                             : chain.validatorCount}
                         </span>
                       </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                        <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                          {getChainTPS(chain)} TPS
-                        </span>
-                      </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                      {selectedPeriod === "D" && (
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-center animate-in fade-in slide-in-from-right-2 duration-300">
+                          <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                            {getChainTPS(chain)} TPS
+                          </span>
+                        </td>
+                      )}
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-center">
                         <span
                           className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(
                             getChainCategory(chain.chainId, chain.chainName)
@@ -717,9 +937,11 @@ export default function AvalancheMetrics() {
                         <div className="flex items-center justify-center">
                           <ExplorerDropdown
                             explorers={
-                              (l1ChainsData.find(
-                                (c) => c.chainId === chain.chainId
-                              ) as L1Chain)?.explorers
+                              (
+                                l1ChainsData.find(
+                                  (c) => c.chainId === chain.chainId
+                                ) as L1Chain
+                              )?.explorers
                             }
                             size="sm"
                             variant="outline"
