@@ -1494,9 +1494,25 @@ function ChartCard({
                       e.startIndex !== undefined &&
                       e.endIndex !== undefined
                     ) {
+                      let startIndex = e.startIndex;
+                      let endIndex = e.endIndex;
+
+                      // Limit to 100 bars maximum for daily view
+                      if (period === "D") {
+                        const maxBars = 100;
+                        const selectedBars = endIndex - startIndex + 1;
+                        if (selectedBars > maxBars) {
+                          if (e.endIndex !== brushIndexes?.endIndex) {
+                            startIndex = Math.max(0, endIndex - maxBars + 1);
+                          } else {
+                            endIndex = Math.min(aggregatedData.length - 1,startIndex + maxBars - 1);
+                          }
+                        }
+                      }
+
                       setBrushIndexes({
-                        startIndex: e.startIndex,
-                        endIndex: e.endIndex,
+                        startIndex: startIndex,
+                        endIndex: endIndex,
                       });
                     }
                   }}
