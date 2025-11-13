@@ -62,6 +62,7 @@ export default async function L1Metrics({
       chainName={currentChain.chainName}
       description={`Real-time insights into ${currentChain.chainName} L1 activity and network usage`}
       themeColor={currentChain.color || "#E57373"}
+      chainLogoURI={currentChain.chainLogoURI}
     />
   );
 }
