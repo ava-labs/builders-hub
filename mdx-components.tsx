@@ -20,9 +20,7 @@ import Gallery from "@/components/content-design/gallery";
 import { cn } from "@/utils/cn";
 import { BadgeCheck } from "lucide-react";
 import dynamic from "next/dynamic";
-import { APIPage } from 'fumadocs-openapi/ui';
-import { dataApi, metricsApi } from "./lib/openapi";
-import { APIStorageManager } from "@/components/content-design/api-storage-manager";
+import { DataAPIPage, MetricsAPIPage } from "@/components/api/api-pages";
 
 const Mermaid = dynamic(() => import("@/components/content-design/mermaid"), {
   ssr: false,
@@ -67,15 +65,8 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       // Determine which API instance to use based on the document path
       const document = props.document || '';
       const isMetricsApi = document.includes('popsicle.json');
-      const apiInstance = isMetricsApi ? metricsApi : dataApi;
-      const storageKey = isMetricsApi ? 'apiBaseUrl-metrics' : 'apiBaseUrl-data';
       
-      return (
-        <>
-          <APIStorageManager storageKey={storageKey} />
-          <APIPage {...apiInstance.getAPIPageProps(props)} />
-        </>
-      );
+      return isMetricsApi ? <MetricsAPIPage {...props} /> : <DataAPIPage {...props} />;
     },
     Accordion,
     Accordions,
