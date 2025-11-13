@@ -222,6 +222,7 @@ content/docs/tooling/cli-commands.mdx
 # Generated OpenAPI specs (fetched during build)
 public/openapi/glacier.json
 public/openapi/popsicle.json
+public/openapi/speakeasy.yaml
 
 # Generated OpenAPI documentation (auto-generated during build)
 content/docs/api-reference/data-api/**/*.mdx

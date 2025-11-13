@@ -905,6 +905,17 @@ paths:
                   example: eth_getTransactionByBlockHashAndIndex
                 params:
                   type: array
+                  items:
+                    oneOf:
+                      - type: string
+                        description: "Block hash (32 bytes, hex encoded with 0x prefix)"
+                        pattern: "^0x[a-fA-F0-9]{64}$"
+                      - type: string
+                        description: "Transaction index in hex"
+                        pattern: "^0x[a-fA-F0-9]+$"
+                  minItems: 2
+                  maxItems: 2
+                  description: "[blockHash, transactionIndex]"
                 id:
                   type: integer
                   example: 1
@@ -957,6 +968,16 @@ paths:
                   example: eth_getTransactionByBlockNumberAndIndex
                 params:
                   type: array
+                  items:
+                    oneOf:
+                      - type: string
+                        description: "Block parameter - 'latest', 'earliest', 'pending', or block number in hex"
+                      - type: string
+                        description: "Transaction index in hex"
+                        pattern: "^0x[a-fA-F0-9]+$"
+                  minItems: 2
+                  maxItems: 2
+                  description: "[blockParameter, transactionIndex]"
                 id:
                   type: integer
                   example: 1
@@ -1355,6 +1376,38 @@ paths:
                   example: eth_newFilter
                 params:
                   type: array
+                  items:
+                    type: object
+                    description: "Filter object"
+                    properties:
+                      fromBlock:
+                        type: string
+                        description: "Starting block - 'latest', 'earliest', 'pending', or block number in hex"
+                      toBlock:
+                        type: string
+                        description: "Ending block - 'latest', 'earliest', 'pending', or block number in hex"
+                      address:
+                        oneOf:
+                          - type: string
+                            pattern: "^0x[a-fA-F0-9]{40}$"
+                          - type: array
+                            items:
+                              type: string
+                              pattern: "^0x[a-fA-F0-9]{40}$"
+                      topics:
+                        type: array
+                        items:
+                          oneOf:
+                            - type: string
+                              pattern: "^0x[a-fA-F0-9]{64}$"
+                            - type: array
+                              items:
+                                type: string
+                                pattern: "^0x[a-fA-F0-9]{64}$"
+                            - type: "null"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[filterObject]"
                 id:
                   type: integer
                   example: 1
@@ -1483,6 +1536,13 @@ paths:
                   example: eth_uninstallFilter
                 params:
                   type: array
+                  items:
+                    type: string
+                    description: "Filter ID (hex encoded)"
+                    pattern: "^0x[a-fA-F0-9]+$"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[filterId]"
                 id:
                   type: integer
                   example: 1
@@ -1535,6 +1595,13 @@ paths:
                   example: eth_getFilterChanges
                 params:
                   type: array
+                  items:
+                    type: string
+                    description: "Filter ID (hex encoded)"
+                    pattern: "^0x[a-fA-F0-9]+$"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[filterId]"
                 id:
                   type: integer
                   example: 1
@@ -1587,6 +1654,13 @@ paths:
                   example: eth_getFilterLogs
                 params:
                   type: array
+                  items:
+                    type: string
+                    description: "Filter ID (hex encoded)"
+                    pattern: "^0x[a-fA-F0-9]+$"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[filterId]"
                 id:
                   type: integer
                   example: 1
@@ -1640,6 +1714,13 @@ paths:
                   example: eth_getBlockTransactionCountByHash
                 params:
                   type: array
+                  items:
+                    type: string
+                    description: "Block hash (32 bytes, hex encoded with 0x prefix)"
+                    pattern: "^0x[a-fA-F0-9]{64}$"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[blockHash]"
                 id:
                   type: integer
                   example: 1
@@ -1692,6 +1773,12 @@ paths:
                   example: eth_getBlockTransactionCountByNumber
                 params:
                   type: array
+                  items:
+                    type: string
+                    description: "Block parameter - 'latest', 'earliest', 'pending', or block number in hex"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[blockParameter]"
                 id:
                   type: integer
                   example: 1
@@ -1747,6 +1834,17 @@ paths:
                   example: eth_sign
                 params:
                   type: array
+                  items:
+                    oneOf:
+                      - type: string
+                        description: "Address to sign with (20 bytes, hex encoded with 0x prefix)"
+                        pattern: "^0x[a-fA-F0-9]{40}$"
+                      - type: string
+                        description: "Data to sign (hex encoded with 0x prefix)"
+                        pattern: "^0x[a-fA-F0-9]+$"
+                  minItems: 2
+                  maxItems: 2
+                  description: "[address, dataToSign]"
                 id:
                   type: integer
                   example: 1
@@ -1877,6 +1975,12 @@ paths:
                   example: personal_newAccount
                 params:
                   type: array
+                  items:
+                    type: string
+                    description: "Password for the new account"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[password]"
                 id:
                   type: integer
                   example: 1
@@ -1932,6 +2036,18 @@ paths:
                   example: personal_unlockAccount
                 params:
                   type: array
+                  items:
+                    oneOf:
+                      - type: string
+                        description: "Address to unlock (20 bytes, hex encoded with 0x prefix)"
+                        pattern: "^0x[a-fA-F0-9]{40}$"
+                      - type: string
+                        description: "Password for the account"
+                      - type: integer
+                        description: "Duration in seconds (optional, 0 for indefinite)"
+                  minItems: 2
+                  maxItems: 3
+                  description: "[address, password, duration(optional)]"
                 id:
                   type: integer
                   example: 1
@@ -2098,6 +2214,36 @@ paths:
                   example: avax.getUTXOs
                 params:
                   type: array
+                  items:
+                    type: object
+                    description: "UTXO query parameters"
+                    properties:
+                      addresses:
+                        type: array
+                        items:
+                          type: string
+                        description: "Array of addresses to get UTXOs for"
+                      limit:
+                        type: integer
+                        description: "Maximum number of UTXOs to return (optional)"
+                      startIndex:
+                        type: object
+                        description: "Pagination cursor (optional)"
+                        properties:
+                          address:
+                            type: string
+                          utxo:
+                            type: string
+                      sourceChain:
+                        type: string
+                        description: "Source chain ID (optional)"
+                      encoding:
+                        type: string
+                        enum: ["hex", "cb58"]
+                        description: "Encoding format"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[utxoQueryParams]"
                 id:
                   type: integer
                   example: 1
@@ -2143,6 +2289,12 @@ paths:
                   example: avax.issueTx
                 params:
                   type: array
+                  items:
+                    type: string
+                    description: "Signed transaction bytes (hex or cb58 encoded)"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[signedTx]"
                 id:
                   type: integer
                   example: 1
@@ -2188,6 +2340,12 @@ paths:
                   example: avax.getAtomicTxStatus
                 params:
                   type: array
+                  items:
+                    type: string
+                    description: "Transaction ID (hex or cb58 encoded)"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[txID]"
                 id:
                   type: integer
                   example: 1
@@ -2233,6 +2391,12 @@ paths:
                   example: avax.getAtomicTx
                 params:
                   type: array
+                  items:
+                    type: string
+                    description: "Transaction ID (hex or cb58 encoded)"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[txID]"
                 id:
                   type: integer
                   example: 1
