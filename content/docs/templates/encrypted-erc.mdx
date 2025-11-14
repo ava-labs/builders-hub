@@ -1,0 +1,523 @@
+---
+title: EncryptedERC
+description: Privacy-preserving ERC-20 token protocol with confidential transfers using zero-knowledge proofs on Avalanche.
+keywords: [encryptederc, privacy, zero-knowledge proofs, zk-snarks, homomorphic encryption, confidential transactions, erc-20, avalanche]
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+**EncryptedERC** is a privacy-preserving ERC-20 token protocol developed by AvaCloud that enables secure and confidential token transfers on Avalanche blockchains using zero-knowledge proofs (zk-SNARKs) and homomorphic encryption.
+
+[View on GitHub →](https://github.com/ava-labs/EncryptedERC)
+
+## What Is EncryptedERC?
+
+EncryptedERC is a protocol that allows users to perform private token transfers where balances and transaction amounts remain completely hidden on-chain. The system leverages advanced cryptography to maintain privacy without requiring protocol modifications or off-chain intermediaries.
+
+### Key Benefits
+
+- **Complete Privacy**: User balances and transaction amounts are fully encrypted on-chain
+- **No Intermediaries**: Fully on-chain protocol with no relayers or trusted third parties
+- **Client-Side Security**: All encryption, decryption, and proof generation happens locally
+- **Compliance Ready**: Built-in support for external auditors and regulatory requirements
+- **EVM Compatible**: Works on any EVM-compatible blockchain including Avalanche C-Chain
+- **Large Value Support**: Handles token amounts up to 2^251 (suitable for enterprise use)
+
+### How It Works
+
+1. Users register with the protocol by generating an encryption key pair
+2. Tokens are encrypted before being stored on-chain
+3. Users perform operations (transfer, mint, withdraw) with zero-knowledge proofs
+4. The smart contract verifies proofs without revealing sensitive information
+5. Only users with the private key can decrypt their balance
+
+## Why Avalanche for Private Transactions?
+
+| Aspect | Benefit |
+|--------|---------|
+| **Low gas costs** | Makes privacy operations economically viable (~565K-1M gas per operation) |
+| **Fast finality** | Sub-second transaction confirmation for private transfers |
+| **EVM compatible** | Deploy using familiar Solidity and Ethereum tooling |
+| **Scalable** | High throughput supports multiple concurrent private transactions |
+| **Customizable** | Deploy on custom Avalanche L1s with specific privacy rules |
+
+## Features
+
+### Privacy Features
+- **Confidential Balances**: All user balances are encrypted using homomorphic encryption
+- **Hidden Transaction Amounts**: Transfer amounts never revealed on-chain
+- **Encrypted Metadata**: Send arbitrary encrypted data with transactions
+- **Zero-Knowledge Proofs**: Prove transaction validity without revealing details
+
+### Operational Modes
+- **Standalone Mode**: Create entirely new private ERC-20 tokens with minting/burning capabilities
+- **Converter Mode**: Wrap existing ERC-20 tokens for private transfers (deposit/withdraw)
+
+### Compliance & Security
+- **Auditor Support**: Optional external auditors can view encrypted transactions
+- **Rotatable Auditors**: Change auditors without disrupting the protocol
+- **Blacklist Integration**: Optional blacklisting for regulatory compliance
+- **Security Audited**: Underwent comprehensive Circom and Gnark audits in March 2025
+
+### Developer Experience
+- **TypeScript SDK**: Full TypeScript support for client-side operations
+- **Hardhat Integration**: Seamless development and testing workflow
+- **Comprehensive Tests**: ~97% test coverage
+- **Clear Documentation**: API documentation and deployment examples
+
+## Getting Started
+
+<Steps>
+<Step>
+
+### Prerequisites
+
+Ensure you have the following installed:
+
+- **Node.js**: Version 22.x or later
+- **Circom**: Version 2.1.9 or later
+- **Git**: For cloning the repository
+
+Install Circom if you don't have it:
+
+```bash
+# Install Circom (see https://docs.circom.io/getting-started/installation/)
+curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
+git clone https://github.com/iden3/circom.git
+cd circom
+cargo build --release
+cargo install --path circom
+```
+
+</Step>
+
+<Step>
+
+### Clone and Install
+
+Clone the repository and install dependencies:
+
+```bash
+git clone https://github.com/ava-labs/EncryptedERC.git
+cd EncryptedERC
+npm install
+```
+
+</Step>
+
+<Step>
+
+### Compile Contracts and Circuits
+
+Compile the Solidity contracts:
+
+```bash
+npx hardhat compile
+```
+
+Generate zero-knowledge circuits and verifiers:
+
+```bash
+# Generate circuits (this may take several minutes)
+npx hardhat zkit make --force
+
+# Generate verifier contracts
+npx hardhat zkit verifiers
+```
+
+</Step>
+
+<Step>
+
+### Run Tests
+
+Verify everything is working correctly:
+
+```bash
+# Run all tests
+npm test
+
+# Run specific test suite
+npx hardhat test test/EncryptedERC.test.ts
+
+# Generate coverage report
+npx hardhat coverage
+```
+
+</Step>
+
+<Step>
+
+### Deploy to Avalanche
+
+Deploy the protocol to Avalanche C-Chain or Fuji Testnet:
+
+**Standalone Mode** (new private token):
+
+```bash
+# Configure deployment in scripts/deploy-standalone.ts
+npx hardhat run scripts/deploy-standalone.ts --network avalanche
+```
+
+**Converter Mode** (wrap existing ERC-20):
+
+```bash
+# Configure deployment in scripts/deploy-converter.ts
+npx hardhat run scripts/deploy-converter.ts --network avalanche
+```
+
+Configure your network in `hardhat.config.ts`:
+
+```typescript
+networks: {
+  avalanche: {
+    url: 'https://api.avax.network/ext/bc/C/rpc',
+    chainId: 43114,
+    accounts: [process.env.PRIVATE_KEY]
+  },
+  fuji: {
+    url: 'https://api.avax-test.network/ext/bc/C/rpc',
+    chainId: 43113,
+    accounts: [process.env.PRIVATE_KEY]
+  }
+}
+```
+
+</Step>
+</Steps>
+
+## Architecture
+
+### Core Contracts
+
+The protocol consists of five main smart contracts:
+
+**EncryptedERC** (`EncryptedERC.sol`):
+- Main contract for private token operations
+- Handles transfers, mints, and burns with ZK proofs
+- Manages encrypted balances and state transitions
+
+**Registrar** (`Registrar.sol`):
+- User registration and public key management
+- Stores BabyJubJub public keys for encryption
+- Enables key rotation for users
+
+**EncryptedUserBalances** (`EncryptedUserBalances.sol`):
+- Stores encrypted balance data on-chain
+- Manages balance ciphertexts and nullifiers
+- Provides balance query functions
+
+**TokenTracker** (`TokenTracker.sol`):
+- Token registration and metadata management
+- Tracks token supply and configuration
+- Handles token-specific parameters
+
+**AuditorManager** (`AuditorManager.sol`):
+- Compliance and auditor management
+- Rotatable auditor keys for regulatory oversight
+- Optional transaction monitoring
+
+### Cryptographic Components
+
+**Zero-Knowledge Circuits**:
+- `registration.circom`: User registration proofs
+- `mint.circom`: Private minting proofs
+- `transfer.circom`: Private transfer proofs
+- `withdraw.circom`: Private withdrawal proofs
+
+**Encryption**:
+- BabyJubJub elliptic curve cryptography
+- Homomorphic encryption for balance operations
+- Groth16 proving system for efficient verification
+
+### Gas Costs (Avalanche C-Chain)
+
+Average on-chain gas consumption:
+
+| Operation | Gas Cost |
+|-----------|----------|
+| User Registration | ~322K gas |
+| Deposit (Converter Mode) | ~565K gas |
+| Private Transfer | ~947K gas |
+| Private Mint | ~722K gas |
+| Private Burn | ~1.03M gas |
+
+## Use Cases
+
+### Private DeFi
+
+Build privacy-preserving DeFi applications:
+
+- Confidential lending and borrowing
+- Private liquidity pools
+- Hidden collateral positions
+- Anonymous yield farming
+
+### Enterprise Tokenization
+
+Enable enterprise use cases requiring privacy:
+
+- Confidential payroll tokens
+- Private equity distributions
+- Supply chain finance with hidden amounts
+- Confidential treasury management
+
+### Compliant Privacy
+
+Combine privacy with regulatory compliance:
+
+- KYC-compliant private transactions
+- Auditor-visible transaction monitoring
+- Selective disclosure for regulators
+- Privacy-preserving tax reporting
+
+### Gaming and NFTs
+
+Create privacy features for gaming economies:
+
+- Hidden in-game currency balances
+- Private marketplace transactions
+- Confidential reward distributions
+- Anonymous player-to-player trades
+
+## Customization
+
+### Deploy Standalone Private Token
+
+Create a completely new private token:
+
+```typescript
+// scripts/deploy-standalone.ts
+import { ethers } from "hardhat";
+
+async function main() {
+  // Deploy with custom parameters
+  const EncryptedERC = await ethers.getContractFactory("EncryptedERC");
+  const token = await EncryptedERC.deploy(
+    "Private Token", // name
+    "PRIV",         // symbol
+    18,             // decimals
+    true            // standalone mode
+  );
+
+  await token.deployed();
+  console.log("EncryptedERC deployed to:", token.address);
+}
+
+main();
+```
+
+### Deploy Converter for Existing ERC-20
+
+Wrap an existing token for private transfers:
+
+```typescript
+// scripts/deploy-converter.ts
+import { ethers } from "hardhat";
+
+async function main() {
+  const existingTokenAddress = "0x..."; // Your ERC-20 token
+
+  const EncryptedERC = await ethers.getContractFactory("EncryptedERC");
+  const privateToken = await EncryptedERC.deploy(
+    existingTokenAddress, // token to wrap
+    false                 // converter mode
+  );
+
+  await privateToken.deployed();
+  console.log("Converter deployed to:", privateToken.address);
+}
+
+main();
+```
+
+### Add Auditor Support
+
+Enable auditor functionality for compliance:
+
+```typescript
+// Enable auditor during deployment
+const auditorPublicKey = "0x..."; // Auditor's BabyJubJub public key
+
+await encryptedERC.setAuditor(auditorPublicKey, true);
+console.log("Auditor enabled");
+
+// Rotate auditor
+await encryptedERC.rotateAuditor(newAuditorPublicKey);
+```
+
+### Configure Blacklist
+
+Add blacklisting for regulatory compliance:
+
+```typescript
+// Enable blacklist functionality
+await encryptedERC.enableBlacklist();
+
+// Add address to blacklist
+await encryptedERC.addToBlacklist(userAddress);
+
+// Remove from blacklist
+await encryptedERC.removeFromBlacklist(userAddress);
+```
+
+## Client-Side Integration
+
+### User Registration
+
+Register a user with encryption keys:
+
+```typescript
+import { generateKeyPair, register } from './encryptedERC-sdk';
+
+// Generate BabyJubJub key pair
+const { publicKey, privateKey } = generateKeyPair();
+
+// Register on-chain
+const tx = await encryptedERC.register(publicKey);
+await tx.wait();
+
+// Store private key securely (user-side only!)
+localStorage.setItem('encryptedERC_privateKey', privateKey);
+```
+
+### Private Transfer
+
+Perform a confidential transfer:
+
+```typescript
+import { encryptTransfer, generateTransferProof } from './encryptedERC-sdk';
+
+// Encrypt transfer details
+const encryptedAmount = encryptTransfer(
+  recipientPublicKey,
+  amount
+);
+
+// Generate ZK proof
+const proof = await generateTransferProof(
+  senderPrivateKey,
+  recipientPublicKey,
+  amount
+);
+
+// Submit on-chain
+const tx = await encryptedERC.transfer(
+  recipient,
+  encryptedAmount,
+  proof
+);
+await tx.wait();
+```
+
+### Check Encrypted Balance
+
+Decrypt and view your balance:
+
+```typescript
+import { decryptBalance } from './encryptedERC-sdk';
+
+// Fetch encrypted balance from chain
+const encryptedBalance = await encryptedERC.getEncryptedBalance(userAddress);
+
+// Decrypt locally with private key
+const balance = decryptBalance(
+  encryptedBalance,
+  userPrivateKey
+);
+
+console.log("Your balance:", balance);
+```
+
+## Security Considerations
+
+### Audits
+
+EncryptedERC underwent comprehensive security audits:
+
+- **Circom Audit** (March 2025): Focused on zero-knowledge circuit implementations
+- **Gnark Audit** (March 2025): Covered smart contract and protocol security
+
+Audit reports are available in the `audit/` directory of the repository.
+
+### Best Practices
+
+Follow these security guidelines:
+
+- **Never share private keys**: Private keys enable balance decryption and transaction signing
+- **Store keys securely**: Use hardware wallets or secure key management systems
+- **Validate proofs**: Always verify zero-knowledge proofs before accepting transactions
+- **Regular updates**: Keep circuits and contracts updated with latest security patches
+- **Test thoroughly**: Run comprehensive tests before mainnet deployment
+- **Enable auditors**: Consider enabling auditor functionality for compliance
+- **Monitor gas usage**: Private operations consume significant gas
+
+### Key Management
+
+Implement secure key management:
+
+- Use deterministic key derivation (BIP-32/BIP-44)
+- Implement key rotation mechanisms
+- Back up keys with secure recovery phrases
+- Use multi-signature schemes for high-value accounts
+- Consider hardware security modules (HSMs) for production
+
+## Deployment
+
+### Mainnet Deployment (Avalanche C-Chain)
+
+Deploy to Avalanche mainnet for production use:
+
+```bash
+# Set environment variables
+export PRIVATE_KEY="your_private_key"
+export AVALANCHE_RPC="https://api.avax.network/ext/bc/C/rpc"
+
+# Deploy standalone mode
+npx hardhat run scripts/deploy-standalone.ts --network avalanche
+
+# Or deploy converter mode
+npx hardhat run scripts/deploy-converter.ts --network avalanche
+```
+
+### Testnet Deployment (Fuji)
+
+Test on Avalanche Fuji testnet:
+
+```bash
+# Get test AVAX from faucet: https://core.app/tools/testnet-faucet
+
+# Deploy to Fuji
+npx hardhat run scripts/deploy-standalone.ts --network fuji
+```
+
+### Production Checklist
+
+Complete the following before mainnet deployment:
+
+- Audit all custom circuit modifications
+- Test extensively on Fuji testnet
+- Verify gas costs are acceptable for your use case
+- Implement secure key management system
+- Configure auditor if compliance is required
+- Set up monitoring and alerting
+- Document user key backup procedures
+- Plan for circuit upgrade path
+- Review blacklist requirements
+- Perform security assessment
+
+## Resources
+
+- [GitHub Repository](https://github.com/ava-labs/EncryptedERC) - EncryptedERC source code
+- [Circom Documentation](https://docs.circom.io/) - Zero-knowledge circuit language
+- [BabyJubJub Curve](https://eips.ethereum.org/EIPS/eip-2494) - Elliptic curve cryptography standard
+- [Groth16 Paper](https://eprint.iacr.org/2016/260.pdf) - Zero-knowledge proof system
+- [Avalanche C-Chain Documentation](/docs/dapps) - Learn about Avalanche C-Chain
+
+## Support
+
+For issues, questions, or contributions:
+
+- Open an issue on [GitHub](https://github.com/ava-labs/EncryptedERC/issues)
+- Join the [Avalanche Discord](https://discord.gg/avalanche)
+- Check the [Avalanche Builders Hub](https://builders-hub.avalabs.org)

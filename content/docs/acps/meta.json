@@ -7,7 +7,6 @@
     "---Overview---",
     "index",
     "---Standards Track ACPs---",
-    "236-continuous-staking",
     "226-dynamic-minimum-block-times",
     "224-dynamic-gas-limit-in-subnet-evm",
     "209-eip7702-style-account-abstraction",

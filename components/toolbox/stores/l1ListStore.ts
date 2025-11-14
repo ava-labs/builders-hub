@@ -110,32 +110,6 @@ const l1ListInitialStateFuji = {
                 "EVM-compatible L1 chain",
                 "Deploy dApps & test interoperability with Dispatch"
             ]
-        },
-        {
-            id: "2TTSLdR6uEM3R5Ukej3YThHSyPf6XCfppAsh5vAuzFA1rY5w7e",
-            name: "Dexalot",
-            description: "Dexalot is a decentralized exchange (DEX) that operates on its own Avalanche L1, offering a central limit order book (CLOB) experience",
-            rpcUrl: "https://subnets.avax.network/dexalot/testnet/rpc",
-            evmChainId: 432201,
-            coinName: "ALOT",
-            isTestnet: true,
-            subnetId: "9m6a3Qte8FaRbLZixLhh8Ptdkemm4csNaLwQeKkENx5wskbWP",
-            wrappedTokenAddress: "",
-            validatorManagerAddress: "",
-            logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/6tKCXL3AqxfxSUzXLGfN6r/be31715b87bc30c0e4d3da01a3d24e9a/dexalot-subnet.png",
-            wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
-            hasBuilderHubFaucet: true,
-            externalFaucetUrl: "https://core.app/tools/testnet-faucet",
-            explorerUrl: "https://subnets-test.avax.network/dexalot",
-            faucetThresholds: {
-                threshold: 1.0,
-                dripAmount: 2
-            },
-            features: [
-                "EVM-compatible L1 chain",
-                "Decentralized exchange with CLOB",
-                "Deploy dApps on Dexalot L1"
-            ]
         }
     ] as L1ListItem[],
 }

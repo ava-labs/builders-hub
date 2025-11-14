@@ -14,7 +14,8 @@ const tabs = [
         !path.startsWith("/docs/api-reference") &&
         !path.startsWith("/docs/rpcs") &&
         !path.startsWith("/docs/tooling") &&
-        !path.startsWith("/docs/acps")),
+        !path.startsWith("/docs/acps") &&
+        !path.startsWith("/docs/templates")),
   },
   {
     label: "Node RPCs",
@@ -27,9 +28,14 @@ const tabs = [
     pathMatch: (path: string) => path.startsWith("/docs/api-reference"),
   },
   {
-    label: "Developer Tools",
+    label: "SDKs",
     href: "/docs/tooling/avalanche-sdk",
     pathMatch: (path: string) => path.startsWith("/docs/tooling"),
+  },
+  {
+    label: "Templates",
+    href: "/docs/templates",
+    pathMatch: (path: string) => path.startsWith("/docs/templates"),
   },
   {
     label: "ACPs",

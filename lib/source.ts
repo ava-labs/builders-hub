@@ -50,7 +50,8 @@ export function getDocumentationTree() {
       !url.startsWith('/docs/api-reference') &&
       !url.startsWith('/docs/rpcs') &&
       !url.startsWith('/docs/tooling') &&
-      !url.startsWith('/docs/acps')
+      !url.startsWith('/docs/acps') &&
+      !url.startsWith('/docs/templates')
     );
   });
 }
@@ -84,6 +85,14 @@ export function getAcpsTree() {
   return filterTopLevelSections(fullTree, (url) => {
     // Only include acps section
     return url.startsWith('/docs/acps');
+  });
+}
+
+export function getTemplatesTree() {
+  const fullTree = documentation.pageTree;
+  return filterTopLevelSections(fullTree, (url) => {
+    // Only include templates section
+    return url.startsWith('/docs/templates');
   });
 }
 
