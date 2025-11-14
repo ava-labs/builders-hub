@@ -1,0 +1,359 @@
+---
+title: x402 Payment Flow
+description: Understanding the complete payment cycle from request to settlement.
+updated: 2025-11-03
+authors: [Federico Nardelli]
+icon: ArrowRightLeft
+---
+
+## The 4-Step Core Payment Flow
+
+The x402 protocol operates through a simple yet powerful 4-step flow that enables instant, permissionless payments:
+
+### Step 1: Client Requests Resource
+
+A client (user, application, or AI agent) sends an HTTP GET request to access a resource:
+
+```http
+GET /api/premium-data HTTP/1.1
+Host: example.com
+```
+
+This is a standard HTTP request—nothing special required from the client at this stage.
+
+### Step 2: Server Returns 402 Payment Required
+
+Instead of returning the requested content, the server responds with HTTP status code 402 "Payment Required" and a JSON body containing payment requirements:
+
+```http
+HTTP/1.1 402 Payment Required
+Content-Type: application/json
+
+{
+  "x402Version": 1,
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "avalanche-fuji",
+      "maxAmountRequired": "10000",
+      "resource": "/api/premium-data",
+      "description": "Access to premium data API",
+      "payTo": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+      "asset": "0x5425890298aed601595a70AB815c96711a31Bc65",
+      "maxTimeoutSeconds": 60
+    }
+  ],
+  "error": "X-PAYMENT header is required"
+}
+```
+
+This response tells the client:
+- Payment is required to access this resource
+- The maximum amount needed (10000 base units = 0.01 USDC)
+- Where to send payment (`payTo` address)
+- Which blockchain to use (`avalanche-fuji`)
+- Which token contract to use (`asset`)
+- Payment scheme to use (`exact` = EIP-3009)
+
+### Step 3: Client Retries Request with Signed Payment
+
+The client creates and signs a payment authorization, then retries the request with the `X-PAYMENT` header:
+
+```http
+GET /api/premium-data HTTP/1.1
+Host: example.com
+X-PAYMENT: eyJ4NDAyVmVyc2lvbiI6MSwic2NoZW1lIjoiZXhhY3QiLCJuZXR3b3JrIjoiYXZhbGFuY2hlLWZ1amkiLCJwYXlsb2FkIjp7InNpZ25hdHVyZSI6IjB4MTIzNC4uLiIsImF1dGhvcml6YXRpb24iOnsiZnJvbSI6IjB4MTIzNC4uLiIsInRvIjoiMHg3NDJkMzUuLi4iLCJ2YWx1ZSI6IjEwMDAwIiwidmFsaWRBZnRlciI6IjE3NDA2NzIwODkiLCJ2YWxpZEJlZm9yZSI6IjE3NDA2NzIxNTQiLCJub25jZSI6IjB4MzQ1Ni4uLiJ9fX0=
+```
+
+The client does NOT submit a blockchain transaction. The authorization is gasless—the server or facilitator will submit it. For details on the `X-PAYMENT` header structure, see [X-PAYMENT Header](./03-x-payment-header).
+
+### Step 4: Server Verifies, Settles, and Returns Resource
+
+The server (potentially with a facilitator's help):
+
+1. **Verifies** the EIP-712 signature is valid
+2. **Settles** the payment by submitting the authorization to the blockchain
+3. **Returns** the requested resource with an `X-PAYMENT-RESPONSE` header:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-PAYMENT-RESPONSE: eyJzdWNjZXNzIjp0cnVlLCJ0cmFuc2FjdGlvbiI6IjB4OGYzZC4uLiIsIm5ldHdvcmsiOiJhdmFsYW5jaGUtZnVqaSIsInBheWVyIjoiMHgxMjM0Li4uIiwiZXJyb3JSZWFzb24iOm51bGx9
+
+{
+  "data": "...premium content..."
+}
+```
+
+The `X-PAYMENT-RESPONSE` header (decoded) contains:
+```json
+{
+  "success": true,
+  "transaction": "0x8f3d1a2b4c5e6f7a...",
+  "network": "avalanche-fuji",
+  "payer": "0x1234567890abcdef...",
+  "errorReason": null
+}
+```
+
+The client now has access to the resource, and the entire cycle completed in approximately 2 seconds.
+
+## Detailed 12-Step Technical Flow
+
+For a deeper understanding, here's the complete technical flow including facilitator interactions:
+
+![Detailed x402 payment flow](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/x402-payment-infrastructure/12StepPaymentFlow.png)
+
+### Phase 1: Initial Request
+
+**Step 1**: Client sends GET request to server
+
+```http
+GET /api/data?query=market-trends HTTP/1.1
+Host: api.example.com
+Accept: application/json
+```
+
+**Step 2**: Server returns 402 "Payment required" with payment details
+
+```http
+HTTP/1.1 402 Payment Required
+Content-Type: application/json
+
+{
+  "x402Version": 1,
+  "accepts": [{
+    "scheme": "exact",
+    "network": "avalanche-fuji",
+    "maxAmountRequired": "10000",
+    "payTo": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+    "asset": "0x5425890298aed601595a70AB815c96711a31Bc65",
+    "resource": "/api/data"
+  }],
+  "error": "X-PAYMENT header is required"
+}
+```
+
+### Phase 2: Payment Creation
+
+**Step 3**: Client selects payment requirements and creates payment payload
+
+The client chooses from the `accepts` array and creates authorization:
+
+```javascript
+// Select payment option
+const paymentReq = response.data.accepts[0];
+
+// Create authorization object (EIP-3009 format)
+const authorization = {
+  from: userWalletAddress,
+  to: paymentReq.payTo,
+  value: paymentReq.maxAmountRequired,
+  validAfter: Math.floor(Date.now() / 1000).toString(),
+  validBefore: (Math.floor(Date.now() / 1000) + 300).toString(),
+  nonce: ethers.hexlify(ethers.randomBytes(32))
+};
+
+// Sign authorization with EIP-712
+const signature = await wallet.signTypedData(domain, types, authorization);
+
+// Create payment payload
+const paymentPayload = {
+  x402Version: 1,
+  scheme: paymentReq.scheme,
+  network: paymentReq.network,
+  payload: {
+    signature: signature,
+    authorization: authorization
+  }
+};
+```
+
+### Phase 3: Payment Submission and Verification
+
+**Step 4**: Client includes X-PAYMENT header with request
+
+```http
+GET /api/data?query=market-trends HTTP/1.1
+Host: api.example.com
+X-PAYMENT: <base64-encoded-payment-payload>
+```
+
+**Step 5**: Server verifies payload (locally or via facilitator)
+
+The server validates the EIP-712 signature and authorization:
+
+```javascript
+// Server can verify locally or use facilitator
+POST https://facilitator.payai.network/verify
+{
+  "x402Version": 1,
+  "scheme": "exact",
+  "network": "avalanche-fuji",
+  "payload": {
+    "signature": "0x1234...",
+    "authorization": {...}
+  }
+}
+```
+
+**Step 6**: Facilitator validates and returns verification response
+
+The facilitator checks:
+- ✓ Is the EIP-712 signature valid?
+- ✓ Is the authorization correctly formatted?
+- ✓ Is the `validBefore` timestamp still valid?
+- ✓ Has this nonce been used before?
+
+Response:
+```json
+{
+  "isValid": true,
+  "invalidReason": null
+}
+```
+
+**Step 7**: Server fulfills request if valid, returns 402 if invalid
+
+If verification passes, server proceeds to settlement. If not, returns new 402 response.
+
+### Phase 4: Blockchain Settlement
+
+**Step 8**: Server settles payment (directly or via facilitator)
+
+The server submits the signed authorization to the blockchain:
+
+```javascript
+// Server uses facilitator to settle
+POST https://facilitator.payai.network/settle
+{
+  "x402Version": 1,
+  "scheme": "exact",
+  "network": "avalanche-fuji",
+  "payload": {
+    "signature": "0x1234...",
+    "authorization": {
+      "from": "0x1234...",
+      "to": "0x742d35...",
+      "value": "10000",
+      "validAfter": "1740672089",
+      "validBefore": "1740672154",
+      "nonce": "0x3456..."
+    }
+  }
+}
+```
+
+**Step 9**: Facilitator submits to blockchain
+
+The facilitator calls the USDC contract's `transferWithAuthorization` function (EIP-3009):
+
+```solidity
+// USDC.transferWithAuthorization on Avalanche Fuji
+transferWithAuthorization(
+  from: 0x1234...,        // Payer
+  to: 0x742d35...,        // Recipient
+  value: 10000,           // 0.01 USDC (6 decimals)
+  validAfter: 1740672089,
+  validBefore: 1740672154,
+  nonce: 0x3456...,
+  v: 27,
+  r: 0x...,
+  s: 0x...
+)
+```
+
+**Step 10**: Blockchain confirms transaction
+
+Avalanche's sub-second finality confirms the transaction in \<1 second.
+
+### Phase 5: Settlement Response
+
+**Step 11**: Facilitator returns payment execution response
+
+The facilitator returns settlement status to the server:
+
+```json
+{
+  "success": true,
+  "error": null,
+  "txHash": "0x8f3d1a2b4c5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a...",
+  "networkId": "avalanche-fuji"
+}
+```
+
+**Step 12**: Server returns resource with X-PAYMENT-RESPONSE header
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-PAYMENT-RESPONSE: <base64-encoded-settlement-response>
+
+{
+  "marketTrends": [...]
+}
+```
+
+The `X-PAYMENT-RESPONSE` (decoded):
+```json
+{
+  "success": true,
+  "transaction": "0x8f3d1a2b4c5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a...",
+  "network": "avalanche-fuji",
+  "payer": "0x1234567890abcdef...",
+  "errorReason": null
+}
+```
+
+## Flow Timing
+
+The entire flow completes remarkably fast:
+
+| Step | Duration | Cumulative |
+|------|----------|------------|
+| 1-2: Initial request + 402 response | ~100ms | 100ms |
+| 3-4: Payment method selection | ~200ms | 300ms |
+| 5-7: Payment submission + verification | ~300ms | 600ms |
+| 8-10: Blockchain transaction + confirmation | ~1400ms | 2000ms |
+| 11-12: Settlement + content delivery | ~100ms | 2100ms |
+
+**Total Time: ~2 seconds** from initial request to content delivery.
+
+## Key Design Principles
+
+### 1. HTTP-Native
+
+x402 uses standard HTTP headers and status codes. No custom protocols or specialized infrastructure required.
+
+### 2. Facilitator-Mediated
+
+Facilitators handle the complex blockchain interactions, making integration simple for merchants.
+
+### 3. Blockchain-Settled
+
+All payments settle on-chain, providing:
+- Transparency
+- Immutability
+- Cryptographic proof
+- Decentralization
+
+### 4. Stateless Protocol
+
+Each payment is independent. No sessions, no stored state, no account management required.
+
+### 5. Idempotent Requests
+
+Payment proofs can only be used once. Replay attacks are prevented by on-chain verification.
+
+For comprehensive security details, see [Security Considerations](./07-security-considerations).
+
+## Summary
+
+The x402 payment flow transforms HTTP 402 into a functional payment request mechanism through a 4-step cycle (or 12-step detailed flow) that completes in approximately 2 seconds. By using facilitators to mediate blockchain interactions and leveraging Avalanche's fast finality, x402 makes instant, permissionless payments a reality while maintaining security and simplicity.
+
+## Next Steps
+
+In the following lessons, we'll dive deeper into:
+- HTTP headers and their structure
+- The facilitator's role in detail
+- Blockchain settlement mechanics

@@ -1,0 +1,184 @@
+---
+title: Blockchain Settlement
+description: Understanding how payments are settled on-chain with instant finality and cryptographic proof.
+updated: 2025-11-03
+authors: [Federico Nardelli]
+icon: Link
+---
+
+## On-Chain Settlement Overview
+
+In the x402 protocol, all payments settle directly on the blockchain, providing transparency, immutability, and instant finality. This contrasts with traditional payment systems where settlement can take days and occurs in opaque, centralized databases.
+
+## Why Blockchain Settlement?
+
+### Transparency
+
+Every payment is publicly verifiable:
+
+```javascript
+// Anyone can verify a payment
+const tx = await avalancheClient.getTransaction(
+  "0x8f3d1a2b4c5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a"
+);
+
+console.log({
+  from: tx.from,           // Payer address
+  to: tx.to,               // Recipient address
+  value: tx.value,         // Amount paid
+  blockNumber: tx.blockNumber,
+  timestamp: tx.timestamp,
+  status: tx.status        // Success/failure
+});
+```
+
+No need to trust a payment processor—the blockchain is the source of truth.
+
+### Immutability
+
+Once a transaction is confirmed, it cannot be:
+- Reversed (no chargebacks)
+- Modified (tamper-proof)
+- Deleted (permanent record)
+- Disputed (cryptographically proven)
+
+This eliminates chargeback fraud and provides definitive proof of payment.
+
+### Instant Finality
+
+On Avalanche C-Chain, transactions achieve finality in approximately 2 seconds:
+
+```
+Traditional ACH:      2-7 days
+Credit Card:          24-72 hours
+PayPal:               1-3 days
+Bitcoin:              ~60 minutes (6 confirmations)
+Ethereum:             ~15 minutes (2 epochs)
+Avalanche:            ~2 seconds ✓
+```
+
+## The Settlement Process
+
+When a payment authorization is submitted through x402, settlement happens through a streamlined three-phase process leveraging EIP-3009's gasless payment standard.
+
+### Phase 1: Authorization Verification
+
+The facilitator receives the signed EIP-712 authorization from the client. This cryptographic signature proves the user approved the payment without requiring them to submit a blockchain transaction themselves. The facilitator validates that:
+
+- The signature matches the authorization details
+- The payment amount doesn't exceed `maxAmountRequired`
+- The authorization is within its validity window (`validAfter` to `validBefore`)
+- The nonce hasn't been used before (replay protection)
+
+This verification is trustless—the signature cryptographically guarantees user consent.
+
+### Phase 2: Blockchain Submission
+
+The facilitator calls the USDC contract's `transferWithAuthorization` function with the signed authorization. This **gasless payment method** (EIP-3009 standard) allows the facilitator to submit the transaction on behalf of the user. The user doesn't pay gas fees or submit any blockchain transactions—they only provide a signature.
+
+The USDC contract verifies the signature on-chain and executes the transfer if valid. This ensures the payment cannot be tampered with after the user signs.
+
+### Phase 3: Confirmation and Finality
+
+On Avalanche, the transaction is included in a block and reaches finality in approximately **1-2 seconds**. Once finalized, the transaction cannot be reversed—the payment is permanent and immutable.
+
+The facilitator receives the transaction hash from the blockchain and returns it to the merchant. The USDC balances are permanently updated on-chain, and the payment is complete.
+
+**Total Time**: The entire x402 process from initial request to settlement takes approximately **2-2.3 seconds**.
+
+**Reference**: For detailed technical implementation of TransferWithAuthorization, see [x402 Whitepaper](https://www.x402.org/x402-whitepaper.pdf) (Section 9.3).
+
+## Payment Verification
+
+Facilitators verify payments by querying the blockchain to ensure the transaction matches the expected payment details. This verification is trustless—anyone can independently confirm the payment by checking the blockchain.
+
+### USDC Transfer Events
+
+USDC transfers emit `Transfer` events on-chain that provide cryptographic proof of payment:
+
+```solidity
+event Transfer(address indexed from, address indexed to, uint256 value);
+```
+
+These events can be parsed from transaction logs to verify payment details without trusting the facilitator. The blockchain is the source of truth.
+
+### Trustless Verification
+
+Because all payment data is on-chain, merchants can independently verify payments without relying on facilitators. Simply query the blockchain with the transaction hash to confirm:
+- Who paid (sender address)
+- Who received (recipient address)
+- How much was paid (token amount)
+- When it was paid (block timestamp)
+
+This transparency eliminates the need to trust payment processors.
+
+## Gas and Fee Economics
+
+### Transaction Costs on Avalanche
+
+x402 payments on Avalanche use EIP-3009's gasless payment model, where the **facilitator sponsors the gas** rather than the payer. This removes the friction of users needing AVAX to pay gas fees.
+
+Typical transaction costs (based on current network conditions - January 2025):
+- **Gas used**: ~77,000 gas units (`transferWithAuthorization`)
+- **Gas price**: ~0.575 nAVAX per gas unit (current)
+- **Total cost**: ~\$0.001 USD (with AVAX at $20)
+
+**Who pays gas?**
+- In x402, the **facilitator pays gas fees** when submitting the transaction
+- The user only signs the authorization—no blockchain transaction needed from their side
+- This enables truly gasless payments for end users
+
+### Cost Comparison
+
+| Aspect | Traditional Payments | x402 on Avalanche |
+|--------|---------------------|-------------------|
+| Settlement Time | 2-7 days | ~2 seconds |
+| Transaction Fees | 2.9% + \$0.30 | ~\$0.001 gas (facilitator-paid) |
+| Chargebacks | Possible | Impossible |
+| Transparency | Opaque | Fully transparent |
+| Verification | Trust processor | Cryptographic proof |
+| Finality | Delayed | Instant |
+
+**Key Advantage**: For micropayments, x402's flat ~\$0.001 gas cost is dramatically better than traditional payment processing's 2.9% + \$0.30 per transaction.
+
+## Multi-Chain Settlement Timing
+
+Different blockchains have different finality characteristics, which affects the total x402 payment process time. It's important to distinguish between **blockchain finality** (how fast the chain confirms transactions) and **full x402 process time** (complete flow from request to response).
+
+### Timing Comparison
+
+| Blockchain | Blockchain Finality | Full x402 Process | x402 Support |
+|------------|---------------------|-------------------|--------------|
+| **Avalanche** | ~1-2 seconds | ~2-2.3 seconds | ✅ Official |
+| **Base** | ~2 seconds | ~2-2.5 seconds | ✅ Official |
+| **Ethereum** | ~12-15 minutes | ~15-20 minutes | ✅ Official |
+| **Polygon** | ~2-5 seconds | ~2-5 seconds | ⚠️ Check facilitator |
+
+**Note**: The **full x402 process time** includes:
+1. Initial request (~100ms)
+2. 402 response (~100ms)
+3. Payment authorization creation and signing (~500ms)
+4. Blockchain settlement (varies by chain)
+5. Response delivery (~100ms)
+
+**Important**: Chains not listed here may not have official x402 support yet. Always verify with your facilitator which networks they support. Check [PayAI documentation](https://docs.payai.network) for their current network list.
+
+## Summary
+
+Blockchain settlement in x402 provides transparent, immutable, and instant payment finality through EIP-3009's gasless payment standard. The complete x402 process takes approximately **2-2.3 seconds** on Avalanche, with blockchain finality achieved in **1-2 seconds**.
+
+Key advantages:
+- **Gasless for users**: Facilitators sponsor gas fees, eliminating the need for users to hold native tokens
+- **Cryptographic proof**: Every payment is verifiable on-chain without trusting intermediaries
+- **No chargebacks**: Finality is instant and irreversible
+- **Multi-chain support**: Works across Avalanche, Base, Ethereum, and other EVM chains
+
+Facilitators abstract away the complexity of blockchain interactions, making x402 settlement as simple as traditional payment APIs while delivering superior speed, lower costs, and trustless verification.
+
+**Next**: Learn about [Security Considerations](./07-security-considerations) including replay attack prevention, signature validation, and settlement monitoring.
+
+## Additional Resources
+
+- [x402 Whitepaper - Technical Specifications](https://www.x402.org/x402-whitepaper.pdf)
+- [EIP-3009: Transfer With Authorization](https://eips.ethereum.org/EIPS/eip-3009)
+- [Avalanche Consensus](https://docs.avax.network/learn/avalanche/avalanche-consensus)
