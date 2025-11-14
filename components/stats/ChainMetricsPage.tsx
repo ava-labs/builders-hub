@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight } from "lucide-react";
+import { Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
@@ -31,7 +31,11 @@ interface ICMMetric {
 }
 
 interface CChainMetrics {
-  activeAddresses: TimeSeriesMetric;
+  activeAddresses: {
+    daily: TimeSeriesMetric;
+    weekly: TimeSeriesMetric;
+    monthly: TimeSeriesMetric;
+  };
   activeSenders: TimeSeriesMetric;
   cumulativeAddresses: TimeSeriesMetric;
   cumulativeDeployers: TimeSeriesMetric;
@@ -73,7 +77,9 @@ export default function ChainMetricsPage({
 
   // Find the current chain to get explorers
   const currentChain = useMemo(() => {
-    return l1ChainsData.find((chain) => chain.chainId === chainId) as L1Chain | undefined;
+    return l1ChainsData.find((chain) => chain.chainId === chainId) as
+      | L1Chain
+      | undefined;
   }, [chainId]);
 
   const fetchData = async () => {
@@ -182,17 +188,43 @@ export default function ChainMetricsPage({
   };
 
   const getChartData = (
-    metricKey: keyof Omit<CChainMetrics, "last_updated" | "icmMessages">
+    metricKey: keyof Omit<CChainMetrics, "last_updated" | "icmMessages">,
+    period?: "D" | "W" | "M" | "Q" | "Y"
   ) => {
-    if (!metrics || !metrics[metricKey]?.data) return [];
+    if (!metrics) return [];
+
+    // Handle activeAddresses specially based on period
+    if (metricKey === "activeAddresses") {
+      if (!metrics.activeAddresses) return [];
+
+      let data;
+      if (period === "D" || !period) {
+        data = metrics.activeAddresses.daily?.data;
+      } else if (period === "W") {
+        data = metrics.activeAddresses.weekly?.data;
+      } else if (period === "M") {
+        data = metrics.activeAddresses.monthly?.data;
+      } else {
+        // For Q and Y, we'll return N/A
+        data = null;
+      }
+
+      if (!data) return [];
+      return data
+        .map((point: TimeSeriesDataPoint) => ({
+          day: point.date,
+          value: typeof point.value === "string" ? Number.parseFloat(point.value) : point.value,
+        }))
+        .reverse();
+    }
+
+    // Handle other metrics normally
+    if (!metrics[metricKey]?.data) return [];
 
     return metrics[metricKey].data
       .map((point: TimeSeriesDataPoint) => ({
         day: point.date,
-        value:
-          typeof point.value === "string"
-            ? Number.parseFloat(point.value)
-            : point.value,
+        value: typeof point.value === "string" ? Number.parseFloat(point.value) : point.value,
       }))
       .reverse();
   };
@@ -265,9 +297,26 @@ export default function ChainMetricsPage({
   };
 
   const getCurrentValue = (
-    metricKey: keyof Omit<CChainMetrics, "last_updated">
+    metricKey: keyof Omit<CChainMetrics, "last_updated">,
+    period?: "D" | "W" | "M" | "Q" | "Y"
   ): number | string => {
-    if (!metrics || !metrics[metricKey]) return "N/A";
+    if (!metrics) return "N/A";
+
+    // Handle activeAddresses specially based on period
+    if (metricKey === "activeAddresses") {
+      if (!metrics.activeAddresses) return "N/A";
+
+      if (period === "W") {
+        return metrics.activeAddresses.weekly?.current_value ?? "N/A";
+      } else if (period === "M" || period === "Q" || period === "Y") {
+        return metrics.activeAddresses.monthly?.current_value ?? "N/A";
+      } else {
+        // Default to daily
+        return metrics.activeAddresses.daily?.current_value ?? "N/A";
+      }
+    }
+
+    if (!metrics[metricKey]) return "N/A";
     return metrics[metricKey].current_value;
   };
 
@@ -532,7 +581,8 @@ export default function ChainMetricsPage({
               },
             ].map((item) => {
               const currentValue = getCurrentValue(
-                item.key as keyof Omit<CChainMetrics, "last_updated">
+                item.key as keyof Omit<CChainMetrics, "last_updated">,
+                "D" // Always use daily for overview cards
               );
               const Icon = item.icon;
 
@@ -578,14 +628,15 @@ export default function ChainMetricsPage({
                   config.metricKey !== "activeSenders"
               )
               .map((config) => {
+                const period = chartPeriods[config.metricKey];
+
                 const rawData =
                   config.metricKey === "icmMessages"
                     ? getICMChartData()
-                    : getChartData(config.metricKey);
+                    : getChartData(config.metricKey, period);
                 if (rawData.length === 0) return null;
 
-                const period = chartPeriods[config.metricKey];
-                const currentValue = getCurrentValue(config.metricKey);
+                const currentValue = getCurrentValue(config.metricKey, period);
 
                 // Get cumulative data for charts that need it
                 let cumulativeData = null;
@@ -604,7 +655,21 @@ export default function ChainMetricsPage({
                 let secondaryCurrentValue = null;
                 if (config.chartType === "dual" && config.secondaryMetricKey) {
                   secondaryData = getChartData(config.secondaryMetricKey);
-                  secondaryCurrentValue = getCurrentValue(config.secondaryMetricKey);
+                  secondaryCurrentValue = getCurrentValue(
+                    config.secondaryMetricKey
+                  );
+                }
+
+                // Determine allowed periods based on metric type
+                let allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = ["D", "W", "M", "Q", "Y"];
+
+                // GPS, TPS, and Gas Price are only available on Daily
+                if (["avgGps", "maxGps", "avgTps", "maxTps", "avgGasPrice", "maxGasPrice"].includes(config.metricKey)) {
+                  allowedPeriods = ["D"];
+                }
+                // Active addresses only supports D, W, M (data fetched from API with those intervals)
+                else if (config.metricKey === "activeAddresses") {
+                  allowedPeriods = ["D", "W", "M"];
                 }
 
                 return (
@@ -627,6 +692,7 @@ export default function ChainMetricsPage({
                       formatTooltipValue(value, config.metricKey)
                     }
                     formatYAxisValue={formatNumber}
+                    allowedPeriods={allowedPeriods}
                   />
                 );
               })}
@@ -651,6 +717,7 @@ function ChartCard({
   onPeriodChange,
   formatTooltipValue,
   formatYAxisValue,
+  allowedPeriods = ["D", "W", "M", "Q", "Y"],
 }: {
   config: any;
   rawData: any[];
@@ -662,6 +729,7 @@ function ChartCard({
   onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
   formatTooltipValue: (value: number) => string;
   formatYAxisValue: (value: number) => string;
+  allowedPeriods?: ("D" | "W" | "M" | "Q" | "Y")[];
 }) {
   const [brushIndexes, setBrushIndexes] = useState<{
     startIndex: number;
@@ -671,6 +739,14 @@ function ChartCard({
   // Aggregate data based on selected period
   const aggregatedData = useMemo(() => {
     if (period === "D") return rawData;
+
+    // For active addresses, don't aggregate since data is already fetched with proper interval
+    if (
+      config.metricKey === "activeAddresses" &&
+      (period === "W" || period === "M")
+    ) {
+      return rawData;
+    }
 
     const grouped = new Map<
       string,
@@ -713,7 +789,7 @@ function ChartCard({
         value: group.sum,
       }))
       .sort((a, b) => a.day.localeCompare(b.day));
-  }, [rawData, period]);
+  }, [rawData, period, config.metricKey]);
 
   // Aggregate cumulative data - take the last (max) value in each period
   const aggregatedCumulativeData = useMemo(() => {
@@ -986,24 +1062,26 @@ function ChartCard({
             </div>
           </div>
           <div className="flex gap-0.5 sm:gap-1">
-            {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => onPeriodChange(p)}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm  rounded-md transition-colors ${
-                  period === p
-                    ? "text-white dark:text-white"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
-                style={
-                  period === p
-                    ? { backgroundColor: `${config.color}`, opacity: 0.9 }
-                    : {}
-                }
-              >
-                {p}
-              </button>
-            ))}
+            {(["D", "W", "M", "Q", "Y"] as const)
+              .filter((p) => allowedPeriods.includes(p))
+              .map((p) => (
+                <button
+                  key={p}
+                  onClick={() => onPeriodChange(p)}
+                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm  rounded-md transition-colors ${
+                    period === p
+                      ? "text-white dark:text-white"
+                      : "text-muted-foreground hover:bg-muted"
+                  }`}
+                  style={
+                    period === p
+                      ? { backgroundColor: `${config.color}`, opacity: 0.9 }
+                      : {}
+                  }
+                >
+                  {p}
+                </button>
+              ))}
           </div>
         </div>
 
@@ -1466,9 +1544,25 @@ function ChartCard({
                       e.startIndex !== undefined &&
                       e.endIndex !== undefined
                     ) {
+                      let startIndex = e.startIndex;
+                      let endIndex = e.endIndex;
+
+                      // Limit to 100 bars maximum for daily view
+                      if (period === "D") {
+                        const maxBars = 100;
+                        const selectedBars = endIndex - startIndex + 1;
+                        if (selectedBars > maxBars) {
+                          if (e.endIndex !== brushIndexes?.endIndex) {
+                            startIndex = Math.max(0, endIndex - maxBars + 1);
+                          } else {
+                            endIndex = Math.min(aggregatedData.length - 1,startIndex + maxBars - 1);
+                          }
+                        }
+                      }
+
                       setBrushIndexes({
-                        startIndex: e.startIndex,
-                        endIndex: e.endIndex,
+                        startIndex: startIndex,
+                        endIndex: endIndex,
                       });
                     }
                   }}

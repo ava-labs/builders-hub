@@ -40,7 +40,7 @@ export function ExplorerDropdown({
           e.stopPropagation();
           window.open(explorers[0].link, "_blank");
         }}
-        className="flex items-center gap-1.5 text-xs whitespace-nowrap border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-100"
+        className="flex items-center gap-1.5 text-xs whitespace-nowrap border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-100 py-2"
       >
         {buttonText}
         {showIcon && <ArrowUpRight className="h-3 w-3" />}
@@ -56,7 +56,7 @@ export function ExplorerDropdown({
           variant={variant}
           size={size}
           onClick={(e) => e.stopPropagation()}
-          className="flex items-center gap-1.5 text-xs whitespace-nowrap border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-100"
+          className="flex items-center gap-1.5 text-xs whitespace-nowrap border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-100 py-2"
         >
           {buttonText}
           <ChevronDown className="h-3 w-3" />

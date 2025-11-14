@@ -13,7 +13,11 @@ interface ChainOverviewMetrics {
   chainName: string;
   chainLogoURI: string;
   txCount: TimeSeriesMetric;
-  activeAddresses: TimeSeriesMetric;
+  activeAddresses: {
+    daily: TimeSeriesMetric;
+    weekly: TimeSeriesMetric;
+    monthly: TimeSeriesMetric;
+  };
   icmMessages: ICMMetric;
   validatorCount: number | string;
 }
@@ -22,7 +26,11 @@ interface OverviewMetrics {
   chains: ChainOverviewMetrics[];
   aggregated: {
     totalTxCount: TimeSeriesMetric;
-    totalActiveAddresses: TimeSeriesMetric;
+    totalActiveAddresses: {
+      daily: TimeSeriesMetric;
+      weekly: TimeSeriesMetric;
+      monthly: TimeSeriesMetric;
+    };
     totalICMMessages: ICMMetric;
     totalValidators: number;
     activeChains: number;
@@ -89,10 +97,7 @@ async function getTimeSeriesData(
 }
 
 // separate active addresses fetching with proper time intervals
-async function getActiveAddressesData(chainId: string, timeRange: string): Promise<TimeSeriesDataPoint[]> {
-  const intervalMapping = STATS_CONFIG.ACTIVE_ADDRESSES_INTERVALS[timeRange as keyof typeof STATS_CONFIG.ACTIVE_ADDRESSES_INTERVALS];
-  if (!intervalMapping) { return [] }
-
+async function getActiveAddressesData(chainId: string, timeRange: string, interval: 'day' | 'week' | 'month'): Promise<TimeSeriesDataPoint[]> {
   try {
     const { startTimestamp, endTimestamp } = getTimestampsFromTimeRange(timeRange);
     let allResults: any[] = [];   
@@ -102,7 +107,7 @@ async function getActiveAddressesData(chainId: string, timeRange: string): Promi
       metric: 'activeAddresses',
       startTimestamp,
       endTimestamp,
-      timeInterval: intervalMapping,
+      timeInterval: interval,
       pageSize: 1,
     };
     
@@ -122,7 +127,7 @@ async function getActiveAddressesData(chainId: string, timeRange: string): Promi
         date: new Date(result.timestamp * 1000).toISOString().split('T')[0]
       }));
   } catch (error) {
-    console.warn(`Failed to fetch active addresses data for chain ${chainId}:`, error);
+    console.warn(`Failed to fetch active addresses data for chain ${chainId} with interval ${interval}:`, error);
     return [];
   }
 }
@@ -194,9 +199,11 @@ async function fetchChainMetrics(chain: any, timeRange: string): Promise<ChainOv
     const config = STATS_CONFIG.TIME_RANGES[timeRange as keyof typeof STATS_CONFIG.TIME_RANGES] || STATS_CONFIG.TIME_RANGES['30d'];
     const { pageSize, fetchAllPages } = config;
 
-    const [txCountData, activeAddressesData, icmData, validatorCount] = await Promise.all([
+    const [txCountData, dailyAddresses, weeklyAddresses, monthlyAddresses, icmData, validatorCount] = await Promise.all([
       getTimeSeriesData('txCount', chain.chainId, timeRange, pageSize, fetchAllPages),
-      getActiveAddressesData(chain.chainId, timeRange),
+      getActiveAddressesData(chain.chainId, timeRange, 'day'),
+      getActiveAddressesData(chain.chainId, timeRange, 'week'),
+      getActiveAddressesData(chain.chainId, timeRange, 'month'),
       getICMData(chain.chainId, timeRange),
       getValidatorCount(chain.subnetId),
     ]);
@@ -206,7 +213,11 @@ async function fetchChainMetrics(chain: any, timeRange: string): Promise<ChainOv
       chainName: chain.chainName,
       chainLogoURI: chain.logoUri,
       txCount: createTimeSeriesMetricWithPeriodSum(txCountData), // Period sum for overview
-      activeAddresses: createTimeSeriesMetric(activeAddressesData),
+      activeAddresses: {
+        daily: createTimeSeriesMetric(dailyAddresses),
+        weekly: createTimeSeriesMetric(weeklyAddresses),
+        monthly: createTimeSeriesMetric(monthlyAddresses),
+      },
       icmMessages: createICMMetricWithPeriodSum(icmData), // Period sum
       validatorCount,
     };
@@ -268,16 +279,26 @@ export async function GET(request: Request) {
     }
 
     const aggregatedTxData: TimeSeriesDataPoint[] = [];
-    const aggregatedAddressData: TimeSeriesDataPoint[] = [];
+    const aggregatedDailyAddressData: TimeSeriesDataPoint[] = [];
+    const aggregatedWeeklyAddressData: TimeSeriesDataPoint[] = [];
+    const aggregatedMonthlyAddressData: TimeSeriesDataPoint[] = [];
     const aggregatedICMData: ICMDataPoint[] = [];
 
     let totalValidators = 0;
     let activeChains = 0;
     let totalTxCountAllTime = 0;
-    let totalActiveAddressesAllTime = 0;
+    let totalDailyActiveAddressesAllTime = 0;
+    let totalWeeklyActiveAddressesAllTime = 0;
+    let totalMonthlyActiveAddressesAllTime = 0;
     let totalICMMessagesAllTime = 0;
 
-    const dateMap = new Map<string, { tx: number; addresses: number; icm: number }>();
+    const dateMaps = {
+      tx: new Map<string, number>(),
+      daily: new Map<string, number>(),
+      weekly: new Map<string, number>(),
+      monthly: new Map<string, number>(),
+      icm: new Map<string, number>(),
+    };
     
     chainMetrics.forEach(chain => {
       if (typeof chain.validatorCount === 'number') {
@@ -285,55 +306,76 @@ export async function GET(request: Request) {
       }
       
       const hasTx = chain.txCount.data.length > 0 && typeof chain.txCount.current_value === 'number' && chain.txCount.current_value > 0;
-      const hasAddresses = chain.activeAddresses.data.length > 0 && typeof chain.activeAddresses.current_value === 'number' && chain.activeAddresses.current_value > 0;
+      const hasAddresses = chain.activeAddresses.daily.data.length > 0 && typeof chain.activeAddresses.daily.current_value === 'number' && chain.activeAddresses.daily.current_value > 0;
       
       if (hasTx || hasAddresses) { activeChains++; }
 
       chain.txCount.data.forEach(point => {
         const date = point.date;
         const value = typeof point.value === 'number' ? point.value : 0;
-        const current = dateMap.get(date) || { tx: 0, addresses: 0, icm: 0 };
-        current.tx += value;
-        dateMap.set(date, current);
+        const current = dateMaps.tx.get(date) || 0;
+        dateMaps.tx.set(date, current + value);
         totalTxCountAllTime += value;
       });
 
-      chain.activeAddresses.data.forEach(point => {
+      chain.activeAddresses.daily.data.forEach(point => {
         const date = point.date;
         const value = typeof point.value === 'number' ? point.value : 0;
-        const current = dateMap.get(date) || { tx: 0, addresses: 0, icm: 0 };
-        current.addresses += value;
-        dateMap.set(date, current);
-        totalActiveAddressesAllTime += value;
+        const current = dateMaps.daily.get(date) || 0;
+        dateMaps.daily.set(date, current + value);
+        totalDailyActiveAddressesAllTime += value;
+      });
+
+      chain.activeAddresses.weekly.data.forEach(point => {
+        const date = point.date;
+        const value = typeof point.value === 'number' ? point.value : 0;
+        const current = dateMaps.weekly.get(date) || 0;
+        dateMaps.weekly.set(date, current + value);
+        totalWeeklyActiveAddressesAllTime += value;
+      });
+
+      chain.activeAddresses.monthly.data.forEach(point => {
+        const date = point.date;
+        const value = typeof point.value === 'number' ? point.value : 0;
+        const current = dateMaps.monthly.get(date) || 0;
+        dateMaps.monthly.set(date, current + value);
+        totalMonthlyActiveAddressesAllTime += value;
       });
 
       chain.icmMessages.data.forEach(point => {
         const date = point.date;
-        const current = dateMap.get(date) || { tx: 0, addresses: 0, icm: 0 };
-        current.icm += point.messageCount;
-        dateMap.set(date, current);
+        const current = dateMaps.icm.get(date) || 0;
+        dateMaps.icm.set(date, current + point.messageCount);
         totalICMMessagesAllTime += point.messageCount;
       });
     });
 
-    Array.from(dateMap.entries()).forEach(([date, values]) => {
+    Array.from(dateMaps.tx.entries()).forEach(([date, value]) => {
       const timestamp = Math.floor(new Date(date).getTime() / 1000);    
-      aggregatedTxData.push({
-        timestamp,
-        value: values.tx,
-        date
-      });
+      aggregatedTxData.push({ timestamp, value, date });
+    });
 
-      aggregatedAddressData.push({
-        timestamp,
-        value: values.addresses,
-        date
-      });
+    Array.from(dateMaps.daily.entries()).forEach(([date, value]) => {
+      const timestamp = Math.floor(new Date(date).getTime() / 1000);    
+      aggregatedDailyAddressData.push({ timestamp, value, date });
+    });
 
+    Array.from(dateMaps.weekly.entries()).forEach(([date, value]) => {
+      const timestamp = Math.floor(new Date(date).getTime() / 1000);    
+      aggregatedWeeklyAddressData.push({ timestamp, value, date });
+    });
+
+    Array.from(dateMaps.monthly.entries()).forEach(([date, value]) => {
+      const timestamp = Math.floor(new Date(date).getTime() / 1000);    
+      aggregatedMonthlyAddressData.push({ timestamp, value, date });
+    });
+
+    Array.from(dateMaps.icm.entries()).forEach(([date, messageCount]) => {
+      const timestamp = Math.floor(new Date(date).getTime() / 1000);    
       aggregatedICMData.push({
         timestamp,
         date,
-        messageCount: values.icm,
+        messageCount,
         incomingCount: 0,
         outgoingCount: 0
       });
@@ -341,15 +383,23 @@ export async function GET(request: Request) {
 
     // Sort by timestamp descending
     aggregatedTxData.sort((a, b) => b.timestamp - a.timestamp);
-    aggregatedAddressData.sort((a, b) => b.timestamp - a.timestamp);
+    aggregatedDailyAddressData.sort((a, b) => b.timestamp - a.timestamp);
+    aggregatedWeeklyAddressData.sort((a, b) => b.timestamp - a.timestamp);
+    aggregatedMonthlyAddressData.sort((a, b) => b.timestamp - a.timestamp);
     aggregatedICMData.sort((a, b) => b.timestamp - a.timestamp);
 
     // Create aggregated metrics using period sum methods
     const totalTxMetric = createTimeSeriesMetricWithPeriodSum(aggregatedTxData);
     totalTxMetric.current_value = totalTxCountAllTime;
 
-    const totalAddressMetric = createTimeSeriesMetricWithPeriodSum(aggregatedAddressData);
-    totalAddressMetric.current_value = totalActiveAddressesAllTime;
+    const totalDailyAddressMetric = createTimeSeriesMetric(aggregatedDailyAddressData);
+    totalDailyAddressMetric.current_value = totalDailyActiveAddressesAllTime;
+
+    const totalWeeklyAddressMetric = createTimeSeriesMetric(aggregatedWeeklyAddressData);
+    totalWeeklyAddressMetric.current_value = totalWeeklyActiveAddressesAllTime;
+
+    const totalMonthlyAddressMetric = createTimeSeriesMetric(aggregatedMonthlyAddressData);
+    totalMonthlyAddressMetric.current_value = totalMonthlyActiveAddressesAllTime;
 
     const totalICMMetric = createICMMetricWithPeriodSum(aggregatedICMData);
     totalICMMetric.current_value = totalICMMessagesAllTime;
@@ -358,7 +408,11 @@ export async function GET(request: Request) {
       chains: chainMetrics,
       aggregated: {
         totalTxCount: totalTxMetric,
-        totalActiveAddresses: totalAddressMetric,
+        totalActiveAddresses: {
+          daily: totalDailyAddressMetric,
+          weekly: totalWeeklyAddressMetric,
+          monthly: totalMonthlyAddressMetric,
+        },
         totalICMMessages: totalICMMetric,
         totalValidators,
         activeChains
