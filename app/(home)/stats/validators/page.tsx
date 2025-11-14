@@ -362,7 +362,7 @@ export default function ValidatorStatsPage() {
           <div className="space-y-3">
             <div>
               <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-black dark:text-white">
-                Subnet Validator Monitor
+                Validator Stats
               </h1>
               <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
                 Loading validator statistics for {network}...
