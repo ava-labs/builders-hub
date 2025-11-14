@@ -441,8 +441,8 @@ export default function ValidatorStatsPage() {
         </div>
 
         {/* Aggregated Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0 h-full flex flex-col">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
+          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0 h-full flex flex-col lg:col-span-3">
             <div className="p-6 text-center flex flex-col justify-center flex-1">
               <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
                 Total Chains
@@ -456,7 +456,7 @@ export default function ValidatorStatsPage() {
             </div>
           </Card>
 
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0 h-full flex flex-col">
+          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0 h-full flex flex-col lg:col-span-3">
             <div className="p-6 text-center flex flex-col justify-center flex-1">
               <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
                 Total Validators
@@ -470,23 +470,7 @@ export default function ValidatorStatsPage() {
             </div>
           </Card>
 
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0 h-full flex flex-col">
-            <div className="p-6 text-center flex flex-col justify-center flex-1">
-              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                Healthy Chains
-              </p>
-              <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
-                {aggregatedStats.healthySubnets}
-              </p>
-              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                {aggregatedStats.totalSubnets > 0
-                  ? `${((aggregatedStats.healthySubnets / aggregatedStats.totalSubnets) * 100).toFixed(1)}%`
-                  : "0%"}
-              </p>
-            </div>
-          </Card>
-
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0 h-full flex flex-col">
+          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0 h-full flex flex-col lg:col-span-6">
             <div className="p-6 text-center flex flex-col justify-center flex-1">
               <p className="mb-4 text-sm font-medium text-neutral-500 dark:text-neutral-400">
                 Total Version Breakdown
@@ -593,7 +577,7 @@ export default function ValidatorStatsPage() {
         </div>
 
         {/* Table */}
-        <Card className="overflow-hidden py-0 border-0 shadow-none">
+        <Card className="overflow-hidden py-0 border-0 shadow-none rounded-lg">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
@@ -625,11 +609,6 @@ export default function ValidatorStatsPage() {
                         By Stake %
                       </span>
                     </SortButton>
-                  </th>
-                  <th className="px-4 py-2 text-right whitespace-nowrap">
-                    <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
-                      Validator Weight
-                    </span>
                   </th>
                   <th className="px-4 py-2 text-left">
                     <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
@@ -736,16 +715,6 @@ export default function ValidatorStatsPage() {
                           {stats.stakePercentAbove < 80 && (
                             <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                           )}
-                        </div>
-                      </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right">
-                        <div className="flex flex-col items-end">
-                          <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                            {formatStake(subnet.totalStakeString)}
-                          </span>
-                          <span className="text-xs text-neutral-500 dark:text-neutral-500">
-                            {subnet.id === "11111111111111111111111111111111LpoYY" ? "AVAX" : "gas tokens"}
-                          </span>
                         </div>
                       </td>
                       <td className="px-4 py-2">
