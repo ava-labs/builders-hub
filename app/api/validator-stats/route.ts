@@ -324,11 +324,17 @@ async function getNetworkStats(network: "mainnet" | "fuji"): Promise<SubnetStats
         subnetAccumulators[subnetId].byClientVersion[version].nodes += 1;
     }
 
-    // Create a map of subnetId to chainLogoURI from l1-chains.json
+    // Create maps of subnetId to chainLogoURI and chainName from l1-chains.json
     const subnetLogoMap = new Map<string, string>();
+    const subnetNameMap = new Map<string, string>();
     l1ChainsData.forEach((chain: any) => {
-        if (chain.subnetId && chain.chainLogoURI) {
-            subnetLogoMap.set(chain.subnetId, chain.chainLogoURI);
+        if (chain.subnetId) {
+            if (chain.chainLogoURI) {
+                subnetLogoMap.set(chain.subnetId, chain.chainLogoURI);
+            }
+            if (chain.chainName) {
+                subnetNameMap.set(chain.subnetId, chain.chainName);
+            }
         }
     });
 
@@ -344,8 +350,11 @@ async function getNetworkStats(network: "mainnet" | "fuji"): Promise<SubnetStats
             };
         }
 
+        // Use chain name from l1-chains.json if available, otherwise use the name from subnet
+        const chainName = subnetNameMap.get(subnet.id) || subnet.name;
+
         result.push({
-            name: subnet.name,
+            name: chainName,
             id: subnet.id,
             totalStakeString: subnet.totalStake.toString(),
             byClientVersion,
