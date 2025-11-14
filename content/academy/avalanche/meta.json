@@ -1,0 +1,15 @@
+{
+  "pages": [
+    "avalanche-fundamentals",
+    "customizing-evm",
+    "interchain-messaging",
+    "interchain-token-transfer",
+    "icm-chainlink",
+    "permissioned-l1s",
+    "l1-native-tokenomics",
+    "permissionless-l1s",
+    "multi-chain-architecture",
+    "avacloudapis"
+  ]
+}
+

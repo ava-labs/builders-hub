@@ -1,7 +1,7 @@
 import LearningTree from '@/components/academy/learning-tree';
 
 interface AcademyLearningPathProps {
-    defaultPathType: 'avalanche' | 'entrepreneur';
+    defaultPathType: 'avalanche' | 'entrepreneur' | 'blockchain';
 }
 
 export function AcademyLearningPath({ defaultPathType }: AcademyLearningPathProps) {
@@ -14,10 +14,14 @@ export function AcademyLearningPath({ defaultPathType }: AcademyLearningPathProp
                     Learning Path for{" "}
                     {pathType === 'avalanche' ? (
                         "Avalanche"
+                    ) : pathType === 'blockchain' ? (
+                        <>
+                            <span className="text-red-600">Blockchain</span>
+                            {" "}Developer
+                        </>
                     ) : (
                         <>
-                            Codebase 
-                            <span className="text-red-600"> Entrepreneur </span>
+                            <span className="text-red-600">Entrepreneur </span>
                             Academy
                         </>
                     )}
@@ -31,7 +35,9 @@ export function AcademyLearningPath({ defaultPathType }: AcademyLearningPathProp
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                         </svg>
                         {pathType === 'avalanche'
-                            ? 'Start with fundamentals, progress to advanced'
+                            ? 'Start with Avalanche fundamentals and advance to custom L1s'
+                            : pathType === 'blockchain'
+                            ? 'Master blockchain basics and smart contract development'
                             : 'Build your foundation, scale your venture'
                         }
                     </span>

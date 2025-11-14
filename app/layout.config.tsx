@@ -233,7 +233,7 @@ export const academyMenu: LinkItemType = {
         className: 'md:row-span-2',
       },
       icon: <Sprout />,
-      text: 'Avalanche Developer Academy',
+      text: 'Avalanche Academy',
       description:
         'Master blockchain development with comprehensive courses on Avalanche fundamentals, L1s, and advanced topics',
       url: '/academy',
@@ -244,7 +244,7 @@ export const academyMenu: LinkItemType = {
           <div className='-mx-3 -mt-3'>
             <Image
               src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase-Entrepreneur-Academy-banner.png"}
-              alt='Codebase Entrepreneur Academy'
+              alt='Entrepreneur Academy'
               width={900}
               height={400}
               className='rounded-t-lg object-cover w-full h-auto'
@@ -257,10 +257,10 @@ export const academyMenu: LinkItemType = {
         className: 'md:row-span-2 lg:col-start-2',
       },
       icon: <BriefcaseBusiness />,
-      text: 'Codebase Entrepreneur Academy',
+      text: 'Entrepreneur Academy',
       description:
         'Transform from builder to founder with courses on business fundamentals, fundraising, and go-to-market strategies',
-      url: '/codebase-entrepreneur-academy',
+      url: '/academy/entrepreneur',
     },
     {
       icon: <Triangle />,

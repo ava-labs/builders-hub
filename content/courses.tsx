@@ -290,7 +290,7 @@ const ecosystemCourses: Course[] = [
    }*/
 ];
 
-const codebaseEntrepreneurCourses = officialCourses.filter((course) => course.category === "Codebase");
+const entrepreneurCourses = officialCourses.filter((course) => course.category === "Codebase");
 
 // Helper function to create course configuration mappings
 export const getCourseConfig = () => {
@@ -312,7 +312,7 @@ export const getCourseConfig = () => {
 export const getCourseNameMapping = () => {
     const mapping: Record<string, string> = {};
     
-    codebaseEntrepreneurCourses.forEach(course => {
+    entrepreneurCourses.forEach(course => {
         if (course.certificateTemplate) {
             mapping[course.slug] = course.name;
         }
@@ -324,7 +324,7 @@ export const getCourseNameMapping = () => {
 export default {
     official: officialCourses.filter((course) => ["normal", "featured"].includes(course.status) && course.category !== "Codebase"),
     official_featured: officialCourses.filter((course) => course.status === "featured" && course.category !== "Codebase"),
-    codebaseEntrepreneur: codebaseEntrepreneurCourses,
+    codebaseEntrepreneur: entrepreneurCourses,
     ecosystem: ecosystemCourses,
 };
 

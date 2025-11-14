@@ -1,7 +1,7 @@
 import { DocsLayout, type DocsLayoutProps } from 'fumadocs-ui/layouts/notebook';
 import type { ReactNode } from 'react';
 import { baseOptions } from '@/app/layout.config';
-import { academy } from '@/lib/source';
+import { academy, getAcademyTree } from '@/lib/source';
 import { LayoutWrapper } from '@/app/layout-wrapper.client';
 import { DocsNavbarToggle } from '@/components/navigation/docs-navbar-toggle';
 import { ForceMobileSidebar } from '@/components/navigation/force-mobile-sidebar';
@@ -9,17 +9,34 @@ import { NavbarDropdownInjector } from '@/components/navigation/navbar-dropdown-
 import { AcademyLayoutClient } from './layout.client';
 import './styles.css';
 
-const academyOptions: DocsLayoutProps = {
-  tree: academy.pageTree,
-  nav: {
-    enabled: false,
-  },
-  sidebar: {
-    collapsible: false, // Disable sidebar collapse - academy doesn't need it
-  },
-};
+export default function Layout({
+  children,
+  params,
+}: {
+  children: ReactNode;
+  params: { slug?: string[] };
+}) {
+  const section = params?.slug?.[0];
+  let tree = academy.pageTree;
 
-export default function Layout({ children }: { children: ReactNode }) {
+  if (section === 'avalanche') {
+    tree = getAcademyTree('/academy/avalanche');
+  } else if (section === 'blockchain') {
+    tree = getAcademyTree('/academy/blockchain');
+  } else if (section === 'entrepreneur') {
+    tree = getAcademyTree('/academy/entrepreneur');
+  }
+
+  const academyOptions: DocsLayoutProps = {
+    tree,
+    nav: {
+      enabled: false,
+    },
+    sidebar: {
+      collapsible: false,
+    },
+  };
+
   return (
     <LayoutWrapper baseOptions={baseOptions}>
       <NavbarDropdownInjector />
