@@ -290,6 +290,52 @@ export default function ValidatorStatsPage() {
       : 0,
   };
 
+  // Calculate total version breakdown across all subnets
+  const totalVersionBreakdown = data.reduce((acc, subnet) => {
+    Object.entries(subnet.byClientVersion).forEach(([version, data]) => {
+      if (!acc[version]) {
+        acc[version] = { nodes: 0 };
+      }
+      acc[version].nodes += data.nodes;
+    });
+    return acc;
+  }, {} as Record<string, { nodes: number }>);
+
+  // Calculate up-to-date validators percentage
+  const upToDateValidators = Object.entries(totalVersionBreakdown).reduce(
+    (sum, [version, data]) => {
+      if (compareVersions(version, minVersion) >= 0) {
+        return sum + data.nodes;
+      }
+      return sum;
+    },
+    0
+  );
+  const upToDatePercentage =
+    aggregatedStats.totalNodes > 0
+      ? (upToDateValidators / aggregatedStats.totalNodes) * 100
+      : 0;
+
+  // Color palette for version breakdown in card
+  const versionColors = [
+    "bg-blue-500 dark:bg-blue-600",
+    "bg-purple-500 dark:bg-purple-600",
+    "bg-pink-500 dark:bg-pink-600",
+    "bg-indigo-500 dark:bg-indigo-600",
+    "bg-cyan-500 dark:bg-cyan-600",
+    "bg-teal-500 dark:bg-teal-600",
+    "bg-emerald-500 dark:bg-emerald-600",
+    "bg-lime-500 dark:bg-lime-600",
+    "bg-yellow-500 dark:bg-yellow-600",
+    "bg-amber-500 dark:bg-amber-600",
+    "bg-orange-500 dark:bg-orange-600",
+    "bg-red-500 dark:bg-red-600",
+  ];
+
+  const getVersionColor = (index: number): string => {
+    return versionColors[index % versionColors.length];
+  };
+
   const SortButton = ({
     column,
     children,
@@ -405,6 +451,106 @@ export default function ValidatorStatsPage() {
           </div>
         </div>
 
+        {/* Aggregated Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0 h-full flex flex-col">
+            <div className="p-6 text-center flex flex-col justify-center flex-1">
+              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
+                Total Chains
+              </p>
+              <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
+                {aggregatedStats.totalSubnets}
+              </p>
+              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                {aggregatedStats.l1Count} L1s / {aggregatedStats.subnetCount} Subnets
+              </p>
+            </div>
+          </Card>
+
+          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0 h-full flex flex-col">
+            <div className="p-6 text-center flex flex-col justify-center flex-1">
+              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
+                Total Validators
+              </p>
+              <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
+                {formatNumber(aggregatedStats.totalNodes)}
+              </p>
+              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                {upToDatePercentage.toFixed(1)}% up to date
+              </p>
+            </div>
+          </Card>
+
+          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0 h-full flex flex-col">
+            <div className="p-6 text-center flex flex-col justify-center flex-1">
+              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
+                Healthy Chains
+              </p>
+              <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
+                {aggregatedStats.healthySubnets}
+              </p>
+              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                {aggregatedStats.totalSubnets > 0
+                  ? `${((aggregatedStats.healthySubnets / aggregatedStats.totalSubnets) * 100).toFixed(1)}%`
+                  : "0%"}
+              </p>
+            </div>
+          </Card>
+
+          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0 h-full flex flex-col">
+            <div className="p-6 text-center flex flex-col justify-center flex-1">
+              <p className="mb-4 text-sm font-medium text-neutral-500 dark:text-neutral-400">
+                Total Version Breakdown
+              </p>
+              <div className="space-y-2">
+                {/* Horizontal Bar Chart */}
+                <div className="flex h-6 w-full rounded overflow-hidden bg-neutral-100 dark:bg-neutral-800">
+                  {Object.entries(totalVersionBreakdown)
+                    .sort(([v1], [v2]) => compareVersions(v2, v1))
+                    .map(([version, data], index) => {
+                      const percentage = aggregatedStats.totalNodes > 0 
+                        ? (data.nodes / aggregatedStats.totalNodes) * 100 
+                        : 0;
+                      return (
+                        <div
+                          key={version}
+                          className={`h-full transition-all ${getVersionColor(index)}`}
+                          style={{ width: `${percentage}%` }}
+                          title={`${version}: ${data.nodes} nodes (${percentage.toFixed(1)}%)`}
+                        />
+                      );
+                    })}
+                </div>
+                {/* Version Labels */}
+                <div className="flex flex-wrap gap-x-2 gap-y-1 text-xs justify-center">
+                  {Object.entries(totalVersionBreakdown)
+                    .sort(([v1], [v2]) => compareVersions(v2, v1))
+                    .slice(0, 5) // Show top 5 versions
+                    .map(([version, data], index) => {
+                      return (
+                        <div
+                          key={version}
+                          className="flex items-center gap-1"
+                        >
+                          <div
+                            className={`h-2 w-2 rounded-full flex-shrink-0 ${getVersionColor(index)}`}
+                          />
+                          <span className="font-mono text-black dark:text-white">
+                            {version}
+                          </span>
+                          <span className="text-neutral-500 dark:text-neutral-500">
+                            ({data.nodes})
+                          </span>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        <div className="border-t border-neutral-200 dark:border-neutral-800 my-8"></div>
 
         {/* Search */}
         <div className="flex items-center gap-4 justify-between">
@@ -414,24 +560,23 @@ export default function ValidatorStatsPage() {
               placeholder="Search chains..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 rounded-lg border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
+              className="pl-10 pr-10 rounded-lg border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
             />
-          </div>
-          <div className="flex items-center gap-2">
             {searchTerm && (
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
+                type="button"
                 onClick={() => {
                   setSearchTerm("");
                   setVisibleCount(25);
                 }}
-                className="h-8 w-8 p-0 text-neutral-600 dark:text-neutral-400 hover:bg-[#fcfcfd] dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white rounded-full"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full z-20 transition-colors"
                 aria-label="Clear search"
               >
                 <X className="h-4 w-4" />
-              </Button>
+              </button>
             )}
+          </div>
+          <div className="flex items-center gap-2">
             {/* Version Selector */}
             {availableVersions.length > 0 && (
               <div className="flex items-center gap-2">
@@ -632,7 +777,7 @@ export default function ValidatorStatsPage() {
                                     className={`h-full transition-all ${
                                       isAboveTarget
                                         ? "bg-green-700 dark:bg-green-800"
-                                        : "bg-gray-300 dark:bg-gray-600"
+                                        : "bg-gray-200 dark:bg-gray-500"
                                     }`}
                                     style={{ width: `${percentage}%` }}
                                     title={`${version}: ${data.nodes} nodes (${percentage.toFixed(1)}%)`}
@@ -656,7 +801,7 @@ export default function ValidatorStatsPage() {
                                       className={`h-2 w-2 rounded-full flex-shrink-0 ${
                                         isAboveTarget
                                           ? "bg-green-700 dark:bg-green-800"
-                                          : "bg-gray-300 dark:bg-gray-600"
+                                          : "bg-gray-200 dark:bg-gray-500"
                                       }`}
                                     />
                                     <span
