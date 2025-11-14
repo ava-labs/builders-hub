@@ -1,0 +1,164 @@
+---
+title: X-PAYMENT
+description: How clients authorize payments using signed EIP-3009 authorizations in the X-PAYMENT header.
+updated: 2025-11-14
+authors: [Federico Nardelli]
+icon: Code
+---
+
+## X-PAYMENT Header
+
+After receiving an HTTP 402 response, clients authorize payment by including the `X-PAYMENT` header in their retry request. This header contains a **base64-encoded JSON** payload with a cryptographically signed payment authorization that proves user consent without requiring a blockchain transaction.
+
+The authorization follows the EIP-3009 TransferWithAuthorization standard, enabling gasless payments where the server or facilitator submits the transaction on behalf of the user. 
+
+### Header Structure
+
+```http
+GET /api/premium-data HTTP/1.1
+Host: example.com
+X-PAYMENT: <base64-encoded-payment-payload>
+```
+
+### Payment Payload Structure (before base64 encoding)
+
+```json
+{
+  "x402Version": 1,
+  "scheme": "exact",
+  "network": "avalanche-fuji",
+  "payload": {
+    "signature": "0x1234567890abcdef...",
+    "authorization": {
+      "from": "0x1234567890abcdef1234567890abcdef12345678",
+      "to": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+      "value": "10000",
+      "validAfter": "1740672089",
+      "validBefore": "1740672154",
+      "nonce": "0x3456789012345678901234567890123456789012345678901234567890123456"
+    }
+  }
+}
+```
+
+### Field Definitions
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `x402Version` | number | Yes | Protocol version (currently 1) |
+| `scheme` | string | Yes | Payment scheme ("exact" for EVM) |
+| `network` | string | Yes | Blockchain network used |
+| `payload` | object | Yes | Scheme-specific payment data |
+
+### Payload for "exact" Scheme (EVM Chains)
+
+The payload for EVM chains using the "exact" scheme contains:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `signature` | string | Yes | EIP-712 signature of the authorization |
+| `authorization` | object | Yes | Payment authorization details |
+
+### Authorization Object
+
+The authorization object follows EIP-3009 TransferWithAuthorization:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `from` | string | Yes | Payer's wallet address |
+| `to` | string | Yes | Recipient's wallet address |
+| `value` | string | Yes | Amount in token base units |
+| `validAfter` | string | Yes | Unix timestamp (seconds) - payment valid after this time |
+| `validBefore` | string | Yes | Unix timestamp (seconds) - payment expires after this time |
+| `nonce` | string | Yes | Unique 32-byte hex string for replay protection (randomly generated, not the sequential wallet nonce) |
+
+### EIP-712 Signature
+
+The signature field contains an EIP-712 signature of the authorization object:
+
+```javascript
+// The user's wallet signs the authorization using EIP-712
+const signature = await wallet.signTypedData({
+  domain: {
+    name: "USD Coin",
+    version: "2",
+    chainId: 43113, // Avalanche Fuji
+    verifyingContract: "0x5425890298aed601595a70AB815c96711a31Bc65"
+  },
+  types: {
+    TransferWithAuthorization: [
+      { name: "from", type: "address" },
+      { name: "to", type: "address" },
+      { name: "value", type: "uint256" },
+      { name: "validAfter", type: "uint256" },
+      { name: "validBefore", type: "uint256" },
+      { name: "nonce", type: "bytes32" }
+    ]
+  },
+  primaryType: "TransferWithAuthorization",
+  message: authorization
+});
+```
+
+This signature:
+- Proves user consent without requiring a transaction
+- Cannot be forged (cryptographically secure)
+- Includes all payment details in the signature
+- Enables gasless payments (server submits the transaction)
+
+### Complete Example
+
+```javascript
+// 1. Client receives 402 response with payment requirements
+const paymentReq = response.data.accepts[0];
+
+// 2. Client creates authorization object
+const authorization = {
+  from: userAddress,
+  to: paymentReq.payTo,
+  value: paymentReq.maxAmountRequired,
+  validAfter: Math.floor(Date.now() / 1000).toString(),
+  validBefore: (Math.floor(Date.now() / 1000) + 300).toString(), // 5 minutes
+  nonce: ethers.hexlify(ethers.randomBytes(32))
+};
+
+// 3. User signs authorization
+const signature = await wallet.signTypedData(...);
+
+// 4. Client creates payment payload
+const paymentPayload = {
+  x402Version: 1,
+  scheme: paymentReq.scheme,
+  network: paymentReq.network,
+  payload: {
+    signature: signature,
+    authorization: authorization
+  }
+};
+
+// 5. Base64 encode and send
+const encoded = btoa(JSON.stringify(paymentPayload));
+await fetch('/api/premium-data', {
+  headers: {
+    'X-PAYMENT': encoded
+  }
+});
+```
+
+## Client Best Practices
+
+When implementing X-PAYMENT headers, clients should follow these guidelines:
+
+1. **Decode and parse carefully**: Base64 decode and JSON parse all headers
+2. **Check authorization expiry**: Don't sign authorizations with past `validBefore` timestamps
+3. **Generate unique nonces**: Use cryptographically secure random 32-byte values
+4. **Store transaction receipts**: Keep `X-PAYMENT-RESPONSE` data for proof of payment
+5. **Handle errors gracefully**: Implement retry logic with exponential backoff
+
+For detailed security considerations including signature validation, nonce-based replay prevention, and authorization timing validation, see [Security Considerations](./07-security-considerations).
+
+## Summary
+
+The X-PAYMENT header enables clients to authorize payments through cryptographically signed EIP-3009 authorizations. Clients create an authorization object containing payment details (from, to, value, validity window, nonce), sign it using EIP-712, and encode the complete payload as base64 before including it in the X-PAYMENT header.
+
+This gasless payment model means users only sign an authorization—they don't submit blockchain transactions or pay gas fees. The server or facilitator handles transaction submission, making the payment experience seamless while maintaining cryptographic proof of user consent.
