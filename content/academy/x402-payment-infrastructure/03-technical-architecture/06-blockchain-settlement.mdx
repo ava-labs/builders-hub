@@ -92,17 +92,6 @@ The facilitator receives the transaction hash from the blockchain and returns it
 
 Facilitators verify payments by querying the blockchain to ensure the transaction matches the expected payment details. This verification is trustless—anyone can independently confirm the payment by checking the blockchain.
 
-### What Facilitators Verify
-
-When a transaction is submitted, facilitators check:
-
-1. **Transaction Existence**: The transaction hash exists on the blockchain
-2. **Transaction Success**: The transaction executed without errors
-3. **Correct Recipient**: Funds were sent to the expected `payTo` address
-4. **Correct Amount**: The transfer amount matches or exceeds `maxAmountRequired`
-5. **Recent Timestamp**: The transaction was created recently (prevents replay of old transactions)
-6. **Confirmation Status**: The transaction has reached finality
-
 ### USDC Transfer Events
 
 USDC transfers emit `Transfer` events on-chain that provide cryptographic proof of payment:
@@ -174,17 +163,6 @@ Different blockchains have different finality characteristics, which affects the
 
 **Important**: Chains not listed here may not have official x402 support yet. Always verify with your facilitator which networks they support. Check [PayAI documentation](https://docs.payai.network) for their current network list.
 
-### Choosing a Blockchain
-
-When selecting a blockchain for x402 payments, consider:
-
-1. **Settlement Speed**: How fast do you need payment confirmation?
-2. **Transaction Costs**: What are the gas fees on this chain?
-3. **Facilitator Support**: Does your chosen facilitator support this chain?
-4. **User Base**: Which chains do your users already have wallets and tokens on?
-
-For most micropayment use cases, **Avalanche** and **Base** offer the best combination of speed (\~2 seconds) and cost (~\$0.001 gas).
-
 ## Summary
 
 Blockchain settlement in x402 provides transparent, immutable, and instant payment finality through EIP-3009's gasless payment standard. The complete x402 process takes approximately **2-2.3 seconds** on Avalanche, with blockchain finality achieved in **1-2 seconds**.
@@ -197,7 +175,7 @@ Key advantages:
 
 Facilitators abstract away the complexity of blockchain interactions, making x402 settlement as simple as traditional payment APIs while delivering superior speed, lower costs, and trustless verification.
 
-**Next**: Learn about [Security Considerations](./05-security-considerations) including replay attack prevention, signature validation, and settlement monitoring.
+**Next**: Learn about [Security Considerations](./07-security-considerations) including replay attack prevention, signature validation, and settlement monitoring.
 
 ## Additional Resources
 
