@@ -8,6 +8,7 @@ const LOW_BALANCE_THRESHOLD = 1;
 
 interface EVMFaucetButtonProps {
   chainId: number;
+  faucetChainId?: string; // to distinguish between multiple faucets on same chainId
   className?: string;
   buttonProps?: React.ButtonHTMLAttributes<HTMLButtonElement>;
   children?: React.ReactNode;
@@ -15,6 +16,7 @@ interface EVMFaucetButtonProps {
 
 export const EVMFaucetButton = ({
   chainId,
+  faucetChainId,
   className,
   buttonProps,
   children,
@@ -29,10 +31,13 @@ export const EVMFaucetButton = ({
   const l1List = useL1List();
   const { claimEVMTokens, isClaimingEVM } = useTestnetFaucet();
 
-  const chainConfig = l1List.find(
-    (chain: L1ListItem) =>
-      chain.evmChainId === chainId && chain.hasBuilderHubFaucet
-  );
+  // If faucetChainId is provided, find by ID, otherwise find by evmChainId for backward compatibility
+  const chainConfig = faucetChainId
+    ? l1List.find((chain: L1ListItem) => chain.id === faucetChainId)
+    : l1List.find(
+        (chain: L1ListItem) =>
+          chain.evmChainId === chainId && chain.hasBuilderHubFaucet
+      );
 
   if (!isTestnet || !chainConfig) {
     return null;
@@ -44,7 +49,8 @@ export const EVMFaucetButton = ({
     if (isRequestingTokens || !walletEVMAddress) return;
 
     try {
-      await claimEVMTokens(chainId, false);
+      // Pass the unique faucetChainId if available, otherwise just chainId
+      await claimEVMTokens(chainId, false, faucetChainId);
     } catch (error) {
       // error handled via notifications from useTestnetFaucet
     }

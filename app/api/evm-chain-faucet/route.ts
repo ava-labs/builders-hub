@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createWalletClient, http, parseEther, createPublicClient, defineChain, isAddress } from 'viem';
+import { createWalletClient, http, parseEther, createPublicClient, defineChain, isAddress, parseUnits } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { avalancheFuji } from 'viem/chains';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { rateLimit } from '@/lib/rateLimit';
 import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import ERC20ABI from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 
 const SERVER_PRIVATE_KEY = process.env.FAUCET_C_CHAIN_PRIVATE_KEY;
 const FAUCET_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
@@ -14,10 +15,19 @@ if (!SERVER_PRIVATE_KEY || !FAUCET_ADDRESS) {
 }
 
 // Helper function to find a testnet chain that supports BuilderHub faucet
-function findSupportedChain(chainId: number): L1ListItem | undefined {
+function findSupportedChain(chainId: number, faucetId?: string): L1ListItem | undefined {
   const testnetStore = getL1ListStore(true);
+  const allChains = testnetStore.getState().l1List;
 
-  return testnetStore.getState().l1List.find(
+  // If faucetId is provided, use it for exact match
+  if (faucetId) {
+    return allChains.find(
+      (chain: L1ListItem) => chain.id === faucetId && chain.hasBuilderHubFaucet
+    );
+  }
+
+  // Otherwise, find by chainId (original behavior for backward compatibility)
+  return allChains.find(
     (chain: L1ListItem) => chain.evmChainId === chainId && chain.hasBuilderHubFaucet
   );
 }
@@ -62,13 +72,14 @@ async function transferEVMTokens(
   sourceAddress: string,
   destinationAddress: string,
   chainId: number,
-  amount: string
+  amount: string,
+  faucetId?: string
 ): Promise<{ txHash: string }> {
   if (!account) {
     throw new Error('Wallet not initialized');
   }
 
-  const l1Data = findSupportedChain(chainId);
+  const l1Data = findSupportedChain(chainId, faucetId);
   if (!l1Data) {
     throw new Error(`ChainID ${chainId} is not supported by Builder Hub Faucet`);
   }
@@ -77,22 +88,63 @@ async function transferEVMTokens(
   const walletClient = createWalletClient({ account, chain: viemChain, transport: http() });
   const publicClient = createPublicClient({ chain: viemChain, transport: http() });
 
-  const balance = await publicClient.getBalance({
-    address: sourceAddress as `0x${string}`
-  });
+  // Check if this is an ERC20 faucet or native token faucet
+  const isERC20Faucet = !!l1Data.erc20TokenAddress;
 
-  const amountToSend = parseEther(amount);
+  if (isERC20Faucet) {
+    // ERC20 token transfer
+    const tokenAddress = l1Data.erc20TokenAddress as `0x${string}`;
+    
+    // Get token decimals
+    const decimals = await publicClient.readContract({
+      address: tokenAddress,
+      abi: ERC20ABI.abi,
+      functionName: 'decimals',
+    }) as number;
 
-  if (balance < amountToSend) {
-    throw new Error(`Insufficient faucet balance on ${l1Data.name}`);
+    // Parse amount with correct decimals
+    const amountToSend = parseUnits(amount, decimals);
+
+    // Check ERC20 balance
+    const balance = await publicClient.readContract({
+      address: tokenAddress,
+      abi: ERC20ABI.abi,
+      functionName: 'balanceOf',
+      args: [sourceAddress],
+    }) as bigint;
+
+    if (balance < amountToSend) {
+      throw new Error(`Insufficient ${l1Data.coinName} balance in faucet on ${l1Data.name}`);
+    }
+
+    // Transfer ERC20 tokens
+    const txHash = await walletClient.writeContract({
+      address: tokenAddress,
+      abi: ERC20ABI.abi,
+      functionName: 'transfer',
+      args: [destinationAddress, amountToSend],
+    });
+
+    return { txHash };
+  } else {
+    // Native token transfer (existing logic)
+    const balance = await publicClient.getBalance({
+      address: sourceAddress as `0x${string}`
+    });
+
+    const amountToSend = parseEther(amount);
+
+    if (balance < amountToSend) {
+      throw new Error(`Insufficient faucet balance on ${l1Data.name}`);
+    }
+
+    const txHash = await walletClient.sendTransaction({
+      to: destinationAddress as `0x${string}`,
+      value: amountToSend,
+    });
+
+    return { txHash };
   }
-
-  const txHash = await walletClient.sendTransaction({
-    to: destinationAddress as `0x${string}`,
-    value: amountToSend,
-  });
-
-  return { txHash };
 }
 
 async function validateFaucetRequest(request: NextRequest): Promise<NextResponse | null> {
@@ -115,6 +167,7 @@ async function validateFaucetRequest(request: NextRequest): Promise<NextResponse
     const searchParams = request.nextUrl.searchParams;
     const destinationAddress = searchParams.get('address');
     const chainId = searchParams.get('chainId');
+    const faucetId = searchParams.get('faucetId'); // Optional unique identifier
 
     if (!destinationAddress) {
       return NextResponse.json(
@@ -131,7 +184,7 @@ async function validateFaucetRequest(request: NextRequest): Promise<NextResponse
     }
 
     const parsedChainId = parseInt(chainId);
-    const supportedChain = findSupportedChain(parsedChainId);
+    const supportedChain = findSupportedChain(parsedChainId, faucetId || undefined);
     if (!supportedChain) {
       return NextResponse.json(
         { success: false, message: `Chain ${chainId} does not support BuilderHub faucet` },
@@ -170,14 +223,16 @@ async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> 
     const searchParams = request.nextUrl.searchParams;
     const destinationAddress = searchParams.get('address')!;
     const chainId = parseInt(searchParams.get('chainId')!);
-    const supportedChain = findSupportedChain(chainId);
+    const faucetId = searchParams.get('faucetId');
+    const supportedChain = findSupportedChain(chainId, faucetId || undefined);
     const dripAmount = (supportedChain?.faucetThresholds?.dripAmount || 3).toString();
 
     const tx = await transferEVMTokens(
       FAUCET_ADDRESS!,
       destinationAddress,
       chainId,
-      dripAmount
+      dripAmount,
+      faucetId || undefined
     );
 
     const response: TransferResponse = {
