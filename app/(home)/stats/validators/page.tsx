@@ -25,17 +25,6 @@ type SortColumn = "name" | "id" | "nodeCount" | "nodes" | "stake" | "isL1" | "to
 type SortDirection = "asc" | "desc";
 type Network = "mainnet" | "fuji";
 
-interface SubnetStatsWithCalculations extends SubnetStats {
-  stats: {
-    totalNodes: number;
-    aboveTargetNodes: number;
-    belowTargetNodes: number;
-    nodesPercentAbove: number;
-    stakePercentAbove: number;
-    isStakeHealthy: boolean;
-  };
-}
-
 export default function ValidatorStatsPage() {
   const { resolvedTheme } = useTheme();
   const router = useRouter();
@@ -854,7 +843,7 @@ export default function ValidatorStatsPage() {
               size="lg"
               className="px-8 py-3 border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-900 text-black dark:text-white transition-colors hover:border-black dark:hover:border-white hover:bg-[#fcfcfd] dark:hover:bg-neutral-900"
             >
-              Load More Subnets ({sortedData.length - visibleCount} remaining)
+              Load More Chains ({sortedData.length - visibleCount} remaining)
             </Button>
           </div>
         )}
