@@ -10,6 +10,7 @@ import l1ChainsData from "@/constants/l1-chains.json";
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes (matches HTTP Cache-Control)
 const VERSION_CACHE_DURATION = 60 * 1000; // 1 minute for validator versions
 const PAGE_SIZE = 100;
+const FETCH_TIMEOUT = 10000; // 10 seconds timeout for fetch requests
 
 // Cache storage with timestamps
 const validatorsCached: Partial<Record<string, { data: SimpleValidator[]; timestamp: number; promise?: Promise<SimpleValidator[]> }>> = {};
@@ -187,6 +188,29 @@ async function getAllSubnets(network: "mainnet" | "fuji"): Promise<Subnet[]> {
     return promise;
 }
 
+// Helper function to fetch with timeout
+async function fetchWithTimeout(url: string, timeout: number = FETCH_TIMEOUT): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+        const response = await fetch(url, {
+            signal: controller.signal,
+            headers: {
+                'Accept': 'application/json',
+            },
+        });
+        clearTimeout(timeoutId);
+        return response;
+    } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+            throw new Error(`Request timeout after ${timeout}ms`);
+        }
+        throw error;
+    }
+}
+
 async function getValidatorVersions(network: "mainnet" | "fuji"): Promise<Map<string, string>> {
     const now = Date.now();
     const cacheKey = network;
@@ -203,28 +227,40 @@ async function getValidatorVersions(network: "mainnet" | "fuji"): Promise<Map<st
         ? MAINNET_VALIDATOR_DISCOVERY_URL 
         : FUJI_VALIDATOR_DISCOVERY_URL;
     
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-        throw new Error(`Failed to fetch validator versions: ${response.status}`);
+    try {
+        const response = await fetchWithTimeout(url);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch validator versions: ${response.status} ${response.statusText}`);
+        }
+
+        const data: ValidatorVersion[] = await response.json();
+        const versionMap = new Map<string, string>();
+
+        for (const validator of data) {
+            // Use "Unknown" if version is empty
+            versionMap.set(validator.nodeId, validator.version || "Unknown");
+        }
+
+        // Update cache
+        validatorVersionsCached[cacheKey] = {
+            data: versionMap,
+            timestamp: now
+        };
+
+        console.log(`[${network}] Fetched ${versionMap.size} validator versions`);
+        return versionMap;
+    } catch (error: any) {
+        console.error(`[${network}] Error fetching validator versions:`, error.message);
+        // Return cached data if available, even if stale, rather than failing completely
+        if (cache) {
+            console.log(`[${network}] Returning stale cached validator versions due to fetch error`);
+            return cache.data;
+        }
+        // If no cache, return empty map rather than failing
+        console.warn(`[${network}] No cached validator versions available, returning empty map`);
+        return new Map<string, string>();
     }
-
-    const data: ValidatorVersion[] = await response.json();
-    const versionMap = new Map<string, string>();
-
-    for (const validator of data) {
-        // Use "Unknown" if version is empty
-        versionMap.set(validator.nodeId, validator.version || "Unknown");
-    }
-
-    // Update cache
-    validatorVersionsCached[cacheKey] = {
-        data: versionMap,
-        timestamp: now
-    };
-
-    console.log(`[${network}] Fetched ${versionMap.size} validator versions`);
-    return versionMap;
 }
 
 async function getNetworkStats(network: "mainnet" | "fuji"): Promise<SubnetStats[]> {
@@ -321,6 +357,16 @@ async function getNetworkStats(network: "mainnet" | "fuji"): Promise<SubnetStats
     return result;
 }
 
+// Helper to add timeout to promises
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> {
+    return Promise.race([
+        promise,
+        new Promise<T>((_, reject) => 
+            setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
+        )
+    ]);
+}
+
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -333,19 +379,27 @@ export async function GET(request: Request) {
             );
         }
 
-        const stats = await getNetworkStats(network);
+        // Add overall timeout of 25 seconds (Vercel serverless functions have 10s default, but can be extended)
+        const stats = await withTimeout(
+            getNetworkStats(network),
+            25000,
+            `Request timeout after 25 seconds for ${network}`
+        );
+        
         return NextResponse.json(stats, {
             headers: {
                 'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
                 'X-Network': network,
             }
         });
-    } catch (error) {
+    } catch (error: any) {
         const { searchParams } = new URL(request.url);
         const network = searchParams.get('network') || 'unknown';
         console.error(`Error in validator-stats API (${network}):`, error);
+        
+        const errorMessage = error?.message || `Failed to fetch validator stats for ${network}`;
         return NextResponse.json(
-            { error: `Failed to fetch validator stats for ${network}` },
+            { error: errorMessage },
             { status: 500 }
         );
     }
