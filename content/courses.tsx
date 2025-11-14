@@ -29,6 +29,18 @@ const officialCourses: Course[] = [
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
+        name: "Intro to Solidity",
+        description: "Start here to learn about Solidity basics with Foundry",
+        slug: "solidity-foundry",
+        icon: <SquareIcon />,
+        status: "normal",
+        duration: "1 hour",
+        languages: [],
+        tools: [],
+        instructors: ["Andrea Vargas"],
+        category: "Fundamentals",
+    },
+    {
         name: "Avalanche Fundamentals",
         description: "Get a high level overview of Avalanche Consensus, L1s and VMs",
         slug: "avalanche-fundamentals",

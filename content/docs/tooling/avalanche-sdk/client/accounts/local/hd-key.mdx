@@ -1,0 +1,215 @@
+---
+title: "HD Key Accounts"
+icon: "tree"
+---
+
+## Overview
+
+HD Key Accounts create Avalanche accounts from hierarchical deterministic (HD) keys with custom derivation paths. This allows for advanced key management and multiple account generation from a single seed.
+
+## Creating HD Key Accounts
+
+### Basic Usage
+
+```typescript
+import { hdKeyToAvalancheAccount, HDKey } from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const seed: Uint8Array = new Uint8Array(64); // Your seed
+const hdKey: HDKey = HDKey.fromMasterSeed(seed);
+
+const account: AvalancheAccount = hdKeyToAvalancheAccount(hdKey);
+```
+
+### Parameters
+
+- **`hdKey: HDKey`** - The HD key instance (required)
+- **`options?: HDKeyToAvalancheAccountOptions`** - Custom derivation path options (optional)
+
+### Options
+
+```typescript
+interface HDKeyToAvalancheAccountOptions {
+  accountIndex?: number; // Account index (default: 0)
+  addressIndex?: number; // Address index (default: 0)
+  changeIndex?: number; // Change index (default: 0)
+  xpAccountIndex?: number; // XP account index (default: 0)
+  xpAddressIndex?: number; // XP address index (default: 0)
+  xpChangeIndex?: number; // XP change index (default: 0)
+  path?: string; // Custom derivation path for EVM Account
+  xpPath?: string; // Custom derivation path for XP Account
+}
+```
+
+## Derivation Paths
+
+### Default Derivation Paths
+
+HD Key accounts use BIP-44 derivation paths to generate deterministic keys from a seed. By default, the SDK uses separate paths for EVM (C-Chain) and XP (X/P-Chain) accounts:
+
+**EVM (C-Chain) Path:**
+
+```
+m/44'/60'/{accountIndex}'/{changeIndex}/{addressIndex}
+```
+
+**XP (X/P-Chain) Path:**
+
+```
+m/44'/9000'/{xpAccountIndex}'/{xpChangeIndex}/{xpAddressIndex}
+```
+
+**Path Components:**
+
+- `m` - Master key
+- `44'` - BIP-44 purpose (hardened)
+- `60'` (EVM) or `9000'` (XP) - Coin type (hardened)
+  - `60` is the standard Ethereum coin type (used for C-Chain)
+  - `9000` is the Avalanche coin type (used for X/P-Chain)
+- `{accountIndex}'` - Account index (hardened, default: 0)
+- `{changeIndex}` - Change index (default: 0)
+  - `0` is typically used for external addresses
+  - `1` is typically used for change addresses
+- `{addressIndex}` - Address index (default: 0)
+
+**Default Values:**
+When no options are provided, both paths default to `m/44'/60'/0'/0/0` (EVM) and `m/44'/9000'/0'/0/0` (XP).
+
+### How Index Options Affect Paths
+
+The following table shows how different index combinations affect the derivation paths:
+
+| Option                             | EVM Path           | XP Path              | Notes                           |
+| ---------------------------------- | ------------------ | -------------------- | ------------------------------- |
+| Default (no options)               | `m/44'/60'/0'/0/0` | `m/44'/9000'/0'/0/0` | Both use index 0                |
+| `accountIndex: 1`                  | `m/44'/60'/1'/0/0` | `m/44'/9000'/1'/0/0` | Both use account index 1        |
+| `addressIndex: 2`                  | `m/44'/60'/0'/0/2` | `m/44'/9000'/0'/0/2` | Both use address index 2        |
+| `changeIndex: 1`                   | `m/44'/60'/0'/1/0` | `m/44'/9000'/0'/1/0` | Both use change index 1         |
+| `accountIndex: 1, addressIndex: 2` | `m/44'/60'/1'/0/2` | `m/44'/9000'/1'/0/2` | Combined indices                |
+| `xpAccountIndex: 2`                | `m/44'/60'/0'/0/0` | `m/44'/9000'/2'/0/0` | XP uses different account index |
+| `xpAddressIndex: 3`                | `m/44'/60'/0'/0/0` | `m/44'/9000'/0'/0/3` | XP uses different address index |
+| `xpChangeIndex: 1`                 | `m/44'/60'/0'/0/0` | `m/44'/9000'/0'/1/0` | XP uses different change index  |
+
+**Important Notes:**
+
+- When you specify `accountIndex`, `addressIndex`, or `changeIndex`, they apply to EVM path.
+- XP-specific options (`xpAccountIndex`, `xpAddressIndex`, `xpChangeIndex`) only affect the XP path, allowing you to use different indices for XP accounts while keeping EVM indices separate.
+
+### Custom Path Override
+
+<Callout type="warning">
+  **Important Limitation**: When the `path` or `xpPath` option is provided, it
+  overrides the EVM or XP derivation paths.
+</Callout>
+
+When you provide a custom `path` or `xpPath`, it completely replaces the default path calculation for EVM and XP accounts:
+
+```typescript
+import { hdKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+// ⚠️ WARNING: This path will be used for EVM accounts
+const account: AvalancheAccount = hdKeyToAvalancheAccount(hdKey, {
+  path: "m/44'/60'/0'/0/0", // EVM will use this path
+});
+
+// ⚠️ WARNING: This path will be used for XP accounts
+const account: AvalancheAccount = hdKeyToAvalancheAccount(hdKey, {
+  xpPath: "m/44'/60'/0'/0/0", // XP Account will use this path
+});
+
+// The following options are IGNORED when path is provided:
+// accountIndex, addressIndex, changeIndex
+// xpAccountIndex, xpAddressIndex, xpChangeIndex
+```
+
+**When to Use Custom Paths:**
+
+- When you need to match a specific wallet's derivation path
+- When migrating from another wallet implementation
+- When you need full control over the derivation path
+
+**When NOT to Use Custom Paths:**
+
+- When you want different paths for EVM and XP accounts (use index options instead)
+- When you want to leverage the default BIP-44 compliant paths
+- In most standard use cases
+
+### Examples
+
+```typescript
+import { hdKeyToAvalancheAccount, HDKey } from "@avalanche-sdk/client/accounts";
+
+const hdKey = HDKey.fromMasterSeed(seed);
+
+// Default paths (EVM: m/44'/60'/0'/0/0, XP: m/44'/9000'/0'/0/0)
+const account = hdKeyToAvalancheAccount(hdKey);
+
+// Different indices
+const account1 = hdKeyToAvalancheAccount(hdKey, { accountIndex: 1 });
+const account2 = hdKeyToAvalancheAccount(hdKey, { addressIndex: 1 });
+
+// Separate EVM and XP indices
+const account3 = hdKeyToAvalancheAccount(hdKey, {
+  accountIndex: 0, // EVM
+  xpAccountIndex: 2, // XP
+});
+
+// Custom path (⚠️ applies to both EVM and XP)
+const account4 = hdKeyToAvalancheAccount(hdKey, {
+  path: "m/44'/60'/0'/0/0",
+});
+```
+
+## Multiple Accounts
+
+Generate multiple accounts from the same HD key:
+
+```typescript
+import { hdKeyToAvalancheAccount, HDKey } from "@avalanche-sdk/client/accounts";
+
+const hdKey = HDKey.fromMasterSeed(seed);
+
+const account1 = hdKeyToAvalancheAccount(hdKey, { addressIndex: 0 });
+const account2 = hdKeyToAvalancheAccount(hdKey, { addressIndex: 1 });
+const account3 = hdKeyToAvalancheAccount(hdKey, { addressIndex: 2 });
+```
+
+## Using with Wallet Client
+
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+const walletClient = createAvalancheWalletClient({
+  account,
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+const txHash = await walletClient.send({
+  to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  amount: avaxToWei(0.001),
+});
+```
+
+## Security
+
+<Callout>
+  **Never expose seeds in client-side code or commit them to version control.
+  Use environment variables.**
+</Callout>
+
+```typescript
+// ✅ Good
+const seed = new Uint8Array(Buffer.from(process.env.SEED!, "hex"));
+const hdKey = HDKey.fromMasterSeed(seed);
+
+// ❌ Bad
+const seed = new Uint8Array(64); // Hardcoded seed
+```
+
+## Next Steps
+
+- **[Account Utilities](utilities)** - Account validation and utilities
+- **[Using Accounts with Clients](clients)** - Client integration patterns

@@ -1,0 +1,320 @@
+---
+title: X-Chain Wallet Methods
+description: Complete reference for X-Chain transaction preparation methods
+---
+
+## Overview
+
+The X-Chain Wallet Methods provide transaction preparation capabilities for the Exchange Chain. These methods allow you to create unsigned transactions for various operations including base transfers and cross-chain transfers.
+
+**Access:** `walletClient.xChain`
+
+## prepareBaseTxn
+
+Prepare a base X-Chain transaction for transferring AVAX or other assets.
+
+**Function Signature:**
+
+```typescript
+function prepareBaseTxn(
+  params: PrepareBaseTxnParameters
+): Promise<PrepareBaseTxnReturnType>;
+
+interface PrepareBaseTxnParameters {
+  outputs?: Output[];
+  fromAddresses?: string[];
+  changeAddresses?: string[];
+  utxos?: Utxo[];
+  memo?: string;
+  minIssuanceTime?: bigint;
+  context?: Context;
+}
+
+interface Output {
+  addresses: string[];
+  amount: bigint;
+  assetId?: string;
+  locktime?: bigint;
+  threshold?: number;
+}
+
+interface PrepareBaseTxnReturnType {
+  tx: UnsignedTx;
+  baseTx: BaseTx;
+  chainAlias: "X";
+}
+```
+
+**Parameters:**
+
+| Name              | Type       | Required | Description                                   |
+| ----------------- | ---------- | -------- | --------------------------------------------- |
+| `outputs`         | `Output[]` | No       | Array of outputs to send funds to             |
+| `fromAddresses`   | `string[]` | No       | Addresses to send funds from                  |
+| `changeAddresses` | `string[]` | No       | Addresses to receive change                   |
+| `utxos`           | `Utxo[]`   | No       | UTXOs to use as inputs                        |
+| `memo`            | `string`   | No       | Transaction memo                              |
+| `minIssuanceTime` | `bigint`   | No       | Earliest time this transaction can be issued  |
+| `context`         | `Context`  | No       | Transaction context (auto-fetched if omitted) |
+
+**Output Object:**
+
+| Name        | Type       | Required | Description                                                        |
+| ----------- | ---------- | -------- | ------------------------------------------------------------------ |
+| `addresses` | `string[]` | Yes      | Addresses who can sign the consuming of this UTXO                  |
+| `amount`    | `bigint`   | Yes      | Amount in nano AVAX                                                |
+| `assetId`   | `string`   | No       | Asset ID of the UTXO                                               |
+| `locktime`  | `bigint`   | No       | Timestamp in seconds after which this UTXO can be consumed         |
+| `threshold` | `number`   | No       | Threshold of `addresses`' signatures required to consume this UTXO |
+
+**Returns:**
+
+| Type                       | Description             |
+| -------------------------- | ----------------------- |
+| `PrepareBaseTxnReturnType` | Base transaction object |
+
+**Return Object:**
+
+| Property     | Type         | Description                   |
+| ------------ | ------------ | ----------------------------- |
+| `tx`         | `UnsignedTx` | The unsigned transaction      |
+| `baseTx`     | `BaseTx`     | The base transaction instance |
+| `chainAlias` | `"X"`        | The chain alias               |
+
+**Example:**
+
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import { avalanche } from "@avalanche-sdk/client/chains";
+import { avaxToNanoAvax } from "@avalanche-sdk/client/utils";
+
+const account = privateKeyToAvalancheAccount("0x...");
+
+const walletClient = createAvalancheWalletClient({
+  account,
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+const unsignedTx = await walletClient.xChain.prepareBaseTxn({
+  outputs: [
+    {
+      addresses: ["X-avax18jma8ppw3nhx5r4ap8clazz0dps7rv5ukulre5"],
+      amount: avaxToNanoAvax(1),
+    },
+  ],
+});
+
+// Sign and send
+const signedTx = await walletClient.signXPTransaction({
+  tx: unsignedTx.tx,
+  chainAlias: "X",
+});
+
+const { txHash } = await walletClient.sendXPTransaction({
+  tx: signedTx.signedTxHex,
+  chainAlias: "X",
+});
+
+console.log("Transaction hash:", txHash);
+```
+
+**Related:**
+
+- [prepareExportTxn](#prepareexporttxn) - Cross-chain exports
+- [prepareImportTxn](#prepareimporttxn) - Cross-chain imports
+
+---
+
+## prepareExportTxn
+
+Prepare a transaction to export AVAX or other assets from X-Chain to another chain.
+
+**Function Signature:**
+
+```typescript
+function prepareExportTxn(
+  params: PrepareExportTxnParameters
+): Promise<PrepareExportTxnReturnType>;
+
+interface PrepareExportTxnParameters {
+  destinationChain: "P" | "C";
+  exportedOutputs: Output[];
+  fromAddresses?: string[];
+  changeAddresses?: string[];
+  utxos?: Utxo[];
+  memo?: string;
+  minIssuanceTime?: bigint;
+  context?: Context;
+}
+
+interface PrepareExportTxnReturnType {
+  tx: UnsignedTx;
+  exportTx: ExportTx;
+  chainAlias: "X";
+}
+```
+
+**Parameters:**
+
+| Name               | Type         | Required | Description                                   |
+| ------------------ | ------------ | -------- | --------------------------------------------- |
+| `destinationChain` | `"P" \| "C"` | Yes      | Chain alias to export funds to                |
+| `exportedOutputs`  | `Output[]`   | Yes      | Outputs to export                             |
+| `fromAddresses`    | `string[]`   | No       | Addresses to send funds from                  |
+| `changeAddresses`  | `string[]`   | No       | Addresses to receive change                   |
+| `utxos`            | `Utxo[]`     | No       | UTXOs to use as inputs                        |
+| `memo`             | `string`     | No       | Transaction memo                              |
+| `minIssuanceTime`  | `bigint`     | No       | Earliest time this transaction can be issued  |
+| `context`          | `Context`    | No       | Transaction context (auto-fetched if omitted) |
+
+**Returns:**
+
+| Type                         | Description               |
+| ---------------------------- | ------------------------- |
+| `PrepareExportTxnReturnType` | Export transaction object |
+
+**Return Object:**
+
+| Property     | Type         | Description                     |
+| ------------ | ------------ | ------------------------------- |
+| `tx`         | `UnsignedTx` | The unsigned transaction        |
+| `exportTx`   | `ExportTx`   | The export transaction instance |
+| `chainAlias` | `"X"`        | The chain alias                 |
+
+**Example:**
+
+```typescript
+const exportTx = await walletClient.xChain.prepareExportTxn({
+  destinationChain: "C",
+  exportedOutputs: [
+    {
+      addresses: ["0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"],
+      amount: avaxToNanoAvax(1),
+    },
+  ],
+});
+
+// Sign and send
+const signedTx = await walletClient.signXPTransaction({
+  tx: exportTx.tx,
+  chainAlias: "X",
+});
+
+const { txHash } = await walletClient.sendXPTransaction({
+  tx: signedTx.signedTxHex,
+  chainAlias: "X",
+});
+```
+
+**Related:**
+
+- [prepareImportTxn](#prepareimporttxn) - Import to X-Chain
+- [Wallet send method](./wallet#send) - Simplified cross-chain transfers
+
+---
+
+## prepareImportTxn
+
+Prepare a transaction to import AVAX or other assets from another chain to X-Chain.
+
+**Function Signature:**
+
+```typescript
+function prepareImportTxn(
+  params: PrepareImportTxnParameters
+): Promise<PrepareImportTxnReturnType>;
+
+interface PrepareImportTxnParameters {
+  sourceChain: "P" | "C";
+  importedOutput: ImportedOutput;
+  fromAddresses?: string[];
+  utxos?: Utxo[];
+  memo?: string;
+  minIssuanceTime?: bigint;
+  context?: Context;
+}
+
+interface ImportedOutput {
+  addresses: string[];
+  locktime?: bigint;
+  threshold?: number;
+}
+
+interface PrepareImportTxnReturnType {
+  tx: UnsignedTx;
+  importTx: ImportTx;
+  chainAlias: "X";
+}
+```
+
+**Parameters:**
+
+| Name              | Type             | Required | Description                                     |
+| ----------------- | ---------------- | -------- | ----------------------------------------------- |
+| `sourceChain`     | `"P" \| "C"`     | Yes      | Chain alias to import funds from                |
+| `importedOutput`  | `ImportedOutput` | Yes      | Consolidated imported output from atomic memory |
+| `fromAddresses`   | `string[]`       | No       | Addresses to send funds from                    |
+| `utxos`           | `Utxo[]`         | No       | UTXOs to use as inputs                          |
+| `memo`            | `string`         | No       | Transaction memo                                |
+| `minIssuanceTime` | `bigint`         | No       | Earliest time this transaction can be issued    |
+| `context`         | `Context`        | No       | Transaction context (auto-fetched if omitted)   |
+
+**Imported Output Object:**
+
+| Name        | Type       | Required | Description                                                                         |
+| ----------- | ---------- | -------- | ----------------------------------------------------------------------------------- |
+| `addresses` | `string[]` | Yes      | Addresses who can sign the consuming of this UTXO                                   |
+| `locktime`  | `bigint`   | No       | Timestamp in seconds after which this UTXO can be consumed                          |
+| `threshold` | `number`   | No       | Number of signatures required out of total `addresses` to spend the imported output |
+
+**Returns:**
+
+| Type                         | Description               |
+| ---------------------------- | ------------------------- |
+| `PrepareImportTxnReturnType` | Import transaction object |
+
+**Return Object:**
+
+| Property     | Type         | Description                     |
+| ------------ | ------------ | ------------------------------- |
+| `tx`         | `UnsignedTx` | The unsigned transaction        |
+| `importTx`   | `ImportTx`   | The import transaction instance |
+| `chainAlias` | `"X"`        | The chain alias                 |
+
+**Example:**
+
+```typescript
+const importTx = await walletClient.xChain.prepareImportTxn({
+  sourceChain: "C",
+  importedOutput: {
+    addresses: ["X-avax18jma8ppw3nhx5r4ap8clazz0dps7rv5ukulre5"],
+    threshold: 1,
+  },
+});
+
+// Sign and send
+const signedTx = await walletClient.signXPTransaction({
+  tx: importTx.tx,
+  chainAlias: "X",
+});
+
+const { txHash } = await walletClient.sendXPTransaction({
+  tx: signedTx.signedTxHex,
+  chainAlias: "X",
+});
+```
+
+**Related:**
+
+- [prepareExportTxn](#prepareexporttxn) - Export from X-Chain
+
+---
+
+## Next Steps
+
+- **[Wallet Methods](./wallet)** - General wallet operations
+- **[P-Chain Wallet Methods](./p-chain-wallet)** - P-Chain transaction preparation
+- **[C-Chain Wallet Methods](./c-chain-wallet)** - C-Chain atomic transactions
+- **[Account Management](../accounts)** - Account types and management

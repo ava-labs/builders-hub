@@ -1,0 +1,175 @@
+---
+title: C-Chain Client
+---
+
+## Overview
+
+The C-Chain (Contract Chain) Client provides an interface for interacting with Avalanche's Contract Chain, which is an instance of the Ethereum Virtual Machine (EVM) with additional Avalanche-specific features like cross-chain atomic transactions.
+
+**When to use:** Use the C-Chain Client for EVM operations and atomic transactions (cross-chain transfers).
+
+## Installation & Setup
+
+For setup instructions, see the [Getting Started](/avalanche-sdk/client-sdk/getting-started) guide.
+
+```typescript
+import { createAvalancheClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+const cChainClient = client.cChain;
+```
+
+Or create a standalone C-Chain client:
+
+```typescript
+import { createCChainClient } from "@avalanche-sdk/client";
+
+const cChainClient = createCChainClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+```
+
+## Available Methods
+
+The C-Chain Client provides methods for:
+
+- **Atomic Transaction Operations**: `getAtomicTx`, `getAtomicTxStatus`
+- **UTXO Operations**: `getUTXOs`
+- **Transaction Operations**: `issueTx`
+
+Additionally, the C-Chain Client extends viem's Public Client, providing access to all standard EVM actions such as `getBalance`, `getBlock`, `readContract`, `call`, and more.
+
+For complete method documentation with signatures, parameters, and examples, see the [C-Chain Methods Reference](/avalanche-sdk/client-sdk/methods/public-methods/c-chain).
+
+## Common Use Cases
+
+### Query Atomic Transactions
+
+```typescript
+// Get atomic transaction details
+const atomicTx = await client.cChain.getAtomicTx({
+  txID: "2QouvMUbQ6oy7yQ9tLvL3L8tGQG2QK1wJ1q1wJ1q1wJ1q1wJ1q1wJ1q1wJ1",
+});
+
+console.log("Source chain:", atomicTx.sourceChain);
+console.log("Destination chain:", atomicTx.destinationChain);
+console.log("Transfers:", atomicTx.transfers);
+
+// Get atomic transaction status
+const status = await client.cChain.getAtomicTxStatus({
+  txID: "2QouvMUbQ6oy7yQ9tLvL3L8tGQG2QK1wJ1q1wJ1q1wJ1q1wJ1q1wJ1q1wJ1",
+});
+
+console.log("Status:", status.status);
+```
+
+### Query UTXOs
+
+```typescript
+// Get UTXOs for C-Chain addresses
+const utxos = await client.cChain.getUTXOs({
+  addresses: ["0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"],
+  limit: 100,
+});
+
+console.log("Number of UTXOs:", utxos.utxos.length);
+```
+
+## Using viem Actions
+
+The C-Chain Client extends viem's Public Client, so you have access to all standard EVM actions:
+
+```typescript
+// Get EVM balance
+const balance = await client.getBalance({
+  address: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+});
+
+// Get transaction receipt
+const receipt = await client.getTransactionReceipt({
+  hash: "0x...",
+});
+
+// Get block number
+const blockNumber = await client.getBlockNumber();
+
+// Read smart contract
+const result = await client.readContract({
+  address: "0x...",
+  abi: contractABI,
+  functionName: "balanceOf",
+  args: ["0x..."],
+});
+
+// Get block information
+const block = await client.getBlock({
+  blockNumber: blockNumber,
+});
+```
+
+See the [viem documentation](https://viem.sh/docs/getting-started) for all available EVM actions.
+
+## Wallet Operations
+
+For transaction operations (sending transactions, writing contracts), use the wallet client:
+
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import { parseEther } from "@avalanche-sdk/client/utils";
+
+const account = privateKeyToAvalancheAccount("0x...");
+const walletClient = createAvalancheWalletClient({
+  account,
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+// Send AVAX
+const txHash = await walletClient.send({
+  to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  value: parseEther("0.001"),
+});
+
+console.log("Transaction hash:", txHash);
+```
+
+### Cross-Chain Operations
+
+```typescript
+// Export from C-Chain to P-Chain
+const exportTx = await walletClient.cChain.prepareExportTxn({
+  destinationChain: "P",
+  to: account.getXPAddress("P"),
+  amount: "0.001",
+});
+
+const exportTxHash = await walletClient.sendXPTransaction(exportTx);
+console.log("Export transaction:", exportTxHash);
+
+// Import to C-Chain from P-Chain
+const importTx = await walletClient.cChain.prepareImportTxn({
+  to: account.getEVMAddress(),
+  amount: "0.001",
+  sourceChain: "P",
+});
+
+const importTxHash = await walletClient.sendXPTransaction(importTx);
+console.log("Import transaction:", importTxHash);
+```
+
+For complete wallet operations documentation, see [C-Chain Wallet Methods](/avalanche-sdk/client-sdk/methods/wallet-methods/c-chain-wallet).
+
+## Next Steps
+
+- **[C-Chain Methods Reference](/avalanche-sdk/client-sdk/methods/public-methods/c-chain)** - Complete method documentation
+- **[C-Chain Wallet Methods](/avalanche-sdk/client-sdk/methods/wallet-methods/c-chain-wallet)** - Transaction preparation and sending
+- **[Wallet Client](/avalanche-sdk/client-sdk/clients/wallet-client)** - Complete wallet operations
+- **[P-Chain Client](/avalanche-sdk/client-sdk/clients/p-chain-client)** - Validator operations
+- **[X-Chain Client](/avalanche-sdk/client-sdk/clients/x-chain-client)** - Asset operations

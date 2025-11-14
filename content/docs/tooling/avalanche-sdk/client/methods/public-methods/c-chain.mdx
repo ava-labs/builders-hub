@@ -1,0 +1,570 @@
+---
+title: C-Chain Methods
+description: Complete reference for C-Chain (Contract Chain) methods and EVM compatibility
+---
+
+## Overview
+
+The C-Chain (Contract Chain) is Avalanche's instance of the Ethereum Virtual Machine (EVM), providing full Ethereum compatibility with additional Avalanche-specific features like cross-chain atomic transactions and UTXO management.
+
+**Note:** The Avalanche Client SDK fully extends [viem](https://viem.sh), meaning all standard EVM methods are also available. See the [viem documentation](https://viem.sh/docs) for complete EVM method reference.
+
+## Atomic Transaction Operations
+
+### getAtomicTx
+
+Get an atomic transaction by its ID. Atomic transactions enable cross-chain transfers between the C-Chain and other Avalanche chains (P-Chain, X-Chain).
+
+**Function Signature:**
+
+```typescript
+function getAtomicTx(
+  params: GetAtomicTxParameters
+): Promise<GetAtomicTxReturnType>;
+
+interface GetAtomicTxParameters {
+  txID: string;
+  encoding?: "hex";
+}
+
+interface GetAtomicTxReturnType {
+  tx: string;
+  blockHeight: string;
+  encoding: "hex";
+}
+```
+
+**Parameters:**
+
+| Name       | Type     | Required | Description                                             |
+| ---------- | -------- | -------- | ------------------------------------------------------- |
+| `txID`     | `string` | Yes      | Transaction ID in CB58 format                           |
+| `encoding` | `"hex"`  | No       | Encoding format for the transaction (defaults to "hex") |
+
+**Returns:**
+
+| Type                    | Description               |
+| ----------------------- | ------------------------- |
+| `GetAtomicTxReturnType` | Atomic transaction object |
+
+**Return Object:**
+
+| Property      | Type     | Description                                    |
+| ------------- | -------- | ---------------------------------------------- |
+| `tx`          | `string` | Transaction bytes in hex format                |
+| `blockHeight` | `string` | Height of the block containing the transaction |
+| `encoding`    | `"hex"`  | Encoding format used                           |
+
+**Example:**
+
+```typescript
+import { createAvalancheClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+const atomicTx = await client.cChain.getAtomicTx({
+  txID: "2QouvMUbQ6oy7yQ9tLvL3L8tGQG2QK1wJ1q1wJ1q1wJ1q1wJ1q1wJ1q1wJ1",
+});
+
+console.log("Transaction:", atomicTx.tx);
+console.log("Block height:", atomicTx.blockHeight);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/c-chain/api#avaxgetatomictx)
+- [getAtomicTxStatus](#getatomictxstatus) - Get transaction status
+
+---
+
+### getAtomicTxStatus
+
+Get the status of an atomic transaction. Returns the current processing state and block information.
+
+**Function Signature:**
+
+```typescript
+function getAtomicTxStatus(
+  params: GetAtomicTxStatusParameters
+): Promise<GetAtomicTxStatusReturnType>;
+
+interface GetAtomicTxStatusParameters {
+  txID: string;
+}
+
+interface GetAtomicTxStatusReturnType {
+  status: CChainAtomicTxStatus;
+  blockHeight: string;
+}
+
+type CChainAtomicTxStatus = "Accepted" | "Processing" | "Dropped" | "Unknown";
+```
+
+**Parameters:**
+
+| Name   | Type     | Required | Description                   |
+| ------ | -------- | -------- | ----------------------------- |
+| `txID` | `string` | Yes      | Transaction ID in CB58 format |
+
+**Returns:**
+
+| Type                          | Description               |
+| ----------------------------- | ------------------------- |
+| `GetAtomicTxStatusReturnType` | Transaction status object |
+
+**Return Object:**
+
+| Property      | Type                   | Description                                                           |
+| ------------- | ---------------------- | --------------------------------------------------------------------- |
+| `status`      | `CChainAtomicTxStatus` | Transaction status: "Accepted", "Processing", "Dropped", or "Unknown" |
+| `blockHeight` | `string`               | Height of the block containing the transaction (if accepted)          |
+
+**Status Values:**
+
+- **Accepted**: Transaction is (or will be) accepted by every node
+- **Processing**: Transaction is being voted on by this node
+- **Dropped**: Transaction was dropped by this node because it thought the transaction invalid
+- **Unknown**: Transaction hasn't been seen by this node
+
+**Example:**
+
+```typescript
+const status = await client.cChain.getAtomicTxStatus({
+  txID: "2QouvMUbQ6oy7yQ9tLvL3L8tGQG2QK1wJ1q1wJ1q1wJ1q1wJ1q1wJ1q1wJ1",
+});
+
+console.log("Status:", status.status);
+if (status.status === "Accepted") {
+  console.log("Block height:", status.blockHeight);
+}
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/c-chain/api#avaxgetatomictxstatus)
+- [getAtomicTx](#getatomictx) - Get transaction details
+
+---
+
+## UTXO Operations
+
+### getUTXOs
+
+Get the UTXOs (Unspent Transaction Outputs) for a set of addresses. UTXOs represent unspent native AVAX on the C-Chain from imported transactions.
+
+**Function Signature:**
+
+```typescript
+function getUTXOs(params: GetUTXOsParameters): Promise<GetUTXOsReturnType>;
+
+interface GetUTXOsParameters {
+  addresses: string[];
+  limit?: number;
+  startIndex?: {
+    address: string;
+    utxo: string;
+  };
+  sourceChain?: string;
+  encoding?: "hex";
+}
+
+interface GetUTXOsReturnType {
+  numFetched: number;
+  utxos: string[];
+  endIndex: {
+    address: string;
+    utxo: string;
+  };
+}
+```
+
+**Parameters:**
+
+| Name          | Type                                | Required | Description                                  |
+| ------------- | ----------------------------------- | -------- | -------------------------------------------- |
+| `addresses`   | `string[]`                          | Yes      | Array of C-Chain addresses                   |
+| `limit`       | `number`                            | No       | Maximum number of UTXOs to return (max 1024) |
+| `startIndex`  | `{ address: string; utxo: string }` | No       | Pagination cursor for next page              |
+| `sourceChain` | `string`                            | No       | Source chain ID for filtering UTXOs          |
+| `encoding`    | `"hex"`                             | No       | Encoding format for returned UTXOs           |
+
+**Returns:**
+
+| Type                 | Description               |
+| -------------------- | ------------------------- |
+| `GetUTXOsReturnType` | UTXO data with pagination |
+
+**Return Object:**
+
+| Property     | Type                                | Description                              |
+| ------------ | ----------------------------------- | ---------------------------------------- |
+| `numFetched` | `number`                            | Number of UTXOs fetched in this response |
+| `utxos`      | `string[]`                          | Array of UTXO bytes (hex encoded)        |
+| `endIndex`   | `{ address: string; utxo: string }` | Pagination cursor for fetching next page |
+
+**Example:**
+
+```typescript
+// Get UTXOs from X-Chain
+const utxos = await client.cChain.getUTXOs({
+  addresses: ["0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"],
+  limit: 100,
+  sourceChain: "X",
+});
+
+console.log("Number of UTXOs:", utxos.numFetched);
+console.log("UTXOs:", utxos.utxos);
+
+// Get next page if needed
+if (utxos.endIndex) {
+  const moreUTXOs = await client.cChain.getUTXOs({
+    addresses: ["0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"],
+    startIndex: utxos.endIndex,
+    limit: 100,
+  });
+}
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/c-chain/api#avaxgetutxos)
+- [C-Chain Wallet Methods](../wallet-methods/c-chain-wallet) - Atomic transaction operations
+
+---
+
+## Transaction Operations
+
+### issueTx
+
+Issue a transaction to the C-Chain. Submits a signed transaction for processing.
+
+**Function Signature:**
+
+```typescript
+function issueTx(params: IssueTxParameters): Promise<IssueTxReturnType>;
+
+interface IssueTxParameters {
+  tx: string;
+  encoding: "hex";
+}
+
+interface IssueTxReturnType {
+  txID: string;
+}
+```
+
+**Parameters:**
+
+| Name       | Type     | Required | Description                     |
+| ---------- | -------- | -------- | ------------------------------- |
+| `tx`       | `string` | Yes      | Transaction bytes in hex format |
+| `encoding` | `"hex"`  | Yes      | Encoding format (must be "hex") |
+
+**Returns:**
+
+| Type                | Description           |
+| ------------------- | --------------------- |
+| `IssueTxReturnType` | Transaction ID object |
+
+**Return Object:**
+
+| Property | Type     | Description                   |
+| -------- | -------- | ----------------------------- |
+| `txID`   | `string` | Transaction ID in CB58 format |
+
+**Example:**
+
+```typescript
+const txID = await client.cChain.issueTx({
+  tx: "0x00000009de31b4d8b22991d51aa6aa1fc733f23a851a8c9400000000000186a0...",
+  encoding: "hex",
+});
+
+console.log("Transaction ID:", txID.txID);
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/c-chain/api#avaxissuetx)
+
+---
+
+## Admin Operations
+
+These methods are available for node administration and debugging. They require admin access to the node.
+
+### setLogLevel
+
+Set the log level for the C-Chain node.
+
+**Function Signature:**
+
+```typescript
+function setLogLevel(params: SetLogLevelParameters): Promise<void>;
+
+interface SetLogLevelParameters {
+  level: string;
+}
+```
+
+**Parameters:**
+
+| Name    | Type     | Required | Description                                        |
+| ------- | -------- | -------- | -------------------------------------------------- |
+| `level` | `string` | Yes      | Log level (e.g., "debug", "info", "warn", "error") |
+
+**Returns:**
+
+| Type   | Description                            |
+| ------ | -------------------------------------- |
+| `void` | Promise resolves when log level is set |
+
+**Example:**
+
+```typescript
+await client.cChain.setLogLevel({
+  level: "info",
+});
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/c-chain/api#adminsetloglevel)
+
+---
+
+### startCPUProfiler
+
+Start the CPU profiler for performance analysis.
+
+**Function Signature:**
+
+```typescript
+function startCPUProfiler(): Promise<void>;
+```
+
+**Parameters:**
+
+No parameters required.
+
+**Returns:**
+
+| Type   | Description                               |
+| ------ | ----------------------------------------- |
+| `void` | Promise resolves when profiler is started |
+
+**Example:**
+
+```typescript
+await client.cChain.startCPUProfiler();
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/c-chain/api#adminstartcpuprofiler)
+- [stopCPUProfiler](#stopcpuprofiler) - Stop the CPU profiler
+
+---
+
+### stopCPUProfiler
+
+Stop the CPU profiler.
+
+**Function Signature:**
+
+```typescript
+function stopCPUProfiler(): Promise<void>;
+```
+
+**Parameters:**
+
+No parameters required.
+
+**Returns:**
+
+| Type   | Description                               |
+| ------ | ----------------------------------------- |
+| `void` | Promise resolves when profiler is stopped |
+
+**Example:**
+
+```typescript
+await client.cChain.stopCPUProfiler();
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/c-chain/api#adminstopcpuprofiler)
+- [startCPUProfiler](#startcpuprofiler) - Start the CPU profiler
+
+---
+
+### memoryProfile
+
+Get the memory profile of the C-Chain node.
+
+**Function Signature:**
+
+```typescript
+function memoryProfile(): Promise<void>;
+```
+
+**Parameters:**
+
+No parameters required.
+
+**Returns:**
+
+| Type   | Description                                       |
+| ------ | ------------------------------------------------- |
+| `void` | Promise resolves when memory profile is retrieved |
+
+**Example:**
+
+```typescript
+await client.cChain.memoryProfile();
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/c-chain/api#adminmemoryprofile)
+
+---
+
+### lockProfile
+
+Lock the profile to prevent modifications.
+
+**Function Signature:**
+
+```typescript
+function lockProfile(): Promise<void>;
+```
+
+**Parameters:**
+
+No parameters required.
+
+**Returns:**
+
+| Type   | Description                             |
+| ------ | --------------------------------------- |
+| `void` | Promise resolves when profile is locked |
+
+**Example:**
+
+```typescript
+await client.cChain.lockProfile();
+```
+
+**Related:**
+
+- [API Reference](https://build.avax.network/docs/api-reference/c-chain/api#adminlockprofile)
+
+---
+
+## Standard EVM Methods
+
+The C-Chain client extends viem's Public Client, providing access to all standard Ethereum methods. Here are some commonly used methods:
+
+### Block Operations
+
+```typescript
+// Get block number
+const blockNumber = await client.getBlockNumber();
+
+// Get block by number
+const block = await client.getBlock({
+  blockNumber: 12345n,
+});
+
+// Get block by hash
+const blockByHash = await client.getBlock({
+  blockHash: "0x...",
+});
+```
+
+### Balance Operations
+
+```typescript
+// Get balance
+const balance = await client.getBalance({
+  address: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+});
+
+// Get balance with block number
+const balanceAtBlock = await client.getBalance({
+  address: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  blockNumber: 12345n,
+});
+```
+
+### Transaction Operations
+
+```typescript
+// Get transaction
+const tx = await client.getTransaction({
+  hash: "0x...",
+});
+
+// Get transaction receipt
+const receipt = await client.getTransactionReceipt({
+  hash: "0x...",
+});
+
+// Get transaction count (nonce)
+const nonce = await client.getTransactionCount({
+  address: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+});
+```
+
+### Gas Operations
+
+```typescript
+// Get gas price
+const gasPrice = await client.getGasPrice();
+
+// Get max priority fee per gas
+const maxPriorityFee = await client.maxPriorityFeePerGas();
+
+// Estimate gas
+const estimatedGas = await client.estimateGas({
+  to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  value: parseEther("0.001"),
+});
+```
+
+### Contract Operations
+
+```typescript
+// Read contract
+const result = await client.readContract({
+  address: "0x...",
+  abi: [...],
+  functionName: "balanceOf",
+  args: [address],
+});
+
+// Simulate contract
+const { request } = await client.simulateContract({
+  address: "0x...",
+  abi: [...],
+  functionName: "transfer",
+  args: [to, amount],
+});
+```
+
+**For complete EVM method reference, see:** [Viem Documentation](https://viem.sh/docs)
+
+---
+
+## Next Steps
+
+- **[C-Chain Wallet Methods](../wallet-methods/c-chain-wallet)** - Atomic transaction operations
+- **[Wallet Client](../../clients/wallet-client)** - Complete wallet operations
+- **[Account Management](../../accounts)** - Account types and management
+- **[Viem Documentation](https://viem.sh/docs)** - Complete EVM method reference

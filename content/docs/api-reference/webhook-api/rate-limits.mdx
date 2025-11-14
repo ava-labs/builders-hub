@@ -1,0 +1,55 @@
+---
+title: Rate Limits
+description: Rate Limits for the Webhooks API
+icon: Clock
+---
+
+Rate limiting is managed through a weighted scoring system, known as Compute Units (CUs). Each API request consumes a specified number of CUs, determined by the complexity of the request. This system is designed to accommodate basic requests while efficiently handling more computationally intensive operations.
+
+## Rate Limit Tiers
+
+The maximum CUs (rate-limiting score) for a user depends on their subscription level and is delineated in the following table:
+
+| Subscription Level | Per Minute Limit (CUs) | Per Day Limit (CUs) |
+| :----------------- | :--------------------- | :------------------ |
+| Unauthenticated    | 6,000                  | 1,200,000           |
+| Free               | 8,000                  | 2,000,000           |
+| Base               | 10,000                 | 3,750,000           |
+| Growth             | 14,000                 | 11,200,000          |
+| Pro                | 20,000                 | 25,000,000          |
+
+To update your subscription level use the [AvaCloud Portal](https://app.avacloud.io/)
+
+<Info> Note: Rate limits apply collectively across both Webhooks and Data APIs, with usage from each counting toward your total CU limit. </Info>
+
+## Rate Limit Categories
+
+The CUs for each category are defined in the following table:
+
+| Weight | CU Value |
+| :----- | :------- |
+| Free   | 1        |
+| Small  | 10       |
+| Medium | 20       |
+| Large  | 50       |
+| XL     | 100      |
+| XXL    | 200      |
+
+## Rate Limits for Webhook Endpoints
+
+The CUs for each route are defined in the table below:
+
+| Endpoint                                    | Method | Weight | CU Value |
+| :------------------------------------------ | :----- | :----- | :------- |
+| `/v1/webhooks`                              | POST   | Medium | 20       |
+| `/v1/webhooks`                              | GET    | Small  | 10       |
+| `/v1/webhooks/{id}`                         | GET    | Small  | 10       |
+| `/v1/webhooks/{id}`                         | DELETE | Medium | 20       |
+| `/v1/webhooks/{id}`                         | PATCH  | Medium | 20       |
+| `/v1/webhooks:generateOrRotateSharedSecret` | POST   | Medium | 20       |
+| `/v1/webhooks:getSharedSecret`              | GET    | Small  | 10       |
+| `/v1/webhooks/{id}/addresses`               | PATCH  | Medium | 20       |
+| `/v1/webhooks/{id}/addresses`               | DELETE | Medium | 20       |
+| `/v1/webhooks/{id}/addresses`               | GET    | Medium | 20       |
+
+<Info> All rate limits, weights, and CU values are subject to change. </Info>

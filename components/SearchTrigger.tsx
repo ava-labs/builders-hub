@@ -1,6 +1,6 @@
 'use client';
 
-import { useSearchContext } from 'fumadocs-ui/provider';
+import { useSearchContext } from 'fumadocs-ui/contexts/search';
 
 export function SearchTrigger() {
   const { setOpenSearch } = useSearchContext();

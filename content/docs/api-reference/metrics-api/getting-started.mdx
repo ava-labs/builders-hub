@@ -1,0 +1,145 @@
+---
+title: Getting Started
+description: Getting Started with the Metrics API
+icon: Rocket
+---
+
+The Metrics API is designed to be simple and accessible, requiring no authentication to get started. Just choose your endpoint, make your query, and instantly access on-chain data and analytics to power your applications.
+
+The following query retrieves the daily count of active addresses on the Avalanche C-Chain(43114) over the course of one month (from August 1, 2024 12:00:00 AM to August 31, 2024 12:00:00 AM), providing insights into user activity on the chain for each day during that period. With this data you can use JavaScript visualization tools like Chart.js, D3.js, Highcharts, Plotly.js, or Recharts to create interactive and insightful visual representations.
+
+```bash
+curl --request GET \
+  --url 'https://metrics.avax.network/v2/chains/43114/metrics/activeAddresses?startTimestamp=1722470400&endTimestamp=1725062400&timeInterval=day&pageSize=31'
+```
+
+Response:
+
+```json
+{
+  "results": [
+    {
+      "value": 37738,
+      "timestamp": 1724976000
+    },
+    {
+      "value": 53934,
+      "timestamp": 1724889600
+    },
+    {
+      "value": 58992,
+      "timestamp": 1724803200
+    },
+    {
+      "value": 73792,
+      "timestamp": 1724716800
+    },
+    {
+      "value": 70057,
+      "timestamp": 1724630400
+    },
+    {
+      "value": 46452,
+      "timestamp": 1724544000
+    },
+    {
+      "value": 46323,
+      "timestamp": 1724457600
+    },
+    {
+      "value": 73399,
+      "timestamp": 1724371200
+    },
+    {
+      "value": 52661,
+      "timestamp": 1724284800
+    },
+    {
+      "value": 52497,
+      "timestamp": 1724198400
+    },
+    {
+      "value": 50574,
+      "timestamp": 1724112000
+    },
+    {
+      "value": 46999,
+      "timestamp": 1724025600
+    },
+    {
+      "value": 45320,
+      "timestamp": 1723939200
+    },
+    {
+      "value": 54964,
+      "timestamp": 1723852800
+    },
+    {
+      "value": 60251,
+      "timestamp": 1723766400
+    },
+    {
+      "value": 48493,
+      "timestamp": 1723680000
+    },
+    {
+      "value": 71091,
+      "timestamp": 1723593600
+    },
+    {
+      "value": 50456,
+      "timestamp": 1723507200
+    },
+    {
+      "value": 46989,
+      "timestamp": 1723420800
+    },
+    {
+      "value": 50984,
+      "timestamp": 1723334400
+    },
+    {
+      "value": 46988,
+      "timestamp": 1723248000
+    },
+    {
+      "value": 66943,
+      "timestamp": 1723161600
+    },
+    {
+      "value": 64209,
+      "timestamp": 1723075200
+    },
+    {
+      "value": 57478,
+      "timestamp": 1722988800
+    },
+    {
+      "value": 80553,
+      "timestamp": 1722902400
+    },
+    {
+      "value": 70472,
+      "timestamp": 1722816000
+    },
+    {
+      "value": 53678,
+      "timestamp": 1722729600
+    },
+    {
+      "value": 70818,
+      "timestamp": 1722643200
+    },
+    {
+      "value": 99842,
+      "timestamp": 1722556800
+    },
+    {
+      "value": 76515,
+      "timestamp": 1722470400
+    }
+  ]
+}
+```
+
+Congratulations! You’ve successfully made your first query to the Metrics API. 🚀🚀🚀

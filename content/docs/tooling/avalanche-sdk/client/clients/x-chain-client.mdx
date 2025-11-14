@@ -1,0 +1,185 @@
+---
+title: X-Chain Client
+---
+
+## Overview
+
+The X-Chain (Exchange Chain) Client provides an interface for interacting with Avalanche's Exchange Chain, which handles asset creation, trading, transfers, and UTXO management.
+
+**When to use:** Use the X-Chain Client for asset operations, UTXO management, and X-Chain transaction queries.
+
+## Installation & Setup
+
+For setup instructions, see the [Getting Started](/avalanche-sdk/client-sdk/getting-started) guide.
+
+```typescript
+import { createAvalancheClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+const xChainClient = client.xChain;
+```
+
+Or create a standalone X-Chain client:
+
+```typescript
+import { createXChainClient } from "@avalanche-sdk/client";
+
+const xChainClient = createXChainClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+```
+
+## Available Methods
+
+The X-Chain Client provides methods for:
+
+- **Balance Operations**: `getBalance`, `getAllBalances`
+- **Asset Operations**: `getAssetDescription`, `buildGenesis`
+- **UTXO Operations**: `getUTXOs`
+- **Block Operations**: `getHeight`, `getBlock`, `getBlockByHeight`
+- **Transaction Operations**: `getTx`, `getTxStatus`, `getTxFee`, `issueTx`
+
+For complete method documentation with signatures, parameters, and examples, see the [X-Chain Methods Reference](/avalanche-sdk/client-sdk/methods/public-methods/x-chain).
+
+## Common Use Cases
+
+### Query Balances
+
+```typescript
+// Get balance for specific asset
+const balance = await client.xChain.getBalance({
+  addresses: ["X-avax18jma8ppw3nhx5r4ap8clazz0dps7rv5ukulre5"],
+  assetID: "AVAX",
+});
+
+console.log("Balance:", balance.balance);
+
+// Get all balances for all assets
+const allBalances = await client.xChain.getAllBalances({
+  addresses: ["X-avax18jma8ppw3nhx5r4ap8clazz0dps7rv5ukulre5"],
+});
+
+console.log("All balances:", allBalances.balances);
+```
+
+### Query Asset Information
+
+```typescript
+// Get asset description
+const asset = await client.xChain.getAssetDescription({
+  assetID: "FvwEAhmxKfeiG8SnEvq42hc6whRyY3EFYAvebMqDNDGCgxN5Z",
+});
+
+console.log("Asset name:", asset.name);
+console.log("Asset symbol:", asset.symbol);
+console.log("Denomination:", asset.denomination);
+```
+
+### Query UTXOs
+
+```typescript
+// Get UTXOs for address
+const utxos = await client.xChain.getUTXOs({
+  addresses: ["X-avax18jma8ppw3nhx5r4ap8clazz0dps7rv5ukulre5"],
+  sourceChain: "P", // Optional: specify source chain
+  limit: 100,
+});
+
+console.log("Number of UTXOs:", utxos.utxos.length);
+
+// Paginate through UTXOs if needed
+if (utxos.endIndex) {
+  const moreUtxos = await client.xChain.getUTXOs({
+    addresses: ["X-avax18jma8ppw3nhx5r4ap8clazz0dps7rv5ukulre5"],
+    startIndex: utxos.endIndex,
+    limit: 100,
+  });
+}
+```
+
+### Query Transaction Information
+
+```typescript
+// Get transaction
+const tx = await client.xChain.getTx({
+  txID: "11111111111111111111111111111111LpoYY",
+  encoding: "hex",
+});
+
+// Get transaction status
+const status = await client.xChain.getTxStatus({
+  txID: "11111111111111111111111111111111LpoYY",
+});
+
+console.log("Transaction status:", status.status);
+
+// Get transaction fees
+const txFee = await client.xChain.getTxFee();
+console.log("Transaction fee:", txFee.txFee);
+console.log("Create asset fee:", txFee.createAssetTxFee);
+```
+
+### Query Block Information
+
+```typescript
+// Get current height
+const height = await client.xChain.getHeight();
+console.log("Current X-Chain height:", height);
+
+// Get block by height
+const block = await client.xChain.getBlockByHeight({
+  height: Number(height),
+  encoding: "hex",
+});
+
+// Get block by ID
+const blockById = await client.xChain.getBlock({
+  blockID: "d7WYmb8VeZNHsny3EJCwMm6QA37s1EHwMxw1Y71V3FqPZ5EFG",
+  encoding: "hex",
+});
+```
+
+## Wallet Operations
+
+For transaction operations (preparing and sending transactions), use the wallet client:
+
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+
+const account = privateKeyToAvalancheAccount("0x...");
+const walletClient = createAvalancheWalletClient({
+  account,
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+// Prepare and send base transaction
+const baseTxn = await walletClient.xChain.prepareBaseTxn({
+  outputs: [
+    {
+      addresses: ["X-avax18jma8ppw3nhx5r4ap8clazz0dps7rv5ukulre5"],
+      amount: 1, // 1 AVAX
+    },
+  ],
+});
+
+const txID = await walletClient.sendXPTransaction(baseTxn);
+console.log("Transaction sent:", txID);
+```
+
+For complete wallet operations documentation, see [X-Chain Wallet Methods](/avalanche-sdk/client-sdk/methods/wallet-methods/x-chain-wallet).
+
+## Next Steps
+
+- **[X-Chain Methods Reference](/avalanche-sdk/client-sdk/methods/public-methods/x-chain)** - Complete method documentation
+- **[X-Chain Wallet Methods](/avalanche-sdk/client-sdk/methods/wallet-methods/x-chain-wallet)** - Transaction preparation and signing
+- **[Wallet Client](/avalanche-sdk/client-sdk/clients/wallet-client)** - Complete wallet operations
+- **[P-Chain Client](/avalanche-sdk/client-sdk/clients/p-chain-client)** - Validator and staking operations
+- **[C-Chain Client](/avalanche-sdk/client-sdk/clients/c-chain-client)** - EVM operations

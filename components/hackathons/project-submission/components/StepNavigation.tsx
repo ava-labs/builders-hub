@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import {
   Pagination,
   PaginationContent,
@@ -8,9 +7,9 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useFormContext } from "react-hook-form";
-import { SubmissionForm } from "../hooks/useSubmissionForm";
 import { useState } from "react";
 import { LoadingButton } from "@/components/ui/loading-button";
+import { SubmissionForm, Step1Schema, Step2Schema } from "../hooks/useSubmissionFormSecure";
 
 interface StepNavigationProps {
   currentStep: number;
@@ -28,35 +27,33 @@ export const StepNavigation = ({
   onNextStep,
 }: StepNavigationProps) => {
   const form = useFormContext<SubmissionForm>();
+  const toPath = (p: (string | number)[]) => p.join('.');
   const [isSavingLater, setIsSavingLater] = useState(false);
-  const step1Fields: (keyof SubmissionForm)[] = [
-    "project_name",
-    "short_description",
-    "full_description",
-    "tracks",
-  ];
 
-  const step2Fields: (keyof SubmissionForm)[] = [
-    "tech_stack",
-    "github_repository",
-    "explanation",
-    "demo_link",
-    "is_preexisting_idea",
-  ];
+
 
   const handleNext = async () => {
-    if (currentStep < 3) {
-      let valid = false;
-      if (currentStep === 1) {
-        valid = await form.trigger(step1Fields);
-      } else if (currentStep === 2) {
-        valid = await form.trigger(step2Fields);
-      }
+    if (currentStep >= 3) return;
 
-      if (valid) {
-        onNextStep();
-      }
+    const values = form.getValues();
+    const schema = currentStep === 1 ? Step1Schema : Step2Schema;
+
+    if (currentStep === 1) {
+      form.clearErrors(['project_name', 'short_description', 'full_description', 'tracks']);
+    } else {
+      form.clearErrors(['tech_stack', 'github_repository', 'explanation', 'demo_link', 'is_preexisting_idea']);
     }
+
+    const result = await schema.safeParseAsync(values);
+
+    if (!result.success) {
+      for (const issue of result.error.issues) {
+        form.setError(toPath(issue.path as (string | number)[]) as any, { type: 'zod', message: issue.message });
+      }
+      return;
+    }
+
+    onNextStep();
   };
 
   return (

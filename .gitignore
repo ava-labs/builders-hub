@@ -82,7 +82,7 @@ web_modules/
 .env.local
 
 # parcel-bundler cache (https://parceljs.org/)
-.cache
+# .cache handled above
 .parcel-cache
 
 # Next.js build output
@@ -143,7 +143,6 @@ package-lock.json
 
 
 
-
 # Remote content output paths
 content/docs/acps/103-dynamic-fees.mdx
 content/docs/acps/108-evm-event-importing.mdx
@@ -175,16 +174,6 @@ content/docs/acps/83-dynamic-multidimensional-fees.mdx
 content/docs/acps/84-table-preamble.mdx
 content/docs/acps/99-validatorsetmanager-contract.mdx
 content/docs/acps/index.mdx
-content/docs/api-reference/admin-api.mdx
-content/docs/api-reference/c-chain/api.mdx
-content/docs/api-reference/health-api.mdx
-content/docs/api-reference/index-api.mdx
-content/docs/api-reference/info-api.mdx
-content/docs/api-reference/metrics-api.mdx
-content/docs/api-reference/p-chain/api.mdx
-content/docs/api-reference/proposervm-api.mdx
-content/docs/api-reference/subnet-evm-api.mdx
-content/docs/api-reference/x-chain/api.mdx
 content/docs/avalanche-l1s/evm-configuration/warpmessenger.mdx
 content/docs/avalanche-l1s/validator-manager/contract.mdx
 content/docs/cross-chain/avalanche-warp-messaging/deep-dive.mdx
@@ -201,5 +190,112 @@ content/docs/nodes/chain-configs/subnet-evm.mdx
 content/docs/nodes/chain-configs/x-chain.mdx
 content/docs/nodes/configure/avalanche-l1-configs.mdx
 content/docs/nodes/configure/configs-flags.mdx
+content/docs/rpcs/c-chain/index.mdx
+content/docs/rpcs/other/health-rpc.mdx
+content/docs/rpcs/other/index-rpc.mdx
+content/docs/rpcs/other/index.mdx
+content/docs/rpcs/other/info-rpc.mdx
+content/docs/rpcs/other/metrics-rpc.mdx
+content/docs/rpcs/other/proposervm-rpc.mdx
+content/docs/rpcs/p-chain/index.mdx
+content/docs/rpcs/subnet-evm/index.mdx
+content/docs/rpcs/x-chain/index.mdx
 content/docs/tooling/cli-commands.mdx
+# (duplicates removed below)
+content/docs/nodes/chain-configs/c-chain.mdx
+content/docs/nodes/chain-configs/p-chain.mdx
+content/docs/nodes/chain-configs/subnet-evm.mdx
+content/docs/nodes/chain-configs/x-chain.mdx
+content/docs/nodes/configure/avalanche-l1-configs.mdx
+content/docs/nodes/configure/configs-flags.mdx
+content/docs/rpcs/c-chain/rpc.mdx
+content/docs/rpcs/other/admin-rpc.mdx
+content/docs/rpcs/other/health-rpc.mdx
+content/docs/rpcs/other/index-rpc.mdx
+content/docs/rpcs/other/info-rpc.mdx
+content/docs/rpcs/other/metrics-rpc.mdx
+content/docs/rpcs/other/proposervm-rpc.mdx
+content/docs/rpcs/other/subnet-evm-rpc.mdx
+content/docs/rpcs/p-chain/rpc.mdx
+content/docs/rpcs/x-chain/rpc.mdx
+content/docs/tooling/cli-commands.mdx
+# Generated OpenAPI specs (fetched during build)
+public/openapi/glacier.json
+public/openapi/popsicle.json
+
+# Generated OpenAPI documentation (auto-generated during build)
+content/docs/api-reference/data-api/**/*.mdx
+content/docs/api-reference/data-api/**/meta.json
+!content/docs/api-reference/data-api/meta.json
+!content/docs/api-reference/data-api/index.mdx
+!content/docs/api-reference/data-api/usage.mdx
+!content/docs/api-reference/data-api/data-vs-rpc.mdx
+!content/docs/api-reference/data-api/rate-limits.mdx
+!content/docs/api-reference/data-api/snowflake.mdx
+!content/docs/api-reference/data-api/getting-started.mdx
+content/docs/api-reference/metrics-api/**/*.mdx
+content/docs/api-reference/metrics-api/**/meta.json
+!content/docs/api-reference/metrics-api/meta.json
+!content/docs/api-reference/metrics-api/index.mdx
+!content/docs/api-reference/metrics-api/usage-guide.mdx
+!content/docs/api-reference/metrics-api/getting-started.mdx
+!content/docs/api-reference/metrics-api/rate-limits.mdx
+content/docs/api-reference/webhook-api/**/*.mdx
+content/docs/api-reference/webhook-api/**/meta.json
+!content/docs/api-reference/webhook-api/meta.json
+!content/docs/api-reference/webhook-api/index.mdx
+!content/docs/api-reference/webhook-api/rate-limits.mdx
+!content/docs/api-reference/webhook-api/retries.mdx
+!content/docs/api-reference/webhook-api/webhooks-signature.mdx
+!content/docs/api-reference/webhook-api/wss-vs-webhooks.mdx
+!content/docs/api-reference/webhook-api/tutorials/*.mdx
+
+# Generated RPC API docs (remote content)
+content/docs/rpcs/other/admin-api.mdx
+content/docs/rpcs/c-chain/api.mdx
+content/docs/rpcs/other/health-api.mdx
+content/docs/rpcs/other/index-api.mdx
+content/docs/rpcs/other/info-api.mdx
+content/docs/rpcs/other/metrics-api.mdx
+content/docs/rpcs/p-chain/api.mdx
+content/docs/rpcs/other/proposervm-api.mdx
+content/docs/rpcs/other/subnet-evm-api.mdx
+content/docs/rpcs/x-chain/api.mdx
+
+# Generated P-Chain RPC API documentation (auto-generated from OpenAPI)
+content/docs/rpcs/p-chain/**/*.mdx
+content/docs/rpcs/p-chain/**/meta.json
+!content/docs/rpcs/p-chain/meta.json
+!content/docs/rpcs/p-chain/index.mdx
+!content/docs/rpcs/p-chain/txn-format.mdx
+!content/docs/rpcs/p-chain/api.mdx
+
+# Generated C-Chain RPC API documentation (auto-generated from OpenAPI)
+content/docs/rpcs/c-chain/**/*.mdx
+content/docs/rpcs/c-chain/**/meta.json
+!content/docs/rpcs/c-chain/meta.json
+!content/docs/rpcs/c-chain/index.mdx
+!content/docs/rpcs/c-chain/txn-format.mdx
+!content/docs/rpcs/c-chain/api.mdx
+
+# Generated X-Chain RPC API documentation (auto-generated from OpenAPI)
+content/docs/rpcs/x-chain/**/*.mdx
+content/docs/rpcs/x-chain/**/meta.json
+!content/docs/rpcs/x-chain/meta.json
+!content/docs/rpcs/x-chain/index.mdx
+!content/docs/rpcs/x-chain/txn-format.mdx
+!content/docs/rpcs/x-chain/api.mdx
+!content/docs/rpcs/x-chain/rpc.mdx
+
+content/docs/avalanche-l1s/evm-configuration/warpmessenger.mdx
+content/docs/avalanche-l1s/validator-manager/contract.mdx
+content/docs/cross-chain/avalanche-warp-messaging/deep-dive.mdx
+content/docs/cross-chain/avalanche-warp-messaging/evm-integration.mdx
+content/docs/cross-chain/avalanche-warp-messaging/run-relayer.mdx
+content/docs/cross-chain/interchain-token-transfer/overview.mdx
+content/docs/cross-chain/teleporter/cli.mdx
+content/docs/cross-chain/teleporter/deep-dive.mdx
+content/docs/cross-chain/teleporter/overview.mdx
+content/docs/cross-chain/teleporter/upgradeability.mdx
+ 
 

@@ -1,0 +1,279 @@
+---
+title: Data API vs RPC
+description: Comparison of the Data API and RPC methods
+icon: Server
+---
+
+In the rapidly evolving world of Web3 development, efficiently retrieving token balances for a user's address is a fundamental requirement. Whether you're building DeFi platforms, wallets, analytics tools, or exchanges, displaying accurate token balances is crucial for user engagement and trust. A typical use case involves showing a user's token portfolio in a wallet application, in this case, we have sAvax and USDC.
+
+<img src="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/wallet.png?fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=9a7596035baaa07bbeca4c3e65d54459" alt="title" data-og-width="3267" width="3267" data-og-height="2112" height="2112" data-path="images/wallet.png" data-optimize="true" data-opv="3" srcset="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/wallet.png?w=280&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=e7852463251bb0cede8143ff4e777aae 280w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/wallet.png?w=560&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=523f9034b79bb173a77c3e8f1d1d5a37 560w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/wallet.png?w=840&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=65ff3d5662f91787c3eb2ae4b7675587 840w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/wallet.png?w=1100&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=7e68f4a1c8457c54efde9a989b2015f0 1100w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/wallet.png?w=1650&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=46e8d62f6c222b5f202db739928da286 1650w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/wallet.png?w=2500&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=6d72d4bda1aca25d96bc63cda3c7cf25 2500w" />
+
+Developers generally have two options to fetch this data:
+
+1. **Using RPC methods to index blockchain data on their own**
+2. **Leveraging an indexer provider like the Data API**
+
+While both methods aim to achieve the same goal, the Data API offers a more efficient, scalable, and developer-friendly solution. This article delves into why using the Data API is better than relying on traditional RPC (Remote Procedure Call) methods.
+
+### What Are RPC methods and their challenges?
+
+Remote Procedure Call (RPC) methods allow developers to interact directly with blockchain nodes. One of their key advantages is that they are standardized and universally understood by blockchain developers across different platforms. With RPC, you can perform tasks such as querying data, submitting transactions, and interacting with smart contracts. These methods are typically low-level and synchronous, meaning they require a deep understanding of the blockchain’s architecture and specific command structures.
+You can refer to the [official documentation](https://ethereum.org/en/developers/docs/apis/json-rpc/) to gain a more comprehensive understanding of the JSON-RPC API.
+
+Here’s an example using the `eth_getBalance` method to retrieve the native balance of a wallet:
+
+```bash 
+curl --location 'https://api.avax.network/ext/bc/C/rpc' \
+--header 'Content-Type: application/json' \
+--data '{"method":"eth_getBalance","params":["0x8ae323046633A07FB162043f28Cea39FFc23B50A", "latest"],"id":1,"jsonrpc":"2.0"}'
+```
+
+This call returns the following response:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": "0x284476254bc5d594"
+}
+```
+
+The balance in this wallet is 2.9016 AVAX. However, despite the wallet holding multiple tokens such as USDC, the `eth_getBalance` method only returns the AVAX amount and it does so in Wei and in hexadecimal format. This is not particularly human-readable, adding to the challenge for developers who need to manually convert the balance to a more understandable format.
+
+#### No direct RPC methods to retrieve token balances
+
+Despite their utility, RPC methods come with significant limitations when it comes to retrieving detailed token and transaction data. Currently, RPC methods do not provide direct solutions for the following:
+
+* **Listing all tokens held by a wallet**: There is no RPC method that provides a complete list of ERC-20 tokens owned by a wallet.
+* **Retrieving all transactions for a wallet**: : There is no direct method for fetching all transactions associated with a wallet.
+* **Getting ERC-20/721/1155 token balances**: The `eth_getBalance` method only returns the balance of the wallet’s native token (such as AVAX on Avalanche) and cannot be used to retrieve ERC-20/721/1155 token balances.
+
+To achieve these tasks using RPC methods alone, you would need to:
+
+* **Query every block for transaction logs**: Scan the entire blockchain, which is resource-intensive and impractical.
+* **Parse transaction logs**: Identify and extract ERC-20 token transfer events from each transaction.
+* **Aggregate data**: Collect and process this data to compute balances and transaction histories.
+
+#### Manual blockchain indexing is difficult and costly
+
+Using RPC methods to fetch token balances involves an arduous process:
+
+1. You must connect to a node and subscribe to new block events.
+2. For each block, parse every transaction to identify ERC-20 token transfers involving the user's address.
+3. Extract contract addresses and other relevant data from the parsed transactions.
+4. Compute balances by processing transfer events.
+5. Store the processed data in a database for quick retrieval and aggregation.
+
+#### Why this is difficult:
+
+* **Resource-Intensive**: Requires significant computational power and storage to process and store blockchain data.
+* **Time-consuming**: Processing millions of blocks and transactions can take an enormous amount of time.
+* **Complexity**: Handling edge cases like contract upgrades, proxy contracts, and non-standard implementations adds layers of complexity.
+* **Maintenance**: Keeping the indexed data up-to-date necessitates continuous synchronization with new blocks being added to the blockchain.
+* **High Costs**: Associated with servers, databases, and network bandwidth.
+
+### The Data API Advantage
+
+The Data API provides a streamlined, efficient, and scalable solution for fetching token balances. Here's why it's the best choice:
+With a single API call, you can retrieve all ERC-20 token balances for a user's address:
+
+```javascript
+avalancheSDK.data.evm.balances.listErc20Balances({
+  address: "0xYourAddress",
+});
+```
+
+Sample Response:
+
+```json
+{
+  "erc20TokenBalances": [
+    {
+      "ercType": "ERC-20",
+      "chainId": "43114",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "name": "USD Coin",
+      "symbol": "USDC",
+      "decimals": 6,
+      "price": {
+        "value": 1.0,
+        "currencyCode": "usd"
+      },
+      "balance": "15000000",
+      "balanceValue": {
+        "currencyCode": "usd",
+        "value": 9.6
+      },
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/e50058c1-2296-4e7e-91ea-83eb03db95ee/8db2a492ce64564c96de87c05a3756fd/43114-0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E.png"
+    }
+    // Additional tokens...
+  ]
+}
+```
+
+As you can see with a single call the API returns an array of token balances for all the wallet tokens, including:
+
+* **Token metadata**: Contract address, name, symbol, decimals.
+* **Balance information**: Token balance in both hexadecimal and decimal formats, Also retrieves balances of native assets like ETH or AVAX.
+* **Price data**: Current value in USD or other supported currencies, saving you the effort of integrating another API.
+* **Visual assets**: Token logo URI for better user interface integration.
+
+If you’re building a wallet, DeFi app, or any application that requires displaying balances, transaction history, or smart contract interactions, relying solely on RPC methods can be challenging. Just as there’s no direct RPC method to retrieve token balances, there’s also no simple way to fetch all transactions associated with a wallet, especially for ERC-20, ERC-721, or ERC-1155 token transfers.
+
+However, by using the Data API, you can retrieve all token transfers for a given wallet **with a single API call**, making the process much more efficient. This approach simplifies tracking and displaying wallet activity without the need to manually scan the entire blockchain.
+
+Below are two examples that demonstrate the power of the Data API: in the first, it returns all ERC transfers, including ERC-20, ERC-721, and ERC-1155 tokens, and in the second, it shows all internal transactions, such as when one contract interacts with another.
+
+<Accordions>
+  <Accordion title="List ERC transfers">
+    [Lists ERC transfers](/data-api/evm-transactions/list-erc-transfers) for an ERC-20, ERC-721, or ERC-1155 contract address.
+
+    ```javascript  theme={null}
+    import { Avalanche } from "@avalanche-sdk/chainkit";
+
+    const avalancheSDK = new Avalanche({
+      apiKey: "<YOUR_API_KEY_HERE>",
+      chainId: "43114",
+      network: "mainnet",
+    });
+
+    async function run() {
+      const result = await avalancheSDK.data.evm.transactions.listTransfers({
+        startBlock: 6479329,
+        endBlock: 6479330,
+        pageSize: 10,
+        address: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
+      });
+
+      for await (const page of result) {
+        // Handle the page
+        console.log(page);
+      }
+    }
+
+    run();
+    ```
+
+    Example response
+
+    ```json  theme={null}
+    {
+      "nextPageToken": "<string>",
+      "transfers": [
+        {
+          "blockNumber": "339",
+          "blockTimestamp": 1648672486,
+          "blockHash": "0x17533aeb5193378b9ff441d61728e7a2ebaf10f61fd5310759451627dfca2e7c",
+          "txHash": "0x3e9303f81be00b4af28515dab7b914bf3dbff209ea10e7071fa24d4af0a112d4",
+          "from": {
+            "name": "Wrapped AVAX",
+            "symbol": "WAVAX",
+            "decimals": 18,
+            "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/fdd6326b7a82c8388e4ee9d4be7062d4/avalanche-avax-logo.svg",
+            "address": "0x71C7656EC7ab88b098defB751B7401B5f6d8976F"
+          },
+          "to": {
+            "name": "Wrapped AVAX",
+            "symbol": "WAVAX",
+            "decimals": 18,
+            "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/fdd6326b7a82c8388e4ee9d4be7062d4/avalanche-avax-logo.svg",
+            "address": "0x71C7656EC7ab88b098defB751B7401B5f6d8976F"
+          },
+          "logIndex": 123,
+          "value": "10000000000000000000",
+          "erc20Token": {
+            "address": "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
+            "name": "Wrapped AVAX",
+            "symbol": "WAVAX",
+            "decimals": 18,
+            "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/fdd6326b7a82c8388e4ee9d4be7062d4/avalanche-avax-logo.svg",
+            "ercType": "ERC-20",
+            "price": {
+              "currencyCode": "usd",
+              "value": "42.42"
+            }
+          }
+        }
+      ]
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="List internal transactions">
+    [Returns a list of internal transactions](/data-api/evm-transactions/list-internal-transactions) for an address and chain. Filterable by block range.
+
+    ```javascript  theme={null}
+    import { Avalanche } from "@avalanche-sdk/chainkit";
+
+    const avalancheSDK = new Avalanche({
+      apiKey: "<YOUR_API_KEY_HERE>",
+      chainId: "43114",
+      network: "mainnet",
+    });
+
+    async function run() {
+      const result = await avalancheSDK.data.evm.transactions.listInternalTransactions({
+        startBlock: 6479329,
+        endBlock: 6479330,
+        pageSize: 10,
+        address: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
+      });
+
+      for await (const page of result) {
+        // Handle the page
+        console.log(page);
+      }
+    }
+
+    run();
+    ```
+
+    Example response
+
+    ```json  theme={null}
+    {
+      "nextPageToken": "<string>",
+      "transactions": [
+        {
+          "blockNumber": "339",
+          "blockTimestamp": 1648672486,
+          "blockHash": "0x17533aeb5193378b9ff441d61728e7a2ebaf10f61fd5310759451627dfca2e7c",
+          "txHash": "0x3e9303f81be00b4af28515dab7b914bf3dbff209ea10e7071fa24d4af0a112d4",
+          "from": {
+            "name": "Wrapped AVAX",
+            "symbol": "WAVAX",
+            "decimals": 18,
+            "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/fdd6326b7a82c8388e4ee9d4be7062d4/avalanche-avax-logo.svg",
+            "address": "0x71C7656EC7ab88b098defB751B7401B5f6d8976F"
+          },
+          "to": {
+            "name": "Wrapped AVAX",
+            "symbol": "WAVAX",
+            "decimals": 18,
+            "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/fdd6326b7a82c8388e4ee9d4be7062d4/avalanche-avax-logo.svg",
+            "address": "0x71C7656EC7ab88b098defB751B7401B5f6d8976F"
+          },
+          "internalTxType": "UNKNOWN",
+          "value": "10000000000000000000",
+          "isReverted": true,
+          "gasUsed": "<string>",
+          "gasLimit": "<string>"
+        }
+      ]
+    }
+    ```
+  </Accordion>
+</Accordions>
+
+### Conclusion
+
+Using the Data API over traditional RPC methods for fetching token balances offers significant advantages:
+
+* **Efficiency**: Retrieve all necessary information in a single API call.
+* **Simplicity**: Eliminates complex data processing and reduces development time.
+* **Scalability**: Handles large volumes of data efficiently, suitable for real-time applications.
+* **Comprehensive Data**: Provides enriched information, including token prices and logos.
+* **Reliability**: Ensures data accuracy and consistency without the need for extensive error handling.
+  For developers building Web3 applications, leveraging the Data API is the smarter choice. It not only simplifies your codebase but also enhances the user experience by providing accurate and timely data.
+
+If you’re building cutting-edge Web3 applications, this API is the key to improving your workflow and performance. Whether you’re developing DeFi solutions, wallets, or analytics platforms, take your project to the next level. [Start today with the Data API](/data-api/getting-started) and experience the difference!
