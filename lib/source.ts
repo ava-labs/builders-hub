@@ -87,6 +87,33 @@ export function getAcpsTree() {
   });
 }
 
+function filterTreeByPrefix(tree: any, prefix: string): any {
+  if (!Array.isArray(tree)) {
+    if (tree && typeof tree === 'object' && 'children' in tree) {
+      const filteredChildren = filterTreeByPrefix(tree.children, prefix);
+      return { ...tree, children: filteredChildren };
+    }
+    return tree;
+  }
+
+  return tree
+    .map((node) => {
+      const children = node.children ? filterTreeByPrefix(node.children, prefix) : undefined;
+      const hasChildren = Array.isArray(children) && children.length > 0;
+      const matches = typeof node.url === 'string' && node.url.startsWith(prefix);
+
+      if (matches || hasChildren || !node.url) {
+        return {
+          ...node,
+          children: hasChildren ? children : undefined,
+        };
+      }
+
+      return null;
+    })
+    .filter((node) => node !== null);
+}
+
 export const academy = loader({
   baseUrl: '/academy',
   icon(icon) {
@@ -95,6 +122,12 @@ export const academy = loader({
   },
   source: createMDXSource(course, courseMeta as any),
 });
+
+export function getAcademyTree(prefix: string) {
+  const fullTree = academy.pageTree;
+  if (!prefix) return fullTree;
+  return filterTreeByPrefix(fullTree, prefix);
+}
 
 export const entrepreneurAcademy = loader({
   baseUrl: '/academy/entrepreneur',
