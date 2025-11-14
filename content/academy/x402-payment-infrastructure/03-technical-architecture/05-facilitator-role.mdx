@@ -20,28 +20,17 @@ Think of facilitators as the "payment processors" of the x402 ecosystem—but un
 
 ## Why Facilitators Are Necessary
 
-While blockchain payments are permissionless, integrating them directly creates challenges:
+While blockchain payments are permissionless, integrating them directly into applications requires handling significant infrastructure complexity.
 
-### Without Facilitators
-
-Merchants would need to:
-- ❌ Run blockchain nodes
-- ❌ Monitor transactions in real-time
-- ❌ Handle gas price optimization
-- ❌ Manage wallet infrastructure
-- ❌ Implement replay attack prevention
-- ❌ Build payment verification logic
-- ❌ Handle multi-chain complexity
-
-### With Facilitators
-
-Merchants simply:
-- ✅ Add one line of middleware code
-- ✅ Configure payment amounts
-- ✅ Receive instant verification
-- ✅ Get automatic settlement
-- ✅ Access multi-chain support
-- ✅ Use simple REST APIs
+| Without Facilitators | With Facilitators |
+|----------------------|-------------------|
+| Run blockchain nodes (maintain infrastructure, handle failures, sync state) | Add middleware to your application |
+| Monitor transactions in real-time (query blocks, parse logs, handle reorgs) | Receive instant verification responses |
+| Optimize gas prices and manage transaction confirmation | Automatic settlement handling |
+| Secure wallet infrastructure (key storage, signing operations) | Use simple REST APIs |
+| Implement replay attack prevention (nonce tracking, databases) | Built-in security features |
+| Build payment verification (parse EIP-3009 signatures, validate parameters) | Payment validation handled automatically |
+| Deploy infrastructure for each blockchain separately | Multi-chain support included |
 
 Facilitators abstract away blockchain complexity while maintaining the benefits of permissionless payments.
 
@@ -131,13 +120,13 @@ POST /facilitator/verify-payment
 const tx = await avalancheClient.getTransaction("0x8f3d...");
 
 // Verification checks
-✓ Transaction exists on chain
-✓ Transaction is confirmed
-✓ Amount matches expected
-✓ Recipient matches expected
-✓ Currency is correct
-✓ Transaction not previously used
-✓ Block timestamp is recent
+- Transaction exists on chain
+- Transaction is confirmed
+- Amount matches expected
+- Recipient matches expected
+- Currency is correct
+- Transaction not previously used
+- Block timestamp is recent
 
 // Response
 {
@@ -310,4 +299,4 @@ Facilitators are essential infrastructure in the x402 ecosystem, handling paymen
 
 Facilitators charge minimal fees (~0.1-0.5% + gas) compared to traditional payment processors (2.9% + $0.30), making micropayments economically viable for the first time.
 
-**Next**: Learn about [Blockchain Settlement](./04-blockchain-settlement) to understand how payments are finalized on-chain, or explore [available facilitators on Avalanche](/academy/x402-payment-infrastructure/04-x402-on-avalanche/03-facilitators) for implementation options.
+**Next**: Learn about [Blockchain Settlement](./06-blockchain-settlement) to understand how payments are finalized on-chain, or explore [available facilitators on Avalanche](/academy/x402-payment-infrastructure/04-x402-on-avalanche/03-facilitators) for implementation options.
