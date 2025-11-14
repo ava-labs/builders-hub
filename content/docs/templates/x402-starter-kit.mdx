@@ -1,0 +1,393 @@
+---
+title: x402 Starter Kit
+description: Build payment-gated APIs and content services using the x402 protocol on Avalanche.
+keywords: [x402, payment protocol, micropayments, next.js, avalanche c-chain, api monetization, payment-gated content, eip-712, usdc payments]
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+The **x402 Starter Kit** is a production-ready Next.js template that demonstrates how to build payment-gated APIs and content services using the **x402 protocol** on Avalanche C-Chain.
+
+[View on GitHub →](https://github.com/tomi204/x402-starter-kit)
+
+## What Is x402?
+
+x402 is an open payment protocol that uses HTTP status code **402 "Payment Required"** to enable seamless cryptocurrency payments for web content and APIs. Learn more at [x402.org](https://www.x402.org/).
+
+### Key Benefits
+
+- **Direct Payments**: Accept cryptocurrency payments without third-party payment processors
+- **No Accounts**: No user registration or authentication required
+- **Blockchain-Verified**: Payments are verified directly on the Avalanche blockchain
+- **Simple Integration**: Add payment gates to any Next.js route with middleware
+- **Flexible Pricing**: Set different prices for different content in USD
+
+### Payment Flow
+
+1. User requests protected content
+2. Server responds with **402 Payment Required**
+3. User makes payment via wallet
+4. User proves payment with transaction signature
+5. Server verifies payment on Avalanche blockchain
+6. Access is granted to protected content
+
+## Why Avalanche + x402?
+
+| Aspect | Benefit |
+|--------|---------|
+| **Sub-second finality** | Instant payment verification |
+| **Low gas fees (~$0.01)** | Makes micropayments ($0.01+) economically viable |
+| **EVM compatible** | Use familiar Ethereum tooling and Solidity contracts |
+| **4,500+ TPS** | High throughput for serving many concurrent users |
+| **Established network** | Production-proven since 2020 with active ecosystem |
+
+## Features
+
+### Payment Infrastructure
+- **x402 Protocol Integration**: HTTP 402 status code with blockchain verification
+- **Micropayment Support**: Enable sub-dollar transactions with low overhead
+- **USD-Denominated Pricing**: Automatic conversion to AVAX/USDC at current rates
+- **EIP-712 Signatures**: Gasless authorization using `transferWithAuthorization`
+- **Network Support**: Both Mainnet (43114) and Fuji Testnet (43113)
+
+### Demo Endpoints
+- `/api/premium-data` - Market insights ($0.01 USDC)
+- `/api/ai-analysis` - AI-powered market analysis ($0.25 USDC)
+- `/content/[type]` - Payment-gated content pages
+
+### Developer Experience
+- **Wallet Connection**: Reown (WalletConnect v3) integration
+- **Modern UI**: Tailwind CSS 4 with animated backgrounds
+- **Type Safety**: Full TypeScript support
+- **AI Integration**: Optional OpenRouter support for AI features
+
+## Getting Started
+
+<Steps>
+<Step>
+
+### Clone the Repository
+
+```bash
+git clone https://github.com/tomi204/x402-starter-kit.git
+cd x402-starter-kit/starters/nextjs
+```
+
+</Step>
+
+<Step>
+
+### Install Dependencies
+
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+```
+
+</Step>
+
+<Step>
+
+### Get Reown Project ID
+
+You'll need a free Reown Project ID for wallet connection:
+
+1. Visit [cloud.reown.com](https://cloud.reown.com)
+2. Sign up (free account)
+3. Create a new project
+4. Copy the Project ID
+
+</Step>
+
+<Step>
+
+### Configure Environment
+
+Copy the example environment file:
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local` with your settings:
+
+```bash
+# Your EVM wallet address (where payments go)
+NEXT_PUBLIC_RECEIVER_ADDRESS=0x1234567890123456789012345678901234567890
+
+# Network: avalanche-fuji (testnet) or avalanche (mainnet)
+NEXT_PUBLIC_NETWORK=avalanche-fuji
+
+# Facilitator service for payment verification
+NEXT_PUBLIC_FACILITATOR_URL=https://facilitator.ultravioletadao.xyz
+
+# Your Reown Project ID (REQUIRED)
+NEXT_PUBLIC_REOWN_PROJECT_ID=your_reown_project_id_here
+
+# Optional: OpenRouter API key for real AI features
+OPENROUTER_API_KEY=sk-or-v1-your_api_key_here
+```
+
+**Required Variables:**
+
+| Variable | Purpose | Where to Get |
+|----------|---------|--------------|
+| `NEXT_PUBLIC_RECEIVER_ADDRESS` | Your wallet address that receives payments | Your EVM wallet (MetaMask, Core, etc.) |
+| `NEXT_PUBLIC_NETWORK` | Blockchain network | Use `avalanche-fuji` for testing |
+| `NEXT_PUBLIC_FACILITATOR_URL` | Payment verification service | Use provided URL |
+| `NEXT_PUBLIC_REOWN_PROJECT_ID` | Wallet connection | [cloud.reown.com](https://cloud.reown.com) |
+
+</Step>
+
+<Step>
+
+### Run Development Server
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+```
+
+Visit [http://localhost:3000](http://localhost:3000) to see your app running.
+
+</Step>
+
+<Step>
+
+### Test the Payment Flow
+
+1. Click on **"Access Cheap Content"** or **"Access Expensive Content"**
+2. Connect your wallet when prompted
+3. You'll see a payment modal
+4. Complete the payment (on testnet, make sure you have test AVAX)
+5. Access is granted and you'll see the protected content
+
+Make sure you're using Avalanche Fuji testnet. You can get test AVAX from the [Fuji Faucet](https://core.app/tools/testnet-faucet).
+
+</Step>
+</Steps>
+
+## Project Structure
+
+```
+starters/nextjs/
+├── app/
+│   ├── api/
+│   │   ├── ai-analysis/route.ts        # AI analysis endpoint ($0.25)
+│   │   ├── premium-data/route.ts       # Market data endpoint ($0.01)
+│   │   └── test-payment/route.ts       # Test endpoint
+│   ├── content/
+│   │   └── [type]/page.tsx             # Dynamic content pages
+│   ├── page.tsx                        # Landing page
+│   └── layout.tsx                      # Root layout with providers
+│
+├── components/ui/                      # React UI components
+│
+├── lib/
+│   ├── x402-middleware.ts              # Server-side payment verification
+│   ├── x402-client.ts                  # Client-side payment handling
+│   ├── facilitator.ts                  # Facilitator API helpers
+│   ├── ai-service.ts                   # AI integration (OpenRouter)
+│   ├── config.ts                       # Wallet configuration
+│   └── context.tsx                     # React providers
+│
+├── middleware.ts                       # Next.js middleware (payment protection)
+├── .env.example                        # Environment template
+└── package.json                        # Dependencies
+```
+
+## How It Works
+
+### Payment Verification Flow
+
+The template uses Next.js middleware to intercept requests and verify payments:
+
+```typescript
+// middleware.ts defines protected routes
+const protectedRoutes = {
+  "/api/premium-data": {
+    maxAmountRequired: "10000", // 0.01 USDC (6 decimals)
+    description: "Premium data access"
+  },
+  "/api/ai-analysis": {
+    maxAmountRequired: "250000", // 0.25 USDC
+    description: "AI-powered market analysis"
+  }
+}
+```
+
+The payment verification follows this flow:
+
+```
+User Request → Middleware Checks Payment
+    ↓
+No Payment? → Return 402 Payment Required
+    ↓
+User Signs Payment → Retry Request with Payment Header
+    ↓
+Middleware Verifies with Facilitator → Check Blockchain
+    ↓
+Valid Payment? → Proceed to API Route → Return Content
+```
+
+### Core Components
+
+The template consists of three main components:
+
+**Middleware** (`middleware.ts`):
+- Intercepts requests to protected routes
+- Returns 402 if no valid payment exists
+- Verifies payments via facilitator
+
+**x402 Client** (`lib/x402-client.ts`):
+- Handles client-side payment flow
+- Creates EIP-712 signatures
+- Retries requests with payment proof
+
+**x402 Middleware Library** (`lib/x402-middleware.ts`):
+- Payment verification logic
+- Facilitator communication
+- Payment settlement
+
+## Customization
+
+### Add New Protected Route
+
+Edit `middleware.ts` to add more protected endpoints:
+
+```typescript
+const protectedRoutes = {
+  // ... existing routes
+  "/api/premium-forecast": {
+    maxAmountRequired: "500000", // $0.50 USDC
+    description: "Premium 30-day price forecast"
+  }
+}
+```
+
+### Change Pricing
+
+Amounts are in USDC with 6 decimals:
+
+```typescript
+"10000"    // $0.01
+"500000"   // $0.50
+"1000000"  // $1.00
+```
+
+### Add AI Features
+
+To enable real AI-powered analysis:
+
+1. Get an API key from [OpenRouter](https://openrouter.ai)
+2. Add to `.env.local`:
+
+```bash
+OPENROUTER_API_KEY=sk-or-v1-your_api_key_here
+```
+
+3. The template will automatically use real AI instead of mock data
+
+You can change the AI model in `app/api/ai-analysis/route.ts`:
+
+```typescript
+const aiService = new AIService({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  model: 'anthropic/claude-3.5-sonnet', // or 'openai/gpt-4o'
+  temperature: 0.7,
+  maxTokens: 800,
+});
+```
+
+## Use Cases
+
+### API Monetization
+
+Build AI-powered APIs that users pay per request:
+
+- Market analysis services
+- Data feeds and analytics
+- AI content generation
+- Real-time insights
+
+### Premium Content
+
+Create token-gated content:
+
+- Educational materials
+- Research reports
+- Trading signals
+- Expert analysis
+
+### AI Agent Economy
+
+Enable autonomous agents to offer services:
+
+- Agents earn from user interactions
+- Instant blockchain settlement
+- No intermediary required
+- Dynamic pricing per service
+
+### Micropayment Services
+
+Viable micropayments due to low Avalanche fees:
+
+- Per-article access
+- API call pricing
+- Content unlocking
+- Service consumption
+
+## Deployment
+
+### Vercel (Recommended)
+
+The easiest way to deploy is using [Vercel](https://vercel.com):
+
+```bash
+npm run build
+vercel deploy --prod
+```
+
+Add all environment variables from `.env.local` in Vercel Dashboard → Settings → Environment Variables.
+
+### Self-Hosted
+
+```bash
+npm run build
+npm start
+```
+
+### Production Checklist
+
+Complete the following steps before deploying to production:
+
+- Use `avalanche` (mainnet) instead of `avalanche-fuji`
+- Set real wallet address for payment collection
+- Test payment flow thoroughly on testnet first
+- Enable OpenRouter API for real AI features (optional)
+- Configure proper Reown project
+- Set up monitoring and error tracking
+- Review security best practices
+
+## Resources
+
+- [x402 Protocol](https://www.x402.org/) - Official x402 protocol website
+- [UltraViolet DAO Facilitator](https://facilitator.ultravioletadao.xyz/) - Payment verification service
+- [x402 on Avalanche Ecosystem](https://build.avax.network/integrations#x402) - View x402 in Avalanche integrations
+- [GitHub Repository](https://github.com/tomi204/x402-starter-kit) - x402 Starter Kit source code
+- [OpenRouter](https://openrouter.ai/) - AI API aggregator for AI features
+- [Avalanche C-Chain Documentation](/docs/dapps) - Learn about Avalanche C-Chain
+
+## Support
+
+For issues, questions, or contributions:
+
+- Open an issue on [GitHub](https://github.com/tomi204/x402-starter-kit/issues)
+- Join the [Avalanche Discord](https://discord.gg/avalanche)
+- Check the [Avalanche Builders Hub](https://builders-hub.avalabs.org)

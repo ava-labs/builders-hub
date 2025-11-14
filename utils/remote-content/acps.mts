@@ -209,7 +209,7 @@ async function generateAcpConfigs(): Promise<FileConfig[]> {
     outputPath: "content/docs/acps/index.mdx",
     title: "Avalanche Community Proposals (ACPs)",
     description: "Official framework for proposing improvements and gathering consensus around changes to the Avalanche Network",
-    contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/",
+    contentUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/",
   });
 
   // Generate configs for each ACP

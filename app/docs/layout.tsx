@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
 import { baseOptions } from '@/app/layout.config';
-import { 
+import {
   getDocumentationTree,
   getApiReferenceTree,
   getRpcsTree,
   getToolingTree,
-  getAcpsTree
+  getAcpsTree,
+  getTemplatesTree
 } from '@/lib/source';
 import { DocsLayoutWrapper } from './docs-layout-wrapper';
 import { LayoutWrapper } from '@/app/layout-wrapper.client';
@@ -19,6 +20,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const rpcsTree = getRpcsTree();
   const toolingTree = getToolingTree();
   const acpsTree = getAcpsTree();
+  const templatesTree = getTemplatesTree();
 
   return (
     <LayoutWrapper baseOptions={baseOptions}>
@@ -28,6 +30,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         rpcsTree={rpcsTree}
         toolingTree={toolingTree}
         acpsTree={acpsTree}
+        templatesTree={templatesTree}
       >
         {children}
       </DocsLayoutWrapper>

@@ -8,7 +8,7 @@ import { DocsSubNav } from '@/components/navigation/docs-subnav';
 import { DocsNavbarToggle } from '@/components/navigation/docs-navbar-toggle';
 import { ForceMobileSidebar } from '@/components/navigation/force-mobile-sidebar';
 import { NavbarDropdownInjector } from '@/components/navigation/navbar-dropdown-injector';
-import { 
+import {
   BookOpen,
   Code,
   Layers,
@@ -22,7 +22,8 @@ import {
   CircleDollarSign,
   Terminal,
   Package,
-  Milestone
+  Milestone,
+  LayoutTemplate
 } from 'lucide-react';
 
 interface DocsLayoutWrapperProps {
@@ -32,6 +33,7 @@ interface DocsLayoutWrapperProps {
   rpcsTree: any;
   toolingTree: any;
   acpsTree: any;
+  templatesTree: any;
 }
 
 export function DocsLayoutWrapper({
@@ -41,6 +43,7 @@ export function DocsLayoutWrapper({
   rpcsTree,
   toolingTree,
   acpsTree,
+  templatesTree,
 }: DocsLayoutWrapperProps) {
   const pathname = usePathname();
 
@@ -61,6 +64,8 @@ export function DocsLayoutWrapper({
       document.body.setAttribute('data-docs-section', 'api-reference');
     } else if (pathname.startsWith('/docs/rpcs')) {
       document.body.setAttribute('data-docs-section', 'rpcs');
+    } else if (pathname.startsWith('/docs/templates')) {
+      document.body.setAttribute('data-docs-section', 'templates');
     } else if (pathname.startsWith('/docs')) {
       document.body.setAttribute('data-docs-section', 'documentation');
     }
@@ -228,6 +233,22 @@ export function DocsLayoutWrapper({
     },
   ];
 
+  // Templates hamburger menu options
+  const templatesOptions = [
+    {
+      title: 'x402 Starter Kit',
+      description: 'Payment-gated APIs with micropayments',
+      icon: <CircleDollarSign className="w-5 h-5" />,
+      url: '/docs/templates/x402-starter-kit',
+    },
+    {
+      title: 'EncryptedERC',
+      description: 'Private transactions with zero-knowledge proofs',
+      icon: <Code className="w-5 h-5" />,
+      url: '/docs/templates/encrypted-erc',
+    },
+  ];
+
   // Determine which section we're in and get the appropriate tree
   let pageTree;
   let sidebarOptions: any = {};
@@ -246,6 +267,11 @@ export function DocsLayoutWrapper({
     pageTree = toolingTree;
     sidebarOptions = {
       tabs: toolingOptions,
+    };
+  } else if (pathname.startsWith('/docs/templates')) {
+    pageTree = templatesTree;
+    sidebarOptions = {
+      tabs: templatesOptions,
     };
   } else if (pathname.startsWith('/docs/acps')) {
     pageTree = acpsTree;
