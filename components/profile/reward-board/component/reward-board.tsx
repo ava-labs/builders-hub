@@ -4,7 +4,7 @@ import { RewardCard } from "./reward-card";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { getRewardBoard } from "@/server/services/rewardBoard";
 import { Separator } from "@/components/ui/separator";
-import { Badge, UserBadge } from "@/types/badge";
+import { Badge, UserBadge, BadgeAwardStatus } from "@/types/badge";
 import { getAllBadges } from "@/server/services/badge";
 import Link from "next/link";
 
@@ -33,9 +33,11 @@ export default async function RewardBoard() {
 
   const academyBadgesUnlocked = academyBadges.map((badge) => {
     const userBadge = userBadges.find((userBadge) => userBadge.badge_id == badge.id);
+    // Only consider badge unlocked if status is approved (not pending)
+    const isUnlocked = userBadge?.status === BadgeAwardStatus.approved;
     return {
       ...badge,
-      is_unlocked: !!userBadge,
+      is_unlocked: isUnlocked,
       requirements: userBadge?.requirements || badge.requirements,
     };
 

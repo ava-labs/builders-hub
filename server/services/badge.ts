@@ -79,33 +79,42 @@ export async function assignBadgeAcademy(
     const currentRequirement = badgeRequirements?.find(
       (req: any) => req.course_id === body.courseId
     );
+    
+    let isNewRequirement = false;
     if (
       currentRequirement &&
-      !completedRequirements.some((req: any) => req.id == currentRequirement.id)
+      currentRequirement.id &&
+      !completedRequirements.some((req: any) => 
+        req && req.id && String(req.id) === String(currentRequirement.id)
+      )
     ) {
       completedRequirements.push(currentRequirement);
-    
-      // only display the badge if it is not already awarded
-      (badgeToReturn.badges as BadgeData[]).push({
-        name: badge.name,
-        image_path: badgeImage,
-        completed_requirement: currentRequirement,
-      });
-      badgeToReturn.success = true;
-      badgeToReturn.message = "Badge assigned successfully";
-      badgeToReturn.badge_id = badge.id;
-      badgeToReturn.user_id = body.userId;
+      isNewRequirement = true;
     }
 
-    const allRequirementsCompleted = badgeRequirements?.every((req: any) =>
-      completedRequirements.some((completed: any) => completed.id == req.id)
-    );
+    // Check if all requirements are completed by comparing IDs
+    const allRequirementsCompleted = badgeRequirements?.every((req: any) => {
+      if (!req || !req.id) return false;
+      return completedRequirements.some((completed: any) => 
+        completed && completed.id && String(completed.id) === String(req.id)
+      );
+    });
 
     const someRequirementsCompleted = completedRequirements.length > 0;
     let badgeStatus = BadgeAwardStatus.pending;
 
     if (allRequirementsCompleted) {
       badgeStatus = BadgeAwardStatus.approved;
+      // Only add badge to return array when all requirements are completed
+      (badgeToReturn.badges as BadgeData[]).push({
+        name: badge.name,
+        image_path: badgeImage,
+        completed_requirement: currentRequirement || (badgeRequirements && badgeRequirements[0]) || ({} as Requirement),
+      });
+      badgeToReturn.success = true;
+      badgeToReturn.message = "Badge assigned successfully";
+      badgeToReturn.badge_id = badge.id;
+      badgeToReturn.user_id = body.userId;
     } else if (someRequirementsCompleted) {
       badgeStatus = BadgeAwardStatus.pending;
     }

@@ -56,6 +56,8 @@ export async function getRewardBoard(user_id: string): Promise<UserBadge[]> {
       category: userBadge.badge.category,
       evidence: userBadge.evidence,
       requirements: parsedRequirements,
+      status: userBadge.status,
+      requirements_version: userBadge.requirements_version,
     };
   });
 
