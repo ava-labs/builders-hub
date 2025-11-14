@@ -65,7 +65,7 @@ Host: example.com
 X-PAYMENT: eyJ4NDAyVmVyc2lvbiI6MSwic2NoZW1lIjoiZXhhY3QiLCJuZXR3b3JrIjoiYXZhbGFuY2hlLWZ1amkiLCJwYXlsb2FkIjp7InNpZ25hdHVyZSI6IjB4MTIzNC4uLiIsImF1dGhvcml6YXRpb24iOnsiZnJvbSI6IjB4MTIzNC4uLiIsInRvIjoiMHg3NDJkMzUuLi4iLCJ2YWx1ZSI6IjEwMDAwIiwidmFsaWRBZnRlciI6IjE3NDA2NzIwODkiLCJ2YWxpZEJlZm9yZSI6IjE3NDA2NzIxNTQiLCJub25jZSI6IjB4MzQ1Ni4uLiJ9fX0=
 ```
 
-The client does NOT submit a blockchain transaction. The authorization is gasless—the server or facilitator will submit it. For details on the `X-PAYMENT` header structure, see [HTTP Headers](./02-http-headers#x-payment-header).
+The client does NOT submit a blockchain transaction. The authorization is gasless—the server or facilitator will submit it. For details on the `X-PAYMENT` header structure, see [X-PAYMENT Header](./03-x-payment-header).
 
 ### Step 4: Server Verifies, Settles, and Returns Resource
 
@@ -345,7 +345,7 @@ Each payment is independent. No sessions, no stored state, no account management
 
 Payment proofs can only be used once. Replay attacks are prevented by on-chain verification.
 
-For comprehensive security details, see [Security Considerations](./05-security-considerations).
+For comprehensive security details, see [Security Considerations](./07-security-considerations).
 
 ## Summary
 
