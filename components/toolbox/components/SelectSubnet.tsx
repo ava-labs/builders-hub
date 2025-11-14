@@ -2,7 +2,7 @@
 
 import SelectSubnetId from "./SelectSubnetId";
 import { useState, useCallback, useEffect } from "react";
-import { Subnet } from "@avalabs/avacloud-sdk/models/components";
+import { Subnet } from "@avalanche-sdk/chainkit/models/components/subnet.js";
 import BlockchainDetailsDisplay from "./BlockchainDetailsDisplay";
 import { useAvalancheSDKChainkit } from "../stores/useAvalancheSDKChainkit";
 

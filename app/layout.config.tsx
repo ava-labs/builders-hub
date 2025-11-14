@@ -131,7 +131,7 @@ export const stats: LinkItemType = {
     {
       icon: <Hexagon />,
       text: "Primary Network Validators",
-      url: "/stats/primary-network/validators",
+      url: "/stats/validators",
       description:
       "View the latest metrics for the Avalanche Primary Network validators.",
     },
