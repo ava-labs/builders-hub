@@ -363,28 +363,59 @@ export default function AvalancheMetrics() {
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
       <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
-        <div className="mb-10">
-          <div className="flex items-start justify-between gap-4 mb-3">
-            <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-black dark:text-white">
-              Avalanche L1s Index
-            </h1>
-            <Button
-              size="sm"
-              onClick={() =>
-                window.open(
-                  "https://github.com/ava-labs/builders-hub/blob/master/constants/l1-chains.json",
-                  "_blank"
-                )
-              }
-              className="flex-shrink-0 bg-black dark:bg-white text-white dark:text-black transition-colors hover:bg-neutral-800 dark:hover:bg-neutral-200"
-            >
-              Submit Your L1
-              <ArrowUpRight className="ml-1.5 h-4 w-4" />
-            </Button>
+        {/* Header */}
+        <div className="relative overflow-hidden rounded-2xl p-8 sm:p-12 mb-10">
+          {/* Multi-layer gradient background */}
+          <div className="absolute inset-0 bg-black" />
+          <div
+            className="absolute inset-0 opacity-60"
+            style={{
+              background: 'linear-gradient(140deg, #E84142 0%, transparent 70%)'
+            }}
+          />
+          <div
+            className="absolute inset-0 opacity-40"
+            style={{
+              background: 'linear-gradient(to top left, #3752AC 0%, transparent 50%)'
+            }}
+          />
+          <div
+            className="absolute inset-0 opacity-30"
+            style={{
+              background: 'radial-gradient(circle at 50% 50%, #E84142 0%, #3752AC 30%, transparent 70%)'
+            }}
+          />
+
+          {/* Content */}
+          <div className="relative z-10">
+            <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+              {/* Title and description */}
+              <div className="flex-1">
+                <h1 className="text-3xl sm:text-4xl font-semibold text-white mb-3">
+                  Avalanche L1s Index
+                </h1>
+                <p className="text-white/80 text-sm sm:text-base max-w-3xl">
+                  Opinionated stats for Mainnet L1s in the Avalanche ecosystem.
+                </p>
+              </div>
+
+              {/* Submit button */}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  window.open(
+                    "https://github.com/ava-labs/builders-hub/blob/master/constants/l1-chains.json",
+                    "_blank"
+                  )
+                }
+                className="flex-shrink-0 bg-white/5 border-white/50 text-white hover:bg-white/15 hover:border-white/70 hover:text-white"
+              >
+                Submit Your L1
+                <ArrowUpRight className="ml-1.5 h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
-            Opinionated stats for Mainnet L1s in the Avalanche ecosystem.
-          </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -425,7 +456,6 @@ export default function AvalancheMetrics() {
               </p>
               <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
                 {(() => {
-                  // Calculate total TPS from all chains
                   const totalTxs =
                     typeof overviewMetrics.aggregated.totalTxCount
                       .current_value === "number"

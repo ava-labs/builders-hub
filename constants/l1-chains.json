@@ -71,6 +71,10 @@
       {
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/c-chain"
+      },
+      {
+        "name": "SnowScan",
+        "link": "https://snowscan.xyz/"
       }
     ]
   },
