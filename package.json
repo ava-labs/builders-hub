@@ -106,7 +106,7 @@
     "posthog-js": "^1.266.0",
     "prismjs": "^1.30.0",
     "react": "^19.2.0",
-    "react-day-picker": "8.10.1",
+    "react-day-picker": "^9.11.1",
     "react-dom": "^19.2.0",
     "react-error-boundary": "^5.0.0",
     "react-hook-form": "^7.62.0",
@@ -139,8 +139,8 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.13",
     "@tailwindcss/typography": "^0.5.16",
-    "@types/exceljs": "^1.3.2",
     "@types/canvas-confetti": "^1.9.0",
+    "@types/exceljs": "^1.3.2",
     "@types/mdx": "^2.0.13",
     "@types/node": "^24.5.0",
     "@types/prismjs": "^1.26.5",
