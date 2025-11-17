@@ -396,7 +396,11 @@ export default function ChainMetricsPage({
                   ? "Avalanche C-Chain Metrics"
                   : `${chainName} L1 Metrics`}
               </h1>
-              <p className="text-zinc-400 text-md text-left">{description}</p>
+              <p className="text-zinc-400 text-md text-left">
+                {chainName.includes("C-Chain")
+                  ? "Loading Avalanche C-chain activity and network usage..."
+                  : `Loading ${chainName} metrics...`}
+              </p>
             </div>
           </div>
           <ChartSkeletonLoader />
