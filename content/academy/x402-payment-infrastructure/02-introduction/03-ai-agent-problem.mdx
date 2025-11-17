@@ -14,20 +14,10 @@ AI agents face a fundamental problem: traditional payment systems require human 
 
 AI agents cannot participate in traditional payment systems for several critical reasons:
 
-### Cannot Create Accounts
-Most signup flows require human verification through CAPTCHA, email confirmation, or phone verification. AI agents cannot complete these human-centric verification processes, preventing them from even accessing services.
-
-### Cannot Complete KYC
-Identity verification (Know Your Customer) is designed specifically for humans—requiring government-issued IDs, proof of address, and sometimes video verification. AI agents have no legal identity and cannot complete these requirements.
-
-### Cannot Handle Micropayments
-Transaction fees make small payments economically impossible. When an AI agent needs to pay \$0.001 for a single API call, traditional payment fees of $0.30+ make the transaction infeasible.
-
-### Credential Management Risks
-Storing API keys and payment credentials creates security vulnerabilities. AI agents would need to securely manage numerous credentials across services, creating attack vectors and compliance challenges.
-
-### Limited Autonomy
-Pre-approved payment methods and spending limits require human authorization, defeating the purpose of autonomous agents. Agents cannot dynamically adjust their resource usage or respond to changing market conditions.
+- **Can't Create Accounts**: signup flows require human verification (CAPTCHA, email, phone) and KYC processes that AI agents cannot complete
+- **Can't Handle Micropayments**: transaction fees make small payments economically infeasible when fees exceed the payment amount itself
+- **Credential Management Risks**: storing API keys and payment credentials creates security vulnerabilities and compliance challenges across services
+- **Limited Autonomy**: pre-approved payment methods and spending limits require human authorization, defeating autonomous agent operation
 
 ## What AI Agents Need
 
