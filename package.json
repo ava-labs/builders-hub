@@ -16,7 +16,7 @@
     "@ai-sdk/react": "^1.2.12",
     "@avalabs/avacloud-sdk": "^0.13.2",
     "@avalabs/avalanchejs": "^5.0.0",
-    "@avalanche-sdk/chainkit": "^0.3.0-alpha.2",
+    "@avalanche-sdk/chainkit": "^0.3.0-alpha.9",
     "@avalanche-sdk/client": "^0.0.4-alpha.14",
     "@fireworks-js/react": "^2.10.8",
     "@fumadocs/cli": "^0.2.1",
