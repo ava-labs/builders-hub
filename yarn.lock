@@ -217,13 +217,13 @@
     "@scure/base" "1.1.5"
     micro-eth-signer "0.7.2"
 
-"@avalanche-sdk/chainkit@^0.3.0-alpha.2":
-  version "0.3.0-alpha.6"
-  resolved "https://registry.yarnpkg.com/@avalanche-sdk/chainkit/-/chainkit-0.3.0-alpha.6.tgz#b6bbc7d49f5c9cadcea4c227ee936930c0e9ff2f"
-  integrity sha512-aPolyPtjAyF7E6I/i6OKcGkwJF7f1v/sLZE1mj3oEip+42m1uiih9EYryhSDz4msu1OW0JjIK++yGND9i8Fo1Q==
+"@avalanche-sdk/chainkit@^0.3.0-alpha.9":
+  version "0.3.0-alpha.9"
+  resolved "https://registry.yarnpkg.com/@avalanche-sdk/chainkit/-/chainkit-0.3.0-alpha.9.tgz#a4df1b4167e245195c3a3b1f8770fe6d8df10e89"
+  integrity sha512-iWuwR9MsL/w+YvqLVal1Zz2ScIGidCPU8LftglB8myDDhDWPpWl3YpR95d2iHGHu711OJT51uuI9ek5Ac8qffw==
   dependencies:
     json-canonicalize "^1.0.6"
-    zod "^3.20.0"
+    zod "^3.25.0 || ^4.0.0"
 
 "@avalanche-sdk/client@^0.0.4-alpha.14":
   version "0.0.4-alpha.16"
@@ -7240,12 +7240,7 @@ zod@4.1.11:
   resolved "https://registry.yarnpkg.com/zod/-/zod-4.1.11.tgz#4aab62f76cfd45e6c6166519ba31b2ea019f75f5"
   integrity sha512-WPsqwxITS2tzx1bzhIKsEs19ABD5vmCVa4xBo2tq/SrV4RNZtfws1EnCWQXM6yh8bD08a1idvkB5MZSBiZsjwg==
 
-zod@^3.20.0:
-  version "3.25.76"
-  resolved "https://registry.yarnpkg.com/zod/-/zod-3.25.76.tgz#26841c3f6fd22a6a2760e7ccb719179768471e34"
-  integrity sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==
-
-zod@^4.1.12:
+"zod@^3.25.0 || ^4.0.0", zod@^4.1.12:
   version "4.1.12"
   resolved "https://registry.yarnpkg.com/zod/-/zod-4.1.12.tgz#64f1ea53d00eab91853195653b5af9eee68970f0"
   integrity sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==
