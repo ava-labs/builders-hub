@@ -37,6 +37,7 @@ import { Feedback } from "@/components/ui/feedback";
 import { SidebarActions } from "@/components/ui/sidebar-actions";
 import posthog from "posthog-js";
 import Flashcard from "@/components/flashcards/flashcard";
+import type { HTMLAttributes } from "react";
 
 export const dynamicParams = false;
 
@@ -50,7 +51,7 @@ export default async function Page(props: {
   const path = `content/academy/entrepreneur${page.url.replace('/academy/entrepreneur/', '/')}.mdx`;
   const editUrl = `https://github.com/ava-labs/builders-hub/edit/master/${path}`;
   const MDX = page.data.body;
-  const course = COURSES.codebaseEntrepreneur.find(
+  const course = COURSES.avalancheEntrepreneur.find(
     (c) => c.slug === page.slugs[0]
   );
 
@@ -97,12 +98,12 @@ export default async function Page(props: {
         <MDX
           components={{
             ...defaultComponents,
-            h1: (props) => <Heading as="h1" {...props} />,
-            h2: (props) => <Heading as="h2" {...props} />,
-            h3: (props) => <Heading as="h3" {...props} />,
-            h4: (props) => <Heading as="h4" {...props} />,
-            h5: (props) => <Heading as="h5" {...props} />,
-            h6: (props) => <Heading as="h6" {...props} />,
+            h1: (props: HTMLAttributes<HTMLHeadingElement>) => <Heading as="h1" {...props} />,
+            h2: (props: HTMLAttributes<HTMLHeadingElement>) => <Heading as="h2" {...props} />,
+            h3: (props: HTMLAttributes<HTMLHeadingElement>) => <Heading as="h3" {...props} />,
+            h4: (props: HTMLAttributes<HTMLHeadingElement>) => <Heading as="h4" {...props} />,
+            h5: (props: HTMLAttributes<HTMLHeadingElement>) => <Heading as="h5" {...props} />,
+            h6: (props: HTMLAttributes<HTMLHeadingElement>) => <Heading as="h6" {...props} />,
             Button,
             Cards,
             Card,

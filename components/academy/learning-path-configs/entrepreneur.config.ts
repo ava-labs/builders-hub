@@ -4,7 +4,7 @@ import type { CourseNode } from '../learning-tree';
 export const entrepreneurLearningPaths: CourseNode[] = [
     // Foundation Layer
     {
-        id: "codebase-foundation",
+        id: "avalanche-foundation",
         name: "Level 1: Foundations of a Web3 Venture",
         description: "Establishing essential blockchain and business fundamentals.",
         slug: "entrepreneur/foundations-web3-venture",
@@ -15,34 +15,34 @@ export const entrepreneurLearningPaths: CourseNode[] = [
 
     // Second Layer  
     {
-        id: "codebase-gtm",
+        id: "avalanche-gtm",
         name: "Level 2: Go-To-Market Strategist",
         description: "Master go-to-market strategies for Web3 products and services.",
         slug: "entrepreneur/go-to-market",
         category: "Business Strategy",
-        dependencies: ["codebase-foundation"],
+        dependencies: ["avalanche-foundation"],
         position: { x: 30, y: 200 },
         mobileOrder: 2
     },
     {
-        id: "codebase-web3-community-architect",
+        id: "avalanche-web3-community-architect",
         name: "Level 3: Web3 Community Architect",
         description: "Learn to build and manage thriving Web3 communities.",
         slug: "entrepreneur/web3-community-architect",
         category: "Community",
-        dependencies: ["codebase-foundation"],
+        dependencies: ["avalanche-foundation"],
         position: { x: 70, y: 200 },
         mobileOrder: 3
     },
 
     // Third Layer
     {
-        id: "codebase-fundraising",
+        id: "avalanche-fundraising",
         name: "Level 4: Fundraising & Finance Pro",
         description: "Master fundraising strategies and financial management in Web3.",
         slug: "entrepreneur/fundraising-finance",
         category: "Finance",
-        dependencies: ["codebase-web3-community-architect", "codebase-gtm"],
+        dependencies: ["avalanche-web3-community-architect", "avalanche-gtm"],
         position: { x: 50, y: 400 },
         mobileOrder: 4
     }

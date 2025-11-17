@@ -57,7 +57,7 @@ export const courseMeta = defineCollections({
   }),
 });
 
-export const codebaseEntrepreneur = defineCollections({
+export const avalancheEntrepreneur = defineCollections({
   type: 'doc',
   dir: 'content/academy/entrepreneur',
   schema: frontmatterSchema.extend({
@@ -76,7 +76,7 @@ export const codebaseEntrepreneur = defineCollections({
   }),
 });
 
-export const codebaseEntrepreneurMeta = defineCollections({
+export const avalancheEntrepreneurMeta = defineCollections({
   type: 'meta',
   dir: 'content/academy/entrepreneur',
   schema: metaSchema.extend({

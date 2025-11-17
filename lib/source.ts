@@ -6,7 +6,7 @@ import {
 } from 'fumadocs-core/source';
 import { createElement } from 'react';
 import { icons } from 'lucide-react';
-import { meta, docs, blog as blogs, course, courseMeta, integrations, codebaseEntrepreneur, codebaseEntrepreneurMeta } from '@/.source';
+import { meta, docs, blog as blogs, course, courseMeta, integrations, avalancheEntrepreneur, avalancheEntrepreneurMeta } from '@/.source';
 import { openapiPlugin } from 'fumadocs-openapi/server';
 
 export const documentation = loader({
@@ -135,7 +135,7 @@ export const entrepreneurAcademy = loader({
     if (icon && icon in icons)
       return createElement(icons[icon as keyof typeof icons]);
   },
-  source: createMDXSource(codebaseEntrepreneur, codebaseEntrepreneurMeta as any),
+  source: createMDXSource(avalancheEntrepreneur, avalancheEntrepreneurMeta as any),
 });
 
 export const blog = loader({
