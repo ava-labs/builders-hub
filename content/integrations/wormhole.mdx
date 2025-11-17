@@ -2,7 +2,7 @@
 title: Wormhole
 category: Crosschain Solutions
 available: ["C-Chain"]
-description: "Wormhole is a generic message passing protocol that connects multiple chains, enabling secure cross-chain messaging and asset transfers on Avalanche."
+description: Wormhole is a leading interoperability platform powering multichain applications, messaging, and native token transfers across 30+ blockchains with secure, permissionless infrastructure.
 logo: /images/wormhole.png
 developer: Wormhole Foundation
 website: https://wormhole.com/
@@ -11,47 +11,275 @@ documentation: https://docs.wormhole.com/
 
 ## Overview
 
-Wormhole is a cross-chain messaging protocol that enables secure communication and asset transfers between Avalanche and other blockchain networks. It provides a generic message passing infrastructure that supports various use cases, from simple token transfers to complex cross-chain application logic, all secured by a decentralized guardian network.
+Wormhole is one of the most widely adopted interoperability platforms in blockchain, enabling secure cross-chain messaging, native token transfers, and multichain applications across 30+ blockchain networks. As a generic message passing protocol, Wormhole allows developers to build applications that seamlessly interact with multiple blockchains simultaneously, unlocking liquidity and users across the entire Web3 ecosystem.
+
+With billions of dollars in cross-chain value transferred and integrations with major DeFi protocols, NFT platforms, and blockchain infrastructure, Wormhole has established itself as critical infrastructure for the multichain future. The platform's permissionless, decentralized architecture ensures that any developer can build cross-chain applications without needing permission or relying on centralized intermediaries.
 
 ## Features
 
-- **Generic Messaging**: Send arbitrary messages between supported chains.
-- **Token Bridge**: Native and wrapped token transfers across chains.
-- **NFT Bridge**: Transfer NFTs between different blockchains.
-- **Guardian Network**: Decentralized network of validators securing cross-chain messages.
-- **Automated Relayers**: Efficient message delivery system.
-- **xChain Query System**: Query data across different chains.
-- **Developer SDK**: Comprehensive tools for cross-chain development.
+- **30+ Blockchain Networks**: Connect to Ethereum, Solana, Avalanche, BNB Chain, Polygon, Arbitrum, Optimism, and 20+ more chains.
+- **Generic Message Passing**: Send arbitrary data between blockchains, not just tokens.
+- **Native Token Transfers**: Bridge tokens natively without wrapped intermediaries using Wormhole's Native Token Transfers (NTT).
+- **Cross-Chain Queries**: Read state from any connected blockchain.
+- **Permissionless Protocol**: Anyone can build on Wormhole without permission.
+- **Decentralized Network**: Secured by 19 independent Guardian nodes including leading validators.
+- **Wormhole Connect**: Pre-built UI widget for easy integration of bridging functionality.
+- **Portal Bridge**: User-facing bridge for token transfers across chains.
+- **Developer SDKs**: Comprehensive SDKs for TypeScript, Rust, Go, and Python.
+- **High Security**: Multiple audits by leading firms and $2.5B+ secured by the protocol.
+- **Low Latency**: Fast finality for cross-chain messages.
+- **Composability**: Build complex multichain applications with programmable cross-chain calls.
 
-## Getting Started
+## Core Capabilities
 
-To begin using Wormhole:
+### Generic Message Passing
 
-1. **Access Documentation**: Review the [Wormhole Documentation](https://docs.wormhole.com/).
-2. **Choose Integration**: 
-   - Token Bridge for asset transfers
-   - Generic messaging for custom applications
-   - NFT Bridge for digital collectibles
-3. **Implement SDK**: 
-   - Install Wormhole SDK
-   - Configure for Avalanche
-   - Test cross-chain functionality
-4. **Monitor Transfers**: Track cross-chain messages and transfers.
+Wormhole's core capability is passing arbitrary messages between blockchains:
 
-## Documentation
+**Arbitrary Data**: Send any data structure between chains, not just token transfers.
 
-For detailed technical documentation and integration guides, visit the [Wormhole Documentation](https://docs.wormhole.com/).
+**Smart Contract Calls**: Trigger smart contract functions on destination chains.
+
+**Cross-Chain Composability**: Build applications that compose functionality across multiple chains.
+
+**State Synchronization**: Keep state synchronized across multiple blockchain deployments.
+
+**Event Broadcasting**: Broadcast events from one chain to multiple chains.
+
+This generic messaging enables entirely new categories of cross-chain applications.
+
+### Native Token Transfers (NTT)
+
+Wormhole's Native Token Transfers represent the next evolution in bridging:
+
+**No Wrapped Tokens**: Transfer native tokens without wrapped intermediaries.
+
+**Unified Liquidity**: Same native token across all chains.
+
+**Custom Token Programs**: Flexible framework for different token designs.
+
+**Rate Limiting**: Built-in security features like rate limits and transfer delays.
+
+**Ownership Control**: Token issuers maintain control across all chains.
+
+NTT eliminates fragmentation caused by wrapped token standards.
+
+### Wormhole Connect
+
+Pre-built widget for integrating bridging into applications:
+
+**Drop-in Widget**: Add cross-chain functionality with a few lines of code.
+
+**Customizable UI**: Match your application's branding and design.
+
+**Automatic Routing**: Optimal routing between chains and tokens.
+
+**Multiple Wallets**: Support for all major wallet providers.
+
+**Transaction Tracking**: Built-in transaction status monitoring.
+
+**Mobile Responsive**: Works seamlessly on mobile devices.
+
+Connect makes cross-chain integration accessible to any developer.
+
+## Avalanche Integration
+
+Wormhole fully supports Avalanche C-Chain with deep integration:
+
+**Native Avalanche Support**: Direct integration with Avalanche consensus and finality.
+
+**AVAX Bridging**: Bridge AVAX between Avalanche and 30+ other chains.
+
+**Token Bridges**: Bridge any Avalanche token to other ecosystems.
+
+**DeFi Integration**: Leverage Avalanche DeFi from other chains.
+
+**Low Fees**: Benefit from Avalanche's low transaction costs.
+
+**Fast Finality**: Quick bridging thanks to Avalanche's sub-second finality.
+
+Wormhole enables Avalanche to connect to the broader multichain ecosystem.
 
 ## Use Cases
 
-Wormhole enables various cross-chain applications:
+Wormhole enables diverse cross-chain applications:
 
-- **Asset Bridges**: Transfer tokens and NFTs between chains.
-- **Cross-Chain dApps**: Build applications that operate across multiple networks.
-- **Data Oracle**: Access data from other chains.
-- **Governance**: Implement cross-chain governance mechanisms.
-- **Liquidity Aggregation**: Pool liquidity from multiple chains.
+**Cross-Chain DeFi**: DeFi protocols operating across multiple chains simultaneously.
+
+**Multichain NFTs**: NFT platforms where NFTs can move between chains.
+
+**Cross-Chain Governance**: DAO governance spanning multiple blockchains.
+
+**Liquidity Aggregation**: Aggregate liquidity from multiple chains into unified pools.
+
+**Chain-Agnostic Applications**: Build once, deploy everywhere.
+
+**Cross-Chain Oracles**: Bring data from one chain to another.
+
+**Multichain Identity**: Identity and reputation that works across all chains.
+
+**Bridge Applications**: Build custom bridges for specific assets or use cases.
+
+## Security Model
+
+Wormhole employs multiple security layers:
+
+**Guardian Network**: 19 independent validators securing the network including Jump Crypto, Staked, Figment, and other leading operators.
+
+**Multiple Audits**: Audited by Trail of Bits, Neodyme, Kudelski, OtterSec, and others.
+
+**Bug Bounty**: $2.5M bug bounty program through Immunefi.
+
+**Rate Limiting**: Built-in protections against rapid exploits.
+
+**Time Delays**: Optional delays for high-value transfers.
+
+**Monitoring**: 24/7 monitoring of cross-chain activity.
+
+**Decentralization**: No single point of failure in the protocol.
+
+## Developer Experience
+
+Wormhole provides comprehensive developer tools:
+
+**SDKs**: TypeScript, Rust, Go, and Python SDKs for all platforms.
+
+**Documentation**: Extensive guides, tutorials, and API references.
+
+**Testnet**: Full testnet environment for development and testing.
+
+**Local Development**: Local validator for rapid iteration.
+
+**Example Apps**: Open-source example applications and integrations.
+
+**Developer Discord**: Active community and core team support.
+
+**Workshops**: Regular workshops and hackathons for developers.
+
+## Wormhole Ecosystem
+
+Major protocols building on Wormhole:
+
+**DeFi**: Uniswap, Lido, Synthetix, and dozens of DeFi protocols.
+
+**NFTs**: Magic Eden, OpenSea, and major NFT platforms.
+
+**Gaming**: Axie Infinity, Star Atlas, and blockchain games.
+
+**Infrastructure**: Circle (USDC), Pyth Network, and core infrastructure.
+
+This ecosystem demonstrates Wormhole's production readiness and adoption.
+
+## Portal Bridge
+
+Wormhole's user-facing bridge application:
+
+**User-Friendly**: Simple interface for bridging tokens.
+
+**Multi-Asset**: Support for thousands of tokens across chains.
+
+**Automatic Routing**: Optimal paths for transfers.
+
+**Transaction Tracking**: Real-time status updates.
+
+**Mobile Support**: Full mobile functionality.
+
+Portal makes bridging accessible to non-technical users.
+
+## Getting Started
+
+To build with Wormhole:
+
+1. **Explore Documentation**: Visit [docs.wormhole.com](https://docs.wormhole.com/) for comprehensive guides.
+
+2. **Install SDK**: Choose your preferred language SDK:
+   - TypeScript: `npm install @certusone/wormhole-sdk`
+   - Rust: Add wormhole-sdk to Cargo.toml
+   - Python: `pip install wormhole-sdk`
+   - Go: `go get github.com/wormhole-foundation/wormhole/sdk/go`
+
+3. **Deploy to Testnet**: Test your cross-chain application on Wormhole testnet.
+
+4. **Integrate Connect** (Optional): Add Wormhole Connect widget for bridging UI.
+
+5. **Launch**: Deploy your multichain application to mainnet.
+
+## Architecture
+
+Wormhole's architecture consists of:
+
+**Core Bridge**: Smart contracts on each connected chain.
+
+**Guardian Network**: Validator network observing and attesting to messages.
+
+**Relayers**: Deliver messages from source to destination chain.
+
+**APIs**: Off-chain APIs for querying and monitoring.
+
+**SDKs**: Developer libraries for all major languages.
+
+This modular architecture enables flexibility and extensibility.
+
+## Governance
+
+Wormhole governance model:
+
+**Wormhole Foundation**: Non-profit foundation stewarding the protocol.
+
+**Community Governance**: Protocol upgrades governed by community.
+
+**Guardian Set**: Guardian network can be rotated through governance.
+
+**Transparency**: All governance decisions public and documented.
+
+## Pricing
+
+Using Wormhole involves:
+
+- **Protocol Fees**: Small fees for cross-chain messages (typically <$1)
+- **Gas Costs**: Native gas fees on source and destination chains
+- **No Platform Fees**: No additional fees from Wormhole Foundation
+- **Relayer Costs**: Minimal costs for message delivery
+
+Wormhole is designed to be accessible and affordable for all applications.
+
+## Competitive Advantages
+
+**Proven at Scale**: Billions in value transferred, battle-tested infrastructure.
+
+**30+ Chains**: Most comprehensive chain coverage in the industry.
+
+**Generic Messaging**: Not limited to token transfers like many bridges.
+
+**Permissionless**: Anyone can build without asking permission.
+
+**Decentralized**: No centralized control or single point of failure.
+
+**Developer-Friendly**: Excellent documentation and tooling.
+
+**Production-Ready**: Powering major applications already.
+
+## Audits and Security
+
+Wormhole maintains rigorous security:
+
+- Audited by Trail of Bits, Neodyme, Kudelski Security, OtterSec
+- $2.5M bug bounty through Immunefi
+- Continuous security monitoring
+- Regular security updates and improvements
+- Transparent incident response process
+
+## Community and Support
+
+Wormhole provides extensive support:
+
+- **Discord**: Active developer community and core team
+- **Documentation**: Comprehensive guides and references
+- **Twitter**: Regular updates and announcements
+- **Grants**: Funding available for ecosystem projects
+- **Hackathons**: Regular hackathons with prizes
+- **Office Hours**: Weekly community calls and Q&A
 
 ## Conclusion
 
-Wormhole provides a robust infrastructure for cross-chain communication on Avalanche's C-Chain. Its combination of secure message passing, token bridging capabilities, and comprehensive developer tools makes it an essential protocol for building cross-chain applications. Whether you're implementing simple token transfers or complex cross-chain logic, Wormhole offers the security and functionality needed for reliable cross-chain operations. 
+Wormhole is the leading interoperability platform enabling the multichain future of Web3. With support for 30+ blockchains including deep Avalanche integration, generic message passing that goes beyond simple token bridges, and a proven track record securing billions in cross-chain value, Wormhole provides the essential infrastructure for building truly multichain applications. Whether you're connecting Avalanche DeFi to liquidity on other chains, building cross-chain NFT platforms, or creating entirely new categories of multichain applications, Wormhole's permissionless, decentralized, and developer-friendly platform makes cross-chain development accessible and secure. With comprehensive SDKs, extensive documentation, and an active community, Wormhole empowers developers to unlock the full potential of the multichain ecosystem.
