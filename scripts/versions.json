@@ -2,12 +2,12 @@
   "mainnet": {
     "avaplatform/avalanchego": "v1.14.0",
     "avaplatform/subnet-evm_avalanchego": "v0.8.0_v1.14.0",
-    "avaplatform/icm-relayer": "v1.7.3"
+    "avaplatform/icm-relayer": "v1.7.4"
   },
   "testnet": {
-    "avaplatform/avalanchego": "v1.14.0",
-    "avaplatform/subnet-evm_avalanchego": "v0.8.0_v1.14.0",
-    "avaplatform/icm-relayer": "v1.7.3"
+    "avaplatform/avalanchego": "v1.14.0-fuji",
+    "avaplatform/subnet-evm_avalanchego": "v0.8.0-fuji_v1.14.0-fuji",
+    "avaplatform/icm-relayer": "v1.7.2-fuji"
   },
   "ava-labs/icm-contracts": "4d5ab0b6dbc653770cfe9709878c9406eb28b71c"
 }

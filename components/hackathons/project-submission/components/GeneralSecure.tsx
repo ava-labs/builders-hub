@@ -21,6 +21,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { JoinTeamDialog } from "./JoinTeamDialog";
 import { ProjectMemberWarningDialog } from "./ProjectMemberWarningDialog";
 import InvalidInvitationComponent from "./InvalidInvitationDialog";
+import Modal from "@/components/ui/Modal";
 
 export default function GeneralSecureComponent({
   searchParams,
@@ -335,7 +336,6 @@ export default function GeneralSecureComponent({
           dispatch({ type: "SET_OPEN_INVALID_INVITATION", payload: open })
         }
       />
-
       {error && (
         <div className="mt-4">
           <Alert variant="destructive">
