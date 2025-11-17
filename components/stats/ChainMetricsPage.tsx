@@ -388,23 +388,176 @@ export default function ChainMetricsPage({
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
-        <div className="container mx-auto mt-4 p-6 pb-24 space-y-12">
-          <div className="space-y-2">
-            <div>
-              <h1 className="text-2xl md:text-5xl mb-4">
-                {chainName.includes("C-Chain")
-                  ? "Avalanche C-Chain Metrics"
-                  : `${chainName} L1 Metrics`}
-              </h1>
-              <p className="text-zinc-400 text-md text-left">
-                {chainName.includes("C-Chain")
-                  ? "Loading Avalanche C-chain activity and network usage..."
-                  : `Loading ${chainName} metrics...`}
-              </p>
+        <main className="container mx-auto mt-4 p-4 sm:p-6 pb-24 space-y-8 sm:space-y-12">
+          {/* Hero Section Skeleton */}
+          <div className="relative overflow-hidden rounded-2xl p-8 sm:p-12">
+            {/* Multi-layer gradient background */}
+            <div className="absolute inset-0 bg-black" />
+            <div
+              className="absolute inset-0 opacity-60"
+              style={{
+                background: `linear-gradient(140deg, ${themeColor}88 0%, transparent 70%)`
+              }}
+            />
+            <div
+              className="absolute inset-0 opacity-40"
+              style={{
+                background: `linear-gradient(to top left, ${themeColor}66 0%, transparent 50%)`
+              }}
+            />
+            <div
+              className="absolute inset-0 opacity-30"
+              style={{
+                background: `radial-gradient(circle at 50% 50%, ${themeColor}88 0%, ${themeColor}44 30%, transparent 70%)`
+              }}
+            />
+
+            {/* Content */}
+            <div className="relative z-10">
+              <div className="flex items-start gap-4">
+                {/* Chain Logo Skeleton */}
+                <div className="h-5 w-5 md:h-6 md:w-6 rounded-full bg-white/20 animate-pulse flex-shrink-0" />
+
+                <div className="flex-1">
+                  <h1 className="text-2xl md:text-5xl mb-4 text-white">
+                    {chainName.includes("C-Chain")
+                      ? "Avalanche C-Chain Metrics"
+                      : `${chainName} L1 Metrics`}
+                  </h1>
+                  <p className="text-white/80 text-md text-left">
+                    {chainName.includes("C-Chain")
+                      ? "Loading Avalanche C-chain activity and network usage..."
+                      : `Loading ${chainName} metrics...`}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-          <ChartSkeletonLoader />
-        </div>
+
+          {/* Network Overview Section */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold text-foreground">Network Overview</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Daily Active Addresses */}
+              <Card className="border-border">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: `${themeColor}20` }}>
+                      <Users className="h-6 w-6" style={{ color: themeColor }} />
+                    </div>
+                    <div className="text-sm text-muted-foreground">Daily Active Addresses</div>
+                  </div>
+                  <div className="h-8 bg-muted rounded w-24 animate-pulse" />
+                </CardContent>
+              </Card>
+
+              {/* Daily Transactions */}
+              <Card className="border-border">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: `${themeColor}20` }}>
+                      <Activity className="h-6 w-6" style={{ color: themeColor }} />
+                    </div>
+                    <div className="text-sm text-muted-foreground">Daily Transactions</div>
+                  </div>
+                  <div className="h-8 bg-muted rounded w-24 animate-pulse" />
+                </CardContent>
+              </Card>
+
+              {/* Total Contracts Deployed */}
+              <Card className="border-border">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: `${themeColor}20` }}>
+                      <FileText className="h-6 w-6" style={{ color: themeColor }} />
+                    </div>
+                    <div className="text-sm text-muted-foreground">Total Contracts Deployed</div>
+                  </div>
+                  <div className="h-8 bg-muted rounded w-24 animate-pulse" />
+                </CardContent>
+              </Card>
+
+              {/* Daily Interchain Messages */}
+              <Card className="border-border">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: `${themeColor}20` }}>
+                      <MessageSquare className="h-6 w-6" style={{ color: themeColor }} />
+                    </div>
+                    <div className="text-sm text-muted-foreground">Daily Interchain Messages</div>
+                  </div>
+                  <div className="h-8 bg-muted rounded w-24 animate-pulse" />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Historical Trends Section */}
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-semibold text-foreground mb-2">Historical Trends</h2>
+              <p className="text-sm text-muted-foreground">
+                Track {chainName} network growth and activity over time
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {chartConfigs.slice(0, 8).map((config) => {
+                const Icon = config.icon;
+                return (
+                  <Card key={config.metricKey} className="border-border">
+                    <CardContent className="pt-6">
+                      {/* Chart Header */}
+                      <div className="flex items-start justify-between mb-6">
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-5 w-5" style={{ color: themeColor }} />
+                          <div>
+                            <h3 className="font-semibold text-foreground">{config.title}</h3>
+                            <p className="text-xs text-muted-foreground">{config.description}</p>
+                          </div>
+                        </div>
+                        {/* Period Buttons */}
+                        <div className="flex gap-1">
+                          {["D", "W", "M", "Q", "Y"].map((period) => (
+                            <Button
+                              key={period}
+                              variant={period === "D" ? "default" : "ghost"}
+                              size="sm"
+                              disabled
+                              className="h-7 w-8 p-0 text-xs"
+                            >
+                              {period}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Current Value Skeleton */}
+                      <div className="mb-4 flex items-baseline gap-2">
+                        <div className="h-8 bg-muted rounded w-32 animate-pulse" />
+                        <div className="h-4 bg-muted rounded w-16 animate-pulse" />
+                      </div>
+
+                      {/* Chart Area Skeleton */}
+                      <div className="h-64 bg-muted/30 rounded-lg animate-pulse flex items-end justify-around p-4">
+                        {[...Array(12)].map((_, barIndex) => (
+                          <div
+                            key={barIndex}
+                            className="bg-muted rounded-t"
+                            style={{
+                              width: '6%',
+                              height: `${30 + Math.random() * 70}%`
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        </main>
         <StatsBubbleNav />
       </div>
     );
