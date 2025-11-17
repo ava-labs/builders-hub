@@ -363,7 +363,7 @@ export default function AvalancheMetrics() {
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
       <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
-        {/* Header */}
+        {/* Hero Section */}
         <div className="relative overflow-hidden rounded-2xl p-8 sm:p-12 mb-10">
           {/* Multi-layer gradient background */}
           <div className="absolute inset-0 bg-black" />
@@ -387,8 +387,8 @@ export default function AvalancheMetrics() {
           />
 
           {/* Content */}
-          <div className="relative z-10">
-            <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+          <div className="relative z-10 space-y-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               {/* Title and description */}
               <div className="flex-1">
                 <h1 className="text-3xl sm:text-4xl font-semibold text-white mb-3">
@@ -402,130 +402,123 @@ export default function AvalancheMetrics() {
               {/* Submit button */}
               <Button
                 size="sm"
-                variant="outline"
                 onClick={() =>
                   window.open(
                     "https://github.com/ava-labs/builders-hub/blob/master/constants/l1-chains.json",
                     "_blank"
                   )
                 }
-                className="flex-shrink-0 bg-white/5 border-white/50 text-white hover:bg-white/15 hover:border-white/70 hover:text-white"
+                className="flex-shrink-0 text-white"
+                style={{
+                  background: 'linear-gradient(135deg, #E84142, #3752AC)'
+                }}
               >
                 Submit Your L1
                 <ArrowUpRight className="ml-1.5 h-4 w-4" />
               </Button>
             </div>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
-            <div className="p-6 text-center">
-              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                Mainnet Avalanche L1s
-              </p>
-              <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
-                {overviewMetrics.chains.length}
-              </p>
-            </div>
-          </Card>
+            {/* Separator */}
+            <div className="border-t border-white/20" />
 
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
-            <div className="p-6 text-center">
-              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                Daily Transactions
-              </p>
-              <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
-                {formatNumber(
-                  typeof overviewMetrics.aggregated.totalTxCount
-                    .current_value === "number"
-                    ? Math.round(
-                        overviewMetrics.aggregated.totalTxCount.current_value /
-                          365
-                      )
-                    : 0
-                )}
-              </p>
-            </div>
-          </Card>
+            {/* Main metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-6 text-center">
+                <p className="mb-2 text-sm font-medium text-white/60">
+                  Mainnet Avalanche L1s
+                </p>
+                <p className="text-4xl font-semibold tracking-tight text-white">
+                  {overviewMetrics.chains.length}
+                </p>
+              </div>
 
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
-            <div className="p-6 text-center">
-              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                Combined Throughput
-              </p>
-              <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
-                {(() => {
-                  const totalTxs =
+              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-6 text-center">
+                <p className="mb-2 text-sm font-medium text-white/60">
+                  Daily Transactions
+                </p>
+                <p className="text-4xl font-semibold tracking-tight text-white">
+                  {formatNumber(
                     typeof overviewMetrics.aggregated.totalTxCount
                       .current_value === "number"
-                      ? overviewMetrics.aggregated.totalTxCount.current_value
-                      : 0;
-                  const secondsInYear = 365 * 24 * 60 * 60;
-                  const tps = (totalTxs / secondsInYear).toFixed(2);
-                  return tps;
-                })()}{" "}
-                TPS
-              </p>
-            </div>
-          </Card>
-        </div>
+                      ? Math.round(
+                          overviewMetrics.aggregated.totalTxCount.current_value /
+                            365
+                        )
+                      : 0
+                  )}
+                </p>
+              </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
-            <div className="p-5 text-center">
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                Daily ICM Count
-              </p>
-              <p className="text-2xl font-semibold text-black dark:text-white">
-                {formatNumber(
-                  Math.round(
-                    overviewMetrics.aggregated.totalICMMessages.current_value /
-                      365
-                  )
-                )}
-              </p>
-            </div>
-          </Card>
-
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
-            <div className="p-5 text-center">
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                Total Validators
-              </p>
-              <p className="text-2xl font-semibold text-black dark:text-white">
-                {formatNumber(overviewMetrics.aggregated.totalValidators)}
-              </p>
-            </div>
-          </Card>
-
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
-            <div className="p-5 text-center">
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                All-Time Validation Fees
-              </p>
-              <div className="flex items-center justify-center gap-2">
-                <AvalancheLogo className="w-6 h-6" fill="#E84142" />
-                <p className="text-2xl font-semibold text-black dark:text-white">
-                  8,310
+              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-6 text-center">
+                <p className="mb-2 text-sm font-medium text-white/60">
+                  Combined Throughput
+                </p>
+                <p className="text-4xl font-semibold tracking-tight text-white">
+                  {(() => {
+                    const totalTxs =
+                      typeof overviewMetrics.aggregated.totalTxCount
+                        .current_value === "number"
+                        ? overviewMetrics.aggregated.totalTxCount.current_value
+                        : 0;
+                    const secondsInYear = 365 * 24 * 60 * 60;
+                    const tps = (totalTxs / secondsInYear).toFixed(2);
+                    return tps;
+                  })()}{" "}
+                  TPS
                 </p>
               </div>
             </div>
-          </Card>
 
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
-            <div className="p-5 text-center">
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                Total Network Fees Burned
-              </p>
-              <div className="flex items-center justify-center gap-2">
-                <AvalancheLogo className="w-6 h-6" fill="#E84142" />
-                <p className="text-2xl font-semibold text-black dark:text-white">
-                  {formatNumber(4930978)}
+            {/* Secondary metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-5 text-center">
+                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-white/60">
+                  Daily ICM Count
+                </p>
+                <p className="text-2xl font-semibold text-white">
+                  {formatNumber(
+                    Math.round(
+                      overviewMetrics.aggregated.totalICMMessages.current_value /
+                        365
+                    )
+                  )}
                 </p>
               </div>
+
+              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-5 text-center">
+                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-white/60">
+                  Total Validators
+                </p>
+                <p className="text-2xl font-semibold text-white">
+                  {formatNumber(overviewMetrics.aggregated.totalValidators)}
+                </p>
+              </div>
+
+              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-5 text-center">
+                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-white/60">
+                  All-Time Validation Fees
+                </p>
+                <div className="flex items-center justify-center gap-2">
+                  <AvalancheLogo className="w-6 h-6" fill="white" />
+                  <p className="text-2xl font-semibold text-white">
+                    8,310
+                  </p>
+                </div>
+              </div>
+
+              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-5 text-center">
+                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-white/60">
+                  Total Network Fees Burned
+                </p>
+                <div className="flex items-center justify-center gap-2">
+                  <AvalancheLogo className="w-6 h-6" fill="white" />
+                  <p className="text-2xl font-semibold text-white">
+                    {formatNumber(4930978)}
+                  </p>
+                </div>
+              </div>
             </div>
-          </Card>
+          </div>
         </div>
 
         <div className="border-t border-neutral-200 dark:border-neutral-800 my-8"></div>
