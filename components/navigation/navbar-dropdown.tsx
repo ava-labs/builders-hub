@@ -41,9 +41,9 @@ export function NavbarDropdown() {
       title: 'Academy',
       href: '/academy',
       items: [
-        { text: 'Avalanche L1 Academy', href: '/academy?path=avalanche-l1' },
-        { text: 'Blockchain Academy', href: '/academy?path=blockchain' },
-        { text: 'Entrepreneur Academy', href: '/academy?path=entrepreneur' },
+        { text: 'Avalanche L1 Academy', href: '/academy' },
+        { text: 'Blockchain Academy', href: '/academy' },
+        { text: 'Entrepreneur Academy', href: '/academy' },
       ],
     },
     {

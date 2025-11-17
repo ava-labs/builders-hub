@@ -60,16 +60,19 @@ export function AcademyLayout({
             return;
         }
 
-        const paramPath = normalizePathType(searchParams?.get('path'));
+        const rawParam = searchParams?.get('path');
+        const paramPath = normalizePathType(rawParam);
+
         if (paramPath && paramPath !== activePath) {
             setActivePath(paramPath);
-            return;
-        }
-
-        if (paramPath === null && initialPathType && initialPathType !== activePath) {
+        } else if (!paramPath && initialPathType && initialPathType !== activePath) {
             setActivePath(initialPathType);
         }
-    }, [config.pathType, initialPathType, isAcademyRoot, searchParams, activePath]);
+
+        if (rawParam) {
+            router.replace('/academy', { scroll: false });
+        }
+    }, [config.pathType, initialPathType, isAcademyRoot, searchParams, activePath, router]);
 
     const resolvedBlogs = useMemo(() => {
         if (blogsByPath) {

@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronDown } from 'lucide-react';
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 
 interface AcademyHeroProps {
     title: string;
@@ -10,94 +10,64 @@ interface AcademyHeroProps {
     description: string;
 }
 
-const ROTATION_INTERVAL = 2600;
-const TRANSITION_DURATION = 600;
+const DISPLAY_DURATION = 7000; // Show each academy name for 4 seconds
 
-function RotatingAccent({ words }: { words: string[] }) {
-    const uniqueWords = useMemo(
-        () =>
-            [...new Set(words.map((word) => word.trim()).filter((word) => word.length > 0))],
-        [words],
-    );
+// Complete academy titles: [prefix, prefixIsRed, suffix, suffixIsRed]
+const academyTitles: [string, boolean, string, boolean][] = [
+    ['Avalanche L1', true, 'Developer', false],
+    ['Blockchain', true, 'Developer', false],
+    ['Avalanche', false, 'Entrepreneur', true],
+];
 
-    const displayWords = useMemo(() => {
-        if (uniqueWords.length <= 1) {
-            return uniqueWords;
-        }
-
-        return [...uniqueWords, uniqueWords[0]];
-    }, [uniqueWords]);
-
+function RotatingAcademyTitle() {
     const [index, setIndex] = useState(0);
-    const [isResetting, setIsResetting] = useState(false);
+    const [isAnimating, setIsAnimating] = useState(true);
 
     useEffect(() => {
-        setIndex(0);
-    }, [uniqueWords.length]);
-
-    useEffect(() => {
-        if (displayWords.length <= 1) return;
-
+        // Cycle through titles
         const timer = setInterval(() => {
-            setIndex((prev) => prev + 1);
-        }, ROTATION_INTERVAL);
+            setIsAnimating(false);
+            
+            // Small delay before changing index to allow fade out
+            setTimeout(() => {
+                setIndex((prev) => (prev + 1) % academyTitles.length);
+                setIsAnimating(true);
+            }, 900);
+        }, DISPLAY_DURATION);
 
         return () => clearInterval(timer);
-    }, [displayWords.length]);
+    }, []);
 
-    useEffect(() => {
-        if (displayWords.length <= 1) return;
-
-        if (index === displayWords.length - 1) {
-            const timeout = setTimeout(() => {
-                setIsResetting(true);
-                setIndex(0);
-            }, TRANSITION_DURATION);
-
-            return () => clearTimeout(timeout);
-        }
-    }, [index, displayWords.length]);
-
-    useEffect(() => {
-        if (!isResetting) return;
-
-        const frame = requestAnimationFrame(() => {
-            setIsResetting(false);
-        });
-
-        return () => cancelAnimationFrame(frame);
-    }, [isResetting]);
-
-    if (uniqueWords.length === 0) {
-        return null;
-    }
-
-    if (uniqueWords.length === 1) {
-        return (
-            <span className="bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent font-semibold">
-                {uniqueWords[0]}
-            </span>
-        );
-    }
-
-    const transformStyle: CSSProperties = {
-        transform: `translateY(-${index * 100}%)`,
-        transition: isResetting ? 'none' : 'transform 600ms cubic-bezier(0.76, 0, 0.24, 1)',
-    };
+    const [prefix, prefixIsRed, suffix, suffixIsRed] = academyTitles[index];
 
     return (
-        <span className="inline-block h-[1.3em] min-w-[8.5rem] overflow-hidden align-middle">
-            <span className="flex flex-col" style={transformStyle}>
-                {displayWords.map((word, idx) => (
-                    <span
-                        key={`${word}-${idx}`}
-                        className="h-[1.3em] flex items-center justify-center bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent font-semibold tracking-tight"
-                    >
-                        {word}
-                    </span>
-                ))}
+        <div 
+            className={`transition-all duration-700 text-right ${
+                isAnimating 
+                    ? 'opacity-100 translate-y-0' 
+                    : 'opacity-0 -translate-y-4'
+            }`}
+        >
+            <span
+                className={`font-semibold tracking-tight whitespace-nowrap ${
+                    prefixIsRed
+                        ? 'bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent'
+                        : 'text-zinc-900 dark:text-white'
+                }`}
+            >
+                {prefix}
             </span>
-        </span>
+            {' '}
+            <span
+                className={`font-semibold tracking-tight whitespace-nowrap ${
+                    suffixIsRed
+                        ? 'bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent'
+                        : 'text-zinc-900 dark:text-white'
+                }`}
+            >
+                {suffix}
+            </span>
+        </div>
     );
 }
 
@@ -109,10 +79,6 @@ export function AcademyHero({ title, accent, accentWords, description }: Academy
         }
     };
 
-    const rotatingAccentWords = accentWords && accentWords.length > 0
-        ? accentWords
-        : [accent];
-
     return (
         <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
             {/* Background gradient */}
@@ -121,15 +87,16 @@ export function AcademyHero({ title, accent, accentWords, description }: Academy
             <div className="relative mx-auto max-w-7xl px-6 lg:px-8 py-16">
                 <div className="mx-auto w-full lg:mx-0">
                     <div className="flex flex-col items-center text-center">
-                        {/* Main heading */}
+                        {/* Main heading with rotating academy title */}
                         <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight">
-                            <span className="text-zinc-900 dark:text-white">
-                                {title}{" "}
-                            </span>
-                            <RotatingAccent words={rotatingAccentWords} />
-                            <span className="text-zinc-900 dark:text-white">
-                                {" "}Academy
-                            </span>
+                            <div className="inline-flex items-center justify-center -ml-24 sm:-ml-28 lg:-ml-32">
+                                <div className="inline-block text-right mr-2 w-[400px] sm:w-[500px] lg:w-[650px] xl:w-[800px]">
+                                    <RotatingAcademyTitle />
+                                </div>
+                                <span className="text-zinc-900 dark:text-white">
+                                    Academy
+                                </span>
+                            </div>
                         </h1>
 
                         {/* Description */}
