@@ -408,10 +408,7 @@ export default function AvalancheMetrics() {
                     "_blank"
                   )
                 }
-                className="flex-shrink-0 text-white"
-                style={{
-                  background: 'linear-gradient(135deg, #E84142, #3752AC)'
-                }}
+                className="flex-shrink-0 border border-white bg-black text-white hover:bg-neutral-800 dark:bg-transparent dark:hover:border-neutral-400 transition-colors"
               >
                 Submit Your L1
                 <ArrowUpRight className="ml-1.5 h-4 w-4" />
