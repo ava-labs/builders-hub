@@ -14,30 +14,11 @@ Traditional payment systems create significant friction for both users and devel
 
 Every traditional payment interaction requires users to complete at least five time-consuming steps:
 
-### 1. Create Account
-- Sign up for a service account with personal information
-- Verify email addresses and set up passwords
-- 5-15 minutes per service with high abandonment rates
-
-### 2. Add Payment Method
-- Enter credit card details and complete bank verification
-- Navigate complex payment forms
-- 3-10 minutes with security and privacy concerns
-
-### 3. Complete KYC (Know Your Customer)
-- Submit government-issued ID and proof of address
-- Complete verification and wait for approval
-- Hours to days with privacy concerns
-
-### 4. Buy Credits or Subscribe
-- Purchase credits or subscribe to monthly plans before trying
-- Commit to minimum purchases without knowing value
-- Forces prepayment for uncertain utility
-
-### 5. Manage API Keys
-- Generate, store, and rotate API keys securely
-- Monitor for key compromise
-- Ongoing maintenance and security risk
+- **Creating Account**: requires signing up, verifying email address and setting up password (eta 5-15 minutes)
+- **Add Payment Methods**: enter credit card details and complete bank verification (eta 3-10 minutes)
+- **Complete KYC**: submit government-issued ID, proof of address and wait for approval (eta hours to days)
+- **Buy Credits or Subscribe**: commit to minimum purchases or monthly plans without knowing value, forcing prepayment
+- **Manage API Keys**: generate, store and rotate API keys securely with ongoing maintenance and security risk
 
 ## Cost Structure Problems
 
@@ -50,7 +31,7 @@ Traditional payment processors impose significant fees that make micropayments i
 - Stripe: 2.9% + \$0.30 per transaction
 
 **Impact on Micropayments**:
-For a \$0.01 API request, traditional fees would be \$0.32 (3,200% overhead)
+For a \$0.01 API request, traditional fees would be \$0.30 (3,000% overhead), making the transaction economically impossible and forcing developers into subscription models even when pay-per-use would better serve users
 
 ### Fixed Fee Floor
 
@@ -63,21 +44,6 @@ Payment processors hold funds for 2-7 days, creating cash flow challenges for me
 ## Barriers to Automation
 
 Traditional payments were designed for human-to-merchant interactions, not for automated systems. Automated systems cannot complete human-centric signup flows like CAPTCHA or email verification, storing payment credentials creates security risks, and pre-approval requirements prevent autonomous operation. These barriers make it impossible for AI agents and automated systems to participate in the payment economy.
-
-## The Micropayment Impossibility
-
-Traditional payment systems make micropayments economically impossible:
-
-```
-Transaction Value: $0.01 (1 cent API request)
-Processing Fee: 2.9% + $0.30
-Total Fee: $0.30029
-Net to Merchant: -$0.29029 (loss of 2,903%)
-
-Result: Merchant loses money on every transaction
-```
-
-This economic reality forces developers into subscription models even when pay-per-use would better serve users.
 
 ## The API Monetization Challenge
 
@@ -131,7 +97,3 @@ Traditional payment systems were designed for a different era—before micropaym
 6. **Works with HTTP**: Native integration with web infrastructure
 
 This is exactly what the x402 protocol provides.
-
-## Summary
-
-Traditional payment systems create insurmountable barriers for modern digital commerce through account requirements, high fees, settlement delays, and automation limitations. These systems make micropayments impossible and force developers into suboptimal business models. The x402 protocol addresses all of these limitations by providing instant, permissionless, HTTP-native payments with minimal fees.
