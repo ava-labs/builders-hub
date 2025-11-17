@@ -6,7 +6,7 @@ export const metadata: Metadata = createMetadata({
   description:
     "Metrics for Avalanche Primary Network validators including validator count, weight, delegator statistics, geographic distribution, and version analytics.",
   openGraph: {
-    url: "/stats/primary-network/validators",
+    url: "/stats/validators",
     images: {
       alt: "Primary Network Validator Metrics",
       url: "/api/og/stats?title=Primary Network Validator Metrics&description=Metrics for Avalanche Primary Network validators including validator count, weight, delegator statistics, geographic distribution, and version analytics.",
