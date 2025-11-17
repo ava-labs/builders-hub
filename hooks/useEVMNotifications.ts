@@ -148,11 +148,11 @@ const useEVMNotifications = () => {
                     action_name: options.name,
                     action_path: actionPath,
                     network: isTestnet ? 'testnet' : 'mainnet',
-                    chain_id: viemChain?.id,
-                    chain_name: viemChain?.name,
-                    tx_hash: logData.txHash,
-                    contract_address: logData.address,
-                    context: pathname?.includes('/academy') ? 'academy' : pathname?.includes('/docs') ? 'docs' : 'console',
+                    ...(viemChain?.id && { chain_id: viemChain.id }),
+                    ...(viemChain?.name && { chain_name: viemChain.name }),
+                    ...(logData.txHash && { tx_hash: logData.txHash }),
+                    ...(logData.address && { contract_address: logData.address }),
+                    context: pathname?.includes('/academy') ? 'academy' : (pathname?.includes('/docs') ? 'docs' : 'console'),
                     chain_type: 'evm'
                 });
             })
@@ -174,10 +174,10 @@ const useEVMNotifications = () => {
                     action_name: options.name,
                     action_path: actionPath,
                     network: isTestnet ? 'testnet' : 'mainnet',
-                    chain_id: viemChain?.id,
-                    chain_name: viemChain?.name,
+                    ...(viemChain?.id && { chain_id: viemChain.id }),
+                    ...(viemChain?.name && { chain_name: viemChain.name }),
                     error_message: error.message,
-                    context: pathname?.includes('/academy') ? 'academy' : pathname?.includes('/docs') ? 'docs' : 'console',
+                    context: pathname?.includes('/academy') ? 'academy' : (pathname?.includes('/docs') ? 'docs' : 'console'),
                     chain_type: 'evm'
                 });
             });

@@ -50,6 +50,23 @@ export interface VersionCount {
   stakingPercentage: number;
 }
 
+// L1 Chain interface
+export interface BlockExplorer {
+  name: string;
+  link: string;
+}
+
+export interface L1Chain {
+  chainId: string;
+  chainName: string;
+  chainLogoURI: string;
+  subnetId: string;
+  slug: string;
+  color?: string;
+  category?: string;
+  explorers?: BlockExplorer[];
+}
+
 export type TimeRange = "30d" | "90d" | "1y" | "all";
 
 // shareable config constants
