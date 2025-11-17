@@ -149,6 +149,16 @@ body:has([data-granite-banner]) .integrations-page section[id] {
   scroll-margin-top: calc(var(--fd-banner-height, 3rem) + 4rem);
 }
 
+/* Integration detail page: Add padding-top when banner exists */
+body:has([data-granite-banner]) .integration-detail-page {
+  padding-top: calc(var(--fd-banner-height, 3rem) + 1rem) !important;
+}
+
+/* Integration detail page: Default padding (no banner) */
+.integration-detail-page {
+  padding-top: 1rem;
+}
+
 /* Remove ALL left whitespace from navbar to fill screen edge */
 body > div > nav,
 body > div > header,
