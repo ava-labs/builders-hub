@@ -8,7 +8,7 @@ export const entrepreneurAcademyLandingPageConfig: AcademyLandingPageConfig = {
     heroAccentWords: ['Entrepreneur', 'Founder', 'Builder'],
     heroDescription: 'Join the next generation of Web3 entrepreneurs. Learn how to build, launch, and scale your blockchain startup with guidance from industry experts and successful founders.',
     pathType: 'entrepreneur',
-    showBlogs: false,
+    showBlogs: true,
     features: {
         highlights: {
             title: 'Entrepreneur Highlights',

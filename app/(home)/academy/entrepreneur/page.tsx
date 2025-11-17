@@ -4,6 +4,8 @@ import { AcademyLayout } from '@/components/academy/shared/academy-layout';
 import { entrepreneurAcademyLandingPageConfig } from './config';
 import { ArrowRight, BookOpen, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
+import { blog } from '@/lib/source';
+import { Suspense } from 'react';
 
 export const metadata: Metadata = createMetadata({
     title: 'Entrepreneur Academy',
@@ -30,13 +32,44 @@ export const metadata: Metadata = createMetadata({
 export default function EntrepreneurAcademyPage(): React.ReactElement {
     const { features } = entrepreneurAcademyLandingPageConfig;
 
-    return (
-        <AcademyLayout
-            config={entrepreneurAcademyLandingPageConfig}
-            afterLearningPath={
-                <>
-                    {/* Spotlight stories */}
-                    {features?.highlights && (
+    const blogPages = [...blog.getPages()]
+        .sort(
+            (a, b) =>
+                new Date((b.data.date as string) ?? b.url).getTime() -
+                new Date((a.data.date as string) ?? a.url).getTime()
+        )
+        .slice(0, 9);
+
+    const blogs = blogPages.map((page) => ({
+        url: page.url,
+        data: {
+            title: page.data.title || "Untitled",
+            description: page.data.description || "",
+            topics: (page.data.topics as string[]) || [],
+            date:
+                page.data.date instanceof Date
+                    ? page.data.date.toISOString()
+                    : (page.data.date as string) || "",
+        },
+        file: {
+            name: page.url,
+        },
+    }));
+
+    const entrepreneurBlogsFromConfig = (features?.highlights?.blogs ?? []).map((blogEntry) => ({
+        url: blogEntry.link,
+        data: {
+            title: blogEntry.title,
+            description: blogEntry.description,
+            topics: ['Entrepreneur'],
+            date: blogEntry.date || '',
+        },
+        file: {
+            name: blogEntry.id,
+        },
+    }));
+
+    const entrepreneurHighlights = features?.highlights ? (
                         <div className="mb-16">
                             <div className="flex items-center gap-3 mb-8">
                                 <BookOpen className="h-6 w-6 text-red-600" />
@@ -79,9 +112,22 @@ export default function EntrepreneurAcademyPage(): React.ReactElement {
                                 ))}
                             </div>
                         </div>
-                    )}
-                </>
-            }
-        />
+    ) : null;
+
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="text-zinc-600 dark:text-zinc-400">Loading...</div></div>}>
+            <AcademyLayout
+                config={entrepreneurAcademyLandingPageConfig}
+                blogs={blogs}
+                blogsByPath={{
+                    avalanche: blogs,
+                    blockchain: blogs,
+                    entrepreneur: entrepreneurBlogsFromConfig.length > 0 ? entrepreneurBlogsFromConfig : blogs,
+                }}
+                afterLearningPathByPath={{
+                    entrepreneur: entrepreneurHighlights,
+                }}
+            />
+        </Suspense>
     );
 }

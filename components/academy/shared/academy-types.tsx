@@ -1,5 +1,18 @@
 import type { ReactNode } from 'react';
 
+export type AcademyPathType = 'avalanche' | 'entrepreneur' | 'blockchain';
+
+type BlogFeature = {
+    title: string;
+    blogs: Array<{
+        id: string;
+        title: string;
+        description: string;
+        date?: string;
+        link: string;
+    }>;
+};
+
 export interface AcademyLandingPageConfig {
     id: string;
     name: string;
@@ -7,19 +20,11 @@ export interface AcademyLandingPageConfig {
     heroAccent: string;
     heroAccentWords?: string[];
     heroDescription: string;
-    pathType: 'avalanche' | 'entrepreneur' | 'blockchain';
+    pathType: AcademyPathType;
     customContent?: ReactNode;
     showBlogs?: boolean;
     features?: {
-        codebaseBlogs?: {
-            title: string;
-            blogs: Array<{
-                id: string;
-                title: string;
-                description: string;
-                date?: string;
-                link: string;
-            }>;
-        };
+        codebaseBlogs?: BlogFeature;
+        highlights?: BlogFeature;
     };
 }

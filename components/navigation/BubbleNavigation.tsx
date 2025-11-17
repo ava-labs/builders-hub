@@ -7,30 +7,40 @@ import type { BubbleNavigationConfig } from "./bubble-navigation.types";
 interface BubbleNavigationProps {
   config: BubbleNavigationConfig;
   getActiveItem?: (pathname: string, items: BubbleNavigationConfig['items']) => string;
+  activeItem?: string;
+  onSelect?: (item: BubbleNavigationConfig['items'][number]) => void;
 }
 
 export default function BubbleNavigation({
   config,
-  getActiveItem
+  getActiveItem,
+  activeItem: controlledActiveItem,
+  onSelect,
 }: BubbleNavigationProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [activeItem, setActiveItem] = useState("");
+  const isControlled = typeof controlledActiveItem === "string";
+  const [uncontrolledActiveItem, setUncontrolledActiveItem] = useState("");
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [bottomOffset, setBottomOffset] = useState(32);
   const navRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Use custom logic if provided, otherwise default to exact path matching
+    if (isControlled) return;
+
     if (getActiveItem) {
-      setActiveItem(getActiveItem(pathname, config.items));
-    } else {
-      const currentItem = config.items.find((item) => pathname === item.href);
-      if (currentItem) {
-        setActiveItem(currentItem.id);
-      }
+      setUncontrolledActiveItem(getActiveItem(pathname, config.items));
+      return;
     }
-  }, [pathname, config.items, getActiveItem]);
+
+    const currentItem = config.items.find(
+      (item) => item.href && pathname === item.href
+    );
+      if (currentItem) {
+      setUncontrolledActiveItem(currentItem.id);
+    }
+  }, [pathname, config.items, getActiveItem, isControlled]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -68,9 +78,20 @@ export default function BubbleNavigation({
     };
   }, []);
 
+  const resolvedActiveItem = isControlled
+    ? controlledActiveItem!
+    : uncontrolledActiveItem;
+
   const handleItemClick = (item: BubbleNavigationConfig['items'][0]) => {
-    setActiveItem(item.id);
+    if (onSelect) {
+      onSelect(item);
+      return;
+    }
+
+    if (item.href) {
+      setUncontrolledActiveItem(item.id);
     router.push(item.href);
+    }
   };
 
   return (
@@ -87,7 +108,7 @@ export default function BubbleNavigation({
       )}>
         <div className={cn("flex items-center justify-center", config.buttonSpacing || "space-x-2")}>
           {config.items.map((item) => {
-            const isActive = activeItem === item.id;
+            const isActive = resolvedActiveItem === item.id;
             const isHovered = hoveredItem === item.id;
 
             return (

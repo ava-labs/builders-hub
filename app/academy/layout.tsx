@@ -7,7 +7,7 @@ import './styles.css';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const defaultTree = academy.pageTree;
-  const avalancheTree = getAcademyTree('/academy/avalanche');
+  const avalancheTree = getAcademyTree('/academy/avalanche-l1');
   const blockchainTree = getAcademyTree('/academy/blockchain');
   const entrepreneurTree = getAcademyTree('/academy/entrepreneur');
 

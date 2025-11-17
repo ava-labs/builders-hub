@@ -35,7 +35,7 @@ export function AcademyDocsLayoutWrapper({
         if (pathname.startsWith('/academy/blockchain')) {
             return blockchainTree ?? defaultTree;
         }
-        if (pathname.startsWith('/academy/avalanche')) {
+        if (pathname === '/academy' || pathname.startsWith('/academy/avalanche-l1')) {
             return avalancheTree ?? defaultTree;
         }
         return defaultTree;

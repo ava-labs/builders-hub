@@ -2,10 +2,11 @@
 
 import BubbleNavigation from '@/components/navigation/BubbleNavigation';
 import type { BubbleNavigationConfig } from '@/components/navigation/bubble-navigation.types';
+import type { AcademyPathType } from './academy-types';
 
 export const academyBubbleConfig: BubbleNavigationConfig = {
     items: [
-        { id: "avalanche", label: "Avalanche", href: "/academy" },
+        { id: "avalanche", label: "Avalanche L1", href: "/academy/avalanche-l1" },
         { id: "blockchain", label: "Blockchain", href: "/academy/blockchain" },
         { id: "entrepreneur", label: "Entrepreneur", href: "/academy/entrepreneur" },
     ],
@@ -18,7 +19,15 @@ export const academyBubbleConfig: BubbleNavigationConfig = {
     buttonSpacing: "space-x-3",
 };
 
-export function AcademyBubbleNav() {
+interface AcademyBubbleNavProps {
+    activePath?: AcademyPathType;
+    onChange?: (path: AcademyPathType) => void;
+}
+
+export function AcademyBubbleNav(props: AcademyBubbleNavProps = {}) {
+    const { activePath, onChange } = props;
+
+    if (!activePath || !onChange) {
     const getActiveItem = (pathname: string, items: typeof academyBubbleConfig.items) => {
         if (pathname === "/academy/entrepreneur" || pathname.startsWith("/academy/entrepreneur/")) {
             return "entrepreneur";
@@ -26,7 +35,8 @@ export function AcademyBubbleNav() {
             return "blockchain";
         } else if (
             pathname === "/academy" ||
-            pathname.startsWith("/academy/avalanche") ||
+            pathname === "/academy/avalanche-l1" ||
+            pathname.startsWith("/academy/avalanche-l1/") ||
             (pathname.startsWith("/academy/") &&
                 !pathname.startsWith("/academy/blockchain") &&
                 !pathname.startsWith("/academy/entrepreneur"))
@@ -37,4 +47,13 @@ export function AcademyBubbleNav() {
     };
 
     return <BubbleNavigation config={academyBubbleConfig} getActiveItem={getActiveItem} />;
+    }
+
+    return (
+        <BubbleNavigation
+            config={academyBubbleConfig}
+            activeItem={activePath}
+            onSelect={(item) => onChange(item.id as AcademyPathType)}
+        />
+    );
 }

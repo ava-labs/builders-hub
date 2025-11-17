@@ -1,1 +1,1 @@
-export { default, metadata } from './avalanche/page';
+export { default, metadata } from './avalanche-l1/page';
