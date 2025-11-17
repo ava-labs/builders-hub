@@ -48,7 +48,7 @@ function AvalanchegoDockerInner() {
     const [rpcTxFeeCap, setRpcTxFeeCap] = useState<number>(100);
     const [apiMaxBlocksPerRequest, setApiMaxBlocksPerRequest] = useState<number>(0);
     const [allowUnfinalizedQueries, setAllowUnfinalizedQueries] = useState<boolean>(false);
-    const [batchRequestLimit, setBatchRequestLimit] = useState<number>(1000);
+    const [batchRequestLimit, setBatchRequestLimit] = useState<number>(0); // 0 = no limit (default)
     const [batchResponseMaxSize, setBatchResponseMaxSize] = useState<number>(25000000);
 
     // State and history
@@ -237,7 +237,7 @@ function AvalanchegoDockerInner() {
         setRpcTxFeeCap(100);
         setApiMaxBlocksPerRequest(0);
         setAllowUnfinalizedQueries(false);
-        setBatchRequestLimit(1000);
+        setBatchRequestLimit(0);
         setBatchResponseMaxSize(25000000);
         setAcceptedCacheSize(32);
         setTransactionHistory(0);

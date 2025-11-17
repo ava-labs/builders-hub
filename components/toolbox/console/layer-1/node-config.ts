@@ -2,8 +2,35 @@
 import { SUBNET_EVM_VM_ID } from '@/constants/console';
 import { getContainerVersions } from '@/components/toolbox/utils/containerVersions';
 
+// Subnet-EVM default configuration values
+// Reference: https://build.avax.network/docs/nodes/chain-configs/subnet-evm
+const SUBNET_EVM_DEFAULTS = {
+    "pruning-enabled": true,
+    "commit-interval": 4096,
+    "trie-clean-cache": 512,
+    "trie-dirty-cache": 512,
+    "trie-dirty-commit-target": 20,
+    "trie-prefetcher-parallelism": 16,
+    "snapshot-cache": 256,
+    "state-sync-server-trie-cache": 64,
+    "rpc-gas-cap": 50000000,
+    "rpc-tx-fee-cap": 100,
+    "log-level": "info",
+    "metrics-expensive-enabled": false,
+    "accepted-cache-size": 32,
+    "batch-request-limit": 0,
+    "batch-response-max-size": 25000000,
+    "state-sync-enabled": false,
+    "allow-unfinalized-queries": false,
+    "api-max-duration": 0,
+    "api-max-blocks-per-request": 0,
+    // Default eth-apis
+    "eth-apis": ["eth", "eth-filter", "net", "web3", "internal-eth", "internal-blockchain", "internal-transaction"],
+};
+
 /**
  * Generates the Subnet-EVM chain configuration
+ * Only includes values that differ from defaults
  * This configuration is saved to ~/.avalanchego/configs/chains/<blockchainID>/config.json
  */
 export const generateChainConfig = (
@@ -22,7 +49,7 @@ export const generateChainConfig = (
     rpcTxFeeCap: number = 100,
     apiMaxBlocksPerRequest: number = 0,
     allowUnfinalizedQueries: boolean = false,
-    batchRequestLimit: number = 1000,
+    batchRequestLimit: number = 0,
     batchResponseMaxSize: number = 25000000,
     acceptedCacheSize: number = 32,
     transactionHistory: number = 0,
@@ -36,41 +63,74 @@ export const generateChainConfig = (
     continuousProfilerFrequency: string = "15m"
 ) => {
     const isRPC = nodeType === 'public-rpc';
+    const config: any = {};
 
-    // Base configuration for all nodes
-    const config: any = {
-        "pruning-enabled": pruningEnabled,
-        "commit-interval": commitInterval,
-        "trie-clean-cache": trieCleanCache,
-        "trie-dirty-cache": trieDirtyCache,
-        "trie-dirty-commit-target": trieDirtyCommitTarget,
-        "trie-prefetcher-parallelism": triePrefetcherParallelism,
-        "snapshot-cache": snapshotCache,
-        "state-sync-server-trie-cache": stateSyncServerTrieCache,
-        "rpc-gas-cap": rpcGasCap,
-        "rpc-tx-fee-cap": rpcTxFeeCap,
-        "log-level": enableDebugTrace ? "debug" : "info",
-        "metrics-expensive-enabled": true,
-        "accepted-cache-size": acceptedCacheSize,
-        "min-delay-target": minDelayTarget,
-        "batch-request-limit": batchRequestLimit,
-        "batch-response-max-size": batchResponseMaxSize
+    // Helper function to add config only if it differs from default
+    const addIfNotDefault = (key: string, value: any, defaultValue?: any) => {
+        const defaultVal = defaultValue !== undefined ? defaultValue : SUBNET_EVM_DEFAULTS[key as keyof typeof SUBNET_EVM_DEFAULTS];
+        
+        // For arrays, do a deep comparison
+        if (Array.isArray(value) && Array.isArray(defaultVal)) {
+            if (JSON.stringify(value) !== JSON.stringify(defaultVal)) {
+                config[key] = value;
+            }
+        } else if (value !== defaultVal) {
+            config[key] = value;
+        }
     };
 
-    // Add warp API for cross-chain messaging (enabled by default for L1s)
+    // Always include pruning-enabled for explicitness in L1 node setup
+    config["pruning-enabled"] = pruningEnabled;
+
+    // Cache settings - only add if different from defaults
+    addIfNotDefault("trie-clean-cache", trieCleanCache);
+    addIfNotDefault("trie-dirty-cache", trieDirtyCache);
+    addIfNotDefault("trie-dirty-commit-target", trieDirtyCommitTarget);
+    addIfNotDefault("trie-prefetcher-parallelism", triePrefetcherParallelism);
+    addIfNotDefault("snapshot-cache", snapshotCache);
+    addIfNotDefault("state-sync-server-trie-cache", stateSyncServerTrieCache);
+    addIfNotDefault("accepted-cache-size", acceptedCacheSize);
+    addIfNotDefault("commit-interval", commitInterval);
+
+    // Performance settings
+    addIfNotDefault("rpc-gas-cap", rpcGasCap);
+    addIfNotDefault("rpc-tx-fee-cap", rpcTxFeeCap);
+
+    // Logging - only add if debug is enabled
+    if (enableDebugTrace) {
+        config["log-level"] = "debug";
+    }
+
+    // Metrics - only add if enabled (default is false)
+    if (true) { // We always want expensive metrics enabled
+        config["metrics-expensive-enabled"] = true;
+    }
+
+    // Min delay target - only add if non-zero (default is 0, meaning no minimum delay)
+    if (minDelayTarget > 0) {
+        config["min-delay-target"] = minDelayTarget;
+    }
+
+    // Batch limits - only add if different from defaults
+    addIfNotDefault("batch-request-limit", batchRequestLimit);
+    addIfNotDefault("batch-response-max-size", batchResponseMaxSize);
+
+    // Warp API - typically enabled for L1s, but not a default for all Subnet-EVM chains
     config["warp-api-enabled"] = true;
 
-    // State sync configuration
-    config["state-sync-enabled"] = stateSyncEnabled;
+    // State sync - only add if enabled
+    if (stateSyncEnabled) {
+        config["state-sync-enabled"] = true;
+    }
 
-    // Transaction indexing
+    // Transaction indexing - only add if non-default
     if (skipTxIndexing) {
         config["skip-tx-indexing"] = true;
     } else if (transactionHistory > 0) {
         config["transaction-history"] = transactionHistory;
     }
 
-    // Transaction settings
+    // Transaction settings - only add if enabled
     if (preimagesEnabled) {
         config["preimages-enabled"] = true;
     }
@@ -79,6 +139,7 @@ export const generateChainConfig = (
     }
 
     // Configure APIs based on node type
+    // Always include eth-apis for explicitness in L1 node setup
     if (enableDebugTrace) {
         config["eth-apis"] = [
             "eth",
@@ -99,7 +160,8 @@ export const generateChainConfig = (
         ];
         config["admin-api-enabled"] = true;
     } else {
-        // Standard APIs (includes internal APIs required for basic eth methods)
+        // Include standard APIs explicitly for L1 nodes (even though these are defaults)
+        // This makes the configuration more explicit and easier to understand
         config["eth-apis"] = [
             "eth",
             "eth-filter",
@@ -113,18 +175,24 @@ export const generateChainConfig = (
 
     // RPC-specific settings
     if (isRPC) {
-        config["api-max-duration"] = 0; // No time limit
-        config["api-max-blocks-per-request"] = apiMaxBlocksPerRequest;
-        config["allow-unfinalized-queries"] = allowUnfinalizedQueries;
+        // api-max-duration: 0 is default (no time limit), already default so we don't need to add
+        // api-max-blocks-per-request: 0 is default (no limit)
+        addIfNotDefault("api-max-blocks-per-request", apiMaxBlocksPerRequest);
+        
+        // Only add if enabled (default is false)
+        if (allowUnfinalizedQueries) {
+            config["allow-unfinalized-queries"] = true;
+        }
     }
 
-    // Gossip settings (primarily for validators)
+    // Gossip settings (primarily for validators) - only add if non-default
     if (nodeType === 'validator') {
+        // These don't have documented defaults, so we always add them for validators
         config["push-gossip-num-validators"] = pushGossipNumValidators;
         config["push-gossip-percent-stake"] = pushGossipPercentStake;
     }
 
-    // Continuous profiling (if enabled)
+    // Continuous profiling - only add if enabled
     if (continuousProfilerDir) {
         config["continuous-profiler-dir"] = continuousProfilerDir;
         config["continuous-profiler-frequency"] = continuousProfilerFrequency;
