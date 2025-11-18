@@ -932,7 +932,7 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
             zIndex: 9999,
           }}
         >
-          <div className="flex items-center gap-1 bg-gray-200/60 dark:bg-gray-800/60 backdrop-blur-md px-2 py-1 rounded-full shadow-sm border border-gray-300/50 dark:border-gray-700/50">
+          <div className="flex items-center gap-1 bg-zinc-100/80 dark:bg-zinc-900/50 backdrop-blur-md px-2 py-1 rounded-full shadow-sm border border-zinc-200/80 dark:border-zinc-800/80">
             <div 
               className="text-sm opacity-70"
               style={{
@@ -941,7 +941,7 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
             >
               👆
             </div>
-            <div className="text-gray-700 dark:text-gray-300 text-[10px] font-medium whitespace-nowrap">
+            <div className="text-zinc-700 dark:text-zinc-300 text-[10px] font-medium whitespace-nowrap">
               Drag to rotate
             </div>
           </div>
