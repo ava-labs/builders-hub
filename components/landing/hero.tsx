@@ -179,7 +179,7 @@ export function HeroBackground() {
       <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-[#0A0A0A] dark:via-[#0A0A0A] dark:to-[#0A0A0A]">
         {/* Subtle grid overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)]"></div>
-        
+
       </div>
     </div>
   );
@@ -243,10 +243,7 @@ export default function Hero() {
 
           {/* Ecosystem Visualization */}
           <div className="relative lg:block hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-3xl blur-2xl dark:via-slate-800/10"></div>
-            <div className="relative glass-effect bg-white/5 dark:bg-slate-900/10 rounded-3xl border border-white/10 dark:border-slate-700/20 p-8 backdrop-blur-2xl">
-              <Sponsors />
-            </div>
+            <Sponsors />
           </div>
         </div>
       </div>
