@@ -428,7 +428,7 @@ export default function ChainMetricsPage({
                 )}
 
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl mb-3 text-white">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold mb-3 text-white">
                     {chainName.includes("C-Chain")
                       ? "Avalanche C-Chain Metrics"
                       : `${chainName} L1 Metrics`}
