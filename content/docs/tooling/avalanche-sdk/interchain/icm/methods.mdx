@@ -1,0 +1,57 @@
+---
+title: Methods
+icon: code
+---
+
+## sendMsg
+
+Sends a cross-chain message to the specified destination chain.
+
+### Parameters
+
+| Parameter                 | Type                                          | Required | Description                                  |
+| ------------------------- | --------------------------------------------- | -------- | -------------------------------------------- |
+| `message`                 | `string`                                      | Yes      | Message content to send                      |
+| `sourceChain`             | `ChainConfig`                                 | Yes\*    | Source chain configuration                   |
+| `destinationChain`        | `ChainConfig`                                 | Yes\*    | Destination chain configuration              |
+| `recipientAddress`        | `0x${string}`                                 | No       | Recipient address (defaults to zero address) |
+| `feeInfo`                 | `{ feeTokenAddress: string, amount: bigint }` | No       | Fee token and amount                         |
+| `requiredGasLimit`        | `bigint`                                      | No       | Gas limit for execution (default: 100000)    |
+| `allowedRelayerAddresses` | `string[]`                                    | No       | Allowed relayer addresses                    |
+
+\* Required if not set in client constructor
+
+### Returns
+
+| Type              | Description      |
+| ----------------- | ---------------- |
+| `Promise<string>` | Transaction hash |
+
+### Example
+
+```typescript
+import { createICMClient } from "@avalanche-sdk/interchain";
+import { avalancheFuji, dispatch } from "@avalanche-sdk/interchain/chains";
+
+const icm = createICMClient(wallet);
+
+// Simple message
+const hash = await icm.sendMsg({
+  sourceChain: avalancheFuji,
+  destinationChain: dispatch,
+  message: "Hello from Avalanche!",
+});
+
+// With options
+const hash = await icm.sendMsg({
+  sourceChain: avalancheFuji,
+  destinationChain: dispatch,
+  message: "Hello from Avalanche!",
+  recipientAddress: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  feeInfo: {
+    feeTokenAddress: "0x0000000000000000000000000000000000000000",
+    amount: 0n,
+  },
+  requiredGasLimit: 200000n,
+});
+```

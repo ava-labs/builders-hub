@@ -1208,3 +1208,33 @@ body[data-hide-sidebar-dropdown] #nd-sidebar-mobile button:has(> div > p.text-sm
   margin-top: 0 !important;
 }
 
+/* API Playground Send button customization - make it blue (All APIs) */
+.pchain-api-playground form.not-prose button[type="submit"].bg-fd-primary,
+.cchain-api-playground form.not-prose button[type="submit"].bg-fd-primary,
+.xchain-api-playground form.not-prose button[type="submit"].bg-fd-primary,
+.data-api-playground form.not-prose button[type="submit"].bg-fd-primary,
+.metrics-api-playground form.not-prose button[type="submit"].bg-fd-primary,
+.webhooks-api-playground form.not-prose button[type="submit"].bg-fd-primary {
+  background-color: #3b82f6 !important; /* Blue-500 */
+  color: white !important;
+}
+
+.pchain-api-playground form.not-prose button[type="submit"].bg-fd-primary:hover,
+.cchain-api-playground form.not-prose button[type="submit"].bg-fd-primary:hover,
+.xchain-api-playground form.not-prose button[type="submit"].bg-fd-primary:hover,
+.data-api-playground form.not-prose button[type="submit"].bg-fd-primary:hover,
+.metrics-api-playground form.not-prose button[type="submit"].bg-fd-primary:hover,
+.webhooks-api-playground form.not-prose button[type="submit"].bg-fd-primary:hover {
+  background-color: #2563eb !important; /* Blue-600 on hover */
+}
+
+.pchain-api-playground form.not-prose button[type="submit"].bg-fd-primary:disabled,
+.cchain-api-playground form.not-prose button[type="submit"].bg-fd-primary:disabled,
+.xchain-api-playground form.not-prose button[type="submit"].bg-fd-primary:disabled,
+.data-api-playground form.not-prose button[type="submit"].bg-fd-primary:disabled,
+.metrics-api-playground form.not-prose button[type="submit"].bg-fd-primary:disabled,
+.webhooks-api-playground form.not-prose button[type="submit"].bg-fd-primary:disabled {
+  background-color: #93c5fd !important; /* Blue-300 when disabled */
+  opacity: 0.5;
+}
+
