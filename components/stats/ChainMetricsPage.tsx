@@ -388,7 +388,7 @@ export default function ChainMetricsPage({
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
-        <main className="container mx-auto mt-4 p-4 sm:p-6 pb-24 space-y-8 sm:space-y-12">
+        <div className="container mx-auto mt-4 p-4 sm:p-6 pb-24 space-y-8 sm:space-y-12">
           {/* Hero Section Skeleton */}
           <div className="relative overflow-hidden rounded-2xl p-8 sm:p-12">
             {/* Multi-layer gradient background */}
@@ -414,17 +414,26 @@ export default function ChainMetricsPage({
 
             {/* Content */}
             <div className="relative z-10">
-              <div className="flex items-start gap-4">
-                {/* Chain Logo Skeleton */}
-                <div className="h-5 w-5 md:h-6 md:w-6 rounded-full bg-white/20 animate-pulse flex-shrink-0" />
+              {/* ExplorerDropdown Placeholder for L1s */}
+              {!chainName.includes("C-Chain") && (
+                <div className="flex justify-end mb-4">
+                  <div className="h-8 w-28 bg-white/20 rounded-md animate-pulse" />
+                </div>
+              )}
 
-                <div className="flex-1">
-                  <h1 className="text-2xl md:text-5xl mb-4 text-white">
+              <div className="flex flex-col sm:flex-row items-start gap-6">
+                {/* Chain Logo Skeleton - Only show if chainLogoURI exists */}
+                {chainLogoURI && (
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white/20 animate-pulse shrink-0" />
+                )}
+
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl mb-3 text-white">
                     {chainName.includes("C-Chain")
                       ? "Avalanche C-Chain Metrics"
                       : `${chainName} L1 Metrics`}
                   </h1>
-                  <p className="text-white/80 text-md text-left">
+                  <p className="text-white/80 text-sm sm:text-base text-left">
                     {chainName.includes("C-Chain")
                       ? "Loading Avalanche C-chain activity and network usage..."
                       : `Loading ${chainName} metrics...`}
@@ -435,13 +444,15 @@ export default function ChainMetricsPage({
           </div>
 
           {/* Network Overview Section */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-semibold text-foreground">Network Overview</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="space-y-4 sm:space-y-6">
+            <div className="space-y-2">
+              <h2 className="text-lg sm:text-2xl font-medium text-foreground">Network Overview</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {/* Daily Active Addresses */}
               <Card className="border-border">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3 mb-4">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-center gap-2 mb-2 sm:mb-3">
                     <div className="p-2 rounded-lg" style={{ backgroundColor: `${themeColor}20` }}>
                       <Users className="h-6 w-6" style={{ color: themeColor }} />
                     </div>
@@ -453,8 +464,8 @@ export default function ChainMetricsPage({
 
               {/* Daily Transactions */}
               <Card className="border-border">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3 mb-4">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-center gap-2 mb-2 sm:mb-3">
                     <div className="p-2 rounded-lg" style={{ backgroundColor: `${themeColor}20` }}>
                       <Activity className="h-6 w-6" style={{ color: themeColor }} />
                     </div>
@@ -466,8 +477,8 @@ export default function ChainMetricsPage({
 
               {/* Total Contracts Deployed */}
               <Card className="border-border">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3 mb-4">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-center gap-2 mb-2 sm:mb-3">
                     <div className="p-2 rounded-lg" style={{ backgroundColor: `${themeColor}20` }}>
                       <FileText className="h-6 w-6" style={{ color: themeColor }} />
                     </div>
@@ -479,8 +490,8 @@ export default function ChainMetricsPage({
 
               {/* Daily Interchain Messages */}
               <Card className="border-border">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3 mb-4">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-center gap-2 mb-2 sm:mb-3">
                     <div className="p-2 rounded-lg" style={{ backgroundColor: `${themeColor}20` }}>
                       <MessageSquare className="h-6 w-6" style={{ color: themeColor }} />
                     </div>
@@ -493,26 +504,26 @@ export default function ChainMetricsPage({
           </div>
 
           {/* Historical Trends Section */}
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-semibold text-foreground mb-2">Historical Trends</h2>
-              <p className="text-sm text-muted-foreground">
+          <div className="space-y-4 sm:space-y-6">
+            <div className="space-y-2">
+              <h2 className="text-lg sm:text-2xl font-medium text-foreground">Historical Trends</h2>
+              <p className="text-zinc-400 text-sm sm:text-md text-left">
                 Track {chainName} network growth and activity over time
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {chartConfigs.slice(0, 8).map((config) => {
                 const Icon = config.icon;
                 return (
-                  <Card key={config.metricKey} className="border-border">
-                    <CardContent className="pt-6">
-                      {/* Chart Header */}
-                      <div className="flex items-start justify-between mb-6">
-                        <div className="flex items-center gap-2">
+                  <Card key={config.metricKey} className="border-border overflow-hidden">
+                    {/* Chart Header */}
+                    <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-border">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2 sm:gap-3">
                           <Icon className="h-5 w-5" style={{ color: themeColor }} />
                           <div>
-                            <h3 className="font-semibold text-foreground">{config.title}</h3>
+                            <h3 className="font-semibold text-foreground text-sm sm:text-base">{config.title}</h3>
                             <p className="text-xs text-muted-foreground">{config.description}</p>
                           </div>
                         </div>
@@ -531,15 +542,18 @@ export default function ChainMetricsPage({
                           ))}
                         </div>
                       </div>
+                    </div>
 
+                    {/* Chart Content */}
+                    <CardContent className="px-5 pt-6 pb-6">
                       {/* Current Value Skeleton */}
-                      <div className="mb-4 flex items-baseline gap-2">
+                      <div className="mb-3 sm:mb-4 flex items-baseline gap-2">
                         <div className="h-8 bg-muted rounded w-32 animate-pulse" />
                         <div className="h-4 bg-muted rounded w-16 animate-pulse" />
                       </div>
 
                       {/* Chart Area Skeleton */}
-                      <div className="h-64 bg-muted/30 rounded-lg animate-pulse flex items-end justify-around p-4">
+                      <div className="h-[400px] bg-muted/30 rounded-lg animate-pulse flex items-end justify-around p-4">
                         {[...Array(12)].map((_, barIndex) => (
                           <div
                             key={barIndex}
@@ -551,13 +565,16 @@ export default function ChainMetricsPage({
                           />
                         ))}
                       </div>
+
+                      {/* Brush Slider Skeleton */}
+                      <div className="mt-4 h-20 bg-muted/20 rounded-lg animate-pulse" />
                     </CardContent>
                   </Card>
                 );
               })}
             </div>
           </div>
-        </main>
+        </div>
         <StatsBubbleNav />
       </div>
     );
