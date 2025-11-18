@@ -28,7 +28,9 @@ function AvalanchegoDockerInner() {
     const [nodeType, setNodeType] = useState<"validator" | "public-rpc">("validator");
     const [domain, setDomain] = useState("");
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
+    const [adminApiEnabled, setAdminApiEnabled] = useState<boolean>(false);
     const [pruningEnabled, setPruningEnabled] = useState<boolean>(true);
+    const [logLevel, setLogLevel] = useState<string>("info");
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
     const [selectedRPCBlockchainId, setSelectedRPCBlockchainId] = useState<string>("");
     const [minDelayTarget, setMinDelayTarget] = useState<number>(250);
@@ -90,7 +92,9 @@ function AvalanchegoDockerInner() {
             const config = generateChainConfig(
                 nodeType,
                 enableDebugTrace,
+                adminApiEnabled,
                 pruningEnabled,
+                logLevel,
                 minDelayTarget,
                 trieCleanCache,
                 trieDirtyCache,
@@ -120,14 +124,16 @@ function AvalanchegoDockerInner() {
         } catch (error) {
             setConfigJson(`Error: ${(error as Error).message}`);
         }
-    }, [subnetId, chainId, nodeType, enableDebugTrace, pruningEnabled, blockchainInfo, minDelayTarget, trieCleanCache, trieDirtyCache, trieDirtyCommitTarget, triePrefetcherParallelism, snapshotCache, commitInterval, stateSyncServerTrieCache, rpcGasCap, rpcTxFeeCap, apiMaxBlocksPerRequest, allowUnfinalizedQueries, batchRequestLimit, batchResponseMaxSize, acceptedCacheSize, transactionHistory, stateSyncEnabled, skipTxIndexing, preimagesEnabled, localTxsEnabled, pushGossipNumValidators, pushGossipPercentStake, continuousProfilerDir, continuousProfilerFrequency]);
+    }, [subnetId, chainId, nodeType, enableDebugTrace, adminApiEnabled, pruningEnabled, logLevel, blockchainInfo, minDelayTarget, trieCleanCache, trieDirtyCache, trieDirtyCommitTarget, triePrefetcherParallelism, snapshotCache, commitInterval, stateSyncServerTrieCache, rpcGasCap, rpcTxFeeCap, apiMaxBlocksPerRequest, allowUnfinalizedQueries, batchRequestLimit, batchResponseMaxSize, acceptedCacheSize, transactionHistory, stateSyncEnabled, skipTxIndexing, preimagesEnabled, localTxsEnabled, pushGossipNumValidators, pushGossipPercentStake, continuousProfilerDir, continuousProfilerFrequency]);
 
     useEffect(() => {
         if (nodeType === "validator") {
             // Validator node defaults - optimized for block production
             setDomain("");
             setEnableDebugTrace(false);
+            setAdminApiEnabled(false);
             setPruningEnabled(true);
+            setLogLevel("info");
             setMinDelayTarget(250); // Fast block times for L1
             setAllowUnfinalizedQueries(false);
             // Standard cache sizes for validators
@@ -138,6 +144,8 @@ function AvalanchegoDockerInner() {
             setTransactionHistory(0); // Keep all tx history by default
         } else if (nodeType === "public-rpc") {
             // RPC node defaults - optimized for query performance
+            setPruningEnabled(false); // RPC nodes typically need full history
+            setLogLevel("info");
             setAllowUnfinalizedQueries(true); // Enable real-time queries
             // Larger caches for better RPC performance
             setTrieCleanCache(1024); // 2x for better read performance
@@ -221,7 +229,9 @@ function AvalanchegoDockerInner() {
         setNodeType("validator");
         setDomain("");
         setEnableDebugTrace(false);
+        setAdminApiEnabled(false);
         setPruningEnabled(true);
+        setLogLevel("info");
         setSubnetIdError(null);
         setSelectedRPCBlockchainId("");
         setMinDelayTarget(250);
@@ -312,6 +322,85 @@ function AvalanchegoDockerInner() {
                                         </select>
                                     </div>
 
+                                    <div onMouseEnter={() => setHighlightPath('logLevel')} onMouseLeave={clearHighlight}>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                            Log Level
+                                        </label>
+                                        <select
+                                            value={logLevel}
+                                            onChange={(e) => setLogLevel(e.target.value)}
+                                            onFocus={() => setHighlightPath('logLevel')}
+                                            onBlur={clearHighlight}
+                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                                        >
+                                            <option value="off">Off - No logs</option>
+                                            <option value="fatal">Fatal - Only fatal errors</option>
+                                            <option value="error">Error - Recoverable errors</option>
+                                            <option value="warn">Warn - Warnings</option>
+                                            <option value="info">Info - Status updates (default)</option>
+                                            <option value="trace">Trace - Container job results</option>
+                                            <option value="debug">Debug - Debugging information</option>
+                                            <option value="verbo">Verbo - Verbose output</option>
+                                        </select>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            Controls the verbosity of node logs
+                                        </p>
+                                    </div>
+                                    {nodeType === "validator" && (
+                                        <div onMouseEnter={() => setHighlightPath('minDelayTarget')} onMouseLeave={clearHighlight}>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Min Delay Target (ms)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={minDelayTarget}
+                                                onChange={(e) => {
+                                                    const value = Math.min(2000, Math.max(0, parseInt(e.target.value) || 0));
+                                                    setMinDelayTarget(value);
+                                                }}
+                                                onFocus={() => setHighlightPath('minDelayTarget')}
+                                                onBlur={clearHighlight}
+                                                min="0"
+                                                max="2000"
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                                            />
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                The minimum delay between blocks (in milliseconds). Maximum: 2000ms. Default: 250ms.
+                                            </p>
+                                        </div>
+                                    )}
+                                    <div onMouseEnter={() => setHighlightPath('pruning')} onMouseLeave={clearHighlight}>
+                                        <label className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={pruningEnabled}
+                                                onChange={(e) => setPruningEnabled(e.target.checked)}
+                                                className="rounded"
+                                            />
+                                            <span className="text-sm">Enable Pruning</span>
+                                        </label>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            {nodeType === "validator"
+                                                ? "Recommended for validators. Reduces disk usage by removing old state data."
+                                                : "Not recommended for RPC nodes that need full historical data."}
+                                        </p>
+                                    </div>
+
+                                    <div onMouseEnter={() => setHighlightPath('adminApi')} onMouseLeave={clearHighlight}>
+                                        <label className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={adminApiEnabled}
+                                                onChange={(e) => setAdminApiEnabled(e.target.checked)}
+                                                className="rounded"
+                                            />
+                                            <span className="text-sm">Enable Admin API</span>
+                                        </label>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            Enables administrative APIs. Only enable if needed and secured.
+                                        </p>
+                                    </div>
+
                                     {nodeType === "public-rpc" && (
                                         <>
                                             <div onMouseEnter={() => setHighlightPath('ethApis')} onMouseLeave={clearHighlight}>
@@ -324,18 +413,9 @@ function AvalanchegoDockerInner() {
                                                     />
                                                     <span className="text-sm">Enable Debug Trace</span>
                                                 </label>
-                                            </div>
-
-                                            <div onMouseEnter={() => setHighlightPath('pruning')} onMouseLeave={clearHighlight}>
-                                                <label className="flex items-center space-x-2">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={pruningEnabled}
-                                                        onChange={(e) => setPruningEnabled(e.target.checked)}
-                                                        className="rounded"
-                                                    />
-                                                    <span className="text-sm">Enable Pruning</span>
-                                                </label>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                    Enables debug APIs and detailed tracing capabilities
+                                                </p>
                                             </div>
 
                                             {subnet && subnet.blockchains && subnet.blockchains.length > 1 && (
@@ -360,30 +440,6 @@ function AvalanchegoDockerInner() {
                                                 </div>
                                             )}
                                         </>
-                                    )}
-
-                                    {nodeType === "validator" && (
-                                        <div onMouseEnter={() => setHighlightPath('minDelayTarget')} onMouseLeave={clearHighlight}>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Min Delay Target (ms)
-                                            </label>
-                                            <input
-                                                type="number"
-                                                value={minDelayTarget}
-                                                onChange={(e) => {
-                                                    const value = Math.min(2000, Math.max(0, parseInt(e.target.value) || 0));
-                                                    setMinDelayTarget(value);
-                                                }}
-                                                onFocus={() => setHighlightPath('minDelayTarget')}
-                                                onBlur={clearHighlight}
-                                                min="0"
-                                                max="2000"
-                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                                            />
-                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                                The minimum delay between blocks (in milliseconds). Maximum: 2000ms. Default: 250ms.
-                                            </p>
-                                        </div>
                                     )}
 
                                     {/* Advanced Settings */}
@@ -941,19 +997,6 @@ function AvalanchegoDockerInner() {
                                     Subnet-EVM configuration
                                 </a>
                             </p>
-                            <Accordions type="single" className="mt-4">
-                                {isCustomVM && (
-                                    <Accordion title="Custom VM Configuration">
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                                            This blockchain uses a non-standard Virtual Machine ID. The Docker command includes VM aliases mapping.
-                                        </p>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                                            <strong>VM ID:</strong> {blockchainInfo.vmId}<br />
-                                            <strong>Aliases to:</strong> {SUBNET_EVM_VM_ID}
-                                        </p>
-                                    </Accordion>
-                                )}
-                            </Accordions>
                         </Step>
 
                         <Step>
@@ -986,7 +1029,19 @@ function AvalanchegoDockerInner() {
                                 The container will read the config from <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">~/.avalanchego/configs/chains/{chainId}/config.json</code> via the mounted volume.
                             </p>
 
+
                             <Accordions type="single" className="mt-4">
+                                {isCustomVM && (
+                                    <Accordion title="Custom VM Configuration">
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                                            This blockchain uses a non-standard Virtual Machine ID. The Docker command includes VM aliases mapping.
+                                        </p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                                            <strong>VM ID:</strong> {blockchainInfo.vmId}<br />
+                                            <strong>Aliases to:</strong> {SUBNET_EVM_VM_ID}
+                                        </p>
+                                    </Accordion>
+                                )}
                                 <Accordion title="Running Multiple Nodes">
                                     <p className="text-sm">To run multiple nodes on the same machine, ensure each node has:</p>
                                     <ul className="list-disc pl-5 mt-1 text-sm">

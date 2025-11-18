@@ -36,7 +36,9 @@ const SUBNET_EVM_DEFAULTS = {
 export const generateChainConfig = (
     nodeType: 'validator' | 'public-rpc',
     enableDebugTrace: boolean = false,
+    adminApiEnabled: boolean = false,
     pruningEnabled: boolean = true,
+    logLevel: string = "info",
     minDelayTarget: number = 250,
     trieCleanCache: number = 512,
     trieDirtyCache: number = 512,
@@ -96,9 +98,9 @@ export const generateChainConfig = (
     addIfNotDefault("rpc-gas-cap", rpcGasCap);
     addIfNotDefault("rpc-tx-fee-cap", rpcTxFeeCap);
 
-    // Logging - only add if debug is enabled
-    if (enableDebugTrace) {
-        config["log-level"] = "debug";
+    // Logging - only add if different from default (info)
+    if (logLevel !== "info") {
+        config["log-level"] = logLevel;
     }
 
     // Metrics - only add if enabled (default is false)
@@ -158,7 +160,6 @@ export const generateChainConfig = (
             "debug-file-tracer",
             "debug-handler"
         ];
-        config["admin-api-enabled"] = true;
     } else {
         // Include standard APIs explicitly for L1 nodes (even though these are defaults)
         // This makes the configuration more explicit and easier to understand
@@ -171,6 +172,15 @@ export const generateChainConfig = (
             "internal-blockchain",
             "internal-transaction"
         ];
+    }
+
+    // Admin API - only enable if explicitly requested
+    if (adminApiEnabled) {
+        config["admin-api-enabled"] = true;
+        // Add admin to eth-apis if not already present (when debug is disabled)
+        if (!enableDebugTrace && !config["eth-apis"].includes("admin")) {
+            config["eth-apis"].push("admin");
+        }
     }
 
     // RPC-specific settings
