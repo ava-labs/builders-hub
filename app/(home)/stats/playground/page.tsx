@@ -199,7 +199,8 @@ function PlaygroundContent() {
           id: chart.id,
           title: chart.title,
           colSpan: chart.colSpan,
-          dataSeries: chart.dataSeries || []
+          dataSeries: chart.dataSeries || [],
+          stackSameMetrics: chart.stackSameMetrics || false
         }))
       };
       
@@ -266,7 +267,7 @@ function PlaygroundContent() {
     for (let i = 0; i < charts.length; i++) {
       const current = charts[i];
       const saved = savedCharts[i];
-      if (!saved || current.id !== saved.id || current.title !== saved.title || current.colSpan !== saved.colSpan) {
+      if (!saved || current.id !== saved.id || current.title !== saved.title || current.colSpan !== saved.colSpan || current.stackSameMetrics !== saved.stackSameMetrics) {
         return true;
       }
       
