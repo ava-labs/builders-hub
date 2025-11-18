@@ -92,32 +92,32 @@ const premiumStyles = `
   
   /* Rotating text animations */
   @keyframes rotate-up {
-    0%, 11% { 
+    0%, 10% { 
       transform: translateY(0%); 
     }
-    12.5%, 23.5% { 
-      transform: translateY(-12.5%); 
+    11.11%, 21.11% { 
+      transform: translateY(-11.11%); 
     }
-    25%, 36% { 
-      transform: translateY(-25%); 
+    22.22%, 32.22% { 
+      transform: translateY(-22.22%); 
     }
-    37.5%, 48.5% { 
-      transform: translateY(-37.5%); 
+    33.33%, 43.33% { 
+      transform: translateY(-33.33%); 
     }
-    50%, 61% { 
-      transform: translateY(-50%); 
+    44.44%, 54.44% { 
+      transform: translateY(-44.44%); 
     }
-    62.5%, 73.5% { 
-      transform: translateY(-62.5%); 
+    55.55%, 65.55% { 
+      transform: translateY(-55.55%); 
     }
-    75%, 86% { 
-      transform: translateY(-75%); 
+    66.66%, 76.66% { 
+      transform: translateY(-66.66%); 
     }
-    87.5%, 98.5% { 
-      transform: translateY(-87.5%); 
+    77.77%, 87.77% { 
+      transform: translateY(-77.77%); 
     }
-    100% { 
-      transform: translateY(-87.5%); 
+    88.88%, 100% { 
+      transform: translateY(-88.88%); 
     }
   }
   
@@ -157,7 +157,7 @@ if (typeof document !== 'undefined') {
 
 // Rotating Text Component
 function RotatingText() {
-  const words = ['Courses', 'Events', 'Hackathons', 'Bounties', 'Tools', 'Grants', 'Documentation', 'Academy'];
+  const words = ['Documentation', 'Academy', 'Console', 'Hackathons', 'Bounties', 'Events', 'Grants', 'Stats'];
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -186,6 +186,12 @@ function RotatingText() {
             {word}
           </div>
         ))}
+        {/* Duplicate first word for smooth loop */}
+        <div 
+          className="h-[1.3em] flex items-center justify-center lg:justify-start bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent font-black tracking-tighter whitespace-nowrap"
+        >
+          {words[0]}
+        </div>
       </div>
     </span>
   );
