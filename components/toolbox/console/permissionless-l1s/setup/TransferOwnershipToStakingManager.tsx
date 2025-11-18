@@ -17,10 +17,9 @@ const metadata: ConsoleToolMetadata = {
 };
 
 function TransferOwnershipToStakingManager({ onSuccess }: BaseConsoleToolProps) {
-  const { nativeStakingManagerAddress, erc20StakingManagerAddress } = useToolboxStore();
-  
-  // Prefer the address that's available (native or ERC20)
-  const stakingManagerAddress = nativeStakingManagerAddress || erc20StakingManagerAddress;
+  const { nativeStakingManagerAddress } = useToolboxStore();
+
+  const stakingManagerAddress = nativeStakingManagerAddress;
 
   return (
     <>

@@ -230,21 +230,6 @@ const data = {
           url: "/console/permissionless-l1s/native-staking-manager-setup",
           icon: GitMerge,
         },
-        {
-          title: "ERC20 Staking Manager Setup",
-          url: "/console/permissionless-l1s/erc20-staking-manager-setup",
-          icon: GitMerge,
-        },
-        {
-          title: "Stake Native Token",
-          url: "/console/permissionless-l1s/stake-native-token",
-          icon: Hexagon,
-        },
-        {
-          title: "Delegate Native Token",
-          url: "/console/permissionless-l1s/delegate-native-token",
-          icon: HandCoins,
-        }
       ],
     },
     {
