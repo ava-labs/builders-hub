@@ -10,7 +10,9 @@
         "...02-proof-of-stake",
         "---Transformation Requirements---",
         "...03-transformation-requirements",
-        "04-optional-l1-setup",
+        "---Staking Manager Setup---",
+        "04-speedrun-base-l1",
+        "...05-staking-manager-setup",
         "---More coming soon...---"
     ]
 }

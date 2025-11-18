@@ -1,0 +1,98 @@
+---
+title: Deploy & Configure Validator Manager
+description: Deploy and set up your Validator Manager Contract for permissionless staking
+updated: 2025-03-13
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+import DeployValidatorManager from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/DeployValidatorManager.tsx"
+import UpgradeProxy from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/UpgradeProxy.tsx"
+import Initialize from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/Initialize.tsx"
+import InitValidatorSet from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/InitValidatorSet.tsx"
+
+This section walks through deploying and configuring your Validator Manager Contract (VMC). This is a multi-step process that establishes the foundation for your permissionless L1.
+
+## Overview
+
+The VMC setup involves four key steps:
+1. Deploy the ValidatorManager implementation
+2. Upgrade the proxy to point to the implementation
+3. Initialize the contract with configuration parameters
+4. Initialize the validator set from your L1 conversion
+
+## Step 1: Deploy Validator Manager
+
+First, deploy the ValidatorManager implementation contract and its required ValidatorMessages library.
+
+<Callout type="info">
+The ValidatorMessages library handles all message encoding/decoding for P-Chain communication. It's deployed once and can be shared across multiple validator managers.
+</Callout>
+
+<ToolboxMdxWrapper walletMode="l1">
+    <DeployValidatorManager />
+</ToolboxMdxWrapper>
+
+## Step 2: Upgrade Proxy
+
+Link your proxy to the ValidatorManager implementation by upgrading the TransparentUpgradeableProxy at `0xfacade...` to point to your newly deployed contract.
+
+<Callout type="info">
+Make sure you have your L1 selected in the wallet component
+</Callout>
+
+<ToolboxMdxWrapper walletMode="l1">
+    <UpgradeProxy />
+</ToolboxMdxWrapper>
+
+## Step 3: Set Initial Configuration
+
+Configure your ValidatorManager with essential parameters through the `initialize()` function:
+
+- **Admin Address**: Your wallet address (controls validator operations)
+- **Subnet ID**: Your L1's subnet identifier
+- **Churn Period**: Time window for validator changes (≤ 86400 seconds)
+- **Maximum Churn Percentage**: Weight change limit per period (1-20%)
+
+<Callout type="warning">
+The `initialize()` function can only be called once. Double-check your parameters before proceeding.
+</Callout>
+
+<ToolboxMdxWrapper walletMode="l1">
+    <Initialize />
+</ToolboxMdxWrapper>
+
+## Step 4: Initialize Validator Set
+
+Finally, initialize your ValidatorManager with the current validator set from your L1 conversion. This bridges P-Chain subnet creation with L1 validator management using cryptographically verified conversion data.
+
+### How It Works
+
+The initialization:
+1. Verifies P-Chain signed conversion data via Avalanche Warp Messaging
+2. Registers each validator with their weight and node ID
+3. Marks the validator set as initialized (permanent, one-time operation)
+
+### Required Information
+
+You'll need:
+- **Conversion Data**: Validator information from your subnet-to-L1 conversion
+- **Message Index**: Position in the Warp message queue
+
+<Callout type="warning">
+Initialization can only be done once! Ensure you have the correct validator data.
+</Callout>
+
+<ToolboxMdxWrapper walletMode="l1">
+    <InitValidatorSet />
+</ToolboxMdxWrapper>
+
+## Next Steps
+
+Congratulations! Your Validator Manager is now fully configured. In the next section, you'll deploy and configure a Staking Manager to enable permissionless participation.
+
+<Callout type="info">
+For detailed information about each step, see the [Permissioned L1s course](/academy/permissioned-l1s/validator-manager-deployment).
+</Callout>
+

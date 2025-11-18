@@ -1,0 +1,7 @@
+{
+  "title": "Speedrun Base L1 Setup",
+  "pages": [
+    "01-create-l1",
+    "02-deploy-and-configure-vmc"
+  ]
+}
