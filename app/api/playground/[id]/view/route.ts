@@ -4,10 +4,10 @@ import { prisma } from '@/prisma/prisma';
 // POST /api/playground/[id]/view - Increment view count
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const playgroundId = params.id;
+    const { id: playgroundId } = await params;
 
     if (!playgroundId) {
       return NextResponse.json({ error: 'Playground ID is required' }, { status: 400 });
