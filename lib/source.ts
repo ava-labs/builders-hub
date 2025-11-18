@@ -6,7 +6,7 @@ import {
 } from 'fumadocs-core/source';
 import { createElement } from 'react';
 import { icons } from 'lucide-react';
-import { meta, docs, blog as blogs, course, courseMeta, integrations, avalancheEntrepreneur, avalancheEntrepreneurMeta } from '@/.source';
+import { meta, docs, blog as blogs, course, courseMeta, integrations } from '@/.source';
 import { openapiPlugin } from 'fumadocs-openapi/server';
 
 export const documentation = loader({
@@ -128,15 +128,6 @@ export function getAcademyTree(prefix: string) {
   if (!prefix) return fullTree;
   return filterTreeByPrefix(fullTree, prefix);
 }
-
-export const entrepreneurAcademy = loader({
-  baseUrl: '/academy/entrepreneur',
-  icon(icon) {
-    if (icon && icon in icons)
-      return createElement(icons[icon as keyof typeof icons]);
-  },
-  source: createMDXSource(avalancheEntrepreneur, avalancheEntrepreneurMeta as any),
-});
 
 export const blog = loader({
   baseUrl: '/blog',

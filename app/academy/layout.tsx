@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { baseOptions } from '@/app/layout.config';
 import { academy, getAcademyTree } from '@/lib/source';
 import { LayoutWrapper } from '@/app/layout-wrapper.client';
-import { AcademyDocsLayoutWrapper } from './docs-layout-wrapper';
+import { AcademyDocsLayoutWrapper } from './layout-wrapper.client';
 import './styles.css';
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -24,5 +24,3 @@ export default function Layout({ children }: { children: ReactNode }) {
     </LayoutWrapper>
   );
 }
-
-

@@ -57,33 +57,6 @@ export const courseMeta = defineCollections({
   }),
 });
 
-export const avalancheEntrepreneur = defineCollections({
-  type: 'doc',
-  dir: 'content/academy/entrepreneur',
-  schema: frontmatterSchema.extend({
-    preview: z.string().optional(),
-    index: z.boolean().default(false),
-    updated: z.string().or(z.date()).transform((value, context) => {
-      try {
-        return new Date(value);
-      } catch {
-        context.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid date" });
-        return z.NEVER;
-      }
-    }).optional(),
-    authors: z.array(z.string()).optional(),
-    comments: z.boolean().default(false),
-  }),
-});
-
-export const avalancheEntrepreneurMeta = defineCollections({
-  type: 'meta',
-  dir: 'content/academy/entrepreneur',
-  schema: metaSchema.extend({
-    description: z.string().optional(),
-  }),
-});
-
 export const integrations = defineCollections({
   type: 'doc',
   async: true,
