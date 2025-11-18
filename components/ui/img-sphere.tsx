@@ -163,7 +163,7 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
   const [isMounted, setIsMounted] = useState<boolean>(true);
   const [rotation, setRotation] = useState<RotationState>({
     x: 90,
-    y: 90,
+    y: 45,
     z: 0,
   });
   const [velocity, setVelocity] = useState<VelocityState>({ x: 0, y: 0 });
@@ -171,6 +171,8 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
   const [imagePositions, setImagePositions] = useState<SphericalPosition[]>([]);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [showDragHint, setShowDragHint] = useState<boolean>(true);
+  const [hasInteracted, setHasInteracted] = useState<boolean>(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const lastMousePos = useRef<MousePosition>({ x: 0, y: 0 });
@@ -286,9 +288,9 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
 
       const worldPos: Position3D = { x, y, z };
 
-      // Calculate visibility with smooth fade zones
-      const fadeZoneStart = -10; // Start fading out
-      const fadeZoneEnd = -30; // Completely hidden
+      // Calculate visibility with smooth fade zones - adjusted to show more items
+      const fadeZoneStart = -50; // Start fading out (increased from -10)
+      const fadeZoneEnd = -100; // Completely hidden (increased from -30)
       const isVisible = worldPos.z > fadeZoneEnd;
 
       // Calculate fade opacity based on Z position
@@ -447,7 +449,11 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
     setIsDragging(true);
     setVelocity({ x: 0, y: 0 });
     lastMousePos.current = { x: e.clientX, y: e.clientY };
-  }, []);
+    if (!hasInteracted) {
+      setHasInteracted(true);
+      setShowDragHint(false);
+    }
+  }, [hasInteracted]);
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
@@ -492,7 +498,11 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
     setIsDragging(true);
     setVelocity({ x: 0, y: 0 });
     lastMousePos.current = { x: touch.clientX, y: touch.clientY };
-  }, []);
+    if (!hasInteracted) {
+      setHasInteracted(true);
+      setShowDragHint(false);
+    }
+  }, [hasInteracted]);
 
   const handleTouchMove = useCallback(
     (e: TouchEvent) => {
@@ -859,6 +869,25 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
             opacity: 1;
           }
         }
+        @keyframes dragHintPulse {
+          0%, 100% { 
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 0.8;
+          }
+          50% { 
+            transform: translate(-50%, -50%) scale(1.1);
+            opacity: 1;
+          }
+        }
+        @keyframes dragHintFadeOut {
+          from { opacity: 0.8; }
+          to { opacity: 0; }
+        }
+        @keyframes handGesture {
+          0%, 100% { transform: translate(0, 0); }
+          25% { transform: translate(3px, -3px); }
+          75% { transform: translate(-3px, 3px); }
+        }
       `}</style>
 
       <div
@@ -888,6 +917,36 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
           })}
         </div>
       </div>
+
+      {/* Drag Hint Indicator */}
+      {showDragHint && (
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            left: '50%',
+            bottom: '140px',
+            transform: 'translateX(-50%)',
+            animation: hasInteracted 
+              ? 'dragHintFadeOut 0.5s ease-out forwards' 
+              : 'dragHintPulse 2s ease-in-out infinite',
+            zIndex: 9999,
+          }}
+        >
+          <div className="flex items-center gap-1 bg-gray-200/60 dark:bg-gray-800/60 backdrop-blur-md px-2 py-1 rounded-full shadow-sm border border-gray-300/50 dark:border-gray-700/50">
+            <div 
+              className="text-sm opacity-70"
+              style={{
+                animation: 'handGesture 2s ease-in-out infinite',
+              }}
+            >
+              👆
+            </div>
+            <div className="text-gray-700 dark:text-gray-300 text-[10px] font-medium whitespace-nowrap">
+              Drag to rotate
+            </div>
+          </div>
+        </div>
+      )}
 
       {renderSpotlightModal()}
     </>
