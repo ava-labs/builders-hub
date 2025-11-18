@@ -22,13 +22,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ImageIcon, BadgeAlert, PlusCircleIcon } from 'lucide-react';
 
 import { Card } from '@/components/ui/card';
-import { SubmissionForm } from '../hooks/useSubmissionForm';
+import { SubmissionForm } from '../hooks/useSubmissionFormSecure';
 
 type MediaUploaderProps = {
   name: keyof SubmissionForm;

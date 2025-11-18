@@ -1,0 +1,18 @@
+{
+  "title": "Avalanche-CLI",
+  "description": "Command-line interface for building and deploying on Avalanche",
+  "root": true,
+  "pages": [
+    "index",
+    "get-avalanche-cli",
+    "cli-commands",
+    "create-avalanche-l1",
+    "create-deploy-avalanche-l1s",
+    "maintain",
+    "upgrade",
+    "create-avalanche-nodes",
+    "cross-chain",
+    "transactions",
+    "guides"
+  ]
+}

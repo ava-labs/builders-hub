@@ -1,0 +1,68 @@
+---
+title: Interchain SDK
+icon: network
+description: Send cross-chain messages and transfer tokens between Avalanche chains and subnets
+---
+
+## Overview
+
+The Interchain SDK enables cross-chain communication on Avalanche. Send messages and transfer ERC20 tokens between Avalanche C-Chain and subnets using the Teleporter protocol.
+
+**Key Features:**
+
+- **Interchain Messaging (ICM)** - Send arbitrary messages across chains
+- **Interchain Token Transfers (ICTT)** - Transfer ERC20 tokens between chains
+- **Warp Messages** - Parse and build Warp protocol messages
+- **Type-safe** - Full TypeScript support with IntelliSense
+
+## Quick Start
+
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import { createICMClient } from "@avalanche-sdk/interchain";
+import { avalancheFuji, dispatch } from "@avalanche-sdk/interchain/chains";
+
+// Setup wallet
+const account = privateKeyToAvalancheAccount("0x...");
+const wallet = createAvalancheWalletClient({
+  account,
+  chain: avalancheFuji,
+  transport: { type: "http" },
+});
+
+// Create ICM client
+const icm = createICMClient(wallet);
+
+// Send message
+const hash = await icm.sendMsg({
+  sourceChain: avalancheFuji,
+  destinationChain: dispatch,
+  message: "Hello from Avalanche!",
+});
+```
+
+## What's Next
+
+<Cards>
+  <Card
+    title="Getting Started"
+    description="Install and configure the SDK"
+    href="/avalanche-sdk/interchain/getting-started"
+  />
+  <Card
+    title="Interchain Messaging"
+    description="Send messages across chains"
+    href="/avalanche-sdk/interchain/icm"
+  />
+  <Card
+    title="Token Transfers"
+    description="Transfer ERC20 tokens cross-chain"
+    href="/avalanche-sdk/interchain/ictt"
+  />
+  <Card
+    title="Warp Messages"
+    description="Parse and build Warp protocol messages"
+    href="/avalanche-sdk/interchain/warp"
+  />
+</Cards>

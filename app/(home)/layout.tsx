@@ -1,6 +1,5 @@
 "use client";
 
-import { HomeLayout } from "fumadocs-ui/layouts/home";
 import type { ReactNode } from "react";
 import { Footer } from "@/components/navigation/footer";
 import { baseOptions } from "@/app/layout.config";
@@ -9,6 +8,8 @@ import { useEffect, Suspense, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Modal from "@/components/ui/Modal";
 import { Button } from "@/components/ui/button";
+import { LayoutWrapper } from "@/app/layout-wrapper.client";
+import { NavbarDropdownInjector } from "@/components/navigation/navbar-dropdown-injector";
 
 export default function Layout({
   children,
@@ -20,10 +21,11 @@ export default function Layout({
       <Suspense fallback={null}>
         <RedirectIfNewUser />
       </Suspense>
-      <HomeLayout {...baseOptions}>
+      <NavbarDropdownInjector />
+      <LayoutWrapper baseOptions={baseOptions}>
         {children}
         <Footer />
-      </HomeLayout>
+      </LayoutWrapper>
     </SessionProvider>
   );
 }

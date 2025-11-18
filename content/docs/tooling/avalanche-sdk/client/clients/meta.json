@@ -1,0 +1,13 @@
+{
+    "title": "Clients",
+    "description": "Learn how to use the Avalanche Client SDK with different clients and transports.",
+    "pages": [
+        "index",
+        "avalanche-client",
+        "wallet-client",
+        "p-chain-client",
+        "x-chain-client",
+        "c-chain-client",
+        "api-clients"
+    ]
+}

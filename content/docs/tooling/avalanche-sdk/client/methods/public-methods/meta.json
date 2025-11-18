@@ -1,0 +1,11 @@
+{
+    "title": "Public Methods",
+    "description": "Complete reference for Avalanche-specific public client methods",
+    "pages": [
+        "public",
+        "c-chain",
+        "p-chain",
+        "x-chain",
+        "api"
+    ]
+}

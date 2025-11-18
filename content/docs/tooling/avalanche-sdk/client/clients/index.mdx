@@ -1,0 +1,170 @@
+---
+title: Clients
+---
+
+## Overview
+
+The SDK provides different client types for interacting with Avalanche. Each client is optimized for specific use cases.
+
+## Client Architecture
+
+```typescript
+Avalanche Client (Public)
+├── P-Chain Client
+├── X-Chain Client
+├── C-Chain Client
+├── Admin API Client
+├── Info API Client
+├── Health API Client
+├── ProposerVM Client
+└── Index API Clients
+
+Avalanche Wallet Client
+├── All Public Client Methods
+├── P-Chain Wallet Operations
+├── X-Chain Wallet Operations
+├── C-Chain Wallet Operations
+└── ERC20 Token Operations
+```
+
+## Client Types
+
+### Main Clients
+
+- **[Avalanche Client](clients/avalanche-client)** - Read-only operations for all chains
+- **[Avalanche Wallet Client](clients/wallet-client)** - Transaction signing and sending
+
+### Chain-Specific Clients
+
+- **[P-Chain Client](clients/p-chain-client)** - Validator and staking operations
+- **[X-Chain Client](clients/x-chain-client)** - Asset transfers and UTXO operations
+- **[C-Chain Client](clients/c-chain-client)** - EVM and atomic transaction operations
+
+### API Clients
+
+- **[Admin API Client](clients/api-clients#admin-api-client)** - Administrative node operations
+- **[Info API Client](clients/api-clients#info-api-client)** - Node information and network statistics
+- **[Health API Client](clients/api-clients#health-api-client)** - Node health monitoring
+- **[ProposerVM Client](clients/api-clients#proposervm-client)** - ProposerVM operations
+- **[Index API Clients](clients/api-clients#index-api-clients)** - Indexed blockchain data queries
+
+## Configuration
+
+All clients accept a common configuration:
+
+```typescript
+interface AvalancheClientConfig {
+  transport: Transport; // Required: HTTP, WebSocket, or Custom
+  chain?: Chain; // Optional: Network configuration
+  account?: Account | Address; // Optional: For wallet operations
+  apiKey?: string; // Optional: For authenticated endpoints
+  rlToken?: string; // Optional: Rate limit token
+  key?: string; // Optional: Client key identifier
+  name?: string; // Optional: Client name
+  pollingInterval?: number; // Optional: Polling interval in ms (default: chain.blockTime / 3)
+  cacheTime?: number; // Optional: Cache time in ms (default: chain.blockTime / 3)
+  batch?: { multicall?: boolean | MulticallBatchOptions }; // Optional: Batch settings
+  ccipRead?:
+    | {
+        request?: (
+          params: CcipRequestParameters
+        ) => Promise<CcipRequestReturnType>;
+      }
+    | false; // Optional: CCIP Read config
+  experimental_blockTag?: BlockTag; // Optional: Default block tag (default: 'latest')
+  rpcSchema?: RpcSchema; // Optional: Typed JSON-RPC schema
+  type?: string; // Optional: Client type
+}
+```
+
+### Configuration Options
+
+| Option            | Type                 | Required | Default               | Description                                       |
+| ----------------- | -------------------- | -------- | --------------------- | ------------------------------------------------- |
+| `transport`       | `Transport`          | ✅ Yes   | -                     | Transport configuration (HTTP, WebSocket, Custom) |
+| `chain`           | `Chain`              | No       | -                     | Network configuration (mainnet/testnet)           |
+| `account`         | `Account \| Address` | No       | -                     | Account for signing operations                    |
+| `apiKey`          | `string`             | No       | -                     | API key for authenticated endpoints               |
+| `rlToken`         | `string`             | No       | -                     | Rate limit token                                  |
+| `key`             | `string`             | No       | -                     | Client key identifier                             |
+| `name`            | `string`             | No       | -                     | Client name                                       |
+| `pollingInterval` | `number`             | No       | `chain.blockTime / 3` | Polling interval in milliseconds                  |
+| `cacheTime`       | `number`             | No       | `chain.blockTime / 3` | Cache time in milliseconds                        |
+| `batch`           | `object`             | No       | -                     | Batch settings (multicall configuration)          |
+| `ccipRead`        | `object \| false`    | No       | -                     | CCIP Read configuration                           |
+| `rpcSchema`       | `RpcSchema`          | No       | -                     | Typed JSON-RPC schema                             |
+| `type`            | `string`             | No       | -                     | Client type identifier                            |
+
+## Usage Examples
+
+### Public Client
+
+```typescript
+import { createAvalancheClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+// Read data from all chains
+const pHeight = await client.pChain.getHeight();
+const balance = await client.getBalance({ address: "0x..." });
+```
+
+### Wallet Client
+
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import { avalanche } from "@avalanche-sdk/client/chains";
+import { avaxToWei } from "@avalanche-sdk/client/utils";
+
+const account = privateKeyToAvalancheAccount("0x...");
+
+const walletClient = createAvalancheWalletClient({
+  account,
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+// Send transaction
+const txHash = await walletClient.send({
+  to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  amount: avaxToWei(0.001),
+});
+```
+
+### Accessing Sub-Clients
+
+```typescript
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+// Chain clients
+client.pChain; // P-Chain operations
+client.xChain; // X-Chain operations
+client.cChain; // C-Chain operations
+
+// API clients
+client.admin; // Admin API
+client.info; // Info API
+client.health; // Health API
+client.proposerVM.pChain; // ProposerVM API for P Chain
+client.proposerVM.xChain; // ProposerVM API for X Chain
+client.proposerVM.cChain; // ProposerVM API for C Chain
+client.indexBlock.pChain; // P-Chain block index
+client.indexBlock.cChain; // C-Chain block index
+client.indexBlock.xChain; // X-Chain block index
+client.indexTx.xChain; // X-Chain transaction index
+```
+
+## Next Steps
+
+- **[Avalanche Client](clients/avalanche-client)** - Read-only operations
+- **[Avalanche Wallet Client](clients/wallet-client)** - Transaction operations
+- **[Chain-Specific Clients](clients/p-chain-client)** - P, X, and C-Chain clients
+- **[API Clients](clients/api-clients)** - Admin, Info, Health, ProposerVM, and Index APIs

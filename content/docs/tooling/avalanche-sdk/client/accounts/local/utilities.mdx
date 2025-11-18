@@ -1,0 +1,295 @@
+---
+title: "Account Utilities"
+icon: "hammer"
+---
+
+## Overview
+
+Account utilities provide validation, parsing, and helper functions for working with Avalanche accounts and addresses.
+
+## Account Validation
+
+### Parse Avalanche Account
+
+```typescript
+function parseAvalancheAccount(
+  account: Address | AvalancheAccount | undefined
+): AvalancheAccount | undefined;
+```
+
+**Parameters:**
+
+- `account` (`Address | AvalancheAccount | undefined`): The account or address to parse. Can be an EVM address string, an existing `AvalancheAccount`, or `undefined`.
+
+**Returns:**
+
+- `AvalancheAccount | undefined`: Returns an `AvalancheAccount` when an address or account is provided, or `undefined` when the input is `undefined`.
+
+**Behavior:**
+
+The function behaves differently based on the input type:
+
+1. **When an address string is passed**: Returns an `AvalancheAccount` with only `evmAccount` populated. The `xpAccount` property will be `undefined` because an address string alone doesn't contain the private key information needed to derive XP account details.
+
+2. **When an AvalancheAccount is passed**: Returns the account as-is without modification. This is useful for normalizing function parameters that accept both addresses and accounts.
+
+3. **When undefined is passed**: Returns `undefined`. This allows for optional account parameters in functions.
+
+**Limitations:**
+
+- When parsing from an address string, the returned account will only have `evmAccount` populated. The `xpAccount` property will be `undefined`, which means:
+  - You cannot perform X-Chain or P-Chain operations that require signing (e.g., `account.xpAccount.signMessage()`)
+  - You can still use the account for read-only operations or C-Chain (EVM) operations
+  - To get XP account functionality, you need to create an account from a private key or mnemonic or use a custom provider
+
+**Example:**
+
+```typescript
+import { parseAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import type { AvalancheAccount, Address } from "@avalanche-sdk/client/accounts";
+
+// Parse from address string (only evmAccount populated)
+const address: Address = "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6";
+const account = parseAvalancheAccount(address);
+// account.xpAccount is undefined - can only use for C-Chain operations
+
+// Parse existing account (returns as-is)
+const fullAccount: AvalancheAccount = /* ... */;
+const normalized = parseAvalancheAccount(fullAccount); // Returns as-is
+
+// Handle undefined
+const optional = parseAvalancheAccount(undefined); // Returns undefined
+```
+
+## Address Utilities
+
+### Private Key to XP Address
+
+```typescript
+function privateKeyToXPAddress(privateKey: string, hrp: string): XPAddress;
+```
+
+**Parameters:**
+
+- `privateKey` (`string`): The private key with `0x` prefix.
+- `hrp` (`string`): The human-readable prefix for the address. Use `"avax"` for mainnet or `"fuji"` for testnet.
+
+**Returns:**
+
+- `XPAddress`: The Bech32-encoded XP address as a string.
+
+**Example:**
+
+```typescript
+import { privateKeyToXPAddress } from "@avalanche-sdk/client/accounts";
+
+const mainnet = privateKeyToXPAddress("0x...", "avax");
+const testnet = privateKeyToXPAddress("0x...", "fuji");
+```
+
+### Public Key to XP Address
+
+```typescript
+function publicKeyToXPAddress(publicKey: string, hrp: string): XPAddress;
+```
+
+**Parameters:**
+
+- `publicKey` (`string`): The public key with `0x` prefix.
+- `hrp` (`string`): The human-readable prefix for the address. Use `"avax"` for mainnet or `"fuji"` for testnet.
+
+**Returns:**
+
+- `XPAddress`: The Bech32-encoded XP address as a string.
+
+**Example:**
+
+```typescript
+import { publicKeyToXPAddress } from "@avalanche-sdk/client/accounts";
+
+const xpAddress = publicKeyToXPAddress("0x...", "avax");
+```
+
+### Private Key to XP Public Key
+
+```typescript
+function privateKeyToXPPublicKey(privateKey: string): string;
+```
+
+**Parameters:**
+
+- `privateKey` (`string`): The private key with `0x` prefix.
+
+**Returns:**
+
+- `string`: The compressed public key in hex format with `0x` prefix.
+
+**Example:**
+
+```typescript
+import {
+  privateKeyToXPPublicKey,
+  publicKeyToXPAddress,
+} from "@avalanche-sdk/client/accounts";
+
+const publicKey = privateKeyToXPPublicKey("0x...");
+const xpAddress = publicKeyToXPAddress(publicKey, "avax");
+```
+
+## Message Signing
+
+### XP Message Signing
+
+```typescript
+function xpSignMessage(message: string, privateKey: string): Promise<string>;
+```
+
+**Parameters:**
+
+- `message` (`string`): The message to sign.
+- `privateKey` (`string`): The private key with `0x` prefix to sign with.
+
+**Returns:**
+
+- `Promise<string>`: A promise that resolves to a base58-encoded signature string.
+
+**Example:**
+
+```typescript
+import { xpSignMessage } from "@avalanche-sdk/client/accounts";
+
+const signature = await xpSignMessage("Hello Avalanche!", "0x...");
+// Returns base58-encoded signature (e.g., "2k5Jv...")
+```
+
+### XP Transaction Signing
+
+```typescript
+function xpSignTransaction(
+  txHash: string | Uint8Array,
+  privateKey: string | Uint8Array
+): Promise<string>;
+```
+
+**Parameters:**
+
+- `txHash` (`string | Uint8Array`): The transaction hash to sign. Can be a hex string with `0x` prefix or a `Uint8Array`.
+- `privateKey` (`string | Uint8Array`): The private key to sign with. Can be a hex string with `0x` prefix or a `Uint8Array`.
+
+**Returns:**
+
+- `Promise<string>`: A promise that resolves to a hex-encoded signature string with `0x` prefix.
+
+**Example:**
+
+```typescript
+import { xpSignTransaction } from "@avalanche-sdk/client/accounts";
+
+const signature = await xpSignTransaction("0x...", "0x...");
+// Returns hex-encoded signature (e.g., "0x1234...")
+```
+
+### Signature Verification
+
+```typescript
+function xpVerifySignature(
+  signature: string,
+  message: string,
+  publicKey: string
+): boolean;
+```
+
+**Parameters:**
+
+- `signature` (`string`): The signature to verify in hex format with `0x` prefix.
+- `message` (`string`): The message that was signed.
+- `publicKey` (`string`): The public key to verify with in hex format with `0x` prefix.
+
+**Returns:**
+
+- `boolean`: `true` if the signature is valid, `false` otherwise.
+
+**Note:** This function expects hex format signatures. For base58 signatures created with `xpSignMessage`, use `xpAccount.verify()` instead.
+
+**Example:**
+
+```typescript
+import { xpVerifySignature } from "@avalanche-sdk/client/accounts";
+
+const isValid = xpVerifySignature("0x...", "Hello Avalanche!", "0x...");
+
+// For base58 signatures from xpSignMessage, use xpAccount.verify() instead
+```
+
+### Public Key Recovery
+
+```typescript
+function xpRecoverPublicKey(message: string, signature: string): string;
+```
+
+**Parameters:**
+
+- `message` (`string`): The message that was signed.
+- `signature` (`string`): The signature in hex format with `0x` prefix.
+
+**Returns:**
+
+- `string`: The recovered public key as a hex string with `0x` prefix.
+
+**Example:**
+
+```typescript
+import { xpRecoverPublicKey } from "@avalanche-sdk/client/accounts";
+
+const publicKey = xpRecoverPublicKey("Hello Avalanche!", "0x...");
+```
+
+## XP Account Creation
+
+### Private Key to XP Account
+
+```typescript
+function privateKeyToXPAccount(privateKey: string): XPAccount;
+```
+
+**Parameters:**
+
+- `privateKey` (`string`): The private key with `0x` prefix.
+
+**Returns:**
+
+- `XPAccount`: An XP account object with the following properties:
+  - `publicKey` (`string`): The compressed public key in hex format.
+  - `signMessage(message: string)` (`Promise<string>`): Signs a message and returns a base58-encoded signature.
+  - `signTransaction(txHash: string | Uint8Array)` (`Promise<string>`): Signs a transaction hash and returns a hex-encoded signature.
+  - `verify(message: string, signature: string)` (`boolean`): Verifies a message signature.
+  - `type` (`"local"`): The account type.
+  - `source` (`"privateKey"`): The account source.
+
+**Note:** Creates an XP-only account from a private key. Lighter weight than `privateKeyToAvalancheAccount` since it skips EVM account initialization. Use this when you only need X-Chain or P-Chain operations.
+
+<Callout type="warning">
+  **Limitations**: No EVM account—can't use for C-Chain operations. If you need
+  both XP and EVM functionality, use `privateKeyToAvalancheAccount` instead.
+</Callout>
+
+**Example:**
+
+```typescript
+import { privateKeyToXPAccount } from "@avalanche-sdk/client/accounts";
+
+const xpAccount = privateKeyToXPAccount("0x...");
+
+// Sign message
+const signature = await xpAccount.signMessage("Hello Avalanche!");
+const isValid = xpAccount.verify("Hello Avalanche!", signature);
+
+// Sign transaction
+const txSignature = await xpAccount.signTransaction("0x...");
+```
+
+## Next Steps
+
+- **[Using Accounts with Clients](accounts/local/clients)** - Client integration patterns
+- **[Wallet Operations](methods/wallet-methods/wallet)** - Learn how to send transactions
+- **[Account Management](accounts)** - Overview of account management
