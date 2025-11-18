@@ -560,7 +560,7 @@ function PlaygroundContent() {
                     title="Favorite count"
                   >
                     <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorited ? "fill-current" : ""}`} />
-                    {favoriteCount > 0 && <span className="text-xs sm:text-sm hidden sm:inline">{favoriteCount}</span>}
+                    {favoriteCount > 0 && <span className="text-xs sm:text-sm">{favoriteCount}</span>}
                   </Button>
                   {viewCount > 0 && (
                     <Button
@@ -569,7 +569,7 @@ function PlaygroundContent() {
                       title="View count"
                     >
                       <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                      <span className="text-xs sm:text-sm hidden sm:inline">{viewCount.toLocaleString()}</span>
+                      <span className="text-xs sm:text-sm">{viewCount.toLocaleString()}</span>
                     </Button>
                   )}
                   <Button
@@ -654,7 +654,7 @@ function PlaygroundContent() {
                     ) : (
                       <>
                         <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorited ? "fill-current" : ""}`} />
-                        {favoriteCount > 0 && <span className="text-xs sm:text-sm hidden sm:inline">{favoriteCount}</span>}
+                        {favoriteCount > 0 && <span className="text-xs sm:text-sm">{favoriteCount}</span>}
                       </>
                     )}
                   </Button>
@@ -665,7 +665,7 @@ function PlaygroundContent() {
                       title="View count"
                     >
                       <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                      <span className="text-xs sm:text-sm hidden sm:inline">{viewCount.toLocaleString()}</span>
+                      <span className="text-xs sm:text-sm">{viewCount.toLocaleString()}</span>
                     </Button>
                   )}
                 </>
