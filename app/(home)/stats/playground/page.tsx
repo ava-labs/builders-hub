@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import ConfigurableChart from "@/components/stats/ConfigurableChart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, X, Save, Globe, Lock, Copy, Check, Pencil, Loader2, Heart, Share2 } from "lucide-react";
+import { Search, X, Save, Globe, Lock, Copy, Check, Pencil, Loader2, Heart, Share2, Eye } from "lucide-react";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import { LoginModal } from "@/components/login/LoginModal";
 
@@ -498,28 +498,21 @@ function PlaygroundContent() {
                   </span>
                 </div>
               )}
-              <div className="flex items-center gap-2 mt-2 text-xs text-gray-500 dark:text-gray-500 flex-wrap">
+              <div className="flex items-center gap-1.5 sm:gap-2 mt-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-500 flex-wrap">
                 {(createdAt || updatedAt) && (
                   <>
                     {createdAt && (
-                      <>
-                        <span>Created {new Date(createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
-                      </>
+                      <span className="whitespace-nowrap">Created {new Date(createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
                     )}
                     {createdAt && updatedAt && (
-                      <span className="text-gray-400 dark:text-gray-600">•</span>
+                      <span className="text-gray-400 dark:text-gray-600 hidden sm:inline">•</span>
                     )}
                     {updatedAt && (
-                      <span>Updated {new Date(updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                      <span className="whitespace-nowrap">
+                        {createdAt && <span className="text-gray-400 dark:text-gray-600 sm:hidden mr-1.5">•</span>}
+                        Updated {new Date(updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </span>
                     )}
-                  </>
-                )}
-                {viewCount > 0 && (
-                  <>
-                    {(createdAt || updatedAt) && (
-                      <span className="text-gray-400 dark:text-gray-600">•</span>
-                    )}
-                    <span>{viewCount.toLocaleString()} {viewCount === 1 ? 'view' : 'views'}</span>
                   </>
                 )}
               </div>
@@ -580,6 +573,16 @@ function PlaygroundContent() {
                     <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorited ? "fill-current" : ""}`} />
                     {favoriteCount > 0 && <span className="text-xs sm:text-sm hidden sm:inline">{favoriteCount}</span>}
                   </Button>
+                  {viewCount > 0 && (
+                    <Button
+                      disabled={true}
+                      className="flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors opacity-60 cursor-not-allowed bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700"
+                      title="View count"
+                    >
+                      <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <span className="text-xs sm:text-sm hidden sm:inline">{viewCount.toLocaleString()}</span>
+                    </Button>
+                  )}
                   <Button
                     onClick={handleSave}
                     disabled={!hasChanges || isSaving}
@@ -649,6 +652,16 @@ function PlaygroundContent() {
                       </>
                     )}
                   </Button>
+                  {viewCount > 0 && (
+                    <Button
+                      disabled={true}
+                      className="flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors opacity-60 cursor-not-allowed bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700"
+                      title="View count"
+                    >
+                      <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <span className="text-xs sm:text-sm hidden sm:inline">{viewCount.toLocaleString()}</span>
+                    </Button>
+                  )}
                 </>
               )}
             </div>
