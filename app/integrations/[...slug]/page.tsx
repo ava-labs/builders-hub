@@ -25,7 +25,7 @@ export default async function Page(props: {
   const path = `content/integrations${page.url.replace('/integrations/', '/')}.mdx`;
 
   return (
-    <>
+    <div className="integration-detail-page">
       <div
         className="container rounded-xl border mt-5 py-12 md:px-8"
         style={{
@@ -141,7 +141,7 @@ export default async function Page(props: {
           </div>
         </div>
       </article>
-    </>
+    </div>
   );
 }
 
