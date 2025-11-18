@@ -10,7 +10,7 @@ interface AcademyHeroProps {
     description: string;
 }
 
-const DISPLAY_DURATION = 7000; // Show each academy name for 4 seconds
+const DISPLAY_DURATION = 3500; // Show each academy name for 4 seconds
 
 // Complete academy titles: [prefix, prefixIsRed, suffix, suffixIsRed]
 const academyTitles: [string, boolean, string, boolean][] = [
@@ -89,7 +89,7 @@ export function AcademyHero({ title, accent, accentWords, description }: Academy
                     <div className="flex flex-col items-center text-center">
                         {/* Main heading with rotating academy title */}
                         <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight">
-                            <div className="inline-flex items-center justify-center -ml-24 sm:-ml-28 lg:-ml-32">
+                            <div className="inline-flex items-center justify-center -ml-28 sm:-ml-32 lg:-ml-36">
                                 <div className="inline-block text-right mr-2 w-[400px] sm:w-[500px] lg:w-[650px] xl:w-[800px]">
                                     <RotatingAcademyTitle />
                                 </div>
