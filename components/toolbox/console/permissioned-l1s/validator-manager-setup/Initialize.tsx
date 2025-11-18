@@ -61,12 +61,6 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
             setSubnetId(selectedL1.subnetId);
         }
     }, [createChainStoreSubnetId, selectedL1, subnetId]);
-
-    useEffect(() => {
-        if (createChainStoreVMCAddress && !proxyAddress) {
-            setProxyAddress(createChainStoreVMCAddress);
-        }
-    }, [createChainStoreVMCAddress]);
     
     let subnetIDHex = "";
     try {
