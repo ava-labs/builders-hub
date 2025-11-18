@@ -549,17 +549,6 @@ function PlaygroundContent() {
                       </button>
                     </>
                   )}
-                  <button
-                    onClick={() => setIsPublic(!isPublic)}
-                    className="p-1.5 sm:p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
-                    title={isPublic ? "Make private" : "Make public"}
-                  >
-                    {isPublic ? (
-                      <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
-                    ) : (
-                      <Lock className="h-4 w-4 sm:h-5 sm:w-5" />
-                    )}
-                  </button>
                   <Button
                     onClick={handleFavorite}
                     disabled={true}
@@ -583,6 +572,23 @@ function PlaygroundContent() {
                       <span className="text-xs sm:text-sm hidden sm:inline">{viewCount.toLocaleString()}</span>
                     </Button>
                   )}
+                  <Button
+                    onClick={() => setIsPublic(!isPublic)}
+                    className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+                    title={isPublic ? "Make private" : "Make public"}
+                  >
+                    {isPublic ? (
+                      <>
+                        <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                        <span className="hidden sm:inline">Public</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                        <span className="hidden sm:inline">Private</span>
+                      </>
+                    )}
+                  </Button>
                   <Button
                     onClick={handleSave}
                     disabled={!hasChanges || isSaving}
