@@ -549,28 +549,32 @@ function PlaygroundContent() {
                       </button>
                     </>
                   )}
-                  <Button
-                    onClick={handleFavorite}
-                    disabled={true}
-                    className={`flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors opacity-60 cursor-not-allowed ${
-                      isFavorited
-                        ? "bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800"
-                        : "bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700"
-                    }`}
-                    title="Favorite count"
-                  >
-                    <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorited ? "fill-current" : ""}`} />
-                    {favoriteCount > 0 && <span className="text-xs sm:text-sm">{favoriteCount}</span>}
-                  </Button>
-                  {viewCount > 0 && (
-                    <Button
-                      disabled={true}
-                      className="flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors opacity-60 cursor-not-allowed bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700"
-                      title="View count"
-                    >
-                      <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                      <span className="text-xs sm:text-sm">{viewCount.toLocaleString()}</span>
-                    </Button>
+                  {currentPlaygroundId && (
+                    <>
+                      <Button
+                        onClick={handleFavorite}
+                        disabled={true}
+                        className={`flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors opacity-60 cursor-not-allowed ${
+                          isFavorited
+                            ? "bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800"
+                            : "bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700"
+                        }`}
+                        title="Favorite count"
+                      >
+                        <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorited ? "fill-current" : ""}`} />
+                        {favoriteCount > 0 && <span className="text-xs sm:text-sm">{favoriteCount}</span>}
+                      </Button>
+                      {viewCount > 0 && (
+                        <Button
+                          disabled={true}
+                          className="flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors opacity-60 cursor-not-allowed bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700"
+                          title="View count"
+                        >
+                          <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          <span className="text-xs sm:text-sm">{viewCount.toLocaleString()}</span>
+                        </Button>
+                      )}
+                    </>
                   )}
                   <Button
                     onClick={() => setIsPublic(!isPublic)}
@@ -638,35 +642,39 @@ function PlaygroundContent() {
                       </button>
                     </>
                   )}
-                  <Button
-                    onClick={handleFavorite}
-                    disabled={isFavoriting}
-                    className={`flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors ${
-                      isFavorited
-                        ? "bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 border border-red-200 dark:border-red-800"
-                        : "bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700 border border-gray-200 dark:border-neutral-700"
-                    }`}
-                  >
-                    {isFavoriting ? (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
-                      </>
-                    ) : (
-                      <>
-                        <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorited ? "fill-current" : ""}`} />
-                        {favoriteCount > 0 && <span className="text-xs sm:text-sm">{favoriteCount}</span>}
-                      </>
-                    )}
-                  </Button>
-                  {viewCount > 0 && (
-                    <Button
-                      disabled={true}
-                      className="flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors opacity-60 cursor-not-allowed bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700"
-                      title="View count"
-                    >
-                      <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                      <span className="text-xs sm:text-sm">{viewCount.toLocaleString()}</span>
-                    </Button>
+                  {currentPlaygroundId && (
+                    <>
+                      <Button
+                        onClick={handleFavorite}
+                        disabled={isFavoriting}
+                        className={`flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors ${
+                          isFavorited
+                            ? "bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 border border-red-200 dark:border-red-800"
+                            : "bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700 border border-gray-200 dark:border-neutral-700"
+                        }`}
+                      >
+                        {isFavoriting ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+                          </>
+                        ) : (
+                          <>
+                            <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorited ? "fill-current" : ""}`} />
+                            {favoriteCount > 0 && <span className="text-xs sm:text-sm">{favoriteCount}</span>}
+                          </>
+                        )}
+                      </Button>
+                      {viewCount > 0 && (
+                        <Button
+                          disabled={true}
+                          className="flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors opacity-60 cursor-not-allowed bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700"
+                          title="View count"
+                        >
+                          <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          <span className="text-xs sm:text-sm">{viewCount.toLocaleString()}</span>
+                        </Button>
+                      )}
+                    </>
                   )}
                 </>
               )}
