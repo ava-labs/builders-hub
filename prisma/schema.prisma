@@ -58,6 +58,8 @@ model User {
   badges              UserBadge[]
   managedTestnetNodes NodeRegistration[]
   consoleLog          ConsoleLog[]
+  playgrounds         Playground[]
+  playgroundFavorites PlaygroundFavorite[] @relation("PlaygroundFavorites")
 }
 
 model VerificationToken {
@@ -220,4 +222,33 @@ model ConsoleLog {
 
   @@index([user_id])
   @@index([created_at])
+}
+
+model Playground {
+  id          String   @id @default(uuid())
+  user_id     String
+  name        String
+  is_public   Boolean  @default(false)
+  charts      Json     // Array of chart configurations
+  created_at  DateTime @default(now()) @db.Timestamptz(3)
+  updated_at  DateTime @updatedAt @db.Timestamptz(3)
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  favorites   PlaygroundFavorite[]
+
+  @@index([user_id])
+  @@index([is_public])
+  @@index([created_at])
+}
+
+model PlaygroundFavorite {
+  id           String    @id @default(uuid())
+  playground_id String
+  user_id      String
+  created_at   DateTime  @default(now()) @db.Timestamptz(3)
+  playground   Playground @relation(fields: [playground_id], references: [id], onDelete: Cascade)
+  user         User      @relation("PlaygroundFavorites", fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([playground_id, user_id])
+  @@index([playground_id])
+  @@index([user_id])
 }
