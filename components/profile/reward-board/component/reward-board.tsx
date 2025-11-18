@@ -22,15 +22,14 @@ export default async function RewardBoard() {
   // COMMENTED OUT: Points feature disabled
   // const totalPoints = userBadges.reduce((acc, userBadge) => acc + userBadge.points, 0);
   const hackathonBadgesUnlocked = hackathonBadges.map((badge) => {
-    const userBadge = userBadges.find((userBadge) => userBadge.badge_id == badge.id);
-    
-    const allRequirementsCompleted = userBadge?.requirements && userBadge.requirements.length > 0 &&
-      userBadge.requirements.every((requirement) => requirement.unlocked === true);
-    return {
-      ...badge,
-      is_unlocked: !!allRequirementsCompleted,
-      requirements: userBadge?.requirements || badge.requirements,
-    };
+  const userBadge = userBadges.find((userBadge) => userBadge.badge_id == badge.id);
+  const allRequirementsCompleted = userBadge?.requirements && userBadge.requirements.length > 0 &&
+     userBadge.requirements.every((requirement) => requirement.unlocked === true);
+   return {
+     ...badge,
+     is_unlocked: !!allRequirementsCompleted,
+     requirements: userBadge?.requirements || badge.requirements,
+   };
   });
 
   const academyBadgesUnlocked = academyBadges.map((badge) => {
