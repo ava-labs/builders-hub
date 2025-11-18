@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
         is_owner: isOwner,
         is_favorited: isFavorited,
         favorite_count: favoriteCount,
+        view_count: playground.view_count || 0,
         favorites: undefined, // Remove favorites array from response
         _count: undefined, // Remove _count from response
         creator: playground.user ? {

@@ -24,8 +24,8 @@ function PlaygroundContent() {
   const playgroundId = searchParams.get("id");
   const { openLoginModal } = useLoginModalTrigger();
   
-  const [playgroundName, setPlaygroundName] = useState("My Playground");
-  const [savedPlaygroundName, setSavedPlaygroundName] = useState("My Playground");
+  const [playgroundName, setPlaygroundName] = useState("");
+  const [savedPlaygroundName, setSavedPlaygroundName] = useState("");
   const [isEditingName, setIsEditingName] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const [savedIsPublic, setSavedIsPublic] = useState(false);
@@ -39,6 +39,7 @@ function PlaygroundContent() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteCount, setFavoriteCount] = useState(0);
   const [isFavoriting, setIsFavoriting] = useState(false);
+  const [viewCount, setViewCount] = useState(0);
   const [creator, setCreator] = useState<{
     id: string;
     name: string | null;
@@ -97,7 +98,7 @@ function PlaygroundContent() {
 
   const addChart = () => {
     const newId = String(charts.length + 1);
-    setCharts([...charts, { id: newId, title: `Chart ${newId}`, colSpan: 12 }]);
+    setCharts([...charts, { id: newId, title: `Chart ${newId}`, colSpan: 12, dataSeries: [], stackSameMetrics: false }]);
   };
 
   const removeChart = (chartId: string) => {
@@ -137,6 +138,7 @@ function PlaygroundContent() {
         setIsOwner(playground.is_owner || false);
         setIsFavorited(playground.is_favorited || false);
         setFavoriteCount(playground.favorite_count || 0);
+        setViewCount(playground.view_count || 0);
         setCreator(playground.creator || null);
         setCreatedAt(playground.created_at || null);
         setUpdatedAt(playground.updated_at || null);
@@ -175,6 +177,33 @@ function PlaygroundContent() {
   useEffect(() => {
     hasLoadedRef.current = false;
   }, [playgroundId]);
+
+  // Track view count when playground loads (only for non-owners)
+  useEffect(() => {
+    if (!currentPlaygroundId || isOwner) return;
+    
+    // Use sessionStorage to prevent duplicate counts from same session
+    const viewKey = `playground_view_${currentPlaygroundId}`;
+    const hasViewed = sessionStorage.getItem(viewKey);
+    
+    if (!hasViewed) {
+      // Track view asynchronously without blocking
+      fetch(`/api/playground/${currentPlaygroundId}/view`, {
+        method: 'POST',
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.view_count !== undefined) {
+            setViewCount(data.view_count);
+            sessionStorage.setItem(viewKey, 'true');
+          }
+        })
+        .catch(err => {
+          console.error('Failed to track view:', err);
+          // Silently fail - don't disrupt user experience
+        });
+    }
+  }, [currentPlaygroundId, isOwner]);
 
   const handleSave = async () => {
     console.log("handleSave", status);
@@ -376,8 +405,39 @@ function PlaygroundContent() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
-        <div className="container mx-auto px-6 py-10 pb-24 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <div className="container mx-auto px-6 py-10 pb-24 space-y-8">
+          {/* Header Skeleton */}
+          <div className="mb-10">
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <div className="flex-1">
+                <div className="h-10 w-64 bg-gray-200 dark:bg-neutral-800 rounded animate-pulse mb-2" />
+                <div className="h-4 w-48 bg-gray-200 dark:bg-neutral-800 rounded animate-pulse mt-2" />
+                <div className="h-3 w-64 bg-gray-200 dark:bg-neutral-800 rounded animate-pulse mt-2" />
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-9 w-20 bg-gray-200 dark:bg-neutral-800 rounded animate-pulse" />
+                <div className="h-9 w-20 bg-gray-200 dark:bg-neutral-800 rounded animate-pulse" />
+                <div className="h-9 w-16 bg-gray-200 dark:bg-neutral-800 rounded animate-pulse" />
+                <div className="h-9 w-20 bg-gray-200 dark:bg-neutral-800 rounded animate-pulse" />
+              </div>
+            </div>
+          </div>
+
+          {/* Search Skeleton */}
+          <div className="flex items-center gap-2">
+            <div className="h-10 flex-1 max-w-sm bg-gray-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
+            <div className="h-10 w-32 bg-gray-200 dark:bg-neutral-800 rounded animate-pulse" />
+          </div>
+
+          {/* Chart Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+            <div className="lg:col-span-12">
+              <div className="bg-white dark:bg-black border border-gray-200 dark:border-neutral-800 rounded-lg p-6">
+                <div className="h-6 w-48 bg-gray-200 dark:bg-neutral-800 rounded animate-pulse mb-4" />
+                <div className="h-80 bg-gray-100 dark:bg-neutral-900 rounded animate-pulse" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -420,7 +480,7 @@ function PlaygroundContent() {
                     cursor: isOwner && isEditingName ? "text" : isOwner ? "pointer" : "default",
                   }}
                 >
-                  {playgroundName}
+                  {playgroundName || "My Playground"}
                 </h1>
                 {isOwner && <Pencil className="h-5 w-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />}
               </div>
@@ -438,21 +498,31 @@ function PlaygroundContent() {
                   </span>
                 </div>
               )}
-              {(createdAt || updatedAt) && (
-                <div className="flex items-center gap-2 mt-2 text-xs text-gray-500 dark:text-gray-500">
-                  {createdAt && (
-                    <>
-                      <span>Created {new Date(createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
-                    </>
-                  )}
-                  {createdAt && updatedAt && (
-                    <span className="text-gray-400 dark:text-gray-600">•</span>
-                  )}
-                  {updatedAt && (
-                    <span>Updated {new Date(updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
-                  )}
-                </div>
-              )}
+              <div className="flex items-center gap-2 mt-2 text-xs text-gray-500 dark:text-gray-500 flex-wrap">
+                {(createdAt || updatedAt) && (
+                  <>
+                    {createdAt && (
+                      <>
+                        <span>Created {new Date(createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                      </>
+                    )}
+                    {createdAt && updatedAt && (
+                      <span className="text-gray-400 dark:text-gray-600">•</span>
+                    )}
+                    {updatedAt && (
+                      <span>Updated {new Date(updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                    )}
+                  </>
+                )}
+                {viewCount > 0 && (
+                  <>
+                    {(createdAt || updatedAt) && (
+                      <span className="text-gray-400 dark:text-gray-600">•</span>
+                    )}
+                    <span>{viewCount.toLocaleString()} {viewCount === 1 ? 'view' : 'views'}</span>
+                  </>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               {isOwner ? (
