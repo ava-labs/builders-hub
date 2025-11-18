@@ -33,7 +33,8 @@ export function useWrappedNativeToken(): WrappedNativeTokenHook {
       abi: WrappedNativeToken.abi,
       functionName: 'deposit',
       value: parseEther(amount),
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      chain: viemChain
     });
 
     notify({
@@ -54,7 +55,8 @@ export function useWrappedNativeToken(): WrappedNativeTokenHook {
       abi: WrappedNativeToken.abi,
       functionName: 'withdraw',
       args: [parseEther(amount)],
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      chain: viemChain
     });
 
     notify({
