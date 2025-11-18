@@ -1275,7 +1275,6 @@ export default function ConfigurableChart({
                       brushRange?.endIndex ?? aggregatedData.length - 1
                     }
                     onChange={(e: any) => {
-                      if (disableControls) return;
                       if (
                         e.startIndex !== undefined &&
                         e.endIndex !== undefined

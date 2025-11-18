@@ -302,7 +302,9 @@ function PlaygroundContent() {
 
   const shareOnX = () => {
     if (savedLink) {
-      const text = `Check out my avalanche ecosystem stats playground`;
+      const text = isOwner 
+        ? `check out my @avax ecosystem playground`
+        : `check out this @avax ecosystem playground`;
       const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(savedLink)}`;
       window.open(url, '_blank', 'noopener,noreferrer');
     }
