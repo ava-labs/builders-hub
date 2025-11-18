@@ -6,6 +6,7 @@ authors: [nicolasarnedo]
 icon: Terminal
 ---
 
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
 import ConvertSubnetToL1 from "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx"
 
@@ -13,24 +14,54 @@ This section provides a streamlined walkthrough for creating a new L1 from scrat
 
 You should already have a created L1 from the [Permissioned L1 course] with the Validator Manager Contract correctly set up that you can use to transform into a Permissionless L1.
 
-## Step 1: Create Subnet with correct Precompiles
+## Step 1: Create Subnet with necessary Precompiles
 
 When creating your subnet, you **must** enable the Native Minter and Reward Manager precompiles in your genesis configuration. These are essential for native token staking:
 
 - **Native Minter**: Allows the staking manager to mint reward tokens
 - **Reward Manager**: Automates reward distribution to validators
 
-<Callout type="warning">
-Make sure to enable both precompiles during subnet creation. You can use the Developer Console to configure these settings.
-</Callout>
+<ToolboxMdxWrapper walletMode="c-chain">
+    <CreateChain embedded={true} />
+</ToolboxMdxWrapper>
 
 ## Step 2: Add Initial Validator
 
-Your subnet needs at least one validator to operate. You can either:
-- Use a BuilderHub hosted node (recommended for testing)
-- Run your own validator node
+<Step>
 
-The validator you add here will become part of your L1's initial validator set after conversion.
+### Set Up Validator Node
+
+Launch a node to track your Subnet. This node will become a validator for your Subnet, and later will be managed by the Validator Manager contract when we convert to L1.
+
+Use our *free managed testnet infrastructure* - no Docker installation or AWS account required:
+
+<ToolboxMdxWrapper walletMode="testnet-mainnet">
+    <CreateManagedTestnetNode />
+</ToolboxMdxWrapper>
+
+**Managing Your Nodes**
+
+After creating nodes, you can view and manage them at the [Testnet Infrastructure Console](/console/testnet-infra/nodes).
+
+<Callout type="warning">
+Managed nodes automatically shut down after 3 days. For production or extended testing, see the self-hosted option below.
+</Callout>
+
+### Production & Extended Testing Environments
+
+For production environments or extended testing periods, you should use Docker to run your nodes.
+
+<Accordions>
+<Accordion title="Docker Setup Guide (Optional)">
+
+<ToolboxMdxWrapper walletMode="testnet-mainnet">
+    <AvalancheGoDocker />
+</ToolboxMdxWrapper>
+
+</Accordion>
+</Accordions>
+
+</Step>
 
 ## Step 3: Convert Subnet to L1
 
