@@ -129,7 +129,7 @@ const premiumStyles = `
   }
   
   .text-rotator-inner {
-    animation: rotate-up 24s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    animation: rotate-up 36s cubic-bezier(0.65, 0, 0.35, 1) infinite;
     will-change: transform;
     transform: translateY(0%);
   }
@@ -142,7 +142,7 @@ const premiumStyles = `
     }
     
     .text-rotator-inner {
-      animation-duration: 20s;
+      animation-duration: 30s;
     }
   }
 `;
@@ -233,7 +233,7 @@ export default function Hero() {
               </h2>
               
               <p className="text-xl sm:text-2xl lg:text-2xl xl:text-3xl text-slate-600 dark:text-slate-300 font-light leading-[1.5] tracking-[-0.025em] max-w-2xl mx-auto lg:mx-0 text-balance">
-                Explore everything you need to go from idea to impact.
+                Everything you need to go from idea to impact.
               </p>
             </div>
 

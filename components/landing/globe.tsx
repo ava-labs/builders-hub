@@ -187,7 +187,7 @@ export const Sponsors = () => {
 				containerSize={550}
 				sphereRadius={200}
 				autoRotate={true}
-				autoRotateSpeed={0.15}
+				autoRotateSpeed={0.08}
 				dragSensitivity={0.5}
 				baseImageScale={0.28}
 				className="mx-auto"
