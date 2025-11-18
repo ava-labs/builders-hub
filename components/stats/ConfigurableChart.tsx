@@ -100,10 +100,12 @@ export interface ChartDataPoint {
 export interface ConfigurableChartProps {
   title?: string;
   initialDataSeries?: Partial<DataSeries>[];
+  initialStackSameMetrics?: boolean;
   colSpan?: 6 | 12;
   onColSpanChange?: (colSpan: 6 | 12) => void;
   onTitleChange?: (title: string) => void;
   onDataSeriesChange?: (dataSeries: DataSeries[]) => void;
+  onStackSameMetricsChange?: (stackSameMetrics: boolean) => void;
   disableControls?: boolean;
 }
 
@@ -143,10 +145,12 @@ const AVAILABLE_METRICS = [
 export default function ConfigurableChart({
   title = "Chart",
   initialDataSeries = [],
+  initialStackSameMetrics = false,
   colSpan = 12,
   onColSpanChange,
   onTitleChange,
   onDataSeriesChange,
+  onStackSameMetricsChange,
   disableControls = false,
 }: ConfigurableChartProps) {
   const { resolvedTheme } = useTheme();
@@ -170,7 +174,7 @@ export default function ConfigurableChart({
   });
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const [stackSameMetrics, setStackSameMetrics] = useState<boolean>(false);
+  const [stackSameMetrics, setStackSameMetrics] = useState<boolean>(initialStackSameMetrics);
 
   const [chartData, setChartData] = useState<Record<string, ChartDataPoint[]>>({});
   const [loadingMetrics, setLoadingMetrics] = useState<Set<string>>(new Set());
@@ -1014,7 +1018,13 @@ export default function ConfigurableChart({
                   type="checkbox"
                   id="stack-same-metrics"
                   checked={stackSameMetrics}
-                  onChange={(e) => setStackSameMetrics(e.target.checked)}
+                  onChange={(e) => {
+                    const newValue = e.target.checked;
+                    setStackSameMetrics(newValue);
+                    if (onStackSameMetricsChange) {
+                      onStackSameMetricsChange(newValue);
+                    }
+                  }}
                   className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer"
                 />
                 <label

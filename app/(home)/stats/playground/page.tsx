@@ -14,6 +14,7 @@ interface ChartConfig {
   title: string;
   colSpan: 6 | 12;
   dataSeries?: any[]; // DataSeries array from ConfigurableChart
+  stackSameMetrics?: boolean;
 }
 
 function PlaygroundContent() {
@@ -86,6 +87,14 @@ function PlaygroundContent() {
     });
   }, []);
 
+  const handleStackSameMetricsChange = useCallback((chartId: string, stackSameMetrics: boolean) => {
+    setCharts((prev) =>
+      prev.map((c) =>
+        c.id === chartId ? { ...c, stackSameMetrics } : c
+      )
+    );
+  }, []);
+
   const addChart = () => {
     const newId = String(charts.length + 1);
     setCharts([...charts, { id: newId, title: `Chart ${newId}`, colSpan: 12 }]);
@@ -138,7 +147,8 @@ function PlaygroundContent() {
             id: chart.id || String(index + 1),
             title: chart.title || `Chart ${index + 1}`,
             colSpan: chart.colSpan || 12,
-            dataSeries: chart.dataSeries || []
+            dataSeries: chart.dataSeries || [],
+            stackSameMetrics: chart.stackSameMetrics || false
           }));
           setCharts(loadedCharts);
           setSavedCharts(loadedCharts.map((chart: ChartConfig) => ({
@@ -626,9 +636,11 @@ function PlaygroundContent() {
                 title={chart.title}
                 colSpan={chart.colSpan}
                 initialDataSeries={chart.dataSeries || []}
+                initialStackSameMetrics={chart.stackSameMetrics || false}
                 onColSpanChange={isOwner ? (newColSpan) => handleColSpanChange(chart.id, newColSpan) : undefined}
                 onTitleChange={isOwner ? (newTitle) => handleTitleChange(chart.id, newTitle) : undefined}
                 onDataSeriesChange={isOwner ? (dataSeries) => handleDataSeriesChange(chart.id, dataSeries) : undefined}
+                onStackSameMetricsChange={isOwner ? (stackSameMetrics) => handleStackSameMetricsChange(chart.id, stackSameMetrics) : undefined}
                 disableControls={!isOwner}
               />
             </div>
