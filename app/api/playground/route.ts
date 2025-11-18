@@ -30,6 +30,15 @@ export async function GET(req: NextRequest) {
           } : false,
           _count: {
             select: { favorites: true }
+          },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              user_name: true,
+              image: true,
+              profile_privacy: true
+            }
           }
         }
       });
@@ -48,7 +57,14 @@ export async function GET(req: NextRequest) {
         is_favorited: isFavorited,
         favorite_count: favoriteCount,
         favorites: undefined, // Remove favorites array from response
-        _count: undefined // Remove _count from response
+        _count: undefined, // Remove _count from response
+        creator: playground.user ? {
+          id: playground.user.id,
+          name: playground.user.name,
+          user_name: playground.user.user_name,
+          image: playground.user.image,
+          profile_privacy: playground.user.profile_privacy
+        } : undefined
       });
     }
 

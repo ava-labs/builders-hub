@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import ConfigurableChart from "@/components/stats/ConfigurableChart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, X, Save, Globe, Lock, Copy, Check, Pencil, Loader2, Heart } from "lucide-react";
+import { Search, X, Save, Globe, Lock, Copy, Check, Pencil, Loader2, Heart, Share2 } from "lucide-react";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import { LoginModal } from "@/components/login/LoginModal";
 
@@ -38,6 +38,15 @@ function PlaygroundContent() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteCount, setFavoriteCount] = useState(0);
   const [isFavoriting, setIsFavoriting] = useState(false);
+  const [creator, setCreator] = useState<{
+    id: string;
+    name: string | null;
+    user_name: string | null;
+    image: string | null;
+    profile_privacy: string | null;
+  } | null>(null);
+  const [createdAt, setCreatedAt] = useState<string | null>(null);
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const hasLoadedRef = useRef(false);
   
   const initialCharts: ChartConfig[] = [
@@ -119,6 +128,9 @@ function PlaygroundContent() {
         setIsOwner(playground.is_owner || false);
         setIsFavorited(playground.is_favorited || false);
         setFavoriteCount(playground.favorite_count || 0);
+        setCreator(playground.creator || null);
+        setCreatedAt(playground.created_at || null);
+        setUpdatedAt(playground.updated_at || null);
         
         // Load charts from saved data
         if (playground.charts && Array.isArray(playground.charts)) {
@@ -357,42 +369,92 @@ function PlaygroundContent() {
         {/* Header */}
         <div className="mb-10">
           <div className="flex items-start justify-between gap-4 mb-3">
-            <div className="flex-1 flex items-center gap-2 group">
-              <h1
-                contentEditable={isOwner}
-                suppressContentEditableWarning
-                onBlur={(e) => {
-                  if (!isOwner) return;
-                  const newName = e.currentTarget.textContent || "My Playground";
-                  setPlaygroundName(newName);
-                  setIsEditingName(false);
-                }}
-                onKeyDown={(e) => {
-                  if (!isOwner) return;
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    e.currentTarget.blur();
-                  }
-                  if (e.key === "Escape") {
-                    e.currentTarget.textContent = playgroundName;
-                    e.currentTarget.blur();
-                  }
-                }}
-                onFocus={() => {
-                  if (isOwner) setIsEditingName(true);
-                }}
-                className="text-4xl sm:text-4xl font-semibold tracking-tight text-black dark:text-white outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 rounded px-2 -mx-2 min-w-[200px]"
-                style={{
-                  cursor: isOwner && isEditingName ? "text" : isOwner ? "pointer" : "default",
-                }}
-              >
-                {playgroundName}
-              </h1>
-              {isOwner && <Pencil className="h-5 w-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />}
+            <div className="flex-1">
+              <div className="flex items-center gap-2 group">
+                <h1
+                  contentEditable={isOwner}
+                  suppressContentEditableWarning
+                  onBlur={(e) => {
+                    if (!isOwner) return;
+                    const newName = e.currentTarget.textContent || "My Playground";
+                    setPlaygroundName(newName);
+                    setIsEditingName(false);
+                  }}
+                  onKeyDown={(e) => {
+                    if (!isOwner) return;
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      e.currentTarget.blur();
+                    }
+                    if (e.key === "Escape") {
+                      e.currentTarget.textContent = playgroundName;
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  onFocus={() => {
+                    if (isOwner) setIsEditingName(true);
+                  }}
+                  className="text-4xl sm:text-4xl font-semibold tracking-tight text-black dark:text-white outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 rounded px-2 -mx-2 min-w-[200px]"
+                  style={{
+                    cursor: isOwner && isEditingName ? "text" : isOwner ? "pointer" : "default",
+                  }}
+                >
+                  {playgroundName}
+                </h1>
+                {isOwner && <Pencil className="h-5 w-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />}
+              </div>
+              {creator && creator.profile_privacy === "public" && (
+                <div className="flex items-center gap-2 mt-2">
+                  {creator.image && (
+                    <img
+                      src={creator.image}
+                      alt={creator.user_name || creator.name || "User"}
+                      className="h-6 w-6 rounded-full"
+                    />
+                  )}
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {creator.user_name || creator.name || "Unknown User"}
+                  </span>
+                </div>
+              )}
+              {(createdAt || updatedAt) && (
+                <div className="flex items-center gap-2 mt-2 text-xs text-gray-500 dark:text-gray-500">
+                  {createdAt && (
+                    <>
+                      <span>Created {new Date(createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                    </>
+                  )}
+                  {createdAt && updatedAt && (
+                    <span className="text-gray-400 dark:text-gray-600">•</span>
+                  )}
+                  {updatedAt && (
+                    <span>Updated {new Date(updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2">
               {isOwner ? (
                 <>
+                  {savedLink && (
+                    <button
+                      onClick={copyLink}
+                      className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+                      title={linkCopied ? "Link copied!" : "Copy shareable link"}
+                    >
+                      {linkCopied ? (
+                        <>
+                          <Check className="h-4 w-4" />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Share2 className="h-4 w-4" />
+                          <span>Share</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                   <button
                     onClick={() => setIsPublic(!isPublic)}
                     className="p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
@@ -404,6 +466,19 @@ function PlaygroundContent() {
                       <Lock className="h-5 w-5" />
                     )}
                   </button>
+                  <Button
+                    onClick={handleFavorite}
+                    disabled={true}
+                    className={`flex-shrink-0 flex items-center gap-2 transition-colors opacity-60 cursor-not-allowed ${
+                      isFavorited
+                        ? "bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800"
+                        : "bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700"
+                    }`}
+                    title="Favorite count"
+                  >
+                    <Heart className={`h-4 w-4 ${isFavorited ? "fill-current" : ""}`} />
+                    {favoriteCount > 0 && <span className="text-sm">{favoriteCount}</span>}
+                  </Button>
                   <Button
                     onClick={handleSave}
                     disabled={!hasChanges || isSaving}
@@ -423,53 +498,56 @@ function PlaygroundContent() {
                   </Button>
                 </>
               ) : (
-                <Button
-                  onClick={handleFavorite}
-                  disabled={isFavoriting}
-                  className={`flex-shrink-0 flex items-center gap-2 transition-colors ${
-                    isFavorited
-                      ? "bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 border border-red-200 dark:border-red-800"
-                      : "bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700 border border-gray-200 dark:border-neutral-700"
-                  }`}
-                >
-                  {isFavoriting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    </>
-                  ) : (
-                    <>
-                      <Heart className={`h-4 w-4 ${isFavorited ? "fill-current" : ""}`} />
-                      {favoriteCount > 0 && <span className="text-sm">{favoriteCount}</span>}
-                    </>
+                <>
+                  {savedLink && (
+                    <button
+                      onClick={copyLink}
+                      className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+                      title={linkCopied ? "Link copied!" : "Copy shareable link"}
+                    >
+                      {linkCopied ? (
+                        <>
+                          <Check className="h-4 w-4" />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Share2 className="h-4 w-4" />
+                          <span>Share</span>
+                        </>
+                      )}
+                    </button>
                   )}
-                </Button>
+                  <Button
+                    onClick={handleFavorite}
+                    disabled={isFavoriting}
+                    className={`flex-shrink-0 flex items-center gap-2 transition-colors ${
+                      isFavorited
+                        ? "bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 border border-red-200 dark:border-red-800"
+                        : "bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700 border border-gray-200 dark:border-neutral-700"
+                    }`}
+                  >
+                    {isFavoriting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </>
+                    ) : (
+                      <>
+                        <Heart className={`h-4 w-4 ${isFavorited ? "fill-current" : ""}`} />
+                        {favoriteCount > 0 && <span className="text-sm">{favoriteCount}</span>}
+                      </>
+                    )}
+                  </Button>
+                </>
               )}
             </div>
           </div>
           <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
-            Create and customize multiple charts. Resize charts using the button next to the Export button.
+            Create and customize multiple charts with real-time chain metrics. Add metrics, configure visualizations, and share your insights.
           </p>
           {error && (
             <div className="mt-4 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
               <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
-            </div>
-          )}
-          {savedLink && (
-            <div className="mt-4 p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-2">
-              <span className="text-sm text-green-700 dark:text-green-300 flex-1 truncate">
-                {savedLink}
-              </span>
-              <button
-                onClick={copyLink}
-                className="p-1.5 rounded-md text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900 transition-colors"
-                title="Copy link"
-              >
-                {linkCopied ? (
-                  <Check className="h-4 w-4" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </button>
             </div>
           )}
         </div>

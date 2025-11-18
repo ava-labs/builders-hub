@@ -710,29 +710,7 @@ export default function ConfigurableChart({
     if (!chartContainerRef.current) return;
 
     try {
-      // Try to use html2canvas if available (optional dependency)
-      try {
-        // @ts-ignore - html2canvas may not be installed
-        const html2canvasModule = await import("html2canvas");
-        if (html2canvasModule?.default) {
-          const html2canvas = html2canvasModule.default;
-          const canvas = await html2canvas(chartContainerRef.current, {
-            backgroundColor: resolvedTheme === "dark" ? "#000000" : "#ffffff",
-            scale: 2,
-            logging: false,
-          });
-
-          const link = document.createElement("a");
-          link.download = `${chartTitle || "chart"}-${new Date().toISOString().split("T")[0]}.png`;
-          link.href = canvas.toDataURL("image/png");
-          link.click();
-          return;
-        }
-      } catch (importError) {
-        // html2canvas not available, fall through to SVG method
-      }
-
-      // Fallback: Capture SVG from Recharts
+      // Capture SVG from Recharts
       const chartArea = chartContainerRef.current.querySelector('[class*="recharts"]') || chartContainerRef.current;
       const svgElement = chartArea.querySelector("svg");
       
