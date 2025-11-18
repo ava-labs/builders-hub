@@ -1,0 +1,163 @@
+---
+title: Stripe
+category: Fiat On-Ramp
+available: ["C-Chain"]
+description: Stripe's fiat-to-crypto onramp enables users to securely purchase cryptocurrencies including AVAX and USDC directly from your platform or decentralized application.
+logo: /images/stripe.png
+developer: Stripe
+website: https://stripe.com/
+documentation: https://docs.stripe.com/crypto/onramp
+---
+
+## Overview
+
+Stripe is a leading global payment infrastructure provider that powers online and in-person payments for millions of businesses worldwide. Stripe's fiat-to-crypto onramp extends their payment platform to enable secure cryptocurrency purchases directly within applications and decentralized platforms. With support for Avalanche (AVAX and USDC on Avalanche C-Chain), Stripe provides a trusted, compliant on-ramp solution that handles all regulatory requirements, KYC verification, fraud prevention, and dispute management.
+
+Stripe acts as the merchant of record for onramp transactions, assuming full liability for fraud and disputes while providing developers with a seamless integration experience. The platform leverages Stripe's existing checkout infrastructure, allowing returning users to complete purchases faster with saved payment methods and KYC data.
+
+## Features
+
+- **Merchant of Record**: Stripe acts as the legal entity responsible for facilitating crypto sales, handling all liability.
+- **Avalanche Support**: Native support for AVAX and USDC on Avalanche C-Chain for fast, low-cost transactions.
+- **Multiple Integration Options**: Choose from Stripe-hosted, embedded web, or native mobile SDK integrations.
+- **Zero Platform Fraud Liability**: Stripe handles all fraud prevention, disputes, and chargebacks.
+- **Comprehensive Compliance**: Built-in KYC/AML verification, sanctions screening, and regulatory compliance.
+- **Stripe Link Integration**: Returning users can check out faster with saved payment and KYC data through Stripe Link.
+- **Multiple Payment Methods**: Support for credit cards, debit cards, Apple Pay, and ACH (US only).
+- **Instant Crypto Delivery**: Eligible payment methods receive instant cryptocurrency delivery after KYC completion.
+- **Real-Time Quotes**: Automated pricing and exchange rate quotes for transparent transactions.
+- **Webhook Notifications**: Every session status change generates a webhook for real-time transaction tracking.
+- **Brand Customization**: Customize the onramp widget to match your application's branding.
+- **Pre-Population**: Pre-fill transaction parameters including wallets, amounts, currencies, and networks.
+- **Enterprise-Grade Infrastructure**: Built on Stripe's proven payment infrastructure used by millions of businesses.
+
+## Integration Options
+
+Stripe offers three ways to integrate the crypto onramp:
+
+**Stripe-Hosted Onramp**: Redirect customers to a standalone Stripe-hosted page at crypto.link.com. This option requires minimal code and provides quick implementation with some customization options for amounts, currencies, and networks.
+
+**Embedded Onramp**: Embed the onramp directly into your website or mobile webview using the Onramp API. This option provides full brand customization and parameter control while keeping users within your application experience.
+
+**Embedded Components Onramp**: Native Android and iOS mobile integration with the Onramp SDK, offering the most UI customization and a fully native app experience. This option is currently in private preview.
+
+## Getting Started
+
+To integrate Stripe's crypto onramp:
+
+1. **Create a Stripe Account**: Sign up at [stripe.com](https://stripe.com/) or sign in to your existing Stripe account.
+
+2. **Activate Your Account**: Complete Stripe's account activation process if you haven't already.
+
+3. **Submit Onramp Application**: Apply for access to the crypto onramp feature through the Stripe Dashboard. Most applications are reviewed within 48 hours.
+
+4. **Wait for Approval**: Stripe will notify you when your application is approved or if additional information is needed. You can check your application status anytime in the Dashboard.
+
+5. **Choose Integration Method**: After approval, select between Stripe-hosted, embedded web, or mobile SDK integration based on your needs.
+
+6. **Start Development**: Use Stripe's sandbox environment to develop and test your integration without processing real transactions.
+
+7. **Configure Parameters**: Set up your preferred defaults for destination currencies, networks, amounts, and wallet addresses.
+
+8. **Set Up Webhooks**: Configure webhook endpoints to receive real-time notifications about transaction status changes.
+
+9. **Test Thoroughly**: Complete end-to-end testing in the sandbox environment before going live.
+
+10. **Go Live**: Switch to production mode and start offering crypto purchases to your users.
+
+## Avalanche Support
+
+Stripe's crypto onramp supports both AVAX and USDC on the Avalanche C-Chain, enabling users to purchase Avalanche-based assets with fiat currencies. This allows developers building on Avalanche to leverage Stripe's trusted payment infrastructure and brand recognition to provide a seamless fiat on-ramp experience.
+
+**Note**: AVAX and USDC (Avalanche) are available in the United States (excluding New York) but are not currently supported in EU countries.
+
+## Documentation
+
+For comprehensive integration guides, API references, and implementation details, visit:
+
+- [Stripe Crypto Onramp Documentation](https://docs.stripe.com/crypto/onramp)
+- [Embedded Onramp Guide](https://docs.stripe.com/crypto/onramp/embedded-quickstart)
+- [Stripe-Hosted Onramp Guide](https://docs.stripe.com/crypto/onramp/stripe-hosted)
+- [Onramp API Reference](https://docs.stripe.com/api/crypto/onramp-sessions)
+- [Stripe Dashboard](https://dashboard.stripe.com/)
+
+## Use Cases on Avalanche
+
+Stripe's crypto onramp can enhance Avalanche applications across multiple verticals:
+
+**Decentralized Applications (Dapps)**: Enable users to purchase AVAX or USDC at checkout without leaving your Dapp, reducing friction in the user journey.
+
+**Cryptocurrency Wallets**: Integrate a trusted, compliant on-ramp directly within wallet applications to help users acquire Avalanche assets.
+
+**DeFi Platforms**: Provide a seamless entry point for users to purchase USDC on Avalanche for use in lending, borrowing, or trading protocols.
+
+**NFT Marketplaces**: Allow users to purchase AVAX or USDC on Avalanche at checkout to buy NFTs, eliminating the need for users to acquire crypto elsewhere.
+
+**GameFi Applications**: Enable players to purchase in-game tokens or assets on Avalanche using familiar payment methods like credit cards and Apple Pay.
+
+**Enterprise Applications**: Leverage Stripe's trusted brand and compliance infrastructure for corporate use cases requiring Avalanche-based transactions.
+
+**Payment Platforms**: Build crypto-enabled payment solutions that allow merchants to accept fiat while settling in AVAX or USDC on Avalanche.
+
+## Geographic Availability
+
+Stripe's crypto onramp is currently available in:
+
+- **United States**: Full support for all payment methods and cryptocurrencies (note: AVAX and USDC on Avalanche not available in New York)
+- **European Union**: Available for supported cryptocurrencies (note: AVAX and USDC on Avalanche not currently supported in EU countries)
+
+Availability is subject to regulatory requirements and may expand to additional regions over time.
+
+## Payment Methods
+
+Stripe supports multiple payment methods for crypto purchases:
+
+- **Credit Cards**: Major credit cards for instant crypto delivery after KYC
+- **Debit Cards**: Debit card payments with instant crypto delivery after KYC
+- **Apple Pay**: Streamlined mobile checkout experience with instant delivery
+- **ACH Bank Transfers**: US only, bank account-based payments for larger purchases
+
+All payment methods are eligible for instant crypto delivery after successful KYC completion.
+
+## Pricing
+
+Stripe's pricing for crypto onramp transactions includes:
+
+- **Transaction Fees**: Stripe charges a fee per crypto purchase transaction
+- **Payment Processing**: Standard Stripe payment processing fees apply based on payment method
+- **No Hidden Fees**: Transparent pricing with no setup fees or monthly minimums
+- **Volume Pricing**: Contact Stripe for custom pricing for high-volume applications
+
+For detailed pricing information and custom enterprise arrangements, contact Stripe's sales team through the Dashboard.
+
+## Compliance and Security
+
+Stripe maintains industry-leading compliance and security standards:
+
+- **Regulatory Compliance**: Fully licensed and compliant with US and EU regulations for crypto transactions
+- **KYC/AML Verification**: Automated know-your-customer and anti-money laundering screening for all users
+- **Sanctions Screening**: Built-in screening against global sanctions lists
+- **Fraud Prevention**: Stripe's advanced machine learning-based fraud detection protects all transactions
+- **PCI Compliance**: PCI DSS Level 1 certified, the highest level of payment security
+- **Data Security**: Enterprise-grade security infrastructure with regular third-party audits
+- **Dispute Management**: Stripe handles all disputes and chargebacks, removing liability from platforms
+- **Privacy Protection**: Compliant with GDPR, CCPA, and other global privacy regulations
+
+## Why Choose Stripe for Avalanche
+
+**Trusted Brand**: Stripe is one of the most trusted payment brands globally, processing hundreds of billions of dollars annually for millions of businesses.
+
+**Proven Infrastructure**: Built on Stripe's reliable, scalable payment infrastructure that powers businesses from startups to Fortune 500 companies.
+
+**Simplified Compliance**: Stripe handles all regulatory requirements, reducing legal and compliance burden for your platform.
+
+**Faster Checkout**: Returning users benefit from Stripe Link, which saves payment methods and KYC data for faster repeat purchases.
+
+**Developer-Friendly**: Comprehensive documentation, well-designed APIs, and responsive support make integration straightforward.
+
+**Zero Fraud Liability**: Stripe assumes all fraud liability, protecting your platform from fraudulent transactions.
+
+## Conclusion
+
+Stripe's fiat-to-crypto onramp brings the reliability, trust, and developer experience of Stripe's payment platform to the Avalanche ecosystem. By handling compliance, fraud prevention, and payment processing, Stripe enables developers to offer seamless crypto purchase experiences without the complexity of building payment infrastructure from scratch. With support for AVAX and USDC on Avalanche, multiple integration options, and zero platform fraud liability, Stripe provides an enterprise-grade solution for any application looking to provide users with easy access to the Avalanche network. Whether you're building a DeFi platform, NFT marketplace, wallet, or Dapp, Stripe's crypto onramp can significantly reduce friction in user onboarding while maintaining the highest standards of security and compliance.
+
