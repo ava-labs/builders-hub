@@ -30,6 +30,7 @@ import {
   Pencil,
   Maximize2,
   Minimize2,
+  Trash2,
 } from "lucide-react";
 import l1ChainsData from "@/constants/l1-chains.json";
 import Image from "next/image";
@@ -106,6 +107,7 @@ export interface ConfigurableChartProps {
   onTitleChange?: (title: string) => void;
   onDataSeriesChange?: (dataSeries: DataSeries[]) => void;
   onStackSameMetricsChange?: (stackSameMetrics: boolean) => void;
+  onRemove?: () => void;
   disableControls?: boolean;
 }
 
@@ -151,6 +153,7 @@ export default function ConfigurableChart({
   onTitleChange,
   onDataSeriesChange,
   onStackSameMetricsChange,
+  onRemove,
   disableControls = false,
 }: ConfigurableChartProps) {
   const { resolvedTheme } = useTheme();
@@ -1179,6 +1182,17 @@ export default function ConfigurableChart({
                     ) : (
                       <Maximize2 className="h-4 w-4" />
                     )}
+                  </Button>
+                )}
+                {onRemove && !disableControls && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onRemove}
+                    className="text-xs flex items-center justify-center px-2 py-2 h-8 w-8 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 text-red-600 dark:text-red-400 transition-colors"
+                    title="Remove chart"
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
               </div>

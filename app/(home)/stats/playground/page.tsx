@@ -102,7 +102,15 @@ function PlaygroundContent() {
   };
 
   const removeChart = (chartId: string) => {
-    setCharts((prev) => prev.filter((chart) => chart.id !== chartId));
+    setCharts((prev) => {
+      // If this is the last chart, create a new blank one instead of removing it
+      if (prev.length === 1) {
+        const newId = String(prev.length + 1);
+        return [{ id: newId, title: `Blank Chart`, colSpan: 6, dataSeries: [], stackSameMetrics: false }];
+      }
+      // Otherwise, remove the chart normally
+      return prev.filter((chart) => chart.id !== chartId);
+    });
   };
 
   // Load playground data if ID is provided
@@ -739,6 +747,7 @@ function PlaygroundContent() {
                 onTitleChange={isOwner ? (newTitle) => handleTitleChange(chart.id, newTitle) : undefined}
                 onDataSeriesChange={isOwner ? (dataSeries) => handleDataSeriesChange(chart.id, dataSeries) : undefined}
                 onStackSameMetricsChange={isOwner ? (stackSameMetrics) => handleStackSameMetricsChange(chart.id, stackSameMetrics) : undefined}
+                onRemove={isOwner ? () => removeChart(chart.id) : undefined}
                 disableControls={!isOwner}
               />
             </div>
