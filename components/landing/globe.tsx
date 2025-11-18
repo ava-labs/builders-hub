@@ -113,10 +113,10 @@ export const Sponsors = () => {
 			type: "Infrastructure"
 		},
 		{
-			name: "Space Network",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/27oUMNb9hSTA7HfFRnqUtZ/2f80e6b277f4b4ee971675b5f73c06bf/Space_Symbol_256X256__v2.svg",
-			link: "https://www.avax.network/about/blog/otherworlds-digital-collectibles-platform-solo-leveling-unlimited-launches-on-avalanche",
-			type: "Infrastructure"
+			name: "Tiltyard Studio",
+			image: "https://images.ctfassets.net/gcj8jwzm6086/5iZkicfOvjuwJYQqqCQN4y/9bdb761652d929459610c8b2da862cd5/android-chrome-512x512.png",
+			link: "https://tiltyard.gg/",
+			type: "Gaming"
 		},
 		{
 			name: "UPTN Platform",
@@ -149,16 +149,16 @@ export const Sponsors = () => {
 			type: "Gaming"
 		},
 		{
-			name: "Tiltyard Studio",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/5iZkicfOvjuwJYQqqCQN4y/9bdb761652d929459610c8b2da862cd5/android-chrome-512x512.png",
-			link: "https://tiltyard.gg/",
-			type: "Gaming"
+			name: "Blaze",
+			image: "https://images.ctfassets.net/gcj8jwzm6086/6Whg7jeebEhQfwGAXEsGVh/ecbb11c6c54af7ff3766b58433580721/2025-04-10_16.28.46.jpg",
+			link: "https://blaze.stream/",
+			type: "Creative"
 		},
 		{
-			name: "Pulsar",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/5rAfnDh8ogkkEJ6ryvtUQQ/8f7d53e5d669702b8e0fc459a337ab94/logo512.png",
-			link: "https://pulsar.game/home",
-			type: "Gaming"
+			name: "Hashfire",
+			image: "https://images.ctfassets.net/gcj8jwzm6086/4TCWxdtzvtZ8iD4255nAgU/e4d12af0a594bcf38b53a27e6beb07a3/FlatIcon_Large_.png",
+			link: "https://hashfire.xyz/",
+			type: "Enterprise"
 		},
 		{
 			name: "PlayDapp",
