@@ -926,10 +926,14 @@ export default function ConfigurableChart({
                         </span>
                       </>
                     )}
-                    {series.visible ? (
-                      <Eye className="h-4 w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-                    ) : (
-                      <EyeOff className="h-4 w-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                    {!disableControls && (
+                      <>
+                        {series.visible ? (
+                          <Eye className="h-4 w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                        ) : (
+                          <EyeOff className="h-4 w-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                        )}
+                      </>
                     )}
                   </button>
                   {series.visible && !isLoading && !disableControls && (
@@ -1217,18 +1221,15 @@ export default function ConfigurableChart({
                 <button
                   key={p}
                   onClick={() => {
-                    if (!disableControls) setResolution(p);
+                    setResolution(p);
                   }}
-                  disabled={disableControls}
                   className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors ${
-                    disableControls
-                      ? "cursor-default opacity-60"
-                      : resolution === p
-                        ? "text-white dark:text-white"
-                        : "text-muted-foreground hover:bg-muted"
+                    resolution === p
+                      ? "text-white dark:text-white"
+                      : "text-muted-foreground hover:bg-muted"
                   }`}
                   style={
-                    resolution === p && !disableControls
+                    resolution === p
                       ? { backgroundColor: primaryColor, opacity: 0.9 }
                       : {}
                   }

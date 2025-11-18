@@ -300,6 +300,14 @@ function PlaygroundContent() {
     }
   };
 
+  const shareOnX = () => {
+    if (savedLink) {
+      const text = `Check out my avalanche ecosystem stats playground`;
+      const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(savedLink)}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const handleFavorite = async () => {
     if (status === "unauthenticated") {
       const callbackUrl = window.location.pathname + window.location.search;
@@ -437,23 +445,33 @@ function PlaygroundContent() {
               {isOwner ? (
                 <>
                   {savedLink && (
-                    <button
-                      onClick={copyLink}
-                      className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
-                      title={linkCopied ? "Link copied!" : "Copy shareable link"}
-                    >
-                      {linkCopied ? (
-                        <>
-                          <Check className="h-4 w-4" />
-                          <span>Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Share2 className="h-4 w-4" />
-                          <span>Share</span>
-                        </>
-                      )}
-                    </button>
+                    <>
+                      <button
+                        onClick={copyLink}
+                        className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+                        title={linkCopied ? "Link copied!" : "Copy shareable link"}
+                      >
+                        {linkCopied ? (
+                          <>
+                            <Check className="h-4 w-4" />
+                            <span>Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={shareOnX}
+                        className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+                        title="Share on X (Twitter)"
+                      >
+                        <Share2 className="h-4 w-4" />
+                        <span>Share</span>
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={() => setIsPublic(!isPublic)}
@@ -500,23 +518,33 @@ function PlaygroundContent() {
               ) : (
                 <>
                   {savedLink && (
-                    <button
-                      onClick={copyLink}
-                      className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
-                      title={linkCopied ? "Link copied!" : "Copy shareable link"}
-                    >
-                      {linkCopied ? (
-                        <>
-                          <Check className="h-4 w-4" />
-                          <span>Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Share2 className="h-4 w-4" />
-                          <span>Share</span>
-                        </>
-                      )}
-                    </button>
+                    <>
+                      <button
+                        onClick={copyLink}
+                        className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+                        title={linkCopied ? "Link copied!" : "Copy shareable link"}
+                      >
+                        {linkCopied ? (
+                          <>
+                            <Check className="h-4 w-4" />
+                            <span>Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={shareOnX}
+                        className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+                        title="Share on X (Twitter)"
+                      >
+                        <Share2 className="h-4 w-4" />
+                        <span>Share</span>
+                      </button>
+                    </>
                   )}
                   <Button
                     onClick={handleFavorite}
@@ -542,9 +570,11 @@ function PlaygroundContent() {
               )}
             </div>
           </div>
-          <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
-            Create and customize multiple charts with real-time chain metrics. Add metrics, configure visualizations, and share your insights.
-          </p>
+          {!playgroundId && (
+            <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
+              Create and customize multiple charts with real-time chain metrics. Add metrics, configure visualizations, and share your insights.
+            </p>
+          )}
           {error && (
             <div className="mt-4 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
               <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
@@ -553,8 +583,7 @@ function PlaygroundContent() {
         </div>
 
         {/* Search and Add Chart */}
-        {isOwner && (
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 pointer-events-none z-10" />
               <Input
@@ -574,14 +603,15 @@ function PlaygroundContent() {
                 </button>
               )}
             </div>
-            <Button
-              onClick={addChart}
-              className="ml-auto flex-shrink-0 bg-black dark:bg-white text-white dark:text-black transition-colors hover:bg-neutral-800 dark:hover:bg-neutral-200"
-            >
-              Add New Chart
-            </Button>
+            {isOwner && (
+              <Button
+                onClick={addChart}
+                className="ml-auto flex-shrink-0 bg-black dark:bg-white text-white dark:text-black transition-colors hover:bg-neutral-800 dark:hover:bg-neutral-200"
+              >
+                Add New Chart
+              </Button>
+            )}
           </div>
-        )}
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
