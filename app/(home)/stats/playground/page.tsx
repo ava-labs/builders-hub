@@ -443,76 +443,76 @@ function PlaygroundContent() {
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               {isOwner ? (
                 <>
                   {savedLink && (
                     <>
                       <button
                         onClick={copyLink}
-                        className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+                        className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
                         title={linkCopied ? "Link copied!" : "Copy shareable link"}
                       >
                         {linkCopied ? (
                           <>
-                            <Check className="h-4 w-4" />
-                            <span>Copied!</span>
+                            <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            <span className="hidden sm:inline">Copied!</span>
                           </>
                         ) : (
                           <>
-                            <Copy className="h-4 w-4" />
-                            <span>Copy</span>
+                            <Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            <span className="hidden sm:inline">Copy</span>
                           </>
                         )}
                       </button>
                       <button
                         onClick={shareOnX}
-                        className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+                        className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
                         title="Share on X (Twitter)"
                       >
-                        <Share2 className="h-4 w-4" />
-                        <span>Share</span>
+                        <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                        <span className="hidden sm:inline">Share</span>
                       </button>
                     </>
                   )}
                   <button
                     onClick={() => setIsPublic(!isPublic)}
-                    className="p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
+                    className="p-1.5 sm:p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
                     title={isPublic ? "Make private" : "Make public"}
                   >
                     {isPublic ? (
-                      <Globe className="h-5 w-5" />
+                      <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
                     ) : (
-                      <Lock className="h-5 w-5" />
+                      <Lock className="h-4 w-4 sm:h-5 sm:w-5" />
                     )}
                   </button>
                   <Button
                     onClick={handleFavorite}
                     disabled={true}
-                    className={`flex-shrink-0 flex items-center gap-2 transition-colors opacity-60 cursor-not-allowed ${
+                    className={`flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors opacity-60 cursor-not-allowed ${
                       isFavorited
                         ? "bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800"
                         : "bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700"
                     }`}
                     title="Favorite count"
                   >
-                    <Heart className={`h-4 w-4 ${isFavorited ? "fill-current" : ""}`} />
-                    {favoriteCount > 0 && <span className="text-sm">{favoriteCount}</span>}
+                    <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorited ? "fill-current" : ""}`} />
+                    {favoriteCount > 0 && <span className="text-xs sm:text-sm hidden sm:inline">{favoriteCount}</span>}
                   </Button>
                   <Button
                     onClick={handleSave}
                     disabled={!hasChanges || isSaving}
-                    className="flex-shrink-0 bg-black dark:bg-white text-white dark:text-black transition-colors hover:bg-neutral-800 dark:hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-shrink-0 bg-black dark:bg-white text-white dark:text-black transition-colors hover:bg-neutral-800 dark:hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed px-2 sm:px-3 py-1.5 sm:py-2 h-auto text-xs sm:text-sm"
                   >
                     {isSaving ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Saving...
+                        <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2 animate-spin" />
+                        <span className="hidden sm:inline">Saving...</span>
                       </>
                     ) : (
                       <>
-                        <Save className="h-4 w-4 mr-2" />
-                        Save
+                        <Save className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Save</span>
                       </>
                     )}
                   </Button>
@@ -523,35 +523,35 @@ function PlaygroundContent() {
                     <>
                       <button
                         onClick={copyLink}
-                        className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+                        className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
                         title={linkCopied ? "Link copied!" : "Copy shareable link"}
                       >
                         {linkCopied ? (
                           <>
-                            <Check className="h-4 w-4" />
-                            <span>Copied!</span>
+                            <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            <span className="hidden sm:inline">Copied!</span>
                           </>
                         ) : (
                           <>
-                            <Copy className="h-4 w-4" />
-                            <span>Copy</span>
+                            <Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            <span className="hidden sm:inline">Copy</span>
                           </>
                         )}
                       </button>
                       <button
                         onClick={shareOnX}
-                        className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+                        className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
                         title="Share on X (Twitter)"
                       >
-                        <Share2 className="h-4 w-4" />
-                        <span>Share</span>
+                        <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                        <span className="hidden sm:inline">Share</span>
                       </button>
                     </>
                   )}
                   <Button
                     onClick={handleFavorite}
                     disabled={isFavoriting}
-                    className={`flex-shrink-0 flex items-center gap-2 transition-colors ${
+                    className={`flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors ${
                       isFavorited
                         ? "bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 border border-red-200 dark:border-red-800"
                         : "bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700 border border-gray-200 dark:border-neutral-700"
@@ -559,12 +559,12 @@ function PlaygroundContent() {
                   >
                     {isFavoriting ? (
                       <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
                       </>
                     ) : (
                       <>
-                        <Heart className={`h-4 w-4 ${isFavorited ? "fill-current" : ""}`} />
-                        {favoriteCount > 0 && <span className="text-sm">{favoriteCount}</span>}
+                        <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorited ? "fill-current" : ""}`} />
+                        {favoriteCount > 0 && <span className="text-xs sm:text-sm hidden sm:inline">{favoriteCount}</span>}
                       </>
                     )}
                   </Button>
