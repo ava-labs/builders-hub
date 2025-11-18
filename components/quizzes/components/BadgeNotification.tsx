@@ -20,22 +20,22 @@ export const BadgeNotification = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [badges, setBadges] = useState<BadgeData[]>([]);
-
+  const badgeDefaultImage = "/wolfie/wolfie-hack.png";
   useEffect(() => {
     if (isCompleted && session) {
       awardBadge()
         .then((badge) => {
-      
+
           if (
             badge.result &&
             Array.isArray(badge.result.badges) &&
             badge.result.badges.length > 0
           ) {
-        
+
             setBadges(badge.result.badges);
             setShowFireworks(true);
             setIsModalOpen(true);
-   
+
           }
         })
         .catch((error) => {
@@ -107,7 +107,7 @@ export const BadgeNotification = ({
                   {badges.map((badge, index) => (
                     <div key={index} className="flex flex-col items-center px-2 py-2 gap-4 w-[250px]">
                       <Image
-                        src={badge.image_path}
+                        src={badge.image_path && badge.image_path != '' ? badge.image_path : badgeDefaultImage as string}
                         alt={badge.name}
                         width={80}
                         height={80}
@@ -132,7 +132,7 @@ export const BadgeNotification = ({
             )}
           </div>
         }
-        className="z-50 inline-block!  w-auto! max-w-[75vw]! border border-red-500"      
+        className="z-50 inline-block!  w-auto! max-w-[75vw]! border border-red-500"
       />
     </div>
   );
