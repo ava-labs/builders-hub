@@ -92,26 +92,29 @@ const premiumStyles = `
   
   /* Rotating text animations */
   @keyframes rotate-up {
-    0%, 14% { 
+    0%, 11% { 
       transform: translateY(0%); 
     }
-    16%, 28% { 
+    12.5%, 23.5% { 
       transform: translateY(-12.5%); 
     }
-    30%, 42% { 
+    25%, 36% { 
       transform: translateY(-25%); 
     }
-    44%, 56% { 
+    37.5%, 48.5% { 
       transform: translateY(-37.5%); 
     }
-    58%, 70% { 
+    50%, 61% { 
       transform: translateY(-50%); 
     }
-    72%, 84% { 
+    62.5%, 73.5% { 
       transform: translateY(-62.5%); 
     }
-    86%, 98% { 
+    75%, 86% { 
       transform: translateY(-75%); 
+    }
+    87.5%, 98.5% { 
+      transform: translateY(-87.5%); 
     }
     100% { 
       transform: translateY(-87.5%); 
@@ -126,14 +129,15 @@ const premiumStyles = `
   }
   
   .text-rotator-inner {
-    animation: rotate-up 24s ease-in-out infinite;
+    animation: rotate-up 24s cubic-bezier(0.65, 0, 0.35, 1) infinite;
     will-change: transform;
+    transform: translateY(0%);
   }
   
   /* Mobile-specific improvements */
   @media (max-width: 640px) {
     .text-rotator {
-      min-width: 90px !important;
+      min-width: 140px !important;
       text-align: center;
     }
     
@@ -154,9 +158,25 @@ if (typeof document !== 'undefined') {
 // Rotating Text Component
 function RotatingText() {
   const words = ['Courses', 'Events', 'Hackathons', 'Bounties', 'Tools', 'Grants', 'Documentation', 'Academy'];
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    // Show only first word on server-side render to prevent flash
+    return (
+      <span className="text-rotator min-w-[140px] sm:min-w-[180px] lg:min-w-[220px] xl:min-w-[280px] h-[1.3em] text-center lg:text-left inline-block">
+        <div className="h-[1.3em] flex items-center justify-center lg:justify-start bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent font-black tracking-tighter whitespace-nowrap">
+          {words[0]}
+        </div>
+      </span>
+    );
+  }
 
   return (
-    <span className="text-rotator min-w-[100px] sm:min-w-[140px] lg:min-w-[180px] xl:min-w-[220px] h-[1.3em] text-center lg:text-left inline-block">
+    <span className="text-rotator min-w-[140px] sm:min-w-[180px] lg:min-w-[220px] xl:min-w-[280px] h-[1.3em] text-center lg:text-left inline-block">
       <div className="text-rotator-inner">
         {words.map((word, index) => (
           <div 
@@ -187,26 +207,26 @@ export function HeroBackground() {
 
 export default function Hero() {
   return (
-    <section className="min-h-[50vh] w-full flex items-center justify-center relative py-8 lg:py-12 px-4">
+    <section className="min-h-[50vh] w-full flex items-center justify-center relative py-12 lg:py-16 px-4">
       <div className="relative z-10 w-full max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           
           {/* Content Section */}
           <div className="space-y-8 text-center lg:text-left">
             
             {/* Main Heading */}
             <div className="space-y-6">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tighter leading-[0.95] sm:leading-[0.95] lg:leading-[0.9] xl:leading-[0.85]">
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter leading-[0.95] sm:leading-[0.95] lg:leading-[0.9] xl:leading-[0.85]">
                 <span className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent dark:from-white dark:via-slate-100 dark:to-white animate-gradient-shift">
                 Builder Hub
                 </span>
               </h1>
               
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-semibold tracking-tight leading-[1.2] flex items-center justify-center lg:justify-start min-h-[1.5em]">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-semibold tracking-tight leading-[1.2] flex items-center justify-center lg:justify-start min-h-[1.5em]">
                 <RotatingText />
               </h2>
               
-              <p className="text-lg sm:text-xl lg:text-2xl xl:text-2xl text-slate-600 dark:text-slate-300 font-light leading-[1.5] tracking-[-0.025em] max-w-2xl mx-auto lg:mx-0 text-balance">
+              <p className="text-xl sm:text-2xl lg:text-2xl xl:text-3xl text-slate-600 dark:text-slate-300 font-light leading-[1.5] tracking-[-0.025em] max-w-2xl mx-auto lg:mx-0 text-balance">
                 Explore everything you need to go from idea to impact.
               </p>
             </div>
@@ -215,18 +235,18 @@ export default function Hero() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Link
                 href="/academy"
-                className="group premium-button inline-flex items-center justify-center px-8 py-4 text-base font-bold tracking-[-0.015em] rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-xl shadow-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/50 hover:scale-[1.02] transition-all duration-300 dark:shadow-blue-500/50 dark:hover:shadow-blue-500/70"
+                className="group premium-button inline-flex items-center justify-center px-8 py-4 text-lg sm:text-base font-bold tracking-[-0.015em] rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-xl shadow-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/50 hover:scale-[1.02] transition-all duration-300 dark:shadow-blue-500/50 dark:hover:shadow-blue-500/70"
               >
-                <GraduationCap className="w-5 h-5 mr-3" />
+                <GraduationCap className="w-6 h-6 sm:w-5 sm:h-5 mr-3" />
                 Start Learning
               </Link>
               
               <Link
                 href="/docs/quick-start"
-                className="group premium-button inline-flex items-center justify-center px-8 py-4 text-base font-bold tracking-[-0.015em] rounded-xl bg-white/10 glass-effect border border-slate-200/30 text-slate-900 dark:text-white hover:bg-white/20 hover:scale-[1.02] transition-all duration-300 backdrop-blur-sm dark:border-slate-700/40"
+                className="group premium-button inline-flex items-center justify-center px-8 py-4 text-lg sm:text-base font-bold tracking-[-0.015em] rounded-xl bg-white/10 glass-effect border border-slate-200/30 text-slate-900 dark:text-white hover:bg-white/20 hover:scale-[1.02] transition-all duration-300 backdrop-blur-sm dark:border-slate-700/40"
               >
                 Build
-                <svg className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 sm:w-5 sm:h-5 ml-3 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
               </Link>
