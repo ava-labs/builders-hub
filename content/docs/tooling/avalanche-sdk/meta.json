@@ -1,0 +1,30 @@
+{
+  "title": "Avalanche-SDK",
+  "description": "Typescript SDK for building on Avalanche",
+  "root": true,
+  "pages": [
+    "index",
+    "---ChainKit SDK---",
+    "chainkit/getting-started",
+    "chainkit/authentication",
+    "chainkit/global-parameters",
+    "chainkit/retries",
+    "chainkit/pagination",
+    "chainkit/errors",
+    "chainkit/custom-http",
+    "---Client SDK---",
+    "client/getting-started",
+    "client/clients-transports",
+    "client/accounts",
+    "client/clients",
+    "client/methods",
+    "client/utils",
+    "---Interchain SDK---",
+    "interchain/getting-started",
+    "interchain/index",
+    "interchain/icm",
+    "interchain/ictt",
+    "interchain/warp",
+    "interchain/chains"
+  ]
+}

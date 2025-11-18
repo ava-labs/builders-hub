@@ -1,0 +1,191 @@
+---
+title: Chain Configuration
+icon: link
+---
+
+## Overview
+
+Chain configurations define the blockchain networks for interchain operations. Each chain includes network details and interchain contract addresses.
+
+## Available Chains
+
+### avalancheFuji
+
+Avalanche Fuji testnet configuration.
+
+```typescript
+import { avalancheFuji } from "@avalanche-sdk/interchain/chains";
+```
+
+### dispatch
+
+Dispatch subnet configuration.
+
+```typescript
+import { dispatch } from "@avalanche-sdk/interchain/chains";
+```
+
+## ChainConfig Type
+
+```typescript
+interface ChainConfig {
+  id: number;
+  name: string;
+  network: string;
+  nativeCurrency: {
+    name: string;
+    symbol: string;
+    decimals: number;
+  };
+  rpcUrls: {
+    default: {
+      http: string[];
+    };
+  };
+  blockchainId: string;
+  interchainContracts: {
+    teleporterRegistry: Address;
+    teleporterManager: Address;
+  };
+}
+```
+
+## Using Chains
+
+```typescript
+import { createICMClient } from "@avalanche-sdk/interchain";
+import { avalancheFuji, dispatch } from "@avalanche-sdk/interchain/chains";
+
+const icm = createICMClient(wallet, avalancheFuji, dispatch);
+
+// Or specify per call
+await icm.sendMsg({
+  sourceChain: avalancheFuji,
+  destinationChain: dispatch,
+  message: "Hello!",
+});
+```
+
+## Custom Chains
+
+You can define custom chains for interchain operations by extending the base chain configuration with interchain-specific properties. Custom chains are useful when working with custom subnets or L1 chains that support Teleporter.
+
+### Defining a Custom Chain
+
+Use `defineChain` from `@avalanche-sdk/client` to create a chain configuration, then cast it to `ChainConfig` to add interchain contract addresses:
+
+```typescript
+import { defineChain } from "@avalanche-sdk/client";
+import type { ChainConfig } from "@avalanche-sdk/interchain/chains";
+
+export const myCustomChain = defineChain({
+  id: 12345, // Your chain ID
+  name: "My Custom Chain",
+  network: "my-custom-chain",
+  nativeCurrency: {
+    decimals: 18,
+    name: "Token",
+    symbol: "TKN",
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://api.example.com/ext/bc/C/rpc"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "Explorer",
+      url: "https://explorer.example.com",
+    },
+  },
+  // Interchain-specific properties
+  blockchainId: "0x...", // Your blockchain ID (hex-encoded)
+  interchainContracts: {
+    teleporterRegistry: "0x...", // Teleporter registry contract address
+    teleporterManager: "0x...", // Teleporter manager contract address
+  },
+}) as ChainConfig;
+```
+
+### Required Properties
+
+| Property              | Type     | Description                                      |
+| --------------------- | -------- | ------------------------------------------------ |
+| `id`                  | `number` | Unique chain identifier (EVM chain ID)           |
+| `name`                | `string` | Human-readable chain name                        |
+| `network`             | `string` | Network identifier (used for wallet connections) |
+| `nativeCurrency`      | `object` | Native token configuration                       |
+| `rpcUrls`             | `object` | RPC endpoint URLs                                |
+| `blockchainId`        | `string` | Avalanche blockchain ID (hex-encoded)            |
+| `interchainContracts` | `object` | Teleporter contract addresses                    |
+
+### Interchain Contracts
+
+The `interchainContracts` object must include:
+
+- **`teleporterRegistry`**: Address of the Teleporter registry contract on this chain
+- **`teleporterManager`**: Address of the Teleporter manager contract on this chain
+
+These contracts enable cross-chain messaging and token transfers. Ensure they are deployed and configured on your chain before using interchain operations.
+
+### Example: Custom Subnet Chain
+
+```typescript
+import { defineChain } from "@avalanche-sdk/client";
+import type { ChainConfig } from "@avalanche-sdk/interchain/chains";
+
+export const mySubnet = defineChain({
+  id: 54321,
+  name: "My Subnet",
+  network: "my-subnet",
+  nativeCurrency: {
+    decimals: 18,
+    name: "Avalanche",
+    symbol: "AVAX",
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://subnets.avax.network/mysubnet/mainnet/rpc"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "Subnet Explorer",
+      url: "https://subnets.avax.network/mysubnet",
+    },
+  },
+  blockchainId: "0x1234567890abcdef1234567890abcdef12345678",
+  interchainContracts: {
+    teleporterRegistry: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
+    teleporterManager: "0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf",
+  },
+}) as ChainConfig;
+```
+
+### Using Custom Chains
+
+Once defined, use your custom chain with ICM and ICTT clients:
+
+```typescript
+import { createICMClient } from "@avalanche-sdk/interchain";
+import { myCustomChain } from "./chains/myCustomChain";
+import { avalancheFuji } from "@avalanche-sdk/interchain/chains";
+
+const icm = createICMClient(wallet, avalancheFuji, myCustomChain);
+
+// Send message to custom chain
+await icm.sendMsg({
+  sourceChain: avalancheFuji,
+  destinationChain: myCustomChain,
+  message: "Hello from Fuji to My Custom Chain!",
+});
+```
+
+### Tips
+
+- **Blockchain ID**: Use the hex-encoded blockchain ID from your chain's configuration. You can find this in your chain's genesis data or by querying the chain's info API.
+- **Contract Addresses**: Ensure Teleporter contracts are deployed on your chain before using interchain operations. Contact your chain operator or refer to your chain's documentation for the correct addresses.
+- **RPC URLs**: Provide reliable RPC endpoints. Consider using multiple endpoints for redundancy.
+- **Testnet vs Mainnet**: Use the `testnet` property to mark testnet chains, which helps with wallet integrations and explorer links.
+
+For more information on chain configuration, see the [Viem chains documentation](https://viem.sh/docs/chains/introduction).

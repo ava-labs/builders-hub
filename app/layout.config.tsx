@@ -131,7 +131,7 @@ export const stats: LinkItemType = {
     {
       icon: <Hexagon />,
       text: "Primary Network Validators",
-      url: "/stats/primary-network/validators",
+      url: "/stats/validators",
       description:
       "View the latest metrics for the Avalanche Primary Network validators.",
     },
@@ -140,7 +140,7 @@ export const stats: LinkItemType = {
 
 export const docsMenu: LinkItemType = {
   type: 'menu',
-  text: 'Docs',
+  text: 'Documentation',
   url: '/docs/quick-start',
   items: [
     {
@@ -201,7 +201,7 @@ export const docsMenu: LinkItemType = {
       text: 'Browse All Docs',
       description:
         'Explore our in-depth documentation, guides, and resources to bring your ideas to life.',
-      url: '/docs',
+      url: '/docs/quick-start',
       menu: {
         className: 'lg:col-start-3',
       },
@@ -513,9 +513,9 @@ export const userMenu: LinkItemType = {
 export const baseOptions: BaseLayoutProps = {
   nav: {
     title: (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <AvalancheLogo className='size-7' fill='currentColor' />
-        <span style={{ fontSize: 'large', marginTop: '4px' }}>Builder Hub</span>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <AvalancheLogo className="size-7" fill="currentColor" />
+        <span style={{ fontSize: "large", marginTop: "4px" }}>Builder Hub</span>
       </div>
     ),
   },
@@ -525,10 +525,10 @@ export const baseOptions: BaseLayoutProps = {
     consoleMenu,
     eventsMenu,
     grantsMenu,
-    universityMenu,
+    stats,
     integrationsMenu,
     userMenu,
     blogMenu,
-    stats
+    universityMenu
   ],
 };

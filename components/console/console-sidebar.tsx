@@ -68,6 +68,11 @@ const data = {
       icon: Network,
       items: [
         {
+          title: "Data API Keys",
+          url: "/console/utilities/data-api-keys",
+          icon: BookKey,
+        },
+        {
           title: "Node Setup",
           url: "/console/primary-network/node-setup",
           icon: Server,
@@ -138,7 +143,6 @@ const data = {
           title: "ICM Relayer",
           url: "/console/testnet-infra/icm-relayer",
           icon: Layers,
-          comingSoon: true,
         },
       ],
     },
@@ -274,15 +278,20 @@ const data = {
           icon: Wrench,
         },
         {
+          title: "Transfer Proxy Admin Ownership",
+          url: "/console/utilities/transfer-proxy-admin",
+          icon: Wrench,
+        },
+        {
           title: "Migrate VMC From V1 to V2",
           url: "/console/utilities/vmcMigrateFromV1",
           icon: Wrench,
         },
         {
-          title: "Data API Keys",
-          url: "/console/utilities/data-api-keys",
-          icon: BookKey,
-        },
+          title: "Revert PoA Manager",
+          url: "/console/utilities/revert-poa-manager",
+          icon: Wrench,
+        }
       ],
     },
   ],

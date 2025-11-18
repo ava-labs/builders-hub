@@ -99,7 +99,7 @@ export const FeeConfigurationSection = ({
                     }
                     return newConfig;
                 });
-                handleSwitchChange('feeManagerAddress', isEnabled);
+                handleSwitchChange('feeManagerConfig', isEnabled);
             },
             info: PRECOMPILE_INFO.feeManager,
             expandedContent: (
@@ -138,7 +138,7 @@ export const FeeConfigurationSection = ({
                     }
                     return newConfig;
                 });
-                handleSwitchChange('rewardManagerAddress', isEnabled);
+                handleSwitchChange('rewardManagerConfig', isEnabled);
             },
             info: PRECOMPILE_INFO.rewardManager,
             expandedContent: (

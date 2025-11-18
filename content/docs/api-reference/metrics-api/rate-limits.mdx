@@ -1,0 +1,52 @@
+---
+title: Rate Limits
+description: Rate Limits for the Metrics API
+icon: Clock
+---
+# Rate Limits
+
+Rate limiting is managed through a weighted scoring system, known as Compute Units (CUs). Each API request consumes a specified number of CUs, determined by the complexity of the request. This system is designed to accommodate basic requests while efficiently handling more computationally intensive operations.
+
+## Rate Limit Tiers
+
+The maximum CUs (rate-limiting score) for a user depends on their subscription level and is delineated in the following table:
+
+| Subscription Level | Per Minute Limit (CUs) | Per Day Limit (CUs) |
+| :----------------- | :--------------------- | :------------------ |
+| Free               | 8,000                  | 1,200,000           |
+
+> We are working on new subscription tiers with higher rate limits to support even greater request volumes.
+
+## Rate Limit Categories
+
+The CUs for each category are defined in the following table:
+
+| Weight | CU Value |
+| :----- | :------- |
+| Free   | 1        |
+| Small  | 20       |
+| Medium | 100      |
+| Large  | 500      |
+| XL     | 1000     |
+| XXL    | 3000     |
+
+## Rate Limits for Metrics Endpoints
+
+The CUs for each route are defined in the table below:
+
+| Endpoint                                                    | Method | Weight | CU Value |
+| :---------------------------------------------------------- | :----- | :----- | :------- |
+| `/v2/health-check`                                          | GET    | Free   | 1        |
+| `/v2/chains`                                                | GET    | Free   | 1        |
+| `/v2/chains/{chainId}`                                      | GET    | Free   | 1        |
+| `/v2/chains/{chainId}/metrics/{metric}`                     | GET    | Medium | 100      |
+| `/v2/chains/{chainId}/teleporterMetrics/{metric}`           | GET    | Medium | 100      |
+| `/v2/chains/{chainId}/rollingWindowMetrics/{metric}`        | GET    | Medium | 100      |
+| `/v2/networks/{network}/metrics/{metric}`                   | GET    | Medium | 100      |
+| `/v2/chains/{chainId}/contracts/{address}/nfts:listHolders` | GET    | Large  | 500      |
+| `/v2/chains/{chainId}/contracts/{address}/balances`         | GET    | XL     | 1000     |
+| `/v2/chains/43114/btcb/bridged:getAddresses`                | GET    | Large  | 500      |
+| `/v2/subnets/{subnetId}/validators:getAddresses`            | GET    | Large  | 500      |
+| `/v2/lookingGlass/compositeQuery`                           | POST   | XXL    | 3000     |
+
+<Info> All rate limits, weights, and CU values are subject to change. </Info>

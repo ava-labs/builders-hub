@@ -2,7 +2,7 @@
 title: LayerZero
 category: Crosschain Solutions
 available: ["C-Chain"]
-description: "LayerZero is a trustless omnichain interoperability protocol enabling seamless cross-chain messaging and asset transfers on Avalanche."
+description: LayerZero is an omnichain interoperability protocol enabling secure, censorship-resistant, and permissionless messaging across blockchains with immutable smart contracts powering cross-chain dApps, tokens, and seamless data movement.
 logo: /images/layerzero.png
 developer: LayerZero Labs
 website: https://layerzero.network/
@@ -11,44 +11,310 @@ documentation: https://docs.layerzero.network/
 
 ## Overview
 
-LayerZero is an omnichain interoperability protocol that enables secure and reliable cross-chain messaging and asset transfers. On Avalanche's C-Chain, LayerZero provides the infrastructure for applications to communicate across different blockchain networks, facilitating seamless cross-chain experiences with high security guarantees.
+LayerZero is a revolutionary omnichain interoperability protocol that enables secure, censorship-resistant, and permissionless cross-chain messaging across 50+ blockchain networks. Unlike traditional bridges that often involve wrapped tokens and trusted intermediaries, LayerZero provides a low-level messaging primitive that allows smart contracts on different blockchains to communicate directly and seamlessly, enabling a new generation of truly omnichain applications.
+
+With over $6 billion in cross-chain value facilitated and integrations powering major DeFi protocols, NFT platforms, and blockchain applications, LayerZero has established itself as critical infrastructure for the multichain ecosystem. The protocol's immutable smart contracts, configurable security model, and developer-friendly design make it the foundation for building applications that work natively across all connected blockchains.
 
 ## Features
 
-- **Trustless Messaging**: Secure cross-chain communication without trusted intermediaries.
-- **Ultra Light Nodes**: Efficient validation of cross-chain messages.
-- **Configurable Security**: Customizable security parameters for different use cases.
-- **Native Asset Bridging**: Enable native asset transfers across supported chains.
-- **Cross-Chain Apps**: Support for omnichain application development.
-- **Message Passing**: Generic message passing capabilities across chains.
-- **Guaranteed Delivery**: Reliable message delivery with transaction finality.
+- **Omnichain Messaging**: Send messages between any connected blockchains seamlessly.
+- **50+ Supported Chains**: Connect Ethereum, Avalanche, BNB Chain, Arbitrum, Optimism, Polygon, Solana, and 40+ more.
+- **Immutable Smart Contracts**: Core protocol contracts are immutable ensuring long-term security.
+- **Permissionless**: Anyone can build omnichain applications without permission.
+- **Configurable Security**: Applications choose their own security configuration.
+- **Censorship Resistant**: No centralized control over message delivery.
+- **Omni fungible Tokens (OFTs)**: Native token standard for tokens that exist across all chains.
+- **Omnichain NFTs (ONFTs)**: NFTs that can move seamlessly between blockchains.
+- **Low Latency**: Fast message delivery between chains.
+- **Gas Efficiency**: Optimized for minimal cross-chain gas costs.
+- **Developer SDKs**: Comprehensive development tools and libraries.
+- **StargateFi**: Largest omnichain application built on LayerZero for liquidity bridging.
 
-## Getting Started
+## Core Technology
 
-To integrate LayerZero:
+### Omnichain Messaging
 
-1. **Review Documentation**: Study the [LayerZero Documentation](https://docs.layerzero.network/).
-2. **Choose Endpoint**: Connect to LayerZero's Avalanche endpoint.
-3. **Implement Interface**: 
-   - Integrate LayerZero messaging interfaces
-   - Configure security parameters
-   - Test cross-chain functionality
-4. **Deploy**: Launch your cross-chain application or service.
+LayerZero's fundamental capability is enabling smart contracts to send messages to contracts on other chains:
 
-## Documentation
+**Direct Contract Calls**: Smart contracts on one chain can call functions on contracts on other chains.
 
-For comprehensive integration guides and technical details, visit the [LayerZero Documentation](https://docs.layerzero.network/).
+**Arbitrary Payloads**: Send any data structure between chains, not limited to token transfers.
+
+**Guaranteed Delivery**: Messages are guaranteed to be delivered to destination chains.
+
+**Ordered Execution**: Optional ordering guarantees for message sequences.
+
+**Atomic Transactions**: Build atomic cross-chain transactions.
+
+This primitive enables entirely new application architectures.
+
+### Omni fungible Tokens (OFTs)
+
+LayerZero's native token standard:
+
+**Single Native Token**: One native token across all chains, not wrapped versions.
+
+**Unified Liquidity**: Liquidity is unified across all chains.
+
+**No Fragmentation**: Eliminates the fragmentation of wrapped token standards.
+
+**Burn and Mint**: Tokens are burned on source chain and minted on destination.
+
+**Custom Logic**: Token creators can add custom cross-chain logic.
+
+**ERC-20 Compatible**: Fully compatible with existing ERC-20 infrastructure.
+
+OFTs represent the future of multichain tokens.
+
+### Configurable Security
+
+LayerZero's unique security model:
+
+**Application-Controlled**: Each application configures its own security.
+
+**Oracle + Relayer**: Uses independent Oracle and Relayer for message verification.
+
+**Choose Your Stack**: Applications select their preferred Oracle and Relayer.
+
+**Multiple Options**: Use Chainlink, Google Cloud, or custom infrastructure.
+
+**No Single Point of Failure**: Separation of concerns between verification and delivery.
+
+**Immutable Core**: Core protocol contracts cannot be upgraded.
+
+This model provides flexibility while maintaining security.
+
+## Avalanche Integration
+
+LayerZero has deep Avalanche integration:
+
+**Native Support**: First-class Avalanche C-Chain integration.
+
+**AVAX Bridging**: Bridge AVAX across all LayerZero-connected chains.
+
+**Avalanche DeFi**: Connect Avalanche DeFi to 50+ other chains.
+
+**Fast Finality**: Leverage Avalanche's sub-second finality for quick bridging.
+
+**Low Costs**: Benefit from Avalanche's minimal transaction fees.
+
+**Growing Ecosystem**: Increasing number of omnichain apps on Avalanche.
+
+LayerZero enables Avalanche to seamlessly connect to the broader ecosystem.
 
 ## Use Cases
 
-LayerZero enables various cross-chain scenarios:
+LayerZero enables diverse omnichain applications:
 
-- **Token Bridges**: Build secure token bridges between chains.
-- **Cross-Chain dApps**: Develop applications that work across multiple chains.
-- **NFT Transfers**: Enable NFT movement between different networks.
-- **Omnichain Governance**: Implement cross-chain governance mechanisms.
-- **Message Passing**: Send arbitrary messages between smart contracts on different chains.
+**Omnichain DeFi**: DeFi protocols operating natively across all chains simultaneously.
+
+**Unified Liquidity**: Aggregate liquidity from multiple chains into single pools.
+
+**Omnichain NFTs**: NFTs that can be moved between any blockchain.
+
+**Cross-Chain Governance**: DAO governance spanning multiple blockchains.
+
+**Omnichain Gaming**: Games where assets work across multiple chains.
+
+**Cross-Chain Yield**: Yield strategies that work across multiple chains.
+
+**Unified Identity**: Identity and reputation systems working across all chains.
+
+**Chain-Abstracted UX**: Users don't need to know which chain they're on.
+
+## StargateFi
+
+LayerZero's flagship application:
+
+**Largest Omnichain DEX**: Over $4B in Total Value Locked.
+
+**Unified Liquidity Pools**: Single liquidity pool across all chains.
+
+**Instant Guaranteed Finality**: Transactions finalized instantly.
+
+**Native Assets**: Transfer native assets without wrapped intermediaries.
+
+**Capital Efficient**: No liquidity fragmentation across chains.
+
+**Built on LayerZero**: Demonstrates the power of LayerZero messaging.
+
+Stargate serves as proof of concept for what's possible with LayerZero.
+
+## Developer Experience
+
+LayerZero provides comprehensive developer tools:
+
+**Solidity SDK**: Easy-to-use Solidity contracts for building omnichain apps.
+
+**TypeScript SDK**: Full-featured TypeScript library for off-chain integrations.
+
+**Documentation**: Extensive guides, tutorials, and API references.
+
+**Testnet**: Complete testnet environment across all supported chains.
+
+**Example Apps**: Open-source example applications and templates.
+
+**LayerZero Scan**: Explorer for tracking cross-chain messages.
+
+**Developer Discord**: Active community with core team support.
+
+**Grants Program**: Funding available for ecosystem projects.
+
+## Security Model
+
+LayerZero's security approach:
+
+**Immutable Contracts**: Core protocol contracts are immutable and cannot be upgraded.
+
+**Independent Verification**: Oracle and Relayer are independent entities.
+
+**Application Control**: Each app chooses its security configuration.
+
+**Multiple Audits**: Audited by leading security firms including Trail of Bits.
+
+**Bug Bounty**: Active bug bounty program through Immunefi.
+
+**Battle-Tested**: Billions in value transferred through the protocol.
+
+**Monitoring**: Continuous monitoring of cross-chain activity.
+
+## Ecosystem
+
+Major projects building on LayerZero:
+
+**DeFi**: Stargate, Radiant Capital, Sushiswap, and dozens of DeFi protocols.
+
+**NFTs**: Pudgy Penguins, Gh0stly Gh0sts, and major NFT collections.
+
+**Gaming**: Blockchain games with omnichain assets.
+
+**Infrastructure**: Chainlink, Google Cloud providing Oracle services.
+
+**Bridges**: Multiple bridge applications powered by LayerZero.
+
+This ecosystem demonstrates LayerZero's production readiness.
+
+## Getting Started
+
+To build with LayerZero:
+
+1. **Read Documentation**: Start at [docs.layerzero.network](https://docs.layerzero.network/) for comprehensive guides.
+
+2. **Install SDK**:
+   ```
+   npm install @layerzerolabs/solidity-examples
+   ```
+
+3. **Inherit LayerZero Contracts**: Your contracts inherit from LayerZero base contracts.
+
+4. **Implement Cross-Chain Logic**: Define what happens when messages are received.
+
+5. **Deploy to Testnet**: Test your omnichain app on LayerZero testnet.
+
+6. **Configure Security**: Choose Oracle and Relayer for your application.
+
+7. **Launch**: Deploy your omnichain application to mainnet.
+
+## Architecture
+
+LayerZero's architecture consists of:
+
+**Endpoint Contracts**: Deployed on each chain, handle message sending/receiving.
+
+**Oracle**: Independent entity verifying block headers between chains.
+
+**Relayer**: Independent entity delivering message proofs.
+
+**Applications**: Your smart contracts building on LayerZero.
+
+**Off-Chain Infrastructure**: APIs and services supporting the network.
+
+This modular design enables flexibility and security.
+
+## LayerZero V2
+
+The next evolution of the protocol:
+
+**Enhanced Security**: Improved security model with more configuration options.
+
+**Better Gas Efficiency**: Reduced costs for cross-chain messaging.
+
+**More Chains**: Expanded chain support including non-EVM chains.
+
+**Improved UX**: Better developer and user experience.
+
+**Backwards Compatible**: Existing V1 apps continue working.
+
+V2 represents continuous improvement of the protocol.
+
+## Pricing
+
+LayerZero costs:
+
+- **Message Fees**: Small fees for cross-chain messages (typically $1-5)
+- **Gas Costs**: Native gas on source and destination chains
+- **Oracle Fees**: Fees paid to Oracle for block header verification
+- **Relayer Fees**: Fees paid to Relayer for message delivery
+- **No Platform Fees**: No fees to LayerZero Labs
+
+Pricing is transparent and cost-effective for most applications.
+
+## Competitive Advantages
+
+**Omnichain Native**: Built from ground up for omnichain applications, not retrofitted.
+
+**Configurable Security**: Applications control their own security model.
+
+**Immutable Core**: Core contracts cannot be upgraded, ensuring long-term stability.
+
+**Proven at Scale**: Over $6B in value transferred, battle-tested.
+
+**50+ Chains**: One of the most comprehensive chain integrations.
+
+**Developer-Friendly**: Excellent documentation and tooling.
+
+**Active Ecosystem**: Growing ecosystem of applications and protocols.
+
+**Native Tokens**: OFT standard eliminates wrapped token fragmentation.
+
+## Community and Governance
+
+LayerZero community features:
+
+**Discord**: Active community with 100,000+ members.
+
+**Twitter**: Regular updates and ecosystem highlights.
+
+**Documentation**: Continuously updated guides and tutorials.
+
+**Hackathons**: Regular hackathons with prizes.
+
+**Grants**: Funding for ecosystem projects.
+
+**Governance**: Community input on protocol direction.
+
+## Audits and Security
+
+LayerZero security measures:
+
+- Audited by Trail of Bits, Zellic, and other top firms
+- Continuous security assessments
+- Active bug bounty program
+- Immutable core contracts
+- Independent Oracle and Relayer verification
+- Real-time monitoring systems
+
+## Support
+
+LayerZero provides comprehensive support:
+
+- **Technical Documentation**: Extensive docs and guides
+- **Discord Support**: Active community and core team
+- **Developer Workshops**: Regular educational sessions
+- **Office Hours**: Weekly community calls
+- **GitHub**: Open-source code and examples
+- **LayerZero Scan**: Transaction explorer and debugging tools
 
 ## Conclusion
 
-LayerZero provides essential infrastructure for building cross-chain applications on Avalanche's C-Chain. With its focus on security, reliability, and flexibility, LayerZero enables developers to create truly omnichain experiences while leveraging Avalanche's high-performance infrastructure. Whether you're building a token bridge, cross-chain dApp, or implementing governance mechanisms, LayerZero offers the tools needed for secure cross-chain communication. 
+LayerZero is pioneering the omnichain future where applications operate natively across all blockchains without the limitations of traditional bridges. With support for 50+ chains including deep Avalanche integration, immutable smart contracts ensuring long-term security, and a proven track record facilitating billions in cross-chain value, LayerZero provides the essential infrastructure for building truly chain-agnostic applications. Whether you're creating omnichain DeFi protocols, NFTs that work across all chains, or entirely new categories of multichain applications, LayerZero's permissionless, configurable, and developer-friendly platform enables you to build once and deploy everywhere. With comprehensive SDKs, extensive documentation, and a thriving ecosystem including StargateFi, LayerZero empowers developers on Avalanche to reach users and liquidity across the entire Web3 landscape.

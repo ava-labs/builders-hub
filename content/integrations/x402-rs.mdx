@@ -1,0 +1,281 @@
+---
+title: x402-rs
+category: x402
+available: ["C-Chain"]
+description: A Rust-based implementation of the x402 protocol for accepting blockchain payments through HTTP on Avalanche.
+logo: /images/x402-rs.png
+developer: x402-rs
+website: https://github.com/x402-rs/x402-rs
+documentation: https://github.com/x402-rs/x402-rs
+---
+
+## Overview
+
+x402-rs is a Rust-based implementation of the x402 protocol that enables blockchain payments directly through HTTP using the native `402 Payment Required` status code on Avalanche's C-Chain.
+
+The x402 protocol allows servers to declare payment requirements for specific routes. Clients send cryptographically signed payment payloads, and facilitators verify and settle payments on-chain.
+
+## What x402-rs Provides
+
+- **x402-rs core**: Protocol types, facilitator traits, and logic for on-chain payment verification and settlement
+- **Facilitator binary**: Production-grade HTTP server to verify and settle x402 payments
+- **x402-axum**: Axum middleware for accepting x402 payments
+- **x402-reqwest**: Wrapper for reqwest for transparent x402 payments
+
+## Getting Started
+
+### Run the Facilitator
+
+The quickest way to get started is using Docker:
+
+```bash
+docker run --env-file .env -p 8080:8080 ukstv/x402-facilitator
+```
+
+Or build locally:
+
+```bash
+docker build -t x402-rs .
+docker run --env-file .env -p 8080:8080 x402-rs
+```
+
+### Protect Axum Routes
+
+Use `x402-axum` to gate your routes behind on-chain payments on Avalanche:
+
+```rust
+let x402 = X402Middleware::try_from("https://x402.org/facilitator/").unwrap();
+let usdc = USDCDeployment::by_network(Network::AvalancheFuji);
+
+let app = Router::new().route("/paid-content", get(handler).layer( 
+        x402.with_price_tag(usdc.amount("0.025").pay_to("0xYourAddress").unwrap())
+    ),
+);
+```
+
+See the [x402-axum crate documentation](https://docs.rs/x402-axum) for more details.
+
+### Send x402 Payments
+
+Use `x402-reqwest` to send payments on Avalanche:
+
+```rust
+use x402_reqwest::X402ClientExt;
+
+let signer: PrivateKeySigner = "0x...".parse()?; // never hardcode real keys!
+
+let client = reqwest::Client::new()
+    .with_payments(signer)
+    .prefer(USDCDeployment::by_network(Network::Avalanche))
+    .max(USDCDeployment::by_network(Network::Avalanche).amount("1.00")?)
+    .build();
+
+let res = client
+    .get("https://example.com/protected")
+    .send()
+    .await?;
+```
+
+See the [x402-reqwest crate documentation](https://docs.rs/x402-reqwest) for more details.
+
+## Facilitator
+
+The x402-rs facilitator is a runnable binary that simplifies x402 adoption by handling:
+
+- **Payment verification**: Confirming that client-submitted payment payloads match the declared requirements
+- **Payment settlement**: Submitting validated payments to the blockchain and monitoring their confirmation
+
+By using a facilitator, servers (sellers) do not need to:
+- Connect directly to a blockchain
+- Implement complex cryptographic or blockchain-specific payment logic
+
+The facilitator never holds user funds. It acts solely as a stateless verification and execution layer for signed payment payloads.
+
+### Configuration
+
+Create a `.env` file or set environment variables directly:
+
+```bash
+HOST=0.0.0.0
+PORT=8080
+RPC_URL_AVALANCHE_FUJI=https://api.avax-test.network/ext/bc/C/rpc
+RPC_URL_AVALANCHE=https://api.avax.network/ext/bc/C/rpc
+SIGNER_TYPE=private-key
+EVM_PRIVATE_KEY=0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef
+RUST_LOG=info
+```
+
+**Important:** The supported networks are determined by which RPC URLs you provide:
+
+- If you set only `RPC_URL_AVALANCHE_FUJI`, then only Avalanche Fuji testnet is supported
+- If you set both `RPC_URL_AVALANCHE_FUJI` and `RPC_URL_AVALANCHE`, then both testnet and mainnet are supported
+- If an RPC URL for a network is missing, that network will not be available for settlement or verification
+
+### Environment Variables
+
+Available configuration variables:
+
+- `RUST_LOG`: Logging level (e.g., `info`, `debug`, `trace`)
+- `HOST`: HTTP host to bind to (default: `0.0.0.0`)
+- `PORT`: HTTP server port (default: `8080`)
+- `SIGNER_TYPE` (required): Type of signer to use. Only `private-key` is supported now
+- `EVM_PRIVATE_KEY` (required): Private key in hex for EVM networks
+- `RPC_URL_AVALANCHE_FUJI`: Ethereum RPC endpoint for Avalanche Fuji testnet
+- `RPC_URL_AVALANCHE`: Ethereum RPC endpoint for Avalanche C-Chain mainnet
+
+### Docker Deployment
+
+Prebuilt Docker images are available at:
+
+- **GitHub Container Registry**: `ghcr.io/x402-rs/x402-facilitator`
+- **Docker Hub**: `ukstv/x402-facilitator`
+
+Run the container from Docker Hub:
+
+```bash
+docker run --env-file .env -p 8080:8080 ukstv/x402-facilitator
+```
+
+To run using GitHub Container Registry:
+
+```bash
+docker run --env-file .env -p 8080:8080 ghcr.io/x402-rs/x402-facilitator
+```
+
+Or build a Docker image locally:
+
+```bash
+docker build -t x402-rs .
+docker run --env-file .env -p 8080:8080 x402-rs
+```
+
+The container:
+- Exposes port `8080` (or a port you configure with `PORT` environment variable)
+- Starts on `http://localhost:8080` by default
+- Requires minimal runtime dependencies (based on `debian:bullseye-slim`)
+
+### Point Your Application to Your Facilitator
+
+If you are building an x402-powered application, update the Facilitator URL to point to your self-hosted instance.
+
+**Using x402-hono:**
+
+```typescript
+import { Hono } from "hono";
+import { serve } from "@hono/node-server";
+import { paymentMiddleware } from "x402-hono";
+
+const app = new Hono();
+
+// Configure the payment middleware
+app.use(paymentMiddleware(
+  "0xYourAddress", // Your receiving wallet address
+  {
+    "/protected-route": {
+      price: "$0.10",
+      network: "avalanche-fuji",
+      config: {
+        description: "Access to premium content",
+      }
+    }
+  },
+  {
+    url: "http://your-validator.url/", // 👈 Your self-hosted Facilitator
+  }
+));
+
+// Implement your protected route
+app.get("/protected-route", (c) => {
+  return c.json({ message: "This content is behind a paywall" });
+});
+
+serve({
+  fetch: app.fetch,
+  port: 3000
+});
+```
+
+**Using x402-axum:**
+
+```rust
+let x402 = X402Middleware::try_from("http://your-validator.url/").unwrap();  // 👈 Your self-hosted Facilitator
+let usdc = USDCDeployment::by_network(Network::AvalancheFuji);
+
+let app = Router::new().route("/paid-content", get(handler).layer( 
+        x402.with_price_tag(usdc.amount("0.025").pay_to("0xYourAddress").unwrap())
+    ),
+);
+```
+
+## Observability
+
+The facilitator emits OpenTelemetry-compatible traces and metrics, making it easy to integrate with tools like Honeycomb, Prometheus, Grafana, and others. Tracing spans are annotated with HTTP method, status code, URI, latency, and other request and process metadata.
+
+To enable tracing and metrics export, set the appropriate `OTEL_` environment variables:
+
+```bash
+# For Honeycomb, for example:
+# Endpoint URL for sending OpenTelemetry traces and metrics
+OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io:443
+# Comma-separated list of key=value pairs to add as headers
+OTEL_EXPORTER_OTLP_HEADERS=x-honeycomb-team=your_api_key,x-honeycomb-dataset=x402-rs
+# Export protocol to use for telemetry. Supported values: `http/protobuf` (default), `grpc`
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+```
+
+The service automatically detects and initializes exporters if `OTEL_EXPORTER_OTLP_*` variables are provided.
+
+## Avalanche C-Chain Support
+
+The facilitator supports Avalanche C-Chain through these environment variables:
+
+| Network                   | Environment Variable      | Notes                            |
+| ------------------------- | ------------------------- | -------------------------------- |
+| Avalanche Fuji Testnet    | RPC_URL_AVALANCHE_FUJI   | Recommended for testing          |
+| Avalanche C-Chain Mainnet | RPC_URL_AVALANCHE        | Production mainnet               |
+
+**Tip:** For initial development and testing, start with Avalanche Fuji testnet only.
+
+## Development
+
+### Prerequisites
+
+- Rust 1.80+
+- `cargo` and a working toolchain
+
+### Build Locally
+
+```bash
+cargo build
+```
+
+### Run
+
+```bash
+cargo run
+```
+
+## Use Cases
+
+### Payment-Gated APIs
+Protect your API endpoints with automatic on-chain payment verification on Avalanche.
+
+### Micropayment Services
+Enable micropayments for content, data, or compute resources with Avalanche's low fees.
+
+### AI Agent Monetization
+Allow AI agents to charge for services on a pay-per-use basis using Avalanche's fast finality.
+
+### Rust-Native dApps
+Build Rust-based decentralized applications with built-in payment capabilities on Avalanche.
+
+## Documentation
+
+- [x402-rs GitHub Repository](https://github.com/x402-rs/x402-rs)
+- [x402 Protocol Documentation](https://x402.gitbook.io/x402)
+- [x402 Overview by Coinbase](https://www.coinbase.com/cloud/discover/protocol-guides/guide-to-x402)
+
+## Conclusion
+
+x402-rs provides a production-ready Rust implementation of the x402 protocol for Avalanche's C-Chain. With its facilitator service, Axum middleware, and client libraries, it makes it easy to build payment-gated services in Rust. Whether you're protecting API endpoints, enabling micropayments, or building AI agent monetization, x402-rs delivers the tools you need with Rust's performance and safety guarantees on Avalanche.
+

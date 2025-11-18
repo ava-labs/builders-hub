@@ -1,4 +1,4 @@
-import { BookOpen, ArrowLeftRight, Layers, Coins, Code } from 'lucide-react';
+import { BookOpen, ArrowLeftRight, Layers, Coins, Code, Shield } from 'lucide-react';
 import type { CourseNode } from '../learning-tree';
 
 export const avalancheLearningPaths: CourseNode[] = [
@@ -12,8 +12,19 @@ export const avalancheLearningPaths: CourseNode[] = [
         position: { x: 50, y: 0 },
         mobileOrder: 1
     },
+     // Second Layer - Intro to Solidity
+    {
+        id: "intro-to-solidity",
+        name: "Intro to Solidity",
+        description: "Start here to learn about Solidity basics with Foundry",
+        slug: "solidity-foundry",
+        category: "Fundamentals",
+        dependencies: ["avalanche-fundamentals"],
+        position: { x: 20, y: 300 },
+        mobileOrder: 2
+    },
 
-    // Second Layer - Avalanche Fundamentals
+    // Third Layer - Avalanche Fundamentals
     {
         id: "avalanche-fundamentals",
         name: "Avalanche Fundamentals",
@@ -22,10 +33,29 @@ export const avalancheLearningPaths: CourseNode[] = [
         category: "Fundamentals",
         dependencies: ["blockchain-fundamentals"],
         position: { x: 50, y: 150 },
-        mobileOrder: 2
+        mobileOrder: 3
     },
-
-    // Third Layer - Branching paths
+    // Fourth Layer - Branching paths
+    {
+        id: "customizing-evm",
+        name: "Customizing the EVM",
+        description: "Add custom precompiles and configure the EVM",
+        slug: "customizing-evm",
+        category: "VM Customization",
+        dependencies: ["avalanche-fundamentals"],
+        position: { x:80, y: 300 },
+        mobileOrder: 10
+    },
+    {
+        id: "encrypted-erc",
+        name: "Encrypted ERC",
+        description: "Learn about eERC tokens to add privacy to your applications",
+        slug: "encrypted-erc",
+        category: "Privacy",
+        dependencies: ["intro-to-solidity"],
+        position: { x: 20, y: 450 },
+        mobileOrder: 11
+    },
     {
         id: "interchain-messaging",
         name: "Interchain Messaging",
@@ -33,8 +63,8 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "interchain-messaging",
         category: "Interoperability",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 15, y: 350 },
-        mobileOrder: 3
+        position: { x: 65, y: 450 },
+        mobileOrder: 4
     },
     {
         id: "permissioned-l1s",
@@ -43,7 +73,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "permissioned-l1s",
         category: "L1 Development",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 40, y: 350 },
+        position: { x: 35, y: 600 },
         mobileOrder: 7
     },
     {
@@ -53,21 +83,10 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "l1-native-tokenomics",
         category: "L1 Tokenomics",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 65, y: 350 },
-        mobileOrder: 6
-    },
-    {
-        id: "customizing-evm",
-        name: "Customizing the EVM",
-        description: "Add custom precompiles and configure the EVM",
-        slug: "customizing-evm",
-        category: "VM Customization",
-        dependencies: ["avalanche-fundamentals"],
-        position: { x: 90, y: 350 },
+        position: { x: 50, y: 750 },
         mobileOrder: 8
     },
-
-    // Fourth Layer - Advanced topics (adjusted for no overlap)
+    // Fifth Layer - Advanced topics (adjusted for no overlap)
     {
         id: "interchain-token-transfer",
         name: "Interchain Token Transfer",
@@ -75,8 +94,8 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "interchain-token-transfer",
         category: "Interoperability",
         dependencies: ["interchain-messaging"],
-        position: { x: 5, y: 550 },
-        mobileOrder: 4
+        position: { x: 80, y: 600 },
+        mobileOrder: 5
     },
     {
         id: "icm-chainlink",
@@ -85,8 +104,18 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "icm-chainlink",
         category: "Interoperability",
         dependencies: ["interchain-messaging"],
-        position: { x: 35, y: 550 },
-        mobileOrder: 5
+        position: { x: 65, y: 900 },
+        mobileOrder: 6
+    },
+    {
+        id: "permissionless-l1s",
+        name: "Permissionless L1s",
+        description: "Create and manage permissionless blockchains with Proof of Stake",
+        slug: "permissionless-l1s",
+        category: "L1 Development",
+        dependencies: ["permissioned-l1s", "l1-native-tokenomics"],
+        position: { x: 35, y: 900 },
+        mobileOrder: 9
     },
 ];
 
@@ -120,5 +149,11 @@ export const avalancheCategoryStyles = {
         icon: Code,
         lightBg: "bg-orange-50",
         darkBg: "dark:bg-orange-950/30"
-    }
+    },
+    "Privacy": {
+    gradient: "from-indigo-500 to-indigo-600",
+        icon: Shield,
+            lightBg: "bg-indigo-50",
+                darkBg: "dark:bg-indigo-950/30"
+    },
 };

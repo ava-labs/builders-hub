@@ -4,6 +4,11 @@ import { useWalletStore } from "./walletStore";
 import { localStorageComp, STORE_VERSION } from "./utils";
 import { useMemo } from "react";
 
+export type FaucetThresholds = {
+    threshold: number; // min balance threshold to trigger drip
+    dripAmount: number;
+};
+
 export type L1ListItem = {
     id: string;
     name: string;
@@ -20,9 +25,8 @@ export type L1ListItem = {
     externalFaucetUrl?: string;
     explorerUrl?: string;
     hasBuilderHubFaucet?: boolean;
-    dripAmount?: number;
     features?: string[];
-    // Native currency cache - extended info beyond just coinName
+    faucetThresholds?: FaucetThresholds;
     nativeCurrency?: {
         name: string;
         symbol: string;
@@ -48,7 +52,10 @@ const l1ListInitialStateFuji = {
             hasBuilderHubFaucet: true,
             externalFaucetUrl: "https://core.app/tools/testnet-faucet",
             explorerUrl: "https://subnets-test.avax.network/c-chain",
-            dripAmount: 1,
+            faucetThresholds: {
+                threshold: 0.2,
+                dripAmount: 0.5
+            },
             features: [
                 "EVM-compatible blockchain",
                 "Deploy smart contracts"
@@ -70,7 +77,10 @@ const l1ListInitialStateFuji = {
             hasBuilderHubFaucet: true,
             externalFaucetUrl: "https://core.app/tools/testnet-faucet",
             explorerUrl: "https://subnets-test.avax.network/echo",
-            dripAmount: 2,
+            faucetThresholds: {
+                threshold: 1.0,
+                dripAmount: 2
+            },
             features: [
                 "EVM-compatible L1 chain",
                 "Deploy dApps & test interoperability with Echo"
@@ -92,10 +102,39 @@ const l1ListInitialStateFuji = {
             hasBuilderHubFaucet: true,
             externalFaucetUrl: "https://core.app/tools/testnet-faucet",
             explorerUrl: "https://subnets-test.avax.network/dispatch",
-            dripAmount: 2,
+            faucetThresholds: {
+                threshold: 1.0,
+                dripAmount: 2
+            },
             features: [
                 "EVM-compatible L1 chain",
                 "Deploy dApps & test interoperability with Dispatch"
+            ]
+        },
+        {
+            id: "2TTSLdR6uEM3R5Ukej3YThHSyPf6XCfppAsh5vAuzFA1rY5w7e",
+            name: "Dexalot",
+            description: "Dexalot is a decentralized exchange (DEX) that operates on its own Avalanche L1, offering a central limit order book (CLOB) experience",
+            rpcUrl: "https://subnets.avax.network/dexalot/testnet/rpc",
+            evmChainId: 432201,
+            coinName: "ALOT",
+            isTestnet: true,
+            subnetId: "9m6a3Qte8FaRbLZixLhh8Ptdkemm4csNaLwQeKkENx5wskbWP",
+            wrappedTokenAddress: "",
+            validatorManagerAddress: "",
+            logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/6tKCXL3AqxfxSUzXLGfN6r/be31715b87bc30c0e4d3da01a3d24e9a/dexalot-subnet.png",
+            wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
+            hasBuilderHubFaucet: true,
+            externalFaucetUrl: "https://core.app/tools/testnet-faucet",
+            explorerUrl: "https://subnets-test.avax.network/dexalot",
+            faucetThresholds: {
+                threshold: 1.0,
+                dripAmount: 2
+            },
+            features: [
+                "EVM-compatible L1 chain",
+                "Decentralized exchange with CLOB",
+                "Deploy dApps on Dexalot L1"
             ]
         }
     ] as L1ListItem[],
@@ -153,6 +192,9 @@ export const getL1ListStore = (isTestnet: boolean) => {
                             const l1 = get().l1List.find((l1) => l1.evmChainId === chainId);
                             return l1?.nativeCurrency;
                         },
+                        getChainsWithFaucet: () => {
+                            return get().l1List.filter((l1) => l1.hasBuilderHubFaucet);
+                        },
                         reset: () => {
                             window?.localStorage.removeItem(`${STORE_VERSION}-l1-list-store-testnet`);
                         },
@@ -184,6 +226,9 @@ export const getL1ListStore = (isTestnet: boolean) => {
                         getNativeCurrencyInfo: (chainId: number) => {
                             const l1 = get().l1List.find((l1) => l1.evmChainId === chainId);
                             return l1?.nativeCurrency;
+                        },
+                        getChainsWithFaucet: () => {
+                            return get().l1List.filter((l1) => l1.hasBuilderHubFaucet);
                         },
                         reset: () => {
                             window?.localStorage.removeItem(`${STORE_VERSION}-l1-list-store-mainnet`);

@@ -34,7 +34,7 @@ export default function Info({ project }: Props) {
           <p className="text-xs text-zinc-700 dark:text-zinc-300">
             {`${project.hackathon?.title ?? ""} ${
               project.hackathon?.location ?? ""
-            } ${new Date(project.hackathon?.start_date ?? "").getFullYear()}`}
+            } ${project.hackathon?.start_date ? new Date(project.hackathon.start_date).getFullYear() : ""}`}
           </p>
         </div>
       </div>

@@ -1,9 +1,19 @@
 {
   "courses": {
+    "blockchain-fundamentals": {
+      "title": "Blockchain Fundamentals",
+      "quizzes": [
+        "1001",
+        "1002",
+        "1003",
+        "1004",
+        "1005",
+        "1006"
+      ]
+    },
     "avalanche-fundamentals": {
       "title": "Avalanche Fundamentals",
       "quizzes": [
-        "101",
         "101",
         "102",
         "103",
@@ -27,19 +37,13 @@
         "1204"
       ]
     },
-    "l1-tokenomics": {
-      "title": "L1 Tokenomics",
+    "l1-native-tokenomics": {
+      "title": "L1 Native Tokenomics",
       "quizzes": [
         "201",
         "202",
         "203",
         "204",
-        "205",
-        "206",
-        "207",
-        "208",
-        "209",
-        "210",
         "211",
         "212",
         "213",
@@ -148,6 +152,96 @@
     }
   },
   "quizzes": {
+    "1001": {
+      "question": "Alice sends Bob 10 AVAX on an Avalanche L1. Before the transaction is broadcast to the network, Alice's wallet creates a digital signature using her private key. What would happen if a malicious node tried to change the transaction to send the 10 AVAX to Charlie instead?",
+      "options": [
+        "The transaction would be accepted because nodes can't detect changes to transaction data",
+        "The signature would become invalid because it was created for the original transaction data, and the network would reject the modified transaction",
+        "The transaction would be sent to both Bob and Charlie, creating a double-spend",
+        "The private key would automatically update to match the new recipient"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about how digital signatures bind the transaction data to the signature, and what happens when data changes.",
+      "explanation": "Digital signatures provide integrity protection by creating a cryptographic binding between the transaction data and the signature. When Alice signs the transaction to send 10 AVAX to Bob, the signature is mathematically derived from both her private key and the specific transaction data (including Bob's address). If anyone modifies even a single character—like changing the recipient to Charlie—the signature no longer matches the transaction data. When nodes verify the signature using Alice's public key, they will detect the mismatch and reject the transaction. This is why digital signatures are crucial: they make any tampering immediately detectable.",
+      "chapter": "Blockchain Fundamentals"
+    },
+    "1002": {
+      "question": "In a blockchain using the longest chain rule, why would a merchant wait for 6 confirmations before shipping a high-value product, even though the transaction appears in the blockchain after 1 confirmation?",
+      "options": [
+        "Because the transaction signature isn't fully validated until 6 blocks have passed",
+        "Because temporary forks can occur, and 6 confirmations make it exponentially harder for an attacker to reverse the transaction by mining a longer competing chain",
+        "Because the blockchain doesn't update account balances until 6 blocks have passed",
+        "Because network nodes don't fully propagate the transaction until 6 confirmations"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about what an attacker would need to do to reverse a transaction that's already in a block.",
+      "explanation": "Waiting for 6 confirmations protects against chain reorganizations. With 1 confirmation, an attacker controlling significant hash power could potentially mine a competing chain in secret and release it to replace the block containing the merchant's transaction. Each additional confirmation makes this exponentially harder because the attacker must not only catch up but surpass the honest chain's length. After 6 confirmations, the computational cost of reversing the transaction becomes prohibitively expensive even for well-resourced attackers. The transaction is already validated and visible immediately, but deep confirmations provide probabilistic finality.",
+      "chapter": "Blockchain Fundamentals"
+    },
+    "1003": {
+      "question": "A user's transaction has been sitting in the mempool for 2 days with a very low fee during a period of high network congestion. What is the MOST likely outcome and why?",
+      "options": [
+        "The transaction will eventually be confirmed once congestion decreases, as all valid transactions are guaranteed to be processed",
+        "The transaction will be permanently stuck in the mempool but will eventually execute",
+        "The transaction may be evicted from node mempools and effectively disappear from the network, requiring the user to create a new transaction with a higher fee",
+        "The transaction fee will automatically increase after 48 hours to match current network rates"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Consider what happens when mempools fill up and how nodes prioritize transactions.",
+      "explanation": "During sustained high congestion, nodes must manage limited mempool space. When mempools become full, nodes evict the lowest-fee transactions to make room for higher-fee ones. These evicted transactions aren't stored anywhere else—they simply disappear from the network since they were never confirmed on-chain. The user's transaction has no guarantee of eventual execution; it must compete with other transactions based on fees. If evicted, the user needs to create and broadcast a new transaction with a competitive fee. Many wallets support Replace-By-Fee (RBF) to allow users to rebroadcast with higher fees before eviction occurs.",
+      "chapter": "Blockchain Fundamentals"
+    },
+    "1004": {
+      "question": "Why is Proof of Stake considered a Sybil defense mechanism even though an attacker can easily create thousands of validator identities at no cost?",
+      "options": [
+        "Because the blockchain requires identity verification for all validators",
+        "Because creating multiple identities is technically impossible in Proof of Stake systems",
+        "Because influence is proportional to staked cryptocurrency, not number of identities, so creating fake identities without stake provides no advantage",
+        "Because the consensus mechanism automatically detects and blocks fake identities"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Focus on what actually determines voting power and influence in a Proof of Stake system.",
+      "explanation": "Proof of Stake defends against Sybil attacks by tying influence to scarce resources (staked cryptocurrency) rather than to the number of identities. An attacker can indeed create 10,000 validator identities easily, but without staking cryptocurrency in each one, they have zero voting power. To gain meaningful influence, the attacker must acquire and stake a large amount of cryptocurrency, which is expensive (potentially billions of dollars for major networks) and economically irrational (attacking the network would crash the value of their staked assets). The key insight is that PoS doesn't prevent identity creation—it makes identity creation irrelevant by ensuring only economic stake determines influence.",
+      "chapter": "Blockchain Fundamentals"
+    },
+    "1005": {
+      "question": "A DeFi protocol discovers a critical bug in its deployed smart contract that could allow attackers to drain all funds. The developers have a fix ready. What is the PRIMARY challenge they face, and what is their BEST realistic option?",
+      "options": [
+        "Smart contracts are immutable once deployed, so they cannot modify the buggy code; they must deploy a new fixed contract and migrate users to it",
+        "The gas fees to update the contract would be too expensive to afford",
+        "They need approval from all users before making any changes to the contract",
+        "The blockchain's consensus mechanism prevents any modifications to deployed code"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Consider the fundamental characteristic of smart contracts that ensures no one can change the rules after deployment.",
+      "explanation": "The immutability of smart contracts means that once deployed, the code cannot be modified—this is by design to ensure that rules can't be changed after people start using them. The developers cannot simply 'fix' the buggy contract in place. Their best realistic option is to deploy a new contract with the fix and convince users to migrate their assets to the new contract. This might involve complex migration procedures, loss of user trust, and potential financial losses if attackers exploit the bug before migration completes. Some modern contracts implement upgradability patterns (like proxy patterns) that allow functionality changes, but these come with their own security trade-offs and must be planned before initial deployment.",
+      "chapter": "Blockchain Fundamentals"
+    },
+    "1006": {
+      "question": "During a transaction's lifecycle, nodes verify the signature before adding it to the mempool. However, a transaction with a valid signature and sufficient balance can still fail later. What is the MOST common reason this happens?",
+      "options": [
+        "The signature expires after being in the mempool for too long",
+        "Network validators reject the transaction during the validation process",
+        "By the time the transaction is included in a block, another transaction from the same account was processed first, changing the account's nonce or depleting its balance",
+        "The receiving address becomes invalid between verification and execution"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Remember that blockchain state can change between when a transaction is verified and when it's actually executed in a block.",
+      "explanation": "A transaction that passes initial verification can still fail during execution because the blockchain state changes between mempool acceptance and block inclusion. The most common scenario is that another transaction from the same account gets included in a block first, either changing the account's nonce (making the subsequent transaction have an incorrect sequence number) or depleting the account's balance below what's needed. This is especially common when users submit multiple transactions with the same nonce (Replace-By-Fee) or when transactions spend nearly all available balance. The transaction was valid when verified, but the state it assumed no longer exists when execution time arrives.",
+      "chapter": "Blockchain Fundamentals"
+    },
     "1201": {
       "question": "Following the highway analogy, what would one want in a highway/blockchain?",
       "options": [
@@ -210,6 +304,21 @@
       "hint": "Think about what would one need in a network of networks.",
       "explanation": "The P-Chain's main purpose is to have a registry of all validators in the Avalanche network, that includes both the Primary Network and all L1s.",
       "chapter": "Avalanche Fundamentals"
+    },
+    "901": {
+      "question": "What is the primary focus of Avalanche Foundation grants?",
+      "options": [
+        "Monetary returns for the foundation",
+        "Creating ecosystem impact",
+        "Supporting only DeFi projects",
+        "Short-term growth metrics"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Grants prioritize ecosystem value over ROI.",
+      "explanation": "Avalanche Foundation grants prioritize creating ecosystem impact rather than financial returns.",
+      "chapter": "Grants Process"
     },
     "902": {
       "question": "Which of these is NOT one of the four key areas the foundation evaluates in applications?",

@@ -1,0 +1,239 @@
+---
+title: Client & Transports
+icon: Plug
+---
+
+## Overview
+
+Clients provide type-safe interfaces for interacting with Avalanche. Transports handle the communication layer. This separation lets you switch between HTTP, WebSocket, or custom providers without changing your code.
+
+The SDK is built on [viem](https://viem.sh), so you get full Ethereum compatibility plus native support for P-Chain, X-Chain, and C-Chain operations.
+
+## Clients
+
+Clients are TypeScript interfaces that abstract RPC calls and provide type-safe APIs.
+
+### Avalanche Client (Public Client)
+
+The read-only client for querying blockchain data across all Avalanche chains.
+
+```typescript
+import { createAvalancheClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: {
+    type: "http",
+  },
+});
+
+// Access different chains
+const pChainHeight = await client.pChain.getHeight();
+const cChainBalance = await client.getBalance({
+  address: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+});
+```
+
+### Avalanche Wallet Client
+
+Extends the public client with transaction signing and sending capabilities.
+
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { privateKeyToAvalancheAccount } from "@avalanche-sdk/client/accounts";
+import { avalanche } from "@avalanche-sdk/client/chains";
+import { avaxToWei } from "@avalanche-sdk/client/utils";
+
+const account = privateKeyToAvalancheAccount("0x...");
+
+const walletClient = createAvalancheWalletClient({
+  account,
+  chain: avalanche,
+  transport: {
+    type: "http",
+  },
+});
+
+// Send AVAX
+const hash = await walletClient.send({
+  to: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  amount: avaxToWei(0.001),
+});
+```
+
+### Chain-Specific Clients
+
+Access chain-specific operations through sub-clients:
+
+- `client.pChain` - Validator operations, staking, subnet management
+- `client.xChain` - Asset transfers, UTXO operations
+- `client.cChain` - Atomic transactions
+- API clients - Admin, Info, Health, Index API, Proposervm operations
+
+## Transports
+
+Transports handle data transmission between your application and Avalanche nodes. They abstract RPC protocol implementation.
+
+### HTTP Transport
+
+Uses standard HTTP/HTTPS connections. Most common choice for production applications.
+
+```typescript
+import { createAvalancheClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: {
+    type: "http",
+    // Optional: specify custom URL
+    // url: "https://api.avax.network/ext/bc/C/rpc",
+  },
+});
+```
+
+### WebSocket Transport
+
+Maintains a persistent connection for real-time subscriptions and event streaming.
+
+```typescript
+import { createAvalancheClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: {
+    type: "ws",
+    // Optional: specify custom WebSocket URL
+    // url: "wss://api.avax.network/ext/bc/C/ws",
+  },
+});
+```
+
+### Custom Transport (EIP-1193)
+
+Supports custom transport implementations, including EIP-1193 providers (MetaMask, WalletConnect, etc.).
+
+```typescript
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+import "@avalanche-sdk/client/window";
+// Using window.ethereum (Core, MetaMask, etc.)
+const walletClient = createAvalancheWalletClient({
+  account: account,
+  chain: avalanche,
+  transport: {
+    type: "custom",
+    provider: window.ethereum,
+    // Or
+    // provider: window.avalanche,
+  },
+});
+```
+
+## Transport Configuration
+
+### Mainnet/Testnet
+
+```typescript
+import { createAvalancheClient } from "@avalanche-sdk/client";
+import { avalanche, avalancheFuji } from "@avalanche-sdk/client/chains";
+
+// Mainnet
+const mainnetClient = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+// Testnet (Fuji)
+const testnetClient = createAvalancheClient({
+  chain: avalancheFuji,
+  transport: { type: "http" },
+});
+```
+
+### Custom Endpoints
+
+```typescript
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: {
+    type: "http",
+    url: "https://your-custom-rpc-endpoint.com/ext/bc/C/rpc",
+    // Optional: Add headers for authentication
+    // fetchOptions: {
+    //   headers: {
+    //     Authorization: `Bearer ${apiKey}`,
+    //   },
+    // },
+  },
+});
+```
+
+### Switching Transports
+
+Switch between transports without changing your application logic:
+
+```typescript
+// HTTP client
+const httpClient = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+// WebSocket client
+const wsClient = createAvalancheClient({
+  chain: avalanche,
+  transport: { type: "ws" },
+});
+
+// Both have the same API
+const height1 = await httpClient.pChain.getHeight();
+const height2 = await wsClient.pChain.getHeight();
+```
+
+## Client Selection
+
+### Public Client vs Wallet Client
+
+| Feature                 | Public Client | Wallet Client         |
+| ----------------------- | ------------- | --------------------- |
+| **Read Operations**     | ✅ Yes        | ✅ Yes (inherits all) |
+| **Transaction Signing** | ❌ No         | ✅ Yes                |
+| **Transaction Sending** | ❌ No         | ✅ Yes                |
+| **Account Required**    | ❌ No         | ✅ Yes                |
+
+**Use Public Client for:** Reading blockchain data, querying balances, fetching validator info, reading smart contract state.
+
+**Use Wallet Client for:** Sending transactions, signing messages, transferring assets, interacting with smart contracts.
+
+### Chain-Specific Clients
+
+The main client provides access to all chains. You can also create standalone chain-specific clients:
+
+```typescript
+// Main client - access all chains
+const client = createAvalancheClient({ ... });
+await client.pChain.getHeight();
+await client.xChain.getBalance({ ... });
+
+// Chain-specific client
+import { createPChainClient } from "@avalanche-sdk/client";
+const pChainOnly = createPChainClient({ ... });
+await pChainOnly.getHeight();
+```
+
+**Use chain-specific clients when:** Your app only interacts with one chain, you want smaller bundle size, or need specialized configuration.
+
+**Use main client when:** Your app uses multiple chains or you want unified configuration.
+
+## Next Steps
+
+- **[Avalanche Client](clients/avalanche-client)** - Read-only operations
+- **[Avalanche Wallet Client](clients/wallet-client)** - Transaction operations
+- **[Chain-Specific Clients](clients/p-chain-client)** - P-Chain, X-Chain, and C-Chain clients
+- **[Public Actions](methods/public-methods/p-chain)** - Read operations reference
+- **[Wallet Actions](methods/wallet-methods/wallet)** - Write operations reference
+
+The SDK follows the same transport patterns as [viem](https://viem.sh/docs/clients/public.html#transport) for compatibility.

@@ -1,0 +1,311 @@
+---
+title: Send Push Notifications
+description: How to send push notifications with the Webhooks API
+icon: Bell
+---
+In this tutorial, we'll explore how to send push notifications to a user's wallet whenever they receive a transaction containing tokens. It's a handy way to keep users informed about their account activity.
+
+We'll be using [OneSignal](https://onesignal.com) for sending push notifications, but you can also achieve similar functionality with other services like [Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging) or [AWS Pinpoint](https://aws.amazon.com/pinpoint/).
+
+### Step 1 - OneSignal Setup
+
+The first step is to create a free account in [OneSignal](https://onesignal.com). For this example, we are going to use Web push but it works similarly for mobile.
+
+To get started, the first step is to create a free account on OneSignal. Once you've signed up and logged in, we'll proceed to create a new OneSignal App.
+
+For this example, we'll focus on using Web push notifications, but keep in mind that the process is quite similar for mobile apps.
+
+Create a new OneSignal App and select Web. Once your app is created, you'll be provided with an App ID and API Key. Keep these credentials handy as we'll need them later to integrate OneSignal with our code.
+
+<img src="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/new-onesignal-app.png?fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=a1655c7c6c7612674e58cc51c47667fd" data-og-width="1884" width="1884" data-og-height="1624" height="1624" data-path="images/new-onesignal-app.png" data-optimize="true" data-opv="3" />
+
+Next, click on Configure Your Platform and select Web, select Code Custom, and set the site URL `http://localhost:3000` and enable both toggles for local development.
+
+<img src="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-web-configuration.png?fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=d0f8b0e5a0bb760a6d6da6326cf7588d" data-og-width="2572" width="2572" data-og-height="2432" height="2432" data-path="images/onesignal-web-configuration.png" data-optimize="true" data-opv="3" srcset="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-web-configuration.png?w=280&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=75dbc845a08b371e8a780c03239e9bb6 280w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-web-configuration.png?w=560&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=31d057925a5ee7840ac49688d81513a5 560w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-web-configuration.png?w=840&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=5b3ce1c389d8ca65e0ee1c0027140f11 840w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-web-configuration.png?w=1100&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=942e156dc7ddbf45ff8e3129a90dc936 1100w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-web-configuration.png?w=1650&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=c094e4046674e6e8db902ffa76b8b330 1650w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-web-configuration.png?w=2500&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=bd1f699c0bb61fa6baf0f34b36ae4f13 2500w" />
+
+This will generate a code snippet to add to your code. Download the OneSignal SDK files and copy them to the top-level root of your directory.
+
+<img src="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onsignal-snippet.png?fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=1de37f66dbd19b46f75a938a4a37323a" data-og-width="2572" width="2572" data-og-height="2784" height="2784" data-path="images/onsignal-snippet.png" data-optimize="true" data-opv="3" srcset="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onsignal-snippet.png?w=280&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=fcc0aa943efd60ff4ad161dfe6efdc7b 280w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onsignal-snippet.png?w=560&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=8752058899bfd0b54f48fce57448826d 560w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onsignal-snippet.png?w=840&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=c3d93c31a409cfff91f736ef7faf2680 840w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onsignal-snippet.png?w=1100&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=2dbb1217d71dfcf635133884ce531a3f 1100w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onsignal-snippet.png?w=1650&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=01375f360ded2e7c815de9d64aaa2ce9 1650w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onsignal-snippet.png?w=2500&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=34330c9282acb58554756d97ffae3500 2500w" />
+
+### Step 2 - Frontend Setup
+
+In a real-world scenario, your architecture typically involves customers signing up for subscriptions within your Web or Mobile App. To ensure these notifications are sent out, your app needs to register with a push notification provider such as OneSignal.
+
+To maintain privacy and security, we'll be using a hash of the wallet address as the `externalID` instead of directly sharing the addresses with OneSignal. This `externalID` will then be mapped to an address in our database. So, when our backend receives a webhook for a specific address, it can retrieve the corresponding `externalID` and send a push notification accordingly.
+<img src="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-architecture.png?fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=5e450fcdbb76408198d570d06198256f" alt="OneSignal Architecture" data-og-width="1396" width="1396" data-og-height="1072" height="1072" data-path="images/onesignal-architecture.png" data-optimize="true" data-opv="3" srcset="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-architecture.png?w=280&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=3056807946d72d2eee495f4f969668eb 280w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-architecture.png?w=560&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=f3388e86a7f2f107c97dec83dc6c2948 560w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-architecture.png?w=840&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=19b7ea6c2660a372ef1ca682f4dac6d4 840w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-architecture.png?w=1100&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=44e4c4514a393398e94a16ac41931906 1100w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-architecture.png?w=1650&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=1ca2f7c9374450eb657853998ce8caa1 1650w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-architecture.png?w=2500&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=d03d911305eb93c6ec6e6553e787e3de 2500w" />
+
+For the sake of simplicity in our demonstration, we'll present a basic scenario where our frontend app retrieves the wallet address and registers it with OneSignal. Additionally, we'll simulate a database using an array within the code. Download the [sample code](https://github.com/javiertc/webhookdemo) and you'll see `client/index.html` with this content.
+
+```html
+<html>
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(function(OneSignal) {
+      OneSignal.init({
+        appId: "a63e0a25-186c-40a7-8fce-9c0fde324400",
+        safari_web_id: "web.onesignal.auto.67fef31a-7360-4fd8-9645-1463ac233cef",
+        notifyButton: {
+          enable: false,
+        },
+        allowLocalhostAsSecureOrigin: true,
+      });
+    });
+
+    window.connect = async function() {
+      try {
+        if (!window.ethereum) {
+          throw new Error("Avalanche wallet not detected");
+        }
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+        window.web3 = new Web3(window.ethereum);
+
+        //Create externalID based on the address
+        const externalID = web3.utils.sha3(accounts[0].toLowerCase()).slice(2);
+        console.log("externalID:", externalID);
+
+        OneSignal.login(externalID);
+        OneSignal.Notifications.requestPermission();
+      } catch (error) {
+        console.error("Error connecting to Avalanche wallet:", error.message);
+      }
+    };
+  </script>
+</head>
+<body>
+  <h1>Avalanche push notifications</h1>
+  <button onclick="window.connect()">Connect</button>
+</body>
+</html>
+```
+
+Run the project using Nodejs.
+
+```bash
+npm install express axios path body-parser dotenv
+node app.js
+```
+
+Open a Chrome tab and type `http://localhost:3000`, you should see something like this. Then click on Connect and accept receiving push notifications. If you are using MacOS, check in **System Settings** > **Notifications** that you have enabled notifications for the browser.
+
+<img src="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-connect.png?fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=ae7af57911b5c970833a39974df1d50b" data-og-width="2216" width="2216" data-og-height="1144" height="1144" data-path="images/onesignal-connect.png" data-optimize="true" data-opv="3" srcset="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-connect.png?w=280&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=b5d75487527b3671f395986c2125407d 280w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-connect.png?w=560&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=23b8447cb83d9d9eb4a8be31fe9d89ee 560w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-connect.png?w=840&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=b5fb06deb480000404eb86e4826b9e40 840w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-connect.png?w=1100&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=c2a18635bca4f3f4d4822654ab1bc863 1100w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-connect.png?w=1650&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=c0c81768ee7b3962210d98c130dc4405 1650w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-connect.png?w=2500&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=10a4a54aa32fdfb14e1c420af48d106a 2500w" />
+
+If everything runs correctly your browser should be registered in OneSignal. To check go to **Audience** > **Subscriptions** and verify that your browser is registered.
+
+<img src="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-subscription.png?fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=27e8e9430e32f1761a976686c8d28bcb" data-og-width="2075" width="2075" data-og-height="1312" height="1312" data-path="images/onesignal-subscription.png" data-optimize="true" data-opv="3" />
+
+### Step 3 - Backend Setup
+
+Now, let's configure the backend to manage webhook events and dispatch notifications based on the incoming data. Here's the step-by-step process:
+
+1. **Transaction Initiation:** When someone starts a transaction with your wallet as the destination, the webhooks detect the transaction and generate an event.
+2. **Event Triggering:** The backend receives the event triggered by the transaction, containing the destination address.
+3. **ExternalID Retrieval:** Using the received address, the backend retrieves the corresponding `externalID` associated with that wallet.
+4. **Notification Dispatch:** The final step involves sending a notification through OneSignal, utilizing the retrieved `externalID`.
+   <img src="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-backend.png?fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=f9f4ba254762a15eb3adb32c02a8dca5" alt="OneSignal Backend" data-og-width="2305" width="2305" data-og-height="1072" height="1072" data-path="images/onesignal-backend.png" data-optimize="true" data-opv="3" srcset="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-backend.png?w=280&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=aa990f7f2274c7a8d354ba9673d5b805 280w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-backend.png?w=560&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=0547ba77ae5a9d2c1c8b74f7e2dd0703 560w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-backend.png?w=840&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=fb40164003e26bfdb5662fe4aaf5aee5 840w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-backend.png?w=1100&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=4e4a87b57e62617efdb3fc8d834b50ee 1100w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-backend.png?w=1650&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=48537241c64e0dc7f3a33de9bbff0587 1650w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-backend.png?w=2500&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=380a39b72d033ec6dc00f783bea413cc 2500w" />
+
+#### 3.1 - Use Ngrok to tunnel the traffic to localhost
+
+If we want to test the webhook in our computer and we are behind a proxy/NAT device or a firewall we need a tool like Ngrok. Glacier will trigger the webhook and make a POST to the Ngrok cloud, then the request is forwarded to your local Ngrok client who in turn forwards it to the Node.js app listening on port 3000.
+Go to [https://ngrok.com/](https://ngrok.com/) create a free account, download the binary, and connect to your account. Create a Node.js app with Express and paste the following code to receive the webhook:
+
+To start an HTTP tunnel forwarding to your local port 3000 with Ngrok, run this next:
+
+```bash
+./ngrok http 3000
+```
+
+You should see something like this:
+
+```
+ngrok                                                                                                                                                                           (Ctrl+C to quit)
+
+Take our ngrok in production survey! https://forms.gle/aXiBFWzEA36DudFn6
+
+Session Status                online
+Account                       javier.toledo@avalabs.org (Plan: Free)
+Version                       3.8.0
+Region                        United States (us)
+Latency                       48ms
+Web Interface                 http://127.0.0.1:4040
+Forwarding                    https://c902-2600-1700-5220-11a0-813c-d5ac-d72c-f7fd.ngrok-free.app -> http://localhost:3000
+
+Connections                   ttl     opn     rt1     rt5     p50     p90
+                              33      0       0.00    0.00    5.02    5.05
+
+HTTP Requests
+-------------
+```
+
+#### 3.2 - Create the webhook
+
+The webhook can be created using the [Avacloud Dashboard](https://app.avacloud.io/) or Glacier API. For convenience, we are going to use cURL. For that copy the forwarding URL generated by Ngrok and append the `/callbackpath` and our address.
+
+```bash
+curl --location 'https://glacier-api-dev.avax.network/v1/webhooks' \
+--header 'x-glacier-api-key: <YOUR_API_KEY>' \
+--header 'Content-Type: application/json' \
+--data '{
+    "url": " https://c902-2600-1700-5220-11a0-813c-d5ac-d72c-f7fd.ngrok-free.app/callback",
+    "chainId": "43113",
+    "eventType": "address_activity",
+    "includeInternalTxs": true,
+    "includeLogs": true,
+    "metadata": {
+        "addresses": ["0x8ae323046633A07FB162043f28Cea39FFc23B50A"]
+    },
+    "name": "My wallet",
+    "description": "My wallet"
+}'
+```
+
+<Callout> Don't forget to add your API Key. If you don't have one go to the [Avacloud Dashboard](https://app.avacloud.io/) and create a new one. </Callout>
+
+#### 3.3 - The backend
+
+To run the backend we need to add the environment variables in the root of your project. For that create an `.env` file with the following values:
+
+```
+PORT=3000
+ONESIGNAL_API_KEY=<YOUR_ONESIGNAL_API_KEY>
+APP_ID=<YOUR_ONESIGNAL_APP_ID>
+```
+
+<Callout> To get the APP ID from OneSignal go to **Settings** > **Keys and IDs** </Callout>
+
+Since we are simulating the connection to a database to retrieve the externalID, we need to add the wallet address and the OneSignal externalID to the myDB array.
+
+```javascript
+//simulating a DB
+const myDB = [
+    { name: 'wallet1', address: '0x8ae323046633A07FB162043f28Cea39FFc23B50A', externalID: '9c96e91d40c7a44c763fb55960e12293afbcfaf6228860550b0c1cc09cd40ac3' },
+    { name: 'wallet2', address: '0x1f83eC80D755A87B31553f670070bFD897c40CE0', externalID: '0xd39d39c99305c6df2446d5cc3d584dc1eb041d95ac8fb35d4246f1d2176bf330' }
+];
+```
+
+The code handles a webhook event triggered when a wallet receives a transaction, performs a lookup in the simulated "database" using the receiving address to retrieve the corresponding OneSignal `externalID`, and then sends an instruction to OneSignal to dispatch a notification to the browser, with OneSignal ultimately delivering the web push notification to the browser.
+
+```javascript
+require('dotenv').config();
+const axios = require('axios');
+const express = require('express');
+const bodyParser = require('body-parser');
+const path = require('path');
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+//  Serve static website
+app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, './client')));
+
+//simulating a DB
+const myDB = [
+    { name: 'wallet1', address: '0x8ae323046633A07FB162043f28Cea39FFc23B50A', externalID: '9c96e91d40c7a44c763fb55960e12293afbcfaf6228860550b0c1cc09cd40ac3' },
+    { name: 'wallet2', address: '0x1f83eC80D755A87B31553f670070bFD897c40CE0', externalID: '0xd39d39c99305c6df2446d5cc3d584dc1eb041d95ac8fb35d4246f1d2176bf330' }
+];
+
+app.post('/callback', async (req, res) => {
+    const { body } = req;
+    try {
+        res.sendStatus(200);
+        handleTransaction(body.event.transaction).catch(error => {
+            console.error('Error processing transaction:', error);
+        });
+    } catch (error) {
+        console.error('Error processing transaction:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Handle transaction
+async function handleTransaction(transaction) {
+    console.log('*****Transaction:', transaction);
+    const notifications = [];
+
+    const erc20Transfers = transaction?.erc20Transfers || [];
+    for (const transfer of erc20Transfers) {
+        const externalID = await getExternalID(transfer.to);
+        const { symbol, valueWithDecimals } = transfer.erc20Token;
+        notifications.push({
+            type: transfer.type,
+            sender: transfer.from,
+            receiver: transfer.to,
+            amount: valueWithDecimals,
+            token: symbol,
+            externalID
+        });
+    }
+
+    if (transaction?.networkToken) {
+        const { tokenSymbol, valueWithDecimals } = transaction.networkToken;
+        const externalID = await getExternalID(transaction.to);
+        notifications.push({
+            sender: transaction.from,
+            receiver: transaction.to,
+            amount: valueWithDecimals,
+            token: tokenSymbol,
+            externalID
+        });
+    }
+
+    if (notifications.length > 0) {
+        sendNotifications(notifications);
+    }
+}
+
+//connect to DB and return externalID
+async function getExternalID(address) {
+    const entry = myDB.find(entry => entry.address.toLowerCase() === address.toLowerCase());
+    return entry ? entry.externalID : null;
+}
+
+// Send notifications
+async function sendNotifications(notifications) {
+    for (const notification of notifications) {
+        try {
+            const data = {
+                include_aliases: { external_id: [notification.externalID.toLowerCase()] },
+                target_channel: 'push',
+                isAnyWeb: true,
+                contents: { en: `You've received ${notification.amount} ${notification.token}` },
+                headings: { en: 'Core wallet' },
+                name: 'Notification',
+                app_id: process.env.APP_ID
+            };
+            console.log('data:', data);
+            const response = await axios.post('https://onesignal.com/api/v1/notifications', data, {
+                headers: {
+                    Authorization: `Bearer ${process.env.ONESIGNAL_API_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            console.log('Notification sent:', response.data);
+        } catch (error) {
+            console.error('Error sending notification:', error);
+            // Optionally, implement retry logic here
+        }
+    }
+}
+
+// Start the server
+app.listen(port, () => {
+    console.log(`App listening at http://localhost:${port}`);
+});
+```
+
+You can now start your backend server by running:
+
+```shell
+node app.js
+```
+
+Send AVAX from another wallet to the wallet being monitored by the webhook and you should receive a notification with the amount of Avax received. You can try it with any other ERC20 token as well.
+
+<img src="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/onesignal-notification.png?fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=f261c49d1063073f38ddea236294c085" data-og-width="1892" width="1892" data-og-height="1195" height="1195" data-path="images/onesignal-notification.png" data-optimize="true" data-opv="3" />
+
+### Conclusion
+
+In this tutorial, we've set up a frontend to connect to the Core wallet and enable push notifications using OneSignal. We've also implemented a backend to handle webhook events and send notifications based on the received data. By integrating the frontend with the backend, users can receive real-time notifications for blockchain events.

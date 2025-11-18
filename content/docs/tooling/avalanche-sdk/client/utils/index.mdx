@@ -1,0 +1,639 @@
+---
+title: "Utilities"
+icon: "tools"
+---
+
+## Overview
+
+The Avalanche SDK provides utility functions for AVAX unit conversion, CB58 encoding/decoding, transaction serialization, and UTXO operations. All viem utilities are also re-exported for EVM operations.
+
+<Callout>
+  **Note:** All utility functions are synchronous unless marked as `async`.
+  Handle errors appropriately when working with blockchain data.
+</Callout>
+
+## Importing Utilities
+
+Import utilities from `@avalanche-sdk/client/utils`:
+
+```typescript
+import {
+  // AVAX conversions
+  avaxToNanoAvax,
+  nanoAvaxToAvax,
+  avaxToWei,
+  weiToAvax,
+  weiToNanoAvax,
+  nanoAvaxToWei,
+  // CB58 encoding
+  CB58ToHex,
+  hexToCB58,
+  // Transaction serialization
+  getTxFromBytes,
+  getUnsignedTxFromBytes,
+  // UTXO operations
+  getUtxoFromBytes,
+  getUtxosForAddress,
+  buildUtxoBytes,
+} from "@avalanche-sdk/client/utils";
+
+// Viem utilities are also available
+import { hexToBytes, bytesToHex, isAddress } from "@avalanche-sdk/client/utils";
+```
+
+## AVAX Unit Conversion
+
+Avalanche uses different units for different chains:
+
+- **AVAX**: Human-readable unit (1 AVAX)
+- **nanoAVAX (nAVAX)**: Smallest unit on P-Chain and X-Chain and C-Chain atomics (1 AVAX = 10^9 nAVAX)
+- **wei**: Used on C-Chain (1 AVAX = 10^18 wei)
+
+### avaxToNanoAvax
+
+Converts AVAX to nanoAVAX for P-Chain/X-Chain or C-Chain Atomic operations.
+
+**Function Signature:**
+
+```typescript
+function avaxToNanoAvax(amount: number): bigint;
+```
+
+**Parameters:**
+
+| Name     | Type     | Required | Description    |
+| -------- | -------- | -------- | -------------- |
+| `amount` | `number` | Yes      | Amount in AVAX |
+
+**Returns:**
+
+| Type     | Description        |
+| -------- | ------------------ |
+| `bigint` | Amount in nanoAVAX |
+
+**Example:**
+
+```typescript
+import { avaxToNanoAvax } from "@avalanche-sdk/client/utils";
+
+const nanoAvax = avaxToNanoAvax(1.5);
+console.log(nanoAvax); // 1500000000n
+
+// Use in P-Chain transaction
+const tx = await walletClient.pChain.prepareBaseTxn({
+  outputs: [
+    {
+      addresses: ["P-avax1..."],
+      amount: Number(nanoAvax),
+    },
+  ],
+});
+```
+
+### nanoAvaxToAvax
+
+Converts nanoAVAX back to AVAX for display purposes.
+
+**Function Signature:**
+
+```typescript
+function nanoAvaxToAvax(amount: bigint): number;
+```
+
+**Parameters:**
+
+| Name     | Type     | Required | Description        |
+| -------- | -------- | -------- | ------------------ |
+| `amount` | `bigint` | Yes      | Amount in nanoAVAX |
+
+**Returns:**
+
+| Type     | Description    |
+| -------- | -------------- |
+| `number` | Amount in AVAX |
+
+**Example:**
+
+```typescript
+import { nanoAvaxToAvax } from "@avalanche-sdk/client/utils";
+
+const balance = await walletClient.pChain.getBalance({
+  addresses: ["P-avax1..."],
+});
+
+const avax = nanoAvaxToAvax(BigInt(balance.balance || 0));
+console.log(`Balance: ${avax} AVAX`);
+```
+
+### avaxToWei
+
+Converts AVAX to wei for C-Chain operations.
+
+**Function Signature:**
+
+```typescript
+function avaxToWei(amount: number): bigint;
+```
+
+**Parameters:**
+
+| Name     | Type     | Required | Description    |
+| -------- | -------- | -------- | -------------- |
+| `amount` | `number` | Yes      | Amount in AVAX |
+
+**Returns:**
+
+| Type     | Description   |
+| -------- | ------------- |
+| `bigint` | Amount in wei |
+
+**Example:**
+
+```typescript
+import { avaxToWei } from "@avalanche-sdk/client/utils";
+
+const wei = avaxToWei(1.5);
+console.log(wei); // 1500000000000000000n
+
+// Use in C-Chain transaction
+const txHash = await walletClient.cChain.sendTransaction({
+  to: "0x...",
+  value: wei,
+});
+```
+
+### weiToAvax
+
+Converts wei back to AVAX for display.
+
+**Function Signature:**
+
+```typescript
+function weiToAvax(amount: bigint): bigint;
+```
+
+**Parameters:**
+
+| Name     | Type     | Required | Description   |
+| -------- | -------- | -------- | ------------- |
+| `amount` | `bigint` | Yes      | Amount in wei |
+
+**Returns:**
+
+| Type     | Description                |
+| -------- | -------------------------- |
+| `bigint` | Amount in AVAX (as bigint) |
+
+**Example:**
+
+```typescript
+import { weiToAvax } from "@avalanche-sdk/client/utils";
+
+const balance = await walletClient.cChain.getBalance({
+  address: "0x...",
+});
+
+const avax = weiToAvax(balance);
+console.log(`Balance: ${avax} AVAX`);
+```
+
+### weiToNanoAvax
+
+Converts wei to nanoAVAX for cross-chain operations.
+
+**Function Signature:**
+
+```typescript
+function weiToNanoAvax(amount: bigint): bigint;
+```
+
+**Parameters:**
+
+| Name     | Type     | Required | Description   |
+| -------- | -------- | -------- | ------------- |
+| `amount` | `bigint` | Yes      | Amount in wei |
+
+**Returns:**
+
+| Type     | Description        |
+| -------- | ------------------ |
+| `bigint` | Amount in nanoAVAX |
+
+**Example:**
+
+```typescript
+import { weiToNanoAvax } from "@avalanche-sdk/client/utils";
+
+const cChainBalance = await walletClient.cChain.getBalance({
+  address: "0x...",
+});
+
+// Convert to nanoAVAX for P-Chain transfer
+const nanoAvax = weiToNanoAvax(cChainBalance);
+```
+
+### nanoAvaxToWei
+
+Converts nanoAVAX to wei for cross-chain operations.
+
+**Function Signature:**
+
+```typescript
+function nanoAvaxToWei(amount: bigint): bigint;
+```
+
+**Parameters:**
+
+| Name     | Type     | Required | Description        |
+| -------- | -------- | -------- | ------------------ |
+| `amount` | `bigint` | Yes      | Amount in nanoAVAX |
+
+**Returns:**
+
+| Type     | Description   |
+| -------- | ------------- |
+| `bigint` | Amount in wei |
+
+**Example:**
+
+```typescript
+import { nanoAvaxToWei } from "@avalanche-sdk/client/utils";
+
+const pChainBalance = await walletClient.pChain.getBalance({
+  addresses: ["P-avax1..."],
+});
+
+// Convert to wei for C-Chain transfer
+const wei = nanoAvaxToWei(BigInt(pChainBalance.balance || 0));
+```
+
+## CB58 Encoding/Decoding
+
+CB58 is Avalanche's base58 encoding format used for transaction IDs, asset IDs, and addresses.
+
+### CB58ToHex
+
+Converts CB58-encoded strings to hexadecimal format.
+
+**Function Signature:**
+
+```typescript
+function CB58ToHex(cb58: string): Hex;
+```
+
+**Parameters:**
+
+| Name   | Type     | Required | Description         |
+| ------ | -------- | -------- | ------------------- |
+| `cb58` | `string` | Yes      | CB58 encoded string |
+
+**Returns:**
+
+| Type  | Description                         |
+| ----- | ----------------------------------- |
+| `Hex` | Hexadecimal string with `0x` prefix |
+
+**Example:**
+
+```typescript
+import { CB58ToHex } from "@avalanche-sdk/client/utils";
+
+const txId = "mYxFK3CWs6iMFFaRx4wmVLDUtnktzm2o9Mhg9AG6JSzRijy5V";
+const hex = CB58ToHex(txId);
+console.log(hex); // 0x...
+
+// Use with hex-based APIs
+const tx = await client.pChain.getAtomicTx({ txID: hex });
+```
+
+### hexToCB58
+
+Converts hexadecimal strings to CB58 format.
+
+**Function Signature:**
+
+```typescript
+function hexToCB58(hex: Hex): string;
+```
+
+**Parameters:**
+
+| Name  | Type  | Required | Description                         |
+| ----- | ----- | -------- | ----------------------------------- |
+| `hex` | `Hex` | Yes      | Hexadecimal string with `0x` prefix |
+
+**Returns:**
+
+| Type     | Description         |
+| -------- | ------------------- |
+| `string` | CB58 encoded string |
+
+**Example:**
+
+```typescript
+import { hexToCB58 } from "@avalanche-sdk/client/utils";
+
+const hex = "0x1234567890abcdef";
+const cb58 = hexToCB58(hex);
+console.log(cb58); // CB58 encoded string
+```
+
+## Transaction Serialization
+
+### getTxFromBytes
+
+Parses signed transaction bytes to extract the transaction and credentials.
+
+**Function Signature:**
+
+```typescript
+function getTxFromBytes(
+  txBytes: string,
+  chainAlias: "P" | "X" | "C"
+): [Common.Transaction, Credential[]];
+```
+
+**Parameters:**
+
+| Name         | Type                | Required | Description                     |
+| ------------ | ------------------- | -------- | ------------------------------- |
+| `txBytes`    | `string`            | Yes      | Transaction bytes as hex string |
+| `chainAlias` | `"P" \| "X" \| "C"` | Yes      | Chain alias                     |
+
+**Returns:**
+
+| Type                                 | Description                                        |
+| ------------------------------------ | -------------------------------------------------- |
+| `[Common.Transaction, Credential[]]` | Tuple containing transaction and credentials array |
+
+**Example:**
+
+```typescript
+import { getTxFromBytes } from "@avalanche-sdk/client/utils";
+
+const txHex = "0x1234567890abcdef...";
+const [tx, credentials] = getTxFromBytes(txHex, "P");
+
+console.log("Transaction ID:", tx.getId().toString());
+console.log("Signatures:", credentials.length);
+```
+
+### getUnsignedTxFromBytes
+
+Parses unsigned transaction bytes to get an unsigned transaction object.
+
+**Function Signature:**
+
+```typescript
+function getUnsignedTxFromBytes(
+  txBytes: string,
+  chainAlias: "P" | "X" | "C"
+): UnsignedTx;
+```
+
+**Parameters:**
+
+| Name         | Type                | Required | Description                     |
+| ------------ | ------------------- | -------- | ------------------------------- |
+| `txBytes`    | `string`            | Yes      | Transaction bytes as hex string |
+| `chainAlias` | `"P" \| "X" \| "C"` | Yes      | Chain alias                     |
+
+**Returns:**
+
+| Type         | Description                        |
+| ------------ | ---------------------------------- |
+| `UnsignedTx` | Parsed unsigned transaction object |
+
+**Example:**
+
+```typescript
+import { getUnsignedTxFromBytes } from "@avalanche-sdk/client/utils";
+
+const txHex = "0x1234567890abcdef...";
+const unsignedTx = getUnsignedTxFromBytes(txHex, "P");
+
+console.log("Transaction ID:", unsignedTx.txID);
+console.log("Transaction bytes:", unsignedTx.toBytes());
+```
+
+## UTXO Operations
+
+### getUtxoFromBytes
+
+Parses UTXO bytes to get a UTXO object.
+
+**Function Signature:**
+
+```typescript
+function getUtxoFromBytes(
+  utxoBytesOrHex: string | Uint8Array,
+  chainAlias: "P" | "X" | "C"
+): Utxo;
+```
+
+**Parameters:**
+
+| Name             | Type                   | Required | Description                            |
+| ---------------- | ---------------------- | -------- | -------------------------------------- |
+| `utxoBytesOrHex` | `string \| Uint8Array` | Yes      | UTXO bytes as hex string or Uint8Array |
+| `chainAlias`     | `"P" \| "X" \| "C"`    | Yes      | Chain alias                            |
+
+**Returns:**
+
+| Type   | Description        |
+| ------ | ------------------ |
+| `Utxo` | Parsed UTXO object |
+
+**Example:**
+
+```typescript
+import { getUtxoFromBytes } from "@avalanche-sdk/client/utils";
+
+const utxoHex = "0x1234567890abcdef...";
+const utxo = getUtxoFromBytes(utxoHex, "P");
+
+console.log("UTXO ID:", utxo.utxoID);
+console.log("Asset ID:", utxo.assetID);
+console.log("Output:", utxo.output);
+```
+
+### getUtxosForAddress
+
+Fetches all UTXOs for a given address on a specific chain. This function handles pagination automatically.
+
+**Function Signature:**
+
+```typescript
+function getUtxosForAddress(
+  client: AvalancheWalletCoreClient,
+  params: {
+    address: string;
+    chainAlias: "P" | "X" | "C";
+    sourceChain?: string;
+  }
+): Promise<Utxo[]>;
+```
+
+**Parameters:**
+
+| Name     | Type                        | Required | Description                |
+| -------- | --------------------------- | -------- | -------------------------- |
+| `client` | `AvalancheWalletCoreClient` | Yes      | The wallet client instance |
+| `params` | `object`                    | Yes      | Parameters object          |
+
+**params object:**
+
+| Name          | Type                | Required | Description                             |
+| ------------- | ------------------- | -------- | --------------------------------------- |
+| `address`     | `string`            | Yes      | Address to query                        |
+| `chainAlias`  | `"P" \| "X" \| "C"` | Yes      | Chain alias                             |
+| `sourceChain` | `string`            | No       | Source chain ID for import transactions |
+
+**Returns:**
+
+| Type              | Description           |
+| ----------------- | --------------------- |
+| `Promise<Utxo[]>` | Array of UTXO objects |
+
+**Example:**
+
+```typescript
+import { getUtxosForAddress } from "@avalanche-sdk/client/utils";
+import { createAvalancheWalletClient } from "@avalanche-sdk/client";
+import { avalanche } from "@avalanche-sdk/client/chains";
+
+const walletClient = createAvalancheWalletClient({
+  account: myAccount,
+  chain: avalanche,
+  transport: { type: "http" },
+});
+
+const utxos = await getUtxosForAddress(walletClient, {
+  address: "P-avax1...",
+  chainAlias: "P",
+});
+
+console.log(`Found ${utxos.length} UTXOs`);
+```
+
+### buildUtxoBytes
+
+Builds UTXO bytes from parameters. Useful for reconstructing UTXOs or creating test data.
+
+**Function Signature:**
+
+```typescript
+function buildUtxoBytes(
+  txHash: string,
+  outputIndex: number,
+  assetId: string,
+  amount: string,
+  addresses: string[],
+  locktime: string,
+  threshold: number
+): `0x${string}`;
+```
+
+**Parameters:**
+
+| Name          | Type       | Required | Description                                 |
+| ------------- | ---------- | -------- | ------------------------------------------- |
+| `txHash`      | `string`   | Yes      | Transaction hash in CB58 format             |
+| `outputIndex` | `number`   | Yes      | Output index in the transaction             |
+| `assetId`     | `string`   | Yes      | Asset ID in CB58 format                     |
+| `amount`      | `string`   | Yes      | Amount as string                            |
+| `addresses`   | `string[]` | Yes      | Array of addresses that can spend this UTXO |
+| `locktime`    | `string`   | Yes      | UNIX timestamp locktime in seconds          |
+| `threshold`   | `number`   | Yes      | Signature threshold                         |
+
+**Returns:**
+
+| Type                | Description              |
+| ------------------- | ------------------------ |
+| `` `0x${string}` `` | UTXO bytes as hex string |
+
+**Example:**
+
+```typescript
+import { buildUtxoBytes } from "@avalanche-sdk/client/utils";
+
+const utxoBytes = buildUtxoBytes(
+  "mYxFK3CWs6iMFFaRx4wmVLDUtnktzm2o9Mhg9AG6JSzRijy5V",
+  0,
+  "U8iRqJoiJm8xZHAacmvYyZVwqQx6uDNtQeP3CQ6fcgQk3JqnK",
+  "111947",
+  ["P-fuji1nv6w7m6egkwhkcvz96ze3qmzyk5gt6csqz7ejq"],
+  "0",
+  1
+);
+
+console.log("UTXO bytes:", utxoBytes);
+```
+
+## Viem Utilities
+
+The SDK re-exports all utilities from viem for EVM operations. See the [viem utilities documentation](https://viem.sh/docs/utilities) for complete reference.
+
+**Common Categories:**
+
+- **Encoding/Decoding**: `bytesToHex`, `hexToBytes`, `stringToHex`
+- **ABI Operations**: `encodeAbiParameters`, `decodeAbiParameters`, `parseAbiItem`
+- **Address Operations**: `getAddress`, `isAddress`, `checksumAddress`
+- **Number Operations**: `bytesToBigInt`, `hexToNumber`, `numberToHex`
+- **Hash Operations**: `keccak256`, `sha256`, `ripemd160`
+- **Signature Operations**: `recoverAddress`, `verifyMessage`
+
+## Common Patterns
+
+### Converting Between Units
+
+```typescript
+import {
+  avaxToNanoAvax,
+  nanoAvaxToAvax,
+  avaxToWei,
+  weiToAvax,
+} from "@avalanche-sdk/client/utils";
+
+// P-Chain: AVAX → nanoAVAX
+const nanoAvax = avaxToNanoAvax(1.5);
+
+// C-Chain: AVAX → wei
+const wei = avaxToWei(1.5);
+
+// Display: nanoAVAX → AVAX
+const avax = nanoAvaxToAvax(nanoAvax);
+```
+
+### Working with Transaction IDs
+
+```typescript
+import { CB58ToHex, hexToCB58 } from "@avalanche-sdk/client/utils";
+
+// Convert CB58 to hex for API calls
+const txId = "mYxFK3CWs6iMFFaRx4wmVLDUtnktzm2o9Mhg9AG6JSzRijy5V";
+const hex = CB58ToHex(txId);
+
+// Convert hex back to CB58 for display
+const cb58 = hexToCB58(hex);
+```
+
+### Parsing Transactions
+
+```typescript
+import { getTxFromBytes } from "@avalanche-sdk/client/utils";
+
+const txHex = "0x...";
+const [tx, credentials] = getTxFromBytes(txHex, "P");
+
+// Access transaction details
+const txId = tx.getId().toString();
+const numSignatures = credentials.length;
+```
+
+## Next Steps
+
+- **[Account Management](accounts)** - Working with accounts
+- **[Transaction Signing](methods/wallet-methods/wallet)** - Signing and sending transactions
+- **[Chain Clients](clients)** - Chain-specific operations
+- **[Viem Documentation](https://viem.sh/docs/utilities)** - Complete viem utilities reference

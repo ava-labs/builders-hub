@@ -45,15 +45,11 @@ const createRegisterSchema = (isOnline: boolean) => z.object({
   hackathon_participation: z.string().optional(),
   dietary: z.string().optional().default(""),
   github_portfolio: z.string().optional(),
-  terms_event_conditions: z.boolean().refine((value) => value === true, {
-    message: "You must agree to participate in any Builder Hub events. Event Terms and Conditions.",
-  }),
-  newsletter_subscription: z.boolean().refine((value) => value === true, {
-    message: "Subscribe to newsletters and promotional materials. You can opt out anytime. Avalanche Privacy Policy.",
-  }),
-  prohibited_items: isOnline ? z.boolean().optional() : z.boolean().refine((value) => value === true, {
-    message: "You must agree not to bring prohibited items to continue.",
-  }),
+  terms_event_conditions: z.boolean().optional(),
+  newsletter_subscription: z.boolean().default(false).optional(),
+  prohibited_items: z.boolean().optional(),
+  founder_check: z.boolean().optional(),
+  avalanche_ecosystem_member: z.boolean().optional(),
 });
 
 export const registerSchema = createRegisterSchema(false); // Default schema for TypeScript inference
@@ -103,6 +99,8 @@ export function RegisterForm({
     terms_event_conditions: false,
     newsletter_subscription: false,
     prohibited_items: false,
+    founder_check: false,
+    avalanche_ecosystem_member: false,
   });
 
   const form = useForm<RegisterFormValues>({
@@ -169,6 +167,8 @@ export function RegisterForm({
           terms_event_conditions: loadedData.terms_event_conditions || false,
           newsletter_subscription: loadedData.newsletter_subscription || false,
           prohibited_items: !isOnlineHackathon ? (loadedData.prohibited_items || false) : false,
+          founder_check: loadedData.founder_check || false,
+          avalanche_ecosystem_member: loadedData.avalanche_ecosystem_member || false,
         };
         hackathon_id = loadedData.hackathon_id;
         form.reset(parsedData);
@@ -261,6 +261,29 @@ export function RegisterForm({
     if (step < 3) {
       setStep(step + 1);
     } else {
+      const errors: any = {};
+
+      if (!data.terms_event_conditions) {
+        errors.terms_event_conditions = {
+          type: "custom",
+          message: "You must agree to participate in any Builder Hub events. Event Terms and Conditions."
+        };
+      }
+
+      if (!isOnlineHackathon && !data.prohibited_items) {
+        errors.prohibited_items = {
+          type: "custom",
+          message: "You must agree not to bring prohibited items to continue."
+        };
+      }
+
+
+      if (Object.keys(errors).length > 0) {
+        Object.keys(errors).forEach(field => {
+          form.setError(field as keyof RegisterFormValues, errors[field]);
+        });
+        return;
+      }
       setFormData((prevData) => ({ ...prevData, ...data }));
       const preservedUTMs = getPreservedUTMs();
       const effectiveUTM = utm || preservedUTMs.utm || "";
@@ -312,6 +335,43 @@ export function RegisterForm({
         "role",
         "city",
       ];
+      const formValues = form.getValues();
+      const errors: any = {};
+
+      if (!formValues.name || formValues.name.trim() === "") {
+        errors.name = {
+          type: "custom",
+          message: "Name is required"
+        };
+      }
+
+      if (!formValues.email || formValues.email.trim() === "") {
+        errors.email = {
+          type: "custom",
+          message: "Invalid email"
+        };
+      }
+
+      if (!formValues.telegram_user || formValues.telegram_user.trim() === "") {
+        errors.telegram_user = {
+          type: "custom",
+          message: "Telegram username is required"
+        };
+      }
+
+      if (!formValues.city || formValues.city.trim() === "") {
+        errors.city = {
+          type: "custom",
+          message: "City is required"
+        };
+      }
+
+      if (Object.keys(errors).length > 0) {
+        Object.keys(errors).forEach(field => {
+          form.setError(field as keyof RegisterFormValues, errors[field]);
+        });
+        return;
+      }
     } else if (step === 2) {
       fieldsToValidate = [
         "web3_proficiency",
@@ -330,6 +390,31 @@ export function RegisterForm({
       // Only validate prohibited_items if it's not an online hackathon
       if (!isOnlineHackathon) {
         fieldsToValidate.push("prohibited_items");
+      }
+      // Custom validation for Step 3 required fields
+      const formValues = form.getValues();
+      const errors: any = {};
+
+      if (!formValues.terms_event_conditions) {
+        errors.terms_event_conditions = {
+          type: "custom",
+          message: "You must agree to participate in any Builder Hub events. Event Terms and Conditions."
+        };
+      }
+
+
+      if (!isOnlineHackathon && !formValues.prohibited_items) {
+        errors.prohibited_items = {
+          type: "custom",
+          message: "You must agree not to bring prohibited items to continue."
+        };
+      }
+
+      if (Object.keys(errors).length > 0) {
+        Object.keys(errors).forEach(field => {
+          form.setError(field as keyof RegisterFormValues, errors[field]);
+        });
+        return;
       }
     }
     const isValid = await form.trigger(fieldsToValidate);

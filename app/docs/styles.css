@@ -1,0 +1,485 @@
+@import 'fumadocs-openapi/css/preset.css';
+
+/* Adjust APIPage layout to match content alignment */
+body[data-layout="docs"] .fd-api-page,
+body[data-layout="docs"] [data-api-page],
+body[data-layout="docs"] article[data-full="true"],
+body[data-layout="docs"] .nd-layout-notebook article[data-full="true"] {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  max-width: none !important;
+}
+
+/* Remove extra padding from API page content containers */
+body[data-layout="docs"] .fd-api-page > *,
+body[data-layout="docs"] [data-api-page] > * {
+  padding-left: 0 !important;
+}
+
+/* Override inline padding-start on API pages */
+body[data-layout="docs"] main.fd-notebook-layout {
+  padding-inline-start: 0 !important;
+}
+
+/* Force ONLY main navbar to extend to left edge - DOCS PAGE ONLY */
+body {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
+
+/* Target only the main navbar, NOT the tabs nav */
+body > div > nav[aria-label="Main"],
+.nd-layout-home > nav:not([role="tablist"]):not(.nd-tabs-nav),
+.nd-layout-home > header:not([role="tablist"]):not(.nd-tabs-nav) {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  /* Remove thin separator line from library defaults */
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Container gets the padding instead - only for main nav */
+nav[aria-label="Main"] > div,
+.nd-layout-home > nav:not([role="tablist"]):not(.nd-tabs-nav) > div,
+.nd-layout-home > header:not([role="tablist"]):not(.nd-tabs-nav) > div {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+/* Preserve normal styling for tabs nav */
+.nd-tabs-nav,
+nav[role="tablist"],
+[role="tablist"] {
+  width: auto !important;
+  max-width: none !important;
+  padding-left: 0 !important;
+}
+
+/* Add padding at top of docs content area to account for fixed navbar + subnavbar - DOCS ONLY */
+body[data-layout="docs"] .nd-layout-notebook {
+  padding-top: 3rem !important; /* Just subnavbar height on desktop */
+}
+/* When banner exists, add extra padding */
+body:has([data-granite-banner])[data-layout="docs"] .nd-layout-notebook {
+  padding-top: 6.5rem !important; /* Banner (3rem) + subnavbar (3rem) + some spacing on desktop */
+}
+
+/* On mobile, add padding for both navbar and subnavbar */
+@media (max-width: 1023px) {
+  body[data-layout="docs"] .nd-layout-notebook {
+    padding-top: 6.5rem !important; /* navbar (3.5rem) + subnavbar (3rem) */
+  }
+  /* When banner exists, add extra padding */
+  body:has([data-granite-banner])[data-layout="docs"] .nd-layout-notebook {
+    padding-top: 9.5rem !important; /* banner (3rem) + navbar (3.5rem) + subnavbar (3rem) */
+  }
+  /* If the toc overview exists, add its height as well so content clears it */
+  body[data-layout="docs"] .nd-layout-notebook:has(#nd-tocnav) {
+    padding-top: 9.5rem !important; /* navbar (3.5rem) + subnavbar (3rem) + tocnav (~3rem) */
+  }
+  /* When banner exists and toc nav exists */
+  body:has([data-granite-banner])[data-layout="docs"] .nd-layout-notebook:has(#nd-tocnav) {
+    padding-top: 12.5rem !important; /* banner (3rem) + navbar (3.5rem) + subnavbar (3rem) + tocnav (~3rem) */
+  }
+}
+
+/* Reduce top padding on main content container */
+main .nd-layout-notebook > div:first-child {
+  padding-top: 0.5rem !important;
+}
+
+/* Remove any top border drawn directly under the navbar */
+nav[aria-label="Main"] + *,
+header + * {
+  border-top: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Fumadocs DocsNavbar adds border-b on internal containers; remove it */
+#nd-subnav .border-b {
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Make subnavbar full-width like main navbar - sits above sidebar */
+#docs-subnav {
+  width: 100vw !important;
+  margin-left: calc(50% - 50vw) !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Align subnavbar content to match sidebar position - desktop only */
+@media (min-width: 1024px) {
+  #docs-subnav > div {
+    padding-left: 3rem !important; /* Match sidebar left position */
+    justify-content: flex-start !important; /* Left-align on desktop */
+  }
+}
+
+/* Mobile navigation: Separate main navbar and docs sidebar menus */
+@media (max-width: 1023px) {
+  /* When we force mobile at <=1023px, kill desktop sidebar spacing */
+  body[data-layout="docs"] #nd-docs-layout {
+    --fd-sidebar-width: 0px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-inline-start: 0 !important;
+  }
+
+  /* Center the logo on mobile */
+  nav[aria-label="Main"] nav,
+  header[aria-label="Main"] nav {
+    justify-content: space-between !important;
+  }
+  
+  nav[aria-label="Main"] a[href="/"],
+  header[aria-label="Main"] a[href="/"] {
+    position: absolute !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  
+  /* Main navbar should stay on the left - ensure it's accessible */
+  nav[aria-label="Main"],
+  header[aria-label="Main"] {
+    z-index: 55 !important;
+  }
+  
+  /* Main navbar button - keep on left */
+  nav[aria-label="Main"] button,
+  header[aria-label="Main"] button,
+  [data-docs-sidebar-toggle] {
+    z-index: 60 !important;
+    position: relative !important;
+    pointer-events: auto !important;
+  }
+  
+  /* Make subnavbar sticky on mobile */
+  #docs-subnav {
+    position: fixed !important;
+    top: 3.5rem !important; /* Below main navbar (3.5rem) */
+    z-index: 30 !important; /* Above content but below main navbar dropdown (z-50) */
+    width: 100vw !important;
+  }
+  /* When banner exists, adjust subnavbar position */
+  body:has([data-granite-banner]) #docs-subnav {
+    top: 6.5rem !important; /* Below banner (3rem) + main navbar (3.5rem) */
+  }
+
+  /* Ensure the content overview (toc nav) is visible under the subnavbar on mobile */
+  body[data-layout="docs"] #nd-tocnav {
+    position: fixed !important;  /* take it out of flow to avoid clipping within article container */
+    top: 6.5rem !important;      /* navbar (3.5rem) + subnavbar (3rem) */
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 25 !important;      /* Below subnavbar (30), above content */
+    width: 100vw !important;
+    background: hsl(var(--background)) !important;
+    margin: 0 !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  /* When banner exists, adjust toc nav position */
+  body:has([data-granite-banner])[data-layout="docs"] #nd-tocnav {
+    top: 9.5rem !important;      /* banner (3rem) + navbar (3.5rem) + subnavbar (3rem) */
+  }
+  
+  /* Center subnavbar content on mobile */
+  #docs-subnav > div {
+    justify-content: center !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Ensure any sticky content elements are positioned below the subnavbar */
+  body[data-layout="docs"] .nd-layout-notebook [class*="sticky"],
+  body[data-layout="docs"] .nd-layout-notebook [data-sticky],
+  body[data-layout="docs"] article [class*="sticky"],
+  body[data-layout="docs"] article [data-sticky] {
+    top: 6.5rem !important; /* Below navbar (3.5rem) + subnavbar (3rem) */
+    z-index: 20 !important; /* Below subnavbar (z-30) */
+  }
+  /* When banner exists, adjust sticky elements */
+  body:has([data-granite-banner])[data-layout="docs"] .nd-layout-notebook [class*="sticky"],
+  body:has([data-granite-banner])[data-layout="docs"] .nd-layout-notebook [data-sticky],
+  body:has([data-granite-banner])[data-layout="docs"] article [class*="sticky"],
+  body:has([data-granite-banner])[data-layout="docs"] article [data-sticky] {
+    top: 9.5rem !important; /* Below banner (3rem) + navbar (3.5rem) + subnavbar (3rem) */
+  }
+  
+  /* Hide the original fumadocs sidebar toggle button on mobile since we're using our own */
+  /* But keep it accessible for programmatic clicks by not using pointer-events: none */
+  .nd-layout-notebook > div:first-child > button:not([aria-haspopup]):not([role="combobox"]) {
+    display: none !important;
+    visibility: hidden !important;
+    position: absolute !important;
+    opacity: 0 !important;
+    /* Don't disable pointer-events so programmatic clicks work */
+    left: -9999px !important;
+    z-index: -1 !important;
+  }
+  
+  /* Also check sidebar header area for toggle button */
+  #nd-sidebar > div:first-child > button:not([aria-haspopup]):not([role="combobox"]) {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 52 !important;
+    pointer-events: auto !important;
+  }
+  
+  /* Override fumadocs mobile sidebar to appear from left instead of right */
+  #nd-sidebar-mobile {
+    left: 0 !important;
+    right: auto !important;
+    inset-inline-end: auto !important;
+    border-left: none !important;
+    border-right: 1px solid hsl(var(--border)) !important;
+  }
+  
+  /* Change fumadocs sidebar animations to slide from left */
+  #nd-sidebar-mobile[data-state="open"] {
+    animation: slideInFromLeft 0.3s ease-out !important;
+  }
+  
+  #nd-sidebar-mobile[data-state="closed"] {
+    animation: slideOutToLeft 0.2s ease-in !important;
+  }
+  
+  @keyframes slideInFromLeft {
+    from {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideOutToLeft {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+  }
+  
+  /* Also handle shadcn Sheet-based sidebar if used */
+  [data-sidebar="sidebar"][data-mobile="true"],
+  [data-sidebar="sidebar"][data-mobile="true"] > div,
+  [data-sidebar="sidebar"][data-mobile="true"] [role="dialog"] {
+    left: 0 !important;
+    right: auto !important;
+  }
+  
+  [data-sidebar="sidebar"][data-mobile="true"] [data-radix-dialog-content] {
+    left: 0 !important;
+    right: auto !important;
+  }
+  
+  /* Allow sidebar overlay to work for closing */
+  body[data-layout="docs"] [data-radix-dialog-overlay],
+  #nd-sidebar-mobile ~ [data-radix-dialog-overlay] {
+    pointer-events: auto !important;
+  }
+}
+
+/* Desktop: ensure subnavbar sits above sidebar but below navbar */
+@media (min-width: 1024px) {
+  /* Add slight left padding to TOC header when sidebar is visible */
+  body[data-layout="docs"] #nd-tocnav {
+    padding-left: 2.5rem !important;
+    /* Ensure the content overview (toc nav) sits below the fixed subnavbar */
+    position: sticky !important;
+    top: calc(3.5rem + 3rem) !important; /* navbar (3.5rem) + subnavbar (3rem) */
+    z-index: 20 !important; /* Below subnavbar (z-30), above article */
+  }
+  /* When banner exists, adjust toc nav position */
+  body:has([data-granite-banner])[data-layout="docs"] #nd-tocnav {
+    top: calc(3rem + 3.5rem + 3rem) !important; /* banner (3rem) + navbar (3.5rem) + subnavbar (3rem) */
+  }
+  
+  #docs-subnav {
+    z-index: 30 !important; /* Above sidebar (z-20), below navbar dropdown (z-50) */
+  }
+  /* When banner exists, adjust desktop subnavbar position */
+  body:has([data-granite-banner]) #docs-subnav {
+    top: 6.5rem !important; /* Below banner (3rem) + navbar (3.5rem) */
+  }
+  
+  /* Center content while maintaining sidebar and TOC spacing */
+  body[data-layout="docs"] main#nd-docs-layout.fd-notebook-layout,
+  body[data-layout="docs"] main#nd-docs-layout.fd-default-layout {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    /* Responsive padding that accounts for sidebar position (3rem) + width + spacing (0.5rem) */
+    padding-left: calc(3rem + var(--fd-sidebar-width) + 0.5rem) !important;
+    padding-right: 5rem !important;
+  }
+  
+  /* Center the page content within available space */
+  body[data-layout="docs"] #nd-page {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-width: var(--fd-page-width) !important;
+  }
+}
+
+/* Hide the content overview in the in-between breakpoint (tablet/medium desktops) */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  body[data-layout="docs"] #nd-tocnav {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}
+
+/* Hide sidebar tabs/hamburger menu on Tooling and ACPs pages */
+body[data-docs-section="tooling"] [role="combobox"],
+body[data-docs-section="acps"] [role="combobox"],
+body[data-docs-section="tooling"] aside button[aria-haspopup],
+body[data-docs-section="acps"] aside button[aria-haspopup],
+body[data-docs-section="tooling"] #nd-sidebar > div > button,
+body[data-docs-section="acps"] #nd-sidebar > div > button,
+body[data-docs-section="tooling"] .nd-sidebar-tabs,
+body[data-docs-section="acps"] .nd-sidebar-tabs {
+  display: none !important;
+}
+
+/* Hide subnavbar when search is open */
+body.search-open #docs-subnav {
+  display: none !important;
+}
+
+/* Reduce sidebar horizontal padding and push down below subnavbar - DOCS ONLY */
+body[data-layout="docs"] #nd-sidebar,
+body[data-layout="docs"] [data-sidebar="sidebar"] {
+  padding-left: 0.5rem !important;
+  padding-right: 1.5rem !important; /* Extra right padding to prevent content overlay on resize */
+  z-index: 20 !important; /* Below subnavbar (z-40) */
+  top: calc(3.5rem + 3rem) !important; /* main navbar (3.5rem) + subnavbar (3rem) */
+  height: calc(100vh - 3.5rem - 3rem) !important; /* Adjust height accordingly */
+  border-right: none !important; /* Remove border for cleaner dark mode */
+  background: transparent !important; /* Blend with page background */
+  /* Force sidebar to left edge with small padding - override fumadocs dynamic width calculation */
+  left: 3rem !important;
+  width: var(--fd-sidebar-width) !important; /* Remove extra spacing and layout offset */
+}
+/* When banner exists, adjust sidebar position */
+body:has([data-granite-banner])[data-layout="docs"] #nd-sidebar,
+body:has([data-granite-banner])[data-layout="docs"] [data-sidebar="sidebar"] {
+  top: calc(3rem + 3.5rem + 3rem) !important; /* Banner (3rem) + main navbar (3.5rem) + subnavbar (3rem) */
+  height: calc(100vh - 3rem - 3.5rem - 3rem) !important; /* Adjust height accordingly */
+}
+
+
+/* Hide sidebar toggle button on desktop */
+@media (min-width: 1024px) {
+  .nd-layout-notebook > button[data-sidebar],
+  [data-sidebar-toggle],
+  button[aria-label*="sidebar" i]:not([aria-haspopup]):not([role="combobox"]) {
+    display: none !important;
+  }
+}
+
+/* Sidebar content area - DOCS ONLY */
+body[data-layout="docs"] #nd-sidebar > div,
+body[data-layout="docs"] [data-sidebar="sidebar"] > div {
+  /*padding-left: 0.25rem !important;
+  padding-right: 0.25rem !important;*/
+}
+
+/* Reduce sidebar header spacing - DOCS ONLY */
+body[data-layout="docs"] #nd-sidebar > div:first-child {
+  padding-bottom: 0.5rem !important;
+}
+
+/* Sidebar navigation - remove top spacing - DOCS ONLY */
+body[data-layout="docs"] #nd-sidebar nav {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Tighten main content spacing */
+.nd-layout-notebook article {
+  padding-top: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Reduce heading top margin */
+.nd-layout-notebook article h1:first-child,
+.nd-layout-notebook article h2:first-child {
+  margin-top: 0.5rem !important;
+}
+
+/* Tighten "On this page" TOC spacing */
+aside[aria-label*="table" i],
+aside[aria-label*="On this page" i],
+.nd-toc {
+  padding-top: 0.5rem !important;
+}
+
+/* Reduce TOC heading spacing */
+aside[aria-label*="table" i] > div:first-child,
+aside[aria-label*="On this page" i] > div:first-child,
+.nd-toc > div:first-child {
+  margin-bottom: 0.5rem !important;
+}
+
+/* Completely remove "On this page" table of contents on mobile (docs only) */
+@media (max-width: 1023px) {
+  /* Target fumadocs table of contents - comprehensive selectors */
+  /* The TOC is typically in an aside element next to the main article */
+  /* Hide ALL aside elements except the main sidebar */
+  body[data-layout="docs"] .nd-layout-notebook > div > aside:not(#nd-sidebar):not([data-sidebar]):not([id*="sidebar" i]),
+  body[data-layout="docs"] .nd-layout-notebook aside:not(#nd-sidebar):not([data-sidebar]):not([id*="sidebar" i]),
+  body[data-layout="docs"] aside[aria-label*="table" i]:not(#nd-sidebar),
+  body[data-layout="docs"] aside[aria-label*="On this page" i]:not(#nd-sidebar),
+  body[data-layout="docs"] aside[aria-label*="Table of contents" i]:not(#nd-sidebar),
+  body[data-layout="docs"] .nd-toc:not(#nd-sidebar),
+  body[data-layout="docs"] [data-toc]:not(#nd-sidebar),
+  /* Target aside elements that contain navigation (TOC structure) but exclude sidebar */
+  body[data-layout="docs"] aside:has(> nav):not(#nd-sidebar):not([data-sidebar]):not([id*="sidebar" i]),
+  /* Target the TOC container more specifically - fumadocs typically uses a grid layout */
+  body[data-layout="docs"] .nd-layout-notebook > div > div:has(> aside:not(#nd-sidebar)),
+  /* Target sticky TOC elements */
+  body[data-layout="docs"] [data-sticky]:has(> nav):not(#nd-sidebar),
+  body[data-layout="docs"] [class*="sticky"]:has(> nav):not(#nd-sidebar) {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    position: absolute !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    z-index: -1 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    top: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+  }
+  
+  /* Ensure article takes full width on mobile when TOC is hidden */
+  body[data-layout="docs"] .nd-layout-notebook article {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Prevent any TOC from appearing above subnavbar */
+  body[data-layout="docs"] aside:not(#nd-sidebar):not([data-sidebar]):not([id*="sidebar" i]) {
+    z-index: 0 !important;
+  }
+}
+

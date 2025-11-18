@@ -1,6 +1,7 @@
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
-import { Globe, Check, Trash2 } from 'lucide-react'
+import { Check, Trash2 } from 'lucide-react'
 import { L1ListItem } from '@/components/toolbox/stores/l1ListStore'
+import { ChainLogo } from './ChainLogo'
 
 interface NetworkMenuItemProps {
   network: L1ListItem
@@ -50,17 +51,11 @@ export function NetworkMenuItem({
         }`}
     >
       <div className="flex items-center gap-3">
-        <div className="flex-shrink-0 w-5 h-5 rounded-md overflow-hidden flex items-center justify-center">
+        <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
           {isEditMode && !isCChain(network.evmChainId) ? (
             <Trash2 className="w-4 h-4 text-red-500" />
-          ) : network.logoUrl ? (
-            <img
-              src={network.logoUrl}
-              alt={`${network.name} logo`}
-              className="w-full h-full object-cover"
-            />
           ) : (
-            <Globe className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
+            <ChainLogo logoUrl={network.logoUrl} chainName={network.name} />
           )}
         </div>
         <div className="flex flex-col">
