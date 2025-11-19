@@ -111,7 +111,7 @@ export default function IntegrationsClient({ list }: IntegrationsClientProps) {
                     <div className="space-y-8">
                         {/* Search Bar and Add Integration Button */}
                         <div className="max-w-5xl mx-auto">
-                            <div className="flex flex-col lg:flex-row gap-4 items-stretch">
+                            <div className="flex flex-col lg:flex-row gap-4 items-start">
                                 {/* Search Bar */}
                                 <div className="relative flex-1">
                                     <div className="relative">
