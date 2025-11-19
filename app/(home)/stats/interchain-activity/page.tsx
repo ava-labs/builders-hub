@@ -850,7 +850,7 @@ function ChartCard({
                 <Bar
                   dataKey="value"
                   fill="url(#colorGradient)"
-                  radius={[4, 4, 0, 0]}
+                  radius={[0, 0, 0, 0]}
                   shape={(props: any) => {
                     const { x, y, width, height, payload } = props;
                     if (!payload.chainBreakdown) {
@@ -861,7 +861,7 @@ function ChartCard({
                           width={width}
                           height={height}
                           fill={config.color}
-                          rx={4}
+                          rx={0}
                         />
                       );
                     }
@@ -893,7 +893,7 @@ function ChartCard({
                               width={width}
                               height={segmentHeight}
                               fill={chainColor}
-                              rx={idx === 0 ? 4 : 0} // Only round top segment
+                              rx={0}
                             />
                           );
 
