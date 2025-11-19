@@ -1,0 +1,89 @@
+---
+title: Setup Permissioned L1
+description: Deploy and set up your Validator Manager Contract to create a Proof of Authority blockchain
+updated: 2025-03-13
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+import DeployValidatorManager from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/DeployValidatorManager.tsx"
+import UpgradeProxy from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/UpgradeProxy.tsx"
+import Initialize from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/Initialize.tsx"
+import InitValidatorSet from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/InitValidatorSet.tsx"
+
+This section walks through deploying and configuring your Validator Manager Contract (VMC) on your new L1. 
+
+This is a multi-step process that establishes the necessary infrastructure to run a Permissioned L1 chain. This process is made (we hope) simple through the console, but in order to run and maintain this in a Production environment please be sure to complete the [Permissioned L1](/academy/permissioned-l1s) course.
+
+<Steps>
+<Step>
+
+### Deploy most recent implementation of the Validator Manager Contract 
+
+<ToolboxMdxWrapper walletMode="l1">
+    <DeployValidatorManager />
+</ToolboxMdxWrapper>
+
+</Step>
+<Step>
+
+### Upgrade Proxy
+
+Link your proxy to the ValidatorManager implementation by upgrading the TransparentUpgradeableProxy at `0xfacade...` to point to your newly deployed contract.
+
+<Callout type="info">
+Make sure you have your L1 selected in the wallet component
+</Callout>
+
+<ToolboxMdxWrapper walletMode="l1">
+    <UpgradeProxy />
+</ToolboxMdxWrapper>
+
+</Step>
+<Step>
+
+### Set Initial Configuration
+
+Configure your ValidatorManager with essential parameters through the `initialize()` function:
+
+- **Admin Address**: Your wallet address (controls validator operations)
+- **Subnet ID**: Your L1's subnet identifier
+- **Churn Period**: Time window for validator changes (≤ 86400 seconds)
+- **Maximum Churn Percentage**: Weight change limit per period (1-20%)
+
+<ToolboxMdxWrapper walletMode="l1">
+    <Initialize />
+</ToolboxMdxWrapper>
+
+</Step>
+<Step>
+
+### Initialize Validator Set
+
+Bridge P-Chain subnet creation with L1 validator management using cryptographically verified conversion data.
+
+#### How It Works
+
+The initialization:
+1. Verifies P-Chain signed conversion data via Avalanche Warp Messaging
+2. Registers each validator with their weight and node ID
+3. Marks the validator set as initialized (permanent, one-time operation)
+
+#### Required Information
+
+You'll need:
+- **Conversion Data**: Validator information from your subnet-to-L1 conversion
+- **Message Index**: Position in the Warp message queue
+
+<ToolboxMdxWrapper walletMode="l1">
+    <InitValidatorSet />
+</ToolboxMdxWrapper>
+
+</Step>
+</Steps>
+
+## Next Steps
+
+Congratulations! Your Validator Manager is now fully configured. In the next section, you'll deploy and configure a Staking Manager to enable permissionless participation, which we will be transitioning to a Permissionless L1.
