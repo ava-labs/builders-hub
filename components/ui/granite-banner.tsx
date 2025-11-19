@@ -128,21 +128,24 @@ export function GraniteBanner() {
   return (
     <Banner id="granite-banner" variant="rainbow" changeLayout={false} data-granite-banner style={{ background: "linear-gradient(90deg, #FFB3F0 0%, #8FC5E6 100%)" }}>
       {activated ? (
-        <div className="flex flex-row items-center justify-center gap-2 text-center flex-wrap">
-          <span>
-            Avalanche Network <strong>Granite upgrade</strong> has activated on both Mainnet and Fuji.
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-center px-2">
+          <span className="text-sm sm:text-base">
+            Avalanche Network <strong>Granite upgrade</strong> activated.
           </span>
-          <span className="hidden lg:inline">•</span>
-          <Link href="/blog/granite-upgrade" className="underline underline-offset-4 hover:text-fd-primary transition-colors">
+          <span className="hidden sm:inline">•</span>
+          <Link href="/blog/granite-upgrade" className="text-sm sm:text-base underline underline-offset-4 hover:text-fd-primary transition-colors">
             Learn more
           </Link>
         </div>
       ) : (
         <>
-          <Link href="/blog/granite-upgrade" className="lg:hidden inline-flex items-center gap-1 flex-wrap justify-center">
-            <span>Granite Upgrade Activates in</span>
+          <div className="lg:hidden flex flex-col items-center justify-center gap-1.5 text-center px-2 py-1">
+            <span className="text-sm">Granite Upgrade Activates in</span>
             <CountdownTimer targetDate={activationDate} onComplete={() => setActivated(true)} />
-          </Link>
+            <Link href="/blog/granite-upgrade" className="text-xs underline underline-offset-4 hover:text-fd-primary transition-colors">
+              Learn more
+            </Link>
+          </div>
 
           <div className="hidden lg:flex flex-row items-center justify-center gap-2 text-center">
             <span>
@@ -152,7 +155,7 @@ export function GraniteBanner() {
             <span className="flex items-center gap-2">
               <span>•</span>
               <CountdownTimer targetDate={activationDate} onComplete={() => setActivated(true)} />
-              <span className="hidden lg:inline">•</span>
+              <span>•</span>
               <Link href="/blog/granite-upgrade" className="underline underline-offset-4 hover:text-fd-primary transition-colors">
                 Learn more
               </Link>
