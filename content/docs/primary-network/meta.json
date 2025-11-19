@@ -9,8 +9,8 @@
     "avax-token",
     "virtual-machines",
     "---Validate---",
-    "validate/rewards-formula",
     "validate/validate-vs-delegate",
+    "validate/rewards-formula",
     "validate/how-to-stake",
     "validate/node-validator"
   ]

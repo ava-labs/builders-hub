@@ -7,9 +7,9 @@ description: Learn about the Avalanche Primary Network and its three blockchains
 graph TB
     PN["<b>🏔️ Primary Network</b>"]
     
-    PN ==> XC["<b>🔄 Exchange (X) Chain</b><br/>━━━━━━━━━━━━━━━<br/>Snowman Consensus Protocol"]
-    PN ==> PC["<b>⚙️ Platform (P) Chain</b><br/>━━━━━━━━━━━━━━━<br/>Snowman Consensus Protocol"]
-    PN ==> CC["<b>📝 Contract (C) Chain</b><br/>━━━━━━━━━━━━━━━<br/>Snowman Consensus Protocol"]
+    PN ==> XC["<b>Exchange (X) Chain</b><br/>━━━━━━━━━━━━━━━<br/>Snowman Consensus Protocol"]
+    PN ==> PC["<b>Platform (P) Chain</b><br/>━━━━━━━━━━━━━━━<br/>Snowman Consensus Protocol"]
+    PN ==> CC["<b>Contract (C) Chain</b><br/>━━━━━━━━━━━━━━━<br/>Snowman Consensus Protocol"]
     
     XC --> XF1["<b>Creates Assets</b>"]
     XC --> XF2["<b>Exchanges Assets</b>"]
@@ -20,16 +20,16 @@ graph TB
     CC --> CF1["<b>Executes EVM Contracts</b>"]
     CC --> CF2["<b>Smart Contracts</b>"]
     
-    XF1 -.-> A1["👤 Asset 1"]
-    XF1 -.-> A2["🏠 Asset 2"]
-    XF2 -.-> AV["⚡ AVAX"]
+    XF1 -.-> A1["Asset 1"]
+    XF1 -.-> A2["Asset 2"]
+    XF2 -.-> AV["AVAX"]
     
-    PF2 -.-> C1["⛓️ Custom Chain 1"]
-    PF2 -.-> C2["⛓️ Custom Chain 2"]
+    PF2 -.-> C1["Custom Chain 1"]
+    PF2 -.-> C2["Custom Chain 2"]
     
-    CF2 -.-> N1["🖼️ NFT"]
-    CF2 -.-> E1["🪙 ERC20"]
-    CF2 -.-> D1["🚀 DAPP"]
+    CF2 -.-> N1["NFT"]
+    CF2 -.-> E1["ERC20"]
+    CF2 -.-> D1["DAPP"]
     
     style PN fill:#e74c3c,stroke:#c0392b,stroke-width:4px,color:#fff,rx:15,ry:15
     style XC fill:#3498db,stroke:#2980b9,stroke-width:3px,color:#fff,rx:10,ry:10

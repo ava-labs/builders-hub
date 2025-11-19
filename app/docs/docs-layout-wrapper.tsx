@@ -136,8 +136,8 @@ export function DocsLayoutWrapper({
       url: '/docs/cross-chain',
     },
     {
-      title: 'Nodes and Validators',
-      description: 'Run network infrastructure',
+      title: 'AvalancheGo Node',
+      description: 'Run nodes and validators',
       icon: <Server className="w-5 h-5" />,
       url: '/docs/nodes',
     },

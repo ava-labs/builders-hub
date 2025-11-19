@@ -8,9 +8,11 @@
     "index",
     "when-to-build-avalanche-l1",
     "---Deploy an Avalanche L1---",
-    "[Wrench][Using L1 Toolbox](https://build.avax.network/tools/l1-toolbox#createSubnet)",
+    "[Wrench][Using Builder Console](https://build.avax.network/console/layer-1/create/create-chain)",
     "[SquareTerminal][Using Avalanche CLI](https://build.avax.network/docs/tooling/create-avalanche-l1)",
-    "[Globe][Using BaaS Providers](https://build.avax.network/integrations#Blockchain%20as%20a%20Service)",
+    "[Globe][Using Service Provider](https://build.avax.network/integrations#Blockchain%20as%20a%20Service)",
+     "---Upgrade an Avalanche L1---",
+    "...upgrade",
     "---Validator Manager---",
     "validator-manager/poa-vs-pos",
     "validator-manager/contract",
@@ -39,8 +41,6 @@
     "rust-vms/intro-avalanche-rs",
     "rust-vms/setting-up-environment",
     "rust-vms/installing-vm",
-    "timestamp-vm",
-    "---Upgrade an Avalanche L1---",
-    "...upgrade"
+    "timestamp-vm"
   ]
 }

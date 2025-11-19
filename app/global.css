@@ -21,6 +21,12 @@ div.group\/accordion h3  {
   margin-top: 0 !important;
 }
 
+/* Adjust login icon position in navbar */
+nav[aria-label="Main"] a[href="/login"] svg,
+header a[href="/login"] svg {
+  transform: translateY(4px);
+}
+
 /* Make granite banner fixed instead of sticky */
 [data-granite-banner] {
   position: fixed !important;
