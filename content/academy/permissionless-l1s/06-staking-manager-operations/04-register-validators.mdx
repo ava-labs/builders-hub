@@ -6,6 +6,9 @@ authors: [owenwahlgren]
 icon: Terminal
 ---
 
+## DUMPING CONTENT HERE - NOT VISIBLE yet
+This [state transition diagram](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/StateTransition.md) illustrates the relationship between Validators and Delegators.
+
 ### (PoS only) Register a Delegator
 
 `PoSValidatorManager` supports Delegation to an active Validator as a way for users to earn staking rewards without having to validate the chain. Delegators pay a configurable percentage fee on any earned staking rewards to the host Validator. A Delegator may be registered by calling `initializeDelegatorRegistration` and providing an amount to stake. The Delegator will be registered as long as churn restrictions are not violated. The Delegator is reflected on the P-Chain by adjusting the Validator's registered weight via a [`SetSubnetValidatorWeightTx`](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets#setsubnetvalidatorweighttx). The weight change acknowledgement is delivered to the `PoSValidatorManager` via a [`SubnetValidatorWeightMessage`](https://github.com/ava-labs/icm-contracts/blob/prorated-rewards-v2/contracts/validator-manager/MessageSpec.md#SubnetValidatorWeightMessage), which is provided by calling `completeDelegatorRegistration`.

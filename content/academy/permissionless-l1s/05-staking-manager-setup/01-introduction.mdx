@@ -1,5 +1,5 @@
 ---
-title: Introduction
+title: Validator Manager Contract 
 description: Overview of Validator Manager extension contracts to support Proof of Stake
 updated: 2024-09-03
 authors: [nicolasarnedo]
@@ -50,59 +50,47 @@ When discussing the [Validator Manager Contract structure](/academy/permissioned
 
 Check out the complete diagram and code implementation on [github](https://github.com/ava-labs/icm-contracts/tree/main/contracts/validator-manager).
 
+## PoSValidatorManager
 
-### PoSValidatorManager
+Proof-of-Stake Validator management is provided by the abstract contract `PoSValidatorManager`, which has two concrete implementations: `NativeTokenStakingManager` and `ERC20TokenStakingManager`. 
 
-Proof-of-Stake Validator management is provided by the abstract contract `PoSValidatorManager`, which has two concrete implementations: `NativeTokenStakingManager` and `ERC20TokenStakingManager`. In addition to basic Validator management provided in `ValidatorManager`, `PoSValidatorManager` supports uptime-based Validation rewards, as well as Delegation to a Validator. This [state transition diagram](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/StateTransition.md) illustrates the relationship between Validators and Delegators.
+This abstract contract extends `ValidatorManager` by adding functions for permissionless validator registration and removal based on staked tokens. In addition to basic Validator management, `PoSValidatorManager` supports uptime-based Validation rewards, as well as Delegation to a Validator.
 
-#### NativeTokenStakingManager
+The choice between `NativeTokenStakingManager` and `ERC20TokenStakingManager` depends on what type of token you want validators to stake—the L1's native token or a separate ERC20 token.
 
-`NativeTokenStakingManager` allows permissionless addition and removal of Validators that post the Subnet's native token as stake. Staking rewards are minted via the Native Minter Precompile, which is configured with a set of addresses with minting privileges. As such, the address that `NativeTokenStakingManager` is deployed to must be added as an admin to the precompile. This can be done by either calling the precompile's `setAdmin` method from an admin address, or setting the address in the Native Minter precompile settings in the chain's genesis (`config.contractNativeMinterConfig.adminAddresses`). There are a couple of methods to get this address: one is to calculate the resulting deployed address based on the deployer's address and account nonce: `keccak256(rlp.encode(address, nonce))`. The second method involves manually placing the `NativeTokenStakingManager` bytecode at a particular address in the genesis, then setting that address as an admin.
+## NativeTokenStakingManager
 
-```
-{
-    "config" : {
-        ...
-        "contractNativeMinterConfig": {
-            "blockTimestamp": 0,
-            "adminAddresses": [
-                "0xffffffffffffffffffffffffffffffffffffffff"
-            ]
-        }
-    },
-    "alloc": {
-        "0xffffffffffffffffffffffffffffffffffffffff": {
-            "balance": "0x0",
-            "code": "<NativeTokenStakingManagerByteCode>",
-            "nonce": 1
-        }
-    }
-}
-```
+`NativeTokenStakingManager` allows permissionless addition and removal of validators who stake the L1's **native token**. This implementation uses Solidity's `payable` keyword to accept native tokens directly through function calls.
 
-#### ERC20TokenStakingManager
-`ERC20TokenStakingManager` allows permissionless addition and removal of Validators that post the an ERC20 token as stake. The ERC20 is specified in the call to `initialize`, and must implement [`IERC20Mintable`](https://github.com/ava-labs/icm-contracts/blob/prorated-rewards-v2/contracts/validator-manager/interfaces/IERC20Mintable.sol). Care should be taken to enforce that only authorized users are able to call `mint`.
+### Key Functions
 
+- **`initiateValidatorRegistration(...) payable`** - Accepts native tokens via `msg.value` to lock as stake
+- **`initiateDelegatorRegistration(...) payable`** - Allows delegators to stake native tokens to a validator
+- **`_lock(value)`** - Simply returns the value (tokens are already locked in the contract)
+- **`_unlock(to, value)`** - Sends native tokens back using `sendValue()`
+- **`_reward(account, amount)`** - Mints rewards via the Native Minter precompile at `0x0200000000000000000000000000000000000001`
 
-## Deployment Flow
+### Reward Distribution
 
-Three concrete `ValidatorManager` contracts are provided - `PoAValidatorManager`, `NativeTokenStakingManager`, and `ERC20TokenStakingManager`. `NativeTokenStakingManager`, and `ERC20TokenStakingManager` implement `PoSValidatorManager`, which itself implements `ValidatorManager`. These are implemented as [upgradeable](/academy/permissioned-l1s/04-validator-manager-deployment/03-upgrade-proxy) contracts.
-<Steps>
-<Step>
-Deploy the implementation contract
-</Step>
-<Step>
-Deploy the proxy contract
-</Step>
-<Step>
-Call the implementation contract's `initialize` function
-  - Each flavor of `ValidatorManager` requires different settings. For example, `ValidatorManagerSettings` specifies the churn parameters, while `PoSValidatorManagerSettings` specifies the staking and rewards parameters.
-</Step>
-<Step>
-Initialize the Validator set by calling `initializeValidatorSet`
-  - When a Subnet is first created on the P-Chain, it must be explicitly converted to a Subnet-only Validator compatible Subnet via [`ConvertSubnetTx`](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets#setting-a-subnet-manager). The resulting `SubnetConversionMessage` Warp message is provided in the call to `initializeValidatorSet` to specify the starting Validator set in the `ValidatorManager`. Regardless of the implementation, these initial Validators are treated as PoA and are not eligible for staking rewards.
-</Step>
-</Steps>
+Staking rewards are minted through the **Native Minter precompile**, which requires the `NativeTokenStakingManager` contract address to be added as an **Enabled** address. This grants the contract permission to mint new native tokens as rewards.
 
+## ERC20TokenStakingManager
+
+`ERC20TokenStakingManager` exists because **native tokens cannot be used with the `payable` keyword on all blockchains**. Some chains may want to use a separate ERC20 token for staking instead of their native token.
+
+### Why a Separate Implementation?
+
+The key difference is in the function signatures:
+
+- **NativeTokenStakingManager**: `initiateValidatorRegistration(...) payable` - receives native tokens via `msg.value`
+- **ERC20TokenStakingManager**: `initiateValidatorRegistration(..., uint256 stakeAmount)` - requires explicit `stakeAmount` parameter
+
+### How It Works
+
+- Stores a reference to an ERC20 token that implements `IERC20Mintable`
+- Requires token approval before staking
+- Uses `safeTransferFrom()` to lock tokens during registration
+- Uses `safeTransfer()` to unlock tokens during removal
+- Mints new ERC20 tokens as rewards
 
 <Quiz quizId="210" />
