@@ -1,0 +1,89 @@
+---
+title: Create Your L1
+description: Quick guide to creating a subnet and converting it to an L1 with required precompiles
+updated: 2025-03-13
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+import ConvertSubnetToL1 from "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx"
+import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain";
+import CreateManagedTestnetNode from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/CreateManagedTestnetNode";
+import AvalancheGoDocker from "@/components/toolbox/console/layer-1/AvalancheGoDockerL1";
+
+This section provides a streamlined walkthrough for creating a new L1 from scratch.  
+
+You should already have a created L1 from the [Permissioned L1 course](/academy/permissioned-l1s) with the Validator Manager Contract correctly set up that you can use to transform into a Permissionless L1. But just in case you lost access to that one or want to start fresh, this guide is for you!
+
+<Steps>
+<Step>
+
+### Create Subnet with necessary Precompiles
+
+When creating your subnet, you **must** enable the Native Minter and Reward Manager precompiles in your genesis configuration. These are essential for native token staking:
+
+- **Native Minter**: Allows the staking manager to mint reward tokens
+- **Reward Manager**: Automates reward distribution to validators
+
+<ToolboxMdxWrapper walletMode="c-chain">
+    <CreateChain embedded={true} />
+</ToolboxMdxWrapper>
+
+</Step>
+<Step>
+
+### Set Up Validator Node
+
+Launch a validator node for your subnet using our free managed testnet infrastructure (no Docker required):
+
+<ToolboxMdxWrapper walletMode="testnet-mainnet">
+    <CreateManagedTestnetNode />
+</ToolboxMdxWrapper>
+
+### Production & Extended Testing Environments
+
+After creating nodes, you can view and manage them at the [Testnet Infrastructure Console](/console/testnet-infra/nodes). **Managed nodes automatically shut down after 3 days**. For production or extended testing, see the self-hosted option below.
+
+For production environments or extended testing periods, you should use Docker to run your nodes.
+
+<Accordions>
+<Accordion title="Docker Setup Guide (Optional)">
+
+<ToolboxMdxWrapper walletMode="testnet-mainnet">
+    <AvalancheGoDocker />
+</ToolboxMdxWrapper>
+
+</Accordion>
+</Accordions>
+
+</Step>
+<Step>
+
+### Convert Subnet to L1
+
+Once your subnet is running with a validator, convert it to a sovereign L1. This process:
+
+- **Establishes Sovereignty**: Your blockchain becomes independent
+- **Transfers Authority**: Validator management shifts from P-Chain to your Validator Manager Contract
+- **Is Irreversible**: Once converted, you cannot revert to subnet status
+
+#### Key Conversion Parameters
+
+1. **Subnet ID**: Your subnet's unique identifier
+2. **Validator Manager Blockchain ID**: Where your VMC will be deployed (typically your L1)
+3. **Validator Manager Address**: The proxy address (pre-deployed to `0xfacade0000000000000000000000000000000000`)
+4. **Initial Validators**: The validator(s) from your subnet
+
+<ToolboxMdxWrapper walletMode="c-chain">
+    <ConvertSubnetToL1 />
+</ToolboxMdxWrapper>
+
+</Step>
+</Steps>
+
+## Next Steps
+
+Now that your L1 is created with the required precompiles, you're ready to deploy and configure your Validator Manager Contract so that it **becomes a Permissioned L1**.
