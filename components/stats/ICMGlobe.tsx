@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import l1ChainsData from "@/constants/l1-chains.json";
 
 const GLOBE_CENTER = { x: 400, y: 400 };
 const GLOBE_RADIUS = 400;
@@ -67,95 +68,44 @@ LATITUDES.forEach((y) => {
 
 const VALID_POINTS = ALL_GRID_POINTS.filter((p) => p.longRx < 400);
 
+const CHAIN_POSITIONS: Record<string, string> = {
+  "c-chain": "p-400-0",
+  henesys: "p-200-235.355-l",
+  cx: "p-200-235.355-r",
+  coqnet: "p-300-328.701-l",
+  dexalot: "p-300-328.701-r",
+  numi: "p-400-235.355-l",
+  zeroonemainnet: "p-400-235.355-r",
+  artery: "p-500-328.701-l",
+  plyr: "p-500-328.701-r",
+  lamina1: "p-600-235.355-l",
+  blaze: "p-600-235.355-r",
+  gunzilla: "p-100-123.097-l",
+  straitsx: "p-100-123.097-r",
+  hashfire: "p-700-123.097-l",
+};
+
+const getChainDataBySlug = (slug: string) => {
+  return l1ChainsData.find((c) => c.slug === slug);
+};
+
 const CHAIN_LOGOS: Record<
   string,
   { logo: string; name: string; position: string; color: string }
-> = {
-  "c-chain": {
-    logo: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
-    name: "Avalanche C-Chain",
-    position: "p-400-0",
-    color: "#E57373",
-  },
-  henesys: {
-    logo: "https://images.ctfassets.net/gcj8jwzm6086/Uu31h98BapTCwbhHGBtFu/6b72f8e30337e4387338c82fa0e1f246/MSU_symbol.png",
-    name: "Henesys",
-    position: "p-200-235.355-l",
-    color: "#3B82F6",
-  },
-  cx: {
-    logo: "https://images.ctfassets.net/gcj8jwzm6086/3wVuWA4oz9iMadkIpywUMM/377249d5b8243e4dfa3a426a1af5eaa5/14.png",
-    name: "CX",
-    position: "p-200-235.355-r",
-    color: "#F59E0B",
-  },
-  coqnet: {
-    logo: "https://images.ctfassets.net/gcj8jwzm6086/1r0LuDAKrZv9jgKqaeEBN3/9a7efac3099b861366f9e776e6131617/Isotipo_coq.png",
-    name: "Coqnet",
-    position: "p-300-328.701-l",
-    color: "#D946EF",
-  },
-  dexalot: {
-    logo: "https://images.ctfassets.net/gcj8jwzm6086/6tKCXL3AqxfxSUzXLGfN6r/be31715b87bc30c0e4d3da01a3d24e9a/dexalot-subnet.png",
-    name: "Dexalot",
-    position: "p-300-328.701-r",
-    color: "#F59E0B",
-  },
-  numi: {
-    logo: "https://images.ctfassets.net/gcj8jwzm6086/411JTIUnbER3rI5dpOR54Y/3c0a8e47d58818a66edd868d6a03a135/numine_main_icon.png",
-    name: "Numi",
-    position: "p-400-235.355-l",
-    color: "#22C55E",
-  },
-  zeroonemainnet: {
-    logo: "https://images.ctfassets.net/gcj8jwzm6086/1lOFyhAJ0JkDkAmpeCznxL/9729fd9e4e75009f38a0e2c564259ead/icon-512.png",
-    name: "Zeroone",
-    position: "p-400-235.355-r",
-    color: "#EC4899",
-  },
-  artery: {
-    logo: "https://images.ctfassets.net/gcj8jwzm6086/7plQHTCA1MePklfF2lDgaE/1f4d00bf534a1ae180b3ea1de76308c8/SLIR8rz7_400x400.jpg",
-    name: "Artery",
-    position: "p-500-328.701-l",
-    color: "#8B5CF6",
-  },
-  plyr: {
-    logo: "https://images.ctfassets.net/gcj8jwzm6086/5K1xUbrhZPhSOEtsHoghux/b64edf007db24d8397613f7d9338260a/logomark_fullorange.svg",
-    name: "PLYR",
-    position: "p-500-328.701-r",
-    color: "#E57373",
-  },
-  lamina1: {
-    logo: "https://images.ctfassets.net/gcj8jwzm6086/5KPky47nVRvtHKYV0rQy5X/e0d153df56fd1eac204f58ca5bc3e133/L1-YouTube-Avatar.png",
-    name: "Lamina1",
-    position: "p-600-235.355-l",
-    color: "#EC4899",
-  },
-  blaze: {
-    logo: "https://images.ctfassets.net/gcj8jwzm6086/6Whg7jeebEhQfwGAXEsGVh/ecbb11c6c54af7ff3766b58433580721/2025-04-10_16.28.46.jpg",
-    name: "Blaze",
-    position: "p-600-235.355-r",
-    color: "#EF4444",
-  },
-  gunzilla: {
-    logo: "https://images.ctfassets.net/gcj8jwzm6086/3z2BVey3D1mak361p87Vu/ca7191fec2aa23dfa845da59d4544784/unnamed.png",
-    name: "Gunzilla",
-    position: "p-100-123.097-l",
-    color: "#D946EF",
-  },
-  straitsx: {
-    logo: "https://images.ctfassets.net/gcj8jwzm6086/3jGGJxIwb3GjfSEJFXkpj9/2ea8ab14f7280153905a29bb91b59ccb/icon.png",
-    name: "StraitsX",
-    position: "p-100-123.097-r",
-    color: "#84CC16",
-  },
-  hashfire: {
-    logo: "https://images.ctfassets.net/gcj8jwzm6086/4TCWxdtzvtZ8iD4255nAgU/e4d12af0a594bcf38b53a27e6beb07a3/FlatIcon_Large_.png",
-    name: "Hashfire",
-    position: "p-700-123.097-l",
-    color: "#F59E0B",
-  },
-};
+> = Object.fromEntries(
+  Object.entries(CHAIN_POSITIONS).map(([slug, position]) => {
+    const chainData = getChainDataBySlug(slug);
+    return [
+      slug,
+      {
+        logo: chainData?.chainLogoURI || "",
+        name: chainData?.chainName || slug,
+        position,
+        color: chainData?.color || "#E84142",
+      },
+    ];
+  })
+);
 
 const getChainColorByPosition = (position: string): string => {
   const chain = Object.values(CHAIN_LOGOS).find((c) => c.position === position);
@@ -170,6 +120,7 @@ interface ChainConnection {
   toChain: string;
 }
 
+// this is a placeholder for the actual chain connections (will be replaced with actual data from api)
 const CHAIN_CONNECTIONS: ChainConnection[] = [
   {
     from: "p-400-0",
@@ -520,19 +471,19 @@ export function ICMGlobe() {
                   transition={{ duration: 0.2 }}
                 >
                   <rect
-                    x="-60"
-                    y="-50"
-                    width="120"
-                    height="30"
-                    rx="6"
+                    x="-80"
+                    y="-60"
+                    width="160"
+                    height="40"
+                    rx="8"
                     className="fill-neutral-900 dark:fill-neutral-100"
                     fillOpacity="0.95"
                   />
                   <text
                     x="0"
-                    y="-30"
+                    y="-33"
                     textAnchor="middle"
-                    className="fill-white dark:fill-neutral-900 text-[14px] font-semibold"
+                    className="fill-white dark:fill-neutral-900 text-[16px] font-semibold"
                   >
                     {point.label}
                   </text>

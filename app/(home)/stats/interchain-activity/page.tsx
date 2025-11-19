@@ -109,10 +109,20 @@ export default function ICMStatsPage() {
     }
   };
 
-  const fetchIcttData = async () => {
+  const [loadingMoreTransfers, setLoadingMoreTransfers] = useState(false);
+
+  const fetchIcttData = async (offset = 0, append = false) => {
     try {
-      setIcttLoading(true);
-      const response = await fetch(`/api/ictt-stats`);
+      if (append) {
+        setLoadingMoreTransfers(true);
+      } else {
+        setIcttLoading(true);
+      }
+
+      const limit = offset === 0 ? 10 : 25;
+      const response = await fetch(
+        `/api/ictt-stats?limit=${limit}&offset=${offset}`
+      );
 
       if (!response.ok) {
         console.error("Failed to fetch ICTT stats:", response.status);
@@ -120,11 +130,26 @@ export default function ICMStatsPage() {
       }
 
       const data = await response.json();
-      setIcttData(data);
+
+      if (append && icttData) {
+        setIcttData({
+          ...data,
+          transfers: [...icttData.transfers, ...data.transfers],
+        });
+      } else {
+        setIcttData(data);
+      }
     } catch (err) {
       console.error("Error fetching ICTT stats:", err);
     } finally {
       setIcttLoading(false);
+      setLoadingMoreTransfers(false);
+    }
+  };
+
+  const handleLoadMoreTransfers = () => {
+    if (icttData?.transfers) {
+      fetchIcttData(icttData.transfers.length, true);
     }
   };
 
@@ -267,7 +292,7 @@ export default function ICMStatsPage() {
 
         <section className="space-y-4 sm:space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="flex justify-center items-start">
+            <div className="flex justify-start items-start">
               <ICMGlobe />
             </div>
 
@@ -414,7 +439,11 @@ export default function ICMStatsPage() {
           </div>
         </section>
 
-        <ICTTDashboard data={icttData} />
+        <ICTTDashboard
+          data={icttData}
+          onLoadMore={handleLoadMoreTransfers}
+          loadingMore={loadingMoreTransfers}
+        />
       </main>
 
       <StatsBubbleNav />

@@ -87,7 +87,11 @@ interface ICTTDashboardProps {
     tokenDistribution: TokenData[];
     topRoutes: RouteData[];
     transfers: Transfer[];
+    totalCount?: number;
+    hasMore?: boolean;
   } | null;
+  onLoadMore?: () => void;
+  loadingMore?: boolean;
 }
 
 const COLORS = [
@@ -398,7 +402,19 @@ function RouteDistributionChart({ data }: { data: RouteData[] | null }) {
   );
 }
 
-function TransactionsTable({ data }: { data: Transfer[] | null }) {
+function TransactionsTable({
+  data,
+  totalCount,
+  hasMore,
+  onLoadMore,
+  loadingMore,
+}: {
+  data: Transfer[] | null;
+  totalCount?: number;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
+  loadingMore?: boolean;
+}) {
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
   };
@@ -428,8 +444,6 @@ function TransactionsTable({ data }: { data: Transfer[] | null }) {
     );
   }
 
-  const displayData = data.slice(0, 10);
-
   return (
     <Card className="rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-neutral-900">
       <Table>
@@ -443,7 +457,7 @@ function TransactionsTable({ data }: { data: Transfer[] | null }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {displayData.map((tx, index) => (
+          {data.map((tx, index) => (
             <TableRow
               key={`${tx.contractAddress}-${index}`}
               className="border-gray-200 dark:border-gray-700"
@@ -575,11 +589,41 @@ function TransactionsTable({ data }: { data: Transfer[] | null }) {
           ))}
         </TableBody>
       </Table>
+      {hasMore && (
+        <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700 flex items-center justify-center">
+          <Button
+            variant="outline"
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            className="w-full max-w-md"
+          >
+            {loadingMore ? (
+              <>
+                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                Loading...
+              </>
+            ) : (
+              <>
+                Load More Transfers
+                {totalCount && (
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    (Showing {data.length} of {totalCount.toLocaleString()})
+                  </span>
+                )}
+              </>
+            )}
+          </Button>
+        </div>
+      )}
     </Card>
   );
 }
 
-export function ICTTDashboard({ data }: ICTTDashboardProps) {
+export function ICTTDashboard({
+  data,
+  onLoadMore,
+  loadingMore,
+}: ICTTDashboardProps) {
   return (
     <section className="space-y-4 sm:space-y-6">
       <div className="space-y-2">
@@ -604,7 +648,13 @@ export function ICTTDashboard({ data }: ICTTDashboardProps) {
 
       <div className="space-y-4">
         <h3 className="text-xl font-semibold tracking-tight">Top Transfers</h3>
-        <TransactionsTable data={data?.transfers || null} />
+        <TransactionsTable
+          data={data?.transfers || null}
+          totalCount={data?.totalCount}
+          hasMore={data?.hasMore}
+          onLoadMore={onLoadMore}
+          loadingMore={loadingMore}
+        />
       </div>
     </section>
   );

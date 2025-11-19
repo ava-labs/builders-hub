@@ -112,6 +112,8 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const clearCache = searchParams.get("clearCache") === "true";
+    const limit = parseInt(searchParams.get("limit") || "100");
+    const offset = parseInt(searchParams.get("offset") || "0");
 
     // Check cache
     if (
@@ -119,7 +121,15 @@ export async function GET(request: Request) {
       cachedData &&
       Date.now() - cachedData.timestamp < CACHE_DURATION
     ) {
-      return NextResponse.json(cachedData.data, {
+      const paginatedData = {
+        ...cachedData.data,
+        transfers: cachedData.data.allTransfers.slice(offset, offset + limit),
+        totalCount: cachedData.data.allTransfers.length,
+        hasMore: offset + limit < cachedData.data.allTransfers.length,
+      };
+      delete paginatedData.allTransfers;
+      
+      return NextResponse.json(paginatedData, {
         headers: {
           "Cache-Control": "public, max-age=86400",
           "X-Data-Source": "cache",
@@ -261,7 +271,11 @@ export async function GET(request: Request) {
       .sort((a, b) => b.value - a.value)
       .slice(0, 10);
 
-    const responseData = {
+    const sortedTransfers = enrichedTransfers.sort(
+      (a, b) => b.transferCount - a.transferCount
+    );
+
+    const fullResponseData = {
       overview: {
         totalTransfers,
         totalVolumeUsd,
@@ -274,13 +288,20 @@ export async function GET(request: Request) {
       },
       topRoutes,
       tokenDistribution,
-      transfers: enrichedTransfers.slice(0, 100), // Limit to top 100 for display
+      allTransfers: sortedTransfers,
       last_updated: Date.now(),
     };
 
-    // Cache the data
+    const { allTransfers, ...baseData } = fullResponseData;
+    const responseData = {
+      ...baseData,
+      transfers: sortedTransfers.slice(offset, offset + limit),
+      totalCount: sortedTransfers.length,
+      hasMore: offset + limit < sortedTransfers.length,
+    };
+
     cachedData = {
-      data: responseData,
+      data: fullResponseData,
       timestamp: Date.now(),
     };
 
