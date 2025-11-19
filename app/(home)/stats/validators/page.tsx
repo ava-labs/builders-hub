@@ -358,19 +358,120 @@ export default function ValidatorStatsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
-        <div className="container mx-auto px-6 py-10 pb-24 space-y-12">
-          <div className="space-y-3">
-            <div>
-              <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-black dark:text-white">
-                Validator Stats
-              </h1>
-              <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
-                Loading validator statistics for {network}...
-              </p>
+        <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
+          {/* Header Section */}
+          <div className="mb-10">
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <div>
+                <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-black dark:text-white">
+                  Validator Stats
+                </h1>
+                <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed mt-2">
+                  Loading validator statistics for {network}...
+                </p>
+              </div>
             </div>
           </div>
-          <ChartSkeletonLoader />
-        </div>
+
+          {/* Aggregated Stats Cards Skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
+            {/* Total Chains Card */}
+            <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 py-0 h-full flex flex-col lg:col-span-3">
+              <div className="p-6 text-center flex flex-col justify-center flex-1 animate-pulse">
+                <div className="h-4 bg-neutral-300 dark:bg-neutral-700 rounded mb-3 w-24 mx-auto" />
+                <div className="h-10 bg-neutral-300 dark:bg-neutral-700 rounded w-16 mx-auto mb-2" />
+                <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-32 mx-auto" />
+              </div>
+            </Card>
+
+            {/* Total Validators Card */}
+            <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 py-0 h-full flex flex-col lg:col-span-3">
+              <div className="p-6 text-center flex flex-col justify-center flex-1 animate-pulse">
+                <div className="h-4 bg-neutral-300 dark:bg-neutral-700 rounded mb-3 w-28 mx-auto" />
+                <div className="h-10 bg-neutral-300 dark:bg-neutral-700 rounded w-20 mx-auto mb-2" />
+                <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-24 mx-auto" />
+              </div>
+            </Card>
+
+            {/* Version Breakdown Card */}
+            <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 py-0 h-full flex flex-col lg:col-span-6">
+              <div className="p-6 flex flex-col justify-center flex-1 animate-pulse">
+                <div className="h-4 bg-neutral-300 dark:bg-neutral-700 rounded mb-4 w-40" />
+                <div className="h-8 bg-neutral-200 dark:bg-neutral-800 rounded-full mb-4" />
+                <div className="flex flex-wrap gap-3 justify-center">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-20" />
+                  ))}
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Search & Filter Bar Skeleton */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <div className="h-10 bg-neutral-200 dark:bg-neutral-800 rounded-md animate-pulse" />
+            </div>
+            <div className="h-9 w-9 bg-neutral-200 dark:bg-neutral-800 rounded-md animate-pulse" />
+            <div className="flex items-center gap-2">
+              <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-24 animate-pulse" />
+              <div className="h-10 w-40 bg-neutral-200 dark:bg-neutral-800 rounded-md animate-pulse" />
+            </div>
+          </div>
+
+          {/* Table Skeleton */}
+          <Card className="overflow-hidden border border-[#e1e2ea] dark:border-neutral-800 py-0">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
+                  <tr className="border-b border-neutral-200 dark:border-neutral-800">
+                    {["Chain Name", "Validators", "By Nodes %", "By Stake %", "Version Breakdown", "Actions"].map((header, i) => (
+                      <th key={i} className={`border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 ${i === 0 ? 'text-left' : i === 5 ? 'text-center' : 'text-right'}`}>
+                        <div className={`h-4 bg-neutral-300 dark:bg-neutral-700 rounded w-24 animate-pulse ${i === 0 ? '' : i === 5 ? 'mx-auto' : 'ml-auto'}`} />
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-neutral-950">
+                  {[...Array(10)].map((_, rowIndex) => (
+                    <tr key={rowIndex} className="border-b border-neutral-200 dark:border-neutral-800">
+                      <td className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-neutral-200 dark:bg-neutral-800 animate-pulse" />
+                          <div className="flex flex-col gap-1">
+                            <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-32 animate-pulse" />
+                            <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-20 animate-pulse" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-3 text-right">
+                        <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-12 ml-auto animate-pulse" />
+                      </td>
+                      <td className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-3 text-right">
+                        <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-16 ml-auto animate-pulse" />
+                      </td>
+                      <td className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-3 text-right">
+                        <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-16 ml-auto animate-pulse" />
+                      </td>
+                      <td className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-3">
+                        <div className="space-y-2">
+                          <div className="h-6 bg-neutral-200 dark:bg-neutral-800 rounded-full animate-pulse" />
+                          <div className="flex gap-2">
+                            <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-16 animate-pulse" />
+                            <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-16 animate-pulse" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="h-8 w-16 bg-neutral-200 dark:bg-neutral-800 rounded-md mx-auto animate-pulse" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </main>
         <StatsBubbleNav />
       </div>
     );
