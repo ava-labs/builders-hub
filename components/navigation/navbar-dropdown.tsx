@@ -48,9 +48,9 @@ export function NavbarDropdown() {
     },
     {
       title: 'Documentation',
-      href: '/docs/quick-start',
+      href: '/docs/dapps',
       items: [
-        { text: 'Avalanche Protocol', href: '/docs/quick-start' },
+        { text: 'Build Apps', href: '/docs/dapps' },
         { text: 'Avalanche L1s', href: '/docs/avalanche-l1s' },
         { text: 'Nodes & Validators', href: '/docs/nodes' },
         { text: 'Interoperability', href: '/docs/cross-chain' },

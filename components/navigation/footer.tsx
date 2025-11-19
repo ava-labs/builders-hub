@@ -44,37 +44,32 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 w-full max-w-6xl mx-auto">
           <FooterSection title="Avalanche" className="md:justify-self-start">
             <div className="flex flex-col space-y-3">
+              <FooterLink href="https://github.com/ava-labs/audits" external>Audits</FooterLink>
               <FooterLink href="https://subnets.avax.network/" external>Explorer</FooterLink>
-              <FooterLink href="https://www.avax.network/get-started" external>Get Started</FooterLink>
               <FooterLink href="https://github.com/ava-labs" external>GitHub</FooterLink>
+              <FooterLink href="https://status.avax.network/" external>Network Status</FooterLink>
               <FooterLink href="https://avalabs.org/whitepapers" external>Whitepapers</FooterLink>
-              <FooterLink href="https://stats.avax.network/dashboard/overview/" external>Statistics</FooterLink>
             </div>
           </FooterSection>
           
           <FooterSection title="Community" className="md:justify-self-center md:text-center">
             <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+              <FooterLink href="https://www.avax.network/blog" external>Blog</FooterLink>
+              <FooterLink href="https://discord.gg/avax" external>Discord</FooterLink>
               <FooterLink href="https://www.facebook.com/avalancheavax" external>Facebook</FooterLink>
               <FooterLink href="https://forum.avax.network" external>Forum</FooterLink>
-              <FooterLink href="https://discord.gg/avax" external>Discord</FooterLink>
-              <FooterLink href="https://support.avax.network/en/" external>Support</FooterLink>
+              <FooterLink href="https://www.linkedin.com/company/avalancheavax" external>LinkedIn</FooterLink>
               <FooterLink href="https://medium.com/@avaxdevelopers" external>Medium</FooterLink>
-              <FooterLink href="https://www.youtube.com/@Avalancheavax" external>Youtube</FooterLink>
               <FooterLink href="https://t.me/+KDajA4iToKY2ZjBk" external>Telegram</FooterLink>
               <FooterLink href="https://x.com/AvaxDevelopers" external>X</FooterLink>
-              <FooterLink href="https://www.avax.network/blog" external>Blog</FooterLink>
-              <FooterLink href="https://www.linkedin.com/company/avalancheavax" external>LinkedIn</FooterLink>
+              <FooterLink href="https://www.youtube.com/@Avalancheavax" external>Youtube</FooterLink>
             </div>
           </FooterSection>
           
           <FooterSection title="More Links" className="md:justify-self-center md:text-center">
             <div className="flex flex-col space-y-3">
-              <FooterLink href="https://avacloud.io/" external>Enterprise Solutions</FooterLink>
-              <FooterLink href="https://github.com/ava-labs/audits" external>Audits</FooterLink>
-              <FooterLink href="https://core.app/" external>Core Wallet</FooterLink>
               <FooterLink href="https://www.avax.network/legal" external>Legal</FooterLink>
-              <FooterLink href="https://status.avax.network/" external>Network Status</FooterLink>
-              <FooterLink href="/llms-full.txt">LLMs</FooterLink>
+              <FooterLink href="/llms-full.txt" external>LLMs</FooterLink>
 
             </div>
           </FooterSection>

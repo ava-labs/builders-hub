@@ -232,9 +232,9 @@ export default function Hero() {
                 <RotatingText />
               </h2>
               
-              <p className="text-xl sm:text-2xl lg:text-2xl xl:text-3xl text-slate-600 dark:text-slate-300 font-light leading-[1.5] tracking-[-0.025em] max-w-2xl mx-auto lg:mx-0 text-balance">
+              {/* <p className="text-xl sm:text-2xl lg:text-2xl xl:text-3xl text-slate-600 dark:text-slate-300 font-light leading-[1.5] tracking-[-0.025em] max-w-2xl mx-auto lg:mx-0 text-balance">
                 Everything you need to go from idea to impact.
-              </p>
+              </p> */}
             </div>
 
             {/* CTA Buttons */}
@@ -248,7 +248,7 @@ export default function Hero() {
               </Link>
               
               <Link
-                href="/docs/quick-start"
+                href="/docs/dapps"
                 className="group premium-button inline-flex items-center justify-center px-8 py-4 text-lg sm:text-base font-bold tracking-[-0.015em] rounded-xl bg-white/10 glass-effect border border-slate-200/30 text-slate-900 dark:text-white hover:bg-white/20 hover:scale-[1.02] transition-all duration-300 backdrop-blur-sm dark:border-slate-700/40"
               >
                 Build

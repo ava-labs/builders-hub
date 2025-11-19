@@ -21,6 +21,7 @@ import {
 import Link from "next/link";
 import { HeroBackground } from "@/components/landing/hero";
 import UniversitySlideshow from "@/components/university/UniversitySlideshow";
+import StudentCallout from '@/components/landing/student-callout';
 
 interface ProgramCardProps {
   title: string;
@@ -299,6 +300,7 @@ export default function Page() {
           </div>
         </section>
 
+        <StudentCallout />
         {/* CTA Section */}
         <section className="mt-24">
           <div className="px-6 py-16 text-center space-y-6 rounded-lg border border-border bg-card">

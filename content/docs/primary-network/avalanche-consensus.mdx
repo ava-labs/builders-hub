@@ -1,22 +1,22 @@
 ---
-title: Avalanche Consensus
-description: Learn about the groundbreaking Avalanche Consensus algorithms.
+title: Snowman Consensus
+description: Learn about the Snowman Consensus protocol.
 ---
 
 Consensus is the task of getting a group of computers (a.k.a. nodes) to come to an agreement on a decision. In blockchain, this means that all the participants in a network have to agree on the changes made to the shared ledger.
 
 This agreement is reached through a specific process, a consensus protocol, that ensures that everyone sees the same information and that the information is accurate and trustworthy.
 
-## Avalanche Consensus
+## Snowman Consensus
 
-Avalanche Consensus is a consensus protocol that is scalable, robust, and decentralized. It combines features of both classical and Nakamoto consensus mechanisms to achieve high throughput, fast finality, and energy efficiency. For the whitepaper, see [here](https://www.avalabs.org/whitepapers).
+Snowman Consensus is a consensus protocol that is scalable, robust, and decentralized. It combines features of both classical and Nakamoto consensus mechanisms to achieve high throughput, fast finality, and energy efficiency. For the whitepaper, see [here](https://www.avalabs.org/whitepapers).
 
 Key Features Include:
 
-- Speed: Avalanche consensus provides sub-second, immutable finality, ensuring that transactions are quickly confirmed and irreversible.
-- Scalability: Avalanche consensus enables high network throughput while ensuring low latency.
-- Energy Efficiency: Unlike other popular consensus protocols, participation in Avalanche consensus is neither computationally intensive nor expensive.
-- Adaptive Security: Avalanche consensus is designed to resist various attacks, including sybil attacks, distributed denial-of-service (DDoS) attacks, and collusion attacks. Its probabilistic nature ensures that the consensus outcome converges to the desired state, even when the network is under attack.
+- Speed: Snowman Consensus provides sub-second, immutable finality, ensuring that transactions are quickly confirmed and irreversible.
+- Scalability: Snowman Consensus enables high network throughput while ensuring low latency.
+- Energy Efficiency: Unlike other popular consensus protocols, participation in Snowman Consensus is neither computationally intensive nor expensive.
+- Adaptive Security: Snowman Consensus is designed to resist various attacks, including sybil attacks, distributed denial-of-service (DDoS) attacks, and collusion attacks. Its probabilistic nature ensures that the consensus outcome converges to the desired state, even when the network is under attack.
 
 ## Conceptual Overview
 
@@ -38,15 +38,15 @@ The node repeats this sampling process until the validators queried reply with t
 
 When a transaction has no conflicts, finalization happens very quickly. When conflicts exist, honest validators quickly cluster around conflicting transactions, entering a positive feedback loop until all correct validators prefer that transaction. This leads to the acceptance of non-conflicting transactions and the rejection of conflicting transactions.
 
-![How Avalanche Consensus Works](/images/avalanche-consensus1.png)
+![How Snowman Consensus Works](/images/avalanche-consensus1.png)
 
-Avalanche Consensus guarantees that if any honest validator accepts a transaction, all honest validators will come to the same conclusion.
+Snowman Consensus guarantees that if any honest validator accepts a transaction, all honest validators will come to the same conclusion.
 
 <Callout title="Note">
 For a great visualization, check out [this demo](https://tedyin.com/archive/snow-bft-demo/#/snow).
 </Callout>
 
-## Deep Dive Into Avalanche Consensus
+## Deep Dive Into Snowman Consensus
 
 <YouTube id="ZUF9sIu-D_k" fullSize={false}/>
 
@@ -60,7 +60,7 @@ Everyone repeats this process. Each round, more and more people have the same pr
 
 ### Snowball
 
-The intuition above outlines the Snowball Algorithm, which is a building block of Avalanche consensus. Let's review the Snowball algorithm.
+The intuition above outlines the Snowball Algorithm, which is a building block of Snowman Consensus. Let's review the Snowball algorithm.
 
 #### Parameters
 
@@ -104,7 +104,7 @@ These values, which are constants, are quite small on the Avalanche Network. The
 
 Snowball is very scalable as the number of nodes on the network, _n_, increases. Regardless of the number of participants in the network, the number of consensus messages sent remains the same because in a given query, a node only queries `20` nodes, even if there are thousands of nodes in the network.
 
-Everything discussed to this point is how Avalanche is described in [the Avalanche white-paper](https://assets-global.website-files.com/5d80307810123f5ffbb34d6e/6009805681b416f34dcae012_Avalanche%20Consensus%20Whitepaper.pdf). The implementation of the Avalanche consensus protocol by Ava Labs (namely in AvalancheGo) has some optimizations for latency and throughput.
+Everything discussed to this point is how Avalanche is described in [the Avalanche white-paper](https://assets-global.website-files.com/5d80307810123f5ffbb34d6e/6009805681b416f34dcae012_Avalanche%20Consensus%20Whitepaper.pdf). The implementation of the Snowman Consensus protocol by Ava Labs (namely in AvalancheGo) has some optimizations for latency and throughput.
 
 ### Blocks
 
@@ -116,7 +116,7 @@ If a node receives a vote for a block, it also counts as a vote for all of the b
 
 ### Finality
 
-Avalanche consensus is probabilistically safe up to a safety threshold. That is, the probability that a correct node accepts a transaction that another correct node rejects can be made arbitrarily low by adjusting system parameters. In Nakamoto consensus protocol (as used in Bitcoin and Ethereum, for example), a block may be included in the chain but then be removed and not end up in the canonical chain. This means waiting an hour for transaction settlement. In Avalanche, acceptance/rejection are **final and irreversible** and only take a few seconds.
+Snowman Consensus is probabilistically safe up to a safety threshold. That is, the probability that a correct node accepts a transaction that another correct node rejects can be made arbitrarily low by adjusting system parameters. In Nakamoto consensus protocol (as used in Bitcoin and Ethereum, for example), a block may be included in the chain but then be removed and not end up in the canonical chain. This means waiting an hour for transaction settlement. In Avalanche, acceptance/rejection are **final and irreversible** and only take a few seconds.
 
 ### Optimizations
 
@@ -150,9 +150,9 @@ Transactions are created by users which call an API on an [AvalancheGo](https://
 
 Conflicting transactions are not guaranteed to be live. That's not really a problem because if you want your transaction to be live then you should not issue a conflicting transaction.
 
-Snowman is the name of Ava Labs' implementation of the Avalanche consensus protocol for linear chains.
+Snowman is the name of Ava Labs' implementation of the Snowman Consensus protocol for linear chains.
 
-If there are no undecided transactions, the Avalanche consensus protocol _quiesces_. That is, it does nothing if there is no work to be done. This makes Avalanche more sustainable than Proof-of-work where nodes need to constantly do work.
+If there are no undecided transactions, the Snowman Consensus protocol _quiesces_. That is, it does nothing if there is no work to be done. This makes Avalanche more sustainable than Proof-of-work where nodes need to constantly do work.
 
 Avalanche has no leader. Any node can propose a transaction and any node that has staked AVAX can vote on every transaction, which makes the network more robust and decentralized.
 
@@ -160,13 +160,13 @@ Avalanche has no leader. Any node can propose a transaction and any node that ha
 
 Avalanche is a general consensus engine. It doesn't matter what type of application is put on top of it. The protocol allows the decoupling of the application layer from the consensus layer. If you're building a dapp on Avalanche then you just need to define a few things, like how conflicts are defined and what is in a transaction. You don't need to worry about how nodes come to an agreement. The consensus protocol is a black box that put something into it and it comes back as accepted or rejected.
 
-Avalanche can be used for all kinds of applications, not just P2P payment networks. Avalanche's Primary Network has an instance of the Ethereum Virtual Machine, which is backward compatible with existing Ethereum Dapps and dev tooling. The Ethereum consensus protocol has been replaced with Avalanche consensus to enable lower block latency and higher throughput.
+Avalanche can be used for all kinds of applications, not just P2P payment networks. Avalanche's Primary Network has an instance of the Ethereum Virtual Machine, which is backward compatible with existing Ethereum Dapps and dev tooling. The Ethereum consensus protocol has been replaced with Snowman Consensus to enable lower block latency and higher throughput.
 
 Avalanche is very performant. It can process thousands of transactions per second with one to two second acceptance latency.
 
 ## Summary
 
-Avalanche consensus is a radical breakthrough in distributed systems. It represents as large a leap forward as the classical and Nakamoto consensus protocols that came before it. Now that you have a better understanding of how it works, check out other documentations for building game-changing Dapps and financial instruments on Avalanche.
+Snowman Consensus is a radical breakthrough in distributed systems. It represents as large a leap forward as the classical and Nakamoto consensus protocols that came before it. Now that you have a better understanding of how it works, check out other documentations for building game-changing Dapps and financial instruments on Avalanche.
 
 
 

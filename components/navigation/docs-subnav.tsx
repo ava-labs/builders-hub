@@ -7,9 +7,10 @@ import { cn } from "@/lib/cn";
 const tabs = [
   {
     label: "Overview",
-    href: "/docs/quick-start",
+    href: "/docs/dapps",
     pathMatch: (path: string) =>
-      path === "/docs/quick-start" ||
+      path === "/docs/dapps" ||
+      path === "/docs" ||
       (path.startsWith("/docs/") &&
         !path.startsWith("/docs/api-reference") &&
         !path.startsWith("/docs/rpcs") &&

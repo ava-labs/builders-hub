@@ -18,10 +18,6 @@
     "configure/configs-flags",
     "chain-configs",
     "configure/avalanche-l1-configs",
-    "---Validate---",
-    "validate/validate-vs-delegate",
-    "validate/how-to-stake",
-    "validate/node-validator",
     "---Maintain---",
     "...maintain"
   ]

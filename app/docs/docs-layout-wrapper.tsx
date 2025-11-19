@@ -13,7 +13,6 @@ import {
   Code,
   Layers,
   Cable,
-  Cpu,
   Server,
   Database,
   Activity,
@@ -113,16 +112,16 @@ export function DocsLayoutWrapper({
   // Documentation hamburger menu options
   const documentationOptions = [
     {
-      title: 'Quick-start',
-      description: 'Get started with Avalanche',
-      icon: <BookOpen className="w-5 h-5" />,
-      url: '/docs/quick-start',
-    },
-    {
       title: 'Build Apps',
       description: 'Build dApps on Avalanche',
       icon: <Code className="w-5 h-5" />,
       url: '/docs/dapps',
+    },
+    {
+      title: 'Primary Network',
+      description: 'Core platform infrastructure',
+      icon: <Network className="w-5 h-5" />,
+      url: '/docs/primary-network',
     },
     {
       title: 'Avalanche L1s',
@@ -135,12 +134,6 @@ export function DocsLayoutWrapper({
       description: 'Cross-chain messaging',
       icon: <Cable className="w-5 h-5" />,
       url: '/docs/cross-chain',
-    },
-    {
-      title: 'Custom VMs',
-      description: 'Build custom virtual machines',
-      icon: <Cpu className="w-5 h-5" />,
-      url: '/docs/virtual-machines',
     },
     {
       title: 'Nodes and Validators',

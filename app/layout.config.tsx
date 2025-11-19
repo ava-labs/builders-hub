@@ -141,7 +141,7 @@ export const stats: LinkItemType = {
 export const docsMenu: LinkItemType = {
   type: 'menu',
   text: 'Documentation',
-  url: '/docs/quick-start',
+  url: '/docs/dapps',
   items: [
     {
       menu: {
@@ -162,9 +162,9 @@ export const docsMenu: LinkItemType = {
         className: 'md:row-span-2',
       },
       icon: <Sprout />,
-      text: 'Avalanche Protocol',
-      description: 'Learn about the Avalanche Protocol',
-      url: '/docs/quick-start',
+      text: 'Build Apps',
+      description: 'Build dApps on Avalanche',
+      url: '/docs/dapps',
     },
     {
       icon: <Logs />,
@@ -201,7 +201,7 @@ export const docsMenu: LinkItemType = {
       text: 'Browse All Docs',
       description:
         'Explore our in-depth documentation, guides, and resources to bring your ideas to life.',
-      url: '/docs/quick-start',
+      url: '/docs/dapps',
       menu: {
         className: 'lg:col-start-3',
       },
