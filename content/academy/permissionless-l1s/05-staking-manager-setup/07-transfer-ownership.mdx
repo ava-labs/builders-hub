@@ -7,6 +7,7 @@ icon: Terminal
 ---
 
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+import TransferOwnershipToStakingManager from "@/components/toolbox/console/permissionless-l1s/setup/TransferOwnershipToStakingManager.tsx"
 import { Callout } from "fumadocs-ui/components/callout";
 
 Transfer ownership of the Reward Manager precompile to the Staking Manager contract so it can distribute rewards.
@@ -27,7 +28,7 @@ This is a one-time operation. Make sure the Staking Manager address is correct b
 ## Transfer Ownership
 
 <ToolboxMdxWrapper walletMode="l1">
-    {/* Add transfer ownership component here */}
+    <TransferOwnershipToStakingManager />
 </ToolboxMdxWrapper>
 
 ## Next Steps

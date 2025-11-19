@@ -7,6 +7,7 @@ icon: Terminal
 ---
 
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+import EnableStakingManagerMinting from "@/components/toolbox/console/permissionless-l1s/setup/native/EnableStakingManagerMinting.tsx"
 import { Callout } from "fumadocs-ui/components/callout";
 
 The Staking Manager needs permission to mint native tokens for distributing staking rewards.
@@ -22,7 +23,7 @@ Only addresses with **Manager** or **Admin** permissions on the Native Minter ca
 ## Enable the Staking Manager
 
 <ToolboxMdxWrapper walletMode="l1">
-    {/* Add Native Minter enable component here */}
+    <EnableStakingManagerMinting />
 </ToolboxMdxWrapper>
 
 ## Next Steps
