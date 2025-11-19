@@ -1,0 +1,29 @@
+---
+title: Deploy Staking Manager
+description: Deploy the NativeTokenStakingManager implementation contract
+updated: 2025-03-13
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+
+This is the first step in setting up your Permissionless L1. You'll deploy the **NativeTokenStakingManager** implementation contract, which contains all the logic for managing validators and delegators with native token staking.
+
+## What is NativeTokenStakingManager?
+
+The `NativeTokenStakingManager` is a concrete implementation of `PoSValidatorManager` that:
+- Allows permissionless addition and removal of validators who stake the L1's native token
+- Manages delegators who can delegate their tokens to validators
+- Distributes staking rewards through the Native Minter precompile
+- Handles uptime-based reward calculations
+
+## Deploy the Contract
+
+<ToolboxMdxWrapper walletMode="l1">
+    {/* Add deployment component here */}
+</ToolboxMdxWrapper>
+
+## Next Steps
+
+After deploying the implementation contract, you'll need to deploy the Reward Calculator contract in the next step.

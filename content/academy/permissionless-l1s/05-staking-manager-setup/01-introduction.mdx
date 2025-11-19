@@ -1,9 +1,108 @@
 ---
-title: Native Token Staking Blockchain
-description: Precompile contracts necessary for a Permissionless L1 implementation
-updated: 2025-03-13
+title: Introduction
+description: Overview of Validator Manager extension contracts to support Proof of Stake
+updated: 2024-09-03
 authors: [nicolasarnedo]
 icon: Book
 ---
+import { Steps, Step } from 'fumadocs-ui/components/steps';
 
-bla bla
+When discussing the [Validator Manager Contract structure](/academy/permissioned-l1s/02-proof-of-authority/03-validator-manager-contract) for **Permissioned L1s** we only saw part of the overall strucure. In the mermaid diagram below you can see an expanded view of it, with three new contracts:
+
+- **PoSValidatorManager**
+- **ERC20TokenStakingManager**
+- **NativeTokenStakingManager**
+
+<div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
+  <div style={{ width: '60%', maxWidth: '800px' }}>
+    <Mermaid chart={`classDiagram
+    class ACP99Manager {
+        <<abstract>>
+        ...
+    }
+    class ValidatorManager {
+        <<abstract>>
+        ...
+    }
+    class PoSValidatorManager {
+        <<abstract>>
+        initializeEndValidation()
+        completeDelegatorRegistration()
+        initializeEndDelegation()
+        completeEndDelegation()
+    }
+    class ERC20TokenStakingManager {
+        initializeValidatorRegistration()
+        initializeDelegatorRegistration()
+    }
+    class NativeTokenStakingManager {
+        initializeValidatorRegistration() payable
+        initializeDelegatorRegistration() payable
+    }
+
+    ACP99Manager <|-- ValidatorManager
+    ValidatorManager <|-- PoSValidatorManager
+    PoSValidatorManager <|-- ERC20TokenStakingManager
+    PoSValidatorManager <|-- NativeTokenStakingManager
+`} />
+  </div>
+</div>
+
+Check out the complete diagram and code implementation on [github](https://github.com/ava-labs/icm-contracts/tree/main/contracts/validator-manager).
+
+
+### PoSValidatorManager
+
+Proof-of-Stake Validator management is provided by the abstract contract `PoSValidatorManager`, which has two concrete implementations: `NativeTokenStakingManager` and `ERC20TokenStakingManager`. In addition to basic Validator management provided in `ValidatorManager`, `PoSValidatorManager` supports uptime-based Validation rewards, as well as Delegation to a Validator. This [state transition diagram](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/StateTransition.md) illustrates the relationship between Validators and Delegators.
+
+#### NativeTokenStakingManager
+
+`NativeTokenStakingManager` allows permissionless addition and removal of Validators that post the Subnet's native token as stake. Staking rewards are minted via the Native Minter Precompile, which is configured with a set of addresses with minting privileges. As such, the address that `NativeTokenStakingManager` is deployed to must be added as an admin to the precompile. This can be done by either calling the precompile's `setAdmin` method from an admin address, or setting the address in the Native Minter precompile settings in the chain's genesis (`config.contractNativeMinterConfig.adminAddresses`). There are a couple of methods to get this address: one is to calculate the resulting deployed address based on the deployer's address and account nonce: `keccak256(rlp.encode(address, nonce))`. The second method involves manually placing the `NativeTokenStakingManager` bytecode at a particular address in the genesis, then setting that address as an admin.
+
+```
+{
+    "config" : {
+        ...
+        "contractNativeMinterConfig": {
+            "blockTimestamp": 0,
+            "adminAddresses": [
+                "0xffffffffffffffffffffffffffffffffffffffff"
+            ]
+        }
+    },
+    "alloc": {
+        "0xffffffffffffffffffffffffffffffffffffffff": {
+            "balance": "0x0",
+            "code": "<NativeTokenStakingManagerByteCode>",
+            "nonce": 1
+        }
+    }
+}
+```
+
+#### ERC20TokenStakingManager
+`ERC20TokenStakingManager` allows permissionless addition and removal of Validators that post the an ERC20 token as stake. The ERC20 is specified in the call to `initialize`, and must implement [`IERC20Mintable`](https://github.com/ava-labs/icm-contracts/blob/prorated-rewards-v2/contracts/validator-manager/interfaces/IERC20Mintable.sol). Care should be taken to enforce that only authorized users are able to call `mint`.
+
+
+## Deployment Flow
+
+Three concrete `ValidatorManager` contracts are provided - `PoAValidatorManager`, `NativeTokenStakingManager`, and `ERC20TokenStakingManager`. `NativeTokenStakingManager`, and `ERC20TokenStakingManager` implement `PoSValidatorManager`, which itself implements `ValidatorManager`. These are implemented as [upgradeable](/academy/permissioned-l1s/04-validator-manager-deployment/03-upgrade-proxy) contracts.
+<Steps>
+<Step>
+Deploy the implementation contract
+</Step>
+<Step>
+Deploy the proxy contract
+</Step>
+<Step>
+Call the implementation contract's `initialize` function
+  - Each flavor of `ValidatorManager` requires different settings. For example, `ValidatorManagerSettings` specifies the churn parameters, while `PoSValidatorManagerSettings` specifies the staking and rewards parameters.
+</Step>
+<Step>
+Initialize the Validator set by calling `initializeValidatorSet`
+  - When a Subnet is first created on the P-Chain, it must be explicitly converted to a Subnet-only Validator compatible Subnet via [`ConvertSubnetTx`](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets#setting-a-subnet-manager). The resulting `SubnetConversionMessage` Warp message is provided in the call to `initializeValidatorSet` to specify the starting Validator set in the `ValidatorManager`. Regardless of the implementation, these initial Validators are treated as PoA and are not eligible for staking rewards.
+</Step>
+</Steps>
+
+
+<Quiz quizId="210" />

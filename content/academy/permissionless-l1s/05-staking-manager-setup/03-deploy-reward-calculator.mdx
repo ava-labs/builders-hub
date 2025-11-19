@@ -1,0 +1,30 @@
+---
+title: Deploy Example Reward Calculator
+description: Deploy the reward calculator contract for validator and delegator rewards
+updated: 2025-03-13
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+
+The **Reward Calculator** determines how staking rewards are distributed based on validator uptime and delegation amounts.
+
+## What is the Reward Calculator?
+
+The Reward Calculator contract:
+- Calculates rewards based on validator uptime percentage
+- Determines delegation fee distribution
+- Implements the `IRewardCalculator` interface
+- Can be customized for different reward mechanisms
+
+## Deploy the Contract
+
+<ToolboxMdxWrapper walletMode="l1">
+    {/* Add deployment component here */}
+</ToolboxMdxWrapper>
+
+## Next Steps
+
+After deploying the Reward Calculator, you'll initialize the Staking Manager with the necessary configuration parameters.
+

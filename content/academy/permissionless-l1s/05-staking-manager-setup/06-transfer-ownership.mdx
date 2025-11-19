@@ -1,0 +1,36 @@
+---
+title: Transfer Ownership to Staking Manager
+description: Transfer control of the Reward Manager precompile to the Staking Manager
+updated: 2025-03-13
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+import { Callout } from "fumadocs-ui/components/callout";
+
+Transfer ownership of the Reward Manager precompile to the Staking Manager contract so it can distribute rewards.
+
+## Why Transfer Ownership?
+
+The Staking Manager needs to be able to call the Reward Manager precompile to:
+- Distribute validator rewards based on uptime
+- Handle delegator reward distribution
+- Manage delegation fees
+
+By setting the Staking Manager as the owner of the Reward Manager, it gains the necessary permissions.
+
+<Callout type="info">
+This is a one-time operation. Make sure the Staking Manager address is correct before transferring ownership.
+</Callout>
+
+## Transfer Ownership
+
+<ToolboxMdxWrapper walletMode="l1">
+    {/* Add transfer ownership component here */}
+</ToolboxMdxWrapper>
+
+## Next Steps
+
+After transferring ownership, you can verify the configuration by reading the contract state.
+
