@@ -36,6 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { ICTTDashboard } from "@/components/stats/ICTTDashboard";
 
 interface AggregatedICMDataPoint {
   timestamp: number;
@@ -50,13 +51,42 @@ interface ICMStats {
   last_updated: number;
 }
 
+interface ICTTStats {
+  overview: {
+    totalTransfers: number;
+    totalVolumeUsd: number;
+    activeChains: number;
+    activeRoutes: number;
+    topToken: {
+      name: string;
+      percentage: string;
+    };
+  };
+  topRoutes: Array<{
+    name: string;
+    total: number;
+    direction: string;
+  }>;
+  tokenDistribution: Array<{
+    name: string;
+    symbol: string;
+    value: number;
+    address: string;
+  }>;
+  transfers: any[];
+  last_updated: number;
+}
+
 export default function ICMStatsPage() {
   const [metrics, setMetrics] = useState<ICMStats | null>(null);
+  const [icttData, setIcttData] = useState<ICTTStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [icttLoading, setIcttLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [chartPeriod, setChartPeriod] = useState<"D" | "W" | "M" | "Q" | "Y">(
     "D"
   );
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   const fetchData = async () => {
     try {
@@ -79,8 +109,28 @@ export default function ICMStatsPage() {
     }
   };
 
+  const fetchIcttData = async () => {
+    try {
+      setIcttLoading(true);
+      const response = await fetch(`/api/ictt-stats`);
+
+      if (!response.ok) {
+        console.error("Failed to fetch ICTT stats:", response.status);
+        return;
+      }
+
+      const data = await response.json();
+      setIcttData(data);
+    } catch (err) {
+      console.error("Error fetching ICTT stats:", err);
+    } finally {
+      setIcttLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    fetchIcttData();
   }, []);
 
   const formatNumber = (num: number | string): string => {
@@ -156,7 +206,7 @@ export default function ICMStatsPage() {
           <div className="space-y-3">
             <div>
               <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-black dark:text-white">
-                Avalanche ICM Metrics
+                Avalanche Interchain Activity
               </h1>
               <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed mt-2">
                 Loading comprehensive ICM statistics...
@@ -201,12 +251,11 @@ export default function ICMStatsPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
       <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
-        {/* Header */}
         <div className="mb-10">
           <div className="flex items-start justify-between gap-4 mb-3">
             <div>
               <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-black dark:text-white">
-                Avalanche ICM Metrics
+                Avalanche Interchain Activity
               </h1>
               <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed mt-2">
                 Comprehensive overview of the Avalanche Interchain Messaging
@@ -216,15 +265,12 @@ export default function ICMStatsPage() {
           </div>
         </div>
 
-        {/* Globe and Top Chains Table */}
         <section className="space-y-4 sm:space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Globe on the left */}
             <div className="flex justify-center items-start">
               <ICMGlobe />
             </div>
 
-            {/* Top Chains Table on the right */}
             <div className="flex flex-col gap-4">
               <Card className="w-full overflow-hidden border-none shadow-xl bg-white/80 backdrop-blur-sm dark:bg-zinc-900/80">
                 <CardHeader className="pb-2 border-b border-zinc-100 dark:border-zinc-800">
@@ -234,7 +280,8 @@ export default function ICMStatsPage() {
                         Top 5 Chains by ICM Activity
                       </CardTitle>
                       <CardDescription className="mt-1 text-zinc-500 dark:text-zinc-400">
-                        Total incoming and outgoing messages over the past 365 days
+                        Total incoming and outgoing messages over the past 365
+                        days
                       </CardDescription>
                     </div>
                     <div className="p-2 rounded-full bg-zinc-100 dark:bg-zinc-800">
@@ -334,7 +381,6 @@ export default function ICMStatsPage() {
           </div>
         </section>
 
-        {/* Chart Section - Second Row */}
         <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
             <h2 className="text-lg sm:text-2xl font-medium text-left">
@@ -367,6 +413,8 @@ export default function ICMStatsPage() {
             })}
           </div>
         </section>
+
+        <ICTTDashboard data={icttData} />
       </main>
 
       <StatsBubbleNav />
@@ -498,14 +546,15 @@ function ChartCard({
       return { change: 0, isPositive: true };
     }
 
-    const firstValue = displayData[0].value;
     const lastValue = displayData[displayData.length - 1].value;
+    const secondLastValue = displayData[displayData.length - 2].value;
 
-    if (firstValue === 0) {
+    if (secondLastValue === 0) {
       return { change: 0, isPositive: true };
     }
 
-    const changePercentage = ((lastValue - firstValue) / firstValue) * 100;
+    const changePercentage =
+      ((lastValue - secondLastValue) / secondLastValue) * 100;
 
     return {
       change: Math.abs(changePercentage),
