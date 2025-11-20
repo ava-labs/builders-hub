@@ -16,17 +16,12 @@ The Staking Manager needs permission to mint native tokens for distributing stak
 
 The `NativeTokenStakingManager` distributes rewards by minting new native tokens through the Native Minter precompile. To do this, the Staking Manager's address must be added as an **Enabled** address on the Native Minter.
 
+## Add the NativeTokenStakingManager to Native Minter's Allowlist
+
 <Callout type="warning">
 Only addresses with **Manager** or **Admin** permissions on the Native Minter can enable other addresses.
 </Callout>
 
-## Enable the Staking Manager
-
 <ToolboxMdxWrapper walletMode="l1">
     <EnableStakingManagerMinting />
 </ToolboxMdxWrapper>
-
-## Next Steps
-
-After enabling the Native Minter, you'll transfer ownership of the Staking Manager to the final admin address.
-

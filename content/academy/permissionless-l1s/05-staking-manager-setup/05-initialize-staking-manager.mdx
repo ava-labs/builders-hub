@@ -1,6 +1,6 @@
 ---
 title: Initialize Staking Manager
-description: Configure the Staking Manager with initial parameters
+description: Configure the Native Token Staking Manager with initial parameters
 updated: 2025-03-13
 authors: [nicolasarnedo]
 icon: Terminal
@@ -9,8 +9,6 @@ icon: Terminal
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
 import InitializeNativeStakingManager from "@/components/toolbox/console/permissionless-l1s/setup/native/InitializeNativeStakingManager.tsx"
 import { Callout } from "fumadocs-ui/components/callout";
-
-Initialize the Staking Manager contract with essential parameters for validator and delegator management.
 
 ## Configuration Parameters
 
@@ -24,17 +22,15 @@ The `PoSValidatorManagerSettings` struct includes:
 - **Weight to Value Factor**: Conversion factor between weight and token value
 - **Reward Calculator Address**: Address of the deployed reward calculator
 
+## Initialize the Contract
+
 <Callout type="info">
 Make sure you have your L1 selected in the wallet component
 </Callout>
 
-## Initialize the Contract
+
 
 <ToolboxMdxWrapper walletMode="l1">
     <InitializeNativeStakingManager />
 </ToolboxMdxWrapper>
-
-## Next Steps
-
-After initialization, you'll need to enable the Staking Manager address in the Native Minter precompile.
 
