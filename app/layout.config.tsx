@@ -31,6 +31,7 @@ import {
   GraduationCap,
   BookOpen,
   Users,
+  FileText,
 } from 'lucide-react';
 import Image from 'next/image';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
@@ -104,9 +105,45 @@ export const integrationsMenu: LinkItemType = {
 };
 
 export const blogMenu: LinkItemType = {
-  type: 'main',
+  type: 'menu',
   text: 'Blog',
   url: '/guides',
+  items: [
+    {
+      menu: {
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/codebase-banner-VKmQyN5sPojnIOU09p0lCkUgR6YTpQ.png"}
+              alt='Blog Preview'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-2',
+      },
+      icon: <BookOpen />,
+      text: 'Latest Articles',
+      description:
+        'Read the latest guides, tutorials, and insights from the Avalanche ecosystem.',
+      url: '/guides',
+    },
+    {
+      icon: <ArrowUpRight />,
+      text: 'Browse All Posts',
+      description:
+        'Explore our complete collection of articles, guides, and community content.',
+      url: '/guides',
+      menu: {
+        className: 'lg:col-start-2',
+      },
+    },
+  ],
 };
 
 export const stats: LinkItemType = {
@@ -458,30 +495,6 @@ export const eventsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Avalanche-Event-8wjhXhApK9YGd5Le4Pkcl9tufb5QDA.jpg"}
-              alt='Preview'
-              width={900}
-              height={400}
-              className='rounded-t-lg object-cover w-full h-auto'
-              style={{
-                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
-              }}
-            />
-          </div>
-        ),
-        className: 'md:row-span-2',
-      },
-      icon: <Ticket />,
-      text: 'Avalanche Calendar',
-      description:
-        'Explore upcoming Avalanche events, meetups, and community gatherings. Stay connected with the latest happenings in the ecosystem.',
-      url: 'https://lu.ma/calendar/cal-Igl2DB6quhzn7Z4',
-    },
-    {
-      menu: {
-        banner: (
-          <div className='-mx-3 -mt-3'>
-            <Image
               src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg"}
               alt='Preview'
               width={900}
@@ -500,6 +513,26 @@ export const eventsMenu: LinkItemType = {
       description:
         'Check out and join the global meetups, workshops and events organized by Avalanche Team1',
       url: 'https://lu.ma/Team1?utm_source=builder_hub',
+    },
+    {
+      icon: <Ticket />,
+      text: 'Avalanche Calendar',
+      description:
+        'Explore upcoming Avalanche events, meetups, and community gatherings. Stay connected with the latest happenings in the ecosystem.',
+      url: 'https://lu.ma/calendar/cal-Igl2DB6quhzn7Z4',
+      menu: {
+        className: 'lg:col-start-3 lg:row-start-1',
+      },
+    },
+    {
+      icon: <GraduationCap />,
+      text: 'Campus Connect',
+      description:
+        'Discover opportunities for students and educators to explore blockchain technology and join our community of builders.',
+      url: '/university',
+      menu: {
+        className: 'lg:col-start-3 lg:row-start-2',
+      },
     },
   ],
 };
@@ -529,6 +562,5 @@ export const baseOptions: BaseLayoutProps = {
     integrationsMenu,
     userMenu,
     blogMenu,
-    universityMenu
   ],
 };
