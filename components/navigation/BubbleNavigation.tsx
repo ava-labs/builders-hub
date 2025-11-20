@@ -90,9 +90,32 @@ export default function BubbleNavigation({
         const learningPathSection = document.getElementById('learning-path-section');
         if (learningPathSection) {
           // Get the section's position and scroll with offset to show the heading
-          const yOffset = -100; // Adjust this value to show more/less content above
-          const y = learningPathSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
-          window.scrollTo({ top: y, behavior: 'smooth' });
+          const yOffset = -100;
+          const targetY = learningPathSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          const startY = window.pageYOffset;
+          const distance = targetY - startY;
+          const duration = 1200; // 1.2 seconds for a slower, more noticeable scroll
+          let startTime: number | null = null;
+
+          // Easing function for smooth animation
+          const easeInOutCubic = (t: number): number => {
+            return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+          };
+
+          const animation = (currentTime: number) => {
+            if (startTime === null) startTime = currentTime;
+            const timeElapsed = currentTime - startTime;
+            const progress = Math.min(timeElapsed / duration, 1);
+            const ease = easeInOutCubic(progress);
+            
+            window.scrollTo(0, startY + distance * ease);
+            
+            if (progress < 1) {
+              requestAnimationFrame(animation);
+            }
+          };
+
+          requestAnimationFrame(animation);
         }
       }, 300); // 300ms delay to let content render
       return;
