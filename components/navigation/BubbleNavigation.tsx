@@ -84,40 +84,63 @@ export default function BubbleNavigation({
 
   const handleItemClick = (item: BubbleNavigationConfig['items'][0]) => {
     if (onSelect) {
-      onSelect(item);
-      // Delay scroll to allow page content to load first
+      // Start scroll animation immediately BEFORE state update to prevent blocking
+      const learningPathSection = document.getElementById('learning-path-section');
+      if (learningPathSection) {
+        // Get the section's position and scroll with offset to show the heading
+        const yOffset = -125;
+        const targetY = learningPathSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        const startY = window.pageYOffset;
+        const distance = targetY - startY;
+        const duration = 800; // Reduced to 0.8s for faster response
+        let startTime: number | null = null;
+        let animationFrameId: number;
+
+        // Easing function: easeOutExpo - starts extremely fast
+        const easeOutExpo = (t: number): number => {
+          return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+        };
+
+        // Cleanup function to stop animation
+        const cancelAnimation = () => {
+          if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+          }
+          window.removeEventListener('wheel', cancelAnimation);
+          window.removeEventListener('touchmove', cancelAnimation);
+          window.removeEventListener('keydown', cancelAnimation);
+          window.removeEventListener('mousedown', cancelAnimation);
+        };
+
+        const animation = (currentTime: number) => {
+          if (startTime === null) startTime = currentTime;
+          const timeElapsed = currentTime - startTime;
+          const progress = Math.min(timeElapsed / duration, 1);
+          const ease = easeOutExpo(progress);
+          
+          window.scrollTo(0, startY + distance * ease);
+          
+          if (progress < 1) {
+            animationFrameId = requestAnimationFrame(animation);
+          } else {
+            cancelAnimation(); // Cleanup listeners when done
+          }
+        };
+
+        // Add listeners to cancel animation on user interaction
+        window.addEventListener('wheel', cancelAnimation, { passive: true });
+        window.addEventListener('touchmove', cancelAnimation, { passive: true });
+        window.addEventListener('keydown', cancelAnimation, { passive: true });
+        window.addEventListener('mousedown', cancelAnimation, { passive: true });
+
+        // Start animation loop
+        animationFrameId = requestAnimationFrame(animation);
+      }
+
+      // Defer state update slightly to ensure animation frame has priority
       setTimeout(() => {
-        const learningPathSection = document.getElementById('learning-path-section');
-        if (learningPathSection) {
-          // Get the section's position and scroll with offset to show the heading
-          const yOffset = -125;
-          const targetY = learningPathSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
-          const startY = window.pageYOffset;
-          const distance = targetY - startY;
-          const duration = 1200; // 1.2 seconds for a slower, more noticeable scroll
-          let startTime: number | null = null;
-
-          // Easing function for smooth animation
-          const easeInOutCubic = (t: number): number => {
-            return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-          };
-
-          const animation = (currentTime: number) => {
-            if (startTime === null) startTime = currentTime;
-            const timeElapsed = currentTime - startTime;
-            const progress = Math.min(timeElapsed / duration, 1);
-            const ease = easeInOutCubic(progress);
-            
-            window.scrollTo(0, startY + distance * ease);
-            
-            if (progress < 1) {
-              requestAnimationFrame(animation);
-            }
-          };
-
-          requestAnimationFrame(animation);
-        }
-      }, 300); // 300ms delay to let content render
+        onSelect(item);
+      }, 0);
       return;
     }
 
