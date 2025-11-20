@@ -20,7 +20,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/customizing-evm",
         category: "VM Customization",
         dependencies: ["avalanche-fundamentals"],
-        position: { x:90, y: 250 },
+        position: { x: 87.5, y: 250 },
         mobileOrder: 2
     },
     {
@@ -30,7 +30,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/interchain-messaging",
         category: "Interoperability",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 65, y: 250 },
+        position: { x: 62.5, y: 250 },
         mobileOrder: 3
     },
     {
@@ -40,7 +40,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/permissioned-l1s",
         category: "L1 Development",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 15, y: 250 },
+        position: { x: 12.5, y: 250 },
         mobileOrder: 6
     },
     {
@@ -50,7 +50,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/l1-native-tokenomics",
         category: "L1 Tokenomics",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 40, y: 250 },
+        position: { x: 37.5, y: 250 },
         mobileOrder: 7
     },
     // Third Layer - Advanced topics
@@ -61,7 +61,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/interchain-token-transfer",
         category: "Interoperability",
         dependencies: ["interchain-messaging"],
-        position: { x: 85, y: 500 },
+        position: { x: 82.5, y: 500 },
         mobileOrder: 4
     },
     {
@@ -71,7 +71,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/icm-chainlink",
         category: "Interoperability",
         dependencies: ["interchain-messaging"],
-        position: { x: 55, y: 500 },
+        position: { x: 52.5, y: 500 },
         mobileOrder: 5
     },
     {
@@ -81,7 +81,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/permissionless-l1s",
         category: "L1 Development",
         dependencies: ["permissioned-l1s", "l1-native-tokenomics"],
-        position: { x: 25, y: 500 },
+        position: { x: 22.5, y: 500 },
         mobileOrder: 8
     },
 ];
