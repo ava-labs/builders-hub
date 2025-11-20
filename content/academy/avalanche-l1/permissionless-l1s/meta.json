@@ -11,12 +11,9 @@
         "---Transformation Requirements---",
         "...03-transformation-requirements",
         "04-speedrun-base-l1",
-<<<<<<< HEAD:content/academy/permissionless-l1s/meta.json
         "---Staking Manager Setup---",
         "...05-staking-manager-setup",
         "---Staking Manager Operations---",
-=======
->>>>>>> origin/master:content/academy/avalanche-l1/permissionless-l1s/meta.json
         "---More coming soon...---"
     ]
 }
