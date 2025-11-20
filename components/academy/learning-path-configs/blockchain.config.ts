@@ -20,7 +20,7 @@ export const blockchainLearningPaths: CourseNode[] = [
         slug: "blockchain/solidity-foundry",
         category: "Development",
         dependencies: ["blockchain-fundamentals"],
-        position: { x: 50, y: 200 },
+        position: { x: 50, y: 250 },
         mobileOrder: 2
     },
     // Third Layer - Encrypted ERC
@@ -31,7 +31,7 @@ export const blockchainLearningPaths: CourseNode[] = [
         slug: "blockchain/encrypted-erc",
         category: "Privacy",
         dependencies: ["intro-to-solidity"],
-        position: { x: 50, y: 400 },
+        position: { x: 50, y: 500 },
         mobileOrder: 3
     },
 ];
@@ -41,19 +41,22 @@ export const blockchainCategoryStyles = {
         gradient: "from-blue-500 to-blue-600",
         icon: BookOpen,
         lightBg: "bg-blue-50",
-        darkBg: "dark:bg-blue-950/30"
+        darkBg: "dark:bg-blue-950/30",
+        label: "Fundamentals"
     },
     "Development": {
         gradient: "from-orange-500 to-orange-600",
         icon: Code,
         lightBg: "bg-orange-50",
-        darkBg: "dark:bg-orange-950/30"
+        darkBg: "dark:bg-orange-950/30",
+        label: "Development"
     },
     "Privacy": {
         gradient: "from-indigo-500 to-indigo-600",
         icon: Shield,
         lightBg: "bg-indigo-50",
-        darkBg: "dark:bg-indigo-950/30"
+        darkBg: "dark:bg-indigo-950/30",
+        label: "Privacy"
     },
 };
 

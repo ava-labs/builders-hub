@@ -91,36 +91,35 @@ export const avalancheCategoryStyles = {
         gradient: "from-blue-500 to-blue-600",
         icon: BookOpen,
         lightBg: "bg-blue-50",
-        darkBg: "dark:bg-blue-950/30"
+        darkBg: "dark:bg-blue-950/30",
+        label: "Fundamentals"
     },
     "Interoperability": {
         gradient: "from-purple-500 to-purple-600",
         icon: ArrowLeftRight,
         lightBg: "bg-purple-50",
-        darkBg: "dark:bg-purple-950/30"
+        darkBg: "dark:bg-purple-950/30",
+        label: "Interoperability"
     },
     "L1 Development": {
         gradient: "from-emerald-500 to-emerald-600",
         icon: Layers,
         lightBg: "bg-emerald-50",
-        darkBg: "dark:bg-emerald-950/30"
+        darkBg: "dark:bg-emerald-950/30",
+        label: "L1 Development"
     },
     "L1 Tokenomics": {
         gradient: "from-red-400 to-red-500",
         icon: Coins,
         lightBg: "bg-red-50",
-        darkBg: "dark:bg-red-950/30"
+        darkBg: "dark:bg-red-950/30",
+        label: "L1 Tokenomics"
     },
     "VM Customization": {
         gradient: "from-orange-500 to-orange-600",
         icon: Code,
         lightBg: "bg-orange-50",
-        darkBg: "dark:bg-orange-950/30"
-    },
-    "Privacy": {
-    gradient: "from-indigo-500 to-indigo-600",
-        icon: Shield,
-            lightBg: "bg-indigo-50",
-                darkBg: "dark:bg-indigo-950/30"
+        darkBg: "dark:bg-orange-950/30",
+        label: "VM Customization"
     },
 };

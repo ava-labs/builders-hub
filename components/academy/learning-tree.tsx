@@ -82,8 +82,14 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
   const maxY = Math.max(...learningPaths.map(node => node.position.y)) + 250;
 
   // Legend component
-  const Legend = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <div className={isMobile ? "mt-8 grid grid-cols-2 gap-3" : "flex flex-wrap gap-6 justify-center"}>
+  const Legend = ({ isMobile = false, vertical = false }: { isMobile?: boolean; vertical?: boolean }) => (
+    <div className={
+      isMobile 
+        ? "mt-8 grid grid-cols-2 gap-3" 
+        : vertical 
+        ? "flex flex-col gap-10" 
+        : "flex flex-wrap gap-6 justify-center"
+    }>
       {Object.entries(categoryStyles).map(([category, style]) => {
         const Icon = style.icon;
         return (
@@ -99,7 +105,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
             <span className={cn(
               isMobile ? "text-xs" : "text-sm",
               "font-medium text-zinc-600 dark:text-zinc-400"
-            )}>{category}</span>
+            )}>{style.label || category}</span>
           </div>
         );
       })}
@@ -359,13 +365,17 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
 
   return (
     <div className="relative w-full">
-      {/* Legend at top for all learning trees */}
-      <div className="mb-8">
-        <Legend isMobile={false} />
+      {/* Vertical Legend on far left - only visible on desktop/tablet */}
+      <div className="hidden md:block fixed left-4 top-1/3 z-10">
+        <Legend isMobile={false} vertical={true} />
       </div>
 
       {/* Mobile Layout - visible on small screens, hidden on lg and up */}
       <div className="block lg:hidden">
+        {/* Legend at top for mobile */}
+        <div className="mb-8">
+          <Legend isMobile={true} />
+        </div>
         <MobileLayout />
       </div>
 

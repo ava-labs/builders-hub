@@ -21,7 +21,7 @@ export const entrepreneurLearningPaths: CourseNode[] = [
         slug: "entrepreneur/go-to-market",
         category: "Business Strategy",
         dependencies: ["avalanche-foundation"],
-        position: { x: 30, y: 200 },
+        position: { x: 30, y: 250 },
         mobileOrder: 2
     },
     {
@@ -31,7 +31,7 @@ export const entrepreneurLearningPaths: CourseNode[] = [
         slug: "entrepreneur/web3-community-architect",
         category: "Community",
         dependencies: ["avalanche-foundation"],
-        position: { x: 70, y: 200 },
+        position: { x: 70, y: 250 },
         mobileOrder: 3
     },
 
@@ -43,7 +43,7 @@ export const entrepreneurLearningPaths: CourseNode[] = [
         slug: "entrepreneur/fundraising-finance",
         category: "Finance",
         dependencies: ["avalanche-web3-community-architect", "avalanche-gtm"],
-        position: { x: 50, y: 400 },
+        position: { x: 50, y: 500 },
         mobileOrder: 4
     }
 ];
@@ -53,24 +53,28 @@ export const entrepreneurCategoryStyles = {
         gradient: "from-blue-500 to-blue-600",
         icon: BookOpen,
         lightBg: "bg-blue-50",
-        darkBg: "dark:bg-blue-950/30"
+        darkBg: "dark:bg-blue-950/30",
+        label: "Fundamentals"
     },
     "Community": {
         gradient: "from-purple-500 to-purple-600",
         icon: Users,
         lightBg: "bg-purple-50",
-        darkBg: "dark:bg-purple-950/30"
+        darkBg: "dark:bg-purple-950/30",
+        label: "Community"
     },
     "Business Strategy": {
         gradient: "from-emerald-500 to-emerald-600",
         icon: Lightbulb,
         lightBg: "bg-emerald-50",
-        darkBg: "dark:bg-emerald-950/30"
+        darkBg: "dark:bg-emerald-950/30",
+        label: "Business Strategy"
     },
     "Finance": {
         gradient: "from-yellow-500 to-yellow-600",
         icon: Coins,
         lightBg: "bg-yellow-50",
-        darkBg: "dark:bg-yellow-950/30"
+        darkBg: "dark:bg-yellow-950/30",
+        label: "Finance"
     }
 };

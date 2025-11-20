@@ -85,6 +85,16 @@ export default function BubbleNavigation({
   const handleItemClick = (item: BubbleNavigationConfig['items'][0]) => {
     if (onSelect) {
       onSelect(item);
+      // Delay scroll to allow page content to load first
+      setTimeout(() => {
+        const learningPathSection = document.getElementById('learning-path-section');
+        if (learningPathSection) {
+          // Get the section's position and scroll with offset to show the heading
+          const yOffset = -100; // Adjust this value to show more/less content above
+          const y = learningPathSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+      }, 300); // 300ms delay to let content render
       return;
     }
 
