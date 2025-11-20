@@ -4,16 +4,6 @@
   "icon": "SquareChartGantt",
   "root": true,
   "pages": [
-    "index",
-    "---Smart Contract Development---",
-    "smart-contract-dev/deploy-with-remix-ide",
-    "smart-contract-dev/erc-20-token",
-    "toolchains",
-    "---Contract Verification---",
-    "verify-contract/explorer",
-    "verify-contract/snowtrace",
-    "verify-contract/hardhat",
-    "---Advanced Tutorials---",
-    "...advanced-tutorials"
+    "index"
   ]
 }

@@ -21,29 +21,29 @@ const quickLinks = [
   },
   {
     id: 2,
-    title: "Bridge",
-    description: "Bridge assets to and from Avalanche",
-    icon: ArrowLeftRight,
-    href: "https://core.app/en/bridge/"
-  },
-  {
-    id: 3,
     title: "Create New L1",
     description: "Create a blockchain with the Builder Console",
     icon: Wrench,
     href: "/console/layer-1/create"
   },
   {
-    id: 4,
+    id: 3,
     title: "Explorer",
     description: "Explore activity on the network",
     icon: Search,
     href: "https://subnets.avax.network"
   },
   {
+    id: 3,
+    title: "RPC References",
+    description: "Explore the RPC Methods for the C-Chain, P-Chain, and X-Chain.",
+    icon: ArrowLeftRight,
+    href: "/docs/rpcs/c-chain"
+  },
+  {
     id: 5,
     title: "API References",
-    description: "Avalanche APIs",
+    description: "Avalanche Data, Metrics, and Webhook APIs",
     icon: BookOpen,
     href: "/docs/api-reference"
   }

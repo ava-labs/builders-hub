@@ -112,12 +112,6 @@ export function DocsLayoutWrapper({
   // Documentation hamburger menu options
   const documentationOptions = [
     {
-      title: 'Build Apps',
-      description: 'Build dApps on Avalanche',
-      icon: <Code className="w-5 h-5" />,
-      url: '/docs/dapps',
-    },
-    {
       title: 'Primary Network',
       description: 'Core platform infrastructure',
       icon: <Network className="w-5 h-5" />,

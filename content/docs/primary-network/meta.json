@@ -8,11 +8,15 @@
     "avalanche-consensus",
     "avax-token",
     "virtual-machines",
-    "---Validate---",
+    "---C-Chain---",
+    "verify-contract",
+    "---P-Chain---",
     "validate/validate-vs-delegate",
     "validate/rewards-formula",
     "validate/how-to-stake",
-    "validate/node-validator"
+    "validate/node-validator",
+    "---Advanced Tutorials---",
+    "advanced-tutorials"
   ]
 }
 

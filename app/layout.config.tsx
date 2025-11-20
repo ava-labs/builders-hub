@@ -4,16 +4,14 @@ import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 import {
   Sprout,
   Logs,
-  MonitorCheck,
   ArrowUpRight,
   SendHorizontal,
-  Cable,
   Bot,
+  Computer,
   Cpu,
   Snowflake,
   BriefcaseBusiness,
   MessageSquareQuote,
-  Github,
   Hexagon,
   Waypoints,
   HandCoins,
@@ -26,12 +24,11 @@ import {
   Ticket,
   Earth,
   ArrowLeftRight,
-  Shield,
   Triangle,
   GraduationCap,
   BookOpen,
-  Users,
-  FileText,
+  Code,
+  GitBranch,
 } from 'lucide-react';
 import Image from 'next/image';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
@@ -43,10 +40,10 @@ export const integrationsMenu: LinkItemType = {
   items: [
     {
       icon: <Wallet />,
-      text: 'Account Abstraction',
+      text: 'Wallet SDKs',
       description:
-        'Explore solutions for implementing account abstraction in your dApps.',
-      url: '/integrations#Account%20Abstraction',
+        'Explore solutions for implementing wallet SDKs in your dApps.',
+      url: '/integrations#Wallet%20SDKs',
       menu: {
         className: 'lg:col-start-1',
       },
@@ -178,7 +175,7 @@ export const stats: LinkItemType = {
 export const docsMenu: LinkItemType = {
   type: 'menu',
   text: 'Documentation',
-  url: '/docs/dapps',
+  url: '/docs/primary-network',
   items: [
     {
       menu: {
@@ -199,50 +196,57 @@ export const docsMenu: LinkItemType = {
         className: 'md:row-span-2',
       },
       icon: <Sprout />,
-      text: 'Build Apps',
-      description: 'Build dApps on Avalanche',
-      url: '/docs/dapps',
+      text: 'Primary Network',
+      description: 'Connect to Avalanche and start building dApps',
+      url: '/docs/primary-network',
     },
     {
-      icon: <Logs />,
-      text: 'Avalanche L1s',
+      icon: <Computer />,
+      text: 'Node RPCs',
       description:
-        "Build your own sovereign Layer 1 blockchain using Avalanche's battle-tested infrastructure and tooling.",
-      url: '/docs/avalanche-l1s',
+        "Explore the RPC Methods for the C-Chain, P-Chain, and X-Chain.",
+      url: '/docs/rpcs/c-chain',
       menu: {
         className: 'lg:col-start-2',
       },
     },
     {
-      icon: <MonitorCheck />,
-      text: 'Nodes & Validators',
+      icon: <Database />,
+      text: 'Data APIs',
       description:
-        'Learn about hardware requirements, staking mechanisms, rewards, and best practices for running validator infra on Avalanche.',
-      url: '/docs/nodes',
+        'Explore the Data, Metrics, and Webhook APIs for the C-Chain, P-Chain, and X-Chain.',
+      url: '/docs/api-reference/data-api',
       menu: {
         className: 'lg:col-start-2',
       },
     },
     {
-      icon: <Cable />,
-      text: 'Interoperability',
+      icon: <GitBranch />,
+      text: 'ACPs',
       description:
-        "Explore Avalanche's native cross-chain protocols that enable seamless asset and data transfer across different Avalanche L1s.",
-      url: '/docs/cross-chain',
+        "Explore Avalanche's Community Proposals (ACPs) for network improvements and best practices.",
+      url: '/docs/acps',
       menu: {
         className: 'lg:col-start-3 lg:row-start-1',
       },
     },
     {
-      icon: <ArrowUpRight />,
-      text: 'Browse All Docs',
+      icon: <Code />,
+      text: 'Developer Tools',
       description:
-        'Explore our in-depth documentation, guides, and resources to bring your ideas to life.',
-      url: '/docs/dapps',
+        'Explore the Avalanche SDKs, CLI, and more.',
+      url: '/docs/tooling',
       menu: {
-        className: 'lg:col-start-3',
+        className: 'lg:col-start-3 lg:row-start-2',
       },
     },
+    // {
+    //   icon: <ArrowUpRight />,
+    //   text: 'Browse All Tools',
+    //   description:
+    //     'Explore all available developer tools in the Avalanche ecosystem.',
+    //   url: '/docs/tooling',
+    // },
   ],
 };
 
