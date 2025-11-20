@@ -350,10 +350,16 @@ body[data-layout="academy"]:has([data-granite-banner]) #nd-docs-layout {
 /* Remove padding-top from layout when banner is visible on academy routes */
 body[data-layout="academy"] #nd-docs-layout {
   padding-top: 0px !important;
+  background: hsl(var(--background)) !important;
 }
 
 /* Set custom padding-top for table of contents on academy routes */
 body[data-layout="academy"] #nd-toc {
   padding-top: calc(var(--spacing) * 12) !important;
+}
+
+/* Ensure body has proper background color for academy */
+body[data-layout="academy"] {
+  background: hsl(var(--background)) !important;
 }
 

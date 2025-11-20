@@ -1,0 +1,64 @@
+---
+title: ICM for Validator Manager
+description: How Avalanche's Interchain Messaging (ICM) works with Validator Manager Contracts (VMC)
+updated: 2025-03-13
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+Interchain Messaging (ICM) is the foundation that enables secure communication between blockchains in the Avalanche ecosystem. While ICM is commonly used for cross-chain applications leveraging ICM contracts & Relayers, the Validator Manager Contract (VMC) uses ICM in a unique way. 
+
+## ICM Architecture Layers
+
+Revisiting the diagram we saw in the [Interoperability](/academy/avalanche-l1/avalanche-fundamentals/05-interoperability/03-icm-icmContracts-and-ictt) section of the Avalanche Fundamentals course, the Validator Manager is placed at the same level as the ICM contracts are.
+
+![ICM Layers with VMC](/common-images/permissioned-l1s/ICMLayersVMC.png)
+
+We place the Validator Manager Contract (VMC) here because it has:
+
+- **Direct ICM Access**: VMC can interact directly with the ICM (Warp precompile)
+- **Native Integration**: VMC is designed specifically for validator operations
+
+### User-Driven Message Relaying
+
+In typical ICM use cases for cross-chain applications:
+- A relayer monitors for messages
+- The relayer collects validator signatures
+- The relayer submits the message to the destination chain
+
+However, **validator management works differently**:
+- The user directly submits transactions
+- The user signs and manages their own message flow
+- No third-party relayer service is involved
+
+![VMC & P-Chain Communication Flow](/common-images/permissioned-l1s/VmcPchainFlow.png)
+
+## How ICM Enables Validator Management
+
+The power of ICM in validator management comes from its ability to securely coordinate changes between:
+- **The L1**: Where validator operations are initiated
+- **The P-Chain**: Where validators are officially registered
+- **Back to the L1**: Where the validator set changes are confirmed to the Validator Manager Contract
+
+It's crucial to understand that **the P-Chain serves as the single source of truth** for all validator registrations across the Avalanche network. While your Validator Manager contract initiates operations and tracks state changes, the P-Chain ultimately determines which validators are active and recognized by the network. This architecture ensures that no matter where your Validator Manager is deployed or how it operates, all validator changes must be validated and recorded by the P-Chain to be considered official.
+
+### Message Security Through Signatures
+
+Just like in other ICM use cases, messages in validator management are secured through BLS signatures:
+
+The key difference is that in validator management:
+- The user initiates the signature collection process
+- The signatures prove the L1's validator set agrees on the operation
+- The user then includes these signatures when submitting to the P-Chain
+
+### Message Verification
+
+The P-Chain verifies incoming validator management messages just like any ICM message:
+
+This verification ensures that:
+- The message truly came from the specified L1
+- The L1's validators have approved the operation
+
+In the next section we will learn about common Proxy Patterns.
+
+
