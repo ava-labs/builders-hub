@@ -3,10 +3,15 @@
 import {
   Droplet,
   Wrench,
-  Search,
   BookOpen,
   ArrowRight,
-  ArrowLeftRight
+  Computer,
+  ArrowLeftRight,
+  GitBranch,
+  ActivityIcon,
+  PackageIcon,
+  CodeIcon,
+  Triangle
 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import Link from "next/link";
@@ -28,13 +33,13 @@ const quickLinks = [
   },
   {
     id: 3,
-    title: "Explorer",
-    description: "Explore activity on the network",
-    icon: Search,
-    href: "https://subnets.avax.network"
+    title: "Setup a Node",
+    description: "Run a node on your own hardware or cloud provider.",
+    icon: Computer,
+    href: "/docs/nodes/run-a-node/using-docker"
   },
   {
-    id: 3,
+    id: 4,
     title: "RPC References",
     description: "Explore the RPC Methods for the C-Chain, P-Chain, and X-Chain.",
     icon: ArrowLeftRight,
@@ -46,7 +51,42 @@ const quickLinks = [
     description: "Avalanche Data, Metrics, and Webhook APIs",
     icon: BookOpen,
     href: "/docs/api-reference"
-  }
+  },
+  {
+    id: 6,
+    title: "Avalanche Fundamentals",
+    description: "Learn about the basics of Avalanche.",
+    icon: Triangle,
+    href: "/academy/avalanche-fundamentals"
+  },
+  {
+    id: 7,
+    title: "Network Stats",
+    description: "View the latest metrics for the Avalanche Network.",
+    icon: ActivityIcon,
+    href: "/stats/overview"
+  },
+  {
+    id: 8,
+    title: "ACPs",
+    description: "Explore Avalanche's Community Proposals (ACPs) for network improvements and best practices.",
+    icon: GitBranch,
+    href: "/docs/acps"
+  },
+  {
+    id: 9,
+    title: "Integrations",
+    description: "Explore the integrations with Avalanche.",
+    icon: PackageIcon,
+    href: "/integrations"
+  },
+  {
+    id: 10,
+    title: "Developer Tools",
+    description: "Explore the developer tools for Avalanche.",
+    icon: CodeIcon,
+    href: "/docs/tooling"
+  },
 ];
 
 export default function QuickLinks() {

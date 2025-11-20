@@ -107,23 +107,6 @@ export const blogMenu: LinkItemType = {
   url: '/guides',
   items: [
     {
-      menu: {
-        banner: (
-          <div className='-mx-3 -mt-3'>
-            <Image
-              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/codebase-banner-VKmQyN5sPojnIOU09p0lCkUgR6YTpQ.png"}
-              alt='Blog Preview'
-              width={900}
-              height={400}
-              className='rounded-t-lg object-cover w-full h-auto'
-              style={{
-                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
-              }}
-            />
-          </div>
-        ),
-        className: 'md:row-span-2',
-      },
       icon: <BookOpen />,
       text: 'Latest Articles',
       description:
@@ -182,7 +165,7 @@ export const docsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-               src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/customizing-evm-DkMcINMgCwhkuHuumtAZtrPzROU74M.jpg"
+               src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/multi-chain-architecture-lFotxOCNkXx0jUw9EGIaxnfdyuTb9G.jpg"
                alt='Preview'
                width={900}
                height={400}
