@@ -29,6 +29,7 @@ interface LearningTreeProps {
 
 export default function LearningTree({ pathType = 'avalanche' }: LearningTreeProps) {
   const [hoveredNode, setHoveredNode] = React.useState<string | null>(null);
+  const [hoveredCategory, setHoveredCategory] = React.useState<string | null>(null);
   const isMobile = useIsMobile();
 
   // Select the appropriate learning paths and styles based on pathType
@@ -92,19 +93,30 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
     }>
       {Object.entries(categoryStyles).map(([category, style]) => {
         const Icon = style.icon;
+        const isHovered = hoveredCategory === category;
         return (
-          <div key={category} className="flex items-center gap-2">
+          <div 
+            key={category} 
+            className={cn(
+              "flex items-center gap-2 cursor-pointer transition-all duration-200",
+              isHovered && "scale-110"
+            )}
+            onMouseEnter={() => setHoveredCategory(category)}
+            onMouseLeave={() => setHoveredCategory(null)}
+          >
             <div className={cn(
               isMobile ? "w-6 h-6" : "w-8 h-8",
-              "rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm",
+              "rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm transition-all duration-200",
               isMobile && "flex-shrink-0",
-              style.gradient
+              style.gradient,
+              isHovered && "shadow-lg scale-110"
             )}>
               <Icon className={isMobile ? "w-3 h-3 text-white" : "w-4 h-4 text-white"} />
             </div>
             <span className={cn(
               isMobile ? "text-xs" : "text-sm",
-              "font-medium text-zinc-600 dark:text-zinc-400"
+              "font-medium text-zinc-600 dark:text-zinc-400 transition-colors duration-200",
+              isHovered && "text-zinc-900 dark:text-zinc-100"
             )}>{style.label || category}</span>
           </div>
         );
@@ -175,6 +187,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
           {sortedPaths.map((node, index) => {
             const style = categoryStyles[node.category as keyof typeof categoryStyles];
             const Icon = style?.icon || BookOpen;
+            const isCategoryHovered = hoveredCategory === node.category;
 
             return (
               <div key={node.id} className="relative">
@@ -208,9 +221,11 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
                     className={cn(
                       "relative w-full p-4 rounded-xl transition-all duration-300",
                       "bg-white dark:bg-zinc-900",
-                      "border border-zinc-200 dark:border-zinc-800",
+                      "border dark:border-zinc-800",
                       "shadow-sm active:shadow-lg",
-                      "active:scale-[0.98]",
+                      isCategoryHovered
+                        ? "border-indigo-500 shadow-lg scale-105"
+                        : "border-zinc-200 active:scale-[0.98]",
                       style?.lightBg,
                       style?.darkBg
                     )}
@@ -299,6 +314,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
           const style = categoryStyles[node.category as keyof typeof categoryStyles];
           const Icon = style?.icon || BookOpen;
           const isHighlighted = highlightedNodes.has(node.id);
+          const isCategoryHovered = hoveredCategory === node.category;
 
           return (
             <div
@@ -309,7 +325,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
                 top: `${node.position.y}px`,
                 transform: 'translateX(-50%)',
                 width: '280px',
-                zIndex: isHighlighted ? 20 : 10
+                zIndex: isHighlighted || isCategoryHovered ? 20 : 10
               }}
               onMouseEnter={() => setHoveredNode(node.id)}
               onMouseLeave={() => setHoveredNode(null)}
@@ -324,8 +340,8 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
                     "bg-white dark:bg-zinc-900",
                     "border dark:border-zinc-800",
                     "shadow-sm",
-                    isHighlighted
-                      ? "border-indigo-500 shadow-lg scale-[1.02]"
+                    isHighlighted || isCategoryHovered
+                      ? "border-indigo-500 shadow-lg scale-105"
                       : "border-zinc-200 hover:shadow-lg hover:scale-[1.02] hover:border-zinc-300 dark:hover:border-zinc-700",
                     style?.lightBg,
                     style?.darkBg
