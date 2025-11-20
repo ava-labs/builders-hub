@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 
 const tabs = [
   {
-    label: "Overview",
+    label: "General",
     href: "/docs/dapps",
     pathMatch: (path: string) =>
       path === "/docs/dapps" ||

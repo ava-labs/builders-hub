@@ -32,15 +32,9 @@
     "virtual-machines-index",
     "simple-vm-any-language",
     "manage-vm-binaries",
-    "---Custom Precompiles---",
+    "golang-vms",
+    "rust-vms",
     "custom-precompiles",
-    "---Golang VMs---",
-    "golang-vms/simple-golang-vm",
-    "golang-vms/complex-golang-vm",
-    "---Rust VMs---",
-    "rust-vms/intro-avalanche-rs",
-    "rust-vms/setting-up-environment",
-    "rust-vms/installing-vm",
     "timestamp-vm"
   ]
 }

@@ -217,22 +217,6 @@ function Input(props: TextareaHTMLAttributes<HTMLTextAreaElement> & { className?
 let processor: Processor | undefined;
 const map = new Map<string, ReactNode>();
 
-const roleName: Record<string, string> = {
-  user: 'You',
-  assistant: 'AI Assistant',
-};
-
-const roleIcon: Record<string, ReactElement> = {
-  user: <User className="size-5" />,
-  assistant: (
-    <img 
-      src="/avax-gpt.png" 
-      alt="AI" 
-      className="size-6 object-contain"
-    />
-  ),
-};
-
 function parseFollowUpQuestions(content: string): string[] {
   if (!content) return [];
 
@@ -268,7 +252,7 @@ function SuggestedFollowUps({ questions, onQuestionClick }: {
   if (questions.length === 0) return null;
 
   return (
-    <div className="px-6 py-4 space-y-3 animate-in fade-in duration-300 slide-in-from-bottom-2">
+    <div className="px-6 py-3 space-y-3 animate-in fade-in duration-300 slide-in-from-bottom-2">
       <p className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-widest">
         Suggested
       </p>
@@ -310,57 +294,67 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
   const [detectedTools, setDetectedTools] = useState<string[]>([]);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
 
-  return (
-    <div className={cn(
-      'group relative',
-      !isUser && 'bg-fd-muted/30',
-    )}>
-      <div className="flex gap-4 px-4 py-6">
-        <div className={cn(
-          'flex size-8 shrink-0 items-center justify-center',
-          isUser ? 'rounded-full bg-fd-muted text-fd-foreground' : '',
-        )}>
-          {roleIcon[message.role] ?? <User className="size-5" />}
-        </div>
-        <div className="flex-1 space-y-2 overflow-hidden">
-          <p className="text-xs font-medium text-fd-muted-foreground">
-            {roleName[message.role] ?? 'Unknown'}
-          </p>
-          <div className="prose prose-sm max-w-none dark:prose-invert [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden [&_.katex]:text-sm [&_.katex-display]:my-4">
-            <Markdown text={cleanContent} onToolClick={isMobile ? undefined : onToolReference} />
+  if (isUser) {
+    // User message - right aligned
+    return (
+      <div className="flex justify-end px-6 py-4">
+        <div className="max-w-[80%] space-y-2">
+          <div className="bg-blue-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 shadow-sm">
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{cleanContent}</p>
           </div>
-
-          {/* Show all tools referenced */}
-          {!isUser && detectedTools.length > 0 && !isMobile && onToolReference && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              <p className="text-xs text-fd-muted-foreground w-full mb-1">Tools referenced:</p>
-              {detectedTools.map((toolId) => (
-                <button
-                  key={toolId}
-                  onClick={() => onToolReference(toolId)}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs",
-                    "bg-fd-muted hover:bg-fd-muted/80 rounded-md",
-                    "border border-fd-border hover:border-red-600/30",
-                    "transition-all duration-200"
-                  )}
-                >
-                  <ChevronRight className="size-3" />
-                  {toolId}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       </div>
+    );
+  }
 
-      {/* Show follow-up suggestions only for the last assistant message and not while streaming */}
-      {!isUser && isLast && !isStreaming && followUpQuestions.length > 0 && (
-        <SuggestedFollowUps
-          questions={followUpQuestions}
-          onQuestionClick={onFollowUpClick}
-        />
-      )}
+  // AI message - left aligned
+  return (
+    <div className="px-6 py-4">
+      <div className="max-w-[95%] space-y-4">
+        <div className="flex items-start gap-4">
+          {/* <img 
+            src="/avax-gpt.png" 
+            alt="AI" 
+            className="size-8 object-contain mt-1 shrink-0"
+          /> */}
+          <div className="flex-1 min-w-0">
+            {/* <p className="text-sm font-semibold text-foreground mb-2">AI Assistant</p> */}
+            <div className="prose prose-sm max-w-none dark:prose-invert [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden [&_.katex]:text-sm [&_.katex-display]:my-4">
+              <Markdown text={cleanContent} onToolClick={isMobile ? undefined : onToolReference} />
+            </div>
+
+            {/* Show all tools referenced */}
+            {detectedTools.length > 0 && !isMobile && onToolReference && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <p className="text-xs text-muted-foreground w-full mb-1">Tools referenced:</p>
+                {detectedTools.map((toolId) => (
+                  <button
+                    key={toolId}
+                    onClick={() => onToolReference(toolId)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs",
+                      "bg-slate-100 dark:bg-zinc-900 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-md",
+                      "border border-border/40 hover:border-blue-500/30",
+                      "transition-all duration-200"
+                    )}
+                  >
+                    <ChevronRight className="size-3" />
+                    {toolId}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Show follow-up suggestions only for the last assistant message and not while streaming */}
+        {isLast && !isStreaming && followUpQuestions.length > 0 && (
+          <SuggestedFollowUps
+            questions={followUpQuestions}
+            onQuestionClick={onFollowUpClick}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -628,7 +622,7 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
                 </div>
               </div>
         ) : (
-          <div className="divide-y divide-fd-border">
+          <div className="space-y-2">
             {messages.map((item, index) => (
               <Message
                 key={item.id}
@@ -644,19 +638,24 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
               />
             ))}
             {status === 'streaming' && messages[messages.length - 1]?.role === 'user' && (
-              <div className="flex gap-3 px-4 py-4 bg-fd-muted/30">
-                <div className="flex size-6 shrink-0 items-center justify-center">
-                  <img 
-                    src="/avax-gpt.png" 
-                    alt="AI" 
-                    className="size-5 object-contain"
-                  />
-                </div>
-                <div className="flex items-center gap-2 text-xs text-fd-muted-foreground">
-                  <div className="flex gap-1">
-                    <span className="size-1.5 rounded-full bg-fd-muted-foreground/50 animate-bounce [animation-delay:-0.3s]"></span>
-                    <span className="size-1.5 rounded-full bg-fd-muted-foreground/50 animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="size-1.5 rounded-full bg-fd-muted-foreground/50 animate-bounce"></span>
+              <div className="flex px-6 py-4">
+                <div className="max-w-[85%] space-y-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <img 
+                      src="/avax-gpt.png" 
+                      alt="AI" 
+                      className="size-7 object-contain"
+                    />
+                    <p className="text-xs font-medium text-muted-foreground">AI Assistant</p>
+                  </div>
+                  <div className="bg-slate-100 dark:bg-zinc-900 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="flex gap-1">
+                        <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.3s]"></span>
+                        <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.15s]"></span>
+                        <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce"></span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -782,7 +781,7 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
             </div>
           </div>
         ) : (
-          <div className="divide-y divide-fd-border">
+          <div className="space-y-2">
             {messages.map((item, index) => (
               <Message
                 key={item.id}
@@ -794,19 +793,24 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
               />
             ))}
             {isLoading && messages[messages.length - 1]?.role === 'user' && (
-              <div className="flex gap-4 px-4 py-6 bg-fd-muted/30">
-                <div className="flex size-8 shrink-0 items-center justify-center">
-                  <img 
-                    src="/avax-gpt.png" 
-                    alt="AI" 
-                    className="size-6 object-contain"
-                  />
-                </div>
-                <div className="flex items-center gap-2 text-sm text-fd-muted-foreground">
-                  <div className="flex gap-1">
-                    <span className="size-2 rounded-full bg-fd-muted-foreground/50 animate-bounce [animation-delay:-0.3s]"></span>
-                    <span className="size-2 rounded-full bg-fd-muted-foreground/50 animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="size-2 rounded-full bg-fd-muted-foreground/50 animate-bounce"></span>
+              <div className="flex px-6 py-4">
+                <div className="max-w-[85%] space-y-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <img 
+                      src="/avax-gpt.png" 
+                      alt="AI" 
+                      className="size-7 object-contain"
+                    />
+                    <p className="text-xs font-medium text-muted-foreground">AI Assistant</p>
+                  </div>
+                  <div className="bg-slate-100 dark:bg-zinc-900 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="flex gap-1">
+                        <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.3s]"></span>
+                        <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.15s]"></span>
+                        <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce"></span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
