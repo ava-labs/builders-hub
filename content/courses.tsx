@@ -10,7 +10,7 @@ export type Course = {
     languages: string[];
     tools: string[];
     instructors: string[];
-    category: "Fundamentals" | "Smart Contract Development" | "L1 Development" | "Interoperability" | "Codebase";
+    category: "Fundamentals" | "Smart Contract Development" | "L1 Development" | "Interoperability" | "Entrepreneur";
     certificateTemplate?: string;
 };
 
@@ -88,7 +88,7 @@ const officialCourses: Course[] = [
         status: "featured",
         tools: ["Avalanche CLI"],
         languages: ["Go"],
-        instructors: ["Martin Eckardt", "Ash"], // + Usman
+        instructors: ["Martin Eckardt", "Ash"],
         category: "L1 Development",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
@@ -191,9 +191,9 @@ const officialCourses: Course[] = [
         status: "featured",
         duration: "1 hour",
         languages: [],
-        tools: ["Codebase"],
+        tools: ["Entrepreneur"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
-        category: "Codebase",
+        category: "Entrepreneur",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_Foundations.pdf"
     },
     {
@@ -204,9 +204,9 @@ const officialCourses: Course[] = [
         status: "featured",
         duration: "1 hour",
         languages: [],
-        tools: ["Codebase"],
+        tools: ["Entrepreneur"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
-        category: "Codebase",
+        category: "Entrepreneur",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_GTM.pdf"
     },
     {
@@ -217,9 +217,9 @@ const officialCourses: Course[] = [
         status: "featured",
         duration: "1 hour",
         languages: [],
-        tools: ["Codebase"],
+        tools: ["Entrepreneur"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
-        category: "Codebase",
+        category: "Entrepreneur",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_Community.pdf"
     },
     {
@@ -230,9 +230,9 @@ const officialCourses: Course[] = [
         status: "featured",
         duration: "1 hour",
         languages: [],
-        tools: ["Codebase"],
+        tools: ["Entrepreneur"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
-        category: "Codebase",
+        category: "Entrepreneur",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_Fundraising.pdf"
     },
     {
@@ -290,7 +290,7 @@ const ecosystemCourses: Course[] = [
    }*/
 ];
 
-const codebaseEntrepreneurCourses = officialCourses.filter((course) => course.category === "Codebase");
+const entrepreneurCourses = officialCourses.filter((course) => course.category === "Entrepreneur");
 
 // Helper function to create course configuration mappings
 export const getCourseConfig = () => {
@@ -312,7 +312,7 @@ export const getCourseConfig = () => {
 export const getCourseNameMapping = () => {
     const mapping: Record<string, string> = {};
     
-    codebaseEntrepreneurCourses.forEach(course => {
+    entrepreneurCourses.forEach(course => {
         if (course.certificateTemplate) {
             mapping[course.slug] = course.name;
         }
@@ -322,9 +322,9 @@ export const getCourseNameMapping = () => {
 };
 
 export default {
-    official: officialCourses.filter((course) => ["normal", "featured"].includes(course.status) && course.category !== "Codebase"),
-    official_featured: officialCourses.filter((course) => course.status === "featured" && course.category !== "Codebase"),
-    codebaseEntrepreneur: codebaseEntrepreneurCourses,
+    official: officialCourses.filter((course) => ["normal", "featured"].includes(course.status) && course.category !== "Entrepreneur"),
+    official_featured: officialCourses.filter((course) => course.status === "featured" && course.category !== "Entrepreneur"),
+    avalancheEntrepreneur: entrepreneurCourses,
     ecosystem: ecosystemCourses,
 };
 
