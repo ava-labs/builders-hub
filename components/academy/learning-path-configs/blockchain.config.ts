@@ -31,8 +31,19 @@ export const blockchainLearningPaths: CourseNode[] = [
         slug: "blockchain/encrypted-erc",
         category: "Privacy",
         dependencies: ["intro-to-solidity"],
-        position: { x: 50, y: 500 },
+        position: { x: 30, y: 500 },
         mobileOrder: 3
+    },
+
+    {
+        id: "x402-payment-infrastructure",
+        name: "x402 Payment Infrastructure",
+        description: "Learn about instant, permissionless HTTP-native payments on Avalanche",
+        slug: "x402-payment-infrastructure",
+        category: "Fundamentals",
+        dependencies: ["intro-to-solidity"],
+        position: { x: 70, y: 500 },
+        mobileOrder: 4
     },
 ];
 

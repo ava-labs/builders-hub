@@ -2,7 +2,8 @@
   "pages": [
     "blockchain-fundamentals",
     "solidity-foundry",
-    "encrypted-erc"
+    "encrypted-erc",
+    "x402-payment-infrastructure"
   ]
 }
 
