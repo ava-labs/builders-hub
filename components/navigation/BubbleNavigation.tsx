@@ -90,7 +90,7 @@ export default function BubbleNavigation({
         const learningPathSection = document.getElementById('learning-path-section');
         if (learningPathSection) {
           // Get the section's position and scroll with offset to show the heading
-          const yOffset = -100;
+          const yOffset = -125;
           const targetY = learningPathSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
           const startY = window.pageYOffset;
           const distance = targetY - startY;

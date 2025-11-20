@@ -221,14 +221,21 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
                     className={cn(
                       "relative w-full p-4 rounded-xl transition-all duration-300",
                       "bg-white dark:bg-zinc-900",
-                      "border dark:border-zinc-800",
+                      "border-2 dark:border-zinc-800",
                       "shadow-sm active:shadow-lg",
                       isCategoryHovered
-                        ? "border-indigo-500 shadow-lg scale-105"
+                        ? "shadow-2xl scale-[1.075]"
                         : "border-zinc-200 active:scale-[0.98]",
                       style?.lightBg,
                       style?.darkBg
                     )}
+                    style={
+                      isCategoryHovered
+                        ? {
+                            boxShadow: `0 25px 50px -12px ${style?.gradient.includes('blue') ? 'rgba(59, 130, 246, 0.4)' : style?.gradient.includes('purple') ? 'rgba(168, 85, 247, 0.4)' : style?.gradient.includes('emerald') ? 'rgba(16, 185, 129, 0.4)' : style?.gradient.includes('red') ? 'rgba(239, 68, 68, 0.4)' : style?.gradient.includes('orange') ? 'rgba(249, 115, 22, 0.4)' : style?.gradient.includes('yellow') ? 'rgba(234, 179, 8, 0.4)' : 'rgba(99, 102, 241, 0.4)'}, 0 0 0 4px ${style?.gradient.includes('blue') ? 'rgba(59, 130, 246, 0.15)' : style?.gradient.includes('purple') ? 'rgba(168, 85, 247, 0.15)' : style?.gradient.includes('emerald') ? 'rgba(16, 185, 129, 0.15)' : style?.gradient.includes('red') ? 'rgba(239, 68, 68, 0.15)' : style?.gradient.includes('orange') ? 'rgba(249, 115, 22, 0.15)' : style?.gradient.includes('yellow') ? 'rgba(234, 179, 8, 0.15)' : 'rgba(99, 102, 241, 0.15)'}`
+                          }
+                        : undefined
+                    }
                   >
                     {/* Category icon */}
                     <div className={cn(
@@ -338,14 +345,21 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
                   className={cn(
                     "relative w-full p-5 rounded-2xl transition-all duration-300 min-height-[110px]",
                     "bg-white dark:bg-zinc-900",
-                    "border dark:border-zinc-800",
+                    "border-2 dark:border-zinc-800",
                     "shadow-sm",
                     isHighlighted || isCategoryHovered
-                      ? "border-indigo-500 shadow-lg scale-105"
+                      ? "shadow-2xl scale-[1.025]"
                       : "border-zinc-200 hover:shadow-lg hover:scale-[1.02] hover:border-zinc-300 dark:hover:border-zinc-700",
                     style?.lightBg,
                     style?.darkBg
                   )}
+                  style={
+                    isHighlighted || isCategoryHovered
+                      ? {
+                          boxShadow: `0 25px 50px -12px ${style?.gradient.includes('blue') ? 'rgba(59, 130, 246, 0.4)' : style?.gradient.includes('purple') ? 'rgba(168, 85, 247, 0.4)' : style?.gradient.includes('emerald') ? 'rgba(16, 185, 129, 0.4)' : style?.gradient.includes('red') ? 'rgba(239, 68, 68, 0.4)' : style?.gradient.includes('orange') ? 'rgba(249, 115, 22, 0.4)' : style?.gradient.includes('yellow') ? 'rgba(234, 179, 8, 0.4)' : 'rgba(99, 102, 241, 0.4)'}, 0 0 0 4px ${style?.gradient.includes('blue') ? 'rgba(59, 130, 246, 0.15)' : style?.gradient.includes('purple') ? 'rgba(168, 85, 247, 0.15)' : style?.gradient.includes('emerald') ? 'rgba(16, 185, 129, 0.15)' : style?.gradient.includes('red') ? 'rgba(239, 68, 68, 0.15)' : style?.gradient.includes('orange') ? 'rgba(249, 115, 22, 0.15)' : style?.gradient.includes('yellow') ? 'rgba(234, 179, 8, 0.15)' : 'rgba(99, 102, 241, 0.15)'}`
+                        }
+                      : undefined
+                  }
                 >
                   {/* Category icon */}
                   <div className={cn(
@@ -380,26 +394,35 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
   );
 
   return (
-    <div className="relative w-full">
-      {/* Vertical Legend on far left - only visible on desktop/tablet */}
-      <div className="hidden md:block fixed left-4 top-1/3 z-10">
+    <>
+      {/* Vertical Legend on far left of screen - positioned absolutely relative to viewport */}
+      <div 
+        className="hidden lg:block absolute z-10"
+        style={{
+          left: '1rem',
+          top: '30%',
+          transform: 'translateY(-50%)',
+          marginLeft: 'calc(-50vw + 50%)'
+        }}
+      >
         <Legend isMobile={false} vertical={true} />
       </div>
 
-      {/* Mobile Layout - visible on small screens, hidden on lg and up */}
-      <div className="block lg:hidden">
-        {/* Legend at top for mobile */}
-        <div className="mb-8">
-          <Legend isMobile={true} />
+      <div className="relative w-full">
+        {/* Mobile Layout - visible on small screens, hidden on lg and up */}
+        <div className="block lg:hidden">
+          {/* Legend at top for mobile */}
+          <div className="mb-8">
+            <Legend isMobile={true} />
+          </div>
+          <MobileLayout />
         </div>
-        <MobileLayout />
-      </div>
 
-      {/* Desktop Layout - hidden on small screens, visible on lg and up */}
-      <div className="hidden lg:block">
-        <DesktopLayout />
+        {/* Desktop Layout - hidden on small screens, visible on lg and up */}
+        <div className="hidden lg:block">
+          <DesktopLayout />
+        </div>
       </div>
-    </div>
-
+    </>
   );
 } 
