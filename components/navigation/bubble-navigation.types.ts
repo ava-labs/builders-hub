@@ -1,7 +1,7 @@
 export interface BubbleNavItem {
     id: string;
     label: string;
-    href: string;
+    href?: string;
 }
 
 export interface BubbleNavigationConfig {
