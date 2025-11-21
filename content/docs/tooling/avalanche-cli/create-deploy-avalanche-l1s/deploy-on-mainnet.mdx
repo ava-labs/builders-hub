@@ -8,7 +8,7 @@ Deploying an Avalanche L1 to Mainnet has many risks. Doing so safely requires a 
 This tutorial is an educational resource and provides no guarantees that following it results in a secure deployment. Additionally, this tutorial takes some shortcuts that aid the understanding of the deployment process at the expense of security. The text highlights these shortcuts and they shouldn't be used for a production deployment.
 </Callout>
 
-After managing a successful Avalanche L1 deployment on the `Fuji Testnet`, you're ready to deploy your Avalanche L1 on Mainnet. If you haven't done so, first [Deploy an Avalanche L1 on Testnet](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-fuji-testnet).
+After managing a successful Avalanche L1 deployment on the `Fuji Testnet`, you're ready to deploy your Avalanche L1 on Mainnet. If you haven't done so, first [Deploy an Avalanche L1 on Testnet](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-fuji-testnet).
 
 This tutorial shows how to do the following on `Mainnet`.
 
@@ -22,9 +22,9 @@ All IDs in this article are for illustration purposes only. They are guaranteed 
 ## Prerequisites
 
 - An Avalanche node running and [fully bootstrapped](/docs/nodes) on `Mainnet`
-- [Avalanche-CLI is installed](/docs/tooling/get-avalanche-cli) on each validator node's box
+- [Avalanche-CLI is installed](/docs/tooling/avalanche-cli) on each validator node's box
 - A [Ledger](https://www.ledger.com/) device
-- You've [created an Avalanche L1 configuration](/docs/tooling/create-avalanche-l1#create-your-avalanche-l1-configuration) and fully tested a [Fuji Testnet Avalanche L1 deployment](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-fuji-testnet)
+- You've [created an Avalanche L1 configuration](/docs/tooling/avalanche-cli#create-your-avalanche-l1-configuration) and fully tested a [Fuji Testnet Avalanche L1 deployment](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-fuji-testnet)
 
 ### Setting up Your Ledger[​](#setting-up-your-ledger "Direct link to heading")
 
@@ -72,7 +72,7 @@ To deploy the Avalanche L1, you will need some AVAX on the P-Chain.
 For our Fuji example, we used our local machine as a bootstrap validator. However, since bootstrapping a node to Mainnet will take several hours,
 we will use an Avalanche node set up on an AWS server that is already bootstrapped to Mainnet for this example.
 
-To check if the Avalanche node is done bootstrapping, ssh into the node and call [`info.isBootstrapped`](/docs/api-reference/info-api#infoisbootstrapped) by copying and pasting the following command:
+To check if the Avalanche node is done bootstrapping, ssh into the node and call [`info.isBootstrapped`](/docs/rpcs/other/info-rpc#infoisbootstrapped) by copying and pasting the following command:
 
 ```bash
 curl -X POST --data '{
@@ -87,7 +87,7 @@ curl -X POST --data '{
 
 If this returns `true`, it means that the chain is bootstrapped and we will proceed to deploying our L1.
 
-We will need to have the Avalanche node's NodeID, BLS public key and proof of possession. These can be obtained by ssh into the node itself and run the `getNodeID` API specified [here](/docs/api-reference/info-api#infogetnodeid)
+We will need to have the Avalanche node's NodeID, BLS public key and proof of possession. These can be obtained by ssh into the node itself and run the `getNodeID` API specified [here](/docs/rpcs/other/info-rpc#infogetnodeid)
 
 To deploy the new Avalanche L1, with your Ledger unlocked and running the Avalanche app, run:
 
@@ -158,7 +158,7 @@ And BLS public key and proof of possession:
 
 ```bash
 Next, we need the public key and proof of possession of the node's BLS
-Check https://build.avax.network/docs/api-reference/info-api#infogetnodeid for instructions on calling info.getNodeID API
+Check https://build.avax.network/docs/rpcs/other/info-rpc#infogetnodeid for instructions on calling info.getNodeID API
 ✗ What is the node's BLS public key?: █
 ```
 
@@ -207,7 +207,7 @@ To get your new Avalanche L1 information, there are two options:
 Add a Validator[​](#add-a-validator "Direct link to heading")
 -------------------------------------------------------------
 
-Before proceeding to add a validator to our Avalanche L1, we will need to have the validator's NodeID, BLS public key and proof of possession. These can be obtained by ssh into the node itself and run the `getNodeID` API specified [here](/docs/api-reference/info-api#infogetnodeid)
+Before proceeding to add a validator to our Avalanche L1, we will need to have the validator's NodeID, BLS public key and proof of possession. These can be obtained by ssh into the node itself and run the `getNodeID` API specified [here](/docs/rpcs/other/info-rpc#infogetnodeid)
 
 To add a validator to an Avalanche L1, the owner of the key that acts as the controller of ValidatorManager contract specified in `avalanche blockchain create` command above run:
 

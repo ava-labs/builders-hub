@@ -5,14 +5,14 @@ description: Deploy a smart contract on your Avalanche L1.
 
 This tutorial assumes that:
 
-- [an Avalanche L1 and EVM blockchain](/docs/avalanche-l1s/deploy-a-avalanche-l1/fuji-testnet) has been created
+- [an Avalanche L1 and EVM blockchain](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-fuji-testnet) has been created
 - Your Node is currently validating your target Avalanche L1
-- Your wallet has a balance of the Avalanche L1 Native Token(Specified under _alloc_ in your [Genesis File](/docs/avalanche-l1s/upgrade/customize-avalanche-l1#genesis)).
+- Your wallet has a balance of the Avalanche L1 Native Token(Specified under _alloc_ in your [Genesis File](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#genesis)).
 
 Step 1: Setting up Core[​](#step-1-setting-up-core "Direct link to heading")
 ----------------------------------------------------------------------------
 
-### **EVM Avalanche L1 Settings**: [(EVM Core Tutorial)](/docs/avalanche-l1s/deploy-a-avalanche-l1/fuji-testnet#connect-with-core)[​](#evm-avalanche-l1-settings-evm-core-tutorial "Direct link to heading")
+### **EVM Avalanche L1 Settings**: [(EVM Core Tutorial)](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-fuji-testnet#connect-with-core)[​](#evm-avalanche-l1-settings-evm-core-tutorial "Direct link to heading")
 
 - **`Network Name`**: Custom Subnet-EVM
 - **`New RPC URL`**: http://NodeIPAddress:9650/ext/bc/BlockchainID/rpc (Note: the port number should match your local setting which can be different from 9650.)
@@ -79,4 +79,4 @@ The contract ABI and Bytecode are available on the compiler tab.
 
 If you had any difficulties following this tutorial or simply want to discuss Avalanche with us, you can join our community at [Discord](https://chat.avalabs.org/)!
 
-You can use Subnet-EVM just like you use C-Chain and EVM tools. Only differences are `chainID` and RPC URL. For example you can deploy your contracts with [hardhat quick start guide](/docs/dapps/toolchains/hardhat) by changing `url` and `chainId` in the `hardhat.config.ts`.
+You can use Subnet-EVM just like you use C-Chain and EVM tools. Only differences are `chainID` and RPC URL. For example you can deploy your contracts with [Hardhat](https://hardhat.org/getting-started) by changing `url` and `chainId` in the `hardhat.config.ts`.

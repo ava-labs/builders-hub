@@ -196,7 +196,7 @@ sudo apt update; sudo apt upgrade -y; sudo reboot
 
 This also reboots the instance. Wait 5 minutes, then log in again by running this command on your local machine:
 
-You're logged into the EC2 instance again. Now we'll need to set up our Avalanche node. To do this, follow the [Set Up Avalanche Node With Installer](/docs/nodes/using-install-script/installing-avalanche-go) tutorial which automates the installation process. You will need the `PUBLICIP` we set up earlier.
+You're logged into the EC2 instance again. Now we'll need to set up our Avalanche node. To do this, follow the [Set Up Avalanche Node With Installer](/docs/nodes/run-a-node/using-install-script/installing-avalanche-go) tutorial which automates the installation process. You will need the `PUBLICIP` we set up earlier.
 
 Your AvalancheGo node should now be running and in the process of bootstrapping, which can take a few hours. To check if it's done, you can issue an API call using `curl`. If you're making the request from the EC2 instance, the request is:
 
@@ -243,7 +243,7 @@ The response contains the node ID.
 
 In the above example the node ID is`NodeID-DznHmm3o7RkmpLkWMn9NqafH66mqunXbM`. Copy your node ID for later. Your node ID is not a secret, so you can just paste it into a text editor.
 
-AvalancheGo has other APIs, such as the [Health API](/docs/api-reference/health-api), that may be used to interact with the node. Some APIs are disabled by default. To enable such APIs, modify the ExecStart section of `/etc/systemd/system/avalanchego.service` (created during the installation process) to include flags that enable these endpoints. Don't manually enable any APIs unless you have a reason to.
+AvalancheGo has other APIs, such as the [Health API](/docs/rpcs/other/health-rpc), that may be used to interact with the node. Some APIs are disabled by default. To enable such APIs, modify the ExecStart section of `/etc/systemd/system/avalanchego.service` (created during the installation process) to include flags that enable these endpoints. Don't manually enable any APIs unless you have a reason to.
 
 ![Some APIs are disabled by default.](/images/amazon29.png)
 

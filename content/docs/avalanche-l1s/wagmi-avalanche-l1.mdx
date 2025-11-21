@@ -47,7 +47,7 @@ Instead of hard coding the timing of network upgrades in client code like most E
 
 ### Network Upgrades: Enable/Disable Precompiles[​](#network-upgrades-enabledisable-precompiles "Direct link to heading")
 
-Detailed description of how to do this can be found in [Customize an Avalanche L1](/docs/avalanche-l1s/upgrade/customize-avalanche-l1#network-upgrades-enabledisable-precompiles) tutorial. Here's a summary:
+Detailed description of how to do this can be found in [Customize an Avalanche L1](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#network-upgrades-enabledisable-precompiles) tutorial. Here's a summary:
 
 1. Network Upgrade utilizes existing precompiles on the Subnet-EVM:
     - ContractDeployerAllowList, for restricting smart contract deployers
@@ -56,7 +56,7 @@ Detailed description of how to do this can be found in [Customize an Avalanche L
     - FeeManager, for configuring dynamic fees
     - RewardManager, for enabling block rewards
 2. Each of these precompiles can be individually enabled or disabled at a given timestamp as a network upgrade, or any of the parameters governing its behavior changed.
-3. These upgrades must be specified in a file named `upgrade.json` placed in the same directory where [`config.json`](/docs/avalanche-l1s/upgrade/customize-avalanche-l1#avalanchego-chain-configs) resides: `{chain-config-dir}/{blockchainID}/upgrade.json`.
+3. These upgrades must be specified in a file named `upgrade.json` placed in the same directory where [`config.json`](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#avalanchego-chain-configs) resides: `{chain-config-dir}/{blockchainID}/upgrade.json`.
 
 ### Preparation[​](#preparation "Direct link to heading")
 
@@ -98,7 +98,7 @@ With the above `upgrade.json`, we intend to perform two network upgrades:
     - `0xadFA2910DC148674910c07d18DF966A28CD21331` is named as the new Manager of the NativeMinter precompile. Manager addresses are enabled after Durango upgrades which occurred on February 13, 2024.
     - `1708696800` is the [Unix timestamp](https://www.unixtimestamp.com/) for Fri Feb 23 2024 14:00:00 GMT+0000 (future time when we made the announcement) when the new NativeMinter change would take effect.
 
-Detailed explanations of feeManagerConfig can be found in [here](/docs/avalanche-l1s/upgrade/customize-avalanche-l1#configuring-dynamic-fees), and for the contractNativeMinterConfig in [here](/docs/avalanche-l1s/upgrade/customize-avalanche-l1#minting-native-coins).
+Detailed explanations of feeManagerConfig can be found in [here](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#configuring-dynamic-fees), and for the contractNativeMinterConfig in [here](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#minting-native-coins).
 
 We place the `upgrade.json` file in the chain config directory, which in our case is `~/.avalanchego/configs/chains/2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt/`. After that, we restart the node so the upgrade file is loaded.
 
@@ -172,7 +172,7 @@ We can compile them and interact with the deployed contract at the precompile ad
 
 ![Deployed contract](/images/wagmi8.png)
 
-The native minter precompile is used to mint native coins to specified addresses. The minted coins is added to the current supply and can be used by the recipient to pay for gas fees. For more information about the native minter precompile see [here](/docs/avalanche-l1s/upgrade/customize-avalanche-l1#minting-native-coins).
+The native minter precompile is used to mint native coins to specified addresses. The minted coins is added to the current supply and can be used by the recipient to pay for gas fees. For more information about the native minter precompile see [here](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#minting-native-coins).
 
 `mintNativeCoin` method can be only called by enabled, manager and admin addresses. For this upgrade we have added both an admin and a manager address in [`upgrade.json` above](#deploying-upgradejson). The manager address was available after Durango upgrades which occurred on February 13, 2024. We will use the manager address `0xadfa2910dc148674910c07d18df966a28cd21331` to mint native coins.
 

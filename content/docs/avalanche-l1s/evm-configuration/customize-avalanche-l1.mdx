@@ -80,7 +80,7 @@ The default genesis Subnet-EVM provided below has some well defined parameters:
 
 `chainID`: Denotes the ChainID of to be created chain. Must be picked carefully since a conflict with other chains can cause issues. One suggestion is to check with [chainlist.org](https://chainlist.org/) to avoid ID collision, reserve and publish your ChainID properly.
 
-You can use `eth_getChainConfig` RPC call to get the current chain config. See [here](/docs/api-reference/subnet-evm-api#eth_getchainconfig) for more info.
+You can use `eth_getChainConfig` RPC call to get the current chain config. See [here](/docs/rpcs/subnet-evm#eth_getchainconfig) for more info.
 
 #### Hard Forks[​](#hard-forks "Direct link to heading")
 
@@ -511,7 +511,7 @@ In addition to the `AllowList` interface, the FeeConfigManager adds the followin
 - `setFeeConfig`: sets the dynamic fee config on chain (see [here](#fee-config) for details on the fee config parameters). This function can only be called by an `Admin`, `Manager` or `Enabled` address.
 - `FeeConfigChanged`: an event that is emitted when the fee config is updated. Topics include the sender, the old fee config, and the new fee config.
 
-You can also get the fee configuration at a block with the `eth_feeConfig` RPC method. For more information see [here](/docs/api-reference/subnet-evm-api#eth_feeconfig).
+You can also get the fee configuration at a block with the `eth_feeConfig` RPC method. For more information see [here](/docs/rpcs/subnet-evm#eth_feeconfig).
 
 #### Initial Fee Config Configuration[​](#initial-fee-config-configuration "Direct link to heading")
 
@@ -653,7 +653,7 @@ Constantinople: 0 Petersburg: 0 Istanbul: 0, Muir Glacier: 0, Subnet EVM: 0, Fee
 “subnetEVMTimestamp\“:0}, PrecompileUpgrade: {}, UpgradeConfig: {\"precompileUpgrades\":[{\"feeManagerConfig\":{\"adminAddresses\":[\"0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc\"],\"enabledAddresses\":null,\"blockTimestamp\":1668950000}},{\"txAllowListConfig\":{\"adminAddresses\":[\"0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc\"],\"enabledAddresses\":null,\"blockTimestamp\":1668960000}},{\"feeManagerConfig\":{\"adminAddresses\":null,\"enabledAddresses\":null,\"blockTimestamp\":1668970000,\"disable\":true}}]}, Engine: Dummy Consensus Engine}"
 ```
 
-Notice that `precompileUpgrades` entry correctly reflects the changes. You can also check the activated precompiles at a timestamp with the [`eth_getActivePrecompilesAt`](/docs/api-reference/subnet-evm-api#eth_getactiveprecompilesat) RPC method. The [`eth_getChainConfig`](/docs/api-reference/subnet-evm-api#eth_getchainconfig) RPC method will also return the configured upgrades in the response.
+Notice that `precompileUpgrades` entry correctly reflects the changes. You can also check the activated precompiles at a timestamp with the [`eth_getActivePrecompilesAt`](/docs/rpcs/subnet-evm#eth_getactiveprecompilesat) RPC method. The [`eth_getChainConfig`](/docs/rpcs/subnet-evm#eth_getchainconfig) RPC method will also return the configured upgrades in the response.
 
 That's it, your Avalanche L1 is all set and the desired upgrades will be activated at the indicated timestamp!
 
@@ -717,7 +717,7 @@ AvalancheGo Chain Configs[​](#avalanchego-chain-configs "Direct link to headin
 
 As described in [this doc](/docs/nodes/configure/configs-flags#avalanche-l1-chain-configs), each blockchain of Avalanche L1s can have its own custom configuration. If an Avalanche L1's ChainID is `2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt`, the config file for this chain is located at `{chain-config-dir}/2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt/config.json`.
 
-For blockchains created by or forked from Subnet-EVM, most [C-Chain configs](/docs/nodes/chain-configs/c-chain) are applicable except [Avalanche Specific APIs](/docs/nodes/chain-configs/c-chain#enabling-avalanche-specific-apis).
+For blockchains created by or forked from Subnet-EVM, most [C-Chain configs](/docs/nodes/chain-configs/primary-network/c-chain) are applicable except [Avalanche Specific APIs](/docs/nodes/chain-configs/primary-network/c-chain#enabling-avalanche-specific-apis).
 
 ### Priority Regossip[​](#priority-regossip "Direct link to heading")
 

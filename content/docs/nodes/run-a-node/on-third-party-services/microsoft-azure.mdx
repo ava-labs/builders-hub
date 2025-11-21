@@ -11,7 +11,7 @@ Running a validator and staking with Avalanche provides extremely competitive re
 
 Not only does running a validator node enable you to receive rewards in AVAX, but later you will also be able to validate other Avalanche L1s in the ecosystem as well and receive rewards in the token native to their Avalanche L1s.
 
-Hardware requirements to run a validator are relatively modest: 8 CPU cores, 16 GB of RAM and 1 TB SSD. It also doesn't use enormous amounts of energy. Avalanche's [revolutionary consensus mechanism](/docs/quick-start/avalanche-consensus) is able to scale to millions of validators participating in consensus at once, offering unparalleled decentralisation.
+Hardware requirements to run a validator are relatively modest: 8 CPU cores, 16 GB of RAM and 1 TB SSD. It also doesn't use enormous amounts of energy. Avalanche's [revolutionary consensus mechanism](/docs/primary-network/avalanche-consensus) is able to scale to millions of validators participating in consensus at once, offering unparalleled decentralisation.
 
 Currently the minimum amount required to stake to become a validator is 2,000 AVAX. Alternatively, validators can also charge a small fee to enable users to delegate their stake with them to help towards running costs.
 In this article we will step through the process of configuring a node on Microsoft Azure. This tutorial assumes no prior experience with Microsoft Azure and will go through each step with as few assumptions possible.
@@ -192,7 +192,7 @@ Then start the VM
 Connect to the Avalanche Node[​](#connect-to-the-avalanche-node "Direct link to heading")
 -----------------------------------------------------------------------------------------
 
-The following instructions show how to connect to the Virtual Machine from a Windows 10 machine. For instructions on how to connect from a Ubuntu machine see the [AWS tutorial](/docs/nodes/on-third-party-services/amazon-web-services).
+The following instructions show how to connect to the Virtual Machine from a Windows 10 machine. For instructions on how to connect from a Ubuntu machine see the [AWS tutorial](/docs/nodes/run-a-node/on-third-party-services/amazon-web-services).
 
 On your local PC, create a folder on the root of the C: drive called Avalanche and then move the Avalanche\_key.pem file you downloaded before into the folder. Then right click the file and select Properties. Go to the security tab and select "Advanced" at the bottom
 
@@ -240,7 +240,7 @@ You should now be connected to your Node.
 
 ![Image for post](/images/azure45.png)
 
-The following section is taken from Colin's excellent tutorial for [configuring an Avalanche Node on Amazon's AWS](/docs/nodes/on-third-party-services/amazon-web-services).
+The following section is taken from Colin's excellent tutorial for [configuring an Avalanche Node on Amazon's AWS](/docs/nodes/run-a-node/on-third-party-services/amazon-web-services).
 
 ### Update Linux with Security Patches[​](#update-linux-with-security-patches "Direct link to heading")
 
@@ -258,7 +258,7 @@ This will make our instance up to date with the latest security patches for our 
 
 ### Set up the Avalanche Node[​](#set-up-the-avalanche-node "Direct link to heading")
 
-Now we'll need to set up our Avalanche node. To do this, follow the [Set Up Avalanche Node With Installer](/docs/nodes/using-install-script/installing-avalanche-go) tutorial which automates the installation process. You will need the "IPv4 Public IP" copied from the Azure Portal we set up earlier.
+Now we'll need to set up our Avalanche node. To do this, follow the [Set Up Avalanche Node With Installer](/docs/nodes/run-a-node/using-install-script/installing-avalanche-go) tutorial which automates the installation process. You will need the "IPv4 Public IP" copied from the Azure Portal we set up earlier.
 
 Once the installation is complete, our node should now be bootstrapping! We can run the following command to take a peek at the latest status of the AvalancheGo node:
 

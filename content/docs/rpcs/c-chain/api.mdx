@@ -5,7 +5,7 @@ edit_url: https://github.com/ava-labs/coreth/edit/master/plugin/evm/api.md
 ---
 
 <Callout title="Note">
-Ethereum has its own notion of `networkID` and `chainID`. These have no relationship to Avalanche's view of networkID and chainID and are purely internal to the [C-Chain](https://github.com/docs/quick-start/primary-network#c-chain). On Mainnet, the C-Chain uses `1` and `43114` for these values. On the Fuji Testnet, it uses `1` and `43113` for these values. `networkID` and `chainID` can also be obtained using the `net_version` and `eth_chainId` methods.
+Ethereum has its own notion of `networkID` and `chainID`. These have no relationship to Avalanche's view of networkID and chainID and are purely internal to the [C-Chain](https://github.com/docs/primary-network#c-chain). On Mainnet, the C-Chain uses `1` and `43114` for these values. On the Fuji Testnet, it uses `1` and `43113` for these values. `networkID` and `chainID` can also be obtained using the `net_version` and `eth_chainId` methods.
 </Callout>
 
 ## Ethereum APIs
@@ -31,7 +31,7 @@ where `blockchainID` is the ID of the blockchain running the EVM.
 #### WebSocket Endpoints
 
 <Callout title="info">
-On the [public API node](https://github.com/docs/tooling/rpc-providers), it only supports C-Chain
+On the [public API node](https://github.com/docs/rpcs), it only supports C-Chain
 websocket API calls for API methods that don't exist on the C-Chain's HTTP API
 </Callout>
 
@@ -48,7 +48,7 @@ ws://127.0.0.1:9650/ext/bc/C/ws
 ```
 
 <Callout title="Tip" icon = {<BadgeCheck className="size-5 text-card" fill="green" />} >
-On localhost, use `ws://`. When using the [Public API](https://github.com/docs/tooling/rpc-providers) or another
+On localhost, use `ws://`. When using the [Public API](https://github.com/docs/rpcs) or another
 host that supports encryption, use `wss://`.
 </Callout>
 
@@ -78,7 +78,7 @@ and [Geth's JSON-RPC Documentation](https://geth.ethereum.org/docs/rpc/server)
 for a full description of this API.
 
 <Callout title="info">
-For batched requests on the [public API node](https://github.com/docs/tooling/rpc-providers) , the maximum
+For batched requests on the [public API node](https://github.com/docs/rpcs) , the maximum
 number of items is 40.
 </Callout>
 
@@ -167,7 +167,7 @@ curl -X POST --data '{
 ```
 
 For more information on dynamic fees see the [C-Chain section of the transaction fee
-documentation](https://github.com/docs/api-reference/guides/txn-fees#c-chain-fees).
+documentation](https://github.com/docs/rpcs/other/guides/txn-fees#c-chain-fees).
 
 ## Admin APIs
 

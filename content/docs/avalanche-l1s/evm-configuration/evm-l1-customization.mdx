@@ -41,7 +41,7 @@ The chain configuration section in your genesis file defines fundamental paramet
 #### Chain ID
 `chainID`: Denotes the ChainID of to be created chain. Must be picked carefully since a conflict with other chains can cause issues. One suggestion is to check with [chainlist.org](https://chainlist.org/) to avoid ID collision, reserve and publish your ChainID properly.
 
-You can use `eth_getChainConfig` RPC call to get the current chain config. See [here](/docs/api-reference/subnet-evm-api#eth_getchainconfig) for more info.
+You can use `eth_getChainConfig` RPC call to get the current chain config. See [here](/docs/rpcs/subnet-evm#eth_getchainconfig) for more info.
 
 #### Hard Forks
 The following parameters define EVM hard fork activation times. These should be handled with care as changes may cause compatibility issues:

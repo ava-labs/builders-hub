@@ -118,7 +118,7 @@ In addition to the AllowList interface, the FeeManager adds the following capabi
 - `setFeeConfig`: sets the dynamic fee config on chain. This function can only be called by an Admin, Manager or Enabled address.
 - `FeeConfigChanged`: an event that is emitted when the fee config is updated. Topics include the sender, the old fee config, and the new fee config.
 
-You can also get the fee configuration at a block with the `eth_feeConfig` RPC method. For more information see [here](/docs/api-reference/subnet-evm-api#eth_feeconfig).
+You can also get the fee configuration at a block with the `eth_feeConfig` RPC method. For more information see [here](/docs/rpcs/subnet-evm#eth_feeconfig).
 
 ## Best Practices
 
@@ -141,6 +141,6 @@ You can find the Fee Manager implementation in the [subnet-evm repository](https
 ## Interacting with the Precompile
 
 For information on how to interact with this precompile, see:
-- [Interacting with Precompiles](/docs/avalanche-l1s/evm-configuration/interacting-with-precompiles)
+- [Interacting with Precompiles](/docs/avalanche-l1s/precompiles/interacting-with-precompiles)
 - [Fee Manager Console](/console/l1-tokenomics/fee-manager)
 

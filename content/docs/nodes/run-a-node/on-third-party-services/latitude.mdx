@@ -32,7 +32,7 @@ All your Latitude.sh credentials are available by clicking the `server` under yo
 You will need to install the `avalanche node installer script` directly in the server's terminal.
 </Callout>
 
-After gaining access, we'll need to set up our Avalanche node. To do this, follow the instructions here to install and run your node [Set Up Avalanche Node With Installer](/docs/nodes/using-install-script/installing-avalanche-go).
+After gaining access, we'll need to set up our Avalanche node. To do this, follow the instructions here to install and run your node [Set Up Avalanche Node With Installer](/docs/nodes/run-a-node/using-install-script/installing-avalanche-go).
 
 Your AvalancheGo node should now be running and in the process of bootstrapping, which can take a few hours. To check if it's done, you can issue an API call using `curl`. The request is:
 
@@ -81,7 +81,7 @@ The response contains the node ID.
 
 In the above example the node ID is `NodeID-KhDnAoZDW8iRJ3F26iQgK5xXVFMPcaYeu`.
 
-AvalancheGo has other APIs, such as the [Health API](/docs/api-reference/health-api), that may be used to interact with the node. Some APIs are disabled by default. To enable such APIs, modify the ExecStart section of `/etc/systemd/system/avalanchego.service` (created during the installation process) to include flags that enable these endpoints. Don't manually enable any APIs unless you have a reason to.
+AvalancheGo has other APIs, such as the [Health API](/docs/rpcs/other/health-rpc), that may be used to interact with the node. Some APIs are disabled by default. To enable such APIs, modify the ExecStart section of `/etc/systemd/system/avalanchego.service` (created during the installation process) to include flags that enable these endpoints. Don't manually enable any APIs unless you have a reason to.
 
 Exit out of the SSH server by running:
 

@@ -7,12 +7,12 @@ description: Advanced options for configuring and maintaining your AvalancheGo n
 
 Without any additional arguments, the script installs the node in a most common configuration. But the script also enables various advanced options to be configured, via the command line prompts. Following is a list of advanced options and their usage:
 
-- `admin` - [Admin API](/docs/api-reference/admin-api) will be enabled
+- `admin` - [Admin API](/docs/rpcs/other/admin-rpc) will be enabled
 - `archival` - disables database pruning and preserves the complete transaction history
 - `state-sync` - if `on` state-sync for the C-Chain is used, if `off` it will use regular transaction replay to bootstrap; state-sync is much faster, but has no historical data
 - `db-dir` - use to provide the full path to the location where the database will be stored
 - `fuji` - node will connect to Fuji testnet instead of the Mainnet
-- `index` - [Index API](/docs/api-reference/index-api) will be enabled
+- `index` - [Index API](/docs/rpcs/other/index-rpc) will be enabled
 - `ip` - use `dynamic`, `static` arguments, of enter a desired IP directly to be used as the public IP node will advertise to the network
 - `rpc` - use `any` or `local` argument to select any or local network interface to be used to listen for RPC calls
 - `version` - install a specific node version, instead of the latest. See [here](#using-a-previous-version) for usage.
@@ -151,7 +151,7 @@ That's it, you're running an AvalancheGo node! Congratulations! Let us know you 
 
 If you're on a residential network (dynamic IP), don't forget to set up port forwarding. If you're on a cloud service provider, you're good to go.
 
-Now you can [interact with your node](/docs/api-reference/standards/guides/issuing-api-calls), [stake your tokens](/docs/nodes/validate/what-is-staking), or level up your installation by setting up [node monitoring](/docs/nodes/maintain/monitoring) to get a better insight into what your node is doing. Also, you might want to use our [Postman Collection](/docs/tooling/avalanche-postman/add-postman-collection) to more easily issue commands to your node.
+Now you can [interact with your node](/docs/rpcs/other/guides/issuing-api-calls), [stake your tokens](/docs/primary-network/validate/what-is-staking), or level up your installation by setting up [node monitoring](/docs/nodes/maintain/monitoring) to get a better insight into what your node is doing. Also, you might want to use our [Postman Collection](/docs/tooling/avalanche-postman) to more easily issue commands to your node.
 
 Finally, if you haven't already, it is a good idea to [back up](/docs/nodes/maintain/backup-restore) important files in case you ever need to restore your node to a different machine.
 

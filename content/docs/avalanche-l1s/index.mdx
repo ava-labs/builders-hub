@@ -5,11 +5,11 @@ description: Explore the multi-chain architecture of Avalanche ecosystem.
 
 An Avalanche L1 is a sovereign network which defines its own rules regarding its membership and token economics. It is composed of a dynamic subset of Avalanche validators working together to achieve consensus on the state of one or more blockchains. Each blockchain is validated by exactly one Avalanche L1, while an Avalanche L1 can validate many blockchains.
 
-Avalanche's [Primary Network](/docs/quick-start/primary-network) is a special Avalanche L1 running three blockchains:
+Avalanche's [Primary Network](/docs/primary-network) is a special Avalanche L1 running three blockchains:
 
-- The Platform Chain [(P-Chain)](/docs/quick-start/primary-network#p-chain)
-- The Contract Chain [(C-Chain)](/docs/quick-start/primary-network#c-chain)
-- The Exchange Chain [(X-Chain)](/docs/quick-start/primary-network#x-chain)
+- The Platform Chain [(P-Chain)](/docs/primary-network#p-chain-platform-chain)
+- The Contract Chain [(C-Chain)](/docs/primary-network#c-chain-contract-chain)
+- The Exchange Chain [(X-Chain)](/docs/primary-network#x-chain-exchange-chain)
 
 ![image](/images/subnet1.png)
 
@@ -26,7 +26,7 @@ Node operators that validate an Avalanche L1 with multiple chains do not need to
 - Avalanche L1s use virtual machines to specify their own execution logic, determine their own fee regime, maintain their own state, facilitate their own networking, and provide their own security.
 - Each Avalanche L1's performance is isolated from other Avalanche L1s in the ecosystem, so increased usage on one Avalanche L1 won't affect another.
 - Avalanche L1s can have their own token economics with their own native tokens, fee markets, and incentives determined by the Avalanche L1 deployer.
-- One Avalanche L1 can host multiple blockchains with customized [virtual machines](/docs/quick-start/virtual-machines).
+- One Avalanche L1 can host multiple blockchains with customized [virtual machines](/docs/primary-network/virtual-machines).
 
 ### Native Interoperability
 
@@ -106,4 +106,4 @@ Of course, we're happy to talk to you about your architecture and help you choos
 
 Avalanche L1s on Avalanche are deployed by default with [Subnet-EVM](https://github.com/ava-labs/subnet-evm#subnet-evm), a fork of go-ethereum. It implements the Ethereum Virtual Machine and supports Solidity smart contracts as well as most other Ethereum client functionality.
 
-To get started, check out our [L1 Toolbox](/tools/l1-toolbox) or the tutorials in the [Avalanche CLI](/docs/tooling/create-avalanche-l1) section.
+To get started, check out our [L1 Toolbox](/tools/l1-toolbox) or the tutorials in the [Avalanche CLI](/docs/tooling/avalanche-cli) section.

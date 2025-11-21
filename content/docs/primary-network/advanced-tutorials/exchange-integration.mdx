@@ -27,7 +27,7 @@ website.
 If you want to build your node form source or include it in a docker image,
 reference the [AvalancheGo GitHub
 repository](https://github.com/ava-labs/avalanchego). To quickly get up and
-running, you can use the [node installation script](/docs/nodes/using-install-script/installing-avalanche-go) that automates installing
+running, you can use the [node installation script](/docs/nodes/run-a-node/using-install-script/installing-avalanche-go) that automates installing
 and updating AvalancheGo node as a `systemd` service on Linux, using prebuilt
 binaries.
 
@@ -43,7 +43,7 @@ a JSON file whose keys and values are option names and values.
 Individual chains, including the C-Chain, have their own configuration options
 which are separate from the node-level options. These can also be specified in a
 config file. For more details, see
-[here](/docs/nodes/chain-configs/c-chain).
+[here](/docs/nodes/chain-configs/primary-network/c-chain).
 
 The C-Chain config file should be at
 `$HOME/.avalanchego/configs/chains/C/config.json`. You can also tell AvalancheGo
@@ -85,7 +85,7 @@ default since AvalancheGo v1.4.10. To disable pruning, include
 
 Interacting with the C-Chain is identical to interacting with
 [`go-ethereum`](https://geth.ethereum.org/). You can find the reference material
-for C-Chain API [here](/docs/api-reference/c-chain/api).
+for C-Chain API [here](/docs/rpcs/c-chain).
 
 Please note that `personal_` namespace is turned off by default. To turn it on,
 you need to pass the appropriate command line switch to your node, like in the
@@ -118,16 +118,15 @@ can be found in the linked repository.
 Avalanche C-Chain transactions are identical to standard EVM transactions with 2 exceptions:
 
 - They must be signed with Avalanche's ChainID (43114).
-- The detailed dynamic gas fee can be found [here](/docs/api-reference/guides/txn-fees#c-chain-fees).
+- The detailed dynamic gas fee can be found [here](/docs/rpcs/other/guides/txn-fees#c-chain-fees).
 
 For development purposes, Avalanche supports all the popular tooling for
 Ethereum, so developers familiar with Ethereum and Solidity can feel right at
-home. We have tutorials and repositories for several popular development
-environments:
+home. Popular development environments include:
 
-- [Core and Remix](/docs/dapps/smart-contract-dev/deploy-with-remix-ide)
-- [thirdweb](/docs/dapps/toolchains/thirdweb)
-- [Hardhat](/docs/dapps/toolchains/hardhat)
+- [Remix IDE](https://remix.ethereum.org/)
+- [thirdweb](https://thirdweb.com/)
+- [Hardhat](https://hardhat.org/)
 
 ## Ingesting On-Chain Data
 
@@ -152,7 +151,7 @@ standard `go-ethereum` Ethereum client does not compute block hashes correctly
 [ExtDataHash](https://github.com/ava-labs/coreth/blob/2c3cfac5f766ce5f32a2eddc43451bdb473b84f1/core/types/block.go#L98)
 header field in Avalanche C-Chain blocks, which is used move AVAX between chains
 (X-Chain and P-Chain). You can read more about our multi-chain abstraction
-[here](/docs/quick-start/primary-network) (out of scope for a
+[here](/docs/primary-network) (out of scope for a
 normal C-Chain integration).
 
 If you plan on reading JSON responses directly or use web3.js (doesn't recompute
