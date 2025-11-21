@@ -1,0 +1,257 @@
+---
+title: Understanding Token URIs
+description: Learn how NFTs connect to their metadata and images
+updated: 2024-11-20
+authors: [Andrea Vargas, Ash, martineckardt]
+icon: BookOpen
+---
+
+Now that you've deployed your NFT collection, let's understand how your on-chain tokens connect to their off-chain metadata and images through **Token URIs**.
+
+## What is a Token URI?
+
+A Token URI (Uniform Resource Identifier) is a unique string that points to a JSON file containing an NFT's metadata. This metadata includes:
+
+- The NFT's name
+- Description
+- Image URL
+- Attributes/traits
+- Other properties
+
+## How Token URIs Work
+
+When you call `tokenURI(tokenId)` on an ERC-721 contract, it returns a complete URL by combining:
+
+```
+Base URI + Token ID = Token URI
+```
+
+### Example
+
+If your base URI is:
+```
+https://gateway.pinata.cloud/ipfs/QmYdWxbiwsfsYcW1CYQPgYujAc9FMLPG3fgFcxFskbSsFa/
+```
+
+And you query token ID `0`, the contract returns:
+```
+https://gateway.pinata.cloud/ipfs/QmYdWxbiwsfsYcW1CYQPgYujAc9FMLPG3fgFcxFskbSsFa/0
+```
+
+This URL points to your metadata file on IPFS.
+
+## The Metadata Standard
+
+The JSON file at the Token URI follows the [OpenSea Metadata Standard](https://docs.opensea.io/docs/metadata-standards):
+
+```json
+{
+  "name": "Cool Photography #0",
+  "description": "A cool image from my photography collection",
+  "image": "https://gateway.pinata.cloud/ipfs/QmPWbixyMsaNkR9v612bBFbncKGmgXDKz9CgMtDDD7Bymw/0.png",
+  "attributes": [
+    {
+      "trait_type": "Background",
+      "value": "Blue"
+    },
+    {
+      "trait_type": "Style",
+      "value": "Abstract"
+    }
+  ]
+}
+```
+
+### Metadata Fields
+
+**name**: The NFT's display name (often includes the token ID)
+
+**description**: A detailed description of the NFT
+
+**image**: The URL to the actual image file (also on IPFS)
+
+**attributes**: An array of traits that define the NFT's characteristics
+
+## Why Use IPFS?
+
+IPFS (InterPlanetary File System) is preferred for NFT storage because:
+
+**Decentralized**: No single point of failure
+**Content-Addressed**: Files are identified by their content, not location
+**Permanent**: Files remain accessible as long as they're pinned
+**Immutable**: Content can't be changed without changing the hash
+
+### IPFS URLs
+
+IPFS URLs follow this format:
+```
+https://gateway.pinata.cloud/ipfs/[CONTENT_HASH]/[FILE_NAME]
+```
+
+The content hash (e.g., `QmYdWxbiwsfsYcW1CYQPgYujAc9FMLPG3fgFcxFskbSsFa`) uniquely identifies your folder on IPFS.
+
+## URI Storage in Your Contract
+
+In your OpenZeppelin contract, the base URI is stored and accessed like this:
+
+```solidity
+contract Photography is ERC721, Ownable {
+    string private _baseTokenURI;
+
+    constructor(address initialOwner)
+        ERC721("Photography", "FOTO")
+        Ownable(initialOwner)
+    {
+        _baseTokenURI = "https://gateway.pinata.cloud/ipfs/QmYdWxbiwsfsYcW1CYQPgYujAc9FMLPG3fgFcxFskbSsFa/";
+    }
+
+    function _baseURI() internal view override returns (string memory) {
+        return _baseTokenURI;
+    }
+
+    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
+        require(_exists(tokenId), "Token does not exist");
+        return string(abi.encodePacked(_baseURI(), Strings.toString(tokenId)));
+    }
+}
+```
+
+### How It Works
+
+1. `tokenURI()` is called with a token ID
+2. The function checks if the token exists
+3. It concatenates the base URI with the token ID
+4. Returns the complete URL to the metadata
+
+## Advanced URI Features
+
+### URI Storage Extension
+
+OpenZeppelin provides a `ERC721URIStorage` extension that allows setting individual URIs for each token:
+
+```solidity
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+
+contract MyNFT is ERC721URIStorage {
+    function mint(address to, uint256 tokenId, string memory uri) public {
+        _safeMint(to, tokenId);
+        _setTokenURI(tokenId, uri);
+    }
+}
+```
+
+This is useful when:
+- Each NFT has a completely different metadata structure
+- You want to update metadata after minting
+- Your collection doesn't follow a sequential pattern
+
+### Updating Base URI
+
+You might want to update the base URI after deployment to:
+- Move to a different IPFS gateway
+- Migrate to a custom domain
+- Update to revealed metadata (for mystery drops)
+
+Add this function to your contract:
+
+```solidity
+function setBaseURI(string memory newBaseURI) public onlyOwner {
+    _baseTokenURI = newBaseURI;
+}
+```
+
+<Callout type="warn">
+Be cautious when updating URIs. Changing metadata after minting can be controversial and may affect trust in your collection.
+</Callout>
+
+## Best Practices
+
+### 1. Consistent File Naming
+
+Ensure your metadata files are named to match token IDs:
+- Token 0 → file named `0`
+- Token 1 → file named `1`
+- And so on...
+
+### 2. Include Trailing Slash
+
+Always include a trailing slash in your base URI:
+```
+✅ https://gateway.pinata.cloud/ipfs/QmHash/
+❌ https://gateway.pinata.cloud/ipfs/QmHash
+```
+
+### 3. Test Before Minting
+
+Before minting, manually test your URIs:
+```
+Base URI + 0 should return valid JSON
+Base URI + 1 should return valid JSON
+```
+
+### 4. Pin Your Files
+
+Ensure your files are permanently pinned on IPFS. Services like Pinata provide pinning to prevent garbage collection.
+
+### 5. Use IPFS Gateways Wisely
+
+While Pinata's gateway works well, consider:
+- Using multiple gateways for redundancy
+- Setting up your own IPFS node for large collections
+- Using a CDN for faster loading
+
+## Viewing Token URIs
+
+You can view your NFT's token URI in several ways:
+
+### 1. Remix IDE
+
+In your deployed contract, call `tokenURI` with a token ID:
+
+```solidity
+tokenURI(0) // Returns the full URI for token 0
+```
+
+### 2. Snowtrace
+
+On your contract page, go to "Read Contract" and call `tokenURI`.
+
+### 3. Programmatically
+
+Using ethers.js:
+```javascript
+const tokenURI = await contract.tokenURI(0);
+console.log(tokenURI);
+```
+
+## Common Issues
+
+### "Token does not exist"
+
+This error means you're querying a token ID that hasn't been minted yet.
+
+### 404 Not Found
+
+If the URI returns 404:
+- Check that your metadata files are uploaded to IPFS
+- Verify the file names match token IDs
+- Ensure the base URI has a trailing slash
+
+### Invalid JSON
+
+If marketplaces can't read your metadata:
+- Validate your JSON syntax
+- Ensure all required fields are present
+- Check that the file has no extension
+
+## Next Steps
+
+Now that you understand how token URIs work, you're ready to:
+
+- Create larger NFT collections with multiple tokens
+- Implement reveal mechanisms for mystery drops
+- Build custom metadata structures for your use case
+- Integrate your NFTs with marketplaces and dApps
+
+Congratulations on completing the NFT Deployment course! You now have the knowledge to create, deploy, and manage your own NFT collections on Avalanche.
+
