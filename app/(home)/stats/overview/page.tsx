@@ -671,13 +671,12 @@ export default function AvalancheMetrics() {
                 </p>
                 <p className="text-4xl font-semibold tracking-tight text-white">
                   {formatNumber(
-                    typeof overviewMetrics.aggregated.totalTxCount
-                      .current_value === "number"
-                      ? Math.round(
-                          overviewMetrics.aggregated.totalTxCount.current_value /
-                            365
-                        )
-                      : 0
+                    Math.round(
+                      aggregateLatestValue(
+                        overviewMetrics.aggregated.totalTxCount.data,
+                        "D"
+                      )
+                    )
                   )}
                 </p>
               </div>
@@ -688,13 +687,12 @@ export default function AvalancheMetrics() {
                 </p>
                 <p className="text-4xl font-semibold tracking-tight text-white">
                   {(() => {
-                    const totalTxs =
-                      typeof overviewMetrics.aggregated.totalTxCount
-                        .current_value === "number"
-                        ? overviewMetrics.aggregated.totalTxCount.current_value
-                        : 0;
-                    const secondsInYear = 365 * 24 * 60 * 60;
-                    const tps = (totalTxs / secondsInYear).toFixed(2);
+                    const dailyTxs = aggregateLatestValue(
+                      overviewMetrics.aggregated.totalTxCount.data,
+                      "D"
+                    );
+                    const secondsInDay = 24 * 60 * 60;
+                    const tps = (dailyTxs / secondsInDay).toFixed(2);
                     return tps;
                   })()}{" "}
                   TPS
@@ -711,8 +709,10 @@ export default function AvalancheMetrics() {
                 <p className="text-2xl font-semibold text-white">
                   {formatNumber(
                     Math.round(
-                      overviewMetrics.aggregated.totalICMMessages.current_value /
-                        365
+                      aggregateLatestICMValue(
+                        overviewMetrics.aggregated.totalICMMessages.data,
+                        "D"
+                      )
                     )
                   )}
                 </p>
