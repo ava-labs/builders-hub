@@ -545,13 +545,13 @@ export const baseOptions: BaseLayoutProps = {
   },
   links: [
     academyMenu,
-    docsMenu,
+    blogMenu,
     consoleMenu,
+    docsMenu,
     eventsMenu,
     grantsMenu,
-    stats,
     integrationsMenu,
-    userMenu,
-    blogMenu,
+    stats,
+    userMenu
   ],
 };
