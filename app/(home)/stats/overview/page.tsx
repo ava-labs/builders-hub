@@ -247,6 +247,24 @@ export default function AvalancheMetrics() {
     setVisibleCount(25);
   };
 
+  const getChainCategory = (chainId: string, chainName: string): string => {
+    // Look up category from constants/l1-chains.json
+    const chain = l1ChainsData.find(
+      (c) =>
+        c.chainId === chainId ||
+        c.chainName.toLowerCase() === chainName.toLowerCase()
+    );
+    return chain?.category || "General";
+  };
+
+  const getChainTPS = (chain: ChainOverviewMetrics): string => {
+    // This function is only called when selectedPeriod === "D"
+    const txCount = aggregateLatestValue(chain.txCount.data, "D");
+    const secondsInDay = 24 * 60 * 60;
+    const tps = txCount / secondsInDay;
+    return tps.toFixed(2);
+  };
+
   const chains = overviewMetrics?.chains || [];
 
   const filteredData = chains.filter((chain) => {
@@ -370,16 +388,6 @@ export default function AvalancheMetrics() {
     </div>
   );
 
-  const getChainCategory = (chainId: string, chainName: string): string => {
-    // Look up category from constants/l1-chains.json
-    const chain = l1ChainsData.find(
-      (c) =>
-        c.chainId === chainId ||
-        c.chainName.toLowerCase() === chainName.toLowerCase()
-    );
-    return chain?.category || "General";
-  };
-
   const getCategoryColor = (category: string): string => {
     const colors: { [key: string]: string } = {
       General: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
@@ -396,14 +404,6 @@ export default function AvalancheMetrics() {
       colors[category] ||
       "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
     );
-  };
-
-  const getChainTPS = (chain: ChainOverviewMetrics): string => {
-    // This function is only called when selectedPeriod === "D"
-    const txCount = aggregateLatestValue(chain.txCount.data, "D");
-    const secondsInDay = 24 * 60 * 60;
-    const tps = txCount / secondsInDay;
-    return tps.toFixed(2);
   };
 
   if (loading) {
@@ -874,20 +874,18 @@ export default function AvalancheMetrics() {
                       </SortButton>
                     </div>
                   </th>
-                  {selectedPeriod === "D" && (
-                    <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-3 text-center animate-in fade-in slide-in-from-right-2 duration-300">
-                      <div className="flex items-center justify-center gap-2">
-                        <SortButton
-                          field="throughput"
-                          tooltip="Average Throughput (TPS) for the selected time-range (only available for daily view)"
-                        >
-                          <span className="text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
-                            Avg TPS
-                          </span>
-                        </SortButton>
-                      </div>
-                    </th>
-                  )}
+                  <th className={`border-r border-neutral-200 dark:border-neutral-800 text-center transition-all duration-500 ease-in-out ${selectedPeriod === "D" ? "px-6 py-3" : "p-0 w-0 border-0"}`}>
+                    <div className={`flex items-center justify-center gap-2 overflow-hidden transition-all duration-500 ease-in-out ${selectedPeriod === "D" ? "max-w-[200px] opacity-100" : "max-w-0 opacity-0"}`}>
+                      <SortButton
+                        field="throughput"
+                        tooltip="Average Throughput (TPS) for the selected time-range (only available for daily view)"
+                      >
+                        <span className="text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
+                          Avg TPS
+                        </span>
+                      </SortButton>
+                    </div>
+                  </th>
                   <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <SortButton
@@ -1012,13 +1010,13 @@ export default function AvalancheMetrics() {
                             : chain.validatorCount}
                         </span>
                       </td>
-                      {selectedPeriod === "D" && (
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-center animate-in fade-in slide-in-from-right-2 duration-300">
+                      <td className={`border-r border-slate-100 dark:border-neutral-800 text-center transition-all duration-500 ease-in-out ${selectedPeriod === "D" ? "px-4 py-2" : "p-0 w-0 border-0"}`}>
+                        <div className={`overflow-hidden transition-all duration-500 ease-in-out whitespace-nowrap ${selectedPeriod === "D" ? "max-w-[200px] opacity-100" : "max-w-0 opacity-0"}`}>
                           <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                             {getChainTPS(chain)} TPS
                           </span>
-                        </td>
-                      )}
+                        </div>
+                      </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-center">
                         <span
                           className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(
