@@ -16,6 +16,8 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Search,
   X,
@@ -31,6 +33,8 @@ import {
   Maximize2,
   Minimize2,
   Trash2,
+  CalendarIcon,
+  RefreshCw,
 } from "lucide-react";
 import l1ChainsData from "@/constants/l1-chains.json";
 import Image from "next/image";
@@ -109,6 +113,10 @@ export interface ConfigurableChartProps {
   onStackSameMetricsChange?: (stackSameMetrics: boolean) => void;
   onRemove?: () => void;
   disableControls?: boolean;
+  startTime?: string | null;
+  endTime?: string | null;
+  onTimeFilterChange?: (startTime: string | null, endTime: string | null) => void;
+  reloadTrigger?: number;
 }
 
 const DEFAULT_COLORS = [
@@ -155,6 +163,10 @@ export default function ConfigurableChart({
   onStackSameMetricsChange,
   onRemove,
   disableControls = false,
+  startTime,
+  endTime,
+  onTimeFilterChange,
+  reloadTrigger = 0,
 }: ConfigurableChartProps) {
   const { resolvedTheme } = useTheme();
   const [isMounted, setIsMounted] = useState(false);
@@ -184,6 +196,25 @@ export default function ConfigurableChart({
   const [resolution, setResolution] = useState<"D" | "W" | "M" | "Q" | "Y">("D");
   const [chartTitle, setChartTitle] = useState<string>(title);
   const [isEditingTitle, setIsEditingTitle] = useState<boolean>(false);
+  const [showTimeFilterPopover, setShowTimeFilterPopover] = useState(false);
+  const [localReloadTrigger, setLocalReloadTrigger] = useState<number>(0);
+  const prevReloadTriggerRef = useRef<number>(reloadTrigger);
+  // Use refs to track latest filter values for reload
+  const startTimeRef = useRef<string | null>(startTime);
+  const endTimeRef = useRef<string | null>(endTime);
+  
+  // Update refs when values change
+  useEffect(() => {
+    startTimeRef.current = startTime;
+    endTimeRef.current = endTime;
+  }, [startTime, endTime]);
+  // Temporary state for editing (only used when popover is open) - includes date and time
+  const [tempStartTime, setTempStartTime] = useState<Date | undefined>(
+    startTime ? new Date(startTime) : undefined
+  );
+  const [tempEndTime, setTempEndTime] = useState<Date | undefined>(
+    endTime ? new Date(endTime) : undefined
+  );
   const [showMetricFilter, setShowMetricFilter] = useState(false);
   const [showChainSelector, setShowChainSelector] = useState(false);
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -202,6 +233,14 @@ export default function ConfigurableChart({
   useEffect(() => {
     setChartTitle(title);
   }, [title]);
+
+  // Initialize temp state when popover opens
+  useEffect(() => {
+    if (showTimeFilterPopover) {
+      setTempStartTime(startTime ? new Date(startTime) : undefined);
+      setTempEndTime(endTime ? new Date(endTime) : undefined);
+    }
+  }, [showTimeFilterPopover, startTime, endTime]);
 
   // Notify parent when dataSeries changes
   const prevDataSeriesRef = useRef<DataSeries[]>(dataSeries);
@@ -238,14 +277,41 @@ export default function ConfigurableChart({
   }, [showMetricFilter, showChainSelector]);
 
   // Fetch metric data for a chain
-  const fetchMetricData = async (chainId: string, metricKey: string) => {
+  const fetchMetricData = async (chainId: string, metricKey: string, forceReload: boolean = false) => {
     const seriesId = `${chainId}-${metricKey}`;
-    if (loadingMetrics.has(seriesId) || chartData[seriesId]) return;
+    
+    // Use refs to get latest values, especially important during reloads
+    const effectiveStartTime = startTimeRef.current;
+    const effectiveEndTime = endTimeRef.current;
+    
+    // Convert ISO timestamps to Unix timestamps (seconds)
+    const startTimestamp = effectiveStartTime ? Math.floor(new Date(effectiveStartTime).getTime() / 1000) : undefined;
+    const endTimestamp = effectiveEndTime ? Math.floor(new Date(effectiveEndTime).getTime() / 1000) : undefined;
+    
+    // Create cache key that includes timestamps
+    const cacheKey = startTimestamp && endTimestamp 
+      ? `${seriesId}-${startTimestamp}-${endTimestamp}`
+      : `${seriesId}-all`;
+    
+    // Check if we already have this data cached (unless forcing reload)
+    if (!forceReload && chartData[cacheKey]) {
+      return; // Data already loaded for this time range
+    }
+    
+    if (loadingMetrics.has(cacheKey)) {
+      return; // Already loading this data
+    }
 
-    setLoadingMetrics((prev) => new Set(prev).add(seriesId));
+    setLoadingMetrics((prev) => new Set(prev).add(cacheKey));
 
     try {
-      const response = await fetch(`/api/chain-stats/${chainId}?timeRange=all`);
+      // Build query string with timestamps if available
+      let queryString = 'timeRange=all';
+      if (startTimestamp !== undefined && endTimestamp !== undefined) {
+        queryString += `&startTimestamp=${startTimestamp}&endTimestamp=${endTimestamp}`;
+      }
+      
+      const response = await fetch(`/api/chain-stats/${chainId}?${queryString}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch data: ${response.status}`);
       }
@@ -279,19 +345,58 @@ export default function ConfigurableChart({
           .reverse();
       }
 
-      setChartData((prev) => ({ ...prev, [seriesId]: data }));
+      setChartData((prev) => ({ 
+        ...prev, 
+        [seriesId]: data, // Keep seriesId for compatibility
+        [cacheKey]: data // Cache with timestamp key for future lookups
+      }));
     } catch (error) {
       console.error(`Error fetching ${metricKey} for chain ${chainId}:`, error);
     } finally {
       setLoadingMetrics((prev) => {
         const next = new Set(prev);
-        next.delete(seriesId);
+        next.delete(cacheKey);
         return next;
       });
     }
   };
 
-  // Fetch data for all visible series
+  // Clear chart data cache when reload trigger changes (only on manual reload)
+  useEffect(() => {
+    if (reloadTrigger !== prevReloadTriggerRef.current) {
+      prevReloadTriggerRef.current = reloadTrigger;
+      // Clear cache completely
+      setChartData({});
+      // Use setTimeout to ensure state updates (like globalStartTime/globalEndTime) have propagated
+      setTimeout(() => {
+        dataSeries.forEach((series) => {
+          if (series.visible && series.chainId && series.metricKey) {
+            fetchMetricData(series.chainId, series.metricKey, true);
+          }
+        });
+      }, 10);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reloadTrigger]);
+
+  // Clear cache and reload when local reload trigger changes (only on manual reload)
+  useEffect(() => {
+    if (localReloadTrigger > 0) {
+      // Clear cache completely
+      setChartData({});
+      // Use setTimeout to ensure state updates (like startTime/endTime) have propagated
+      setTimeout(() => {
+        dataSeries.forEach((series) => {
+          if (series.visible && series.chainId && series.metricKey) {
+            fetchMetricData(series.chainId, series.metricKey, true);
+          }
+        });
+      }, 10);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localReloadTrigger]);
+
+  // Fetch data for all visible series (only on initial load or when series change)
   useEffect(() => {
     dataSeries.forEach((series) => {
       if (series.visible && series.chainId && series.metricKey) {
@@ -304,23 +409,29 @@ export default function ConfigurableChart({
   const mergedData = useMemo(() => {
     const dateMap = new Map<string, ChartDataPoint>();
 
-    Object.values(chartData).forEach((data) => {
-      data.forEach((point) => {
-        if (!dateMap.has(point.date)) {
-          dateMap.set(point.date, { date: point.date });
-        }
-        Object.keys(point).forEach((key) => {
-          if (key !== "date") {
-            dateMap.get(point.date)![key] = point[key];
+    // Only process data entries that match seriesId pattern (not cache keys with timestamps)
+    dataSeries.forEach((series) => {
+      const seriesId = `${series.chainId}-${series.metricKey}`;
+      const data = chartData[seriesId];
+      
+      if (data) {
+        data.forEach((point) => {
+          if (!dateMap.has(point.date)) {
+            dateMap.set(point.date, { date: point.date });
           }
+          Object.keys(point).forEach((k) => {
+            if (k !== "date") {
+              dateMap.get(point.date)![k] = point[k];
+            }
+          });
         });
-      });
+      }
     });
 
     return Array.from(dateMap.values()).sort((a, b) =>
       a.date.localeCompare(b.date)
     );
-  }, [chartData]);
+  }, [chartData, dataSeries]);
 
   // Aggregate data based on resolution
   const aggregatedData = useMemo(() => {
@@ -383,13 +494,48 @@ export default function ConfigurableChart({
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [mergedData, resolution]);
 
+  // Data is already filtered by the API, so use aggregatedData directly
+  const filteredData = aggregatedData;
+
+  // Calculate filtered date range in days to determine which resolutions to enable
+  const filteredDaysCount = useMemo(() => {
+    if (startTime && endTime) {
+      const startDate = new Date(startTime);
+      const endDate = new Date(endTime);
+      const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+      const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return days;
+    }
+    
+    // If no filter, use the data length as an estimate (assuming daily data)
+    return filteredData.length;
+  }, [startTime, endTime, filteredData.length]);
+
+  // Determine which resolutions should be enabled based on filtered days
+  const isResolutionEnabled = useMemo(() => {
+    return {
+      D: true, // Daily is always enabled
+      W: filteredDaysCount >= 7 * 2, // Weekly needs at least 7 days
+      M: filteredDaysCount >= 30 * 2, // Monthly needs at least 30 days
+      Q: filteredDaysCount >= 90 * 2, // Quarterly needs at least 90 days
+      Y: filteredDaysCount >= 365 * 2, // Yearly needs at least 365 days
+    };
+  }, [filteredDaysCount]);
+
+  // Auto-switch to Daily if current resolution becomes disabled
+  useEffect(() => {
+    if (!isResolutionEnabled[resolution]) {
+      setResolution("D");
+    }
+  }, [isResolutionEnabled, resolution]);
+
   // Set default brush range
   useEffect(() => {
-    if (aggregatedData.length === 0) return;
+    if (filteredData.length === 0) return;
     if (resolution === "D") {
       setBrushRange({
-        startIndex: Math.max(0, aggregatedData.length - 90),
-        endIndex: aggregatedData.length - 1,
+        startIndex: Math.max(0, filteredData.length - 90),
+        endIndex: filteredData.length - 1,
       });
     } else {
       setBrushRange({
@@ -397,11 +543,11 @@ export default function ConfigurableChart({
         endIndex: aggregatedData.length - 1,
       });
     }
-  }, [resolution, aggregatedData.length]);
+  }, [resolution, filteredData.length]);
 
   const displayData = brushRange
-    ? aggregatedData.slice(brushRange.startIndex, brushRange.endIndex + 1)
-    : aggregatedData;
+    ? filteredData.slice(brushRange.startIndex, brushRange.endIndex + 1)
+    : filteredData;
 
   const visibleSeries = useMemo(() => {
     return dataSeries
@@ -1169,6 +1315,153 @@ export default function ConfigurableChart({
                   <Camera className="h-4 w-4" />
                   <span className="hidden sm:inline">Export</span>
                 </Button>
+                {onTimeFilterChange && !disableControls && (
+                  <Popover open={showTimeFilterPopover} onOpenChange={setShowTimeFilterPopover}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={`text-xs flex items-center justify-center px-2 py-2 h-8 w-8 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
+                          (startTime || endTime) ? "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800" : ""
+                        }`}
+                        title="Set time filter"
+                      >
+                        <CalendarIcon className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <Calendar
+                        mode="range"
+                        selected={{
+                          from: tempStartTime,
+                          to: tempEndTime,
+                        }}
+                        onSelect={(range) => {
+                          // Update dates, preserving existing times if dates already exist
+                          if (range?.from) {
+                            const newDate = new Date(range.from);
+                            if (tempStartTime) {
+                              // Preserve time from existing tempStartTime
+                              newDate.setHours(tempStartTime.getHours(), tempStartTime.getMinutes(), 0, 0);
+                            } else {
+                              // Default to 00:00 if no existing time
+                              newDate.setHours(0, 0, 0, 0);
+                            }
+                            setTempStartTime(newDate);
+                          } else {
+                            setTempStartTime(undefined);
+                          }
+                          
+                          if (range?.to) {
+                            const newDate = new Date(range.to);
+                            if (tempEndTime) {
+                              // Preserve time from existing tempEndTime
+                              newDate.setHours(tempEndTime.getHours(), tempEndTime.getMinutes(), 0, 0);
+                            } else {
+                              // Default to 23:59 if no existing time
+                              newDate.setHours(23, 59, 0, 0);
+                            }
+                            setTempEndTime(newDate);
+                          } else {
+                            setTempEndTime(undefined);
+                          }
+                        }}
+                        initialFocus
+                      />
+                      <div className="p-3 border-t space-y-2">
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[50px]">Start:</label>
+                          <Input
+                            type="time"
+                            value={tempStartTime ? tempStartTime.toTimeString().slice(0, 5) : "00:00"}
+                            onChange={(e) => {
+                              const [hours, minutes] = e.target.value.split(":").map(Number);
+                              if (tempStartTime) {
+                                const updated = new Date(tempStartTime);
+                                updated.setHours(hours, minutes, 0, 0);
+                                setTempStartTime(updated);
+                              } else {
+                                // If no date selected, create a new date with today's date
+                                const today = new Date();
+                                today.setHours(hours, minutes, 0, 0);
+                                setTempStartTime(today);
+                              }
+                            }}
+                            className="text-xs sm:text-sm"
+                            disabled={!tempStartTime}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[50px]">End:</label>
+                          <Input
+                            type="time"
+                            value={tempEndTime ? tempEndTime.toTimeString().slice(0, 5) : "23:59"}
+                            onChange={(e) => {
+                              const [hours, minutes] = e.target.value.split(":").map(Number);
+                              if (tempEndTime) {
+                                const updated = new Date(tempEndTime);
+                                updated.setHours(hours, minutes, 0, 0);
+                                setTempEndTime(updated);
+                              } else {
+                                // If no date selected, create a new date with today's date
+                                const today = new Date();
+                                today.setHours(hours, minutes, 0, 0);
+                                setTempEndTime(today);
+                              }
+                            }}
+                            className="text-xs sm:text-sm"
+                            disabled={!tempEndTime}
+                          />
+                        </div>
+                        <div className="flex gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                          {(tempStartTime || tempEndTime || startTime || endTime) && (
+                            <Button
+                              onClick={() => {
+                                // Clear temp state
+                                setTempStartTime(undefined);
+                                setTempEndTime(undefined);
+                                // Clear actual state via parent callback
+                                if (onTimeFilterChange) {
+                                  onTimeFilterChange(null, null);
+                                }
+                                // Trigger reload and close popover
+                                setLocalReloadTrigger((prev: number) => prev + 1);
+                                setShowTimeFilterPopover(false);
+                              }}
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 h-8 sm:h-9 text-xs sm:text-sm"
+                            >
+                              <X className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
+                              Clear
+                            </Button>
+                          )}
+                          <Button
+                            onClick={() => {
+                              // Convert Date objects to ISO strings
+                              const newStartTime = tempStartTime ? tempStartTime.toISOString() : null;
+                              const newEndTime = tempEndTime ? tempEndTime.toISOString() : null;
+                              // Apply to actual state via parent callback
+                              if (onTimeFilterChange) {
+                                onTimeFilterChange(newStartTime, newEndTime);
+                              }
+                              // Trigger reload and close popover
+                              setLocalReloadTrigger((prev: number) => prev + 1);
+                              setShowTimeFilterPopover(false);
+                            }}
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 h-8 sm:h-9 text-xs sm:text-sm"
+                            title="Reload data"
+                          >
+                            <RefreshCw className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
+                            Reload
+                          </Button>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
                 {onColSpanChange && (
                   <Button
                     variant="outline"
@@ -1199,6 +1492,7 @@ export default function ConfigurableChart({
             </div>
           )}
         </div>
+
 
         {/* Chart Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 dark:border-gray-700">
@@ -1241,22 +1535,31 @@ export default function ConfigurableChart({
           <div className="flex gap-0.5 sm:gap-1">
             {(["D", "W", "M", "Q", "Y"] as const).map((p) => {
               const primaryColor = visibleSeries[0]?.color || "#888";
+              const isEnabled = isResolutionEnabled[p];
+              const isSelected = resolution === p;
+              
               return (
                 <button
                   key={p}
                   onClick={() => {
-                    setResolution(p);
+                    if (isEnabled) {
+                      setResolution(p);
+                    }
                   }}
+                  disabled={!isEnabled}
                   className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors ${
-                    resolution === p
+                    isSelected && isEnabled
                       ? "text-white dark:text-white"
-                      : "text-muted-foreground hover:bg-muted"
+                      : isEnabled
+                      ? "text-muted-foreground hover:bg-muted"
+                      : "text-muted-foreground opacity-40 cursor-not-allowed"
                   }`}
                   style={
-                    resolution === p
+                    isSelected && isEnabled
                       ? { backgroundColor: primaryColor, opacity: 0.9 }
                       : {}
                   }
+                  title={!isEnabled ? `Requires at least ${p === "W" ? "7" : p === "M" ? "30" : p === "Q" ? "90" : "365"} days of filtered data` : undefined}
                 >
                   {p}
                 </button>
@@ -1281,7 +1584,7 @@ export default function ConfigurableChart({
             {renderChart()}
 
             {/* Brush Slider */}
-            {aggregatedData.length > 0 && visibleSeries.length > 0 && (
+            {filteredData.length > 0 && visibleSeries.length > 0 && (
               <div className="mt-4 bg-white dark:bg-black pl-[60px]">
               <ResponsiveContainer width="100%" height={80}>
                 <LineChart
@@ -1296,7 +1599,7 @@ export default function ConfigurableChart({
                     alwaysShowText={false}
                     startIndex={brushRange?.startIndex ?? 0}
                     endIndex={
-                      brushRange?.endIndex ?? aggregatedData.length - 1
+                      brushRange?.endIndex ?? filteredData.length - 1
                     }
                     onChange={(e: any) => {
                       if (

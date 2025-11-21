@@ -5,7 +5,11 @@ import { useSearchParams, useRouter } from "next/navigation";
 import ConfigurableChart from "@/components/stats/ConfigurableChart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, X, Save, Globe, Lock, Copy, Check, Pencil, Loader2, Heart, Share2, Eye } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Search, X, Save, Globe, Lock, Copy, Check, Pencil, Loader2, Heart, Share2, Eye, CalendarIcon, RefreshCw } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import { LoginModal } from "@/components/login/LoginModal";
 
@@ -15,6 +19,8 @@ interface ChartConfig {
   colSpan: 6 | 12;
   dataSeries?: any[]; // DataSeries array from ConfigurableChart
   stackSameMetrics?: boolean;
+  startTime?: string | null; // Local start time filter (ISO string)
+  endTime?: string | null; // Local end time filter (ISO string)
 }
 
 function PlaygroundContent() {
@@ -49,6 +55,37 @@ function PlaygroundContent() {
   } | null>(null);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+  // Global time filters - ISO strings are the source of truth
+  const [globalStartTime, setGlobalStartTime] = useState<string | null>(null);
+  const [globalEndTime, setGlobalEndTime] = useState<string | null>(null);
+  const [savedGlobalStartTime, setSavedGlobalStartTime] = useState<string | null>(null);
+  const [savedGlobalEndTime, setSavedGlobalEndTime] = useState<string | null>(null);
+  
+  // Temporary state for editing (only used when popover is open) - includes date and time
+  const [tempGlobalStartTime, setTempGlobalStartTime] = useState<Date | undefined>(undefined);
+  const [tempGlobalEndTime, setTempGlobalEndTime] = useState<Date | undefined>(undefined);
+  
+  const [reloadTrigger, setReloadTrigger] = useState<number>(0);
+  const [showGlobalTimeFilterPopover, setShowGlobalTimeFilterPopover] = useState(false);
+  
+  // Derive date range and time strings from ISO strings
+  const globalDateRange = useMemo<{ from: Date | undefined; to: Date | undefined }>(() => {
+    if (globalStartTime && globalEndTime) {
+      return {
+        from: new Date(globalStartTime),
+        to: new Date(globalEndTime),
+      };
+    }
+    return { from: undefined, to: undefined };
+  }, [globalStartTime, globalEndTime]);
+  
+  const globalStartTimeStr = useMemo(() => {
+    return globalStartTime ? new Date(globalStartTime).toTimeString().slice(0, 5) : "00:00";
+  }, [globalStartTime]);
+  
+  const globalEndTimeStr = useMemo(() => {
+    return globalEndTime ? new Date(globalEndTime).toTimeString().slice(0, 5) : "23:59";
+  }, [globalEndTime]);
   const hasLoadedRef = useRef(false);
   
   const initialCharts: ChartConfig[] = [
@@ -92,6 +129,14 @@ function PlaygroundContent() {
     setCharts((prev) =>
       prev.map((c) =>
         c.id === chartId ? { ...c, stackSameMetrics } : c
+      )
+    );
+  }, []);
+
+  const handleChartTimeFilterChange = useCallback((chartId: string, startTime: string | null, endTime: string | null) => {
+    setCharts((prev) =>
+      prev.map((c) =>
+        c.id === chartId ? { ...c, startTime, endTime } : c
       )
     );
   }, []);
@@ -151,6 +196,23 @@ function PlaygroundContent() {
         setCreatedAt(playground.created_at || null);
         setUpdatedAt(playground.updated_at || null);
         
+        // Load global time filters
+        const startTime = playground.globalStartTime || null;
+        const endTime = playground.globalEndTime || null;
+        setGlobalStartTime(startTime);
+        setGlobalEndTime(endTime);
+        setSavedGlobalStartTime(startTime);
+        setSavedGlobalEndTime(endTime);
+        
+        // Initialize temp state from loaded times
+        if (startTime && endTime) {
+          setTempGlobalStartTime(new Date(startTime));
+          setTempGlobalEndTime(new Date(endTime));
+        } else {
+          setTempGlobalStartTime(undefined);
+          setTempGlobalEndTime(undefined);
+        }
+        
         // Load charts from saved data
         if (playground.charts && Array.isArray(playground.charts)) {
           const loadedCharts = playground.charts.map((chart: any, index: number) => ({
@@ -158,7 +220,9 @@ function PlaygroundContent() {
             title: chart.title || `Chart ${index + 1}`,
             colSpan: chart.colSpan || 12,
             dataSeries: chart.dataSeries || [],
-            stackSameMetrics: chart.stackSameMetrics || false
+            stackSameMetrics: chart.stackSameMetrics || false,
+            startTime: chart.startTime || null,
+            endTime: chart.endTime || null
           }));
           setCharts(loadedCharts);
           setSavedCharts(loadedCharts.map((chart: ChartConfig) => ({
@@ -185,6 +249,15 @@ function PlaygroundContent() {
   useEffect(() => {
     hasLoadedRef.current = false;
   }, [playgroundId]);
+
+  // Initialize temp state when popover opens
+  useEffect(() => {
+    if (showGlobalTimeFilterPopover) {
+      setTempGlobalStartTime(globalStartTime ? new Date(globalStartTime) : undefined);
+      setTempGlobalEndTime(globalEndTime ? new Date(globalEndTime) : undefined);
+    }
+  }, [showGlobalTimeFilterPopover, globalStartTime, globalEndTime]);
+
 
   // Track view count when playground loads (only for non-owners)
   useEffect(() => {
@@ -232,12 +305,16 @@ function PlaygroundContent() {
       const payload = {
         name: playgroundName,
         isPublic,
+        globalStartTime: globalStartTime || null,
+        globalEndTime: globalEndTime || null,
         charts: charts.map(chart => ({
           id: chart.id,
           title: chart.title,
           colSpan: chart.colSpan,
           dataSeries: chart.dataSeries || [],
-          stackSameMetrics: chart.stackSameMetrics || false
+          stackSameMetrics: chart.stackSameMetrics || false,
+          startTime: chart.startTime || null,
+          endTime: chart.endTime || null
         }))
       };
       
@@ -275,6 +352,8 @@ function PlaygroundContent() {
       })));
       setSavedPlaygroundName(playgroundName);
       setSavedIsPublic(isPublic);
+      setSavedGlobalStartTime(globalStartTime);
+      setSavedGlobalEndTime(globalEndTime);
       setCurrentPlaygroundId(playground.id);
       
       // Update URL and link
@@ -298,13 +377,16 @@ function PlaygroundContent() {
     // Check if public/private changed
     if (isPublic !== savedIsPublic) return true;
     
+    // Check if global time filters changed
+    if (globalStartTime !== savedGlobalStartTime || globalEndTime !== savedGlobalEndTime) return true;
+    
     // Check if charts changed (count, titles, colSpans, or dataSeries)
     if (charts.length !== savedCharts.length) return true;
     
     for (let i = 0; i < charts.length; i++) {
       const current = charts[i];
       const saved = savedCharts[i];
-      if (!saved || current.id !== saved.id || current.title !== saved.title || current.colSpan !== saved.colSpan || current.stackSameMetrics !== saved.stackSameMetrics) {
+      if (!saved || current.id !== saved.id || current.title !== saved.title || current.colSpan !== saved.colSpan || current.stackSameMetrics !== saved.stackSameMetrics || current.startTime !== saved.startTime || current.endTime !== saved.endTime) {
         return true;
       }
       
@@ -708,7 +790,7 @@ function PlaygroundContent() {
                 placeholder="Search charts"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-10 rounded-lg border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
+                className="h-10 pl-10 pr-10 rounded-lg border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
               />
               {searchTerm && (
                 <button
@@ -722,12 +804,186 @@ function PlaygroundContent() {
               )}
             </div>
             {isOwner && (
-              <Button
-                onClick={addChart}
-                className="ml-auto flex-shrink-0 bg-black dark:bg-white text-white dark:text-black transition-colors hover:bg-neutral-800 dark:hover:bg-neutral-200"
-              >
-                Add New Chart
-              </Button>
+              <>
+                {/* Global Time Filters */}
+                <Popover open={showGlobalTimeFilterPopover} onOpenChange={setShowGlobalTimeFilterPopover}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className={cn(
+                        "relative flex items-center gap-2 px-3.5 h-10 rounded-lg border border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-black dark:text-white hover:bg-[#f5f5f6] dark:hover:bg-neutral-750 cursor-pointer",
+                        (!globalDateRange.from && !globalDateRange.to) && "text-neutral-500 dark:text-neutral-400"
+                      )}
+                    >
+                      <CalendarIcon className="h-4 w-4 text-neutral-400 dark:text-neutral-500 flex-shrink-0" />
+                      <span className="text-sm whitespace-nowrap">
+                        {tempGlobalStartTime && tempGlobalEndTime
+                          ? `${format(tempGlobalStartTime, "MMM d")} - ${format(tempGlobalEndTime, "MMM d")}`
+                          : tempGlobalStartTime
+                          ? format(tempGlobalStartTime, "PPP")
+                          : globalDateRange.from && globalDateRange.to
+                          ? `${format(globalDateRange.from, "MMM d")} - ${format(globalDateRange.to, "MMM d")}`
+                          : globalDateRange.from
+                          ? format(globalDateRange.from, "PPP")
+                          : "Select date range"}
+                      </span>
+                      {(globalStartTime || globalEndTime || tempGlobalStartTime || tempGlobalEndTime) && (
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Clear temp state
+                            setTempGlobalStartTime(undefined);
+                            setTempGlobalEndTime(undefined);
+                            // Clear actual state
+                            setGlobalStartTime(null);
+                            setGlobalEndTime(null);
+                            // Trigger reload and close popover
+                            setReloadTrigger(prev => prev + 1);
+                            setShowGlobalTimeFilterPopover(false);
+                          }}
+                          className="ml-1 h-6 w-6 flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full transition-colors cursor-pointer"
+                          aria-label="Clear date filter"
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              // Clear temp state
+                              setTempGlobalStartTime(undefined);
+                              setTempGlobalEndTime(undefined);
+                              // Clear actual state
+                              setGlobalStartTime(null);
+                              setGlobalEndTime(null);
+                              // Trigger reload and close popover
+                              setReloadTrigger(prev => prev + 1);
+                              setShowGlobalTimeFilterPopover(false);
+                            }
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </span>
+                      )}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="range"
+                      selected={{
+                        from: tempGlobalStartTime,
+                        to: tempGlobalEndTime,
+                      }}
+                      onSelect={(range) => {
+                        // Update dates, preserving existing times if dates already exist
+                        if (range?.from) {
+                          const newDate = new Date(range.from);
+                          if (tempGlobalStartTime) {
+                            // Preserve time from existing tempGlobalStartTime
+                            newDate.setHours(tempGlobalStartTime.getHours(), tempGlobalStartTime.getMinutes(), 0, 0);
+                          } else {
+                            // Default to 00:00 if no existing time
+                            newDate.setHours(0, 0, 0, 0);
+                          }
+                          setTempGlobalStartTime(newDate);
+                        } else {
+                          setTempGlobalStartTime(undefined);
+                        }
+                        
+                        if (range?.to) {
+                          const newDate = new Date(range.to);
+                          if (tempGlobalEndTime) {
+                            // Preserve time from existing tempGlobalEndTime
+                            newDate.setHours(tempGlobalEndTime.getHours(), tempGlobalEndTime.getMinutes(), 0, 0);
+                          } else {
+                            // Default to 23:59 if no existing time
+                            newDate.setHours(23, 59, 0, 0);
+                          }
+                          setTempGlobalEndTime(newDate);
+                        } else {
+                          setTempGlobalEndTime(undefined);
+                        }
+                      }}
+                      initialFocus
+                    />
+                    <div className="p-3 border-t space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[50px]">Start:</label>
+                        <Input
+                          type="time"
+                          value={tempGlobalStartTime ? tempGlobalStartTime.toTimeString().slice(0, 5) : "00:00"}
+                          onChange={(e) => {
+                            const [hours, minutes] = e.target.value.split(":").map(Number);
+                            if (tempGlobalStartTime) {
+                              const updated = new Date(tempGlobalStartTime);
+                              updated.setHours(hours, minutes, 0, 0);
+                              setTempGlobalStartTime(updated);
+                            } else {
+                              // If no date selected, create a new date with today's date
+                              const today = new Date();
+                              today.setHours(hours, minutes, 0, 0);
+                              setTempGlobalStartTime(today);
+                            }
+                          }}
+                          className="text-xs sm:text-sm"
+                          disabled={!tempGlobalStartTime}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[50px]">End:</label>
+                        <Input
+                          type="time"
+                          value={tempGlobalEndTime ? tempGlobalEndTime.toTimeString().slice(0, 5) : "23:59"}
+                          onChange={(e) => {
+                            const [hours, minutes] = e.target.value.split(":").map(Number);
+                            if (tempGlobalEndTime) {
+                              const updated = new Date(tempGlobalEndTime);
+                              updated.setHours(hours, minutes, 0, 0);
+                              setTempGlobalEndTime(updated);
+                            } else {
+                              // If no date selected, create a new date with today's date
+                              const today = new Date();
+                              today.setHours(hours, minutes, 0, 0);
+                              setTempGlobalEndTime(today);
+                            }
+                          }}
+                          className="text-xs sm:text-sm"
+                          disabled={!tempGlobalEndTime}
+                        />
+                      </div>
+                      <div className="flex gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <Button
+                          onClick={() => {
+                            // Convert Date objects to ISO strings
+                            const newStartTime = tempGlobalStartTime ? tempGlobalStartTime.toISOString() : null;
+                            const newEndTime = tempGlobalEndTime ? tempGlobalEndTime.toISOString() : null;
+                            
+                            // Apply to actual state
+                            setGlobalStartTime(newStartTime);
+                            setGlobalEndTime(newEndTime);
+                            
+                            // Trigger reload and close popover
+                            setReloadTrigger(prev => prev + 1);
+                            setShowGlobalTimeFilterPopover(false);
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 h-8 sm:h-9 text-xs sm:text-sm"
+                          title="Reload data"
+                        >
+                          <RefreshCw className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
+                          Reload
+                        </Button>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <Button
+                  onClick={addChart}
+                  className="ml-auto flex-shrink-0 bg-black dark:bg-white text-white dark:text-black transition-colors hover:bg-neutral-800 dark:hover:bg-neutral-200"
+                >
+                  Add New Chart
+                </Button>
+              </>
             )}
           </div>
 
@@ -749,6 +1005,10 @@ function PlaygroundContent() {
                 onStackSameMetricsChange={isOwner ? (stackSameMetrics) => handleStackSameMetricsChange(chart.id, stackSameMetrics) : undefined}
                 onRemove={isOwner ? () => removeChart(chart.id) : undefined}
                 disableControls={!isOwner}
+                startTime={chart.startTime || globalStartTime || null}
+                endTime={chart.endTime || globalEndTime || null}
+                onTimeFilterChange={isOwner ? (startTime, endTime) => handleChartTimeFilterChange(chart.id, startTime, endTime) : undefined}
+                reloadTrigger={reloadTrigger}
               />
             </div>
           ))}

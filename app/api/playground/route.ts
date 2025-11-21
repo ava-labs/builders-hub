@@ -51,8 +51,17 @@ export async function GET(req: NextRequest) {
       const isFavorited = session?.user && playground.favorites ? playground.favorites.length > 0 : false;
       const favoriteCount = playground._count.favorites;
 
+      // Extract global time filters and charts array from JSON structure
+      const chartsData = playground.charts as any;
+      const chartsArray = Array.isArray(chartsData) ? chartsData : (chartsData?.charts || []);
+      const globalStartTime = Array.isArray(chartsData) ? null : (chartsData?.globalStartTime || null);
+      const globalEndTime = Array.isArray(chartsData) ? null : (chartsData?.globalEndTime || null);
+
       return NextResponse.json({
         ...playground,
+        charts: chartsArray,
+        globalStartTime,
+        globalEndTime,
         is_owner: isOwner,
         is_favorited: isFavorited,
         favorite_count: favoriteCount,
@@ -120,14 +129,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Name is required.' }, { status: 400 });
     }
 
-    const { name, isPublic, charts } = body;
+    const { name, isPublic, charts, globalStartTime, globalEndTime } = body;
+
+    // Store global time filters in charts JSON structure
+    const chartsData = {
+      globalStartTime: globalStartTime || null,
+      globalEndTime: globalEndTime || null,
+      charts: charts || []
+    };
 
     const playground = await prisma.playground.create({
       data: {
         user_id: session.user.id,
         name,
         is_public: isPublic || false,
-        charts: charts || []
+        charts: chartsData as any
       }
     });
 
@@ -151,7 +167,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Playground ID is required.' }, { status: 400 });
     }
 
-    const { id, name, isPublic, charts } = body;
+    const { id, name, isPublic, charts, globalStartTime, globalEndTime } = body;
 
     // Verify ownership
     const existing = await prisma.playground.findFirst({
@@ -168,7 +184,17 @@ export async function PUT(req: NextRequest) {
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (isPublic !== undefined) updateData.is_public = isPublic;
-    if (charts !== undefined) updateData.charts = charts;
+    if (charts !== undefined || globalStartTime !== undefined || globalEndTime !== undefined) {
+      // Handle both old format (array) and new format (object)
+      const existingCharts = existing.charts as any;
+      const chartsArray = Array.isArray(existingCharts) ? existingCharts : (existingCharts?.charts || []);
+      
+      updateData.charts = {
+        globalStartTime: globalStartTime !== undefined ? (globalStartTime || null) : (existingCharts?.globalStartTime || null),
+        globalEndTime: globalEndTime !== undefined ? (globalEndTime || null) : (existingCharts?.globalEndTime || null),
+        charts: charts !== undefined ? charts : chartsArray
+      } as any;
+    }
 
     const playground = await prisma.playground.update({
       where: { id },
