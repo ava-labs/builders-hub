@@ -13,13 +13,14 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import {
   documentationOptions,
   apiReferenceOptions,
-  rpcsOptions,
+  nodesOptions,
   toolingOptions,
+  acpsOptions,
 } from "./docs-nav-config";
 
 const tabs = [
   {
-    label: "General",
+    label: "Network",
     href: "/docs/primary-network",
     items: documentationOptions,
     pathMatch: (path: string) =>
@@ -28,23 +29,24 @@ const tabs = [
       (path.startsWith("/docs/") &&
         !path.startsWith("/docs/api-reference") &&
         !path.startsWith("/docs/rpcs") &&
+        !path.startsWith("/docs/nodes") &&
         !path.startsWith("/docs/tooling") &&
         !path.startsWith("/docs/acps")),
   },
   {
-    label: "Node RPCs",
-    href: "/docs/rpcs/c-chain",
-    items: rpcsOptions,
-    pathMatch: (path: string) => path.startsWith("/docs/rpcs"),
+    label: "Nodes",
+    href: "/docs/nodes",
+    items: nodesOptions,
+    pathMatch: (path: string) => path.startsWith("/docs/rpcs") || path.startsWith("/docs/nodes"),
   },
   {
-    label: "Data APIs",
+    label: "APIs",
     href: "/docs/api-reference/data-api",
     items: apiReferenceOptions,
     pathMatch: (path: string) => path.startsWith("/docs/api-reference"),
   },
   {
-    label: "Developer Tools",
+    label: "Tools",
     href: "/docs/tooling/avalanche-sdk",
     items: toolingOptions,
     pathMatch: (path: string) => path.startsWith("/docs/tooling"),
@@ -52,6 +54,7 @@ const tabs = [
   {
     label: "ACPs",
     href: "/docs/acps",
+    items: acpsOptions,
     pathMatch: (path: string) => path.startsWith("/docs/acps"),
   },
 ];

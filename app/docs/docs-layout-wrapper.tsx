@@ -12,7 +12,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import {
   documentationOptions,
   apiReferenceOptions,
-  rpcsOptions,
+  nodesOptions,
   toolingOptions,
 } from '@/components/navigation/docs-nav-config';
 
@@ -51,8 +51,8 @@ export function DocsLayoutWrapper({
       document.body.setAttribute('data-docs-section', 'acps');
     } else if (pathname.startsWith('/docs/api-reference')) {
       document.body.setAttribute('data-docs-section', 'api-reference');
-    } else if (pathname.startsWith('/docs/rpcs')) {
-      document.body.setAttribute('data-docs-section', 'rpcs');
+    } else if (pathname.startsWith('/docs/rpcs') || pathname.startsWith('/docs/nodes')) {
+      document.body.setAttribute('data-docs-section', 'nodes');
     } else if (pathname.startsWith('/docs')) {
       document.body.setAttribute('data-docs-section', 'documentation');
     }
@@ -72,10 +72,10 @@ export function DocsLayoutWrapper({
     sidebarOptions = {
       tabs: apiReferenceOptions,
     };
-  } else if (pathname.startsWith('/docs/rpcs')) {
+  } else if (pathname.startsWith('/docs/rpcs') || pathname.startsWith('/docs/nodes')) {
     pageTree = rpcsTree;
     sidebarOptions = {
-      tabs: rpcsOptions,
+      tabs: nodesOptions,
     };
   } else if (pathname.startsWith('/docs/tooling')) {
     pageTree = toolingTree;

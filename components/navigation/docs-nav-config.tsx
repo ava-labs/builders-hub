@@ -10,33 +10,67 @@ import {
   CircleDollarSign,
   Package,
   Terminal,
-  Milestone
+  Milestone,
+  Book
 } from 'lucide-react';
 
 export const documentationOptions = [
   {
     title: 'Primary Network',
-    description: 'Core platform infrastructure',
+    description: 'C-Chain, P-Chain, and X-Chain',
     icon: <Network className="w-5 h-5" />,
     url: '/docs/primary-network',
   },
   {
-    title: 'Avalanche L1s',
-    description: 'Build your own blockchain',
+    title: 'Layer 1s',
+    description: 'Build your own Avalanche blockchain',
     icon: <Layers className="w-5 h-5" />,
     url: '/docs/avalanche-l1s',
   },
   {
-    title: 'Interop',
-    description: 'Cross-chain messaging',
+    title: 'Interchain Messaging',
+    description: 'Interchain messaging protocol',
     icon: <Cable className="w-5 h-5" />,
     url: '/docs/cross-chain',
   },
+];
+
+export const nodesOptions = [
   {
     title: 'AvalancheGo Node',
     description: 'Run nodes and validators',
     icon: <Server className="w-5 h-5" />,
     url: '/docs/nodes',
+  },
+  {
+    title: 'C-Chain RPC',
+    description: 'Contract Chain RPC reference',
+    icon: <Code className="w-5 h-5" />,
+    url: '/docs/rpcs/c-chain',
+  },
+  {
+    title: 'P-Chain RPC',
+    description: 'Platform Chain RPC reference',
+    icon: <Server className="w-5 h-5" />,
+    url: '/docs/rpcs/p-chain',
+  },
+  {
+    title: 'X-Chain RPC',
+    description: 'Exchange Chain RPC reference',
+    icon: <CircleDollarSign className="w-5 h-5" />,
+    url: '/docs/rpcs/x-chain',
+  },
+  {
+    title: 'Subnet-EVM RPC',
+    description: 'Subnet-EVM RPC reference',
+    icon: <Network className="w-5 h-5" />,
+    url: '/docs/rpcs/subnet-evm',
+  },
+  {
+    title: 'Other RPCs',
+    description: 'Additional RPC references',
+    icon: <Webhook className="w-5 h-5" />,
+    url: '/docs/rpcs/other',
   },
 ];
 
@@ -61,39 +95,6 @@ export const apiReferenceOptions = [
   },
 ];
 
-export const rpcsOptions = [
-  {
-    title: 'C-Chain RPC',
-    description: 'Contract Chain RPC methods',
-    icon: <Code className="w-5 h-5" />,
-    url: '/docs/rpcs/c-chain',
-  },
-  {
-    title: 'P-Chain RPC',
-    description: 'Platform Chain RPC methods',
-    icon: <Server className="w-5 h-5" />,
-    url: '/docs/rpcs/p-chain',
-  },
-  {
-    title: 'X-Chain RPC',
-    description: 'Exchange Chain RPC methods',
-    icon: <CircleDollarSign className="w-5 h-5" />,
-    url: '/docs/rpcs/x-chain',
-  },
-  {
-    title: 'Subnet-EVM RPC',
-    description: 'Subnet-EVM RPC methods',
-    icon: <Network className="w-5 h-5" />,
-    url: '/docs/rpcs/subnet-evm',
-  },
-  {
-    title: 'Other RPCs',
-    description: 'Additional RPC APIs',
-    icon: <Webhook className="w-5 h-5" />,
-    url: '/docs/rpcs/other',
-  },
-];
-
 export const toolingOptions = [
   {
     title: 'Avalanche-SDK',
@@ -115,3 +116,24 @@ export const toolingOptions = [
   },
 ];
 
+
+export const acpsOptions = [
+  {
+    title: 'Streaming Asynchronous Execution',
+    description: 'ACP-194',
+    icon: <Book className="w-5 h-5" />,
+    url: '/docs/acps/194-streaming-asynchronous-execution',
+  },
+  {
+    title: 'Continuous Staking',
+    description: 'ACP-236',
+    icon: <Book className="w-5 h-5" />,
+    url: '/docs/acps/236-continuous-staking',
+  },
+  {
+    title: 'ValidatorManager Contract',
+    description: 'ACP-99',
+    icon: <Book className="w-5 h-5" />,
+    url: '/docs/acps/99-validatorsetmanager-contract',
+  },
+];
