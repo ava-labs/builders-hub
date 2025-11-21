@@ -26,10 +26,8 @@ import {
   Ticket,
   Earth,
   ArrowLeftRight,
-  Shield,
+  DraftingCompass,
   GraduationCap,
-  BookOpen,
-  Users,
 } from 'lucide-react';
 import Image from 'next/image';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
@@ -133,6 +131,13 @@ export const stats: LinkItemType = {
       url: "/stats/validators",
       description:
       "View the latest metrics for the Avalanche Primary Network validators.",
+    },
+    {
+      icon: <DraftingCompass />,
+      text: "Playground",
+      url: "/stats/playground",
+      description:
+      "Create and customize multiple charts with real-time chain metrics.",
     },
   ],
 };
