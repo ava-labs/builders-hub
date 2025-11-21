@@ -9,9 +9,10 @@ interface Props {
   onChange: (validators: ConvertToL1Validator[]) => void
   l1TotalInitializedWeight?: bigint | null
   userPChainBalanceNavax?: bigint | null
+  hideConsensusWeight?: boolean
 }
 
-export function ValidatorsList({ validators, onChange, l1TotalInitializedWeight = null, userPChainBalanceNavax = null }: Props) {
+export function ValidatorsList({ validators, onChange, l1TotalInitializedWeight = null, userPChainBalanceNavax = null, hideConsensusWeight = false }: Props) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null)
 
   const toggleExpand = (index: number) => {
@@ -45,6 +46,7 @@ export function ValidatorsList({ validators, onChange, l1TotalInitializedWeight 
           onUpdate={updateValidator}
           l1TotalInitializedWeight={l1TotalInitializedWeight}
           userPChainBalanceNavax={userPChainBalanceNavax}
+          hideConsensusWeight={hideConsensusWeight}
         />
       ))}
     </div>
