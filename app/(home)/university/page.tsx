@@ -180,10 +180,10 @@ export default function Page() {
               href="/academy"
             />
             <ProgramCard
-              title="Codebase Entrepreneur Academy"
+              title="Entrepreneur Academy"
               description="Learn how to build, launch, and scale your blockchain startup with guidance from industry experts and get certified for free."
               icon={<GraduationCap className="w-6 h-6 text-foreground" />}
-              href="/codebase-entrepreneur-academy"
+              href="/academy/entrepreneur"
             />
             <ProgramCard
               title="Faculty Development Program"

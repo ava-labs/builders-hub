@@ -85,7 +85,10 @@ export default async function Page(props: {
   const path = `content/academy${page.url.replace('/academy/', '/')}.mdx`;
   const editUrl = `https://github.com/ava-labs/builders-hub/edit/master/${path}`;
   const MDX = page.data.body;
-  const course = COURSES.official.find((c) => c.slug === page.slugs[0]);
+  // Check both official courses and entrepreneur courses
+  // page.slugs[1] contains the course slug (e.g., "avalanche-fundamentals", "foundations-web3-venture")
+  const course = COURSES.official.find((c) => c.slug === page.slugs[1]) 
+    || COURSES.avalancheEntrepreneur.find((c) => c.slug === page.slugs[1]);
 
   return (
     <DocsPage

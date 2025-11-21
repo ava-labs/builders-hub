@@ -1,0 +1,108 @@
+---
+title: Reward Manager 
+description: How the Reward Manager calculates and distributes staking rewards
+updated: 2025-03-13
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+The **Reward Manager** is an **optional but highly recommended component** that automates the calculation and distribution of staking rewards. While the Native Minter precompile handles the actual token minting, the Reward Manager determines *how much* each validator and delegator should receive based on their staking duration, stake amount, and network parameters.
+
+Without the Reward Manager enabled, rewards are set to zero—validators receive only their original stake back when they unstake, no reward UTXOs are created, and transaction fees are burned rather than distributed. This eliminates economic incentives for validators beyond minimal transaction fee revenue, significantly weakening the security model of Proof of Stake and reducing decentralization.
+
+## How the Reward Manager Works
+
+The reward system operates through a **proposal-commit/abort mechanism** on the P-Chain. When a validator's or delegator's staking period ends, the system automatically calculates and distributes their rewards.
+
+<Mermaid
+  chart="sequenceDiagram
+    participant BB as Block Builder
+    participant RV as RewardValidatorTx
+    participant PE as Proposal Executor
+    participant RC as Reward Calculator
+    participant PS as P-Chain State
+    participant V as Validator
+    participant D as Delegator
+    
+    note over BB,D: Validator end time reached
+    BB->>RV: Create RewardValidatorTx
+    RV->>PE: Execute as proposal
+    PE->>RC: Get staker to reward
+    RC->>PE: Calculate reward based on duration, weight, supply
+    PE->>PS: Return potential reward
+    alt Commit Path
+        PE->>PS: Create reward UTXO (if reward > 0)
+        PE->>PS: Create delegatee reward UTXO (if accumulated)
+        PE->>PS: Remove from current validators
+        PS-->>V: Stake + Validation Reward
+        PS-->>D: Accumulated Delegation Fees
+    else Abort Path
+        PE->>PS: Return staked tokens only
+        PE->>PS: Decrease supply by potential reward
+        PE->>PS: Return accumulated delegatee rewards
+        PS-->>V: Stake only (no validation reward)
+        PS-->>D: Accumulated Delegation Fees
+    end
+    
+    note over BB,D: When delegator ends
+    BB->>RV: Split reward between delegator/delegatee
+    RV->>PE: Create delegator reward UTXO
+    alt Post-Cortina
+        PE->>PS: Accumulate delegatee share
+    else Pre-Cortina
+        PE->>PS: Create delegatee reward UTXO immediately
+    end
+    PS-->>D: When delegator ends
+"
+/>
+
+## Reward Calculation
+
+When a validator's or delegator's staking period ends, the system calculates rewards using the `reward.Calculator` which considers:
+
+1. **Staking Duration**: How long tokens were staked
+2. **Stake Amount**: The weight of the validator (own stake + delegated stake)
+3. **Current Supply**: The total token supply affects reward rate
+4. **Network Parameters**: Configured reward rates and caps
+
+The calculation follows this general formula:
+
+```
+reward = (stake_amount × staking_duration × reward_rate) / supply_factor
+```
+
+The reward rate typically decreases as supply increases, creating controlled inflation.
+
+## Reward Distribution Process
+
+### 1. Block Building
+
+When a staker's end time is reached, the **Block Builder** creates a `RewardValidatorTx` transaction. This transaction proposes to:
+- Remove the validator/delegator from the active set
+- Calculate their earned rewards
+- Return their stake plus rewards
+
+### 2. Execution Phase
+
+The `RewardValidatorTx` is executed as a **proposal transaction** by the Proposal Executor:
+
+- The Reward Calculator computes the potential reward amount
+- The P-Chain State is queried for staker information
+- A reward UTXO is prepared (if reward > 0)
+
+### 3. Commit or Abort
+
+The transaction can follow two paths:
+
+#### Commit Path (Normal Operation)
+- Validator receives: Original stake + validation rewards
+- Delegators receive: Their share of rewards (minus delegation fees)
+- Delegation fees are either:
+  - **Post-Cortina**: Accumulated for the validator to claim later
+  - **Pre-Cortina**: Paid immediately to the validator
+
+#### Abort Path (Network Issues)
+- Validator receives: Only their original stake (no rewards)
+- Potential rewards are burned (supply decreased)
+- Accumulated delegation fees are still returned
+- This protects the network from rewarding validators during unstable periods

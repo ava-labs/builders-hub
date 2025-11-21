@@ -286,19 +286,132 @@ export default function AvalancheMetrics() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
-        <div className="container mx-auto px-6 py-10 pb-24 space-y-12">
-          <div className="space-y-3">
-            <div>
-              <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-black dark:text-white">
-                Avalanche L1s Index
-              </h1>
-              <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
-                Loading comprehensive stats for Avalanche Mainnet L1s...
-              </p>
+        <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
+          {/* Hero Section - Loading State */}
+          <div className="relative overflow-hidden rounded-2xl p-8 sm:p-12 mb-10">
+            {/* Multi-layer gradient background */}
+            <div className="absolute inset-0 bg-black" />
+            <div
+              className="absolute inset-0 opacity-60"
+              style={{
+                background: 'linear-gradient(140deg, #E84142 0%, transparent 70%)'
+              }}
+            />
+            <div
+              className="absolute inset-0 opacity-40"
+              style={{
+                background: 'linear-gradient(to top left, #3752AC 0%, transparent 50%)'
+              }}
+            />
+            <div
+              className="absolute inset-0 opacity-30"
+              style={{
+                background: 'radial-gradient(circle at 50% 50%, #E84142 0%, #3752AC 30%, transparent 70%)'
+              }}
+            />
+
+            {/* Content */}
+            <div className="relative z-10 space-y-8">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex-1">
+                  <h1 className="text-3xl sm:text-4xl font-semibold text-white mb-3">
+                    Avalanche L1s Index
+                  </h1>
+                  <p className="text-white/80 text-sm sm:text-base max-w-3xl">
+                    Loading comprehensive stats for Avalanche Mainnet L1s...
+                  </p>
+                </div>
+
+                {/* Submit button skeleton */}
+                <div className="flex-shrink-0 h-9 w-32 bg-white/20 rounded-md animate-pulse" />
+              </div>
+
+              {/* Separator */}
+              <div className="border-t border-white/20" />
+
+              {/* Main metrics - 3 cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-6 text-center animate-pulse">
+                    <div className="h-4 bg-white/20 rounded mb-3 w-2/3 mx-auto" />
+                    <div className="h-10 bg-white/30 rounded w-1/2 mx-auto" />
+                  </div>
+                ))}
+              </div>
+
+              {/* Secondary metrics - 4 cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-5 text-center animate-pulse">
+                    <div className="h-3 bg-white/20 rounded mb-3 w-3/4 mx-auto" />
+                    <div className="h-7 bg-white/30 rounded w-1/3 mx-auto" />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-          <ChartSkeletonLoader />
-        </div>
+
+          {/* Separator */}
+          <div className="border-t border-neutral-200 dark:border-neutral-800 my-8" />
+
+          {/* Search Bar Skeleton */}
+          <div className="flex items-center gap-2">
+            <div className="h-10 bg-neutral-200 dark:bg-neutral-800 rounded-full flex-1 max-w-sm animate-pulse" />
+            <div className="h-9 w-28 bg-neutral-200 dark:bg-neutral-800 rounded-full animate-pulse" />
+          </div>
+
+          {/* Table Skeleton */}
+          <Card className="overflow-hidden border border-neutral-200 dark:border-neutral-800 py-0">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
+                  <tr className="border-b border-neutral-200 dark:border-neutral-800">
+                    {["L1 Name", "Addresses", "Transactions", "ICM", "Validators", "Throughput", "Category", "Explorer"].map((header, i) => (
+                      <th key={i} className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
+                        <div className="h-4 bg-neutral-300 dark:bg-neutral-700 rounded w-20 animate-pulse" />
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-neutral-950">
+                  {[...Array(10)].map((_, rowIndex) => (
+                    <tr key={rowIndex} className="border-b border-slate-100 dark:border-neutral-800">
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-neutral-200 dark:bg-neutral-800 animate-pulse" />
+                          <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-24 animate-pulse" />
+                        </div>
+                      </td>
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                        <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-16 animate-pulse" />
+                      </td>
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                        <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-16 animate-pulse" />
+                      </td>
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                        <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-12 animate-pulse" />
+                      </td>
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                        <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-12 animate-pulse" />
+                      </td>
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                        <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-16 animate-pulse" />
+                      </td>
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                        <div className="h-6 bg-neutral-200 dark:bg-neutral-800 rounded-full w-20 animate-pulse" />
+                      </td>
+                      <td className="px-4 py-2">
+                        <div className="flex items-center justify-center">
+                          <div className="h-8 w-16 bg-neutral-200 dark:bg-neutral-800 rounded-md animate-pulse" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </main>
 
         {/* Bubble Navigation */}
         <StatsBubbleNav />
@@ -363,139 +476,159 @@ export default function AvalancheMetrics() {
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
       <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
-        <div className="mb-10">
-          <div className="flex items-start justify-between gap-4 mb-3">
-            <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-black dark:text-white">
-              Avalanche L1s Index
-            </h1>
-            <Button
-              size="sm"
-              onClick={() =>
-                window.open(
-                  "https://github.com/ava-labs/builders-hub/blob/master/constants/l1-chains.json",
-                  "_blank"
-                )
-              }
-              className="flex-shrink-0 bg-black dark:bg-white text-white dark:text-black transition-colors hover:bg-neutral-800 dark:hover:bg-neutral-200"
-            >
-              Submit Your L1
-              <ArrowUpRight className="ml-1.5 h-4 w-4" />
-            </Button>
-          </div>
-          <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
-            Opinionated stats for Mainnet L1s in the Avalanche ecosystem.
-          </p>
-        </div>
+        {/* Hero Section */}
+        <div className="relative overflow-hidden rounded-2xl p-8 sm:p-12 mb-10">
+          {/* Multi-layer gradient background */}
+          <div className="absolute inset-0 bg-black" />
+          <div
+            className="absolute inset-0 opacity-60"
+            style={{
+              background: 'linear-gradient(140deg, #E84142 0%, transparent 70%)'
+            }}
+          />
+          <div
+            className="absolute inset-0 opacity-40"
+            style={{
+              background: 'linear-gradient(to top left, #3752AC 0%, transparent 50%)'
+            }}
+          />
+          <div
+            className="absolute inset-0 opacity-30"
+            style={{
+              background: 'radial-gradient(circle at 50% 50%, #E84142 0%, #3752AC 30%, transparent 70%)'
+            }}
+          />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
-            <div className="p-6 text-center">
-              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                Mainnet Avalanche L1s
-              </p>
-              <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
-                {overviewMetrics.chains.length}
-              </p>
+          {/* Content */}
+          <div className="relative z-10 space-y-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              {/* Title and description */}
+              <div className="flex-1">
+                <h1 className="text-3xl sm:text-4xl font-semibold text-white mb-3">
+                  Avalanche L1s Index
+                </h1>
+                <p className="text-white/80 text-sm sm:text-base max-w-3xl">
+                  Opinionated stats for Mainnet L1s in the Avalanche ecosystem.
+                </p>
+              </div>
+
+              {/* Submit button */}
+              <Button
+                size="sm"
+                onClick={() =>
+                  window.open(
+                    "https://github.com/ava-labs/builders-hub/blob/master/constants/l1-chains.json",
+                    "_blank"
+                  )
+                }
+                className="flex-shrink-0 border border-white bg-black text-white hover:bg-neutral-800 dark:bg-transparent dark:hover:border-neutral-400 transition-colors"
+              >
+                Submit Your L1
+                <ArrowUpRight className="ml-1.5 h-4 w-4" />
+              </Button>
             </div>
-          </Card>
 
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
-            <div className="p-6 text-center">
-              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                Daily Transactions
-              </p>
-              <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
-                {formatNumber(
-                  typeof overviewMetrics.aggregated.totalTxCount
-                    .current_value === "number"
-                    ? Math.round(
-                        overviewMetrics.aggregated.totalTxCount.current_value /
-                          365
-                      )
-                    : 0
-                )}
-              </p>
-            </div>
-          </Card>
+            {/* Separator */}
+            <div className="border-t border-white/20" />
 
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
-            <div className="p-6 text-center">
-              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                Combined Throughput
-              </p>
-              <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
-                {(() => {
-                  // Calculate total TPS from all chains
-                  const totalTxs =
+            {/* Main metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-6 text-center">
+                <p className="mb-2 text-sm font-medium text-white/60">
+                  Mainnet Avalanche L1s
+                </p>
+                <p className="text-4xl font-semibold tracking-tight text-white">
+                  {overviewMetrics.chains.length}
+                </p>
+              </div>
+
+              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-6 text-center">
+                <p className="mb-2 text-sm font-medium text-white/60">
+                  Daily Transactions
+                </p>
+                <p className="text-4xl font-semibold tracking-tight text-white">
+                  {formatNumber(
                     typeof overviewMetrics.aggregated.totalTxCount
                       .current_value === "number"
-                      ? overviewMetrics.aggregated.totalTxCount.current_value
-                      : 0;
-                  const secondsInYear = 365 * 24 * 60 * 60;
-                  const tps = (totalTxs / secondsInYear).toFixed(2);
-                  return tps;
-                })()}{" "}
-                TPS
-              </p>
-            </div>
-          </Card>
-        </div>
+                      ? Math.round(
+                          overviewMetrics.aggregated.totalTxCount.current_value /
+                            365
+                        )
+                      : 0
+                  )}
+                </p>
+              </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
-            <div className="p-5 text-center">
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                Daily ICM Count
-              </p>
-              <p className="text-2xl font-semibold text-black dark:text-white">
-                {formatNumber(
-                  Math.round(
-                    overviewMetrics.aggregated.totalICMMessages.current_value /
-                      365
-                  )
-                )}
-              </p>
-            </div>
-          </Card>
-
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
-            <div className="p-5 text-center">
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                Total Validators
-              </p>
-              <p className="text-2xl font-semibold text-black dark:text-white">
-                {formatNumber(overviewMetrics.aggregated.totalValidators)}
-              </p>
-            </div>
-          </Card>
-
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
-            <div className="p-5 text-center">
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                All-Time Validation Fees
-              </p>
-              <div className="flex items-center justify-center gap-2">
-                <AvalancheLogo className="w-6 h-6" fill="#E84142" />
-                <p className="text-2xl font-semibold text-black dark:text-white">
-                  8,310
+              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-6 text-center">
+                <p className="mb-2 text-sm font-medium text-white/60">
+                  Combined Throughput
+                </p>
+                <p className="text-4xl font-semibold tracking-tight text-white">
+                  {(() => {
+                    const totalTxs =
+                      typeof overviewMetrics.aggregated.totalTxCount
+                        .current_value === "number"
+                        ? overviewMetrics.aggregated.totalTxCount.current_value
+                        : 0;
+                    const secondsInYear = 365 * 24 * 60 * 60;
+                    const tps = (totalTxs / secondsInYear).toFixed(2);
+                    return tps;
+                  })()}{" "}
+                  TPS
                 </p>
               </div>
             </div>
-          </Card>
 
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0">
-            <div className="p-5 text-center">
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                Total Network Fees Burned
-              </p>
-              <div className="flex items-center justify-center gap-2">
-                <AvalancheLogo className="w-6 h-6" fill="#E84142" />
-                <p className="text-2xl font-semibold text-black dark:text-white">
-                  {formatNumber(4930978)}
+            {/* Secondary metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-5 text-center">
+                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-white/60">
+                  Daily ICM Count
+                </p>
+                <p className="text-2xl font-semibold text-white">
+                  {formatNumber(
+                    Math.round(
+                      overviewMetrics.aggregated.totalICMMessages.current_value /
+                        365
+                    )
+                  )}
                 </p>
               </div>
+
+              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-5 text-center">
+                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-white/60">
+                  Total Validators
+                </p>
+                <p className="text-2xl font-semibold text-white">
+                  {formatNumber(overviewMetrics.aggregated.totalValidators)}
+                </p>
+              </div>
+
+              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-5 text-center">
+                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-white/60">
+                  All-Time Validation Fees
+                </p>
+                <div className="flex items-center justify-center gap-2">
+                  <AvalancheLogo className="w-6 h-6" fill="white" />
+                  <p className="text-2xl font-semibold text-white">
+                    8,310
+                  </p>
+                </div>
+              </div>
+
+              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-5 text-center">
+                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-white/60">
+                  Total Network Fees Burned
+                </p>
+                <div className="flex items-center justify-center gap-2">
+                  <AvalancheLogo className="w-6 h-6" fill="white" />
+                  <p className="text-2xl font-semibold text-white">
+                    {formatNumber(4930978)}
+                  </p>
+                </div>
+              </div>
             </div>
-          </Card>
+          </div>
         </div>
 
         <div className="border-t border-neutral-200 dark:border-neutral-800 my-8"></div>

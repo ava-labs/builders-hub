@@ -230,16 +230,9 @@ const data = {
       icon: Globe,
       items: [
         {
-          title: "Migrate from Permissioned L1",
-          url: "/console/permissionless-l1s/deploy-reward-manager",
+          title: "Native Staking Manager Setup",
+          url: "/console/permissionless-l1s/native-staking-manager-setup",
           icon: GitMerge,
-          comingSoon: true,
-        },
-        {
-          title: "Stake & Unstake",
-          url: "/console/permissionless-l1s/manage-validators",
-          icon: Hexagon,
-          comingSoon: true,
         },
       ],
     },
