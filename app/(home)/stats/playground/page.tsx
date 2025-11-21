@@ -420,7 +420,7 @@ function PlaygroundContent() {
     }
     
     return false;
-  }, [charts, savedCharts, playgroundName, savedPlaygroundName, isPublic, savedIsPublic]);
+  }, [charts, savedCharts, playgroundName, savedPlaygroundName, isPublic, savedIsPublic, globalStartTime, globalEndTime, savedGlobalStartTime, savedGlobalEndTime]);
 
   const copyLink = async () => {
     if (savedLink) {
