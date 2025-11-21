@@ -1,0 +1,152 @@
+---
+title: Prepare NFT Files
+description: Learn how to prepare and upload your NFT images and metadata to IPFS
+updated: 2024-11-20
+authors: [Andrea Vargas, Ash, martineckardt]
+icon: BookOpen
+---
+
+The first step of setting up an NFT smart contract is having your NFT files ready to use. In this guide, we'll upload files to [Pinata](https://www.pinata.cloud/), a pinning service that prevents files from being garbage collected on IPFS.
+
+<Callout type="info">
+If you don't already have a Pinata account, please [create one](https://www.pinata.cloud/) before proceeding. The free tier is sufficient for this tutorial.
+</Callout>
+
+## Preparing the Images
+
+This tutorial will create only 1 NFT, however, if you're interested in creating more, you're more than welcome to do so.
+
+![Original NFT Photo](/images/nft-files1.jpeg)
+
+### Organizing Your Images
+
+1. Create a folder on your computer for your NFT images
+2. Name your image file `0` (without any file extension visible)
+3. If creating multiple NFTs, continue naming them sequentially: `0`, `1`, `2`, etc.
+
+<Callout type="warn">
+**Important**: Some projects start file names with `0`, and others with `1`. That choice must be consistent with your smart contract code. For this tutorial, we'll start with `0`.
+</Callout>
+
+![Image Folder](/images/nft-files2.png)
+
+### Uploading Images to Pinata
+
+1. Log into your Pinata dashboard
+2. Click the **Upload** button on the left sidebar
+3. Select **Folder** from the upload options
+
+![Pinata Dashboard](/images/nft-files3.png)
+
+![Folder Button](/images/nft-files4.png)
+
+4. Select the folder containing your image(s)
+5. Confirm the upload if prompted by your browser
+
+![Confirm Upload](/images/nft-files5.png)
+
+6. Give your folder a descriptive name (this helps organize multiple collections)
+7. Click **Upload** and wait for the process to complete
+
+Once the upload is complete, you'll see your folder in the dashboard:
+
+![Uploaded Image Folder](/images/nft-files6.png)
+
+### Getting Your Image URL
+
+1. Click on the folder name to view it through the Pinata gateway
+2. Right-click on your image and copy the URL
+3. Save this URL - you'll need it for the metadata file
+
+Example URL: `https://gateway.pinata.cloud/ipfs/QmPWbixyMsaNkR9v612bBFbncKGmgXDKz9CgMtDDD7Bymw/0.png`
+
+## Creating Metadata Files
+
+Now that we have the image uploaded, we need to create matching metadata files. Since we're creating an ERC-721 NFT, we'll use the standard metadata format used by marketplaces like [Joepegs.com](https://joepegs.com/).
+
+### Metadata Structure
+
+The basic [metadata structure](https://docs.opensea.io/docs/metadata-standards#metadata-structure) looks like this:
+
+```json
+{
+  "name": "",
+  "tokenId": 0,
+  "image": "",
+  "description": "",
+  "attributes": []
+}
+```
+
+### Populating the Metadata
+
+Let's fill in each field:
+
+- **name**: Choose any name for your NFT
+- **tokenId**: Use `0` to correspond with your first image (increment for additional NFTs)
+- **image**: Paste the image URL you copied from Pinata
+- **description**: Describe your NFT
+- **attributes**: Optional array for traits (useful for collections with layers/rarity)
+
+Example completed metadata:
+
+```json
+{
+  "name": "Cool Photography",
+  "tokenId": 0,
+  "image": "https://gateway.pinata.cloud/ipfs/QmPWbixyMsaNkR9v612bBFbncKGmgXDKz9CgMtDDD7Bymw/0.png",
+  "description": "A cool image"
+}
+```
+
+<Callout type="info">
+The `attributes` field is particularly useful for NFT collections with multiple layers. It's used to calculate rarity and rank NFTs based on how frequently their traits appear throughout the collection. For this simple example, we've omitted it.
+</Callout>
+
+### Saving the Metadata File
+
+1. Save this JSON content as a file named `0` (matching your image name)
+2. **Remove the file extension** so it's just `0`, not `0.json`
+   - [Mac instructions](https://support.apple.com/guide/mac-help/show-or-hide-filename-extensions-on-mac-mchlp2304/mac)
+   - [Windows instructions](https://www.techwalla.com/articles/how-to-remove-file-extensions)
+
+<Callout type="warn">
+**Critical**: The metadata file must NOT have a `.json` extension when uploaded to Pinata. The IPFS gateway will serve it as a directory, and your smart contract will be able to fetch it correctly.
+</Callout>
+
+3. Place the metadata file in a **separate folder** from your images
+
+![Metadata Folder](/images/nft-files7.png)
+
+### Uploading Metadata to Pinata
+
+1. Repeat the folder upload process for your metadata folder
+2. Follow the same steps as you did for the images
+3. Once uploaded, both folders should appear in your dashboard
+
+![Uploaded Folders](/images/nft-files8.png)
+
+### Getting Your Base URI
+
+1. Click on the **metadata folder** to view it in the IPFS gateway
+2. Copy the URL - this is your **Base URI**
+3. **Important**: Use only the folder URL, not the individual file URL
+
+Example Base URI: `https://gateway.pinata.cloud/ipfs/QmYdWxbiwsfsYcW1CYQPgYujAc9FMLPG3fgFcxFskbSsFa`
+
+The smart contract will automatically append the token ID to this base URI when fetching metadata for each NFT.
+
+## File Preparation Checklist
+
+Before moving to the next section, ensure you have:
+
+- ✅ Images uploaded to Pinata in a folder
+- ✅ Metadata files created with correct structure
+- ✅ Metadata files named to match image files (0, 1, 2, etc.)
+- ✅ Metadata files uploaded to Pinata in a **separate** folder
+- ✅ Base URI copied and saved
+
+## Next Steps
+
+Now that your NFT files are prepared and uploaded to IPFS, you're ready to create and deploy your smart contract. In the next section, we'll use OpenZeppelin's Contract Wizard to generate an ERC-721 contract customized for your collection.
+
