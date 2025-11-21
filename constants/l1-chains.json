@@ -195,28 +195,6 @@
     ]
   },
   {
-    "chainId": "2053",
-    "chainName": "Certalink",
-    "chainLogoURI": "",
-    "subnetId": "2hZa4RMWAkiQAQ5zpbPSkNziYSHyCqBGeKNnbqWfJL2GKmy8eq",
-    "slug": "certalink",
-    "color": "#F43F5E",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
-    "chainId": "33210",
-    "chainName": "Cloudverse",
-    "chainLogoURI": "",
-    "subnetId": "4YtJVNm6KnytRaEDeezC3mHK5FnsP75Sjgxa5eiav3sxNUQD9",
-    "slug": "cloudverse",
-    "color": "#0EA5E9",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
     "chainId": "235235",
     "chainName": "CodeNekt",
     "chainLogoURI": "https://f005.backblazeb2.com/file/tracehawk-prod/logo/codenekt/Light.png",
@@ -431,17 +409,6 @@
     ]
   },
   {
-    "chainId": "62786",
-    "chainName": "Frqtal",
-    "chainLogoURI": "",
-    "subnetId": "FAjUPxhRewh9vk8dSzcgRFZRLaCaNVg6gb5TcHwKsehuQ7k6p",
-    "slug": "frqtal",
-    "color": "#06B6D4",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
     "chainId": "62789",
     "chainName": "Frqtalnet",
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
@@ -464,17 +431,6 @@
     "slug": "goodcare",
     "color": "#F43F5E",
     "category": "General",
-    "explorers": [
-    ]
-  },
-  {
-    "chainId": "6765897101",
-    "chainName": "Greendot",
-    "chainLogoURI": "",
-    "subnetId": "VzsCkPm6MjStgT2v5Qmcn5ycgMhj68rxPN4gX9eMgBbBXHYEu",
-    "slug": "greendot",
-    "color": "#0EA5E9",
-    "category": "Finance",
     "explorers": [
     ]
   },
@@ -509,17 +465,6 @@
     ]
   },
   {
-    "chainId": "43512",
-    "chainName": "Gunzilla Testnet",
-    "chainLogoURI": "",
-    "subnetId": "9ewhue9Lyryt1G4H1icgZotc6wRVwiPgmiVemSN24JXwg91JH",
-    "slug": "gunzilla-testnet",
-    "color": "#F59E0B",
-    "category": "Gaming",
-    "explorers": [
-    ]
-  },
-  {
     "chainId": "7272",
     "chainName": "Hashfire",
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/4TCWxdtzvtZ8iD4255nAgU/e4d12af0a594bcf38b53a27e6beb07a3/FlatIcon_Large_.png",
@@ -551,28 +496,6 @@
         "name": "Snowtrace",
         "link": "https://68414.snowtrace.io"
       }
-    ]
-  },
-  {
-    "chainId": "1992",
-    "chainName": "Hubblenet",
-    "chainLogoURI": "",
-    "subnetId": "2mxZY7A2t1tuRMALW4BcBUPVGNR3LH1DXhftdbLAHm1QtDkFp8",
-    "slug": "hubblenet",
-    "color": "#10B981",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
-    "chainId": "2345",
-    "chainName": "Ienium",
-    "chainLogoURI": "",
-    "subnetId": "7SeGzzeirxi9tAn594hTSmZb8BQdYzwNgWSHa9DqJ9hCUYbFx",
-    "slug": "ienium",
-    "color": "#3B82F6",
-    "category": "General",
-    "explorers": [
     ]
   },
   {
@@ -768,47 +691,6 @@
     ]
   },
   {
-    "chainId": "3454",
-    "chainName": "Masa",
-    "chainLogoURI": "",
-    "subnetId": "P8teobyNzpvniT7XGhXdEnkXiXvkk3eM4vSYtHUTAJcuV3jLb",
-    "slug": "masa",
-    "color": "#A855F7",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
-    "chainId": "13396",
-    "chainName": "Masa Network",
-    "chainLogoURI": "",
-    "subnetId": "yEQe3LdJgjxBqG28gRjLUu86qFCcNbWnkPtPr7ZHg8pLx1SUJ",
-    "slug": "masanetwork",
-    "color": "#06B6D4",
-    "category": "General",
-    "explorers": [
-      {
-        "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/masanetwork"
-      },
-      {
-        "name": "Snowtrace",
-        "link": "https://13396.snowtrace.io"
-      }
-    ]
-  },
-  {
-    "chainId": "333000333",
-    "chainName": "Meld",
-    "chainLogoURI": "",
-    "subnetId": "2ibTg9ruyJRQf4NpRbkd1Utcfayo3gRRpkoWGCWNC3oXTZoYCe",
-    "slug": "meld",
-    "color": "#84CC16",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
     "chainId": "1888",
     "chainName": "Memoria",
     "chainLogoURI": "",
@@ -854,43 +736,6 @@
     ]
   },
   {
-    "chainId": "1188811",
-    "chainName": "Numine",
-    "chainLogoURI": "",
-    "subnetId": "4iDWVgCCSu4Tafpg4bdhxu8q1ap8Rp2hMzG4UPxUhL9UVX6iU",
-    "slug": "numine",
-    "color": "#D946EF",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
-    "chainId": "5041",
-    "chainName": "Omochi",
-    "chainLogoURI": "",
-    "subnetId": "2mBbfPEFbdEqeaBvRLgvmQQA3cG5mbpqbC8fcXCTZaycXZrXDq",
-    "slug": "omochi",
-    "color": "#F59E0B",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
-    "chainId": "5040",
-    "chainName": "Onigiri",
-    "chainLogoURI": "",
-    "subnetId": "2QiTdY87qfDRav1pSdxkGMqjRD6YXFscVd64W3L3V8v4re9CCo",
-    "slug": "onigiri",
-    "color": "#3B82F6",
-    "category": "General",
-    "explorers": [
-      {
-        "name": "Snowtrace",
-        "link": "https://5040.snowtrace.io"
-      }
-    ]
-  },
-  {
     "chainId": "58166",
     "chainName": "Oumla",
     "chainLogoURI": "",
@@ -932,28 +777,6 @@
     ]
   },
   {
-    "chainId": "504441",
-    "chainName": "Playdappne",
-    "chainLogoURI": "",
-    "subnetId": "2bSdrPJaGvsDFeJtC7v9ut4m2vLKBgs2dJzRsDpxYKbqTyBmr9",
-    "slug": "playdappne",
-    "color": "#8B5CF6",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
-    "chainId": "1080",
-    "chainName": "Playthink",
-    "chainLogoURI": "",
-    "subnetId": "T6XNCf5qHYhJigDcGtjTaGvfiQGRW8JVXTyPza9eZBfCGyDF",
-    "slug": "playthink",
-    "color": "#F59E0B",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
     "chainId": "16180",
     "chainName": "PLYR",
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5K1xUbrhZPhSOEtsHoghux/b64edf007db24d8397613f7d9338260a/logomark_fullorange.svg",
@@ -969,21 +792,6 @@
       {
         "name": "Snowtrace",
         "link": "https://16180.snowtrace.io"
-      }
-    ]
-  },
-  {
-    "chainId": "357",
-    "chainName": "Pulsar",
-    "chainLogoURI": "",
-    "subnetId": "DxanjptkyaeM1eUew2gzUMngHM3n5ttUyMj7BuHw9riXh9pJC",
-    "slug": "pulsar",
-    "color": "#EC4899",
-    "category": "Gaming",
-    "explorers": [
-      {
-        "name": "Snowtrace",
-        "link": "https://357.snowtrace.io"
       }
     ]
   },
@@ -1041,25 +849,6 @@
     ]
   },
   {
-    "chainId": "9899",
-    "chainName": "Solert",
-    "chainLogoURI": "",
-    "subnetId": "2An23jRoEGZc5Fr9CQSw4vNnBRDX5Y56F27ChYz9Sa5Bg8L6JK",
-    "slug": "solert",
-    "color": "#EF4444",
-    "category": "General",
-    "explorers": [
-      {
-        "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/solert"
-      },
-      {
-        "name": "Snowtrace",
-        "link": "https://9899.snowtrace.io"
-      }
-    ]
-  },
-  {
     "chainId": "8227",
     "chainName": "Space",
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/27oUMNb9hSTA7HfFRnqUtZ/2f80e6b277f4b4ee971675b5f73c06bf/Space_Symbol_256X256__v2.svg",
@@ -1110,28 +899,6 @@
         "name": "Snowtrace",
         "link": "https://5566.snowtrace.io"
       }
-    ]
-  },
-  {
-    "chainId": "62707",
-    "chainName": "Tele1",
-    "chainLogoURI": "",
-    "subnetId": "V9cD5JH4TYcw9241zgxrXXEj3k3rZJJLNL2UEPv5ujDip1m3m",
-    "slug": "tele1",
-    "color": "#F43F5E",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
-    "chainId": "70953",
-    "chainName": "Tele2",
-    "chainLogoURI": "",
-    "subnetId": "2BNnJuF7QiSjnEhvRStKE6ksugnAyF1e42j3u6VWMCL4c8D3bJ",
-    "slug": "tele2",
-    "color": "#0EA5E9",
-    "category": "General",
-    "explorers": [
     ]
   },
   {
