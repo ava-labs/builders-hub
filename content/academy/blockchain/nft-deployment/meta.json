@@ -1,0 +1,19 @@
+{
+  "title": "NFT Deployment",
+  "icon": "Image",
+  "root": true,
+  "pages": [
+    "index",
+    "---ERC-721 Standard---",
+    "01-erc721-standard",
+    "---Prepare Files---",
+    "02-prepare-nft-files",
+    "---Create Contract---",
+    "03-create-smart-contract",
+    "---Deploy & Mint---",
+    "04-deploy-and-mint",
+    "---Token URIs---",
+    "05-token-uris"
+  ]
+}
+
