@@ -21,7 +21,7 @@ import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { toast } from 'sonner';
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
-const INITIALIZE_FUNCTION_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/NativeTokenStakingManager.sol#L43`;
+const INITIALIZE_FUNCTION_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/NativeTokenStakingManager.sol#L43`;
 
 const metadata: ConsoleToolMetadata = {
     title: "Initialize Native Token Staking Manager",
