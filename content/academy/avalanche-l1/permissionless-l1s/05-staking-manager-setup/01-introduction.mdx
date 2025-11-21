@@ -1,0 +1,96 @@
+---
+title: Validator Manager Contract 
+description: Overview of Validator Manager extension contracts to support Proof of Stake
+updated: 2024-09-03
+authors: [nicolasarnedo]
+icon: Book
+---
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+
+When discussing the [Validator Manager Contract structure](/academy/permissioned-l1s/02-proof-of-authority/03-validator-manager-contract) for **Permissioned L1s** we only saw part of the overall strucure. In the mermaid diagram below you can see an expanded view of it, with three new contracts:
+
+- **PoSValidatorManager**
+- **ERC20TokenStakingManager**
+- **NativeTokenStakingManager**
+
+<div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
+  <div style={{ width: '60%', maxWidth: '800px' }}>
+    <Mermaid chart={`classDiagram
+    class ACP99Manager {
+        <<abstract>>
+        ...
+    }
+    class ValidatorManager {
+        <<abstract>>
+        ...
+    }
+    class PoSValidatorManager {
+        <<abstract>>
+        initializeEndValidation()
+        completeDelegatorRegistration()
+        initializeEndDelegation()
+        completeEndDelegation()
+    }
+    class ERC20TokenStakingManager {
+        initializeValidatorRegistration()
+        initializeDelegatorRegistration()
+    }
+    class NativeTokenStakingManager {
+        initializeValidatorRegistration() payable
+        initializeDelegatorRegistration() payable
+    }
+
+    ACP99Manager <|-- ValidatorManager
+    ValidatorManager <|-- PoSValidatorManager
+    PoSValidatorManager <|-- ERC20TokenStakingManager
+    PoSValidatorManager <|-- NativeTokenStakingManager
+`} />
+  </div>
+</div>
+
+Check out the complete diagram and code implementation on [github](https://github.com/ava-labs/icm-contracts/tree/main/contracts/validator-manager).
+
+## PoSValidatorManager
+
+Proof-of-Stake Validator management is provided by the abstract contract `PoSValidatorManager`, which has two concrete implementations: `NativeTokenStakingManager` and `ERC20TokenStakingManager`. 
+
+This abstract contract extends `ValidatorManager` by adding functions for permissionless validator registration and removal based on staked tokens. In addition to basic Validator management, `PoSValidatorManager` supports uptime-based Validation rewards, as well as Delegation to a Validator.
+
+The choice between `NativeTokenStakingManager` and `ERC20TokenStakingManager` depends on what type of token you want validators to stake—the L1's native token or a separate ERC20 token.
+
+## NativeTokenStakingManager
+
+`NativeTokenStakingManager` allows permissionless addition and removal of validators who stake the L1's **native token**. This implementation uses Solidity's `payable` keyword to accept native tokens directly through function calls.
+
+### Key Functions
+
+- **`initiateValidatorRegistration(...) payable`** - Accepts native tokens via `msg.value` to lock as stake
+- **`initiateDelegatorRegistration(...) payable`** - Allows delegators to stake native tokens to a validator
+- **`_lock(value)`** - Simply returns the value (tokens are already locked in the contract)
+- **`_unlock(to, value)`** - Sends native tokens back using `sendValue()`
+- **`_reward(account, amount)`** - Mints rewards via the Native Minter precompile at `0x0200000000000000000000000000000000000001`
+
+### Reward Distribution
+
+Staking rewards are minted through the **Native Minter precompile**, which requires the `NativeTokenStakingManager` contract address to be added as an **Enabled** address. This grants the contract permission to mint new native tokens as rewards.
+
+## ERC20TokenStakingManager
+
+`ERC20TokenStakingManager` exists because **native tokens cannot be used with the `payable` keyword on all blockchains**. Some chains may want to use a separate ERC20 token for staking instead of their native token.
+
+### Why a Separate Implementation?
+
+The key difference is in the function signatures:
+
+- **NativeTokenStakingManager**: `initiateValidatorRegistration(...) payable` - receives native tokens via `msg.value`
+- **ERC20TokenStakingManager**: `initiateValidatorRegistration(..., uint256 stakeAmount)` - requires explicit `stakeAmount` parameter
+
+### How It Works
+
+- Stores a reference to an ERC20 token that implements `IERC20Mintable`
+- Requires token approval before staking
+- Uses `safeTransferFrom()` to lock tokens during registration
+- Uses `safeTransfer()` to unlock tokens during removal
+- Mints new ERC20 tokens as rewards
+
+<Quiz quizId="210" />
