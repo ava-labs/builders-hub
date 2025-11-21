@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify playground exists and is public or owned by user
-    const playground = await prisma.playground.findFirst({
+    const playground = await prisma.statsPlayground.findFirst({
       where: {
         id: playgroundId,
         OR: [
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if already favorited
-    const existingFavorite = await prisma.playgroundFavorite.findUnique({
+    const existingFavorite = await prisma.statsPlaygroundFavorite.findUnique({
       where: {
         playground_id_user_id: {
           playground_id: playgroundId,
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create favorite
-    await prisma.playgroundFavorite.create({
+    await prisma.statsPlaygroundFavorite.create({
       data: {
         playground_id: playgroundId,
         user_id: session.user.id
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Get updated favorite count
-    const favoriteCount = await prisma.playgroundFavorite.count({
+    const favoriteCount = await prisma.statsPlaygroundFavorite.count({
       where: { playground_id: playgroundId }
     });
 
@@ -85,7 +85,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Delete favorite
-    await prisma.playgroundFavorite.deleteMany({
+    await prisma.statsPlaygroundFavorite.deleteMany({
       where: {
         playground_id: playgroundId,
         user_id: session.user.id
@@ -93,7 +93,7 @@ export async function DELETE(req: NextRequest) {
     });
 
     // Get updated favorite count
-    const favoriteCount = await prisma.playgroundFavorite.count({
+    const favoriteCount = await prisma.statsPlaygroundFavorite.count({
       where: { playground_id: playgroundId }
     });
 

@@ -14,7 +14,7 @@ export async function POST(
     }
 
     // Increment view count atomically
-    const playground = await prisma.playground.update({
+    const playground = await prisma.statsPlayground.update({
       where: { id: playgroundId },
       data: {
         view_count: {

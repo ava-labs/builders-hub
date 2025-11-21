@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
     if (playgroundId) {
       // Get specific playground - allow public access even without auth
-      const playground = await prisma.playground.findFirst({
+      const playground = await prisma.statsPlayground.findFirst({
         where: {
           id: playgroundId,
           OR: session?.user ? [
@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
     const where: any = { user_id: session.user.id };
     
     if (includePublic) {
-      const playgrounds = await prisma.playground.findMany({
+      const playgrounds = await prisma.statsPlayground.findMany({
         where: {
           OR: [
             { user_id: session.user.id },
@@ -99,7 +99,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(playgrounds);
     }
 
-    const playgrounds = await prisma.playground.findMany({
+    const playgrounds = await prisma.statsPlayground.findMany({
       where,
       orderBy: { updated_at: 'desc' },
       take: 100
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
       charts: charts || []
     };
 
-    const playground = await prisma.playground.create({
+    const playground = await prisma.statsPlayground.create({
       data: {
         user_id: session.user.id,
         name,
@@ -170,7 +170,7 @@ export async function PUT(req: NextRequest) {
     const { id, name, isPublic, charts, globalStartTime, globalEndTime } = body;
 
     // Verify ownership
-    const existing = await prisma.playground.findFirst({
+    const existing = await prisma.statsPlayground.findFirst({
       where: {
         id,
         user_id: session.user.id
@@ -196,7 +196,7 @@ export async function PUT(req: NextRequest) {
       } as any;
     }
 
-    const playground = await prisma.playground.update({
+    const playground = await prisma.statsPlayground.update({
       where: { id },
       data: updateData
     });
@@ -224,7 +224,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Verify ownership
-    const existing = await prisma.playground.findFirst({
+    const existing = await prisma.statsPlayground.findFirst({
       where: {
         id,
         user_id: session.user.id
@@ -235,7 +235,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Playground not found or unauthorized' }, { status: 404 });
     }
 
-    await prisma.playground.delete({
+    await prisma.statsPlayground.delete({
       where: { id }
     });
 

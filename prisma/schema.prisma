@@ -58,8 +58,8 @@ model User {
   badges              UserBadge[]
   managedTestnetNodes NodeRegistration[]
   consoleLog          ConsoleLog[]
-  playgrounds         Playground[]
-  playgroundFavorites PlaygroundFavorite[] @relation("PlaygroundFavorites")
+  statsPlaygrounds    StatsPlayground[]
+  statsPlaygroundFavorites StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
 }
 
 model VerificationToken {
@@ -224,7 +224,7 @@ model ConsoleLog {
   @@index([created_at])
 }
 
-model Playground {
+model StatsPlayground {
   id          String   @id @default(uuid())
   user_id     String
   name        String
@@ -234,20 +234,20 @@ model Playground {
   created_at  DateTime @default(now()) @db.Timestamptz(3)
   updated_at  DateTime @updatedAt @db.Timestamptz(3)
   user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  favorites   PlaygroundFavorite[]
+  favorites   StatsPlaygroundFavorite[]
 
   @@index([user_id])
   @@index([is_public])
   @@index([created_at])
 }
 
-model PlaygroundFavorite {
+model StatsPlaygroundFavorite {
   id           String    @id @default(uuid())
   playground_id String
   user_id      String
   created_at   DateTime  @default(now()) @db.Timestamptz(3)
-  playground   Playground @relation(fields: [playground_id], references: [id], onDelete: Cascade)
-  user         User      @relation("PlaygroundFavorites", fields: [user_id], references: [id], onDelete: Cascade)
+  playground   StatsPlayground @relation(fields: [playground_id], references: [id], onDelete: Cascade)
+  user         User      @relation("StatsPlaygroundFavorites", fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([playground_id, user_id])
   @@index([playground_id])
