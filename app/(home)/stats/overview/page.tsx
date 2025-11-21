@@ -811,7 +811,7 @@ export default function AvalancheMetrics() {
                   <th className="border-r border-neutral-200 dark:border-neutral-800 px-6 py-3 text-left">
                     <div className="flex items-center gap-2">
                       <SortButton field="chainName">
-                        <span className="text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300">
+                        <span className="text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
                           Avalanche L1
                         </span>
                       </SortButton>
@@ -823,10 +823,10 @@ export default function AvalancheMetrics() {
                         field="activeAddresses"
                         tooltip="Number of distinct addresses recorded within the selected time-range"
                       >
-                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300">
+                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
                           Active Addrs
                         </span>
-                        <span className="lg:hidden text-xs font-medium tracking-wide text-neutral-600 dark:text-neutral-400">
+                        <span className="lg:hidden text-xs font-medium tracking-wide text-neutral-600 dark:text-neutral-400 whitespace-nowrap">
                           Addresses
                         </span>
                       </SortButton>
@@ -838,10 +838,10 @@ export default function AvalancheMetrics() {
                         field="txCount"
                         tooltip="Total number of transactions within the selected time-range"
                       >
-                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300">
+                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
                           Tx Count
                         </span>
-                        <span className="lg:hidden text-xs font-medium tracking-wide text-neutral-600 dark:text-neutral-400">
+                        <span className="lg:hidden text-xs font-medium tracking-wide text-neutral-600 dark:text-neutral-400 whitespace-nowrap">
                           Txs
                         </span>
                       </SortButton>
@@ -853,10 +853,10 @@ export default function AvalancheMetrics() {
                         field="icmMessages"
                         tooltip="Total number of Interchain Messages sent to/from an Avalanche L1"
                       >
-                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300">
+                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
                           ICM Activity
                         </span>
-                        <span className="lg:hidden text-xs font-medium tracking-wide text-neutral-600 dark:text-neutral-400">
+                        <span className="lg:hidden text-xs font-medium tracking-wide text-neutral-600 dark:text-neutral-400 whitespace-nowrap">
                           ICM
                         </span>
                       </SortButton>
@@ -868,7 +868,7 @@ export default function AvalancheMetrics() {
                         field="validatorCount"
                         tooltip="Total number of an Avalanche L1's Validators"
                       >
-                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300">
+                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
                           Validators
                         </span>
                       </SortButton>
@@ -881,7 +881,7 @@ export default function AvalancheMetrics() {
                           field="throughput"
                           tooltip="Average Throughput (TPS) for the selected time-range (only available for daily view)"
                         >
-                          <span className="text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300">
+                          <span className="text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
                             Avg TPS
                           </span>
                         </SortButton>
@@ -894,7 +894,7 @@ export default function AvalancheMetrics() {
                         field="category"
                         tooltip="Category of the Avalanche L1"
                       >
-                        <span className="text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300">
+                        <span className="text-sm font-semibold tracking-wide text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
                           Category
                         </span>
                       </SortButton>
