@@ -30,7 +30,26 @@ interface LearningTreeProps {
 export default function LearningTree({ pathType = 'avalanche' }: LearningTreeProps) {
   const [hoveredNode, setHoveredNode] = React.useState<string | null>(null);
   const [hoveredCategory, setHoveredCategory] = React.useState<string | null>(null);
+  const [isDarkMode, setIsDarkMode] = React.useState(false);
   const isMobile = useIsMobile();
+
+  // Detect dark mode
+  React.useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDarkMode(document.documentElement.classList.contains('dark'));
+    };
+    
+    checkDarkMode();
+    
+    // Watch for theme changes
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+    
+    return () => observer.disconnect();
+  }, []);
 
   // Select the appropriate learning paths and styles based on pathType
   const learningPaths = pathType === 'avalanche' 
@@ -155,18 +174,21 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
             // Create a curved path
             const pathData = `M ${parentCenterX} ${parentBottomY} C ${parentCenterX} ${midY}, ${childCenterX} ${midY}, ${childCenterX} ${adjustedChildTopY}`;
 
+            const inactiveMarker = isDarkMode ? "url(#arrow-inactive-dark)" : "url(#arrow-inactive-light)";
+            const activeMarker = isDarkMode ? "url(#arrow-active-dark)" : "url(#arrow-active-light)";
+            
             connections.push(
               <path
                 key={`${depId}-${node.id}`}
                 d={pathData}
                 fill="none"
-                stroke={isActive ? "rgb(99, 102, 241)" : "rgb(226, 232, 240)"}
+                stroke={isActive ? (isDarkMode ? "rgb(212, 212, 216)" : "rgb(161, 161, 170)") : isDarkMode ? "rgb(113, 113, 122)" : "rgb(226, 232, 240)"}
                 strokeWidth={isActive ? "1.5" : "1"}
-                opacity={isActive ? "1" : "0.5"}
+                opacity={isActive ? "1" : isDarkMode ? "0.6" : "0.5"}
                 className="transition-all duration-700 ease-in-out"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                markerEnd={isActive ? "url(#arrow-active)" : "url(#arrow-inactive)"}
+                markerEnd={isActive ? activeMarker : inactiveMarker}
               />
             );
           }
@@ -283,8 +305,9 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
         >
           {/* Define arrow markers */}
           <defs>
+            {/* Light mode inactive arrow */}
             <marker
-              id="arrow-inactive"
+              id="arrow-inactive-light"
               viewBox="0 0 10 10"
               refX="5"
               refY="5"
@@ -295,11 +318,28 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
               <path
                 d="M 0 0 L 10 5 L 0 10 z"
                 fill="rgb(226, 232, 240)"
-                opacity="0.5"
+                opacity="0.3"
               />
             </marker>
+            {/* Dark mode inactive arrow */}
             <marker
-              id="arrow-active"
+              id="arrow-inactive-dark"
+              viewBox="0 0 10 10"
+              refX="5"
+              refY="5"
+              markerWidth="5"
+              markerHeight="5"
+              orient="auto"
+            >
+              <path
+                d="M 0 0 L 10 5 L 0 10 z"
+                fill="rgb(113, 113, 122)"
+                opacity="0.6"
+              />
+            </marker>
+            {/* Active arrow for light mode */}
+            <marker
+              id="arrow-active-light"
               viewBox="0 0 10 10"
               refX="5"
               refY="5"
@@ -309,7 +349,22 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
             >
               <path
                 d="M 0 0 L 10 5 L 0 10 z"
-                fill="rgb(99, 102, 241)"
+                fill="rgb(161, 161, 170)"
+              />
+            </marker>
+            {/* Active arrow for dark mode */}
+            <marker
+              id="arrow-active-dark"
+              viewBox="0 0 10 10"
+              refX="5"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto"
+            >
+              <path
+                d="M 0 0 L 10 5 L 0 10 z"
+                fill="rgb(212, 212, 216)"
               />
             </marker>
           </defs>

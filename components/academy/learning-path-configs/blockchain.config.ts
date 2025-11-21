@@ -41,21 +41,21 @@ export const blockchainCategoryStyles = {
         gradient: "from-blue-500 to-blue-600",
         icon: BookOpen,
         lightBg: "bg-blue-50",
-        darkBg: "dark:bg-blue-950/30",
+        darkBg: "dark:bg-blue-950",
         label: "Fundamentals"
     },
     "Development": {
         gradient: "from-orange-500 to-orange-600",
         icon: Code,
         lightBg: "bg-orange-50",
-        darkBg: "dark:bg-orange-950/30",
+        darkBg: "dark:bg-orange-950",
         label: "Development"
     },
     "Privacy": {
         gradient: "from-indigo-500 to-indigo-600",
         icon: Shield,
         lightBg: "bg-indigo-50",
-        darkBg: "dark:bg-indigo-950/30",
+        darkBg: "dark:bg-indigo-950",
         label: "Privacy"
     },
 };
