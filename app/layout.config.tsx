@@ -152,6 +152,13 @@ export const stats: LinkItemType = {
       description:
       "View the latest metrics for the Avalanche Primary Network validators.",
     },
+    {
+      icon: <DraftingCompass />,
+      text: "Playground",
+      url: "/stats/playground",
+      description:
+      "Create and customize multiple charts with real-time chain metrics.",
+    },
   ],
 };
 
