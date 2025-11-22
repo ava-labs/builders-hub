@@ -1,0 +1,115 @@
+---
+title: Understanding ERC-721 Tokens
+description: Learn about the Non-Fungible Token Standard
+updated: 2024-11-20
+authors: [nicolasarnedo]
+icon: Book
+---
+
+Previously, we explored the ERC-20 interface, a contract standard which allowed for the implementation of fungible tokens. However, there is one important use case that the ERC-20 standard cannot support: **non-fungible assets**.
+
+## What is Fungibility?
+
+To understand why we need ERC-721, let's first understand fungibility:
+
+- **Fungible tokens** (ERC-20): Each token is identical and interchangeable. 1 USDC is always equal to 1 USDC.
+- **Non-fungible tokens** (ERC-721): Each token is unique and has its own distinct value. One piece of digital art is not equal to another.
+
+## Why ERC-721?
+
+Imagine you wanted to represent an art collection within a smart contract. The smart contract would need:
+
+- The ability to query the "balance" (i.e. the art holdings) of a particular user
+- The ability to transfer art pieces from one account to another
+- The ability to get information about the art collection
+
+The biggest difference between an ERC-20 token contract and an art collection is the **fungibility** of individual items. ERC-20 tokens are inherently fungible, while items in an art collection are not (since each piece varies in value).
+
+To account for use cases like art collections, digital collectibles, gaming items, and more, the **ERC-721 standard** was introduced.
+
+## The ERC-721 Interface
+
+Formally, ERC-721 is a standard for non-fungible tokens. Below is the interface of the ERC-721 token from its original proposal:
+
+```solidity
+interface ERC721 {
+    /// @dev This emits when ownership of any NFT changes by any mechanism.
+    event Transfer(address indexed _from, address indexed _to, uint256 indexed _tokenId);
+
+    /// @dev This emits when the approved address for an NFT is changed or reaffirmed.
+    event Approval(address indexed _owner, address indexed _approved, uint256 indexed _tokenId);
+
+    /// @dev This emits when an operator is enabled or disabled for an owner.
+    event ApprovalForAll(address indexed _owner, address indexed _operator, bool _approved);
+
+    /// @notice Count all NFTs assigned to an owner
+    function balanceOf(address _owner) external view returns (uint256);
+
+    /// @notice Find the owner of an NFT
+    function ownerOf(uint256 _tokenId) external view returns (address);
+
+    /// @notice Transfers the ownership of an NFT from one address to another address
+    function safeTransferFrom(address _from, address _to, uint256 _tokenId, bytes data) external payable;
+
+    /// @notice Transfers the ownership of an NFT from one address to another address
+    function safeTransferFrom(address _from, address _to, uint256 _tokenId) external payable;
+
+    /// @notice Transfer ownership of an NFT
+    function transferFrom(address _from, address _to, uint256 _tokenId) external payable;
+
+    /// @notice Change or reaffirm the approved address for an NFT
+    function approve(address _approved, uint256 _tokenId) external payable;
+
+    /// @notice Enable or disable approval for a third party ("operator") to manage all assets
+    function setApprovalForAll(address _operator, bool _approved) external;
+
+    /// @notice Get the approved address for a single NFT
+    function getApproved(uint256 _tokenId) external view returns (address);
+
+    /// @notice Query if an address is an authorized operator for another address
+    function isApprovedForAll(address _owner, address _operator) external view returns (bool);
+}
+```
+
+## Key Differences from ERC-20
+
+### Token Identification
+
+**ERC-20:**
+```solidity
+mapping(address => uint) balances;
+```
+
+**ERC-721:**
+```solidity
+mapping(address => uint) balances;      // Number of NFTs owned by each address
+mapping(uint => address) holders;        // Owner of each specific token ID
+```
+
+The key difference is the addition of the `holders` mapping, which tracks which address owns each individual token by its unique ID. This allows each token to be distinct and non-fungible.
+
+### Transfer Functions
+
+ERC-721 introduces `safeTransferFrom`, which includes a safety check to ensure the receiving address can handle NFTs. This prevents tokens from being permanently lost if sent to a contract that doesn't support them.
+
+### Approval Mechanism
+
+Like ERC-20, ERC-721 supports approvals, but with two levels:
+- **Single token approval**: Approve someone to transfer a specific NFT
+- **Operator approval**: Approve someone to manage all your NFTs
+
+## Common Use Cases
+
+ERC-721 tokens are used for:
+
+- **Digital Art**: Unique artwork pieces with verifiable ownership
+- **Collectibles**: Trading cards, virtual items, and memorabilia
+- **Gaming Assets**: In-game items, characters, and land
+- **Real Estate**: Tokenized property ownership
+- **Identity**: Unique credentials and certificates
+- **Domain Names**: Blockchain-based domain systems
+
+## Next Steps
+
+Now that you understand the ERC-721 standard, you're ready to create your own NFT collection. In the next section, we'll prepare the files needed for your NFTs, including images and metadata.
+

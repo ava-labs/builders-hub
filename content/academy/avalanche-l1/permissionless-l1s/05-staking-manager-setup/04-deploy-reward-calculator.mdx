@@ -1,0 +1,37 @@
+---
+title: Example Reward Calculator
+description: Deploy the reward calculator contract for validator and delegator rewards
+updated: 2025-03-13
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+import DeployExampleRewardCalculator from "@/components/toolbox/console/permissionless-l1s/setup/DeployExampleRewardCalculator.tsx"
+
+The **Reward Calculator** determines how staking rewards are distributed based on validator uptime and delegation amounts.
+
+## What is the Reward Calculator?
+
+The `ExampleRewardCalculator` is a reference implementation that:
+- Calculates rewards based on validator uptime percentage (80% threshold)
+- Uses a linear, non-compounding reward formula
+- Implements the `IRewardCalculator` interface
+
+## Customization for Network Control
+
+This is an **example implementation** that can be modified to control your network's economics:
+- **Adjust reward rates** to incentivize or limit new permissionless validators
+- **Balance power dynamics** between original PoA validators and new entrants
+- **Implement custom logic** like tiered rewards, bonuses, or penalties based on your network's needs
+
+The reward calculator gives you fine-grained control over how attractive it is for new validators to join versus maintaining the influence of your initial validator set.
+
+## Deploy the Contract
+
+When deploying, you'll specify the **Reward Rate** in basis points, where 100 basis points equals 1% annual percentage rate (APR). For example, entering 500 would set a 5% APR for staking rewards.
+
+<ToolboxMdxWrapper walletMode="l1">
+    <DeployExampleRewardCalculator />
+</ToolboxMdxWrapper>
+

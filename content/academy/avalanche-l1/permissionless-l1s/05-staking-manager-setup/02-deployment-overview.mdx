@@ -1,0 +1,62 @@
+---
+title: Deployment Flow Overview
+description: Quick summary of what we will be doing
+updated: 2024-09-03
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+<Callout type="info">
+**For this course**, we will be implementing the **NativeTokenStakingManager** deployed on your L1, using the **native token as the staking token**. 
+
+Reminder that you could alternatively use an ERC20 as your chains staking token (via `ERC20TokenStakingManager`) and the Validator Manager deployed on another L1.
+</Callout>
+
+The following steps will guide you through deploying and configuring a `NativeTokenStakingManager`:
+
+<Steps>
+<Step>
+
+### [Deploy Staking Manager](/academy/permissionless-l1s/05-staking-manager-setup/02-deploy-staking-manager)
+
+Deploy the `NativeTokenStakingManager` implementation contract to your L1.
+
+</Step>
+<Step>
+
+### [Deploy Reward Calculator](/academy/permissionless-l1s/05-staking-manager-setup/03-deploy-reward-calculator)
+
+Deploy the `ExampleRewardCalculator` contract that will determine how staking rewards are distributed based on validator uptime.
+
+</Step>
+<Step>
+
+### [Initialize Staking Manager](/academy/permissionless-l1s/05-staking-manager-setup/04-initialize-staking-manager)
+
+Call the `initialize` function with `PoSValidatorManagerSettings` to configure staking parameters (minimum stake, duration, delegation fees, etc.).
+
+</Step>
+<Step>
+
+### [Enable in Native Minter](/academy/permissionless-l1s/05-staking-manager-setup/05-enable-native-minter)
+
+Add the Staking Manager address as an **Enabled** address on the Native Minter precompile so it can mint reward tokens.
+
+</Step>
+<Step>
+
+### [Transfer Ownership](/academy/permissionless-l1s/05-staking-manager-setup/06-transfer-ownership)
+
+Transfer ownership of the Reward Manager precompile to the Staking Manager so it can distribute rewards to validators and delegators.
+
+</Step>
+<Step>
+
+### [Verify Configuration](/academy/permissionless-l1s/05-staking-manager-setup/07-read-contract)
+
+Read the contract state to verify all configuration parameters are set correctly.
+
+</Step>
+</Steps>
+
+Happy Building!
