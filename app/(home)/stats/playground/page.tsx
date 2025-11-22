@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import { LoginModal } from "@/components/login/LoginModal";
+import { toast } from "@/lib/toast";
 
 interface ChartConfig {
   id: string;
@@ -455,14 +456,23 @@ function PlaygroundContent() {
   }, [charts, savedCharts, playgroundName, savedPlaygroundName, isPublic, savedIsPublic, globalStartTime, globalEndTime, savedGlobalStartTime, savedGlobalEndTime]);
 
   const copyLink = async () => {
+    if (!isPublic) {
+      toast.warning("Make dashboard public first", "Please make this dashboard public to share it with others.");
+      return;
+    }
     if (savedLink) {
       await navigator.clipboard.writeText(savedLink);
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
+      toast.success("Link copied!");
     }
   };
 
   const shareOnX = () => {
+    if (!isPublic) {
+      toast.warning("Make dashboard public first", "Please make this dashboard public to share it with others.");
+      return;
+    }
     if (savedLink) {
       const text = isOwner 
         ? `check out my @avax ecosystem dashboard`
@@ -618,6 +628,93 @@ function PlaygroundContent() {
                   <span className="text-sm text-gray-600 dark:text-gray-400">
                     {creator.user_name || creator.name || "Unknown User"}
                   </span>
+                </div>
+              )}
+              {/* Copy, Share, View count, Like count buttons */}
+              {currentPlaygroundId && (
+                <div className="flex items-center gap-3 mt-3 flex-wrap">
+                  {isPublic && savedLink && (
+                    <>
+                      <button
+                        onClick={copyLink}
+                        className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors cursor-pointer"
+                        title={linkCopied ? "Link copied!" : "Copy shareable link"}
+                      >
+                        {linkCopied ? (
+                          <>
+                            <Check className="h-3.5 w-3.5" />
+                            <span>Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3.5 w-3.5" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={shareOnX}
+                        className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors cursor-pointer"
+                        title="Share on X (Twitter)"
+                      >
+                        <Share2 className="h-3.5 w-3.5" />
+                        <span>Share</span>
+                      </button>
+                    </>
+                  )}
+                  {!isPublic && savedLink && (
+                    <>
+                      <button
+                        onClick={copyLink}
+                        className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-400 transition-colors opacity-60 cursor-pointer"
+                        title="Make public to copy link"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                        <span>Copy</span>
+                      </button>
+                      <button
+                        onClick={shareOnX}
+                        className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-400 transition-colors opacity-60 cursor-pointer"
+                        title="Make public to share"
+                      >
+                        <Share2 className="h-3.5 w-3.5" />
+                        <span>Share</span>
+                      </button>
+                    </>
+                  )}
+                  <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                    <Eye className="h-3.5 w-3.5" />
+                    <span>{viewCount.toLocaleString()} views</span>
+                  </div>
+                  {isOwner ? (
+                    <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                      <Heart className={`h-3.5 w-3.5 ${isFavorited ? "fill-current text-red-500" : ""}`} />
+                      <span>{favoriteCount} likes</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleFavorite}
+                      disabled={isFavoriting}
+                      className={`flex items-center gap-1 text-xs transition-colors ${
+                        isFavorited
+                          ? "text-red-600 dark:text-red-400"
+                          : "text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                      }`}
+                      title={isFavorited ? "Unlike" : "Like"}
+                    >
+                      {isFavoriting ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <span>...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Heart className={`h-3.5 w-3.5 ${isFavorited ? "fill-current" : ""}`} />
+                          <span>{favoriteCount} likes</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               )}
               <div className="flex items-center gap-1.5 sm:gap-2 mt-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-500 flex-wrap">
@@ -877,62 +974,6 @@ function PlaygroundContent() {
                   >
                     Add New Chart
                   </Button>
-                  {savedLink && (
-                  <>
-                    <button
-                      onClick={copyLink}
-                      className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
-                      title={linkCopied ? "Link copied!" : "Copy shareable link"}
-                    >
-                      {linkCopied ? (
-                        <>
-                          <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                          <span className="hidden sm:inline">Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                          <span className="hidden sm:inline">Copy</span>
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={shareOnX}
-                      className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
-                      title="Share on X (Twitter)"
-                    >
-                      <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                      <span className="hidden sm:inline">Share</span>
-                    </button>
-                  </>
-                )}
-                {currentPlaygroundId && (
-                  <>
-                    <Button
-                      onClick={handleFavorite}
-                      disabled={true}
-                      className={`flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors opacity-60 cursor-not-allowed ${
-                        isFavorited
-                          ? "bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800"
-                          : "bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700"
-                      }`}
-                      title="Favorite count"
-                    >
-                      <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorited ? "fill-current" : ""}`} />
-                      {favoriteCount > 0 && <span className="text-xs sm:text-sm">{favoriteCount}</span>}
-                    </Button>
-                    {viewCount > 0 && (
-                      <Button
-                        disabled={true}
-                        className="flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors opacity-60 cursor-not-allowed bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700"
-                        title="View count"
-                      >
-                        <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        <span className="text-xs sm:text-sm">{viewCount.toLocaleString()}</span>
-                      </Button>
-                    )}
-                  </>
-                )}
                 <Button
                   onClick={() => setIsPublic(!isPublic)}
                   className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
@@ -968,73 +1009,7 @@ function PlaygroundContent() {
                   )}
                 </Button>
                 </>
-              ) : (
-                <>
-                  {savedLink && (
-                  <>
-                    <button
-                      onClick={copyLink}
-                      className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
-                      title={linkCopied ? "Link copied!" : "Copy shareable link"}
-                    >
-                      {linkCopied ? (
-                        <>
-                          <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                          <span className="hidden sm:inline">Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                          <span className="hidden sm:inline">Copy</span>
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={shareOnX}
-                      className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
-                      title="Share on X (Twitter)"
-                    >
-                      <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                      <span className="hidden sm:inline">Share</span>
-                    </button>
-                  </>
-                )}
-                {currentPlaygroundId && (
-                  <>
-                    <Button
-                      onClick={handleFavorite}
-                      disabled={isFavoriting}
-                      className={`flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors ${
-                        isFavorited
-                          ? "bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 border border-red-200 dark:border-red-800"
-                          : "bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700 border border-gray-200 dark:border-neutral-700"
-                      }`}
-                    >
-                      {isFavoriting ? (
-                        <>
-                          <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
-                        </>
-                      ) : (
-                        <>
-                          <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorited ? "fill-current" : ""}`} />
-                          {favoriteCount > 0 && <span className="text-xs sm:text-sm">{favoriteCount}</span>}
-                        </>
-                      )}
-                    </Button>
-                    {viewCount > 0 && (
-                      <Button
-                        disabled={true}
-                        className="flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors opacity-60 cursor-not-allowed bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700"
-                        title="View count"
-                      >
-                        <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        <span className="text-xs sm:text-sm">{viewCount.toLocaleString()}</span>
-                      </Button>
-                    )}
-                  </>
-                )}
-                </>
-              )}
+              ) : null}
             </div>
           </div>
 
