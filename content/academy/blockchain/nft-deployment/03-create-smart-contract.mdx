@@ -1,0 +1,124 @@
+---
+title: Create Your NFT Smart Contract
+description: Use OpenZeppelin to generate a customized ERC-721 contract
+updated: 2024-11-20
+authors: [Andrea Vargas, Ash, martineckardt]
+icon: BookOpen
+---
+
+Now that your NFT files are prepared, it's time to create the smart contract that will manage your NFT collection. We'll use [OpenZeppelin](https://docs.openzeppelin.com/), a trusted library for building secure smart contracts.
+
+## Why OpenZeppelin?
+
+OpenZeppelin provides battle-tested, audited smart contract implementations that follow industry standards. Their [Contract Wizard](https://wizard.openzeppelin.com/#erc721) allows you to generate customized contracts without writing code from scratch, reducing the risk of security vulnerabilities.
+
+## Using the Contract Wizard
+
+### Step 1: Access the Wizard
+
+Navigate to [wizard.openzeppelin.com/#erc721](https://wizard.openzeppelin.com/#erc721)
+
+![Contract Wizard](/images/nft-collection4.png)
+
+### Step 2: Select ERC-721
+
+Make sure the **ERC-721** tab is selected. This will create a contract in the [Solidity programming language](https://docs.soliditylang.org/) specifically for non-fungible tokens.
+
+### Step 3: Configure Basic Settings
+
+The wizard provides a template contract that you'll customize:
+
+**Name**: Give your NFT collection a name (e.g., "Photography")
+**Symbol**: Choose a short symbol for your collection (e.g., "FOTO")
+**Base URI**: Paste the metadata folder URL you saved from Pinata
+
+Example: `https://gateway.pinata.cloud/ipfs/QmYdWxbiwsfsYcW1CYQPgYujAc9FMLPG3fgFcxFskbSsFa`
+
+![Contract Wizard Populated](/images/nft-collection5.png)
+
+### Step 4: Add Minting Functionality
+
+Check the following boxes to add essential features:
+
+**Mintable**: Adds a `safeMint` function to create new NFTs
+**Auto Increment Ids**: Automatically assigns sequential token IDs
+
+This will automatically check **Ownable**, which restricts the `safeMint` function to the contract owner.
+
+![Contract Wizard SafeMint](/images/nft-collection6.png)
+
+## Understanding the Generated Contract
+
+Let's examine the key parts of your generated contract:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract Photography is ERC721, Ownable {
+    uint256 private _nextTokenId;
+    string private _baseTokenURI;
+
+    constructor(address initialOwner)
+        ERC721("Photography", "FOTO")
+        Ownable(initialOwner)
+    {
+        _baseTokenURI = "https://gateway.pinata.cloud/ipfs/QmYdWxbiwsfsYcW1CYQPgYujAc9FMLPG3fgFcxFskbSsFa/";
+    }
+
+    function _baseURI() internal view override returns (string memory) {
+        return _baseTokenURI;
+    }
+
+    function safeMint(address to) public onlyOwner {
+        uint256 tokenId = _nextTokenId++;
+        _safeMint(to, tokenId);
+    }
+}
+```
+
+### Key Components
+
+**Inheritance**: Your contract inherits from `ERC721` (the standard) and `Ownable` (access control)
+
+**Constructor**: Sets the collection name, symbol, and base URI when deployed
+
+**_baseURI()**: Returns the base URI that will be combined with token IDs to fetch metadata
+
+**safeMint()**: Creates new NFTs and assigns them sequential IDs
+
+<Callout type="info">
+The `onlyOwner` modifier means only the contract owner can mint NFTs. For a public mint, you would remove this modifier and add payment logic.
+</Callout>
+
+## About the safeMint Function
+
+The current `safeMint` function:
+- Mints one NFT at a time
+- Can mint to any address (not just the owner's)
+- Charges no fee (except gas)
+- Functions as an "airdrop" mechanism
+
+This is perfect for:
+- Personal collections
+- Gifting NFTs
+- Controlled distributions
+- Testing your contract
+
+For a public sale, you would modify this function to:
+- Accept payment (e.g., `payable` with price checks)
+- Remove the `onlyOwner` modifier
+- Add supply limits
+- Implement per-wallet minting limits
+
+## Next Steps
+
+Your smart contract is now ready! Click **Open in Remix** at the top of the wizard to prepare for deployment.
+
+![Contract Wizard Open Remix](/images/nft-collection7.png)
+
+In the next section, we'll deploy this contract to the Avalanche network and mint your first NFT.
+

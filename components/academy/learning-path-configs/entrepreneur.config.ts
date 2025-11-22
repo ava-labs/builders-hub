@@ -53,28 +53,28 @@ export const entrepreneurCategoryStyles = {
         gradient: "from-blue-500 to-blue-600",
         icon: BookOpen,
         lightBg: "bg-blue-50",
-        darkBg: "dark:bg-blue-950/30",
+        darkBg: "dark:bg-blue-950",
         label: "Fundamentals"
     },
     "Community": {
         gradient: "from-purple-500 to-purple-600",
         icon: Users,
         lightBg: "bg-purple-50",
-        darkBg: "dark:bg-purple-950/30",
+        darkBg: "dark:bg-purple-950",
         label: "Community"
     },
     "Business Strategy": {
         gradient: "from-emerald-500 to-emerald-600",
         icon: Lightbulb,
         lightBg: "bg-emerald-50",
-        darkBg: "dark:bg-emerald-950/30",
+        darkBg: "dark:bg-emerald-950",
         label: "Business Strategy"
     },
     "Finance": {
         gradient: "from-yellow-500 to-yellow-600",
         icon: Coins,
         lightBg: "bg-yellow-50",
-        darkBg: "dark:bg-yellow-950/30",
+        darkBg: "dark:bg-yellow-950",
         label: "Finance"
     }
 };
