@@ -15,6 +15,7 @@ export default function MyDashboardsPage() {
   
   const [dashboards, setDashboards] = useState<any[]>([]);
   const [dashboardsLoading, setDashboardsLoading] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
 
   const fetchDashboards = useCallback(async () => {
     if (status === "unauthenticated") {
@@ -32,8 +33,10 @@ export default function MyDashboardsPage() {
         const data = await response.json();
         setDashboards(Array.isArray(data) ? data : []);
       }
+      setHasFetched(true);
     } catch (err) {
       console.error("Error fetching dashboards:", err);
+      setHasFetched(true);
     } finally {
       setDashboardsLoading(false);
     }
@@ -94,7 +97,7 @@ export default function MyDashboardsPage() {
         </div>
 
         {/* Table */}
-        {dashboardsLoading ? (
+        {dashboardsLoading || !hasFetched ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
           </div>
