@@ -3,10 +3,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Loader2, Globe, Lock, Eye, Trash2, LayoutDashboard, Plus, Heart } from "lucide-react";
+import { Loader2, Globe, Lock, Eye, Trash2, LayoutDashboard, Plus, Heart, ChevronsDownUp } from "lucide-react";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import { LoginModal } from "@/components/login/LoginModal";
 import { Card } from "@/components/ui/card";
+import { toast } from "@/lib/toast";
 
 export default function MyDashboardsPage() {
   const { data: session, status } = useSession();
@@ -51,21 +52,68 @@ export default function MyDashboardsPage() {
   const handleDeleteDashboard = async (id: string) => {
     if (!confirm("Are you sure you want to delete this dashboard?")) return;
     
-    try {
-      const response = await fetch(`/api/playground?id=${id}`, {
-        method: "DELETE"
-      });
-      
-      if (response.ok) {
-        setDashboards(dashboards.filter(d => d.id !== id));
+    const promise = fetch(`/api/playground?id=${id}`, {
+      method: "DELETE"
+    }).then(async (response) => {
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete dashboard");
       }
+      return response.json();
+    });
+
+    toast.promise(promise, {
+      loading: "Deleting dashboard...",
+      success: "Dashboard deleted successfully",
+      error: (err) => err.message || "Failed to delete dashboard"
+    });
+
+    try {
+      await promise;
+      setDashboards(dashboards.filter(d => d.id !== id));
     } catch (err) {
-      console.error("Error deleting dashboard:", err);
+      // Error already handled by toast.promise
     }
   };
 
   const handleOpenDashboard = (id: string) => {
     router.push(`/stats/playground?id=${id}`);
+  };
+
+  const handleToggleVisibility = async (e: React.MouseEvent, id: string, currentVisibility: boolean) => {
+    e.stopPropagation(); // Prevent row click
+    
+    const newVisibility = !currentVisibility;
+    const promise = fetch("/api/playground", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id,
+        isPublic: newVisibility
+      })
+    }).then(async (response) => {
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update visibility");
+      }
+      return response.json();
+    });
+
+    toast.promise(promise, {
+      loading: `Updating visibility to ${newVisibility ? "public" : "private"}...`,
+      success: `Dashboard is now ${newVisibility ? "public" : "private"}`,
+      error: (err) => err.message || "Failed to update visibility"
+    });
+
+    try {
+      await promise;
+      // Update local state
+      setDashboards(dashboards.map(d => 
+        d.id === id ? { ...d, is_public: newVisibility } : d
+      ));
+    } catch (err) {
+      // Error already handled by toast.promise
+    }
   };
 
   return (
@@ -157,7 +205,11 @@ export default function MyDashboardsPage() {
                         </span>
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                        <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => handleToggleVisibility(e, dashboard.id, dashboard.is_public)}
+                          className="flex items-center gap-2 hover:opacity-70 transition-opacity cursor-pointer group"
+                          title={dashboard.is_public ? "Click to make private" : "Click to make public"}
+                        >
                           {dashboard.is_public ? (
                             <>
                               <Globe className="h-4 w-4 text-gray-500" />
@@ -169,7 +221,8 @@ export default function MyDashboardsPage() {
                               <span className="text-sm text-neutral-900 dark:text-neutral-100">Private</span>
                             </>
                           )}
-                        </div>
+                          <ChevronsDownUp className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-colors" />
+                        </button>
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                         <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
