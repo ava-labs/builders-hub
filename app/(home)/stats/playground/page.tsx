@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Search, X, Save, Globe, Lock, Copy, Check, Pencil, Loader2, Heart, Share2, Eye, CalendarIcon, RefreshCw } from "lucide-react";
+import { Search, X, Save, Globe, Lock, Copy, Check, Pencil, Loader2, Heart, Share2, Eye, CalendarIcon, RefreshCw, LayoutDashboard } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
@@ -248,6 +248,38 @@ function PlaygroundContent() {
   // Reset hasLoadedRef when playgroundId changes
   useEffect(() => {
     hasLoadedRef.current = false;
+  }, [playgroundId]);
+
+  // Reset all state when navigating to blank playground (no ID)
+  useEffect(() => {
+    if (!playgroundId) {
+      setPlaygroundName("");
+      setSavedPlaygroundName("");
+      setIsPublic(false);
+      setSavedIsPublic(false);
+      setSavedLink(null);
+      setCurrentPlaygroundId(null);
+      setIsOwner(true);
+      setIsFavorited(false);
+      setFavoriteCount(0);
+      setViewCount(0);
+      setCreator(null);
+      setCreatedAt(null);
+      setUpdatedAt(null);
+      setGlobalStartTime(null);
+      setGlobalEndTime(null);
+      setSavedGlobalStartTime(null);
+      setSavedGlobalEndTime(null);
+      setTempGlobalStartTime(undefined);
+      setTempGlobalEndTime(undefined);
+      // Create new chart objects to ensure React detects the change and remounts ConfigurableChart
+      const resetCharts: ChartConfig[] = [
+        { id: `chart-${Date.now()}`, title: "Chart 1", colSpan: 6, dataSeries: [], stackSameMetrics: false }
+      ];
+      setCharts(resetCharts);
+      setSavedCharts(resetCharts.map(chart => ({ ...chart })));
+      setError(null);
+    }
   }, [playgroundId]);
 
   // Initialize temp state when popover opens
@@ -608,165 +640,22 @@ function PlaygroundContent() {
               </div>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              {isOwner ? (
-                <>
-                  {savedLink && (
-                    <>
-                      <button
-                        onClick={copyLink}
-                        className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
-                        title={linkCopied ? "Link copied!" : "Copy shareable link"}
-                      >
-                        {linkCopied ? (
-                          <>
-                            <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                            <span className="hidden sm:inline">Copied!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                            <span className="hidden sm:inline">Copy</span>
-                          </>
-                        )}
-                      </button>
-                      <button
-                        onClick={shareOnX}
-                        className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
-                        title="Share on X (Twitter)"
-                      >
-                        <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        <span className="hidden sm:inline">Share</span>
-                      </button>
-                    </>
-                  )}
-                  {currentPlaygroundId && (
-                    <>
-                      <Button
-                        onClick={handleFavorite}
-                        disabled={true}
-                        className={`flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors opacity-60 cursor-not-allowed ${
-                          isFavorited
-                            ? "bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800"
-                            : "bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700"
-                        }`}
-                        title="Favorite count"
-                      >
-                        <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorited ? "fill-current" : ""}`} />
-                        {favoriteCount > 0 && <span className="text-xs sm:text-sm">{favoriteCount}</span>}
-                      </Button>
-                      {viewCount > 0 && (
-                        <Button
-                          disabled={true}
-                          className="flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors opacity-60 cursor-not-allowed bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700"
-                          title="View count"
-                        >
-                          <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                          <span className="text-xs sm:text-sm">{viewCount.toLocaleString()}</span>
-                        </Button>
-                      )}
-                    </>
-                  )}
-                  <Button
-                    onClick={() => setIsPublic(!isPublic)}
-                    className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
-                    title={isPublic ? "Make private" : "Make public"}
-                  >
-                    {isPublic ? (
-                      <>
-                        <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        <span className="hidden sm:inline">Public</span>
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        <span className="hidden sm:inline">Private</span>
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    onClick={handleSave}
-                    disabled={!hasChanges || isSaving}
-                    className="flex-shrink-0 bg-black dark:bg-white text-white dark:text-black transition-colors hover:bg-neutral-800 dark:hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed px-2 sm:px-3 py-1.5 sm:py-2 h-auto text-xs sm:text-sm"
-                  >
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2 animate-spin" />
-                        <span className="hidden sm:inline">Saving...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
-                        <span className="hidden sm:inline">Save</span>
-                      </>
-                    )}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  {savedLink && (
-                    <>
-                      <button
-                        onClick={copyLink}
-                        className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
-                        title={linkCopied ? "Link copied!" : "Copy shareable link"}
-                      >
-                        {linkCopied ? (
-                          <>
-                            <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                            <span className="hidden sm:inline">Copied!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                            <span className="hidden sm:inline">Copy</span>
-                          </>
-                        )}
-                      </button>
-                      <button
-                        onClick={shareOnX}
-                        className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
-                        title="Share on X (Twitter)"
-                      >
-                        <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        <span className="hidden sm:inline">Share</span>
-                      </button>
-                    </>
-                  )}
-                  {currentPlaygroundId && (
-                    <>
-                      <Button
-                        onClick={handleFavorite}
-                        disabled={isFavoriting}
-                        className={`flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors ${
-                          isFavorited
-                            ? "bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 border border-red-200 dark:border-red-800"
-                            : "bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700 border border-gray-200 dark:border-neutral-700"
-                        }`}
-                      >
-                        {isFavoriting ? (
-                          <>
-                            <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
-                          </>
-                        ) : (
-                          <>
-                            <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorited ? "fill-current" : ""}`} />
-                            {favoriteCount > 0 && <span className="text-xs sm:text-sm">{favoriteCount}</span>}
-                          </>
-                        )}
-                      </Button>
-                      {viewCount > 0 && (
-                        <Button
-                          disabled={true}
-                          className="flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors opacity-60 cursor-not-allowed bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700"
-                          title="View count"
-                        >
-                          <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                          <span className="text-xs sm:text-sm">{viewCount.toLocaleString()}</span>
-                        </Button>
-                      )}
-                    </>
-                  )}
-                </>
+              {isOwner && (
+                <Button
+                  onClick={() => {
+                    if (status === "unauthenticated" || !session) {
+                      const callbackUrl = "/stats/playground/my-dashboards";
+                      openLoginModal(callbackUrl);
+                    } else {
+                      router.push("/stats/playground/my-dashboards");
+                    }
+                  }}
+                  className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+                  title="My Dashboards"
+                >
+                  <LayoutDashboard className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">My Dashboards</span>
+                </Button>
               )}
             </div>
           </div>
@@ -977,21 +866,183 @@ function PlaygroundContent() {
                     </div>
                   </PopoverContent>
                 </Popover>
-                <Button
-                  onClick={addChart}
-                  className="ml-auto flex-shrink-0 bg-black dark:bg-white text-white dark:text-black transition-colors hover:bg-neutral-800 dark:hover:bg-neutral-200"
-                >
-                  Add New Chart
-                </Button>
               </>
             )}
+            <div className="flex items-center gap-1.5 sm:gap-2 ml-auto flex-wrap">
+              {isOwner ? (
+                <>
+                  <Button
+                    onClick={addChart}
+                    className="flex-shrink-0 bg-black dark:bg-white text-white dark:text-black transition-colors hover:bg-neutral-800 dark:hover:bg-neutral-200"
+                  >
+                    Add New Chart
+                  </Button>
+                  {savedLink && (
+                  <>
+                    <button
+                      onClick={copyLink}
+                      className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+                      title={linkCopied ? "Link copied!" : "Copy shareable link"}
+                    >
+                      {linkCopied ? (
+                        <>
+                          <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          <span className="hidden sm:inline">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          <span className="hidden sm:inline">Copy</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={shareOnX}
+                      className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+                      title="Share on X (Twitter)"
+                    >
+                      <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <span className="hidden sm:inline">Share</span>
+                    </button>
+                  </>
+                )}
+                {currentPlaygroundId && (
+                  <>
+                    <Button
+                      onClick={handleFavorite}
+                      disabled={true}
+                      className={`flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors opacity-60 cursor-not-allowed ${
+                        isFavorited
+                          ? "bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800"
+                          : "bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700"
+                      }`}
+                      title="Favorite count"
+                    >
+                      <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorited ? "fill-current" : ""}`} />
+                      {favoriteCount > 0 && <span className="text-xs sm:text-sm">{favoriteCount}</span>}
+                    </Button>
+                    {viewCount > 0 && (
+                      <Button
+                        disabled={true}
+                        className="flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors opacity-60 cursor-not-allowed bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700"
+                        title="View count"
+                      >
+                        <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                        <span className="text-xs sm:text-sm">{viewCount.toLocaleString()}</span>
+                      </Button>
+                    )}
+                  </>
+                )}
+                <Button
+                  onClick={() => setIsPublic(!isPublic)}
+                  className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+                  title={isPublic ? "Make private" : "Make public"}
+                >
+                  {isPublic ? (
+                    <>
+                      <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <span className="hidden sm:inline">Public</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <span className="hidden sm:inline">Private</span>
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={!hasChanges || isSaving}
+                  className="flex-shrink-0 bg-black dark:bg-white text-white dark:text-black transition-colors hover:bg-neutral-800 dark:hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed px-2 sm:px-3 py-1.5 sm:py-2 h-auto text-xs sm:text-sm"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2 animate-spin" />
+                      <span className="hidden sm:inline">Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Save</span>
+                    </>
+                  )}
+                </Button>
+                </>
+              ) : (
+                <>
+                  {savedLink && (
+                  <>
+                    <button
+                      onClick={copyLink}
+                      className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+                      title={linkCopied ? "Link copied!" : "Copy shareable link"}
+                    >
+                      {linkCopied ? (
+                        <>
+                          <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          <span className="hidden sm:inline">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          <span className="hidden sm:inline">Copy</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={shareOnX}
+                      className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+                      title="Share on X (Twitter)"
+                    >
+                      <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <span className="hidden sm:inline">Share</span>
+                    </button>
+                  </>
+                )}
+                {currentPlaygroundId && (
+                  <>
+                    <Button
+                      onClick={handleFavorite}
+                      disabled={isFavoriting}
+                      className={`flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors ${
+                        isFavorited
+                          ? "bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 border border-red-200 dark:border-red-800"
+                          : "bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700 border border-gray-200 dark:border-neutral-700"
+                      }`}
+                    >
+                      {isFavoriting ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+                        </>
+                      ) : (
+                        <>
+                          <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorited ? "fill-current" : ""}`} />
+                          {favoriteCount > 0 && <span className="text-xs sm:text-sm">{favoriteCount}</span>}
+                        </>
+                      )}
+                    </Button>
+                    {viewCount > 0 && (
+                      <Button
+                        disabled={true}
+                        className="flex-shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 h-auto transition-colors opacity-60 cursor-not-allowed bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700"
+                        title="View count"
+                      >
+                        <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                        <span className="text-xs sm:text-sm">{viewCount.toLocaleString()}</span>
+                      </Button>
+                    )}
+                  </>
+                )}
+                </>
+              )}
+            </div>
           </div>
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
           {filteredCharts.map((chart) => (
             <div
-              key={chart.id}
+              key={`${playgroundId || 'new'}-${chart.id}`}
               className={chart.colSpan === 6 ? "lg:col-span-6" : "lg:col-span-12"}
             >
               <ConfigurableChart
