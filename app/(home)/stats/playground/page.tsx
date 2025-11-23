@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Search, X, Save, Globe, Lock, Copy, Check, Pencil, Loader2, Heart, Share2, Eye, CalendarIcon, RefreshCw, LayoutDashboard } from "lucide-react";
+import { Search, X, Save, Globe, Lock, Copy, Check, Pencil, Loader2, Heart, Share2, Eye, CalendarIcon, RefreshCw, LayoutDashboard, GripVertical } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
@@ -95,6 +95,12 @@ function PlaygroundContent() {
   const [charts, setCharts] = useState<ChartConfig[]>(initialCharts);
   const [savedCharts, setSavedCharts] = useState<ChartConfig[]>(initialCharts);
   const [searchTerm, setSearchTerm] = useState("");
+  const [draggedChartId, setDraggedChartId] = useState<string | null>(null);
+  const [dragOverChartId, setDragOverChartId] = useState<string | null>(null);
+  const scrollAnimationFrameRef = useRef<number | null>(null);
+  const scrollDirectionRef = useRef<'up' | 'down' | null>(null);
+  const scrollSpeedRef = useRef<number>(8);
+  const initialDragYRef = useRef<number | null>(null);
 
   const handleColSpanChange = useCallback((chartId: string, newColSpan: 6 | 12) => {
     setCharts((prev) =>
@@ -158,6 +164,180 @@ function PlaygroundContent() {
       return prev.filter((chart) => chart.id !== chartId);
     });
   };
+
+  const handleChartReorder = useCallback((draggedId: string, targetId: string) => {
+    if (draggedId === targetId) return;
+    
+    setCharts((prev) => {
+      const draggedIndex = prev.findIndex(c => c.id === draggedId);
+      const targetIndex = prev.findIndex(c => c.id === targetId);
+      
+      if (draggedIndex === -1 || targetIndex === -1) return prev;
+      if (draggedIndex === targetIndex) return prev;
+      
+      const newCharts = [...prev];
+      const draggedChart = newCharts[draggedIndex];
+      
+      // Remove the dragged chart from its original position
+      newCharts.splice(draggedIndex, 1);
+      
+      // Calculate the new insertion index
+      // After removing the dragged item:
+      // - If dragging forward (draggedIndex < targetIndex): 
+      //   The target shifts left by 1, but we want to insert after it
+      //   So we use targetIndex (which is now the position after the target)
+      // - If dragging backward (draggedIndex > targetIndex):
+      //   The target stays at targetIndex, we insert before it
+      //   So we use targetIndex
+      const insertIndex = targetIndex;
+      
+      // Insert at the calculated position
+      newCharts.splice(insertIndex, 0, draggedChart);
+      
+      return newCharts;
+    });
+  }, []);
+
+  // Auto-scroll when dragging near edges
+  useEffect(() => {
+    if (!draggedChartId) {
+      // Clear scroll animation when not dragging
+      if (scrollAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(scrollAnimationFrameRef.current);
+        scrollAnimationFrameRef.current = null;
+      }
+      scrollDirectionRef.current = null;
+      return;
+    }
+
+    const SCROLL_THRESHOLD_PERCENT = 0.25; // 25% of screen height from top/bottom
+    const START_SCROLL_SPEED = 4; // Starting speed when entering threshold zone (pixels per frame)
+    const MAX_SCROLL_SPEED = 25; // Maximum speed when at the very edge (pixels per frame)
+
+    const scroll = () => {
+      if (scrollDirectionRef.current === null) return;
+
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const scrollHeight = Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.offsetHeight,
+        document.body.clientHeight,
+        document.documentElement.clientHeight
+      );
+      const windowHeight = window.innerHeight;
+      const maxScroll = scrollHeight - windowHeight;
+      const currentSpeed = scrollSpeedRef.current;
+
+      if (scrollDirectionRef.current === 'up' && scrollTop > 0) {
+        window.scrollBy(0, -currentSpeed);
+        scrollAnimationFrameRef.current = requestAnimationFrame(scroll);
+      } else if (scrollDirectionRef.current === 'down' && scrollTop < maxScroll - 1) {
+        if (scrollTop < maxScroll - currentSpeed) {
+          window.scrollBy(0, currentSpeed);
+          scrollAnimationFrameRef.current = requestAnimationFrame(scroll);
+        } else {
+          // Scroll to exact bottom
+          window.scrollTo(0, maxScroll);
+          scrollAnimationFrameRef.current = null;
+          scrollDirectionRef.current = null;
+        }
+      } else {
+        scrollAnimationFrameRef.current = null;
+        scrollDirectionRef.current = null;
+      }
+    };
+
+    const handleDragStart = (e: DragEvent) => {
+      // Store initial drag position
+      initialDragYRef.current = e.clientY;
+    };
+
+    const handleDrag = (e: DragEvent) => {
+      const y = e.clientY;
+      const windowHeight = window.innerHeight;
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const scrollHeight = Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.offsetHeight,
+        document.body.clientHeight,
+        document.documentElement.clientHeight
+      );
+      const maxScroll = scrollHeight - windowHeight;
+
+      // Calculate 25% threshold from top and bottom
+      const scrollThreshold = windowHeight * SCROLL_THRESHOLD_PERCENT;
+
+      // Initialize drag position if not set
+      if (initialDragYRef.current === null) {
+        initialDragYRef.current = y;
+      }
+
+      // Cancel existing animation
+      if (scrollAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(scrollAnimationFrameRef.current);
+        scrollAnimationFrameRef.current = null;
+      }
+
+      // Calculate distance from edges and determine scroll speed
+      let distanceFromEdge = 0;
+      let shouldScroll = false;
+
+      // Check if in top 25% zone and can scroll up
+      if (y < scrollThreshold && scrollTop > 0) {
+        distanceFromEdge = y; // Distance from top edge (0 = at top, scrollThreshold = at 25%)
+        scrollDirectionRef.current = 'up';
+        shouldScroll = true;
+      }
+      // Check if in bottom 25% zone and can scroll down
+      else if (y > windowHeight - scrollThreshold && scrollTop < maxScroll - 1) {
+        distanceFromEdge = windowHeight - y; // Distance from bottom edge (0 = at bottom, scrollThreshold = at 25%)
+        scrollDirectionRef.current = 'down';
+        shouldScroll = true;
+      } else {
+        scrollDirectionRef.current = null;
+        shouldScroll = false;
+      }
+
+      // Calculate speed based on proximity to edge
+      // Speed increases smoothly as we get closer to the edge
+      if (shouldScroll) {
+        // Normalize distance from edge: 0 = at edge, 1 = at threshold (25% mark)
+        // Invert so closer to edge = higher value (1 = at edge, 0 = at threshold)
+        const normalizedDistance = 1 - (distanceFromEdge / scrollThreshold);
+        
+        // Use smooth easing function (ease-in-out cubic) for smoother acceleration
+        const easedFactor = normalizedDistance < 0.5
+          ? 2 * normalizedDistance * normalizedDistance
+          : 1 - Math.pow(-2 * normalizedDistance + 2, 3) / 2;
+        
+        // Calculate speed: start speed + (max - start) * eased factor
+        // At threshold (25%): speed = START_SCROLL_SPEED
+        // At edge (0%): speed = MAX_SCROLL_SPEED
+        scrollSpeedRef.current = START_SCROLL_SPEED + (MAX_SCROLL_SPEED - START_SCROLL_SPEED) * easedFactor;
+        scrollAnimationFrameRef.current = requestAnimationFrame(scroll);
+      }
+    };
+
+    document.addEventListener('dragstart', handleDragStart);
+    document.addEventListener('dragover', handleDrag);
+    document.addEventListener('drag', handleDrag);
+
+    return () => {
+      document.removeEventListener('dragstart', handleDragStart);
+      document.removeEventListener('dragover', handleDrag);
+      document.removeEventListener('drag', handleDrag);
+      if (scrollAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(scrollAnimationFrameRef.current);
+        scrollAnimationFrameRef.current = null;
+      }
+      scrollDirectionRef.current = null;
+      initialDragYRef.current = null;
+    };
+  }, [draggedChartId]);
 
   // Load playground data if ID is provided
   useEffect(() => {
@@ -1076,11 +1256,82 @@ function PlaygroundContent() {
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
-          {filteredCharts.map((chart) => (
+          {filteredCharts.map((chart) => {
+            const isDragging = draggedChartId === chart.id;
+            const isDragOver = dragOverChartId === chart.id;
+            
+            return (
             <div
               key={`${playgroundId || 'new'}-${chart.id}`}
-              className={chart.colSpan === 6 ? "lg:col-span-6" : "lg:col-span-12"}
+              className={cn(
+                chart.colSpan === 6 ? "lg:col-span-6" : "lg:col-span-12",
+                "relative",
+                isDragging && "opacity-50",
+                isDragOver && "ring-2 ring-primary ring-offset-2",
+                isOwner && !isDragging && "cursor-move"
+              )}
+              draggable={isOwner}
+              onDragStart={(e) => {
+                if (!isOwner) return;
+                setDraggedChartId(chart.id);
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("text/html", chart.id);
+              }}
+              onDragOver={(e) => {
+                // Always prevent default to allow drop
+                e.preventDefault();
+                e.stopPropagation();
+                
+                if (!isOwner || draggedChartId === null || draggedChartId === chart.id) {
+                  return;
+                }
+                
+                e.dataTransfer.dropEffect = "move";
+                if (dragOverChartId !== chart.id) {
+                  setDragOverChartId(chart.id);
+                }
+              }}
+              onDragLeave={(e) => {
+                // Only clear if we're actually leaving the element (not entering a child)
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = e.clientX;
+                const y = e.clientY;
+                if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+                  if (dragOverChartId === chart.id) {
+                    setDragOverChartId(null);
+                  }
+                }
+              }}
+              onDrop={(e) => {
+                if (!isOwner || draggedChartId === null || draggedChartId === chart.id) return;
+                e.preventDefault();
+                e.stopPropagation();
+                
+                handleChartReorder(draggedChartId, chart.id);
+                setDraggedChartId(null);
+                setDragOverChartId(null);
+              }}
+              onDragEnd={() => {
+                setDraggedChartId(null);
+                setDragOverChartId(null);
+                // Clear scroll animation
+                if (scrollAnimationFrameRef.current !== null) {
+                  cancelAnimationFrame(scrollAnimationFrameRef.current);
+                  scrollAnimationFrameRef.current = null;
+                }
+                scrollDirectionRef.current = null;
+                initialDragYRef.current = null;
+              }}
             >
+              {isOwner && (
+                <div 
+                  className="absolute top-0 right-0 z-10 flex items-center gap-1 text-gray-400 dark:text-gray-500 cursor-grab active:cursor-grabbing hover:text-gray-600 dark:hover:text-gray-300 transition-colors bg-white dark:bg-neutral-900 rounded-tr-xl rounded-bl-xl p-1.5 shadow-sm border border-gray-200 dark:border-neutral-700"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  draggable={false}
+                >
+                  <GripVertical className="h-4 w-4" />
+                </div>
+              )}
               <ConfigurableChart
                 title={chart.title}
                 colSpan={chart.colSpan}
@@ -1098,7 +1349,8 @@ function PlaygroundContent() {
                 reloadTrigger={reloadTrigger}
               />
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {filteredCharts.length === 0 && (
