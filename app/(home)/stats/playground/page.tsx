@@ -756,7 +756,7 @@ function PlaygroundContent() {
                     <button
                       onClick={handleFavorite}
                       disabled={isFavoriting}
-                      className={`flex items-center gap-1 text-xs transition-colors ${
+                      className={`flex items-center gap-1 text-xs transition-colors cursor-pointer ${
                         isFavorited
                           ? "text-red-600 dark:text-red-400"
                           : "text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
