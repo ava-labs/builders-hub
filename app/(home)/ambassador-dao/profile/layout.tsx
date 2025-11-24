@@ -14,7 +14,21 @@ const AmbasssadorDaoProfileLayout = ({
 
   useEffect(() => {
     if (!isLoading && !user) {
-      router.push("/ambassador-dao");
+      // Check if the error is due to token acquisition failure
+      const tokenError = typeof window !== "undefined" 
+        ? localStorage.getItem("t1_token_error") 
+        : null;
+      
+      if (tokenError === "user_not_found") {
+        // User doesn't exist in Ambassador DAO - redirect to onboarding
+        router.push("/ambassador-dao/onboard");
+      } else if (tokenError === "server_error") {
+        // Server error - redirect to home to avoid loop
+        router.push("/");
+      } else {
+        // Normal case: user not authenticated
+        router.push("/ambassador-dao");
+      }
     }
   }, [user, isLoading, router]);
 

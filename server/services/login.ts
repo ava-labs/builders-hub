@@ -24,6 +24,8 @@ export async function sendOTP(email: string) {
     name: "Avalanche Builder's Hub"
   };
 
+  console.info("code: ", code);
+
   const msg = {
     to: email,
     from: from,
