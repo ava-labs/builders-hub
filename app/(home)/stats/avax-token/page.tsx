@@ -329,7 +329,7 @@ export default function AvaxTokenPage() {
           subtext: data.price > 0 ? formatUSD(data.genesisUnlock) : "AVAX",
           subtextTooltip: data.price > 0 ? "at current prices" : undefined,
           color: "#E84142",
-          tooltip: "Amount of AVAX unlocked during the genesis event",
+          tooltip: "Amount of AVAX un during the genesis event",
         },
         {
           label: "Total Staked",
@@ -349,7 +349,7 @@ export default function AvaxTokenPage() {
           subtext: data.price > 0 ? formatUSD(data.totalLocked) : `${calculatePercentage(data.totalLocked, data.circulatingSupply)}% of circulating`,
           subtextTooltip: data.price > 0 ? "at current prices" : undefined,
           color: "#10B981",
-          tooltip: "AVAX locked in time-locked stakeable outputs on the P-Chain",
+          tooltip: "Total AVAX locked in UTXOs on P-Chain and X-Chain",
         },
         {
           label: "Total Rewards",
