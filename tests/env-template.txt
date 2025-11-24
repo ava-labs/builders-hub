@@ -1,0 +1,10 @@
+# Core Wallet Testing Configuration
+# Copy this to your project root .env file
+
+# Your 12 or 24 word recovery phrase for testing
+# NEVER use a wallet with real funds for testing!
+CORE_WALLET_MNEMONIC="your twelve or twenty four word recovery phrase goes here"
+
+# Password to set for the wallet in tests (optional, defaults to TestPassword123!)
+CORE_WALLET_PASSWORD="TestPassword123!"
+
