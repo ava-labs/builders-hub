@@ -23,6 +23,8 @@ export const avalancheLearningPaths: CourseNode[] = [
         position: { x: 87.5, y: 250 },
         mobileOrder: 2
     },
+
+    // Third Layer - Branching paths
     {
         id: "interchain-messaging",
         name: "Interchain Messaging",

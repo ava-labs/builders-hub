@@ -44,6 +44,17 @@ export const blockchainLearningPaths: CourseNode[] = [
         position: { x: 70, y: 500 },
         mobileOrder: 4
     },
+
+    {
+        id: "x402-payment-infrastructure",
+        name: "x402 Payment Infrastructure",
+        description: "Learn about instant, permissionless HTTP-native payments on Avalanche",
+        slug: "blockchain/x402-payment-infrastructure",
+        category: "Development",
+        dependencies: ["intro-to-solidity"],
+        position: { x: 70, y: 500 },
+        mobileOrder: 4
+    },
 ];
 
 export const blockchainCategoryStyles = {
