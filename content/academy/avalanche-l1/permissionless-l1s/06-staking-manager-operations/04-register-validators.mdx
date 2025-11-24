@@ -6,6 +6,37 @@ authors: [owenwahlgren]
 icon: Terminal
 ---
 
+## DUMPING CONTENT HERE - NOT VISIBLE yet
+This [state transition diagram](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/StateTransition.md) illustrates the relationship between Validators and Delegators.
+
+### (PoS only) Register a Delegator
+
+`PoSValidatorManager` supports Delegation to an active Validator as a way for users to earn staking rewards without having to validate the chain. Delegators pay a configurable percentage fee on any earned staking rewards to the host Validator. A Delegator may be registered by calling `initializeDelegatorRegistration` and providing an amount to stake. The Delegator will be registered as long as churn restrictions are not violated. The Delegator is reflected on the P-Chain by adjusting the Validator's registered weight via a [`SetSubnetValidatorWeightTx`](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets#setsubnetvalidatorweighttx). The weight change acknowledgement is delivered to the `PoSValidatorManager` via a [`SubnetValidatorWeightMessage`](https://github.com/ava-labs/icm-contracts/blob/prorated-rewards-v2/contracts/validator-manager/MessageSpec.md#SubnetValidatorWeightMessage), which is provided by calling `completeDelegatorRegistration`.
+
+> The P-Chain is only willing to sign a `SubnetValidatorWeightUpdateMessage` for an active Validator. Once Validator exit has been initiated (via a call to `initializeEndValidation`), the `PoSValidatorManager` must assume that the Validator has been deactivated on the P-Chain, and will therefore not sign any further weight updates. Therefore, it is invalid to _initiate_ adding or removing a Delegator when the Validator is in this state, though it _may be_ valid to _complete_ an already initiated Delegator action, depending on the order of delivery to the P-Chain. If the Delegator weight change was submitted (and a Warp signature on the acknowledgement retrieved) before the Validator was removed, then the Delegator action may be completed. Otherwise, the acknowledgement of the Validation end must first be delivered before completing the Delegator action. 
+
+### (PoS only) Remove a Delegator
+
+Delegators removal may be initiated by calling `initializeEndDelegation`, as long as churn restrictions are not violated. Similar to `initializeEndValidation`, an uptime proof may be provided to be used to determine Delegator rewards eligibility. If no proof is provided, the latest known uptime will be used (see [(PoS only) Submit and Uptime Proof](#pos-only-submit-an-uptime-proof)). The Validator's weight is updated on the P-Chain by the same mechanism used to register a Delegator. The `SubnetValidatorWeightUpdateMessage` from the P-Chain is delivered to the `PoSValidatorManager` in the call to `completeEndDelegation`.
+
+### (PoS only) Submit an Uptime Proof
+
+The [rewards calculater](https://github.com/ava-labs/icm-contracts/blob/prorated-rewards-v2/contracts/validator-manager/interfaces/IRewardCalculator.sol) is a function of uptime seconds since the Validator's start time. In addition to doing so in the calls to `initializeEndValidation` and `initializeEndDelegation` as described above, uptime proofs may also be supplied by calling `submitUptimeProof`. Unlike `initializeEndValidation` and `initializeEndDelegation`, `submitUptimeProof` may be called by anyone, decreasing the likelihood of a Validation or Delegation not being able to claim rewards that it deserved based on its actual uptime.
+
+### (PoS only) Collect Staking Rewards
+#### Validation Rewards
+
+Validation rewards are distributed in the call to `completeEndValidation`.
+
+#### Delegation Rewards
+
+Delegation rewards are distributed in the call to `completeEndDelegation`.
+
+#### Delegation Fees
+
+Delegation fees owed to Validators are _not_ distributed when the Validation ends as to bound the amount of gas consumed in the call to `completeEndValidation`. Instead, `claimDelegationFees` may be called after the Validation is completed.
+
+
 > How does it all work? I mean *actually* work.
 
 ### Sending Warp Messages

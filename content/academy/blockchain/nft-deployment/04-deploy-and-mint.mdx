@@ -1,0 +1,202 @@
+---
+title: Deploy and Mint Your NFT
+description: Deploy your ERC-721 contract to Avalanche and mint your first NFT
+updated: 2024-11-20
+authors: [Andrea Vargas, Ash, martineckardt]
+icon: BookOpen
+---
+
+Now it's time to deploy your NFT smart contract to the Avalanche network and mint your first NFT!
+
+## Prerequisites
+
+Before deploying, ensure you have:
+
+### Core Wallet Extension
+
+You'll need the Core browser extension to fund and deploy your contract. If you haven't installed it yet:
+
+1. Download [Core Extension](https://chrome.google.com/webstore/detail/core-crypto-wallet-nft-ex/agoakfejjabomempkjlepdflaleeobhb)
+2. Create or import a wallet
+3. Enable **Testnet Mode**:
+   - Go to **Settings** → **Advanced**
+   - Turn on **Testnet Mode**
+   - Core will automatically switch to Fuji Testnet
+
+![Settings image 1](/images/nft-collection1.png)
+
+![Settings image 2](/images/nft-collection2.png)
+
+<Callout type="info">
+**Other Wallets**: If using MetaMask or another wallet, add Fuji Testnet manually:
+- **Network Name**: Avalanche Fuji C-Chain
+- **RPC URL**: `https://api.avax-test.network/ext/bc/C/rpc`
+- **Chain ID**: `43113`
+- **Symbol**: AVAX
+- **Explorer**: `https://testnet.snowtrace.io`
+</Callout>
+
+### Testnet AVAX
+
+You'll need AVAX on the Fuji testnet to pay for gas fees.
+
+**Option 1 (Recommended)**: 
+- Create a [Builder Hub account](https://build.avax.network/login)
+- Connect your wallet to receive testnet AVAX automatically
+
+**Option 2**: 
+- Use the [Avalanche Faucet](https://core.app/tools/testnet-faucet/)
+- If you have AVAX on Mainnet, paste your C-Chain address and request test tokens
+- Otherwise, request a faucet coupon on [Guild](https://guild.xyz/avalanche)
+
+![Avalanche Faucet](/images/nft-collection3.png)
+
+## Deploying with Remix IDE
+
+[Remix IDE](https://remix.ethereum.org/) is a browser-based Solidity compiler that makes it easy to compile and deploy smart contracts without installing any software.
+
+### Step 1: Compile Your Contract
+
+After importing your contract from OpenZeppelin Wizard:
+
+1. Click the **Compile** button on the left sidebar (or press `Ctrl/Cmd + S`)
+2. Wait for the green checkmark to appear
+
+![Remix Compile](/images/nft-collection8.png)
+
+<Callout type="info">
+You may see options to "Publish on IPFS" or "Publish on Swarm" - these aren't necessary for this tutorial.
+</Callout>
+
+### Step 2: Configure Deployment
+
+1. Click the **Deploy & Run Transactions** tab (bottom icon on left sidebar)
+
+![Remix Deploy Page](/images/nft-collection9.png)
+
+2. Change the **Environment** dropdown to **Injected Provider - MetaMask**
+
+![Remix Web3](/images/nft-collection10.png)
+
+3. Core will prompt you to connect - approve the connection
+
+4. Verify the connection by checking that the **Account** matches your Core address
+
+![Remix account](/images/nft-collection11.png)
+
+![Core account](/images/nft-collection12.png)
+
+### Step 3: Select Your Contract
+
+In the **Contract** dropdown, select your contract (it will have the name you gave it in the wizard).
+
+![Remix Contract](/images/nft-collection13.png)
+
+### Step 4: Deploy
+
+1. Click the orange **Deploy** button
+2. Core will open and ask you to confirm the transaction
+3. Review the gas fee and click **Confirm**
+
+![Core Accept](/images/nft-collection14.png)
+
+4. Wait for the transaction to be confirmed
+
+Your deployed contract will appear under **Deployed Contracts**:
+
+![Remix Record](/images/nft-collection15.png)
+
+### Step 5: Verify on Snowtrace
+
+1. Copy your contract address from Remix
+2. Open [Snowtrace Testnet Explorer](https://testnet.snowtrace.io/)
+3. Paste the address in the search bar
+
+You'll see your contract information, including the deployment transaction:
+
+![Snowtrace](/images/nft-collection16.png)
+
+## Minting Your First NFT
+
+Now that your contract is deployed, let's mint an NFT!
+
+### Step 1: Access the safeMint Function
+
+1. In Remix, expand your deployed contract
+2. You'll see a list of available functions
+
+![Remix Functions](/images/nft-collection17.png)
+
+3. Click the dropdown arrow next to **safeMint** to expand it
+
+![safeMint function](/images/nft-collection18.png)
+
+### Step 2: Mint to Your Address
+
+1. Copy your Core wallet address
+2. Paste it into the `to` address field
+3. Click the orange **transact** button
+
+<Callout type="info">
+You can mint to any address, not just your own. This is useful for gifting NFTs or airdrops!
+</Callout>
+
+4. Confirm the transaction in Core
+5. Wait for the green checkmark in the Remix terminal
+
+![Remix Confirm Mint](/images/nft-collection19.png)
+
+### Step 3: Verify the Mint
+
+1. Return to your contract page on Snowtrace
+2. Refresh the page
+3. You should see a new transaction for `safeMint`
+
+![Snowtrace Mint](/images/nft-collection20.png)
+
+4. Click on the [TX Hash](https://testnet.snowtrace.io/tx/0x8b698ac72bd20b2a640167c5d9bacdcbb3d86fd696eb8cde6f28347f6f99a2c9) to view details
+
+![Snowtrace Transaction](/images/nft-collection21.png)
+
+Congratulations! You've successfully minted your first NFT! 🎉
+
+## Viewing Your NFT
+
+Your NFT is now:
+- Recorded on the Avalanche blockchain
+- Owned by your wallet address
+- Linked to your metadata and image on IPFS
+
+You can view it:
+- On Snowtrace (under the "Token Transfers" tab)
+- In your Core wallet (NFT section)
+- On NFT marketplaces that support Avalanche testnet
+
+## Deploying to Mainnet
+
+When you're ready to launch your project on Mainnet, the process is identical except:
+
+1. **Switch to Mainnet**: Disable Testnet Mode in Core
+2. **Get Real AVAX**: You'll need actual AVAX to pay for gas fees
+3. **Use Mainnet Snowtrace**: View transactions at [snowtrace.io](https://snowtrace.io/)
+4. **List on Marketplaces**: Your NFTs can be listed on platforms like [Joepegs](https://joepegs.com/)
+
+<Callout type="warn">
+**Before Mainnet Deployment**:
+- Thoroughly test your contract on testnet
+- Consider a professional audit for valuable collections
+- Ensure your IPFS files are permanently pinned
+- Have a clear minting strategy and pricing
+</Callout>
+
+## Next Steps
+
+Now that you've deployed and minted your NFT, you might want to:
+
+- Mint additional NFTs from your collection
+- Learn about token URIs and metadata standards
+- Explore advanced features like royalties and allowlists
+- Build a custom minting dApp for your collection
+
+In the next section, we'll dive deeper into how token URIs work and how your NFTs connect to their metadata.
+

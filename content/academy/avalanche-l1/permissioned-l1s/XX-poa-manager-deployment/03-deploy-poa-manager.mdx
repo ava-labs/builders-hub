@@ -9,6 +9,11 @@ icon: Terminal
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
 import DeployPoAManager from "@/components/toolbox/console/permissioned-l1s/multisig-setup/DeployPoAManager.tsx"
 
+### PoAValidatorManager
+
+Proof-of-Authority Validator management is provided via `PoAValidatorManager`, which restricts modification of the Validator set to an owner address. After deploying `PoAValidatorManager.sol` and a proxy, the `initialize` function takes the owner address, in addition to standard `ValidatorManagerSettings`.
+
+
 ## Overview
 
 The Proof of Authority (PoA) Manager is a simplified validator management contract that provides an easier interface for managing validators on your L1. It acts as a wrapper around the core Validator Manager contract, offering streamlined operations for PoA-based L1s.
