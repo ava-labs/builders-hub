@@ -551,6 +551,26 @@ const config = {
         destination: "/academy/avalanche-l1/avacloudapis/:path*",
         permanent: true,
       },
+      {
+        source: "/docs/cross-chain/teleporter/teleporter-on-devnet",
+        destination: "/docs/cross-chain/icm-contracts/icm-contracts-on-devnet",
+        permanent: true,
+      },
+      {
+        source: "/docs/cross-chain/teleporter/teleporter-on-local-network",
+        destination: "/docs/cross-chain/icm-contracts/icm-contracts-on-local-network",
+        permanent: true,
+      },
+      {
+        source: "/docs/cross-chain/teleporter",
+        destination: "/docs/cross-chain/icm-contracts",
+        permanent: true,
+      },
+      {
+        source: "/docs/cross-chain/teleporter/:path*",
+        destination: "/docs/cross-chain/icm-contracts/:path*",
+        permanent: true,
+      },
     ];
   },
 };
