@@ -9,6 +9,7 @@ import { packWarpIntoAccessList } from '@/components/toolbox/console/permissione
 import { hexToBytes, bytesToHex } from 'viem';
 import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import poaManagerAbi from '@/contracts/icm-contracts/compiled/PoAManager.json';
+import nativeTokenStakingManagerAbi from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
@@ -61,8 +62,18 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
 
   // Determine target contract and ABI based on ownerType
   const useMultisig = ownerType === 'PoAManager';
-  const targetContractAddress = useMultisig ? contractOwner : validatorManagerAddress;
-  const targetAbi = useMultisig ? poaManagerAbi.abi : validatorManagerAbi.abi;
+  const useStakingManager = ownerType === 'StakingManager';
+  
+  // For both PoAManager and StakingManager, we use the contractOwner address
+  // For direct ValidatorManager (EOA owned), we use validatorManagerAddress
+  const targetContractAddress = (useMultisig || useStakingManager) ? contractOwner : validatorManagerAddress;
+  
+  // Select the appropriate ABI based on owner type
+  const targetAbi = useMultisig 
+    ? poaManagerAbi.abi 
+    : useStakingManager 
+      ? nativeTokenStakingManagerAbi.abi 
+      : validatorManagerAbi.abi;
 
   // Initialize state with prop value when it becomes available
   useEffect(() => {
@@ -90,7 +101,7 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
       onError("Validator Manager address is not set. Check L1 Subnet selection.");
       return;
     }
-    if (ownershipState === 'differentEOA' && !useMultisig) {
+    if (ownershipState === 'differentEOA' && !useMultisig && !useStakingManager) {
       setErrorState("You are not the contract owner. Please contact the contract owner.");
       onError("You are not the contract owner. Please contact the contract owner.");
       return;
@@ -98,6 +109,11 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
     if (useMultisig && !contractOwner?.trim()) {
       setErrorState("PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager.");
       onError("PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager.");
+      return;
+    }
+    if (useStakingManager && !contractOwner?.trim()) {
+      setErrorState("StakingManager address could not be fetched. Please ensure the ValidatorManager is owned by a StakingManager.");
+      onError("StakingManager address could not be fetched. Please ensure the ValidatorManager is owned by a StakingManager.");
       return;
     }
     if (!coreWalletClient || !publicClient || !viemChain || !coreWalletClient.account) {
@@ -122,9 +138,31 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
       });
 
       // Step 2: Get validation ID from contract using nodeID
+      // For StakingManager, we need to query the underlying ValidatorManager
+      let validationIdQueryAddress = validatorManagerAddress;
+      
+      if (useStakingManager && contractOwner) {
+        // Get the underlying ValidatorManager address from StakingManager settings
+        try {
+          const settings = await publicClient.readContract({
+            address: contractOwner as `0x${string}`,
+            abi: nativeTokenStakingManagerAbi.abi,
+            functionName: 'getStakingManagerSettings',
+          }) as any;
+          
+          validationIdQueryAddress = settings.manager; // This is the actual ValidatorManager
+          console.log('[StakingManager] Querying ValidatorManager for validation ID:', validationIdQueryAddress);
+        } catch (err) {
+          console.warn("Failed to get ValidatorManager from StakingManager settings, using default:", err);
+        }
+      }
+      
+      console.log('[CompleteValidatorRegistration] Querying validation ID from:', validationIdQueryAddress);
+      console.log('[CompleteValidatorRegistration] NodeID:', registrationMessageData.nodeID);
+      
       const validationId = await getValidationIdHex(
         publicClient,
-        validatorManagerAddress as `0x${string}`,
+        validationIdQueryAddress as `0x${string}`,
         registrationMessageData.nodeID
       );
 
@@ -149,6 +187,7 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
 
       // Step 4: Get justification for the validation
       // For validator registration, we need to find the original registration message
+      // Note: Justification is always fetched from logs, which would be on the chain regardless of contract
       const justification = await GetRegistrationJustification(
         validationId, // Use the actual validation ID instead of converting nodeID
         subnetIdL1,
@@ -254,7 +293,7 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
 
       <Button
         onClick={handleCompleteRegisterValidator}
-        disabled={isProcessing || !pChainTxIdState.trim() || !!successMessage || (ownershipState === 'differentEOA' && !useMultisig) || isLoadingOwnership}
+        disabled={isProcessing || !pChainTxIdState.trim() || !!successMessage || (ownershipState === 'differentEOA' && !useMultisig && !useStakingManager) || isLoadingOwnership}
       >
         {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : 'Sign & Complete Validator Registration')}
       </Button>

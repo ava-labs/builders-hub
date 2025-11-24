@@ -1,0 +1,9 @@
+{
+  "pages": [
+    "blockchain-fundamentals",
+    "solidity-foundry",
+    "nft-deployment",
+    "encrypted-erc"
+  ]
+}
+

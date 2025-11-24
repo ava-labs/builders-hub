@@ -1,0 +1,27 @@
+---
+title: StakingManager Minting Rights
+description: Grant the Staking Manager permission to mint reward tokens
+updated: 2025-03-13
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+import EnableStakingManagerMinting from "@/components/toolbox/console/permissionless-l1s/setup/native/EnableStakingManagerMinting.tsx"
+import { Callout } from "fumadocs-ui/components/callout";
+
+The Staking Manager needs permission to mint native tokens for distributing staking rewards.
+
+## Why Enable Native Minter?
+
+The `NativeTokenStakingManager` distributes rewards by minting new native tokens through the Native Minter precompile. To do this, the Staking Manager's address must be added as an **Enabled** address on the Native Minter.
+
+## Add the NativeTokenStakingManager to Native Minter's Allowlist
+
+<Callout type="warning">
+Only addresses with **Manager** or **Admin** permissions on the Native Minter can enable other addresses.
+</Callout>
+
+<ToolboxMdxWrapper walletMode="l1">
+    <EnableStakingManagerMinting />
+</ToolboxMdxWrapper>

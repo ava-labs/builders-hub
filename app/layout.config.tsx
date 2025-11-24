@@ -26,11 +26,8 @@ import {
   Ticket,
   Earth,
   ArrowLeftRight,
-  Shield,
-  Triangle,
+  DraftingCompass,
   GraduationCap,
-  BookOpen,
-  Users,
 } from 'lucide-react';
 import Image from 'next/image';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
@@ -135,6 +132,13 @@ export const stats: LinkItemType = {
       description:
       "View the latest metrics for the Avalanche Primary Network validators.",
     },
+    {
+      icon: <DraftingCompass />,
+      text: "Playground",
+      url: "/stats/playground",
+      description:
+      "Create and customize multiple charts with real-time chain metrics.",
+    },
   ],
 };
 
@@ -233,10 +237,10 @@ export const academyMenu: LinkItemType = {
         className: 'md:row-span-2',
       },
       icon: <Sprout />,
-      text: 'Avalanche Developer Academy',
+      text: 'Avalanche L1 Academy',
       description:
         'Master blockchain development with comprehensive courses on Avalanche fundamentals, L1s, and advanced topics',
-      url: '/academy',
+      url: '/academy?path=avalanche-l1',
     },
     {
       menu: {
@@ -244,7 +248,7 @@ export const academyMenu: LinkItemType = {
           <div className='-mx-3 -mt-3'>
             <Image
               src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase-Entrepreneur-Academy-banner.png"}
-              alt='Codebase Entrepreneur Academy'
+              alt='Entrepreneur Academy'
               width={900}
               height={400}
               className='rounded-t-lg object-cover w-full h-auto'
@@ -257,30 +261,34 @@ export const academyMenu: LinkItemType = {
         className: 'md:row-span-2 lg:col-start-2',
       },
       icon: <BriefcaseBusiness />,
-      text: 'Codebase Entrepreneur Academy',
+      text: 'Entrepreneur Academy',
       description:
         'Transform from builder to founder with courses on business fundamentals, fundraising, and go-to-market strategies',
-      url: '/codebase-entrepreneur-academy',
+      url: '/academy?path=entrepreneur',
     },
     {
-      icon: <Triangle />,
-      text: 'Avalanche Fundamentals',
-      description:
-        'Get a high level overview of Avalanche Consensus, L1s and VMs',
-      url: '/academy/avalanche-fundamentals',
       menu: {
-        className: 'lg:col-start-3 lg:row-start-1',
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
+              src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/customizing-evm-DkMcINMgCwhkuHuumtAZtrPzROU74M.jpg"
+              alt='Blockchain Academy'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-2 lg:col-start-3',
       },
-    },
-    {
-      icon: <ArrowUpRight />,
-      text: 'Check All Courses',
+      icon: <GraduationCap />,
+      text: 'Blockchain Academy',
       description:
-        'Supercharge your learning journey with expert-curated courses offered by Avalanche Academy and earn certificates.',
-      url: '/academy',
-      menu: {
-        className: 'lg:col-start-3',
-      },
+        'Build a rock-solid foundation in blockchain fundamentals, smart contracts, and privacy-preserving tech.',
+      url: '/academy?path=blockchain',
     },
   ],
 };
