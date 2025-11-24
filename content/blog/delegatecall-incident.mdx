@@ -1,6 +1,6 @@
 ---
 title: DeletegateCall Incident Overview
-description: A detailed post-mortem on Avalanche’s Granite v1.14.0 which permanently resolves a critical precompile delegatecall vulnerability.
+description: A detailed post-mortem on Avalanche's Granite v1.14.0 which permanently resolves a critical precompile delegatecall vulnerability.
 date: 2025-11-24
 authors: [AvaxDevelopers]
 topics: [Granite Upgrade, Security]
@@ -133,7 +133,7 @@ The Granite upgrade explicitly encodes the allowed call types for every stateful
 
 **What we learned:**
 
-Engineers reasonably assume that any component behaves according to standard EVM rules unless explicitly signaled otherwise. When Avalanche’s extensions silently diverged from the standard, those assumptions became dangerous. In the absence of strong signals, developers will default to the ecosystem standard, and we must support that.
+Engineers reasonably assume that any component behaves according to standard EVM rules unless explicitly signaled otherwise. When Avalanche's extensions silently diverged from the standard, those assumptions became dangerous. In the absence of strong signals, developers will default to the ecosystem standard, and we must support that.
 
 **What we changed:**
 
