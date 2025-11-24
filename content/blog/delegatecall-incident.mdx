@@ -9,12 +9,14 @@ comments: true
 
 # Post-Mortem: The Precompile `delegatecall` Incident and Granite Resolution
 
-On November 19, 2025, the Avalanche Granite network upgrade (AvalancheGo `v1.14.0`) successfully activated on Mainnet. This upgrade implemented significant improvements, but it also served as the final, permanent resolution for a critical security vulnerability discovered and mitigated earlier this year.  
+On November 19, 2025, the Avalanche Granite network upgrade (AvalancheGo `v1.14.0`) successfully activated on Mainnet. This upgrade implemented significant improvements, but it also served as the final, permanent resolution for a critical security vulnerability discovered and mitigated earlier this year.
+
 A critical flaw was identified in the handling of `delegatecall` and `callcode` by stateful precompiles, allowing a malicious contract to impersonate another caller and potentially forge cross-chain or privileged actions. The vulnerability was never exploited on Mainnet or any public L1.
 
 Security is a continuous process, not a final destination. This process relies on proactive auditing, rigorous engineering, and transparent communication with our developer community. In accordance with this commitment, this post-mortem provides a detailed technical breakdown of the “Precompile DelegateCall Incident”, from its discovery and multi-phase mitigation to its permanent, architectural resolution within the Granite upgrade.
 
-### Key takeaways
+### Key Takeaways
+
 1. A P1-critical vulnerability was discovered by our audit partners, Trail of Bits, during a routine audit.
 2. A rapid, multi-phase incident response successfully neutralized the threat and contained the bug.
 3. The vulnerability was never exploited on Mainnet or any public L1.
