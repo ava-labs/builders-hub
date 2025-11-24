@@ -133,6 +133,7 @@ function FooterLink({ href, children, external = false }: FooterLinkProps) {
   return (
     <Link
       href={href}
+      prefetch={false}
       className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200 inline-flex items-center w-fit group"
       {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
     >
