@@ -38,7 +38,7 @@ let cachedDailyData: {
 } | null = null;
 
 let lastCacheTime = 0;
-const CACHE_DURATION = 5 * 60 * 1000;
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours - historical fee data changes slowly
 
 export async function GET(_request: Request) {
   try {

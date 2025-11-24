@@ -14,7 +14,7 @@ export async function GET() {
         headers: {
           accept: "application/json",
         },
-        next: { revalidate: 300 },
+        next: { revalidate: 86400 }, // 24 hours - supply data changes slowly
       }),
       fetch(
         "https://api.coingecko.com/api/v3/simple/price?ids=avalanche-2&vs_currencies=usd&include_24hr_change=true",
@@ -22,7 +22,7 @@ export async function GET() {
           headers: {
             Accept: "application/json",
           },
-          next: { revalidate: 60 },
+          next: { revalidate: 60 }, // 1 minute - price data changes frequently
         }
       ),
     ]);
