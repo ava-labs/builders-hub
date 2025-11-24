@@ -1,65 +1,79 @@
 ---
-title: Deploy Your First Smart Contract
-description: Deploy a simple smart contract to the Avalanche Fuji Testnet and earn your first Builder achievement!
-updated: 2025-11-24
-authors: [SakiAoiaoi]
-icon: Rocket
+title: Deploy a Smart Contract
+description: Use Remix to try out compiling and deploying a simple smart contract. Through this experience, see how contracts become active parts of the blockchain ecosystem.
+updated: 2025-09-28
+authors: [s.aoi]
+icon: Terminal
+---
 
-## Your First Smart Contract on Avalanche
+In this section, you will follow a step-by-step guide to deploy a basic smart contract. 
+Think of it as compiling and deploying a little robot on the Avalanche Fuji testnet, giving it life, and then verifying it. This way, you will gain practical experience in how contracts operate on the blockchain.
 
-In this challenge, you will deploy a smart contract to the **Avalanche Fuji Testnet**.  
-When you're done, you will submit your contract address and earn your **first badge** ✨  
-(coming soon!)
+### Objectives
+- Write and compile a Solidity smart contract.  
+- Deploy it on Avalanche Fuji using Remix and MetaMask.  
+- Verify the deployed contract on SnowTrace.  
 
+# Interact with a Smart Contract
 
-### Step 1 — Get Test AVAX
+In this challenge, you will interact with a deployed contract on the Fuji Testnet.  
+If you succeed, you will earn an NFT certificate.
 
-To deploy, you need test AVAX on Fuji.
+## Add Avalanche Fuji Testnet
 
-- [Request Test AVAX](https://faucet.avax.network/)
+You can easily add the **Avalanche Fuji Testnet** to MetaMask.  
+Just click the **fox icon** at the bottom left of  
+<a href="https://testnet.snowtrace.io/" target="_blank" rel="noopener noreferrer">
+  Snowtrace Testnet
+</a>, and it will be added with a single click.
 
+## Get Test Funds
 
-### Step 2 — Deploy Using Remix
+To deploy and interact, you need test AVAX on Fuji.  
+[Get Test Funds](https://build.avax.network/docs/dapps/smart-contract-dev/get-test-funds)
+If you’re new to Remix, check out [this guide](https://build.avax.network/docs/dapps/smart-contract-dev/deploy-with-remix-ide).
 
-- Open Remix:  
-https://remix.ethereum.org
+## Deploy to Avalanche Fuji Testnet
 
-- Create a new file and paste the contract:
+#### 1. Open [Remix IDE](https://remix.ethereum.org). 
+
+Create a new Solidity file (e.g., LittleRobot.sol) and paste:
 
 ```solidity
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-contract HelloAvalanche {
-    string public greeting = "Hello, Avalanche!";
+contract LittleRobot {
+    string public message = "Hello! I am a little robot now living on the Avalanche blockchain!";
 }
 ```
 
-- Click **Compile**
+#### 2. Compile with Solidity ^0.8.20. 
 
-- Click **Deploy**
-- Connect MetaMask
-- Select **Avalanche Fuji**
-- Confirm the transaction
+^0.8.20 means any compiler version greater than or equal to 0.8.20, but lower than 0.9.0.
+In other words, your contract will compile with 0.8.20, 0.8.21, 0.8.22, … but not with 0.9.0 or higher.
 
- After deployment, copy your **contract address**  
-Under “Deployed Contracts”
+#### 3. Connect your wallet and deploy the contract.  
 
-### Step 3 — Submit Your Contract Address
+Once deployed, a unique contract address will be generated on the blockchain — like a birth certificate proving your little robot has come to life.
 
-To receive your Builder badge
-**Submission link coming soon**
+#### 4. check on SnowTrace
 
-> A validator will check your deployment.
+Open [SnowTrace Fuji Explorer](https://testnet.snowtrace.io/), paste your **contract address**, and check `message()` under **Read Contract** to see your robot’s greeting.
 
-### What You Accomplished
 
-You just:
-- Deployed a smart contract to a real blockchain
-- Interacted with MetaMask + Remix
-- Published a public contract address
+#### What this contract does?
 
-You are now officially a **blockchain builder**
-Great job!
+By deploying this simple contract, a little robot comes to life on the Avalanche Fuji testnet chain. When you call the `message()` function, the robot introduces itself with a friendly greeting.
 
-<Quiz quizId="1010"/>
+## Submit Your Contract
+
+Great job deploying your first contract 🎉  
+
+Next, copy your **contract address** from Remix.
+
+Use the form below to submit your contract address:  
+
+[Submit Contract Address](https://example.com/submit)
+
+If the address is valid, you will receive an NFT certificate (coming soon ✨).
