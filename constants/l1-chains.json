@@ -1106,5 +1106,35 @@
         "link": "https://27827.snowtrace.io"
       }
     ]
+  },
+  {
+    "chainId": "8198",
+    "chainName": "Hatchyverse",
+    "chainLogoURI": "https://dashboard-assets.dappradar.com/document/8825/hatchyverse-project-games-8825-logo_aaafc4cafbea89ae57991f888d963abb.png",
+    "subnetId": "2Mi7V6HwKCEPxXTRG87o5tHACECkMPnJKP6UA3w1ote7j46GYT",
+    "slug": "hatchyverse",
+    "color": "#2596BE",
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Blockscout",
+        "link": "https://hatchyverse-explorer.ash.center"
+      }
+    ]
+  },
+  {
+    "chainId": "69420",
+    "chainName": "ETO",
+    "chainLogoURI": "https://pbs.twimg.com/profile_images/1943719749105410048/PSa_hovk_400x400.jpg",
+    "subnetId": "2ku5ZCd4t4CDc7ahotdJcoDxc6efE6uMC5C445S9ZKih473LpN",
+    "slug": "eto",
+    "color": "#ECECEC",
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Blockscout",
+        "link": "https://eto-explorer.ash.center"
+      }
+    ]
   }
 ]

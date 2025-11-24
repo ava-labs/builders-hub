@@ -93,19 +93,39 @@ export async function GET(req: NextRequest) {
             { is_public: true }
           ]
         },
+        include: {
+          _count: {
+            select: { favorites: true }
+          }
+        },
         orderBy: { updated_at: 'desc' },
         take: 100
       });
-      return NextResponse.json(playgrounds);
+      return NextResponse.json(playgrounds.map(p => ({
+        ...p,
+        favorite_count: p._count.favorites,
+        view_count: p.view_count || 0,
+        _count: undefined
+      })));
     }
 
     const playgrounds = await prisma.statsPlayground.findMany({
       where,
+      include: {
+        _count: {
+          select: { favorites: true }
+        }
+      },
       orderBy: { updated_at: 'desc' },
       take: 100
     });
 
-    return NextResponse.json(playgrounds);
+    return NextResponse.json(playgrounds.map(p => ({
+      ...p,
+      favorite_count: p._count.favorites,
+      view_count: p.view_count || 0,
+      _count: undefined
+    })));
   } catch (error) {
     console.error('Error fetching playgrounds:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
