@@ -70,9 +70,9 @@ export const avalancheLearningPaths: CourseNode[] = [
         id: "erc20-to-erc20-bridge",
         name: "ERC20 to ERC20 Bridge",
         description: "Bridge ERC20 tokens between chains using Interchain Token Transfer",
-        slug: "avalanche-l1/interchain-token-transfer/06-erc-20-to-erc-20-bridge",
+        slug: "avalanche-l1/erc20-bridge",
         category: "Interoperability",
-        dependencies: ["interchain-messaging", "l1-native-tokenomics"],
+        dependencies: ["interchain-messaging"],
         position: { x: 52.5, y: 500 },
         mobileOrder: 5
     },
