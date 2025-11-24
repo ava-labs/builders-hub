@@ -1,15 +1,15 @@
 ---
-title: Teleporter Avalanche L1s on Devnet
-description: This how-to guide focuses on deploying Teleporter-enabled Avalanche L1s to a Devnet.
+title: ICM Contracts Avalanche L1s on Devnet
+description: This how-to guide focuses on deploying ICM contract-enabled Avalanche L1s to a Devnet.
 ---
 
-After this tutorial, you would have created a Devnet and deployed two Avalanche L1s in it, and have enabled them to cross-communicate with each other and with the C-Chain through Teleporter and the underlying Warp technology.
+After this tutorial, you would have created a Devnet and deployed two Avalanche L1s in it, and have enabled them to cross-communicate with each other and with the C-Chain through ICM contracts and the underlying Warp technology.
 
-For more information on cross chain messaging through Teleporter and Warp, check:
+For more information on cross chain messaging through ICM contracts and Warp, check:
 
 - [Cross Chain References](/docs/cross-chain)
 
-Note that currently only [Subnet-EVM](https://github.com/ava-labs/subnet-evm) and [Subnet-EVM-Based](/docs/avalanche-l1s/evm-configuration/evm-l1-customization) virtual machines support Teleporter.
+Note that currently only [Subnet-EVM](https://github.com/ava-labs/subnet-evm) and [Subnet-EVM-Based](/docs/avalanche-l1s/evm-configuration/evm-l1-customization) virtual machines support ICM contracts.
 
 ## Prerequisites
 
@@ -22,7 +22,7 @@ Note: the tutorial uses AWS hosts, but Devnets can also be created and operated 
 Create Avalanche L1s Configurations[​](#create-avalanche-l1s-configurations "Direct link to heading")
 -----------------------------------------------------------------------------------------
 
-For this section we will follow this [steps](/docs/tooling/avalanche-cli/cross-chain/teleporter-local-network#create-avalanche-l1s-configurations), to create two Teleporter-enabled Avalanche L1s, `<chain1>` and `<chain2>`.
+For this section we will follow this [steps](/docs/tooling/avalanche-cli/cross-chain/teleporter-local-network#create-avalanche-l1s-configurations), to create two ICM contract-enabled Avalanche L1s, `<chain1>` and `<chain2>`.
 
 Create a Devnet and Deploy an Avalanche L1 in It[​](#create-a-devnet-and-deploy-a-avalanche-l1-in-it "Direct link to heading")
 -----------------------------------------------------------------------------------------------------------------
@@ -47,7 +47,7 @@ configuring AWM RElayer on host i-0f1815c016b555fcc
 Setting the nodes as Avalanche L1 trackers
 ...
 
-Setting up teleporter on Avalanche L1
+Setting up ICM contracts on Avalanche L1
 
 Teleporter Messenger successfully deployed to Avalanche L1 (0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf)
 Teleporter Registry successfully deployed to Avalanche L1 (0xb623C4495220C603D0A939D32478F55891a61750)
@@ -69,8 +69,8 @@ Avalanche L1 <chain1> RPC URL: http://67.202.23.231:9650/ext/bc/fqcM24LNb3kTV7KD
 Notice some details here:
 
 - Two smart contracts are deployed to the Avalanche L1: Teleporter Messenger and Teleporter Registry
-- Both Teleporter smart contracts are also deployed to `C-Chain`
-- [AWM Teleporter Relayer](https://github.com/ava-labs/icm-services/tree/main/relayer is installed and configured as a service into one of the nodes (A Relayer [listens](/docs/cross-chain/teleporter/overview#data-flow) for new messages being generated on a source Avalanche L1 and sends them to the destination Avalanche L1.)
+- Both ICM smart contracts are also deployed to `C-Chain`
+- [AWM ICM Relayer](https://github.com/ava-labs/icm-services/tree/main/relayer is installed and configured as a service into one of the nodes (A Relayer [listens](/docs/cross-chain/teleporter/overview#data-flow) for new messages being generated on a source Avalanche L1 and sends them to the destination Avalanche L1.)
 
 CLI configures the Relayer to enable every Avalanche L1 to send messages to all other Avalanche L1s. If you add more Avalanche L1s to the Devnet, the Relayer will be automatically reconfigured.
 
@@ -129,7 +129,7 @@ Deploying the Second Avalanche L1[​](#deploying-the-second-avalanche-l1 "Direc
 
 Let's use the `devnet wiz` command again to deploy `<chain2>`.
 
-When deploying Avalanche L1 `<chain2>`, the two Teleporter contracts will not be deployed to C-Chain in Local Network as they have already been deployed when we deployed the first Avalanche L1.
+When deploying Avalanche L1 `<chain2>`, the two ICM contracts will not be deployed to C-Chain in Local Network as they have already been deployed when we deployed the first Avalanche L1.
 
 ```
 avalanche node devnet wiz <devnetName> <chain2> --default-validator-params 
@@ -145,7 +145,7 @@ Stopping AWM Relayer Service
 Setting the nodes as Avalanche L1 trackers
 ...
 
-Setting up teleporter on Avalanche L1
+Setting up ICM contracts on Avalanche L1
 
 Teleporter Messenger successfully deployed to Avalanche L1 (0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf)
 Teleporter Registry successfully deployed to Avalanche L1 (0xb623C4495220C603D0A939D32478F55891a61750)
@@ -163,10 +163,10 @@ Avalanche L1 <chain2> RPC URL: http://67.202.23.231:9650/ext/bc/7gKt6evRnkA2uVHR
 ✓ Cluster information YAML file can be found at ~/.avalanche-cli/nodes/inventories/<devnetName>/clusterInfo.yaml at local host
 ```
 
-Verify Teleporter Is Successfully Set Up[​](#verify-teleporter-is-successfully-set-up "Direct link to heading")
+Verify ICM Contracts Are Successfully Set Up[​](#verify-teleporter-is-successfully-set-up "Direct link to heading")
 ---------------------------------------------------------------------------------------------------------------
 
-To verify that Teleporter is successfully, let's send a couple of cross messages:
+To verify that ICM contracts are successfully set up, let's send a couple of cross messages:
 
 ```
 avalanche teleporter msg C-Chain chain1 "Hello World" --cluster <devnetName>
@@ -184,14 +184,14 @@ Waiting for message to be received at destination Avalanche L1 "chain1" (fqcM24L
 Message successfully Teleported!
 ```
 
-You have Teleport-ed your first message in the Devnet!
+You have sent your first ICM message in the Devnet!
 
-Obtaining Information on Teleporter Deploys[​](#obtaining-information-on-teleporter-deploys "Direct link to heading")
+Obtaining Information on ICM Contract Deploys[​](#obtaining-information-on-teleporter-deploys "Direct link to heading")
 ---------------------------------------------------------------------------------------------------------------------
 
 ### Obtaining Avalanche L1 Information[​](#obtaining-avalanche-l1-information "Direct link to heading")
 
-By executing `blockchain describe` on a Teleporter enabled Avalanche L1, the following relevant information can be found:
+By executing `blockchain describe` on an ICM contract-enabled Avalanche L1, the following relevant information can be found:
 
 - Blockchain RPC URL
 - Blockchain ID in cb58 format

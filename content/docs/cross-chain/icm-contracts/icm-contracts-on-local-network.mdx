@@ -1,12 +1,12 @@
 ---
-title: Teleporter Avalanche L1s on Local Network
+title: ICM Contracts Avalanche L1s on Local Network
 ---
 
-This how-to guide focuses on deploying Teleporter-enabled Avalanche L1s to a local Avalanche network.
+This how-to guide focuses on deploying ICM contract-enabled Avalanche L1s to a local Avalanche network.
 
-After this tutorial, you would have created and deployed two Avalanche L1s to the local network and have enabled them to cross-communicate with each other and with the local C-Chain (through Teleporter and the underlying Warp technology.)
+After this tutorial, you would have created and deployed two Avalanche L1s to the local network and have enabled them to cross-communicate with each other and with the local C-Chain (through ICM contracts and the underlying Warp technology.)
 
-Note that currently only [Subnet-EVM](https://github.com/ava-labs/subnet-evm) and [Subnet-EVM-Based](/docs/avalanche-l1s/evm-configuration/evm-l1-customization) virtual machines support Teleporter.
+Note that currently only [Subnet-EVM](https://github.com/ava-labs/subnet-evm) and [Subnet-EVM-Based](/docs/avalanche-l1s/evm-configuration/evm-l1-customization) virtual machines support ICM contracts.
 
 ## Prerequisites
 
@@ -28,9 +28,9 @@ using latest teleporter version (v1.0.0)
 ✓ Successfully created Avalanche L1 configuration
 ```
 
-Notice that by default, Teleporter is enabled and a stored key is created to fund Teleporter related operations (that is deploy Teleporter smart contracts, fund Teleporter Relayer).
+Notice that by default, ICM contracts are enabled and a stored key is created to fund ICM contract related operations (that is deploy ICM smart contracts, fund ICM Relayer).
 
-To disable Teleporter in your Avalanche L1, use the flag `--teleporter=false` when creating the Avalanche L1.
+To disable ICM contracts in your Avalanche L1, use the flag `--teleporter=false` when creating the Avalanche L1.
 
 To disable Relayer in your Avalanche L1, use the flag `--relayer=false` when creating the Avalanche L1.
 
@@ -99,12 +99,12 @@ Currency Symbol:  TOKEN1
 Notice some details here:
 
 - Two smart contracts are deployed to each Avalanche L1: Teleporter Messenger and Teleporter Registry
-- Both Teleporter smart contracts are also deployed to `C-Chain` in the Local Network
-- [AWM Teleporter Relayer](https://github.com/ava-labs/icm-services/tree/main/relayer) is installed, configured and executed in background (A Relayer [listens](/docs/cross-chain/teleporter/overview#data-flow) for new messages being generated on a source Avalanche L1 and sends them to the destination Avalanche L1.)
+- Both ICM smart contracts are also deployed to `C-Chain` in the Local Network
+- [AWM ICM Relayer](https://github.com/ava-labs/icm-services/tree/main/relayer) is installed, configured and executed in background (A Relayer [listens](/docs/cross-chain/teleporter/overview#data-flow) for new messages being generated on a source Avalanche L1 and sends them to the destination Avalanche L1.)
 
 CLI configures the Relayer to enable every Avalanche L1 to send messages to all other Avalanche L1s. If you add more Avalanche L1s, the Relayer will be automatically reconfigured.
 
-When deploying Avalanche L1 `<chain2>`, the two Teleporter contracts will not be deployed to C-Chain in Local Network as they have already been deployed when we deployed the first Avalanche L1.
+When deploying Avalanche L1 `<chain2>`, the two ICM contracts will not be deployed to C-Chain in Local Network as they have already been deployed when we deployed the first Avalanche L1.
 
 ```
 avalanche blockchain deploy <chain2> --local
@@ -154,9 +154,9 @@ Chain ID:         2
 Currency Symbol:  TOKEN2
 ```
 
-## Verify Teleporter Is Successfully Set Up
+## Verify ICM Contracts Are Successfully Set Up
 
-To verify that Teleporter is successfully, let's send a couple of cross messages:
+To verify that ICM contracts are successfully set up, let's send a couple of cross messages:
 
 ```
 avalanche teleporter msg C-Chain chain1 "Hello World" --local
@@ -174,16 +174,16 @@ Waiting for message to be received at destination Avalanche L1 Avalanche L1 "cha
 Message successfully Teleported!
 ```
 
-You have Teleport-ed your first message in the Local Network!
+You have sent your first ICM message in the Local Network!
 
 Relayer related logs can be found at `~/.avalanche-cli/runs/awm-relayer.log`, and Relayer configuration can be found at `~/.avalanche-cli/runs/awm-relayer-config.json`
 
-Obtaining Information on Teleporter Deploys[​](#obtaining-information-on-teleporter-deploys "Direct link to heading")
+Obtaining Information on ICM Contract Deploys[​](#obtaining-information-on-teleporter-deploys "Direct link to heading")
 ---------------------------------------------------------------------------------------------------------------------
 
 ### Obtaining Avalanche L1 Information[​](#obtaining-avalanche-l1-information "Direct link to heading")
 
-By executing `blockchain describe` on a Teleporter enabled Avalanche L1, the following relevant information can be found:
+By executing `blockchain describe` on an ICM contract-enabled Avalanche L1, the following relevant information can be found:
 
 - Blockchain RPC URL
 - Blockchain ID in cb58 format

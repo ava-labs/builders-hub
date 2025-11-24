@@ -3,14 +3,14 @@ title: Getting Started
 ---
 
 <Callout title="Note">
-Dive deeper into Teleporter and kickstart your journey in building cross-chain dApps by enrolling in our [Teleporter course](/academy/interchain-messaging).
+Dive deeper into ICM contracts and kickstart your journey in building cross-chain dApps by enrolling in our [ICM contracts course](/academy/interchain-messaging).
 </Callout>
 
 <Callout title="Note">
  Note: All example applications in the [examples](https://github.com/ava-labs/teleporter/tree/example-sequential-message-app/contracts/sequential-delivery-example) directory are meant for education purposes only and are not audited. The example contracts are not intended for use in production environments.
 </Callout>
 
-This section walks through how to build an example cross-chain application on top of the Teleporter protocol, recreating the `ExampleCrossChainMessenger` [contract](https://github.com/ava-labs/teleporter/tree/example-sequential-message-app/contracts/sequential-delivery-example) that sends arbitrary string data from one chain to another. Note that this tutorial is meant for education purposes only. The resulting code is not intended for use in production environments.
+This section walks through how to build an example cross-chain application on top of ICM contracts, recreating the `ExampleCrossChainMessenger` [contract](https://github.com/ava-labs/teleporter/tree/example-sequential-message-app/contracts/sequential-delivery-example) that sends arbitrary string data from one chain to another. Note that this tutorial is meant for education purposes only. The resulting code is not intended for use in production environments.
 
 Step 1: Create Initial Contract[​](#step-1-create-initial-contract "Direct link to heading")
 --------------------------------------------------------------------------------------------
@@ -74,12 +74,12 @@ Finally, add the following struct and event declarations into the body of the co
     );
 ```
 
-Step 2: Integrating Teleporter Messenger[​](#step-2-integrating-teleporter-messenger "Direct link to heading")
+Step 2: Integrating ICM Contracts[​](#step-2-integrating-teleporter-messenger "Direct link to heading")
 --------------------------------------------------------------------------------------------------------------
 
 Now that the initial empty `MyExampleCrossChainMessenger` is defined, it's time to integrate with `ITeleporterMessenger`, which will provide the functionality to deliver cross chain messages.
 
-Create a state variable of `ITeleporterMessenger` type called `teleporterMessenger`. Then create a constructor that takes in an address where the Teleporter Messenger would be deployed on this chain, and set the corresponding state variable.
+Create a state variable of `ITeleporterMessenger` type called `teleporterMessenger`. Then create a constructor that takes in an address where the ICM Messenger contract would be deployed on this chain, and set the corresponding state variable.
 
 ```
     ITeleporterMessenger public immutable teleporterMessenger;
@@ -128,7 +128,7 @@ Then declare that the contract will implement it:
   {
 ```
 
-And then finally add the method `receiveTeleporterMessage` that receives the cross-chain messages from Teleporter.
+And then finally add the method `receiveTeleporterMessage` that receives the cross-chain messages from ICM.
 
 ```
     /**
@@ -174,7 +174,7 @@ Then add a check to the `sendMessage` function for whether `feeAmount` is greate
         }
 ```
 
-> Note: Relayer fees are an optional way to incentivize relayers to deliver a Teleporter message to its destination. They are not strictly necessary, and may be omitted if a relayer is willing to relay messages with no fee, such as with a self-hosted relayer.
+> Note: Relayer fees are an optional way to incentivize relayers to deliver an ICM message to its destination. They are not strictly necessary, and may be omitted if a relayer is willing to relay messages with no fee, such as with a self-hosted relayer.
 
 Next, to the end of the `sendMessage` function, add the event to emit, as well as the call to the `TeleporterMessenger` contract with the message data to be executed when delivered to the destination address. Form a `TeleporterMessageInput` and call `sendCrossChainMessage` on the `TeleporterMessenger` instance to start the cross chain messaging process. The `message` must be ABI encoded so that it can be properly decoded on the receiving end.
 
@@ -205,7 +205,7 @@ Next, to the end of the `sendMessage` function, add the event to emit, as well a
             );
 ```
 
-With the sending side complete, the next step is to implement `ITeleporterReceiver.receiveTeleporterMessage`. The receiver in this example will just receive the arbitrary string data, and check that the message is sent through Teleporter. To the `receiveTeleporterMessage` function, add:
+With the sending side complete, the next step is to implement `ITeleporterReceiver.receiveTeleporterMessage`. The receiver in this example will just receive the arbitrary string data, and check that the message is sent through ICM. To the `receiveTeleporterMessage` function, add:
 
 ```
         // Only the Teleporter receiver can deliver a message.
@@ -258,7 +258,7 @@ Next, add a function to the contract called `getCurrentMessage` that allows user
 Step 5: Upgrade Support[​](#step-5-upgrade-support "Direct link to heading")
 ----------------------------------------------------------------------------
 
-At this point, the contract is now fully usable, and can be used to send arbitrary string data between chains. However, there are a few more modifications that need to be made to support upgrades to `TeleporterMessenger`. For a more in-depth explanation of how to support upgrades, see the Upgrades README [here](https://github.com/ava-labs/teleporter/blob/main/contracts/teleporter/registry/UPGRADING.md).
+At this point, the contract is now fully usable, and can be used to send arbitrary string data between chains. However, there are a few more modifications that need to be made to support upgrades to ICM contracts. For a more in-depth explanation of how to support upgrades, see the Upgrades README [here](https://github.com/ava-labs/teleporter/blob/main/contracts/teleporter/registry/UPGRADING.md).
 
 The first change to make is to inherit from `TeleporterOwnerUpgradeable` instead of `ITeleporterReceiver`. `TeleporterOwnerUpgradeable` integrates with the `TeleporterRegistry` via `TeleporterUpgradeable` to easily utilize the latest `TeleporterMessenger` implementation. `TeleporterOwnerUpgradeable` also ensures that only an admin address for managing Teleporter versions, specified by the constructor argument `teleporterManager`, is able to upgrade the `TeleporterMessenger` implementation used by the contract.
 
@@ -318,12 +318,12 @@ And finally, change `receiveTeleporterMessage` to `_receiveTeleporterMessage`, m
 -          require(msg.sender == address(teleporterMessenger), "Unauthorized.");
 ```
 
-`MyExampleCrossChainMessenger` is now a working cross-chain dApp built on top of Teleporter! Full example [here](https://github.com/ava-labs/teleporter/tree/example-sequential-message-app/contracts/sequential-delivery-example).
+`MyExampleCrossChainMessenger` is now a working cross-chain dApp built on top of ICM contracts! Full example [here](https://github.com/ava-labs/teleporter/tree/example-sequential-message-app/contracts/sequential-delivery-example).
 
 Step 6: Testing[​](#step-6-testing "Direct link to heading")
 ------------------------------------------------------------
 
-For testing, `scripts/local/e2e_test.sh` sets up a local test environment consisting of three avalanche-l1s deployed with Teleporter, and a lightweight inline relayer implementation to facilitate cross chain message delivery. An end-to-end test for `ExampleCrossChainMessenger` is included in `tests/flows/example_messenger.go`, which performs the following:
+For testing, `scripts/local/e2e_test.sh` sets up a local test environment consisting of three avalanche-l1s deployed with ICM contracts, and a lightweight inline relayer implementation to facilitate cross chain message delivery. An end-to-end test for `ExampleCrossChainMessenger` is included in `tests/flows/example_messenger.go`, which performs the following:
 
 1.  Deploys the [ExampleERC20](https://github.com/ava-labs/teleporter/blob/main/contracts/mocks/ExampleERC20.sol) token to avalanche-l1 A.
 2.  Deploys `ExampleCrossChainMessenger` to both avalanche-l1s A and B.
