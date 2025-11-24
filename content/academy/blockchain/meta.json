@@ -3,7 +3,8 @@
     "blockchain-fundamentals",
     "solidity-foundry",
     "nft-deployment",
-    "encrypted-erc"
+    "encrypted-erc",
+    "x402-payment-infrastructure"
   ]
 }
 
