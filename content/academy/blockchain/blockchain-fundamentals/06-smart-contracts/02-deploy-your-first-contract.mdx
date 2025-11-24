@@ -5,21 +5,22 @@ updated: 2025-11-24
 authors: [s.aoi]
 icon: Terminal
 ---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-In this section, you will follow a step-by-step guide to deploy a basic smart contract. 
-Think of it as compiling and deploying a little robot on the Avalanche Fuji testnet, giving it life, and then verifying it. This way, you will gain practical experience in how contracts operate on the blockchain.
+In this section, we will deploy and interact with a basic smart contract on the Avalanche Fuji Testnet.We will compile the contract, deploy it to the blockchain, and verify that it is successfully live on-chain.Through this hands-on exercise, we will gain practical experience in how smart contracts run and how they store data on Avalanche.
 
 ### Objectives
 - Write and compile a Solidity smart contract.  
 - Deploy it on Avalanche Fuji using Remix and MetaMask.  
 - Verify the deployed contract on SnowTrace.  
+- If you succeed, you will earn an NFT certificate.
 
-# Interact with a Smart Contract
+---
 
-In this challenge, you will interact with a deployed contract on the Fuji Testnet.  
-If you succeed, you will earn an NFT certificate.
+<Steps>
+<Step>
 
-## Add Avalanche Fuji Testnet
+#### 1. Add Avalanche Fuji Testnet
 
 You can easily add the **Avalanche Fuji Testnet** to MetaMask.  
 Just click the **fox icon** at the bottom left of  
@@ -27,15 +28,19 @@ Just click the **fox icon** at the bottom left of
   Snowtrace Testnet
 </a>, and it will be added with a single click.
 
-## Get Test Funds
+</Step>
+<Step>
+
+### Get Test Funds
 
 To deploy and interact, you need test AVAX on Fuji.  
 [Get Test Funds](https://build.avax.network/docs/dapps/smart-contract-dev/get-test-funds)
 If you’re new to Remix, check out [this guide](https://build.avax.network/docs/dapps/smart-contract-dev/deploy-with-remix-ide).
 
-## Deploy to Avalanche Fuji Testnet
+</Step>
+<Step>
 
-#### 1. Open [Remix IDE](https://remix.ethereum.org). 
+### Open [Remix IDE](https://remix.ethereum.org). 
 
 Create a new Solidity file (e.g., LittleRobot.sol) and paste:
 
@@ -48,23 +53,37 @@ contract LittleRobot {
 }
 ```
 
-#### 2. Compile with Solidity ^0.8.20. 
+</Step>
+<Step>
+
+### Compile with Solidity ^0.8.20. 
 
 ^0.8.20 means any compiler version greater than or equal to 0.8.20, but lower than 0.9.0.
 In other words, your contract will compile with 0.8.20, 0.8.21, 0.8.22, … but not with 0.9.0 or higher.
 
-#### 3. Connect your wallet and deploy the contract.  
+</Step>
+<Step>
+
+### Connect your wallet and deploy the contract.  
 
 Once deployed, a unique contract address will be generated on the blockchain — like a birth certificate proving your little robot has come to life.
 
-#### 4. check on SnowTrace
+</Step>
+<Step>
+
+### check on SnowTrace
 
 Open [SnowTrace Fuji Explorer](https://testnet.snowtrace.io/), paste your **contract address**, and check `message()` under **Read Contract** to see your robot’s greeting.
 
+</Step>
+<Step>
 
 #### What this contract does?
 
 By deploying this simple contract, a little robot comes to life on the Avalanche Fuji testnet chain. When you call the `message()` function, the robot introduces itself with a friendly greeting.
+
+</Step>
+<Step>
 
 ## Submit Your Contract
 
@@ -77,3 +96,6 @@ Use the form below to submit your contract address:
 [Submit Contract Address](https://example.com/submit)
 
 If the address is valid, you will receive an NFT certificate (coming soon ).
+
+</Step>
+</Steps>
