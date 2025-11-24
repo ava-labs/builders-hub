@@ -7,8 +7,8 @@ export const statsBubbleConfig: BubbleNavigationConfig = {
     items: [
         { id: "avalanche-l1s", label: "Avalanche L1s", href: "/stats/overview" },
         { id: "c-chain", label: "C-Chain", href: "/stats/primary-network/c-chain" },
-        { id: "validators", label: "Validators", href: "/stats/validators" },
         { id: "playground", label: "Playground", href: "/stats/playground" },
+        { id: "validators", label: "Validators", href: "/stats/validators" },
     ],
     activeColor: "bg-blue-600",
     darkActiveColor: "dark:bg-blue-500",
