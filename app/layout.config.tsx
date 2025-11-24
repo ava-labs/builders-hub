@@ -112,11 +112,38 @@ export const stats: LinkItemType = {
   url: "/stats/overview",
   items: [
     {
+      menu: {
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
+              src="/builderhub-playground.png"
+              alt='Playground Preview'
+              width={500}
+              height={140}
+              className='rounded-t-lg object-cover'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-2 lg:col-span-1',
+      },
+      icon: <DraftingCompass />,
+      text: "Playground",
+      url: "/stats/playground",
+      description:
+      "Create and customize multiple charts with real-time chain metrics.",
+    },
+    {
       icon: <Logs />,
       text: "Avalanche L1s",
       url: "/stats/overview",
       description:
       "View the latest metrics for all Avalanche L1s in the network.",
+      menu: {
+        className: 'lg:col-start-2 lg:row-start-1',
+      },
     },
     {
       icon: <Network />,
@@ -124,6 +151,9 @@ export const stats: LinkItemType = {
       url: "/stats/primary-network/c-chain",
       description:
       "View the latest metrics for the Avalanche C-Chain.",
+      menu: {
+        className: 'lg:col-start-2 lg:row-start-2',
+      },
     },
     {
       icon: <Hexagon />,
@@ -131,13 +161,9 @@ export const stats: LinkItemType = {
       url: "/stats/validators",
       description:
       "View the latest metrics for the Avalanche Primary Network validators.",
-    },
-    {
-      icon: <DraftingCompass />,
-      text: "Playground",
-      url: "/stats/playground",
-      description:
-      "Create and customize multiple charts with real-time chain metrics.",
+      menu: {
+        className: 'lg:col-start-3 lg:row-start-1',
+      },
     },
   ],
 };

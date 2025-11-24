@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import { LoginModal } from "@/components/login/LoginModal";
 import { toast } from "@/lib/toast";
+import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 
 interface ChartConfig {
   id: string;
@@ -1361,6 +1362,9 @@ function PlaygroundContent() {
           </div>
         )}
       </div>
+
+      {/* Bubble Navigation */}
+      <StatsBubbleNav />
     </div>
   );
 }

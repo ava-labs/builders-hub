@@ -8,6 +8,7 @@ import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import { LoginModal } from "@/components/login/LoginModal";
 import { Card } from "@/components/ui/card";
 import { toast } from "@/lib/toast";
+import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 
 export default function MyDashboardsPage() {
   const { data: session, status } = useSession();
@@ -357,6 +358,9 @@ export default function MyDashboardsPage() {
             </div>
           </Card>
         )}
+
+        {/* Bubble Navigation */}
+        <StatsBubbleNav />
       </div>
     </div>
   );
