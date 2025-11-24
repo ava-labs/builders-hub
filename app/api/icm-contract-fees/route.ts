@@ -46,20 +46,16 @@ export async function GET(_request: Request) {
     const deploymentTimestamp = 1709586720;
     const now = Math.floor(Date.now() / 1000);
 
-    if (
-      cachedDailyData &&
-      Date.now() - lastCacheTime < CACHE_DURATION
-    ) {
+    if (cachedDailyData && Date.now() - lastCacheTime < CACHE_DURATION) {
       return NextResponse.json(cachedDailyData);
     }
 
     const dailyData: DailyFeeData[] = [];
-    const oneDaySeconds = 24 * 60 * 60;
-    const oneWeekSeconds = 7 * oneDaySeconds;
+    const oneDaySeconds = 86400;
     let currentTimestamp = deploymentTimestamp;
 
     while (currentTimestamp < now) {
-      const nextTimestamp = Math.min(currentTimestamp + oneWeekSeconds, now);
+      const nextTimestamp = Math.min(currentTimestamp + oneDaySeconds, now);
       
       try {
         const response = await fetch(
@@ -73,30 +69,23 @@ export async function GET(_request: Request) {
 
         if (response.ok) {
           const data: ContractStatsResponse = await response.json();
-          const weeklyFees = data.transactions?.totalGasCost || 0;
-          const weeklyTxCount = data.transactions?.total || 0;
-          const daysInThisWeek = Math.ceil((nextTimestamp - currentTimestamp) / oneDaySeconds);
-          const dailyFees = weeklyFees / daysInThisWeek;
-          const dailyTxCount = Math.floor(weeklyTxCount / daysInThisWeek);
-
-          for (let i = 0; i < daysInThisWeek; i++) {
-            const dayTimestamp = currentTimestamp + (i * oneDaySeconds);
-            const date = new Date(dayTimestamp * 1000).toISOString().split('T')[0];
-            
-            dailyData.push({
-              date,
-              timestamp: dayTimestamp,
-              feesPaid: dailyFees,
-              txCount: dailyTxCount,
-            });
-          }
+          const dailyFees = data.transactions?.totalGasCost || 0;
+          const dailyTxCount = data.transactions?.total || 0;
+          const date = new Date(currentTimestamp * 1000).toISOString().split('T')[0];
+          
+          dailyData.push({
+            date,
+            timestamp: currentTimestamp,
+            feesPaid: dailyFees,
+            txCount: dailyTxCount,
+          });
         }
       } catch (error) {
-        console.warn(`Failed to fetch ICM data for week starting ${currentTimestamp}:`, error);
+        console.warn(`Failed to fetch ICM data for day ${currentTimestamp}:`, error);
       }
 
       currentTimestamp = nextTimestamp;
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise(resolve => setTimeout(resolve, 5));
     }
 
     const totalFees = dailyData.reduce((sum, item) => sum + item.feesPaid, 0);
