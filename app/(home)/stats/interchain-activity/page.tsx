@@ -1,40 +1,16 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Line,
-  LineChart,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Brush,
-  ResponsiveContainer,
-} from "recharts";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer } from "recharts";
+import {Card, CardContent, CardHeader, CardTitle, CardDescription} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, TrendingUp, Trophy, ArrowUpRight } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
-import { ICMMetric, ICMDataPoint } from "@/types/stats";
+import { ICMMetric } from "@/types/stats";
 import { ICMGlobe } from "@/components/stats/ICMGlobe";
 import Image from "next/image";
 import l1ChainsData from "@/constants/l1-chains.json";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { ICTTDashboard } from "@/components/stats/ICTTDashboard";
 
@@ -83,10 +59,7 @@ export default function ICMStatsPage() {
   const [loading, setLoading] = useState(true);
   const [icttLoading, setIcttLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [chartPeriod, setChartPeriod] = useState<"D" | "W" | "M" | "Q" | "Y">(
-    "D"
-  );
-  const [scrollProgress, setScrollProgress] = useState(0);
+  const [chartPeriod, setChartPeriod] = useState<"D" | "W" | "M" | "Q" | "Y">("D");
 
   const fetchData = async () => {
     try {
@@ -120,9 +93,7 @@ export default function ICMStatsPage() {
       }
 
       const limit = offset === 0 ? 10 : 25;
-      const response = await fetch(
-        `/api/ictt-stats?limit=${limit}&offset=${offset}`
-      );
+      const response = await fetch(`/api/ictt-stats?limit=${limit}&offset=${offset}`);
 
       if (!response.ok) {
         console.error("Failed to fetch ICTT stats:", response.status);
@@ -215,10 +186,10 @@ export default function ICMStatsPage() {
 
   const chartConfigs = [
     {
-      title: "Daily ICM Count",
+      title: "ICM Count",
       icon: MessageSquare,
       metricKey: "dailyMessageVolume" as const,
-      description: "Daily Interchain Messaging volume",
+      description: "Total Interchain Messaging volume",
       color: "#E84142",
       chartType: "bar" as const,
     },
@@ -250,20 +221,16 @@ export default function ICMStatsPage() {
       <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
         <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
           <div className="flex items-center justify-center min-h-[400px]">
-            <Card className="max-w-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+            <Card className="max-w-md border border-gray-200 dark:border-gray-700 rounded-md bg-card">
               <div className="p-6 text-center">
-                <div className="w-12 h-12 bg-red-50 dark:bg-red-950 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-12 h-12 bg-red-50 dark:bg-red-950 rounded-md flex items-center justify-center mx-auto mb-4">
                   <MessageSquare className="h-6 w-6 text-red-600 dark:text-red-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   Failed to Load Data
                 </h3>
-                <p className="text-red-600 dark:text-red-400 text-sm">
-                  {error}
-                </p>
-                <Button onClick={fetchData} className="mt-4">
-                  Retry
-                </Button>
+                <p className="text-red-600 dark:text-red-400 text-sm mb-4">{error}</p>
+                <Button onClick={fetchData}>Retry</Button>
               </div>
             </Card>
           </div>
@@ -283,8 +250,7 @@ export default function ICMStatsPage() {
                 Avalanche Interchain Activity
               </h1>
               <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed mt-2">
-                Comprehensive overview of the Avalanche Interchain Messaging
-                activity across L1s
+                Comprehensive overview of the Avalanche Interchain Messaging activity across L1s
               </p>
             </div>
           </div>
@@ -297,51 +263,39 @@ export default function ICMStatsPage() {
             </div>
 
             <div className="flex flex-col gap-4">
-              <Card className="w-full overflow-hidden border-none shadow-xl bg-white/80 backdrop-blur-sm dark:bg-zinc-900/80">
-                <CardHeader className="pb-2 border-b border-zinc-100 dark:border-zinc-800">
+              <Card className="w-full overflow-hidden border border-gray-200 dark:border-gray-700 rounded-md bg-card">
+                <CardHeader className="pb-3 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-xl font-normal text-zinc-900 dark:text-zinc-50">
+                      <CardTitle className="text-lg font-medium text-foreground">
                         Top 5 Chains by ICM Activity
                       </CardTitle>
-                      <CardDescription className="mt-1 text-zinc-500 dark:text-zinc-400">
-                        Total incoming and outgoing messages over the past 365
-                        days
+                      <CardDescription className="mt-1.5 text-sm text-muted-foreground">
+                        Total incoming and outgoing messages over the past 365 days
                       </CardDescription>
                     </div>
-                    <div className="p-2 rounded-full bg-zinc-100 dark:bg-zinc-800">
-                      <Trophy className="w-5 h-5 text-yellow-500" />
+                    <div className="p-2 rounded-md" style={{ backgroundColor: "#E8414220" }}>
+                      <Trophy className="w-4 h-4" style={{ color: "#E84142" }}/>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
                   <Table>
                     <TableHeader>
-                      <TableRow className="hover:bg-transparent border-zinc-100 dark:border-zinc-800">
-                        <TableHead className="w-16 pl-6 text-xs font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400">
-                          Rank
-                        </TableHead>
-                        <TableHead className="text-xs font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400">
-                          Chain
-                        </TableHead>
-                        <TableHead className="pr-6 text-xs font-semibold tracking-wider text-right text-zinc-500 uppercase dark:text-zinc-400">
-                          Messages
-                        </TableHead>
+                      <TableRow className="hover:bg-transparent border-gray-200 dark:border-gray-700">
+                        <TableHead className="w-16 pl-4 text-xs font-medium tracking-wide text-muted-foreground uppercase">Rank</TableHead>
+                        <TableHead className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Chain</TableHead>
+                        <TableHead className="pr-4 text-xs font-medium tracking-wide text-right text-muted-foreground uppercase">Messages</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {getTopChains().map((chain, index) => (
-                        <TableRow
-                          key={chain.chainName}
-                          className="group transition-colors hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 border-zinc-100 dark:border-zinc-800"
-                        >
-                          <TableCell className="pl-6 font-medium">
+                        <TableRow key={chain.chainName} className="group transition-colors hover:bg-muted/50 border-gray-200 dark:border-gray-700">
+                          <TableCell className="pl-4 font-medium">
                             <div
                               className={cn(
-                                "flex items-center justify-center w-6 h-6 rounded-full text-xs",
-                                index === 0
-                                  ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 font-bold"
-                                  : "text-zinc-500 dark:text-zinc-400"
+                                "flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium",
+                                index === 0 ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" : "text-muted-foreground"
                               )}
                             >
                               {index + 1}
@@ -353,30 +307,24 @@ export default function ICMStatsPage() {
                                 <Image
                                   src={chain.logo}
                                   alt={chain.chainName}
-                                  width={32}
-                                  height={32}
+                                  width={28}
+                                  height={28}
                                   className="rounded-full object-cover flex-shrink-0"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = "none";
-                                  }}
+                                  onError={(e) => {e.currentTarget.style.display = "none"}}
                                 />
                               ) : (
                                 <div
-                                  className="flex items-center justify-center w-8 h-8 rounded-full"
+                                  className="flex items-center justify-center w-7 h-7 rounded-full"
                                   style={{ backgroundColor: chain.color }}
                                 >
-                                  <span className="text-white text-xs font-bold">
+                                  <span className="text-white text-xs font-semibold">
                                     {chain.chainName.charAt(0)}
                                   </span>
                                 </div>
                               )}
                               <a
-                                href={`/stats/l1/${
-                                  l1ChainsData.find(
-                                    (c) => c.chainName === chain.chainName
-                                  )?.slug || ""
-                                }`}
-                                className="font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors hover:underline"
+                                href={`/stats/l1/${l1ChainsData.find((c) => c.chainName === chain.chainName)?.slug || ""}`}
+                                className="font-medium text-foreground group-hover:text-primary transition-colors hover:underline"
                                 onClick={(e) => {
                                   const slug = l1ChainsData.find(
                                     (c) => c.chainName === chain.chainName
@@ -388,12 +336,10 @@ export default function ICMStatsPage() {
                               </a>
                             </div>
                           </TableCell>
-                          <TableCell className="pr-6 text-right">
+                          <TableCell className="pr-4 text-right">
                             <div className="flex items-center justify-end gap-2">
-                              <span className="font-mono font-bold text-zinc-900 dark:text-zinc-100">
-                                {formatNumber(chain.count)}
-                              </span>
-                              <ArrowUpRight className="w-3 h-3 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <span className="font-mono font-semibold text-foreground">{formatNumber(chain.count)}</span>
+                              <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
                           </TableCell>
                         </TableRow>
@@ -408,9 +354,7 @@ export default function ICMStatsPage() {
 
         <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
-              Historical Trends
-            </h2>
+            <h2 className="text-lg sm:text-2xl font-medium text-left">Historical Trends</h2>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:gap-6">
@@ -418,8 +362,7 @@ export default function ICMStatsPage() {
               const rawData = getChartData();
               if (rawData.length === 0) return null;
 
-              const currentValue =
-                metrics?.dailyMessageVolume?.current_value || 0;
+              const currentValue = metrics?.dailyMessageVolume?.current_value || 0;
 
               return (
                 <ChartCard
@@ -429,9 +372,7 @@ export default function ICMStatsPage() {
                   period={chartPeriod}
                   currentValue={currentValue}
                   onPeriodChange={(newPeriod) => setChartPeriod(newPeriod)}
-                  formatTooltipValue={(value) =>
-                    formatNumber(Math.round(value))
-                  }
+                  formatTooltipValue={(value) =>formatNumber(Math.round(value))}
                   formatYAxisValue={formatNumber}
                 />
               );
@@ -439,11 +380,7 @@ export default function ICMStatsPage() {
           </div>
         </section>
 
-        <ICTTDashboard
-          data={icttData}
-          onLoadMore={handleLoadMoreTransfers}
-          loadingMore={loadingMoreTransfers}
-        />
+        <ICTTDashboard data={icttData} onLoadMore={handleLoadMoreTransfers} loadingMore={loadingMoreTransfers}/>
       </main>
 
       <StatsBubbleNav />
@@ -523,9 +460,7 @@ function ChartCard({
         key = String(date.getFullYear());
       }
 
-      if (!grouped.has(key)) {
-        grouped.set(key, { sum: 0, count: 0, date: key, chainBreakdown: {} });
-      }
+      if (!grouped.has(key)) { grouped.set(key, { sum: 0, count: 0, date: key, chainBreakdown: {} }); }
 
       const group = grouped.get(key)!;
       group.sum += point.value;
@@ -566,9 +501,7 @@ function ChartCard({
     }
   }, [period, aggregatedData.length]);
 
-  const displayData = brushIndexes
-    ? aggregatedData.slice(brushIndexes.startIndex, brushIndexes.endIndex + 1)
-    : aggregatedData;
+  const displayData = brushIndexes ? aggregatedData.slice(brushIndexes.startIndex, brushIndexes.endIndex + 1) : aggregatedData;
 
   const dynamicChange = useMemo(() => {
     if (!displayData || displayData.length < 2) {
@@ -582,8 +515,7 @@ function ChartCard({
       return { change: 0, isPositive: true };
     }
 
-    const changePercentage =
-      ((lastValue - secondLastValue) / secondLastValue) * 100;
+    const changePercentage = ((lastValue - secondLastValue) / secondLastValue) * 100;
 
     return {
       change: Math.abs(changePercentage),
@@ -627,9 +559,7 @@ function ChartCard({
   };
 
   const formatTooltipDate = (value: string) => {
-    if (period === "Y") {
-      return value;
-    }
+    if (period === "Y") return value;
 
     if (period === "Q") {
       const parts = value.split("-");
@@ -675,43 +605,30 @@ function ChartCard({
   const Icon = config.icon;
 
   return (
-    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+    <Card className="border border-gray-200 dark:border-gray-700 rounded-md bg-card py-0">
       <CardContent className="p-0">
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3">
             <div
-              className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+              className="rounded-md p-2 flex items-center justify-center"
               style={{ backgroundColor: `${config.color}20` }}
             >
-              <Icon
-                className="h-5 w-5 sm:h-6 sm:w-6"
-                style={{ color: config.color }}
-              />
+              <Icon className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: config.color }}/>
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-normal">
-                {config.title}
-              </h3>
-              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
-                {config.description}
-              </p>
+              <h3 className="text-base sm:text-lg font-medium">{config.title}</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">{config.description}</p>
             </div>
           </div>
-          <div className="flex gap-0.5 sm:gap-1">
+          <div className="flex gap-1">
             {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
               <button
                 key={p}
                 onClick={() => onPeriodChange(p)}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm  rounded-md transition-colors ${
-                  period === p
-                    ? "text-white dark:text-white"
-                    : "text-muted-foreground hover:bg-muted"
+                className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                  period === p ? "text-white dark:text-white" : "text-muted-foreground hover:bg-muted"
                 }`}
-                style={
-                  period === p
-                    ? { backgroundColor: `${config.color}`, opacity: 0.9 }
-                    : {}
-                }
+                style={period === p ? { backgroundColor: `${config.color}` } : {}}
               >
                 {p}
               </button>
@@ -719,27 +636,17 @@ function ChartCard({
           </div>
         </div>
 
-        <div className="px-5 pt-6 pb-6">
-          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4 flex-wrap">
-            <div className="text-md sm:text-base font-mono break-all">
-              {formatTooltipValue(
-                typeof currentValue === "string"
-                  ? parseFloat(currentValue)
-                  : currentValue
-              )}
+        <div className="px-4 sm:px-5 pt-5 pb-5">
+          <div className="flex items-center gap-3 sm:gap-4 mb-4 pl-0 flex-wrap">
+            <div className="text-lg sm:text-xl font-mono font-semibold break-all">
+              {formatTooltipValue(typeof currentValue === "string" ? parseFloat(currentValue) : currentValue)}
             </div>
             {dynamicChange.change > 0 && (
               <div
-                className={`flex items-center gap-1 text-xs sm:text-sm ${
-                  dynamicChange.isPositive ? "text-green-600" : "text-red-600"
-                }`}
+                className={`flex items-center gap-1 text-sm ${dynamicChange.isPositive ? "text-green-600" : "text-red-600"}`}
                 title={`Change over selected time range`}
               >
-                <TrendingUp
-                  className={`h-3 w-3 sm:h-4 sm:w-4 ${
-                    dynamicChange.isPositive ? "" : "rotate-180"
-                  }`}
-                />
+                <TrendingUp className={`h-4 w-4 ${dynamicChange.isPositive ? "" : "rotate-180"}`}/>
                 {dynamicChange.change >= 1000
                   ? dynamicChange.change >= 1000000
                     ? `${(dynamicChange.change / 1000000).toFixed(1)}M%`
@@ -751,10 +658,7 @@ function ChartCard({
 
           <div className="mb-6">
             <ResponsiveContainer width="100%" height={400}>
-              <BarChart
-                data={displayData}
-                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-              >
+              <BarChart data={displayData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   className="stroke-gray-200 dark:stroke-gray-700"
@@ -777,9 +681,7 @@ function ChartCard({
                   cursor={{ fill: `${config.color}20` }}
                   content={({ active, payload }) => {
                     if (!active || !payload?.[0]) return null;
-                    const formattedDate = formatTooltipDate(
-                      payload[0].payload.day
-                    );
+                    const formattedDate = formatTooltipDate(payload[0].payload.day);
                     const chainBreakdown = payload[0].payload.chainBreakdown;
 
                     // Sort chains by message count
@@ -790,29 +692,23 @@ function ChartCard({
                       : [];
 
                     return (
-                      <div className="rounded-lg border bg-background p-3 shadow-sm font-mono max-w-sm">
+                      <div className="rounded-md border border-gray-200 dark:border-gray-700 bg-card p-3 shadow-lg font-mono max-w-sm">
                         <div className="grid gap-2">
-                          <div className="font-medium text-sm border-b border-neutral-200 dark:border-neutral-700 pb-2">
+                          <div className="font-medium text-sm border-b border-gray-200 dark:border-gray-700 pb-2">
                             {formattedDate}
                           </div>
                           <div className="text-sm font-semibold">
-                            Total:{" "}
-                            {formatTooltipValue(payload[0].value as number)}
+                            Total:{" "}{formatTooltipValue(payload[0].value as number)}
                           </div>
                           {sortedChains.length > 0 && (
                             <div className="text-xs mt-2 space-y-1.5 max-h-64 overflow-y-auto">
                               {sortedChains.map(([chainName, count]) => {
-                                const chain = l1ChainsData.find(
-                                  (c) => c.chainName === chainName
-                                );
+                                const chain = l1ChainsData.find((c) => c.chainName === chainName);
                                 const chainColor = chain?.color || "#E84142";
                                 const chainLogo = chain?.chainLogoURI || "";
 
                                 return (
-                                  <div
-                                    key={chainName}
-                                    className="flex items-center justify-between gap-3"
-                                  >
+                                  <div key={chainName} className="flex items-center justify-between gap-3">
                                     <div className="flex items-center gap-2 min-w-0">
                                       {chainLogo && (
                                         <Image
@@ -821,16 +717,10 @@ function ChartCard({
                                           width={16}
                                           height={16}
                                           className="rounded-full object-cover flex-shrink-0"
-                                          onError={(e) => {
-                                            e.currentTarget.style.display =
-                                              "none";
-                                          }}
+                                          onError={(e) => {e.currentTarget.style.display = "none"}}
                                         />
                                       )}
-                                      <span
-                                        className="truncate font-medium"
-                                        style={{ color: chainColor }}
-                                      >
+                                      <span className="truncate font-medium" style={{ color: chainColor }}>
                                         {chainName}
                                       </span>
                                     </div>
@@ -854,22 +744,11 @@ function ChartCard({
                   shape={(props: any) => {
                     const { x, y, width, height, payload } = props;
                     if (!payload.chainBreakdown) {
-                      return (
-                        <rect
-                          x={x}
-                          y={y}
-                          width={width}
-                          height={height}
-                          fill={config.color}
-                          rx={0}
-                        />
-                      );
+                      return <rect x={x} y={y} width={width} height={height} fill={config.color} rx={0}/>;
                     }
 
                     // Get top chains for this bar
-                    const sortedChains = Object.entries(
-                      payload.chainBreakdown
-                    ).sort(([, a], [, b]) => (b as number) - (a as number));
+                    const sortedChains = Object.entries(payload.chainBreakdown).sort(([, a], [, b]) => (b as number) - (a as number));
 
                     const totalValue = payload.value;
                     let currentY = y + height; // Start from bottom
@@ -877,25 +756,12 @@ function ChartCard({
                     return (
                       <g>
                         {sortedChains.map(([chainName, count], idx) => {
-                          const chain = l1ChainsData.find(
-                            (c) => c.chainName === chainName
-                          );
+                          const chain = l1ChainsData.find((c) => c.chainName === chainName);
                           const chainColor = chain?.color || config.color;
-                          const segmentHeight =
-                            ((count as number) / totalValue) * height;
+                          const segmentHeight = ((count as number) / totalValue) * height;
                           const segmentY = currentY - segmentHeight;
 
-                          const rect = (
-                            <rect
-                              key={chainName}
-                              x={x}
-                              y={segmentY}
-                              width={width}
-                              height={segmentHeight}
-                              fill={chainColor}
-                              rx={0}
-                            />
-                          );
+                          const rect = <rect key={chainName} x={x} y={segmentY} width={width} height={segmentHeight} fill={chainColor} rx={0}/>;
 
                           currentY = segmentY;
                           return rect;
@@ -908,12 +774,9 @@ function ChartCard({
             </ResponsiveContainer>
           </div>
 
-          <div className="mt-4 bg-white dark:bg-black pl-[60px]">
+          <div className="mt-6 pl-[60px]">
             <ResponsiveContainer width="100%" height={80}>
-              <LineChart
-                data={aggregatedData}
-                margin={{ top: 0, right: 30, left: 0, bottom: 5 }}
-              >
+              <LineChart data={aggregatedData} margin={{ top: 0, right: 30, left: 0, bottom: 5 }}>
                 <Brush
                   dataKey="day"
                   height={80}
@@ -923,27 +786,13 @@ function ChartCard({
                   startIndex={brushIndexes?.startIndex ?? 0}
                   endIndex={brushIndexes?.endIndex ?? aggregatedData.length - 1}
                   onChange={(e: any) => {
-                    if (
-                      e.startIndex !== undefined &&
-                      e.endIndex !== undefined
-                    ) {
-                      setBrushIndexes({
-                        startIndex: e.startIndex,
-                        endIndex: e.endIndex,
-                      });
-                    }
+                    if (e.startIndex !== undefined && e.endIndex !== undefined) setBrushIndexes({startIndex: e.startIndex, endIndex: e.endIndex});
                   }}
                   travellerWidth={8}
                   tickFormatter={formatBrushXAxis}
                 >
                   <LineChart>
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      stroke={config.color}
-                      strokeWidth={1}
-                      dot={false}
-                    />
+                    <Line type="monotone" dataKey="value" stroke={config.color} strokeWidth={1} dot={false}/>
                   </LineChart>
                 </Brush>
               </LineChart>
