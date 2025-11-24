@@ -150,7 +150,12 @@ async function getActiveAddressesData(chainId: string, timeRange: string, interv
   }
 }
 
-async function getICMData(chainId: string, timeRange: string): Promise<ICMDataPoint[]> {
+async function getICMData(
+  chainId: string, 
+  timeRange: string,
+  startTimestamp?: number,
+  endTimestamp?: number
+): Promise<ICMDataPoint[]> {
   try {
     let days: number;
     
@@ -269,7 +274,7 @@ export async function GET(
       // Only refetch ICM data if timeRange changed (not for timestamp-based queries)
       if (startTimestamp === undefined && endTimestamp === undefined && cached.icmTimeRange !== timeRange) {
         try {
-          const newICMData = await getICMData(chainId, timeRange);
+          const newICMData = await getICMData(chainId, timeRange, startTimestamp, endTimestamp);
           cached.data.icmMessages = createICMMetric(newICMData);
           cached.icmTimeRange = timeRange;
           cachedData.set(cacheKey, cached);
@@ -321,23 +326,23 @@ export async function GET(
       getActiveAddressesData(chainId, timeRange, 'day', pageSize, fetchAllPages),
       getActiveAddressesData(chainId, timeRange, 'week', pageSize, fetchAllPages),
       getActiveAddressesData(chainId, timeRange, 'month', pageSize, fetchAllPages),
-      getTimeSeriesData('activeSenders', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('cumulativeAddresses', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('cumulativeDeployers', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('txCount', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('cumulativeTxCount', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('cumulativeContracts', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('contracts', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('deployers', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('gasUsed', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('avgGps', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('maxGps', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('avgTps', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('maxTps', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('avgGasPrice', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('maxGasPrice', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('feesPaid', chainId, timeRange, pageSize, fetchAllPages),
-      getICMData(chainId, timeRange),
+      getTimeSeriesData('activeSenders', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('cumulativeAddresses', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('cumulativeDeployers', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('txCount', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('cumulativeTxCount', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('cumulativeContracts', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('contracts', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('deployers', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('gasUsed', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('avgGps', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('maxGps', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('avgTps', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('maxTps', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('avgGasPrice', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('maxGasPrice', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('feesPaid', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getICMData(chainId, timeRange, startTimestamp, endTimestamp),
     ]);
 
     const metrics: ChainMetrics = {
@@ -402,7 +407,7 @@ export async function GET(
     if (cached) {
       if (cached.icmTimeRange !== fallbackTimeRange) {
         try {
-          const newICMData = await getICMData(chainId, fallbackTimeRange);
+          const newICMData = await getICMData(chainId, fallbackTimeRange, undefined, undefined);
           cached.data.icmMessages = createICMMetric(newICMData);
           cached.icmTimeRange = fallbackTimeRange;
           cachedData.set(fallbackCacheKey, cached);
