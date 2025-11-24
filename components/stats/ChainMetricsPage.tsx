@@ -439,45 +439,38 @@ export default function ChainMetricsPage({
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
         <div className="container mx-auto mt-4 p-4 sm:p-6 pb-24 space-y-8 sm:space-y-12">
           {/* Hero Section Skeleton */}
-          <div className="relative overflow-hidden rounded-2xl p-8 sm:p-12">
+          <div className="relative overflow-hidden rounded-2xl p-6 sm:p-8">
             {/* Multi-layer gradient background */}
-            <div className="absolute inset-0 bg-black" />
+            <div className="absolute inset-0 bg-gradient-to-br from-black via-neutral-950 to-black" />
             <div
-              className="absolute inset-0 opacity-60"
+              className="absolute inset-0 opacity-50"
               style={{
-                background: `linear-gradient(140deg, ${themeColor}88 0%, transparent 70%)`
-              }}
-            />
-            <div
-              className="absolute inset-0 opacity-40"
-              style={{
-                background: `linear-gradient(to top left, ${themeColor}66 0%, transparent 50%)`
+                background: `linear-gradient(135deg, ${themeColor}99 0%, ${themeColor}44 30%, transparent 60%)`
               }}
             />
             <div
               className="absolute inset-0 opacity-30"
               style={{
-                background: `radial-gradient(circle at 50% 50%, ${themeColor}88 0%, ${themeColor}44 30%, transparent 70%)`
+                background: `radial-gradient(ellipse at top right, ${themeColor}88 0%, transparent 50%)`
+              }}
+            />
+            <div
+              className="absolute inset-0 opacity-20"
+              style={{
+                background: `radial-gradient(ellipse at bottom left, ${themeColor}66 0%, transparent 40%)`
               }}
             />
 
             {/* Content */}
             <div className="relative z-10">
-              {/* ExplorerDropdown Placeholder for L1s */}
-              {!chainName.includes("C-Chain") && (
-                <div className="flex justify-end mb-4">
-                  <div className="h-8 w-28 bg-white/20 rounded-md animate-pulse" />
-                </div>
-              )}
-
-              <div className="flex flex-col sm:flex-row items-start gap-6">
+              <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
                 {/* Chain Logo Skeleton - Only show if chainLogoURI exists */}
                 {chainLogoURI && (
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white/20 animate-pulse shrink-0" />
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-white/20 animate-pulse shrink-0" />
                 )}
 
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold mb-3 text-white">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold mb-2 text-white">
                     {chainName.includes("C-Chain")
                       ? "Avalanche C-Chain Metrics"
                       : `${chainName} L1 Metrics`}
@@ -488,6 +481,13 @@ export default function ChainMetricsPage({
                       : `Loading ${chainName} metrics...`}
                   </p>
                 </div>
+
+                {/* ExplorerDropdown Placeholder for L1s */}
+                {!chainName.includes("C-Chain") && (
+                  <div className="shrink-0 self-start sm:self-center">
+                    <div className="h-8 w-28 bg-white/50 dark:bg-white/20 rounded-md animate-pulse" />
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -651,52 +651,39 @@ export default function ChainMetricsPage({
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
       <div className="container mx-auto mt-4 p-4 sm:p-6 pb-24 space-y-8 sm:space-y-12">
         {/* Header */}
-        <div className="relative overflow-hidden rounded-2xl p-8 sm:p-12">
+        <div className="relative overflow-hidden rounded-2xl p-6 sm:p-8">
           {/* Multi-layer gradient background */}
-          <div className="absolute inset-0 bg-black" />
+          <div className="absolute inset-0 bg-gradient-to-br from-black via-neutral-950 to-black" />
           <div
-            className="absolute inset-0 opacity-60"
+            className="absolute inset-0 opacity-50"
             style={{
-              background: `linear-gradient(140deg, ${themeColor}88 0%, transparent 70%)`
-            }}
-          />
-          <div
-            className="absolute inset-0 opacity-40"
-            style={{
-              background: `linear-gradient(to top left, ${themeColor}66 0%, transparent 50%)`
+              background: `linear-gradient(135deg, ${themeColor}99 0%, ${themeColor}44 30%, transparent 60%)`
             }}
           />
           <div
             className="absolute inset-0 opacity-30"
             style={{
-              background: `radial-gradient(circle at 50% 50%, ${themeColor}44 0%, transparent 70%)`
+              background: `radial-gradient(ellipse at top right, ${themeColor}88 0%, transparent 50%)`
+            }}
+          />
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              background: `radial-gradient(ellipse at bottom left, ${themeColor}66 0%, transparent 40%)`
             }}
           />
 
           {/* Content */}
           <div className="relative z-10">
-            {/* Top row with ExplorerDropdown */}
-            {!chainName.includes("C-Chain") && currentChain?.explorers && (
-              <div className="flex justify-end mb-4">
-                <div className="[&_button]:border-neutral-300 dark:[&_button]:border-white/30 [&_button]:text-neutral-800 dark:[&_button]:text-white [&_button]:hover:bg-neutral-100 dark:[&_button]:hover:bg-white/10 [&_button]:hover:border-neutral-400 dark:[&_button]:hover:border-white/50">
-                  <ExplorerDropdown
-                    explorers={currentChain.explorers}
-                    variant="outline"
-                    size="sm"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Main content row */}
-            <div className="flex flex-col sm:flex-row items-start gap-6">
+            {/* Main content row with aligned explorer button */}
+            <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
               {/* Logo */}
               {chainLogoURI && (
                 <div className="shrink-0">
                   <img
                     src={chainLogoURI}
                     alt={`${chainName} logo`}
-                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-contain bg-white/10 p-2"
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-contain bg-white/10 p-2"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}
@@ -706,7 +693,7 @@ export default function ChainMetricsPage({
 
               {/* Title and description */}
               <div className="flex-1 min-w-0">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-3 break-words">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-2 break-words">
                   {chainName.includes("C-Chain")
                     ? "Avalanche C-Chain Metrics"
                     : `${chainName} L1 Metrics`}
@@ -715,6 +702,19 @@ export default function ChainMetricsPage({
                   {description}
                 </p>
               </div>
+
+              {/* Explorer Dropdown aligned with title */}
+              {!chainName.includes("C-Chain") && currentChain?.explorers && (
+                <div className="shrink-0 self-start sm:self-center">
+                  <div className="[&_button]:border-neutral-700 dark:[&_button]:border-white/30 [&_button]:text-neutral-900 dark:[&_button]:text-white [&_button]:bg-white/90 dark:[&_button]:bg-transparent [&_button]:hover:bg-white dark:[&_button]:hover:bg-white/10 [&_button]:hover:border-neutral-900 dark:[&_button]:hover:border-white/50 [&_button]:backdrop-blur-sm">
+                    <ExplorerDropdown
+                      explorers={currentChain.explorers}
+                      variant="outline"
+                      size="sm"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
