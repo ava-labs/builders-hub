@@ -1,0 +1,61 @@
+---
+title: NativeTokenStakingManager
+description: Deploy the NativeTokenStakingManager implementation contract
+updated: 2025-03-13
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+import DeployNativeStakingManager from "@/components/toolbox/console/permissionless-l1s/setup/native/DeployNativeStakingManager.tsx"
+
+## Abstract Contract in Solidity
+
+The `StakingManager` is an **abstract contract** in Solidity, meaning it cannot be deployed directly—it only defines the structure and shared logic for staking operations. Abstract contracts exist to provide reusable code that child contracts can inherit and build upon.
+
+<div style={{ display: 'flex', justifyContent: 'center', margin: '1.5rem 0' }}>
+  <div style={{ width: '50%', maxWidth: '500px' }}>
+    <Mermaid chart={`classDiagram
+    class StakingManager {
+        <<abstract>>
+        _lock()
+        _unlock()
+        _reward()
+    }
+    class NativeTokenStakingManager {
+        Uses native L1 token
+        Mints rewards via NativeMinter
+    }
+
+    StakingManager <|-- NativeTokenStakingManager
+`} />
+  </div>
+</div>
+
+### Code Example: How Inheritance Works
+
+The abstract `StakingManager` defines a `_reward()` function that must be implemented by child contracts:
+
+```solidity
+// In StakingManager (abstract contract)
+function _reward(address account, uint256 amount) internal virtual;
+```
+
+The `NativeTokenStakingManager` implements this function to mint native tokens:
+
+```solidity
+// In NativeTokenStakingManager (concrete implementation)
+function _reward(address account, uint256 amount) internal virtual override {
+    NATIVE_MINTER.mintNativeCoin(account, amount);
+}
+```
+
+This is why we must deploy `NativeTokenStakingManager` rather than `StakingManager`—the abstract contract leaves `_reward()` undefined, while the concrete implementation provides the actual logic for distributing rewards via the Native Minter precompile.
+
+## Deploying NativeTokenStakingManager
+
+In the embedded console view below, be sure you have your own L1 selected in the header of the view:
+
+<ToolboxMdxWrapper walletMode="l1">
+    <DeployNativeStakingManager />
+</ToolboxMdxWrapper>

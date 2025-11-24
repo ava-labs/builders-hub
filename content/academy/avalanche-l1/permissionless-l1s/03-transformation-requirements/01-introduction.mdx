@@ -1,5 +1,5 @@
 ---
-title: Native Token Staking Blockchain
+title: Introduction
 description: Precompile contracts necessary for a Permissionless L1 implementation
 updated: 2025-03-13
 authors: [nicolasarnedo]
@@ -11,6 +11,8 @@ icon: Book
 Now that we've covered how Proof of Stake serves as a Sybil protection mechanism that enables permissionless participation in an L1, the next question is: How do we actually transform an existing permissioned L1 using [Proof of Authority](/academy/permissioned-l1s/proof-of-authority/proof-of-authority) into a permissionless L1 with Proof of Stake?
 
 In the previous section on [staking token selection](/academy/permissionless-l1s/proof-of-stake/staking-token), we learned that the staking token can either be the native token or a separate ERC20 token. **For this course, we will focus on building a permissionless L1 where the native token is also the staking token**—the most common and straightforward implementation that creates unified token economics.
+
+*Optionally*, or in case you lost access to your previous chain, you can quickly [setup a Permissioned L1](/academy/permissionless-l1s/04-speedrun-base-l1) at the end of this chapter and will transform it the next chapter.
 
 ### 1. Opening Validator Management (From Permissioned L1s)
 

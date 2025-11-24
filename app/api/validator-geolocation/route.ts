@@ -35,7 +35,7 @@ interface CountryData {
 }
 
 let cachedGeoData: { data: CountryData[]; timestamp: number } | null = null;
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // updates every 24 hours
+const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days cache (due to slow/failing API)
 
 async function fetchAllValidators(): Promise<Validator[]> {
   try {
@@ -144,7 +144,7 @@ export async function GET() {
     if (cachedGeoData && Date.now() - cachedGeoData.timestamp < CACHE_DURATION) {
       return NextResponse.json(cachedGeoData.data, {
         headers: {
-          'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
+          'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400', // 7 days cache, 1 day stale
           'X-Data-Source': 'cache',
           'X-Cache-Timestamp': new Date(cachedGeoData.timestamp).toISOString(),
         }
@@ -176,7 +176,7 @@ export async function GET() {
     const fetchTime = Date.now() - startTime;
     return NextResponse.json(countryDataWithCoords, {
       headers: {
-        'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
+        'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400', // 7 days cache, 1 day stale
         'X-Data-Source': 'fresh',
         'X-Fetch-Time': `${fetchTime}ms`,
         'X-Total-Validators': validators.length.toString(),

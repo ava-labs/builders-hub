@@ -1,0 +1,36 @@
+---
+title: Initialize Staking Manager
+description: Configure the Native Token Staking Manager with initial parameters
+updated: 2025-03-13
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+import InitializeNativeStakingManager from "@/components/toolbox/console/permissionless-l1s/setup/native/InitializeNativeStakingManager.tsx"
+import { Callout } from "fumadocs-ui/components/callout";
+
+## Configuration Parameters
+
+The `PoSValidatorManagerSettings` struct includes:
+
+- **Minimum Stake Amount**: Minimum tokens required to become a validator
+- **Maximum Stake Amount**: Maximum tokens that can be staked
+- **Minimum Stake Duration**: Minimum time tokens must be staked
+- **Minimum Delegation Fee Bips**: Minimum fee charged to delegators (in basis points)
+- **Maximum Stake Multiplier**: Maximum multiplier for validator weight
+- **Weight to Value Factor**: Conversion factor between weight and token value
+- **Reward Calculator Address**: Address of the deployed reward calculator
+
+## Initialize the Contract
+
+<Callout type="info">
+Make sure you have your L1 selected in the wallet component
+</Callout>
+
+
+
+<ToolboxMdxWrapper walletMode="l1">
+    <InitializeNativeStakingManager />
+</ToolboxMdxWrapper>
+

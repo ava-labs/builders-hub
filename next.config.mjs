@@ -53,6 +53,10 @@ const config = {
         protocol: 'https',
         hostname: 'developers.avacloud.io',
       },
+      {
+        protocol: 'https',
+        hostname: 'dashboard-assets.dappradar.com',
+      },
     ],
   },
   async redirects() {
