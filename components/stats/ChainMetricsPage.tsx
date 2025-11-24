@@ -1397,7 +1397,7 @@ function ChartCard({
                             </div>
                             {payload[0].payload.cumulative && (
                               <div className="text-xs text-muted-foreground">
-                                Cumulative:{" "}
+                                Total:{" "}
                                 {formatYAxisValue(
                                   payload[0].payload.cumulative
                                 )}
