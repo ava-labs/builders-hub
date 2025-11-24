@@ -5,6 +5,16 @@ description: Learn about the Avalanche Primary Network and its three blockchains
 
 import { Network, Layers, Terminal, ArrowRight, Database, Package } from 'lucide-react';
 
+Avalanche is a heterogeneous network of blockchains. As opposed to homogeneous networks, where all applications reside in the same chain, heterogeneous networks allow separate chains to be created for different applications.
+
+![Primary Network Architecture](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/multi-chain-architecture/multi-chain.png)
+
+The Primary Network is a special [Avalanche L1](/docs/avalanche-l1s) that runs three blockchains:
+
+- The Contract Chain [(C-Chain)](/docs/primary-network#c-chain-contract-chain)
+- The Platform Chain [(P-Chain)](/docs/primary-network#p-chain-platform-chain)
+- The Exchange Chain [(X-Chain)](/docs/primary-network#x-chain-exchange-chain)
+
 <Mermaid chart={`
 graph TB
     PN["<b>Primary Network</b>"]
@@ -54,15 +64,6 @@ graph TB
     style E1 fill:#a3e4d7,stroke:#52be80,stroke-width:1px,color:#2c3e50,rx:5,ry:5
     style D1 fill:#a3e4d7,stroke:#52be80,stroke-width:1px,color:#2c3e50,rx:5,ry:5
 `} />
-
-<br/>
-Avalanche is a heterogeneous network of blockchains. As opposed to homogeneous networks, where all applications reside in the same chain, heterogeneous networks allow separate chains to be created for different applications.
-
-The Primary Network is a special [Avalanche L1](/docs/avalanche-l1s) that runs three blockchains:
-
-- The Contract Chain [(C-Chain)](/docs/primary-network#c-chain-contract-chain)
-- The Platform Chain [(P-Chain)](/docs/primary-network#p-chain-platform-chain)
-- The Exchange Chain [(X-Chain)](/docs/primary-network#x-chain-exchange-chain)
 
 <Callout title="Note">
 Avalanche Mainnet is comprised of the Primary Network and all deployed Avalanche L1s.
