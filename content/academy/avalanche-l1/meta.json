@@ -6,7 +6,7 @@
     "permissionless-l1s",
     "interchain-messaging",
     "interchain-token-transfer",
-    "icm-chainlink",
+    "erc20-bridge",
     "customizing-evm"
   ]
 }
