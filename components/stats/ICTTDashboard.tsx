@@ -1,41 +1,9 @@
 "use client";
 
-import {
-  ArrowUpRight,
-  Activity,
-  Layers,
-  ArrowRight,
-  ArrowLeft,
-  Copy,
-} from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  Legend,
-} from "recharts";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ArrowUpRight, Activity, Layers, ArrowRight, Copy } from "lucide-react";
+import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
@@ -94,18 +62,7 @@ interface ICTTDashboardProps {
   loadingMore?: boolean;
 }
 
-const COLORS = [
-  "#E84142",
-  "#3B82F6",
-  "#10B981",
-  "#F59E0B",
-  "#8B5CF6",
-  "#EC4899",
-  "#14B8A6",
-  "#F97316",
-  "#6366F1",
-  "#6B7280",
-];
+const COLORS = ["#E84142", "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6", "#EC4899", "#14B8A6", "#F97316", "#6366F1", "#6B7280"];
 
 function OverviewCards({ data }: { data: OverviewData | null }) {
   const formatNumber = (num: number): string => {
@@ -123,7 +80,7 @@ function OverviewCards({ data }: { data: OverviewData | null }) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
-          <Card key={i} className="border-gray-200 dark:border-gray-700">
+          <Card key={i} className="border border-gray-200 dark:border-gray-700 rounded-md bg-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
               <div className="h-4 w-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
@@ -140,7 +97,7 @@ function OverviewCards({ data }: { data: OverviewData | null }) {
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card className="border-gray-200 dark:border-gray-700">
+      <Card className="border border-gray-200 dark:border-gray-700 rounded-md bg-card">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Transfers</CardTitle>
           <Activity className="h-4 w-4 text-muted-foreground" />
@@ -152,11 +109,9 @@ function OverviewCards({ data }: { data: OverviewData | null }) {
           <p className="text-xs text-muted-foreground">All-time transfers</p>
         </CardContent>
       </Card>
-      <Card className="border-gray-200 dark:border-gray-700">
+      <Card className="border border-gray-200 dark:border-gray-700 rounded-md bg-card">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            Total Volume (USD)
-          </CardTitle>
+          <CardTitle className="text-sm font-medium">Total Volume (USD)</CardTitle>
           <span className="text-muted-foreground font-mono text-lg">$</span>
         </CardHeader>
         <CardContent>
@@ -166,7 +121,7 @@ function OverviewCards({ data }: { data: OverviewData | null }) {
           <p className="text-xs text-muted-foreground">Estimated total value</p>
         </CardContent>
       </Card>
-      <Card className="border-gray-200 dark:border-gray-700">
+      <Card className="border border-gray-200 dark:border-gray-700 rounded-md bg-card">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Active Chains</CardTitle>
           <Layers className="h-4 w-4 text-muted-foreground" />
@@ -178,7 +133,7 @@ function OverviewCards({ data }: { data: OverviewData | null }) {
           </p>
         </CardContent>
       </Card>
-      <Card className="border-gray-200 dark:border-gray-700">
+      <Card className="border border-gray-200 dark:border-gray-700 rounded-md bg-card">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Top Token</CardTitle>
           <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
@@ -198,9 +153,7 @@ function TokenTransferChart({ data }: { data: TokenData[] | null }) {
   const chartData = data?.slice(0, 6) || [];
 
   const formatYAxis = (value: number) => {
-    if (value >= 1000) {
-      return `${(value / 1000).toFixed(0)}k`;
-    }
+    if (value >= 1000) { return `${(value / 1000).toFixed(0)}k`; }
     return value.toString();
   };
 
@@ -215,12 +168,10 @@ function TokenTransferChart({ data }: { data: TokenData[] | null }) {
 
   if (!data) {
     return (
-      <Card className="col-span-4 h-full border-gray-200 dark:border-gray-700">
+      <Card className="col-span-4 h-full border border-gray-200 dark:border-gray-700 rounded-md bg-card">
         <CardHeader>
           <CardTitle>Top Tokens by Transfer Count</CardTitle>
-          <CardDescription>
-            Most transferred tokens across chains
-          </CardDescription>
+          <CardDescription>Most transferred tokens across chains</CardDescription>
         </CardHeader>
         <CardContent className="pl-2">
           <div className="h-[320px] w-full flex items-center justify-center">
@@ -232,7 +183,7 @@ function TokenTransferChart({ data }: { data: TokenData[] | null }) {
   }
 
   return (
-    <Card className="col-span-4 h-full border-gray-200 dark:border-gray-700">
+    <Card className="col-span-4 h-full border border-gray-200 dark:border-gray-700 rounded-md bg-card">
       <CardHeader>
         <CardTitle>Top Tokens by Transfer Count</CardTitle>
         <CardDescription>Most transferred tokens across chains</CardDescription>
@@ -240,10 +191,7 @@ function TokenTransferChart({ data }: { data: TokenData[] | null }) {
       <CardContent className="pl-2">
         <div className="h-[320px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={chartData}
-              margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
-            >
+            <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
               <CartesianGrid
                 strokeDasharray="3 3"
                 vertical={false}
@@ -278,13 +226,11 @@ function TokenTransferChart({ data }: { data: TokenData[] | null }) {
                   const value = payload[0].value as number;
 
                   return (
-                    <div className="rounded-lg border bg-background p-3 shadow-sm font-mono">
+                    <div className="rounded-md border border-gray-200 dark:border-gray-700 bg-card p-3 shadow-lg font-mono">
                       <div className="grid gap-2">
                         <div className="font-bold text-base">{tokenSymbol}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {tokenName}
-                        </div>
-                        <div className="text-sm font-semibold pt-1 border-t border-neutral-200 dark:border-neutral-700">
+                        <div className="text-xs text-muted-foreground">{tokenName}</div>
+                        <div className="text-sm font-semibold pt-1 border-t border-gray-200 dark:border-gray-700">
                           Transfers: {formatNumber(value)}
                         </div>
                       </div>
@@ -305,9 +251,7 @@ function RouteDistributionChart({ data }: { data: RouteData[] | null }) {
   const chartData = data?.slice(0, 6) || [];
 
   if (data && data.length > 6) {
-    const othersTotal = data
-      .slice(6)
-      .reduce((sum, route) => sum + route.total, 0);
+    const othersTotal = data.slice(6).reduce((sum, route) => sum + route.total, 0);
     chartData.push({
       name: "Others",
       total: othersTotal,
@@ -326,7 +270,7 @@ function RouteDistributionChart({ data }: { data: RouteData[] | null }) {
 
   if (!data) {
     return (
-      <Card className="col-span-3 h-full border-gray-200 dark:border-gray-700">
+      <Card className="col-span-3 h-full border border-gray-200 dark:border-gray-700 rounded-md bg-card">
         <CardHeader>
           <CardTitle>Route Distribution</CardTitle>
           <CardDescription>Transfer volume by route</CardDescription>
@@ -341,7 +285,7 @@ function RouteDistributionChart({ data }: { data: RouteData[] | null }) {
   }
 
   return (
-    <Card className="col-span-3 h-full border-gray-200 dark:border-gray-700">
+    <Card className="col-span-3 h-full border border-gray-200 dark:border-gray-700 rounded-md bg-card">
       <CardHeader>
         <CardTitle>Route Distribution</CardTitle>
         <CardDescription>Transfer volume by route</CardDescription>
@@ -359,12 +303,7 @@ function RouteDistributionChart({ data }: { data: RouteData[] | null }) {
                 paddingAngle={2}
                 dataKey="total"
               >
-                {chartData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                  />
-                ))}
+                {chartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]}/>))}
               </Pie>
               <Tooltip
                 content={({ active, payload }) => {
@@ -373,9 +312,9 @@ function RouteDistributionChart({ data }: { data: RouteData[] | null }) {
                   const value = payload[0].value as number;
 
                   return (
-                    <div className="rounded-lg border bg-background p-3 shadow-sm font-mono">
+                    <div className="rounded-md border border-gray-200 dark:border-gray-700 bg-card p-3 shadow-lg font-mono">
                       <div className="grid gap-2">
-                        <div className="font-medium text-sm border-b border-neutral-200 dark:border-neutral-700 pb-2">
+                        <div className="font-medium text-sm border-b border-gray-200 dark:border-gray-700 pb-2">
                           {routeName}
                         </div>
                         <div className="text-sm font-semibold">
@@ -386,14 +325,7 @@ function RouteDistributionChart({ data }: { data: RouteData[] | null }) {
                   );
                 }}
               />
-              <Legend
-                verticalAlign="bottom"
-                height={36}
-                iconType="circle"
-                wrapperStyle={{
-                  fontSize: "12px",
-                }}
-              />
+              <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{fontSize: "12px"}}/>
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -415,28 +347,13 @@ function TransactionsTable({
   onLoadMore?: () => void;
   loadingMore?: boolean;
 }) {
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-  };
-
-  const formatAddress = (address: string) => {
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
-
-  const formatAmount = (amount: number) => {
-    if (amount >= 1e9) {
-      return (amount / 1e9).toFixed(2) + "B";
-    } else if (amount >= 1e6) {
-      return (amount / 1e6).toFixed(2) + "M";
-    } else if (amount >= 1e3) {
-      return (amount / 1e3).toFixed(2) + "K";
-    }
-    return amount.toFixed(2);
-  };
+  const handleCopy = (text: string) => {navigator.clipboard.writeText(text)};
+  const formatAddress = (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`;
+  const formatAmount = (amount: number) => {if (amount >= 1e9) {return (amount / 1e9).toFixed(2) + "B";} else if (amount >= 1e6) {return (amount / 1e6).toFixed(2) + "M";} else if (amount >= 1e3) {return (amount / 1e3).toFixed(2) + "K";} return amount.toFixed(2)}
 
   if (!data) {
     return (
-      <Card className="rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-neutral-900">
+      <Card className="rounded-md border border-gray-200 dark:border-gray-700 bg-card">
         <div className="p-8 text-center text-muted-foreground">
           Loading transfers...
         </div>
@@ -445,7 +362,7 @@ function TransactionsTable({
   }
 
   return (
-    <Card className="rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-neutral-900">
+    <Card className="rounded-md border border-gray-200 dark:border-gray-700 bg-card py-0">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent border-gray-200 dark:border-gray-700">
@@ -458,16 +375,10 @@ function TransactionsTable({
         </TableHeader>
         <TableBody>
           {data.map((tx, index) => (
-            <TableRow
-              key={`${tx.contractAddress}-${index}`}
-              className="border-gray-200 dark:border-gray-700"
-            >
+            <TableRow key={`${tx.contractAddress}-${index}`} className="border-gray-200 dark:border-gray-700">
               <TableCell className="pl-6">
                 <div className="flex items-center gap-2">
-                  <Badge
-                    variant="outline"
-                    className="text-xs border-gray-300 dark:border-gray-600 flex items-center gap-1.5 pr-2"
-                  >
+                  <Badge variant="outline" className="text-xs border-gray-300 dark:border-gray-600 flex items-center gap-1.5 pr-2">
                     {tx.direction === "out" ? (
                       <>
                         {tx.homeChainLogo && (
@@ -477,61 +388,42 @@ function TransactionsTable({
                             width={16}
                             height={16}
                             className="rounded-full object-cover flex-shrink-0"
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none";
-                            }}
+                            onError={(e) => {e.currentTarget.style.display = "none"}}
                           />
                         )}
-                        <span>
-                          {tx.homeChainDisplayName || tx.homeChainName}
-                        </span>
+                        <span>{tx.homeChainDisplayName || tx.homeChainName}</span>
                       </>
                     ) : (
                       <>
                         {tx.remoteChainLogo && (
                           <Image
                             src={tx.remoteChainLogo}
-                            alt={
-                              tx.remoteChainDisplayName || tx.remoteChainName
-                            }
+                            alt={tx.remoteChainDisplayName || tx.remoteChainName}
                             width={16}
                             height={16}
                             className="rounded-full object-cover flex-shrink-0"
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none";
-                            }}
+                            onError={(e) => {e.currentTarget.style.display = "none"}}
                           />
                         )}
-                        <span>
-                          {tx.remoteChainDisplayName || tx.remoteChainName}
-                        </span>
+                        <span>{tx.remoteChainDisplayName || tx.remoteChainName}</span>
                       </>
                     )}
                   </Badge>
                   <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                  <Badge
-                    variant="outline"
-                    className="text-xs border-gray-300 dark:border-gray-600 flex items-center gap-1.5 pr-2"
-                  >
+                  <Badge variant="outline" className="text-xs border-gray-300 dark:border-gray-600 flex items-center gap-1.5 pr-2">
                     {tx.direction === "out" ? (
                       <>
                         {tx.remoteChainLogo && (
                           <Image
                             src={tx.remoteChainLogo}
-                            alt={
-                              tx.remoteChainDisplayName || tx.remoteChainName
-                            }
+                            alt={tx.remoteChainDisplayName || tx.remoteChainName}
                             width={16}
                             height={16}
                             className="rounded-full object-cover flex-shrink-0"
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none";
-                            }}
+                            onError={(e) => {e.currentTarget.style.display = "none"}}
                           />
                         )}
-                        <span>
-                          {tx.remoteChainDisplayName || tx.remoteChainName}
-                        </span>
+                        <span>{tx.remoteChainDisplayName || tx.remoteChainName}</span>
                       </>
                     ) : (
                       <>
@@ -542,14 +434,10 @@ function TransactionsTable({
                             width={16}
                             height={16}
                             className="rounded-full object-cover flex-shrink-0"
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none";
-                            }}
+                            onError={(e) => {e.currentTarget.style.display = "none"}}
                           />
                         )}
-                        <span>
-                          {tx.homeChainDisplayName || tx.homeChainName}
-                        </span>
+                        <span>{tx.homeChainDisplayName || tx.homeChainName}</span>
                       </>
                     )}
                   </Badge>
@@ -557,15 +445,8 @@ function TransactionsTable({
               </TableCell>
               <TableCell className="pl-8">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {formatAddress(tx.contractAddress)}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => handleCopy(tx.contractAddress)}
-                  >
+                  <span className="font-mono text-xs text-muted-foreground">{formatAddress(tx.contractAddress)}</span>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleCopy(tx.contractAddress)}>
                     <Copy className="h-3 w-3" />
                     <span className="sr-only">Copy contract address</span>
                   </Button>
@@ -574,29 +455,18 @@ function TransactionsTable({
               <TableCell>
                 <div className="flex flex-col">
                   <span className="font-medium">{tx.tokenName}</span>
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {formatAddress(tx.coinAddress)}
-                  </span>
+                  <span className="font-mono text-xs text-muted-foreground">{formatAddress(tx.coinAddress)}</span>
                 </div>
               </TableCell>
-              <TableCell className="text-right font-mono">
-                {tx.transferCount.toLocaleString()}
-              </TableCell>
-              <TableCell className="text-right font-mono pr-6">
-                {formatAmount(tx.transferCoinsTotal)}
-              </TableCell>
+              <TableCell className="text-right font-mono">{tx.transferCount.toLocaleString()}</TableCell>
+              <TableCell className="text-right font-mono pr-6">{formatAmount(tx.transferCoinsTotal)}</TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
       {hasMore && (
         <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700 flex items-center justify-center">
-          <Button
-            variant="outline"
-            onClick={onLoadMore}
-            disabled={loadingMore}
-            className="w-full max-w-md"
-          >
+          <Button variant="outline" onClick={onLoadMore} disabled={loadingMore} className="w-full max-w-md">
             {loadingMore ? (
               <>
                 <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
