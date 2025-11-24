@@ -4,7 +4,11 @@ import { TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, STATS_C
   getTimestampsFromTimeRange, createTimeSeriesMetric, createICMMetric } from "@/types/stats";
 
 interface ChainMetrics {
-  activeAddresses: TimeSeriesMetric;
+  activeAddresses: {
+    daily: TimeSeriesMetric;
+    weekly: TimeSeriesMetric;
+    monthly: TimeSeriesMetric;
+  };
   activeSenders: TimeSeriesMetric;
   cumulativeAddresses: TimeSeriesMetric;
   cumulativeDeployers: TimeSeriesMetric;
@@ -30,12 +34,26 @@ let cachedData: Map<string, { data: ChainMetrics; timestamp: number; icmTimeRang
 async function getTimeSeriesData(
   metricType: string, 
   chainId: string,
-  timeRange: string, 
+  timeRange: string,
+  startTimestamp?: number,
+  endTimestamp?: number,
   pageSize: number = 365, 
   fetchAllPages: boolean = false
 ): Promise<TimeSeriesDataPoint[]> {
   try {
-    const { startTimestamp, endTimestamp } = getTimestampsFromTimeRange(timeRange);
+    // Use provided timestamps if available, otherwise use timeRange
+    let finalStartTimestamp: number;
+    let finalEndTimestamp: number;
+    
+    if (startTimestamp !== undefined && endTimestamp !== undefined) {
+      finalStartTimestamp = startTimestamp;
+      finalEndTimestamp = endTimestamp;
+    } else {
+      const timestamps = getTimestampsFromTimeRange(timeRange);
+      finalStartTimestamp = timestamps.startTimestamp;
+      finalEndTimestamp = timestamps.endTimestamp;
+    }
+    
     let allResults: any[] = [];
     
     const avalanche = new Avalanche({
@@ -46,8 +64,8 @@ async function getTimeSeriesData(
     const params: any = {
       chainId: chainId,
       metric: metricType as any,
-      startTimestamp,
-      endTimestamp,
+      startTimestamp: finalStartTimestamp,
+      endTimestamp: finalEndTimestamp,
       timeInterval: "day",
       pageSize,
     };
@@ -82,19 +100,84 @@ async function getTimeSeriesData(
   }
 }
 
-async function getICMData(chainId: string, timeRange: string): Promise<ICMDataPoint[]> {
+// Separate active addresses fetching with proper time intervals (optimize other metrics as needed)
+async function getActiveAddressesData(chainId: string, timeRange: string, interval: 'day' | 'week' | 'month', pageSize: number = 365, fetchAllPages: boolean = false): Promise<TimeSeriesDataPoint[]> {
   try {
-    const getDaysFromTimeRange = (range: string): number => {
-      switch (range) {
-        case '7d': return 7;
-        case '30d': return 30;
-        case '90d': return 90;
-        case 'all': return 365;
-        default: return 30;
-      }
+    const { startTimestamp, endTimestamp } = getTimestampsFromTimeRange(timeRange);
+    let allResults: any[] = [];
+    
+    const avalanche = new Avalanche({
+      network: "mainnet"
+    });
+    
+    const rlToken = process.env.METRICS_BYPASS_TOKEN || '';
+    const params: any = {
+      chainId: chainId,
+      metric: 'activeAddresses',
+      startTimestamp,
+      endTimestamp,
+      timeInterval: interval,
+      pageSize,
     };
+    
+    if (rlToken) { params.rltoken = rlToken; }
+    
+    const result = await avalanche.metrics.chains.getMetrics(params);
+    
+    for await (const page of result) {
+      if (!page?.result?.results || !Array.isArray(page.result.results)) {
+        console.warn(`Invalid page structure for activeAddresses (${interval}) on chain ${chainId}:`, page);
+        continue;
+      }
+      
+      allResults = allResults.concat(page.result.results);
+      
+      if (!fetchAllPages) {
+        break;
+      }
+    }
+    
+    return allResults
+      .sort((a: any, b: any) => b.timestamp - a.timestamp)
+      .map((result: any) => ({
+        timestamp: result.timestamp,
+        value: result.value || 0,
+        date: new Date(result.timestamp * 1000).toISOString().split('T')[0]
+      }));
+  } catch (error) {
+    console.warn(`Failed to fetch activeAddresses data for chain ${chainId} with interval ${interval}:`, error);
+    return [];
+  }
+}
 
-    const days = getDaysFromTimeRange(timeRange);
+async function getICMData(
+  chainId: string, 
+  timeRange: string,
+  startTimestamp?: number,
+  endTimestamp?: number
+): Promise<ICMDataPoint[]> {
+  try {
+    let days: number;
+    
+    if (startTimestamp !== undefined && endTimestamp !== undefined) {
+      // Calculate days from timestamps
+      const startDate = new Date(startTimestamp * 1000);
+      const endDate = new Date(endTimestamp * 1000);
+      const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+      days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    } else {
+      const getDaysFromTimeRange = (range: string): number => {
+        switch (range) {
+          case '7d': return 7;
+          case '30d': return 30;
+          case '90d': return 90;
+          case 'all': return 365;
+          default: return 30;
+        }
+      };
+      days = getDaysFromTimeRange(timeRange);
+    }
+
     const response = await fetch(`https://idx6.solokhin.com/api/${chainId}/metrics/dailyMessageVolume?days=${days}`, {
       headers: { 'Accept': 'application/json' },
     });
@@ -108,7 +191,7 @@ async function getICMData(chainId: string, timeRange: string): Promise<ICMDataPo
       return [];
     }
 
-    return data
+    let filteredData = data
       .sort((a: any, b: any) => b.timestamp - a.timestamp)
       .map((item: any) => ({
         timestamp: item.timestamp,
@@ -117,6 +200,15 @@ async function getICMData(chainId: string, timeRange: string): Promise<ICMDataPo
         incomingCount: item.incomingCount || 0,
         outgoingCount: item.outgoingCount || 0,
       }));
+    
+    // Filter by timestamps if provided
+    if (startTimestamp !== undefined && endTimestamp !== undefined) {
+      filteredData = filteredData.filter((item: ICMDataPoint) => {
+        return item.timestamp >= startTimestamp && item.timestamp <= endTimestamp;
+      });
+    }
+    
+    return filteredData;
   } catch (error) {
     console.warn(`Failed to fetch ICM data for chain ${chainId}:`, error);
     return [];
@@ -131,6 +223,8 @@ export async function GET(
   try {
     const { searchParams } = new URL(request.url);
     const timeRange = searchParams.get('timeRange') || '30d';
+    const startTimestampParam = searchParams.get('startTimestamp');
+    const endTimestampParam = searchParams.get('endTimestamp');
     const resolvedParams = await params;
     const chainId = resolvedParams.chainId;
     
@@ -141,7 +235,34 @@ export async function GET(
       );
     }
 
-    const cacheKey = `${chainId}-${timeRange}`;
+    // Parse timestamps if provided
+    const startTimestamp = startTimestampParam ? parseInt(startTimestampParam, 10) : undefined;
+    const endTimestamp = endTimestampParam ? parseInt(endTimestampParam, 10) : undefined;
+    
+    // Validate timestamps
+    if (startTimestamp !== undefined && isNaN(startTimestamp)) {
+      return NextResponse.json(
+        { error: 'Invalid startTimestamp parameter' },
+        { status: 400 }
+      );
+    }
+    if (endTimestamp !== undefined && isNaN(endTimestamp)) {
+      return NextResponse.json(
+        { error: 'Invalid endTimestamp parameter' },
+        { status: 400 }
+      );
+    }
+    if (startTimestamp !== undefined && endTimestamp !== undefined && startTimestamp > endTimestamp) {
+      return NextResponse.json(
+        { error: 'startTimestamp must be less than or equal to endTimestamp' },
+        { status: 400 }
+      );
+    }
+
+    // Create cache key including timestamps if provided
+    const cacheKey = startTimestamp !== undefined && endTimestamp !== undefined
+      ? `${chainId}-${startTimestamp}-${endTimestamp}`
+      : `${chainId}-${timeRange}`;
     
     if (searchParams.get('clearCache') === 'true') {
       cachedData.clear();
@@ -150,9 +271,10 @@ export async function GET(
     const cached = cachedData.get(cacheKey);
     
     if (cached && Date.now() - cached.timestamp < STATS_CONFIG.CACHE.LONG_DURATION) {
-      if (cached.icmTimeRange !== timeRange) {
+      // Only refetch ICM data if timeRange changed (not for timestamp-based queries)
+      if (startTimestamp === undefined && endTimestamp === undefined && cached.icmTimeRange !== timeRange) {
         try {
-          const newICMData = await getICMData(chainId, timeRange);
+          const newICMData = await getICMData(chainId, timeRange, startTimestamp, endTimestamp);
           cached.data.icmMessages = createICMMetric(newICMData);
           cached.icmTimeRange = timeRange;
           cachedData.set(cacheKey, cached);
@@ -180,7 +302,9 @@ export async function GET(
     const { pageSize, fetchAllPages } = config;
     
     const [
-      activeAddressesData,
+      dailyActiveAddressesData,
+      weeklyActiveAddressesData,
+      monthlyActiveAddressesData,
       activeSendersData,
       cumulativeAddressesData,
       cumulativeDeployersData,
@@ -199,28 +323,34 @@ export async function GET(
       feesPaidData,
       icmData,
     ] = await Promise.all([
-      getTimeSeriesData('activeAddresses', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('activeSenders', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('cumulativeAddresses', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('cumulativeDeployers', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('txCount', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('cumulativeTxCount', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('cumulativeContracts', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('contracts', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('deployers', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('gasUsed', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('avgGps', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('maxGps', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('avgTps', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('maxTps', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('avgGasPrice', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('maxGasPrice', chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('feesPaid', chainId, timeRange, pageSize, fetchAllPages),
-      getICMData(chainId, timeRange),
+      getActiveAddressesData(chainId, timeRange, 'day', pageSize, fetchAllPages),
+      getActiveAddressesData(chainId, timeRange, 'week', pageSize, fetchAllPages),
+      getActiveAddressesData(chainId, timeRange, 'month', pageSize, fetchAllPages),
+      getTimeSeriesData('activeSenders', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('cumulativeAddresses', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('cumulativeDeployers', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('txCount', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('cumulativeTxCount', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('cumulativeContracts', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('contracts', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('deployers', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('gasUsed', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('avgGps', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('maxGps', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('avgTps', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('maxTps', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('avgGasPrice', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('maxGasPrice', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getTimeSeriesData('feesPaid', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getICMData(chainId, timeRange, startTimestamp, endTimestamp),
     ]);
 
     const metrics: ChainMetrics = {
-      activeAddresses: createTimeSeriesMetric(activeAddressesData),
+      activeAddresses: {
+        daily: createTimeSeriesMetric(dailyActiveAddressesData),
+        weekly: createTimeSeriesMetric(weeklyActiveAddressesData),
+        monthly: createTimeSeriesMetric(monthlyActiveAddressesData),
+      },
       activeSenders: createTimeSeriesMetric(activeSendersData), 
       cumulativeAddresses: createTimeSeriesMetric(cumulativeAddressesData), 
       cumulativeDeployers: createTimeSeriesMetric(cumulativeDeployersData), 
@@ -277,7 +407,7 @@ export async function GET(
     if (cached) {
       if (cached.icmTimeRange !== fallbackTimeRange) {
         try {
-          const newICMData = await getICMData(chainId, fallbackTimeRange);
+          const newICMData = await getICMData(chainId, fallbackTimeRange, undefined, undefined);
           cached.data.icmMessages = createICMMetric(newICMData);
           cached.icmTimeRange = fallbackTimeRange;
           cachedData.set(fallbackCacheKey, cached);
