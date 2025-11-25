@@ -319,11 +319,10 @@ export default function ICMFlowPage() {
               </p>
             </div>
           ) : (
-            <div className="flex justify-center">
+            <div className="w-full">
               <ICMFlowChart
                 data={flowData}
-                width={1200}
-                height={650}
+                height={550}
                 maxFlows={60}
                 showLabels={true}
                 animationEnabled={true}

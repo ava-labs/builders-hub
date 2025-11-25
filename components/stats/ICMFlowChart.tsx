@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useTheme } from "next-themes";
 import Image from "next/image";
 
@@ -91,8 +91,7 @@ function adjustColor(color: string, amount: number): string {
 
 export default function ICMFlowChart({
   data,
-  width = 900,
-  height = 500,
+  height: propHeight,
   maxFlows = 50,
   showLabels = true,
   animationEnabled = true,
@@ -101,6 +100,30 @@ export default function ICMFlowChart({
   const [isMounted, setIsMounted] = useState(false);
   const [hoveredFlow, setHoveredFlow] = useState<number | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(900);
+  
+  // Responsive sizing
+  useEffect(() => {
+    const updateSize = () => {
+      if (containerRef.current) {
+        const newWidth = containerRef.current.offsetWidth;
+        setContainerWidth(newWidth);
+      }
+    };
+    
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+  
+  // Use container width - always fill available space
+  const width = containerWidth;
+  const isMobile = width < 640;
+  // Mobile: use aspect ratio for better coverage, desktop: use prop height
+  const height = isMobile 
+    ? Math.max(400, Math.min(width * 0.9, 500)) 
+    : (propHeight || 550);
   
   const stars = useMemo(() => generateStars(60), []);
   
@@ -150,8 +173,9 @@ export default function ICMFlowChart({
   if (!isMounted || !data) {
     return (
       <div 
-        className="relative rounded-lg border border-gray-700 dark:border-gray-800 overflow-hidden animate-pulse"
-        style={{ width, height }}
+        ref={containerRef}
+        className="relative rounded-lg border border-gray-700 dark:border-gray-800 overflow-hidden animate-pulse w-full"
+        style={{ height: propHeight || 450 }}
       >
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900" />
       </div>
@@ -162,10 +186,13 @@ export default function ICMFlowChart({
   const flows = data.flows.slice(0, maxFlows);
   const totalMessages = data.totalMessages;
   
-  // Layout calculations - compact mode for more chains
-  const padding = { top: 30, right: 20, bottom: 15, left: 20 };
-  const nodeWidth = 14;
-  const nodeGap = 2;
+  // Responsive layout calculations
+  const padding = isMobile 
+    ? { top: 25, right: 15, bottom: 10, left: 15 }
+    : { top: 30, right: 20, bottom: 15, left: 20 };
+  const nodeWidth = isMobile ? 10 : 14;
+  const nodeGap = isMobile ? 1 : 2;
+  const fontSize = isMobile ? 9 : 11;
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
   
@@ -324,8 +351,9 @@ export default function ICMFlowChart({
 
   return (
     <div 
-      className="relative rounded-lg border border-gray-700 dark:border-gray-800 overflow-hidden"
-      style={{ width, height }}
+      ref={containerRef}
+      className="relative rounded-lg border border-gray-700 dark:border-gray-800 overflow-hidden w-full"
+      style={{ height }}
     >
       {/* Starfield Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
@@ -467,6 +495,8 @@ export default function ICMFlowChart({
               // Calculate normalized percentage - only show label if >= 2%
               const percentage = (node.total / totalSourceMessages) * 100;
               const showLabel = showLabels && percentage >= 2;
+              const labelGap = isMobile ? 6 : 8;
+              const logoSize = isMobile ? 12 : 14;
               
               return (
                 <g
@@ -489,19 +519,55 @@ export default function ICMFlowChart({
                     style={{ transition: 'opacity 0.2s' }}
                   />
                   {showLabel && (
-                    <text
-                      x={nodeWidth + 4}
-                      y={pos.height / 2}
-                      dy="0.35em"
-                      textAnchor="start"
-                      className="node-label"
-                      fill="#ffffff"
-                      fontWeight="500"
-                      fontSize="9px"
-                      style={{ pointerEvents: 'none' }}
+                    <foreignObject
+                      x={nodeWidth + labelGap}
+                      y={pos.height / 2 - logoSize / 2 - 1}
+                      width={200}
+                      height={logoSize + 4}
+                      style={{ pointerEvents: 'none', overflow: 'visible' }}
                     >
-                      {node.name.length > 18 ? node.name.slice(0, 18) + '..' : node.name} ({formatCount(node.total)})
-                    </text>
+                      <div 
+                        style={{ 
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          height: '100%',
+                          fontSize: `${fontSize}px`,
+                          fontWeight: 600,
+                          color: '#ffffff',
+                          textShadow: '0 1px 3px rgba(0,0,0,0.7)',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {node.logo ? (
+                          <img 
+                            src={node.logo} 
+                            alt="" 
+                            style={{ width: logoSize, height: logoSize, borderRadius: '50%', flexShrink: 0 }}
+                          />
+                        ) : (
+                          <div 
+                            style={{ 
+                              width: logoSize, 
+                              height: logoSize, 
+                              borderRadius: '50%', 
+                              background: node.color,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: `${logoSize * 0.5}px`,
+                              fontWeight: 'bold',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {node.name.charAt(0)}
+                          </div>
+                        )}
+                        <span>
+                          {node.name}{!isMobile && ` (${formatCount(node.total)})`}
+                        </span>
+                      </div>
+                    </foreignObject>
                   )}
                 </g>
               );
@@ -516,6 +582,8 @@ export default function ICMFlowChart({
               // Calculate normalized percentage - only show label if >= 2%
               const percentage = (node.total / totalTargetMessages) * 100;
               const showLabel = showLabels && percentage >= 2;
+              const labelGap = isMobile ? 6 : 8;
+              const logoSize = isMobile ? 12 : 14;
               
               return (
                 <g
@@ -538,19 +606,56 @@ export default function ICMFlowChart({
                     style={{ transition: 'opacity 0.2s' }}
                   />
                   {showLabel && (
-                    <text
-                      x={-4}
-                      y={pos.height / 2}
-                      dy="0.35em"
-                      textAnchor="end"
-                      className="node-label"
-                      fill="#ffffff"
-                      fontWeight="500"
-                      fontSize="9px"
-                      style={{ pointerEvents: 'none' }}
+                    <foreignObject
+                      x={-(200 + labelGap)}
+                      y={pos.height / 2 - logoSize / 2 - 1}
+                      width={200}
+                      height={logoSize + 4}
+                      style={{ pointerEvents: 'none', overflow: 'visible' }}
                     >
-                      ({formatCount(node.total)}) {node.name.length > 18 ? node.name.slice(0, 18) + '..' : node.name}
-                    </text>
+                      <div 
+                        style={{ 
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'flex-end',
+                          gap: '4px',
+                          height: '100%',
+                          fontSize: `${fontSize}px`,
+                          fontWeight: 600,
+                          color: '#ffffff',
+                          textShadow: '0 1px 3px rgba(0,0,0,0.7)',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <span>
+                          {!isMobile && `(${formatCount(node.total)}) `}{node.name}
+                        </span>
+                        {node.logo ? (
+                          <img 
+                            src={node.logo} 
+                            alt="" 
+                            style={{ width: logoSize, height: logoSize, borderRadius: '50%', flexShrink: 0 }}
+                          />
+                        ) : (
+                          <div 
+                            style={{ 
+                              width: logoSize, 
+                              height: logoSize, 
+                              borderRadius: '50%', 
+                              background: node.color,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: `${logoSize * 0.5}px`,
+                              fontWeight: 'bold',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {node.name.charAt(0)}
+                          </div>
+                        )}
+                      </div>
+                    </foreignObject>
                   )}
                 </g>
               );
@@ -562,68 +667,71 @@ export default function ICMFlowChart({
             x={chartWidth / 2}
             y={-10}
             textAnchor="middle"
-            fontSize="11px"
+            fontSize={isMobile ? "10px" : "12px"}
             fontWeight="bold"
             fill="rgba(255, 255, 255, 0.8)"
           >
-            Total: {formatCount(totalMessages)} messages ({flows.length} routes)
+            {isMobile 
+              ? `${formatCount(totalMessages)} msgs`
+              : `Total: ${formatCount(totalMessages)} messages (${flows.length} routes)`
+            }
           </text>
         </g>
       </svg>
 
       {/* Hover tooltip */}
-      {hoveredFlow !== null && (
+      {hoveredFlow !== null && !isMobile && (
         <div
-          className="absolute bg-gray-900/95 border border-gray-700 rounded-lg p-3 shadow-xl z-20 pointer-events-none"
+          className="absolute bg-gray-900/95 border border-gray-700 rounded-lg p-2 sm:p-3 shadow-xl z-20 pointer-events-none max-w-[90%]"
           style={{
             left: '50%',
-            bottom: 16,
+            bottom: 12,
             transform: 'translateX(-50%)',
           }}
         >
-          <div className="flex items-center gap-3 text-sm">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+            <div className="flex items-center gap-1 sm:gap-2">
               {linkPaths[hoveredFlow].flow.sourceLogo ? (
                 <Image
                   src={linkPaths[hoveredFlow].flow.sourceLogo}
                   alt={linkPaths[hoveredFlow].flow.sourceChain}
-                  width={20}
-                  height={20}
+                  width={18}
+                  height={18}
                   className="rounded-full"
                   unoptimized
                 />
               ) : (
                 <div 
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white"
+                  className="w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[7px] sm:text-[8px] font-bold text-white"
                   style={{ background: linkPaths[hoveredFlow].sourceColor }}
                 >
                   {linkPaths[hoveredFlow].flow.sourceChain.charAt(0)}
                 </div>
               )}
-              <span className="text-white font-medium">
+              <span className="text-white font-medium truncate max-w-[80px] sm:max-w-none">
                 {linkPaths[hoveredFlow].flow.sourceChain}
               </span>
             </div>
             <span className="text-gray-400">→</span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               {linkPaths[hoveredFlow].flow.targetLogo ? (
                 <Image
                   src={linkPaths[hoveredFlow].flow.targetLogo}
                   alt={linkPaths[hoveredFlow].flow.targetChain}
-                  width={20}
-                  height={20}
+                  width={18}
+                  height={18}
                   className="rounded-full"
                   unoptimized
                 />
               ) : (
                 <div 
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white"
+                  className="w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[7px] sm:text-[8px] font-bold text-white"
                   style={{ background: linkPaths[hoveredFlow].targetColor }}
                 >
                   {linkPaths[hoveredFlow].flow.targetChain.charAt(0)}
                 </div>
               )}
-              <span className="text-white font-medium">
+              <span className="text-white font-medium truncate max-w-[80px] sm:max-w-none">
                 {linkPaths[hoveredFlow].flow.targetChain}
               </span>
             </div>
