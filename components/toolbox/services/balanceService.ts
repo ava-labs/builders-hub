@@ -51,6 +51,9 @@ interface BalanceUpdateCallbacks {
 // Service class for managing balance operations
 class BalanceService {
   private callbacks: BalanceUpdateCallbacks | null = null;
+  private pChainRequestId = 0;
+  private cChainRequestId = 0;
+  private l1RequestIds = new Map<string, number>();
 
 
   constructor(private debounceTime: number = 500) { }
@@ -67,19 +70,23 @@ class BalanceService {
       if (!this.callbacks) return;
       const state = this.callbacks.getState();
 
-      if (state.isLoading.pChain) return;
+      const requestId = ++this.pChainRequestId;
 
       this.callbacks.setLoading('pChain', true);
       try {
         const balance = await this.fetchPChainBalance(state.isTestnet ?? false, state.pChainAddress);
-        this.callbacks.setBalance('pChain', balance);
+        if (requestId === this.pChainRequestId) {
+          this.callbacks.setBalance('pChain', balance);
+        }
       } finally {
-        this.callbacks.setLoading('pChain', false);
+        if (requestId === this.pChainRequestId) {
+          this.callbacks.setLoading('pChain', false);
+        }
       }
     }, this.debounceTime);
 
     this.updatePChainBalance = async () => {
-      await debouncedPChainUpdate();
+      debouncedPChainUpdate();
     };
 
     // Create debounced L1 update function that takes chainId
@@ -87,7 +94,8 @@ class BalanceService {
       if (!this.callbacks) return;
       const state = this.callbacks.getState();
 
-      if (state.isLoading.l1Chains[chainId]) return;
+      const currentRequestId = (this.l1RequestIds.get(chainId) || 0) + 1;
+      this.l1RequestIds.set(chainId, currentRequestId);
 
       this.callbacks.setLoading(chainId, true);
       try {
@@ -96,9 +104,13 @@ class BalanceService {
           state.walletEVMAddress,
           state.publicClient
         );
-        this.callbacks.setBalance(chainId, balance);
+        if (currentRequestId === this.l1RequestIds.get(chainId)) {
+          this.callbacks.setBalance(chainId, balance);
+        }
       } finally {
-        this.callbacks.setLoading(chainId, false);
+        if (currentRequestId === this.l1RequestIds.get(chainId)) {
+          this.callbacks.setLoading(chainId, false);
+        }
       }
     }, this.debounceTime);
 
@@ -109,26 +121,30 @@ class BalanceService {
       if (!debouncedL1Updates.has(chainId)) {
         debouncedL1Updates.set(chainId, createDebouncedL1Update(chainId));
       }
-      await debouncedL1Updates.get(chainId)!();
+      debouncedL1Updates.get(chainId)!();
     };
 
     const debouncedCChainUpdate = debounce(async () => {
       if (!this.callbacks) return;
       const state = this.callbacks.getState();
 
-      if (state.isLoading.cChain) return;
+      const requestId = ++this.cChainRequestId;
 
       this.callbacks.setLoading('cChain', true);
       try {
         const balance = await this.fetchCChainBalance(state.isTestnet ?? false, state.walletEVMAddress);
-        this.callbacks.setBalance('cChain', balance);
+        if (requestId === this.cChainRequestId) {
+          this.callbacks.setBalance('cChain', balance);
+        }
       } finally {
-        this.callbacks.setLoading('cChain', false);
+        if (requestId === this.cChainRequestId) {
+          this.callbacks.setLoading('cChain', false);
+        }
       }
     }, this.debounceTime);
 
     this.updateCChainBalance = async () => {
-      await debouncedCChainUpdate();
+      debouncedCChainUpdate();
     };
   }
 
