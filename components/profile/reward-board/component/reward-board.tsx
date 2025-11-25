@@ -18,26 +18,27 @@ export default async function RewardBoard() {
   const badges = await getAllBadges();
   
   const academyBadges = badges.filter((badge) => badge.category == "academy")?.sort((a, b) => a.id.localeCompare(b.id));
-  // COMMENTED OUT: Hackathon badges feature disabled
-  // const hackathonBadges: Badge[] = badges.filter((badge) => badge.category == "hackathon")?.sort((a, b) => a.id.localeCompare(b.id));
-  // COMMENTED OUT: Points feature disabled
+  const hackathonBadges: Badge[] = badges.filter((badge) => badge.category == "hackathon")?.sort((a, b) => a.id.localeCompare(b.id));
   // const totalPoints = userBadges.reduce((acc, userBadge) => acc + userBadge.points, 0);
   // const hackathonBadgesUnlocked = hackathonBadges.map((badge) => {
   //   const userBadge = userBadges.find((userBadge) => userBadge.badge_id == badge.id);
+    
+  //   const allRequirementsCompleted = userBadge?.requirements && userBadge.requirements.length > 0 &&
+  //     userBadge.requirements.every((requirement) => requirement.unlocked === true);
   //   return {
   //     ...badge,
-  //     is_unlocked: !!userBadge,
+  //     is_unlocked: !!allRequirementsCompleted,
   //     requirements: userBadge?.requirements || badge.requirements,
   //   };
   // });
 
   const academyBadgesUnlocked = academyBadges.map((badge) => {
     const userBadge = userBadges.find((userBadge) => userBadge.badge_id == badge.id);
-    // Only consider badge unlocked if status is approved (not pending)
-    const isUnlocked = userBadge?.status === BadgeAwardStatus.approved;
+    const allRequirementsCompleted = userBadge?.requirements && userBadge.requirements.length > 0 &&
+      userBadge.requirements.every((requirement) => requirement.unlocked === true);
     return {
       ...badge,
-      is_unlocked: isUnlocked,
+      is_unlocked: !!allRequirementsCompleted,
       requirements: userBadge?.requirements || badge.requirements,
     };
 
