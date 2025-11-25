@@ -17,6 +17,7 @@ import { GenesisHighlightProvider, useGenesisHighlight } from "../../components/
 import { SUBNET_EVM_VM_ID } from "@/constants/console";
 import { generateChainConfig, generateDockerCommand, generateConfigFileCommand } from "./node-config";
 import { useNodeConfigHighlighting } from "./useNodeConfigHighlighting";
+import { DockerInstallation } from "../../components/DockerInstallation";
 
 function AvalanchegoDockerInner() {
     const { setHighlightPath, clearHighlight, highlightPath } = useGenesisHighlight();
@@ -33,7 +34,7 @@ function AvalanchegoDockerInner() {
     const [logLevel, setLogLevel] = useState<string>("info");
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
     const [selectedRPCBlockchainId, setSelectedRPCBlockchainId] = useState<string>("");
-    const [minDelayTarget, setMinDelayTarget] = useState<number>(250);
+    const [minDelayTarget, setMinDelayTarget] = useState<number>(500);
     const [configJson, setConfigJson] = useState<string>("");
 
     // Advanced cache settings
@@ -134,7 +135,7 @@ function AvalanchegoDockerInner() {
             setAdminApiEnabled(false);
             setPruningEnabled(true);
             setLogLevel("info");
-            setMinDelayTarget(250); // Fast block times for L1
+            setMinDelayTarget(500); // Default block time for L1
             setAllowUnfinalizedQueries(false);
             // Standard cache sizes for validators
             setTrieCleanCache(512);
@@ -234,7 +235,7 @@ function AvalanchegoDockerInner() {
         setLogLevel("info");
         setSubnetIdError(null);
         setSelectedRPCBlockchainId("");
-        setMinDelayTarget(250);
+        setMinDelayTarget(500);
         setConfigJson("");
         setTrieCleanCache(512);
         setTrieDirtyCache(512);
@@ -272,6 +273,23 @@ function AvalanchegoDockerInner() {
             githubUrl="https://github.com/ava-labs/builders-hub/edit/master/components/toolbox/console/layer-1/AvalancheGoDockerL1.tsx"
         >
             <Steps>
+                <Step>
+                    <DockerInstallation includeCompose={false} />
+
+                    <p className="mt-4">
+                        If you do not want to use Docker, you can follow the instructions{" "}
+                        <a
+                            href="https://github.com/ava-labs/avalanchego?tab=readme-ov-file#installation"
+                            target="_blank"
+                            className="text-blue-600 dark:text-blue-400 hover:underline"
+                            rel="noreferrer"
+                        >
+                            here
+                        </a>
+                        .
+                    </p>
+                </Step>
+
                 <Step>
                     <h3 className="text-xl font-bold mb-4">Select L1</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
@@ -365,7 +383,7 @@ function AvalanchegoDockerInner() {
                                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                                             />
                                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                The minimum delay between blocks (in milliseconds). Maximum: 2000ms. Default: 250ms.
+                                                The minimum delay between blocks (in milliseconds). Maximum: 2000ms. Default: 500ms.
                                             </p>
                                         </div>
                                     )}
