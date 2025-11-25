@@ -148,7 +148,7 @@ You can add your own predeployed contracts by running `forge build` and collecti
 }
 ```
 
-Open a text editor and copy the preceding text into a file called `custom_genesis.json`. For full breakdown of the genesis file, see the [Genesis File](/docs/avalanche-l1s/upgrade/customize-avalanche-l1#genesis).
+Open a text editor and copy the preceding text into a file called `custom_genesis.json`. For full breakdown of the genesis file, see the [Genesis File](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#genesis).
 
 <Callout title="Note">
 The `timestamp` field is the Unix timestamp of the genesis block. `0x677eb2d9` represents
@@ -316,7 +316,7 @@ Interact with Your Avalanche L1[​](#interact-with-your-avalanche-l1 "Direct li
 
 ### Check the Version[​](#check-the-version "Direct link to heading")
 
-You can verify that your Avalanche L1 has deployed correctly by querying the local node to see what Avalanche L1s it's running. You need to use the [`getNodeVersion`](/docs/api-reference/info-api#infogetnodeversion) endpoint. Try running this curl command:
+You can verify that your Avalanche L1 has deployed correctly by querying the local node to see what Avalanche L1s it's running. You need to use the [`getNodeVersion`](/docs/rpcs/other/info-rpc#infogetnodeversion) endpoint. Try running this curl command:
 
 ```bash
 curl --location --request POST 'http://127.0.0.1:9650/ext/info' \

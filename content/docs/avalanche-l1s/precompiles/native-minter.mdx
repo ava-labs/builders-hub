@@ -1,0 +1,142 @@
+---
+title: Native Minter
+description: Manage the minting and burning of native tokens on your Avalanche L1 blockchain.
+---
+
+## Overview
+
+The Native Minter precompile allows authorized addresses to mint additional tokens after network launch. This is useful for:
+
+- Implementing programmatic token emission schedules
+- Providing validator rewards
+- Supporting ecosystem growth initiatives
+- Implementing monetary policy
+
+| Property | Value |
+|----------|-------|
+| **Address** | `0x0200000000000000000000000000000000000001` |
+| **ConfigKey** | `contractNativeMinterConfig` |
+
+## Configuration
+
+You can activate this precompile in your genesis file:
+
+```json
+{
+  "config": {
+    "contractNativeMinterConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
+    }
+  }
+}
+```
+
+## Interface
+
+```solidity
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+ 
+interface INativeMinter {
+  event NativeCoinMinted(address indexed sender, address indexed recipient, uint256 amount);
+  // Mint [amount] number of native coins and send to [addr]
+  function mintNativeCoin(address addr, uint256 amount) external;
+ 
+  // IAllowList
+  event RoleSet(uint256 indexed role, address indexed account, address indexed sender, uint256 oldRole);
+ 
+  // Set [addr] to have the admin role over the precompile contract.
+  function setAdmin(address addr) external;
+ 
+  // Set [addr] to be enabled on the precompile contract.
+  function setEnabled(address addr) external;
+ 
+  // Set [addr] to have the manager role over the precompile contract.
+  function setManager(address addr) external;
+ 
+  // Set [addr] to have no role for the precompile contract.
+  function setNone(address addr) external;
+ 
+  // Read the status of [addr].
+  function readAllowList(address addr) external view returns (uint256 role);
+}
+```
+
+The Native Minter precompile uses the [AllowList interface](/docs/avalanche-l1s/precompiles/allowlist-interface) to restrict access to its functionality.
+
+## Best Practices
+
+1. **Minting Policy**:
+   - Define clear minting guidelines
+   - Use multi-sig for admin control
+   - Implement transparent emission schedules
+   - Monitor total supply changes
+
+2. **Supply Management**:
+   - Balance minting with burning mechanisms
+   - Consider implementing supply caps
+   - Monitor token velocity and distribution
+   - Plan for long-term sustainability
+
+3. **Security Considerations**:
+   - Use multi-sig wallets for admin addresses
+   - Implement time-locks for large mints
+   - Regular audits of minting activity
+   - Monitor for unusual minting patterns
+
+4. **Validator Incentives**:
+   - Design sustainable reward mechanisms
+   - Balance inflation with network security
+   - Consider validator stake requirements
+   - Plan for long-term validator participation
+
+## Example Implementations
+
+### Programmatic Emission Schedule
+
+```solidity
+contract EmissionSchedule {
+    INativeMinter public constant NATIVE_MINTER = INativeMinter(0x0200000000000000000000000000000000000001);
+    uint256 public constant EMISSION_RATE = 1000 * 1e18; // 1000 tokens per day
+    uint256 public constant EMISSION_DURATION = 365 days;
+    uint256 public immutable startTime;
+
+    constructor() {
+        startTime = block.timestamp;
+    }
+
+    function mintDailyEmission() external {
+        require(block.timestamp < startTime + EMISSION_DURATION, "Emission ended");
+        NATIVE_MINTER.mintNativeCoin(address(this), EMISSION_RATE);
+        // Distribution logic here
+    }
+}
+```
+
+### Validator Reward Contract
+
+```solidity
+contract ValidatorRewards {
+    INativeMinter public constant NATIVE_MINTER = INativeMinter(0x0200000000000000000000000000000000000001);
+    uint256 public constant REWARD_RATE = 10 * 1e18; // 10 tokens per block
+
+    function distributeRewards(address[] calldata validators) external {
+        uint256 reward = REWARD_RATE / validators.length;
+        for (uint i = 0; i < validators.length; i++) {
+            NATIVE_MINTER.mintNativeCoin(validators[i], reward);
+        }
+    }
+}
+```
+
+## Implementation
+
+You can find the Native Minter implementation in the [subnet-evm repository](https://github.com/ava-labs/subnet-evm/blob/master/precompile/contracts/nativeminter/contract.go).
+
+## Interacting with the Precompile
+
+For information on how to interact with this precompile, see:
+- [Interacting with Precompiles](/docs/avalanche-l1s/precompiles/interacting-with-precompiles)
+- [Native Minter Console](/console/l1-tokenomics/native-minter)
+

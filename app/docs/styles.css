@@ -359,6 +359,17 @@ body.search-open #docs-subnav {
   display: none !important;
 }
 
+/* Fix sidebar dropdown icon centering */
+body[data-layout="docs"] #nd-sidebar button[aria-haspopup] > div:first-child {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+body[data-layout="docs"] #nd-sidebar button[aria-haspopup] > div:first-child svg {
+  transform: translateY(-5px) !important;
+}
+
 /* Reduce sidebar horizontal padding and push down below subnavbar - DOCS ONLY */
 body[data-layout="docs"] #nd-sidebar,
 body[data-layout="docs"] [data-sidebar="sidebar"] {

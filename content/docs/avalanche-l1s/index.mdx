@@ -1,42 +1,109 @@
 ---
-title: Getting Started
-description: As you begin your Avalanche L1 journey, it's useful to look at the lifecycle of taking an Avalanche L1 from idea to production.
+title: Avalanche L1s
+description: Explore the multi-chain architecture of Avalanche ecosystem.
 ---
 
-## Figure Out Your Needs
+An Avalanche L1 is a sovereign network which defines its own rules regarding its membership and token economics. It is composed of a dynamic subset of Avalanche validators working together to achieve consensus on the state of one or more blockchains. Each blockchain is validated by exactly one Avalanche L1, while an Avalanche L1 can validate many blockchains.
 
-The first step of planning your Avalanche L1 is determining your application's needs. What features do you need that the Avalanche C-Chain doesn't provide? 
+Avalanche's [Primary Network](/docs/primary-network) is a special Avalanche L1 running three blockchains:
 
-### When to Choose an Avalanche L1
+- The Platform Chain [(P-Chain)](/docs/primary-network#p-chain-platform-chain)
+- The Contract Chain [(C-Chain)](/docs/primary-network#c-chain-contract-chain)
+- The Exchange Chain [(X-Chain)](/docs/primary-network#x-chain-exchange-chain)
 
-Building your own Avalanche L1 is a great choice when your project demands capabilities beyond those offered by the C-Chain. For instance, if you need the flexibility to use a custom gas token, require strict access control (for example, by only permitting users who are KYC-verified), or wish to implement a unique transaction fee model, then an Avalanche L1 can provide the necessary options. In addition, if having a completely sovereign network with its own governance and consensus mechanisms is central to your vision, an Avalanche L1 is likely the best path forward.
+![image](/images/subnet1.png)
 
-### Decide What Type of Avalanche L1 You Want
+<Callout title="Note">
+Every validator of an Avalanche L1 **must** sync the P-Chain of the Primary Network for interoperability.
+</Callout>
 
-After confirming that an Avalanche L1 suits your project's requirements, the next step is to select the type of virtual machine (VM) that will power your blockchain. Broadly, you can choose among three options.
+Node operators that validate an Avalanche L1 with multiple chains do not need to run multiple machines for validation. For example, the Primary Network is an Avalanche L1 with three coexisting chains, all of which can be validated by a single node, or a single machine.
 
-#### EVM-Based Avalanche L1s
+## Advantages
 
-The majority of Avalanche L1s are utilizing the Ethereum Virtual Machine. They support Solidity smart contracts and standard [Ethereum APIs](/docs/api-reference/c-chain/api#ethereum-apis). Ava Labs' implementation, [Subnet-EVM](https://github.com/ava-labs/subnet-evm), is the most mature option available. It is recognized for its robust developer tooling and regular updates, making it the safest and most popular choice for building your blockchain.
+### Independent Networks
 
-#### Custom Avalanche L1s
+- Avalanche L1s use virtual machines to specify their own execution logic, determine their own fee regime, maintain their own state, facilitate their own networking, and provide their own security.
+- Each Avalanche L1's performance is isolated from other Avalanche L1s in the ecosystem, so increased usage on one Avalanche L1 won't affect another.
+- Avalanche L1s can have their own token economics with their own native tokens, fee markets, and incentives determined by the Avalanche L1 deployer.
+- One Avalanche L1 can host multiple blockchains with customized [virtual machines](/docs/primary-network/virtual-machines).
 
-Custom Avalanche L1s offer an open-ended interface that enables you to build any virtual machine you envision. Whether you fork an existing VM such as Subnet-EVM, integrate a non-Avalanche-native VM like Solana's, or build a completely new VM using any programming language you prefer, the choice is yours. For guidance on how to get started with VM development, see [Introduction to VMs](/docs/virtual-machines).
+### Native Interoperability
 
-### Determine Tokenomics
+Avalanche Warp Messaging enables native cross-Avalanche L1 communication and allows Virtual Machine (VM) developers to implement arbitrary communication protocols between any two Avalanche L1s.
 
-Avalanche L1s are powered by gas tokens, and building your own blockchain gives you the flexibility to determine which token to use and how to distribute it. Whether you decide to leverage AVAX, adapt an existing C-Chain token, or launch a new token entirely, you'll need to plan the allocation of tokens for validator rewards, establish an emission schedule, and decide whether transaction fees should be burned or redistributed as block rewards.
+### Accommodate App-Specific Requirements
 
-### Decide how to Customize Your Avalanche L1
+Different blockchain-based applications may require validators to have certain properties such as large amounts of RAM or CPU power.
 
-Once you have selected your virtual machine, further customization may be necessary to align the blockchain with your specific needs. This might involve configuring the token allocation in the genesis block, setting gas fee rates, or making changes to the VM's behavior through precompiles. Such customizations often require careful iterative testing to perfect. For detailed instructions, refer to [Customize Your EVM-Powered Avalanche L1](/docs/avalanche-l1s/upgrade/customize-avalanche-l1).
+an Avalanche L1 could require that validators meet certain [hardware requirements](/docs/nodes/system-requirements#hardware-and-operating-systems) so that the application doesn't suffer from low performance due to slow validators.
 
-### Available Subnet-EVM Precompiles
+### Launch Networks Designed With Compliance
 
-The Subnet-EVM provides several precompiled contracts that you can use in your Avalanche L1 blockchain:
+Avalanche's L1 architecture makes regulatory compliance manageable. As mentioned above, an Avalanche L1 may require validators to meet a set of requirements.
 
-- [AllowList Interface](/docs/avalanche-l1s/evm-configuration/allowlist) - A reusable interface for permission management
-- [Permissions](/docs/avalanche-l1s/evm-configuration/permissions) - Control contract deployment and transaction submission
-- [Tokenomics](/docs/avalanche-l1s/evm-configuration/tokenomics) - Manage native token supply and minting
-- [Transaction Fees & Validator Rewards](/docs/avalanche-l1s/evm-configuration/transaction-fees) - Configure fee parameters and reward mechanisms
-- [Warp Messenger](/docs/avalanche-l1s/evm-configuration/warpmessenger) - Perform cross-chain operations
+Some examples of requirements the creators of an Avalanche L1 may choose include:
+
+- Validators must be located in a given country.
+- Validators must pass KYC/AML checks.
+- Validators must hold a certain license.
+
+### Control Privacy of On-Chain Data
+
+Avalanche L1s are ideal for organizations interested in keeping their information private.
+
+Institutions conscious of their stakeholders' privacy can create a private Avalanche L1 where the contents of the blockchains would be visible only to a set of pre-approved validators.
+
+Define this at creation with a [single parameter](/docs/nodes/configure/avalanche-l1-configs#private-avalanche-l1).
+
+### Validator Sovereignty
+
+In a heterogeneous network of blockchains, some validators will not want to validate certain blockchains because they simply have no interest in those blockchains.
+
+The Avalanche L1 model enables validators to concern themselves only with blockchain networks they choose to participate in. This greatly reduces the computational burden on validators.
+
+## Why Build Your Own Avalanche L1
+
+There are many advantages to running your own Avalanche L1. If you find one or more of these a good match for your project then an Avalanche L1 might be a good solution for you.
+
+### We Want Our Own Gas Token
+
+C-Chain is an Ethereum Virtual Machine (EVM) chain; it requires the gas fees to be paid in its native token. That is, the application may create its own utility tokens (ERC-20) on the C-Chain, but the gas must be paid in AVAX. In the meantime, [Subnet-EVM](https://github.com/ava-labs/subnet-evm) effectively creates an application-specific EVM-chain with full control over native(gas) coins. The operator can pre-allocate the native tokens in the chain genesis, and mint more using the [Subnet-EVM](https://github.com/ava-labs/subnet-evm) precompile contract. And these fees can be either burned (as AVAX burns in C-Chain) or configured to be sent to an address which can be a smart contract.
+
+Note that the Avalanche L1 gas token is specific to the application in the chain, thus unknown to the external parties. Moving assets to other chains requires trusted bridge contracts (or upcoming cross Avalanche L1 communication feature).
+
+### We Want Higher Throughput
+
+The primary goal of the gas limit on C-Chain is to restrict the block size and therefore prevent network saturation. If a block can be arbitrarily large, it takes longer to propagate, potentially degrading the network performance. The C-Chain gas limit acts as a deterrent against any system abuse but can be quite limiting for high throughput applications. Unlike C-Chain, Avalanche L1 can be single-tenant, dedicated to the specific application, and thus host its own set of validators with higher bandwidth requirements, which allows for a higher gas limit thus higher transaction throughput. Plus, [Subnet-EVM](https://github.com/ava-labs/subnet-evm) supports fee configuration upgrades that can be adaptive to the surge in application traffic.
+
+Avalanche L1 workloads are isolated from the Primary Network; which means, the noisy neighbor effect of one workload (for example NFT mint on C-Chain) cannot destabilize the Avalanche L1 or surge its gas price. This failure isolation model in the Avalanche L1 can provide higher application reliability.
+
+### We Want Strict Access Control
+
+The C-Chain is open and permissionless where anyone can deploy and interact with contracts. However, for regulatory reasons, some applications may need a consistent access control mechanism for all on-chain transactions. With [Subnet-EVM](https://github.com/ava-labs/subnet-evm), an application can require that "only authorized users may deploy contracts or make transactions." Allow-lists are only updated by the administrators, and the allow list itself is implemented within the precompile contract, thus more transparent and auditable for compliance matters.
+
+### We Need EVM Customization
+
+If your project is deployed on the C-Chain then your execution environment is dictated by the setup of the C-Chain. Changing any of the execution parameters means that the configuration of the C-Chain would need to change, and that is expensive, complex and difficult to change. So if your project needs some other capabilities, different execution parameters or precompiles that C-Chain does not provide, then Avalanche L1s are a solution you need. You can configure the EVM in an Avalanche L1 to run however you want, adding precompiles, and setting runtime parameters to whatever your project needs.
+
+### We Need Custom Validator Management
+
+With the Etna upgrade, L1s can implement their own validator management logic through a _ValidatorManager_ smart contract. This gives you complete control over your validator set, allowing you to define custom staking rules, implement permissionless proof-of-stake with your own token, or create permissioned proof-of-authority networks. The validator management can be handled directly through smart contracts, giving you programmatic control over validator selection and rewards distribution.
+
+### We Want to Build a Sovereign Network
+
+L1s on Avalanche are truly sovereign networks that operate independently without relying on other systems. You have complete control over your network's consensus mechanisms, transaction processing, and security protocols. This independence allows you to scale horizontally without dependencies on other networks while maintaining full control over your network parameters and upgrades. This sovereignty is particularly important for projects that need complete autonomy over their blockchain's operation and evolution.
+
+## When to Choose an Avalanche L1
+
+Here we presented some considerations in favor of running your own Avalanche L1 vs. deploying on the C-Chain.
+
+If an application has relatively low transaction rate and no special circumstances that would make the C-Chain a non-starter, you can begin with C-Chain deployment to leverage existing technical infrastructure, and later expand to an Avalanche L1. That way you can focus on working on the core of your project and once you have a solid product/market fit and have gained enough traction that the C-Chain is constricting you, plan a move to your own Avalanche L1.
+
+Of course, we're happy to talk to you about your architecture and help you choose the best path forward. Feel free to reach out to us on [Discord](https://chat.avalabs.org/) or other [community channels](https://www.avax.network/community) we run.
+
+## Develop Your Own Avalanche L1
+
+Avalanche L1s on Avalanche are deployed by default with [Subnet-EVM](https://github.com/ava-labs/subnet-evm#subnet-evm), a fork of go-ethereum. It implements the Ethereum Virtual Machine and supports Solidity smart contracts as well as most other Ethereum client functionality.
+
+To get started, check out our [L1 Toolbox](/tools/l1-toolbox) or the tutorials in the [Avalanche CLI](/docs/tooling/avalanche-cli) section.

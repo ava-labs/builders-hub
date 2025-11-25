@@ -17,7 +17,7 @@ export const Sponsors = () => {
 		{
 			name: "Avalanche",
 			image: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
-			link: "https://www.avax.network/",
+			link: "/docs/primary-network",
 			type: "Primary"
 		},
 		// Primary networks

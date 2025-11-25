@@ -13,12 +13,12 @@ The document [Upgrade an Avalanche L1](/docs/avalanche-l1s/upgrade/consideration
 It's very important that you have read and understood the previously linked document. Failing to do so can potentially grind your network to a halt.
 </Callout>
 
-This tutorial assumes that you have already [installed](/docs/tooling/get-avalanche-cli) Avalanche-CLI. It assumes you have already created and deployed an Avalanche L1 called `testblockchain`.
+This tutorial assumes that you have already [installed](/docs/tooling/avalanche-cli) Avalanche-CLI. It assumes you have already created and deployed an Avalanche L1 called `testblockchain`.
 
 Generate the Upgrade File[​](#generate-the-upgrade-file "Direct link to heading")
 ---------------------------------------------------------------------------------
 
-The [Precompiles](/docs/avalanche-l1s/upgrade/customize-avalanche-l1#network-upgrades-enabledisable-precompiles) documentation describes what files the network upgrade requires, and where to place them.
+The [Precompiles](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#network-upgrades-enabledisable-precompiles) documentation describes what files the network upgrade requires, and where to place them.
 
 To generate a valid `upgrade.json` file, run:
 
@@ -33,7 +33,7 @@ avalanche blockchain upgrade generate testblockchain
 The provided Avalanche L1 name "testblockchain" does not exist
 ```
 
-Again, it makes no sense to try the upgrade command if the Avalanche L1 doesn't exist. If that's the case, please go ahead and [create](/docs/tooling/create-avalanche-l1) the Avalanche L1 first.
+Again, it makes no sense to try the upgrade command if the Avalanche L1 doesn't exist. If that's the case, please go ahead and [create](/docs/tooling/avalanche-cli) the Avalanche L1 first.
 
 If the Avalanche L1 definition exists, the tool launches a wizard. It may feel a bit redundant, but you first see some warnings, to draw focus to the dangers involved:
 
@@ -71,11 +71,11 @@ Use the arrow keys to navigate: ↓ ↑ → ←
     Transaction Allow List
 ```
 
-Refer to [Precompiles](/docs/avalanche-l1s/upgrade/customize-avalanche-l1#precompiles) for a description of available precompiles and how to configure them.
+Refer to [Precompiles](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#precompiles) for a description of available precompiles and how to configure them.
 
 Make sure you understand precompiles thoroughly and how to configure them before attempting to continue.
 
-For every precompile in the list, the wizard guides you to provide correct information by prompting relevant questions. For the sake of this tutorial, select `Transaction Allow List`. The document [Restricting Who Can Submit Transactions](/docs/avalanche-l1s/upgrade/customize-avalanche-l1#restricting-who-can-submit-transactions) describes what this precompile is about.
+For every precompile in the list, the wizard guides you to provide correct information by prompting relevant questions. For the sake of this tutorial, select `Transaction Allow List`. The document [Restricting Who Can Submit Transactions](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#restricting-who-can-submit-transactions) describes what this precompile is about.
 
 ```bash
 ✔ Transaction Allow List
@@ -254,7 +254,7 @@ Global Flags:
       --log-level string   log level for the application (default "ERROR")
 ```
 
-Go ahead and [deploy](/docs/tooling/create-deploy-avalanche-l1s/deploy-locally) first your Avalanche L1 if that's your case.
+Go ahead and [deploy](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-locally) first your Avalanche L1 if that's your case.
 
 If you already had deployed the Avalanche L1 instead, you see something like this:
 
