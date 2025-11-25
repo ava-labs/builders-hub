@@ -12,9 +12,10 @@ import { ReverseProxySetup } from "@/components/toolbox/components/ReverseProxyS
 import { Button } from "@/components/toolbox/components/Button";
 import { SyntaxHighlightedJSON } from "@/components/toolbox/components/genesis/SyntaxHighlightedJSON";
 import { GenesisHighlightProvider, useGenesisHighlight } from "@/components/toolbox/components/genesis/GenesisHighlightContext";
-import { generateChainConfig } from "@/components/toolbox/console/layer-1/node-config";
+import { generateChainConfig, generateConfigFileCommand } from "@/components/toolbox/console/layer-1/node-config";
 import { useNodeConfigHighlighting } from "@/components/toolbox/console/layer-1/useNodeConfigHighlighting";
-import { C_CHAIN_ID, generateDockerCommand } from "@/components/toolbox/console/layer-1/create/config";
+import { C_CHAIN_ID } from "@/components/toolbox/console/layer-1/create/config";
+import { getContainerVersions } from "@/components/toolbox/utils/containerVersions";
 
 function AvalancheGoDockerPrimaryNetworkInner() {
     const { setHighlightPath, clearHighlight, highlightPath } = useGenesisHighlight();
@@ -183,22 +184,50 @@ function AvalancheGoDockerPrimaryNetworkInner() {
         setNodeIsReady(false);
     };
 
-    // Generate Docker command for Primary Network
+    // Generate Docker command for Primary Network (using file-based config)
     const getDockerCommand = () => {
         try {
-            return generateDockerCommand(
-                [], // No subnets for Primary Network
-                isRPC,
-                avalancheNetworkID,
-                C_CHAIN_ID,
-                "", // No custom VM ID for Primary Network
-                enableDebugTrace,
-                pruningEnabled,
-                true, // isPrimaryNetwork = true
-                nodeType === "validator" ? minDelayTarget : null
-            );
+            const isTestnet = avalancheNetworkID === 5;
+            const versions = getContainerVersions(isTestnet);
+            
+            const env: Record<string, string> = {
+                AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns",
+                AVAGO_HTTP_HOST: "0.0.0.0",
+                AVAGO_CHAIN_CONFIG_DIR: "/root/.avalanchego/configs/chains"
+            };
+
+            // Set network ID
+            if (avalancheNetworkID === 5) {
+                env.AVAGO_NETWORK_ID = "fuji";
+            }
+
+            // Configure RPC settings
+            if (isRPC) {
+                env.AVAGO_HTTP_ALLOWED_HOSTS = '"*"';
+            }
+
+            const chunks = [
+                "docker run -it -d",
+                "--name avago",
+                `-p ${isRPC ? "" : "127.0.0.1:"}9650:9650 -p 9651:9651`,
+                "-v ~/.avalanchego:/root/.avalanchego",
+                ...Object.entries(env).map(([key, value]) => `-e ${key}=${value}`),
+                `avaplatform/avalanchego:${versions['avaplatform/avalanchego']}`
+            ];
+
+            return chunks.map(chunk => `    ${chunk}`).join(" \\\n").trim();
         } catch (error) {
             return `# Error: ${(error as Error).message}`;
+        }
+    };
+
+    // Generate the config file command
+    const getConfigFileCommand = () => {
+        try {
+            const config = JSON.parse(configJson);
+            return generateConfigFileCommand(C_CHAIN_ID, config);
+        } catch {
+            return "# Error generating config file command";
         }
     };
 
@@ -854,12 +883,49 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                     </Step>
 
                     <Step>
+                        <h3 className="text-xl font-bold mb-4">Create Configuration File</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                            Run this command on your server to create the C-Chain configuration file:
+                        </p>
+
+                        <DynamicCodeBlock lang="bash" code={getConfigFileCommand()} />
+
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                            This creates the configuration file at <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">~/.avalanchego/configs/chains/{C_CHAIN_ID}/config.json</code>
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Read the documentation for more information on the configuration options. {" "}
+                            <a
+                                href="https://build.avax.network/docs/nodes/configure/configs-flags"
+                                target="_blank"
+                                className="text-blue-600 dark:text-blue-400 hover:underline"
+                                rel="noreferrer"
+                            >
+                                AvalancheGo configuration
+                            </a>
+                            {" "}and{" "}
+                            <a
+                                href="https://build.avax.network/docs/nodes/chain-configs/c-chain"
+                                target="_blank"
+                                className="text-blue-600 dark:text-blue-400 hover:underline"
+                                rel="noreferrer"
+                            >
+                                C-Chain configuration
+                            </a>
+                        </p>
+                    </Step>
+
+                    <Step>
                     <h3 className="text-xl font-bold mb-4">Run Docker Command</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Run the following Docker command to start your Primary Network node:
+                        Start the node using Docker:
                     </p>
 
                     <DynamicCodeBlock lang="bash" code={getDockerCommand()} />
+
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                        The container will read the config from <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">~/.avalanchego/configs/chains/{C_CHAIN_ID}/config.json</code> via the mounted volume.
+                    </p>
 
                     <Accordions type="single" className="mt-4">
                             <Accordion title="Running Multiple Nodes on the same machine">
