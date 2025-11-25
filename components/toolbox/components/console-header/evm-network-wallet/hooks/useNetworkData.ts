@@ -11,6 +11,7 @@ export function useNetworkData() {
   const balances = useBalances()
   const { isTestnet, chainId: walletChainId } = useNetworkInfo()
   const l1Balances = useWalletStore((state) => state.balances.l1Chains)
+  const pChainAddress = useWalletStore((state) => state.pChainAddress)
 
   // Extract individual balance values for backward compatibility
   const { cChain: cChainBalance } = balances
@@ -19,11 +20,11 @@ export function useNetworkData() {
 
   // Update all L1 balances when l1List changes or wallet connects
   useEffect(() => {
-    if (walletEVMAddress && l1List && l1List.length > 0) {
+    if (walletEVMAddress && pChainAddress && l1List && l1List.length > 0) {
       // Update balances for all L1s using the balance service
       balanceService.updateAllBalancesWithAllL1s(l1List)
     }
-  }, [l1List, walletEVMAddress])
+  }, [l1List, walletEVMAddress, pChainAddress])
 
   // Determine current network and balance
   const currentNetwork = useMemo(() => {

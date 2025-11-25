@@ -1,5 +1,6 @@
 import { getPChainBalance, getNativeTokenBalance, getChains } from '../coreViem/utils/glacier';
 import { avalancheFuji, avalanche } from 'viem/chains';
+import { networkIDs } from '@avalabs/avalanchejs';
 
 // Local debounce function
 function debounce<T extends (...args: any[]) => any>(
@@ -40,6 +41,7 @@ interface BalanceUpdateCallbacks {
     walletChainId: number;
     walletEVMAddress: string;
     publicClient: any;
+    avalancheNetworkID?: number;
     isLoading: {
       pChain: boolean;
       cChain: boolean;
@@ -74,7 +76,12 @@ class BalanceService {
 
       this.callbacks.setLoading('pChain', true);
       try {
-        const balance = await this.fetchPChainBalance(state.isTestnet ?? false, state.pChainAddress);
+        if (!state.pChainAddress) {
+          return;
+        }
+
+        const network = this.resolvePChainNetwork(state);
+        const balance = await this.fetchPChainBalance(network, state.pChainAddress);
         if (requestId === this.pChainRequestId) {
           this.callbacks.setBalance('pChain', balance);
         }
@@ -149,11 +156,24 @@ class BalanceService {
   }
 
   // P-Chain balance fetching
-  async fetchPChainBalance(isTestnet: boolean, pChainAddress: string): Promise<number> {
+  private resolvePChainNetwork(state: ReturnType<BalanceUpdateCallbacks['getState']>): 'testnet' | 'mainnet' {
+    if (state.walletChainId === avalancheFuji.id) return 'testnet';
+    if (state.walletChainId === avalanche.id) return 'mainnet';
+
+    if (typeof state.isTestnet === 'boolean') {
+      return state.isTestnet ? 'testnet' : 'mainnet';
+    }
+
+    if (state.avalancheNetworkID === networkIDs.FujiID) return 'testnet';
+    if (state.avalancheNetworkID === networkIDs.MainnetID) return 'mainnet';
+
+    return 'mainnet';
+  }
+
+  async fetchPChainBalance(network: 'testnet' | 'mainnet', pChainAddress: string): Promise<number> {
     if (!pChainAddress) return 0;
 
     try {
-      const network = isTestnet ? "testnet" : "mainnet";
       const response = await getPChainBalance(network, pChainAddress);
       return Number(response.balances.unlockedUnstaked[0]?.amount || 0) / 1e9;
     } catch (error) {
