@@ -10,7 +10,7 @@ export type Course = {
     languages: string[];
     tools: string[];
     instructors: string[];
-    category: "Fundamentals" | "Smart Contract Development" | "L1 Development" | "Interoperability" | "Codebase";
+    category: "Fundamentals" | "Smart Contract Development" | "L1 Development" | "Interoperability" | "Entrepreneur";
     certificateTemplate?: string;
 };
 
@@ -54,6 +54,19 @@ const officialCourses: Course[] = [
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
+        name: "x402 Payment Infrastructure",
+        description: "Learn about the x402 protocol for instant, permissionless HTTP-native payments on Avalanche",
+        slug: "x402-payment-infrastructure",
+        icon: <Coins />,
+        status: "featured",
+        duration: "2 hours",
+        languages: ["JavaScript", "Typescript"],
+        tools: ["Thirdweb x402", "PayAI", "Ultravioleta DAO", "x402-rs"],
+        instructors: ["Federico Nardelli"],
+        category: "Fundamentals",
+        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
+    },
+    {
         name: "Interchain Messaging",
         description: "Utilize Avalanche Interchain Messaging to build cross-chain dApps in the Avalanche network",
         slug: "interchain-messaging",
@@ -67,11 +80,24 @@ const officialCourses: Course[] = [
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
+        name: "ERC-20 to ERC-20 Bridge",
+        description: "Learn how to bridge ERC-20 tokens between Avalanche L1s using Interchain Token Transfer",
+        slug: "erc20-bridge",
+        icon: <ArrowLeftRight />,
+        status: "featured",
+        duration: "2 hours",
+        tools: ["ICM", "Foundry"],
+        languages: ["Solidity"],
+        instructors: ["Martin Eckardt", "Andrea Vargas", "Ash", "Owen Wahlgren", "Sarp"],
+        category: "Interoperability",
+        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
+    },
+    {
         name: "Interchain Token Transfer",
         description: "Deploy Avalanche Interchain Token Transfer to transfer assets between Avalanche blockchains",
         slug: "interchain-token-transfer",
         icon: <ArrowLeftRight />,
-        status: "featured",
+        status: "normal",
         duration: "2.5 hours",
         tools: ["ICM", "Foundry"],
         languages: ["Solidity"],
@@ -88,7 +114,7 @@ const officialCourses: Course[] = [
         status: "featured",
         tools: ["Avalanche CLI"],
         languages: ["Go"],
-        instructors: ["Martin Eckardt", "Ash"], // + Usman
+        instructors: ["Martin Eckardt", "Ash"],
         category: "L1 Development",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
@@ -191,9 +217,9 @@ const officialCourses: Course[] = [
         status: "featured",
         duration: "1 hour",
         languages: [],
-        tools: ["Codebase"],
+        tools: ["Entrepreneur"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
-        category: "Codebase",
+        category: "Entrepreneur",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_Foundations.pdf"
     },
     {
@@ -204,9 +230,9 @@ const officialCourses: Course[] = [
         status: "featured",
         duration: "1 hour",
         languages: [],
-        tools: ["Codebase"],
+        tools: ["Entrepreneur"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
-        category: "Codebase",
+        category: "Entrepreneur",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_GTM.pdf"
     },
     {
@@ -217,9 +243,9 @@ const officialCourses: Course[] = [
         status: "featured",
         duration: "1 hour",
         languages: [],
-        tools: ["Codebase"],
+        tools: ["Entrepreneur"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
-        category: "Codebase",
+        category: "Entrepreneur",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_Community.pdf"
     },
     {
@@ -230,9 +256,9 @@ const officialCourses: Course[] = [
         status: "featured",
         duration: "1 hour",
         languages: [],
-        tools: ["Codebase"],
+        tools: ["Entrepreneur"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
-        category: "Codebase",
+        category: "Entrepreneur",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_Fundraising.pdf"
     },
     {
@@ -290,7 +316,7 @@ const ecosystemCourses: Course[] = [
    }*/
 ];
 
-const codebaseEntrepreneurCourses = officialCourses.filter((course) => course.category === "Codebase");
+const entrepreneurCourses = officialCourses.filter((course) => course.category === "Entrepreneur");
 
 // Helper function to create course configuration mappings
 export const getCourseConfig = () => {
@@ -312,7 +338,7 @@ export const getCourseConfig = () => {
 export const getCourseNameMapping = () => {
     const mapping: Record<string, string> = {};
     
-    codebaseEntrepreneurCourses.forEach(course => {
+    entrepreneurCourses.forEach(course => {
         if (course.certificateTemplate) {
             mapping[course.slug] = course.name;
         }
@@ -322,9 +348,9 @@ export const getCourseNameMapping = () => {
 };
 
 export default {
-    official: officialCourses.filter((course) => ["normal", "featured"].includes(course.status) && course.category !== "Codebase"),
-    official_featured: officialCourses.filter((course) => course.status === "featured" && course.category !== "Codebase"),
-    codebaseEntrepreneur: codebaseEntrepreneurCourses,
+    official: officialCourses.filter((course) => ["normal", "featured"].includes(course.status) && course.category !== "Entrepreneur"),
+    official_featured: officialCourses.filter((course) => course.status === "featured" && course.category !== "Entrepreneur"),
+    avalancheEntrepreneur: entrepreneurCourses,
     ecosystem: ecosystemCourses,
 };
 

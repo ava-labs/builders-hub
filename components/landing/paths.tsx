@@ -25,7 +25,7 @@ const paths = [
     title: "Launch an L1",
     description: "Launch your own L1",
     icon: Rocket,
-    href: "/academy/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1"
+    href: "/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1"
   },
   {
     id: 3,

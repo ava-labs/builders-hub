@@ -1,0 +1,13 @@
+{
+  "pages": [
+    "avalanche-fundamentals",
+    "permissioned-l1s",
+    "l1-native-tokenomics",
+    "permissionless-l1s",
+    "interchain-messaging",
+    "interchain-token-transfer",
+    "erc20-bridge",
+    "customizing-evm"
+  ]
+}
+

@@ -17,7 +17,7 @@
     "subnetId": "TfTBHvcxpBfxPntMpadskcZTH8AG5rgkrNyz2DzeByNMsZkMo",
     "slug": "animalia",
     "color": "#10B981",
-    "category": "General",
+    "category": "Gaming",
     "explorers": [
       {
         "name": "Snowtrace",
@@ -32,7 +32,7 @@
     "subnetId": "25VdGtdQPejyffNLpTqh4BH2NABXT8Zxup6ee3B4htrMryofUB",
     "slug": "artery",
     "color": "#8B5CF6",
-    "category": "General",
+    "category": "Gaming",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -85,7 +85,7 @@
     "subnetId": "2r7mmEKg3R2gTD22TtErn8KD8TmLeSjVXHdwMpH2S9BESUxH7q",
     "slug": "bango",
     "color": "#EC4899",
-    "category": "General",
+    "category": "Gaming",
     "explorers": [
     ]
   },
@@ -96,7 +96,7 @@
     "subnetId": "4Wuefof5Lp2v5KfmJRnsGJz9HPX4UzWP7DZC5SyhQcXRQkyPp",
     "slug": "bangochain",
     "color": "#6366F1",
-    "category": "General",
+    "category": "Gaming",
     "explorers": [
     ]
   },
@@ -107,7 +107,7 @@
     "subnetId": "eYwmVU67LmSfZb1RwqCMhBYkFyG8ftxn6jAwqzFmxC9STBWLC",
     "slug": "beam",
     "color": "#14B8A6",
-    "category": "General",
+    "category": "Gaming",
     "explorers": [
       {
         "name": "Snowtrace",
@@ -126,7 +126,7 @@
     "subnetId": "23dqTMHK186m4Rzcn1ukJdmHy13nqido4LjTp5Kh9W6qBKaFib",
     "slug": "binary-holdings",
     "color": "#F97316",
-    "category": "General",
+    "category": "Telecom",
     "explorers": [
       {
         "name": "Cogitus Explorer",
@@ -141,7 +141,7 @@
     "subnetId": "j6HXQWdpRhX7yHMWLehUyYDjypHa455vP5tuiXZ81nkPgveFV",
     "slug": "blaze",
     "color": "#EF4444",
-    "category": "General",
+    "category": "SocialFi",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -156,7 +156,7 @@
     "subnetId": "yPUx56ffTBML1QfomcBvwfBxfE3LSgqkBNfxTCpx5dr4NNFGB",
     "slug": "blitz",
     "color": "#A855F7",
-    "category": "General",
+    "category": "Gaming",
     "explorers": [
       {
         "name": "Snowtrace",
@@ -195,28 +195,6 @@
     ]
   },
   {
-    "chainId": "2053",
-    "chainName": "Certalink",
-    "chainLogoURI": "",
-    "subnetId": "2hZa4RMWAkiQAQ5zpbPSkNziYSHyCqBGeKNnbqWfJL2GKmy8eq",
-    "slug": "certalink",
-    "color": "#F43F5E",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
-    "chainId": "33210",
-    "chainName": "Cloudverse",
-    "chainLogoURI": "",
-    "subnetId": "4YtJVNm6KnytRaEDeezC3mHK5FnsP75Sjgxa5eiav3sxNUQD9",
-    "slug": "cloudverse",
-    "color": "#0EA5E9",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
     "chainId": "235235",
     "chainName": "CodeNekt",
     "chainLogoURI": "https://f005.backblazeb2.com/file/tracehawk-prod/logo/codenekt/Light.png",
@@ -249,7 +227,7 @@
     "subnetId": "WChFQ1twkXBLxZGo4qojC9AgizFrRdMRnPCK9FZmisY7z6pUs",
     "slug": "cx",
     "color": "#F59E0B",
-    "category": "General",
+    "category": "Gaming",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -284,17 +262,6 @@
     ]
   },
   {
-    "chainId": "75685",
-    "chainName": "Demo L1",
-    "chainLogoURI": "",
-    "subnetId": "2ZKrfJUwXDsp27ggtxTqhWnzV87GpHppu2XJsv2nmFkHefHZZ5",
-    "slug": "demol1",
-    "color": "#10B981",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
     "chainId": "20250320",
     "chainName": "Dera Chain",
     "chainLogoURI": "",
@@ -312,7 +279,7 @@
     "subnetId": "wenKDikJWAYQs3f2v9JhV86fC6kHZwkFZsuUBftnmgZ4QXPnu",
     "slug": "dexalot",
     "color": "#F59E0B",
-    "category": "General",
+    "category": "Finance",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -331,7 +298,7 @@
     "subnetId": "2Ee4oBUute1PV5XaeS4b256eLH98r4NE8YgzX5nSX4cUxvtgre",
     "slug": "dinari-financial-network",
     "color": "#E57373",
-    "category": "General",
+    "category": "Finance",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -346,7 +313,7 @@
     "subnetId": "Vn3aX6hNRstj5VHHm63TCgPNaeGnRSqCYXQqemSqDd2TQH4qJ",
     "slug": "defikingdoms",
     "color": "#EC4899",
-    "category": "General",
+    "category": "Gaming",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -365,7 +332,7 @@
     "subnetId": "nQCwF6V9y8VFjvMuPeQVWWYn6ba75518Dpf6ZMWZNb3NyTA94",
     "slug": "dos",
     "color": "#6366F1",
-    "category": "General",
+    "category": "Gaming",
     "explorers": [
       {
         "name": "Snowtrace",
@@ -429,7 +396,7 @@
     "subnetId": "h7egyVb6fKHMDpVaEsTEcy7YaEnXrayxZS4A1AEU4pyBzmwGp",
     "slug": "fifa",
     "color": "#A855F7",
-    "category": "General",
+    "category": "Sports",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -439,17 +406,6 @@
         "name": "Snowtrace",
         "link": "https://13322.snowtrace.io"
       }
-    ]
-  },
-  {
-    "chainId": "62786",
-    "chainName": "Frqtal",
-    "chainLogoURI": "",
-    "subnetId": "FAjUPxhRewh9vk8dSzcgRFZRLaCaNVg6gb5TcHwKsehuQ7k6p",
-    "slug": "frqtal",
-    "color": "#06B6D4",
-    "category": "General",
-    "explorers": [
     ]
   },
   {
@@ -479,24 +435,13 @@
     ]
   },
   {
-    "chainId": "6765897101",
-    "chainName": "Greendot",
-    "chainLogoURI": "",
-    "subnetId": "VzsCkPm6MjStgT2v5Qmcn5ycgMhj68rxPN4gX9eMgBbBXHYEu",
-    "slug": "greendot",
-    "color": "#0EA5E9",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
     "chainId": "7084",
     "chainName": "Growfitter",
     "chainLogoURI": "https://f005.backblazeb2.com/file/tracehawk-prod/logo/GrowFitter/Light.png",
     "subnetId": "BCDGWbjqYBJLsXEzHNc2qy9VYPTrF3aGaSMbTGyjn7qJ7RxH8",
     "slug": "growfitter",
     "color": "#22C55E",
-    "category": "General",
+    "category": "Fitness",
     "explorers": [
     ]
   },
@@ -507,7 +452,7 @@
     "subnetId": "2MbQjnTg3yxEtZBfnamboi7K9AajwNq7WExiwReBQSBtwbBVer",
     "slug": "gunzilla",
     "color": "#D946EF",
-    "category": "General",
+    "category": "Gaming",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -517,17 +462,6 @@
         "name": "Snowtrace",
         "link": "https://43419.snowtrace.io"
       }
-    ]
-  },
-  {
-    "chainId": "43512",
-    "chainName": "Gunzilla Testnet",
-    "chainLogoURI": "",
-    "subnetId": "9ewhue9Lyryt1G4H1icgZotc6wRVwiPgmiVemSN24JXwg91JH",
-    "slug": "gunzilla-testnet",
-    "color": "#F59E0B",
-    "category": "General",
-    "explorers": [
     ]
   },
   {
@@ -552,7 +486,7 @@
     "subnetId": "jmLmezoViv3F72XLzpdmSNk3qLEGb72g5EYkp3ij4wHXPF2KN",
     "slug": "henesys",
     "color": "#3B82F6",
-    "category": "General",
+    "category": "Gaming",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -562,28 +496,6 @@
         "name": "Snowtrace",
         "link": "https://68414.snowtrace.io"
       }
-    ]
-  },
-  {
-    "chainId": "1992",
-    "chainName": "Hubblenet",
-    "chainLogoURI": "",
-    "subnetId": "2mxZY7A2t1tuRMALW4BcBUPVGNR3LH1DXhftdbLAHm1QtDkFp8",
-    "slug": "hubblenet",
-    "color": "#10B981",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
-    "chainId": "2345",
-    "chainName": "Ienium",
-    "chainLogoURI": "",
-    "subnetId": "7SeGzzeirxi9tAn594hTSmZb8BQdYzwNgWSHa9DqJ9hCUYbFx",
-    "slug": "ienium",
-    "color": "#3B82F6",
-    "category": "General",
-    "explorers": [
     ]
   },
   {
@@ -612,7 +524,7 @@
     "subnetId": "2UEGsEEjRyMSgD7cNufCGEXbPXsma7RctBgfRw3Haqkk8oByFa",
     "slug": "intainmkt",
     "color": "#10B981",
-    "category": "General",
+    "category": "Finance",
     "explorers": [
     ]
   },
@@ -779,47 +691,6 @@
     ]
   },
   {
-    "chainId": "3454",
-    "chainName": "Masa",
-    "chainLogoURI": "",
-    "subnetId": "P8teobyNzpvniT7XGhXdEnkXiXvkk3eM4vSYtHUTAJcuV3jLb",
-    "slug": "masa",
-    "color": "#A855F7",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
-    "chainId": "13396",
-    "chainName": "Masa Network",
-    "chainLogoURI": "",
-    "subnetId": "yEQe3LdJgjxBqG28gRjLUu86qFCcNbWnkPtPr7ZHg8pLx1SUJ",
-    "slug": "masanetwork",
-    "color": "#06B6D4",
-    "category": "General",
-    "explorers": [
-      {
-        "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/masanetwork"
-      },
-      {
-        "name": "Snowtrace",
-        "link": "https://13396.snowtrace.io"
-      }
-    ]
-  },
-  {
-    "chainId": "333000333",
-    "chainName": "Meld",
-    "chainLogoURI": "",
-    "subnetId": "2ibTg9ruyJRQf4NpRbkd1Utcfayo3gRRpkoWGCWNC3oXTZoYCe",
-    "slug": "meld",
-    "color": "#84CC16",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
     "chainId": "1888",
     "chainName": "Memoria",
     "chainLogoURI": "",
@@ -865,39 +736,17 @@
     ]
   },
   {
-    "chainId": "1188811",
-    "chainName": "Numine",
-    "chainLogoURI": "",
-    "subnetId": "4iDWVgCCSu4Tafpg4bdhxu8q1ap8Rp2hMzG4UPxUhL9UVX6iU",
-    "slug": "numine",
-    "color": "#D946EF",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
-    "chainId": "5041",
-    "chainName": "Omochi",
-    "chainLogoURI": "",
-    "subnetId": "2mBbfPEFbdEqeaBvRLgvmQQA3cG5mbpqbC8fcXCTZaycXZrXDq",
-    "slug": "omochi",
-    "color": "#F59E0B",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
-    "chainId": "5040",
-    "chainName": "Onigiri",
-    "chainLogoURI": "",
-    "subnetId": "2QiTdY87qfDRav1pSdxkGMqjRD6YXFscVd64W3L3V8v4re9CCo",
-    "slug": "onigiri",
-    "color": "#3B82F6",
-    "category": "General",
+    "chainId": "1510",
+    "chainName": "Orange",
+    "chainLogoURI": "https://irp.cdn-website.com/e81c109a/dms3rep/multi/orange-web3-logo-v2a-20241018.svg",
+    "subnetId": "4onzNay6p7oru7GfZLCMrXhxvUqtmoC4vz8r8ev9e7r2C5wju",
+    "slug": "orange",
+    "color": "#FF6600",
+    "category": "AI",
     "explorers": [
       {
-        "name": "Snowtrace",
-        "link": "https://5040.snowtrace.io"
+          "name": "Avalanche Explorer",
+          "link": "https://subnets.avax.network/orange"
       }
     ]
   },
@@ -943,35 +792,13 @@
     ]
   },
   {
-    "chainId": "504441",
-    "chainName": "Playdappne",
-    "chainLogoURI": "",
-    "subnetId": "2bSdrPJaGvsDFeJtC7v9ut4m2vLKBgs2dJzRsDpxYKbqTyBmr9",
-    "slug": "playdappne",
-    "color": "#8B5CF6",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
-    "chainId": "1080",
-    "chainName": "Playthink",
-    "chainLogoURI": "",
-    "subnetId": "T6XNCf5qHYhJigDcGtjTaGvfiQGRW8JVXTyPza9eZBfCGyDF",
-    "slug": "playthink",
-    "color": "#F59E0B",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
     "chainId": "16180",
     "chainName": "PLYR",
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5K1xUbrhZPhSOEtsHoghux/b64edf007db24d8397613f7d9338260a/logomark_fullorange.svg",
     "subnetId": "axp7DUSPvFghTM883ug2B8btAReBAACxD1VyENmRDStH4Lfed",
     "slug": "plyr",
     "color": "#E57373",
-    "category": "General",
+    "category": "Gaming",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -980,21 +807,6 @@
       {
         "name": "Snowtrace",
         "link": "https://16180.snowtrace.io"
-      }
-    ]
-  },
-  {
-    "chainId": "357",
-    "chainName": "Pulsar",
-    "chainLogoURI": "",
-    "subnetId": "DxanjptkyaeM1eUew2gzUMngHM3n5ttUyMj7BuHw9riXh9pJC",
-    "slug": "pulsar",
-    "color": "#EC4899",
-    "category": "General",
-    "explorers": [
-      {
-        "name": "Snowtrace",
-        "link": "https://357.snowtrace.io"
       }
     ]
   },
@@ -1020,7 +832,7 @@
     "subnetId": "26wQKuvA5kjwrKDaje7nmuJAx6Ke2bGvDDr3EiypNr53rH1pMc",
     "slug": "qchain",
     "color": "#6366F1",
-    "category": "General",
+    "category": "Loyalty",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -1033,32 +845,13 @@
     ]
   },
   {
-    "chainId": "2044",
-    "chainName": "Shrapnel",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/3vru4toe9KAyUXpn5XQthq/714286de3f35ee92426853037e985f77/chain-logo.png",
-    "subnetId": "Cv1gyKNUtPNAtFw8YcjbsD4a3HNRbNvinY7t2gnGK4J54rQK3",
-    "slug": "shrapnel",
-    "color": "#14B8A6",
-    "category": "General",
-    "explorers": [
-      {
-        "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/shrapnel"
-      },
-      {
-        "name": "Snowtrace",
-        "link": "https://2044.snowtrace.io"
-      }
-    ]
-  },
-  {
     "chainId": "6119",
     "chainName": "SK Planet",
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5jmuPVLmmUSDrfXxbIrWwo/4bdbe8d55b775b613156760205d19f9f/symbol_UPTN_-_js_won.png",
     "subnetId": "yDxaSh2hoVxQKRHmacV1xFpuSgHf6Q6cCMu4v3GoLQnqQWk6L",
     "slug": "skplanet",
     "color": "#F97316",
-    "category": "General",
+    "category": "Loyalty",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -1067,25 +860,6 @@
       {
         "name": "Snowtrace",
         "link": "https://6119.snowtrace.io"
-      }
-    ]
-  },
-  {
-    "chainId": "9899",
-    "chainName": "Solert",
-    "chainLogoURI": "",
-    "subnetId": "2An23jRoEGZc5Fr9CQSw4vNnBRDX5Y56F27ChYz9Sa5Bg8L6JK",
-    "slug": "solert",
-    "color": "#EF4444",
-    "category": "General",
-    "explorers": [
-      {
-        "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/solert"
-      },
-      {
-        "name": "Snowtrace",
-        "link": "https://9899.snowtrace.io"
       }
     ]
   },
@@ -1115,7 +889,7 @@
     "subnetId": "7f9jciLEX25NPJEaAz1X7XF44B1Q9UBwq6PdnCHm5mnUq1e1C",
     "slug": "stepnetwork",
     "color": "#06B6D4",
-    "category": "General",
+    "category": "Fitness",
     "explorers": [
       {
         "name": "Snowtrace",
@@ -1143,35 +917,13 @@
     ]
   },
   {
-    "chainId": "62707",
-    "chainName": "Tele1",
-    "chainLogoURI": "",
-    "subnetId": "V9cD5JH4TYcw9241zgxrXXEj3k3rZJJLNL2UEPv5ujDip1m3m",
-    "slug": "tele1",
-    "color": "#F43F5E",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
-    "chainId": "70953",
-    "chainName": "Tele2",
-    "chainLogoURI": "",
-    "subnetId": "2BNnJuF7QiSjnEhvRStKE6ksugnAyF1e42j3u6VWMCL4c8D3bJ",
-    "slug": "tele2",
-    "color": "#0EA5E9",
-    "category": "General",
-    "explorers": [
-    ]
-  },
-  {
     "chainId": "61587",
     "chainName": "TGP",
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/76IPuyrLUYnK0VgueFSi7M/aee8e71bbc409578afcb1ab13593da43/TGP_Logo_Short_-_Straight_BG.png",
     "subnetId": "2eq3DtJp4cWzvGd8Q3ZFo8VpZmmD235Xoxgq6CmX8anZ69M54",
     "slug": "tgp",
     "color": "#22C55E",
-    "category": "General",
+    "category": "Gaming",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -1228,7 +980,7 @@
     "subnetId": "2BLtazsGwYAFEHpvZQGQUPavjQZ2YUqpvfYPdAdTtKpJ1m3eRK",
     "slug": "tixchain",
     "color": "#3B82F6",
-    "category": "General",
+    "category": "Ticketing",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -1243,7 +995,7 @@
     "subnetId": "JD8MbaUp75twdVJ7A4j2ryk7gFJ8FCgQeNLhvDv3y4up9bExp",
     "slug": "trx",
     "color": "#10B981",
-    "category": "General",
+    "category": "Gaming",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -1262,7 +1014,7 @@
     "subnetId": "7e3ziXMNuq29Y6nBBvWQZYAWYKyvhN5bhvmoNquNEbvFR51ad",
     "slug": "turf",
     "color": "#22C55E",
-    "category": "General",
+    "category": "AI Agents",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -1299,7 +1051,7 @@
     "subnetId": "9L3hT5PtJVhiyJt1FHVqeJKtguyTM7V98KZobBeCUhYCQEHeQ",
     "slug": "warp",
     "color": "#F59E0B",
-    "category": "General",
+    "category": "Gaming",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -1314,7 +1066,7 @@
     "subnetId": "QL49tBK9T84NSHQYYSP33Ru7h1KcybDR6MGA8dARVWhw1zLB8",
     "slug": "watr",
     "color": "#8B5CF6",
-    "category": "General",
+    "category": "Finance",
     "explorers": [
     ]
   },
@@ -1347,7 +1099,7 @@
     "subnetId": "ZjyoAfPS1qaSzLKkCVCc3koXf7KLqop7G9viy93oSkxJf6odZ",
     "slug": "youmio",
     "color": "#F59E0B",
-    "category": "General",
+    "category": "AI Agents",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -1362,11 +1114,41 @@
     "subnetId": "nKJuE11HePLrmp391sfoFVqZR7Fw5VJ1XjyznsogsjebxwiAg",
     "slug": "zeroonemainnet",
     "color": "#EC4899",
-    "category": "General",
+    "category": "SocialFi",
     "explorers": [
       {
         "name": "Snowtrace",
         "link": "https://27827.snowtrace.io"
+      }
+    ]
+  },
+  {
+    "chainId": "8198",
+    "chainName": "Hatchyverse",
+    "chainLogoURI": "https://dashboard-assets.dappradar.com/document/8825/hatchyverse-project-games-8825-logo_aaafc4cafbea89ae57991f888d963abb.png",
+    "subnetId": "2Mi7V6HwKCEPxXTRG87o5tHACECkMPnJKP6UA3w1ote7j46GYT",
+    "slug": "hatchyverse",
+    "color": "#2596BE",
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Blockscout",
+        "link": "https://hatchyverse-explorer.ash.center"
+      }
+    ]
+  },
+  {
+    "chainId": "69420",
+    "chainName": "ETO",
+    "chainLogoURI": "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/ETO.png",
+    "subnetId": "2ku5ZCd4t4CDc7ahotdJcoDxc6efE6uMC5C445S9ZKih473LpN",
+    "slug": "eto",
+    "color": "#ECECEC",
+    "category": "General",
+    "explorers": [
+      {
+        "name": "Blockscout",
+        "link": "https://eto-explorer.ash.center"
       }
     ]
   }

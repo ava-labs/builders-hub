@@ -1,47 +1,22 @@
 "use client";
-import * as React from "react";
 import { useState, useEffect, useMemo } from "react";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Pie,
-  PieChart,
-  Line,
-  LineChart,
-  Brush,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  type ChartConfig,
-  ChartLegendContent,
-  ChartStyle,
-  ChartContainer,
-  ChartTooltip,
-  ChartLegend,
-} from "@/components/ui/chart";
-import { Landmark, Shield, TrendingUp, Monitor, HandCoins } from "lucide-react";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Line, LineChart, Brush, ResponsiveContainer, Tooltip, ComposedChart } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { type ChartConfig, ChartLegendContent, ChartStyle, ChartContainer, ChartTooltip, ChartLegend } from "@/components/ui/chart";
+import { Landmark, Shield, TrendingUp, Monitor, HandCoins, Users, Percent } from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
-import {
-  TimeSeriesDataPoint,
-  ChartDataPoint,
-  PrimaryNetworkMetrics,
-  VersionCount,
-} from "@/types/stats";
+import { TimeSeriesDataPoint, ChartDataPoint, PrimaryNetworkMetrics, VersionCount } from "@/types/stats";
+
+interface ValidatorData {
+  nodeId: string;
+  amountStaked: string;
+  delegationFee: string;
+  validationStatus: string;
+  delegatorCount: number;
+  amountDelegated: string;
+}
 
 export default function PrimaryNetworkValidatorMetrics() {
   const [metrics, setMetrics] = useState<PrimaryNetworkMetrics | null>(null);
@@ -51,6 +26,8 @@ export default function PrimaryNetworkValidatorMetrics() {
     []
   );
   const [versionsError, setVersionsError] = useState<string | null>(null);
+  const [validators, setValidators] = useState<ValidatorData[]>([]);
+  const [validatorsLoading, setValidatorsLoading] = useState(true);
 
   const fetchData = async () => {
     try {
@@ -72,14 +49,9 @@ export default function PrimaryNetworkValidatorMetrics() {
 
       if (primaryNetworkData.validator_versions) {
         try {
-          console.log(
-            "Raw validator_versions data:",
-            primaryNetworkData.validator_versions
-          );
           const versionsData = JSON.parse(
             primaryNetworkData.validator_versions
           );
-          console.log("Parsed validator versions data:", versionsData);
 
           const versionArray: VersionCount[] = Object.entries(versionsData)
             .map(([version, data]: [string, any]) => ({
@@ -91,33 +63,21 @@ export default function PrimaryNetworkValidatorMetrics() {
             }))
             .sort((a, b) => b.count - a.count);
 
-          const totalValidators = versionArray.reduce(
-            (sum, item) => sum + item.count,
-            0
-          );
-          const totalStaked = versionArray.reduce(
-            (sum, item) => sum + item.amountStaked,
-            0
-          );
+          const totalValidators = versionArray.reduce((sum, item) => sum + item.count, 0);
+          const totalStaked = versionArray.reduce((sum, item) => sum + item.amountStaked, 0);
 
           versionArray.forEach((item) => {
-            item.percentage =
-              totalValidators > 0 ? (item.count / totalValidators) * 100 : 0;
-            item.stakingPercentage =
-              totalStaked > 0 ? (item.amountStaked / totalStaked) * 100 : 0;
+            item.percentage = totalValidators > 0 ? (item.count / totalValidators) * 100 : 0;
+            item.stakingPercentage = totalStaked > 0 ? (item.amountStaked / totalStaked) * 100 : 0;
           });
 
           setValidatorVersions(versionArray);
         } catch (err) {
-          setVersionsError(
-            `Failed to parse validator versions data: ${
-              err instanceof Error ? err.message : "Unknown error"
-            }`
-          );
+          setVersionsError(`Failed to parse validator versions data`);
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(`An error occurred while fetching data`);
     } finally {
       setLoading(false);
     }
@@ -125,6 +85,23 @@ export default function PrimaryNetworkValidatorMetrics() {
 
   useEffect(() => {
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    async function fetchValidators() {
+      try {
+        setValidatorsLoading(true);
+        const response = await fetch("/api/primary-network-validators");
+        if (response.ok) {
+          const data = await response.json();
+          setValidators(data.validators || []);
+        }
+      } catch (err) {
+      } finally {
+        setValidatorsLoading(false);
+      }
+    }
+    fetchValidators();
   }, []);
 
   const formatNumber = (num: number | string): string => {
@@ -178,15 +155,111 @@ export default function PrimaryNetworkValidatorMetrics() {
     });
   };
 
-  const getChartData = (
-    metricKey: keyof Pick<
-      PrimaryNetworkMetrics,
-      | "validator_count"
-      | "validator_weight"
-      | "delegator_count"
-      | "delegator_weight"
-    >
-  ): ChartDataPoint[] => {
+  const formatStake = (value: number) => {
+    if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
+    if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
+    if (value >= 1e3) return `${(value / 1e3).toFixed(2)}K`;
+    return value.toFixed(2);
+  };
+
+  const formatPercentage = (value: number) => `${value.toFixed(1)}%`;
+
+  // Calculate Validator Weight Distribution (stake + delegations)
+  const validatorWeightDistribution = useMemo(() => {
+    if (!validators.length) return [];
+    const sorted = [...validators]
+      .map((v) => ({
+        nodeId: v.nodeId,
+        weight:
+          (parseFloat(v.amountStaked) + parseFloat(v.amountDelegated)) / 1e9,
+      }))
+      .sort((a, b) => b.weight - a.weight);
+    const totalWeight = sorted.reduce((sum, v) => sum + v.weight, 0);
+    let cumulativeWeight = 0;
+    return sorted.map((v, index) => {
+      cumulativeWeight += v.weight;
+      return {
+        rank: index + 1,
+        weight: v.weight,
+        cumulativePercentage: (cumulativeWeight / totalWeight) * 100,
+      };
+    });
+  }, [validators]);
+
+  // Calculate Validator Stake Distribution (own stake only)
+  const validatorStakeDistribution = useMemo(() => {
+    if (!validators.length) return [];
+    const sorted = [...validators]
+      .map((v) => ({
+        nodeId: v.nodeId,
+        weight: parseFloat(v.amountStaked) / 1e9,
+      }))
+      .sort((a, b) => b.weight - a.weight);
+    const totalWeight = sorted.reduce((sum, v) => sum + v.weight, 0);
+    let cumulativeWeight = 0;
+    return sorted.map((v, index) => {
+      cumulativeWeight += v.weight;
+      return {
+        rank: index + 1,
+        weight: v.weight,
+        cumulativePercentage: (cumulativeWeight / totalWeight) * 100,
+      };
+    });
+  }, [validators]);
+
+  // Calculate Delegator Stake Distribution (by validator)
+  const delegatorStakeDistribution = useMemo(() => {
+    if (!validators.length) return [];
+    const sorted = [...validators]
+      .map((v) => ({
+        nodeId: v.nodeId,
+        weight: parseFloat(v.amountDelegated) / 1e9,
+      }))
+      .sort((a, b) => b.weight - a.weight);
+    const totalWeight = sorted.reduce((sum, v) => sum + v.weight, 0);
+    let cumulativeWeight = 0;
+    return sorted.map((v, index) => {
+      cumulativeWeight += v.weight;
+      return {
+        rank: index + 1,
+        weight: v.weight,
+        cumulativePercentage:
+          totalWeight > 0 ? (cumulativeWeight / totalWeight) * 100 : 0,
+      };
+    });
+  }, [validators]);
+
+  // Calculate Delegation Fee Distribution
+  const feeDistribution = useMemo(() => {
+    if (!validators.length) return [];
+    const feeMap = new Map<number, { count: number; totalWeight: number }>();
+    validators.forEach((v) => {
+      const fee = parseFloat(v.delegationFee);
+      const weight = parseFloat(v.amountStaked) / 1e9;
+      if (!feeMap.has(fee)) {
+        feeMap.set(fee, { count: 0, totalWeight: 0 });
+      }
+      const current = feeMap.get(fee)!;
+      current.count += 1;
+      current.totalWeight += weight;
+    });
+    const actualData = Array.from(feeMap.entries())
+      .map(([fee, data]) => ({
+        fee,
+        count: data.count,
+        totalWeight: data.totalWeight,
+      }))
+      .sort((a, b) => a.fee - b.fee);
+    const tickValues = [0, 20, 40, 60, 80, 100];
+    tickValues.forEach((tick) => {
+      if (!actualData.some((d) => d.fee === tick)) {
+        actualData.push({ fee: tick, count: 0, totalWeight: 0 });
+      }
+    });
+    return actualData.sort((a, b) => a.fee - b.fee);
+  }, [validators]);
+
+  const getChartData = (metricKey: keyof Pick<PrimaryNetworkMetrics, "validator_count" | "validator_weight" | "delegator_count" | "delegator_weight">): ChartDataPoint[] => {
     if (!metrics || !metrics[metricKey]?.data) return [];
     const today = new Date().toISOString().split("T")[0];
     const finalizedData = metrics[metricKey].data.filter(
@@ -452,6 +525,507 @@ export default function PrimaryNetworkValidatorMetrics() {
                 />
               );
             })}
+          </div>
+        </section>
+
+        <section className="space-y-4 sm:space-y-6">
+          <div className="space-y-2">
+            <h2 className="text-lg sm:text-2xl font-medium text-left">
+              Stake Distribution Analysis
+            </h2>
+            <p className="text-zinc-400 text-sm sm:text-md text-left">
+              Analyze how stake is distributed across validators and delegation
+              patterns
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {validatorsLoading ? (
+              <ChartSkeletonLoader />
+            ) : (
+              <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+                <CardContent className="p-0">
+                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div
+                        className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+                        style={{ backgroundColor: "#40c9ff20" }}
+                      >
+                        <Landmark className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: "#40c9ff" }}/>
+                      </div>
+                      <div>
+                        <h3 className="text-base sm:text-lg font-normal">Current Validator Weight Distribution</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                          Total weight (stake + delegations) by rank
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                    <div className="flex items-center justify-start gap-6 mb-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-[#ef4444]" />
+                        <span>Cumulative Validator Weight Percentage by Rank</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-[#40c9ff]" />
+                        <span>Validator Weight</span>
+                      </div>
+                    </div>
+                    <ResponsiveContainer width="100%" height={350}>
+                      <ComposedChart
+                        data={validatorWeightDistribution}
+                        margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis
+                          dataKey="rank"
+                          label={{
+                            value: "Node Rank by Validator Weight",
+                            position: "insideBottom",
+                            offset: -10,
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          interval="preserveStartEnd"
+                          ticks={Array.from(
+                            {
+                              length:
+                                Math.ceil(
+                                  validatorWeightDistribution.length / 200
+                                ) + 1,
+                            },
+                            (_, i) => i * 200
+                          ).filter(
+                            (v) => v <= validatorWeightDistribution.length
+                          )}
+                        />
+                        <YAxis
+                          yAxisId="left"
+                          label={{
+                            value: "Cumulative Validator Weight % by Rank",
+                            angle: -90,
+                            position: "insideLeft",
+                            style: { textAnchor: "middle" },
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={formatPercentage}
+                        />
+                        <YAxis
+                          yAxisId="right"
+                          orientation="right"
+                          label={{
+                            value: "Weight",
+                            angle: 90,
+                            position: "insideRight",
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={formatStake}
+                        />
+                        <Tooltip
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            return (
+                              <div className="bg-background p-3 border rounded-lg shadow-lg">
+                                <p className="font-semibold">
+                                  Rank: {payload[0].payload.rank}
+                                </p>
+                                <p className="text-sm">
+                                  Weight:{" "}
+                                  {formatStake(payload[0].payload.weight)}
+                                </p>
+                                <p className="text-sm">
+                                  Cumulative:{" "}
+                                  {payload[0].payload.cumulativePercentage.toFixed(
+                                    2
+                                  )}
+                                  %
+                                </p>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Bar yAxisId="right" dataKey="weight" fill="#40c9ff" />
+                        <Line
+                          yAxisId="left"
+                          type="monotone"
+                          dataKey="cumulativePercentage"
+                          stroke="#ef4444"
+                          strokeWidth={2}
+                          dot={false}
+                          name="Cumulative %"
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {validatorsLoading ? (
+              <ChartSkeletonLoader />
+            ) : (
+              <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+                <CardContent className="p-0">
+                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div
+                        className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+                        style={{ backgroundColor: "#40c9ff20" }}
+                      >
+                        <Landmark className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: "#40c9ff" }}/>
+                      </div>
+                      <div>
+                        <h3 className="text-base sm:text-lg font-normal">Validator Stake Distribution</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                          Own stake only (excluding delegations)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                    <div className="flex items-center justify-start gap-6 mb-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-[#ef4444]" />
+                        <span>Cumulative Stake Percentage by Rank</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-[#40c9ff]" />
+                        <span>Validator Stake</span>
+                      </div>
+                    </div>
+                    <ResponsiveContainer width="100%" height={350}>
+                      <ComposedChart
+                        data={validatorStakeDistribution}
+                        margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis
+                          dataKey="rank"
+                          label={{
+                            value: "Validator Rank by AVAX Staked",
+                            position: "insideBottom",
+                            offset: -10,
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          interval="preserveStartEnd"
+                          ticks={Array.from(
+                            {
+                              length:
+                                Math.ceil(
+                                  validatorStakeDistribution.length / 200
+                                ) + 1,
+                            },
+                            (_, i) => i * 200
+                          ).filter(
+                            (v) => v <= validatorStakeDistribution.length
+                          )}
+                        />
+                        <YAxis
+                          yAxisId="left"
+                          label={{
+                            value: "Cumulative Stake % by Rank",
+                            angle: -90,
+                            position: "insideLeft",
+                            style: { textAnchor: "middle" },
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={formatPercentage}
+                        />
+                        <YAxis
+                          yAxisId="right"
+                          orientation="right"
+                          label={{
+                            value: "Stake",
+                            angle: 90,
+                            position: "insideRight",
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={formatStake}
+                        />
+                        <Tooltip
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            return (
+                              <div className="bg-background p-3 border rounded-lg shadow-lg">
+                                <p className="font-semibold">
+                                  Rank: {payload[0].payload.rank}
+                                </p>
+                                <p className="text-sm">
+                                  Stake:{" "}
+                                  {formatStake(payload[0].payload.weight)}
+                                </p>
+                                <p className="text-sm">
+                                  Cumulative:{" "}
+                                  {payload[0].payload.cumulativePercentage.toFixed(
+                                    2
+                                  )}
+                                  %
+                                </p>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Bar yAxisId="right" dataKey="weight" fill="#40c9ff" />
+                        <Line
+                          yAxisId="left"
+                          type="monotone"
+                          dataKey="cumulativePercentage"
+                          stroke="#ef4444"
+                          strokeWidth={2}
+                          dot={false}
+                          name="Cumulative %"
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {validatorsLoading ? (
+              <ChartSkeletonLoader />
+            ) : (
+              <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+                <CardContent className="p-0">
+                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div
+                        className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+                        style={{ backgroundColor: "#a855f720" }}
+                      >
+                        <Users className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: "#a855f7" }}/>
+                      </div>
+                      <div>
+                        <h3 className="text-base sm:text-lg font-normal">Delegator Stake Distribution</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                          Delegated stake across validator nodes
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                    <div className="flex items-center justify-start gap-6 mb-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-[#ef4444]" />
+                        <span>Cumulative Delegator Stake Percentage by Rank</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: "rgba(139, 92, 246, 0.6)" }}
+                        />
+                        <span>Delegator Stake</span>
+                      </div>
+                    </div>
+                    <ResponsiveContainer width="100%" height={350}>
+                      <ComposedChart
+                        data={delegatorStakeDistribution}
+                        margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis
+                          dataKey="rank"
+                          label={{
+                            value: "Node Rank by Delegator Stake",
+                            position: "insideBottom",
+                            offset: -10,
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          interval="preserveStartEnd"
+                          ticks={Array.from(
+                            {
+                              length:
+                                Math.ceil(
+                                  delegatorStakeDistribution.length / 200
+                                ) + 1,
+                            },
+                            (_, i) => i * 200
+                          ).filter(
+                            (v) => v <= delegatorStakeDistribution.length
+                          )}
+                        />
+                        <YAxis
+                          yAxisId="left"
+                          label={{
+                            value: "Cumulative Delegator Stake % by Rank",
+                            angle: -90,
+                            position: "insideLeft",
+                            style: { textAnchor: "middle" },
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={formatPercentage}
+                        />
+                        <YAxis
+                          yAxisId="right"
+                          orientation="right"
+                          label={{
+                            value: "Delegated",
+                            angle: 90,
+                            position: "insideRight",
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={formatStake}
+                        />
+                        <Tooltip
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            return (
+                              <div className="bg-background p-3 border rounded-lg shadow-lg">
+                                <p className="font-semibold">
+                                  Rank: {payload[0].payload.rank}
+                                </p>
+                                <p className="text-sm">
+                                  Delegated:{" "}
+                                  {formatStake(payload[0].payload.weight)}
+                                </p>
+                                <p className="text-sm">
+                                  Cumulative:{" "}
+                                  {payload[0].payload.cumulativePercentage.toFixed(
+                                    2
+                                  )}
+                                  %
+                                </p>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Bar
+                          yAxisId="right"
+                          dataKey="weight"
+                          fill="rgba(139, 92, 246, 0.6)"
+                        />
+                        <Line
+                          yAxisId="left"
+                          type="monotone"
+                          dataKey="cumulativePercentage"
+                          stroke="#ef4444"
+                          strokeWidth={2}
+                          dot={false}
+                          name="Cumulative %"
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {validatorsLoading ? (
+              <ChartSkeletonLoader />
+            ) : (
+              <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+                <CardContent className="p-0">
+                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div
+                        className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+                        style={{ backgroundColor: "#e8414220" }}
+                      >
+                        <Percent className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: "#e84142" }}/>
+                      </div>
+                      <div>
+                        <h3 className="text-base sm:text-lg font-normal">Delegation Fee Distribution</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                          Distribution of fees weighted by stake
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                    <ResponsiveContainer width="100%" height={350}>
+                      <BarChart
+                        data={feeDistribution}
+                        margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          vertical={false}
+                          stroke="rgba(200, 200, 200, 0.2)"
+                        />
+                        <XAxis
+                          dataKey="fee"
+                          label={{
+                            value: "Fee (%)",
+                            position: "insideBottom",
+                            offset: -10,
+                          }}
+                          className="text-xs"
+                          tick={(props: any) => {
+                            const { x, y, payload } = props;
+                            const value = parseFloat(payload.value);
+                            if ([20, 40, 60, 100].includes(value)) {
+                              return (
+                                <text
+                                  x={x}
+                                  y={y + 10}
+                                  textAnchor="middle"
+                                  fontSize={11}
+                                >
+                                  {value}
+                                </text>
+                              );
+                            }
+                            return <g />;
+                          }}
+                          tickLine={false}
+                          interval={0}
+                          axisLine={{ stroke: "rgba(255, 255, 255, 0.1)" }}
+                        />
+                        <YAxis
+                          label={{
+                            value: "Weight",
+                            angle: -90,
+                            position: "insideLeft",
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={formatStake}
+                        />
+                        <Tooltip
+                          cursor={{ fill: "#e8414220" }}
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            const data = payload[0].payload;
+                            return (
+                              <div className="rounded-lg border bg-background p-2 shadow-sm">
+                                <div className="grid gap-2">
+                                  <p className="font-medium text-sm">
+                                    Fee: {data.fee}%
+                                  </p>
+                                  <p className="text-sm">
+                                    Validators: {data.count}
+                                  </p>
+                                  <p className="text-sm">
+                                    Weight: {formatStake(data.totalWeight)}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Bar
+                          dataKey="totalWeight"
+                          fill="#e84142"
+                          barSize={6}
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </section>
 

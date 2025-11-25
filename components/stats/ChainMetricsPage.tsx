@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight } from "lucide-react";
+import { Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
@@ -31,7 +31,11 @@ interface ICMMetric {
 }
 
 interface CChainMetrics {
-  activeAddresses: TimeSeriesMetric;
+  activeAddresses: {
+    daily: TimeSeriesMetric;
+    weekly: TimeSeriesMetric;
+    monthly: TimeSeriesMetric;
+  };
   activeSenders: TimeSeriesMetric;
   cumulativeAddresses: TimeSeriesMetric;
   cumulativeDeployers: TimeSeriesMetric;
@@ -73,7 +77,9 @@ export default function ChainMetricsPage({
 
   // Find the current chain to get explorers
   const currentChain = useMemo(() => {
-    return l1ChainsData.find((chain) => chain.chainId === chainId) as L1Chain | undefined;
+    return l1ChainsData.find((chain) => chain.chainId === chainId) as
+      | L1Chain
+      | undefined;
   }, [chainId]);
 
   const fetchData = async () => {
@@ -182,17 +188,43 @@ export default function ChainMetricsPage({
   };
 
   const getChartData = (
-    metricKey: keyof Omit<CChainMetrics, "last_updated" | "icmMessages">
+    metricKey: keyof Omit<CChainMetrics, "last_updated" | "icmMessages">,
+    period?: "D" | "W" | "M" | "Q" | "Y"
   ) => {
-    if (!metrics || !metrics[metricKey]?.data) return [];
+    if (!metrics) return [];
+
+    // Handle activeAddresses specially based on period
+    if (metricKey === "activeAddresses") {
+      if (!metrics.activeAddresses) return [];
+
+      let data;
+      if (period === "D" || !period) {
+        data = metrics.activeAddresses.daily?.data;
+      } else if (period === "W") {
+        data = metrics.activeAddresses.weekly?.data;
+      } else if (period === "M") {
+        data = metrics.activeAddresses.monthly?.data;
+      } else {
+        // For Q and Y, we'll return N/A
+        data = null;
+      }
+
+      if (!data) return [];
+      return data
+        .map((point: TimeSeriesDataPoint) => ({
+          day: point.date,
+          value: typeof point.value === "string" ? Number.parseFloat(point.value) : point.value,
+        }))
+        .reverse();
+    }
+
+    // Handle other metrics normally
+    if (!metrics[metricKey]?.data) return [];
 
     return metrics[metricKey].data
       .map((point: TimeSeriesDataPoint) => ({
         day: point.date,
-        value:
-          typeof point.value === "string"
-            ? Number.parseFloat(point.value)
-            : point.value,
+        value: typeof point.value === "string" ? Number.parseFloat(point.value) : point.value,
       }))
       .reverse();
   };
@@ -265,9 +297,26 @@ export default function ChainMetricsPage({
   };
 
   const getCurrentValue = (
-    metricKey: keyof Omit<CChainMetrics, "last_updated">
+    metricKey: keyof Omit<CChainMetrics, "last_updated">,
+    period?: "D" | "W" | "M" | "Q" | "Y"
   ): number | string => {
-    if (!metrics || !metrics[metricKey]) return "N/A";
+    if (!metrics) return "N/A";
+
+    // Handle activeAddresses specially based on period
+    if (metricKey === "activeAddresses") {
+      if (!metrics.activeAddresses) return "N/A";
+
+      if (period === "W") {
+        return metrics.activeAddresses.weekly?.current_value ?? "N/A";
+      } else if (period === "M" || period === "Q" || period === "Y") {
+        return metrics.activeAddresses.monthly?.current_value ?? "N/A";
+      } else {
+        // Default to daily
+        return metrics.activeAddresses.daily?.current_value ?? "N/A";
+      }
+    }
+
+    if (!metrics[metricKey]) return "N/A";
     return metrics[metricKey].current_value;
   };
 
@@ -388,18 +437,192 @@ export default function ChainMetricsPage({
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
-        <div className="container mx-auto mt-4 p-6 pb-24 space-y-12">
-          <div className="space-y-2">
-            <div>
-              <h1 className="text-2xl md:text-5xl mb-4">
-                {chainName.includes("C-Chain")
-                  ? "Avalanche C-Chain Metrics"
-                  : `${chainName} L1 Metrics`}
-              </h1>
-              <p className="text-zinc-400 text-md text-left">{description}</p>
+        <div className="container mx-auto mt-4 p-4 sm:p-6 pb-24 space-y-8 sm:space-y-12">
+          {/* Hero Section Skeleton */}
+          <div className="relative overflow-hidden rounded-2xl p-6 sm:p-8">
+            {/* Multi-layer gradient background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-black via-neutral-950 to-black" />
+            <div
+              className="absolute inset-0 opacity-50"
+              style={{
+                background: `linear-gradient(135deg, ${themeColor}99 0%, ${themeColor}44 30%, transparent 60%)`
+              }}
+            />
+            <div
+              className="absolute inset-0 opacity-30"
+              style={{
+                background: `radial-gradient(ellipse at top right, ${themeColor}88 0%, transparent 50%)`
+              }}
+            />
+            <div
+              className="absolute inset-0 opacity-20"
+              style={{
+                background: `radial-gradient(ellipse at bottom left, ${themeColor}66 0%, transparent 40%)`
+              }}
+            />
+
+            {/* Content */}
+            <div className="relative z-10">
+              <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
+                {/* Chain Logo Skeleton - Only show if chainLogoURI exists */}
+                {chainLogoURI && (
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-white/20 animate-pulse shrink-0" />
+                )}
+
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold mb-2 text-white">
+                    {chainName.includes("C-Chain")
+                      ? "Avalanche C-Chain Metrics"
+                      : `${chainName} L1 Metrics`}
+                  </h1>
+                  <p className="text-white/80 text-sm sm:text-base text-left">
+                    {chainName.includes("C-Chain")
+                      ? "Loading Avalanche C-chain activity and network usage..."
+                      : `Loading ${chainName} metrics...`}
+                  </p>
+                </div>
+
+                {/* ExplorerDropdown Placeholder for L1s */}
+                {!chainName.includes("C-Chain") && (
+                  <div className="shrink-0 self-start sm:self-center">
+                    <div className="h-8 w-28 bg-white/50 dark:bg-white/20 rounded-md animate-pulse" />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-          <ChartSkeletonLoader />
+
+          {/* Network Overview Section */}
+          <div className="space-y-4 sm:space-y-6">
+            <div className="space-y-2">
+              <h2 className="text-lg sm:text-2xl font-medium text-foreground">Network Overview</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {/* Daily Active Addresses */}
+              <Card className="border-border">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: `${themeColor}20` }}>
+                      <Users className="h-6 w-6" style={{ color: themeColor }} />
+                    </div>
+                    <div className="text-sm text-muted-foreground">Daily Active Addresses</div>
+                  </div>
+                  <div className="h-8 bg-muted rounded w-24 animate-pulse" />
+                </CardContent>
+              </Card>
+
+              {/* Daily Transactions */}
+              <Card className="border-border">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: `${themeColor}20` }}>
+                      <Activity className="h-6 w-6" style={{ color: themeColor }} />
+                    </div>
+                    <div className="text-sm text-muted-foreground">Daily Transactions</div>
+                  </div>
+                  <div className="h-8 bg-muted rounded w-24 animate-pulse" />
+                </CardContent>
+              </Card>
+
+              {/* Total Contracts Deployed */}
+              <Card className="border-border">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: `${themeColor}20` }}>
+                      <FileText className="h-6 w-6" style={{ color: themeColor }} />
+                    </div>
+                    <div className="text-sm text-muted-foreground">Total Contracts Deployed</div>
+                  </div>
+                  <div className="h-8 bg-muted rounded w-24 animate-pulse" />
+                </CardContent>
+              </Card>
+
+              {/* Daily Interchain Messages */}
+              <Card className="border-border">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: `${themeColor}20` }}>
+                      <MessageSquare className="h-6 w-6" style={{ color: themeColor }} />
+                    </div>
+                    <div className="text-sm text-muted-foreground">Daily Interchain Messages</div>
+                  </div>
+                  <div className="h-8 bg-muted rounded w-24 animate-pulse" />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Historical Trends Section */}
+          <div className="space-y-4 sm:space-y-6">
+            <div className="space-y-2">
+              <h2 className="text-lg sm:text-2xl font-medium text-foreground">Historical Trends</h2>
+              <p className="text-zinc-400 text-sm sm:text-md text-left">
+                Track {chainName} network growth and activity over time
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              {chartConfigs.slice(0, 8).map((config) => {
+                const Icon = config.icon;
+                return (
+                  <Card key={config.metricKey} className="border-border overflow-hidden">
+                    {/* Chart Header */}
+                    <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-border">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <Icon className="h-5 w-5" style={{ color: themeColor }} />
+                          <div>
+                            <h3 className="font-semibold text-foreground text-sm sm:text-base">{config.title}</h3>
+                            <p className="text-xs text-muted-foreground">{config.description}</p>
+                          </div>
+                        </div>
+                        {/* Period Buttons */}
+                        <div className="flex gap-1">
+                          {["D", "W", "M", "Q", "Y"].map((period) => (
+                            <Button
+                              key={period}
+                              variant={period === "D" ? "default" : "ghost"}
+                              size="sm"
+                              disabled
+                              className="h-7 w-8 p-0 text-xs"
+                            >
+                              {period}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Chart Content */}
+                    <CardContent className="px-5 pt-6 pb-6">
+                      {/* Current Value Skeleton */}
+                      <div className="mb-3 sm:mb-4 flex items-baseline gap-2">
+                        <div className="h-8 bg-muted rounded w-32 animate-pulse" />
+                        <div className="h-4 bg-muted rounded w-16 animate-pulse" />
+                      </div>
+
+                      {/* Chart Area Skeleton */}
+                      <div className="h-[400px] bg-muted/30 rounded-lg animate-pulse flex items-end justify-around p-4">
+                        {[...Array(12)].map((_, barIndex) => (
+                          <div
+                            key={barIndex}
+                            className="bg-muted rounded-t"
+                            style={{
+                              width: '6%',
+                              height: `${30 + Math.random() * 70}%`
+                            }}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Brush Slider Skeleton */}
+                      <div className="mt-4 h-20 bg-muted/20 rounded-lg animate-pulse" />
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
         </div>
         <StatsBubbleNav />
       </div>
@@ -428,52 +651,39 @@ export default function ChainMetricsPage({
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
       <div className="container mx-auto mt-4 p-4 sm:p-6 pb-24 space-y-8 sm:space-y-12">
         {/* Header */}
-        <div className="relative overflow-hidden rounded-2xl p-8 sm:p-12">
+        <div className="relative overflow-hidden rounded-2xl p-6 sm:p-8">
           {/* Multi-layer gradient background */}
-          <div className="absolute inset-0 bg-black" />
+          <div className="absolute inset-0 bg-gradient-to-br from-black via-neutral-950 to-black" />
           <div
-            className="absolute inset-0 opacity-60"
+            className="absolute inset-0 opacity-50"
             style={{
-              background: `linear-gradient(140deg, ${themeColor}88 0%, transparent 70%)`
-            }}
-          />
-          <div
-            className="absolute inset-0 opacity-40"
-            style={{
-              background: `linear-gradient(to top left, ${themeColor}66 0%, transparent 50%)`
+              background: `linear-gradient(135deg, ${themeColor}99 0%, ${themeColor}44 30%, transparent 60%)`
             }}
           />
           <div
             className="absolute inset-0 opacity-30"
             style={{
-              background: `radial-gradient(circle at 50% 50%, ${themeColor}44 0%, transparent 70%)`
+              background: `radial-gradient(ellipse at top right, ${themeColor}88 0%, transparent 50%)`
+            }}
+          />
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              background: `radial-gradient(ellipse at bottom left, ${themeColor}66 0%, transparent 40%)`
             }}
           />
 
           {/* Content */}
           <div className="relative z-10">
-            {/* Top row with ExplorerDropdown */}
-            {!chainName.includes("C-Chain") && currentChain?.explorers && (
-              <div className="flex justify-end mb-4">
-                <div className="[&_button]:border-neutral-300 dark:[&_button]:border-white/30 [&_button]:text-neutral-800 dark:[&_button]:text-white [&_button]:hover:bg-neutral-100 dark:[&_button]:hover:bg-white/10 [&_button]:hover:border-neutral-400 dark:[&_button]:hover:border-white/50">
-                  <ExplorerDropdown
-                    explorers={currentChain.explorers}
-                    variant="outline"
-                    size="sm"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Main content row */}
-            <div className="flex flex-col sm:flex-row items-start gap-6">
+            {/* Main content row with aligned explorer button */}
+            <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
               {/* Logo */}
               {chainLogoURI && (
                 <div className="shrink-0">
                   <img
                     src={chainLogoURI}
                     alt={`${chainName} logo`}
-                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-contain bg-white/10 p-2"
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-contain bg-white/10 p-2"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}
@@ -483,7 +693,7 @@ export default function ChainMetricsPage({
 
               {/* Title and description */}
               <div className="flex-1 min-w-0">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-3 break-words">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-2 break-words">
                   {chainName.includes("C-Chain")
                     ? "Avalanche C-Chain Metrics"
                     : `${chainName} L1 Metrics`}
@@ -492,6 +702,19 @@ export default function ChainMetricsPage({
                   {description}
                 </p>
               </div>
+
+              {/* Explorer Dropdown aligned with title */}
+              {!chainName.includes("C-Chain") && currentChain?.explorers && (
+                <div className="shrink-0 self-start sm:self-center">
+                  <div className="[&_button]:border-neutral-700 dark:[&_button]:border-white/30 [&_button]:text-neutral-900 dark:[&_button]:text-white [&_button]:bg-white/90 dark:[&_button]:bg-transparent [&_button]:hover:bg-white dark:[&_button]:hover:bg-white/10 [&_button]:hover:border-neutral-900 dark:[&_button]:hover:border-white/50 [&_button]:backdrop-blur-sm">
+                    <ExplorerDropdown
+                      explorers={currentChain.explorers}
+                      variant="outline"
+                      size="sm"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -532,7 +755,8 @@ export default function ChainMetricsPage({
               },
             ].map((item) => {
               const currentValue = getCurrentValue(
-                item.key as keyof Omit<CChainMetrics, "last_updated">
+                item.key as keyof Omit<CChainMetrics, "last_updated">,
+                "D" // Always use daily for overview cards
               );
               const Icon = item.icon;
 
@@ -578,14 +802,15 @@ export default function ChainMetricsPage({
                   config.metricKey !== "activeSenders"
               )
               .map((config) => {
+                const period = chartPeriods[config.metricKey];
+
                 const rawData =
                   config.metricKey === "icmMessages"
                     ? getICMChartData()
-                    : getChartData(config.metricKey);
+                    : getChartData(config.metricKey, period);
                 if (rawData.length === 0) return null;
 
-                const period = chartPeriods[config.metricKey];
-                const currentValue = getCurrentValue(config.metricKey);
+                const currentValue = getCurrentValue(config.metricKey, period);
 
                 // Get cumulative data for charts that need it
                 let cumulativeData = null;
@@ -604,7 +829,21 @@ export default function ChainMetricsPage({
                 let secondaryCurrentValue = null;
                 if (config.chartType === "dual" && config.secondaryMetricKey) {
                   secondaryData = getChartData(config.secondaryMetricKey);
-                  secondaryCurrentValue = getCurrentValue(config.secondaryMetricKey);
+                  secondaryCurrentValue = getCurrentValue(
+                    config.secondaryMetricKey
+                  );
+                }
+
+                // Determine allowed periods based on metric type
+                let allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = ["D", "W", "M", "Q", "Y"];
+
+                // GPS, TPS, and Gas Price are only available on Daily
+                if (["avgGps", "maxGps", "avgTps", "maxTps", "avgGasPrice", "maxGasPrice"].includes(config.metricKey)) {
+                  allowedPeriods = ["D"];
+                }
+                // Active addresses only supports D, W, M (data fetched from API with those intervals)
+                else if (config.metricKey === "activeAddresses") {
+                  allowedPeriods = ["D", "W", "M"];
                 }
 
                 return (
@@ -627,6 +866,7 @@ export default function ChainMetricsPage({
                       formatTooltipValue(value, config.metricKey)
                     }
                     formatYAxisValue={formatNumber}
+                    allowedPeriods={allowedPeriods}
                   />
                 );
               })}
@@ -651,6 +891,7 @@ function ChartCard({
   onPeriodChange,
   formatTooltipValue,
   formatYAxisValue,
+  allowedPeriods = ["D", "W", "M", "Q", "Y"],
 }: {
   config: any;
   rawData: any[];
@@ -662,6 +903,7 @@ function ChartCard({
   onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
   formatTooltipValue: (value: number) => string;
   formatYAxisValue: (value: number) => string;
+  allowedPeriods?: ("D" | "W" | "M" | "Q" | "Y")[];
 }) {
   const [brushIndexes, setBrushIndexes] = useState<{
     startIndex: number;
@@ -671,6 +913,14 @@ function ChartCard({
   // Aggregate data based on selected period
   const aggregatedData = useMemo(() => {
     if (period === "D") return rawData;
+
+    // For active addresses, don't aggregate since data is already fetched with proper interval
+    if (
+      config.metricKey === "activeAddresses" &&
+      (period === "W" || period === "M")
+    ) {
+      return rawData;
+    }
 
     const grouped = new Map<
       string,
@@ -713,7 +963,7 @@ function ChartCard({
         value: group.sum,
       }))
       .sort((a, b) => a.day.localeCompare(b.day));
-  }, [rawData, period]);
+  }, [rawData, period, config.metricKey]);
 
   // Aggregate cumulative data - take the last (max) value in each period
   const aggregatedCumulativeData = useMemo(() => {
@@ -986,24 +1236,26 @@ function ChartCard({
             </div>
           </div>
           <div className="flex gap-0.5 sm:gap-1">
-            {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => onPeriodChange(p)}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm  rounded-md transition-colors ${
-                  period === p
-                    ? "text-white dark:text-white"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
-                style={
-                  period === p
-                    ? { backgroundColor: `${config.color}`, opacity: 0.9 }
-                    : {}
-                }
-              >
-                {p}
-              </button>
-            ))}
+            {(["D", "W", "M", "Q", "Y"] as const)
+              .filter((p) => allowedPeriods.includes(p))
+              .map((p) => (
+                <button
+                  key={p}
+                  onClick={() => onPeriodChange(p)}
+                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm  rounded-md transition-colors ${
+                    period === p
+                      ? "text-white dark:text-white"
+                      : "text-muted-foreground hover:bg-muted"
+                  }`}
+                  style={
+                    period === p
+                      ? { backgroundColor: `${config.color}`, opacity: 0.9 }
+                      : {}
+                  }
+                >
+                  {p}
+                </button>
+              ))}
           </div>
         </div>
 
@@ -1145,7 +1397,7 @@ function ChartCard({
                             </div>
                             {payload[0].payload.cumulative && (
                               <div className="text-xs text-muted-foreground">
-                                Cumulative:{" "}
+                                Total:{" "}
                                 {formatYAxisValue(
                                   payload[0].payload.cumulative
                                 )}
@@ -1466,9 +1718,25 @@ function ChartCard({
                       e.startIndex !== undefined &&
                       e.endIndex !== undefined
                     ) {
+                      let startIndex = e.startIndex;
+                      let endIndex = e.endIndex;
+
+                      // Limit to 100 bars maximum for daily view
+                      if (period === "D") {
+                        const maxBars = 100;
+                        const selectedBars = endIndex - startIndex + 1;
+                        if (selectedBars > maxBars) {
+                          if (e.endIndex !== brushIndexes?.endIndex) {
+                            startIndex = Math.max(0, endIndex - maxBars + 1);
+                          } else {
+                            endIndex = Math.min(aggregatedData.length - 1,startIndex + maxBars - 1);
+                          }
+                        }
+                      }
+
                       setBrushIndexes({
-                        startIndex: e.startIndex,
-                        endIndex: e.endIndex,
+                        startIndex: startIndex,
+                        endIndex: endIndex,
                       });
                     }
                   }}

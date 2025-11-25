@@ -358,19 +358,120 @@ export default function ValidatorStatsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
-        <div className="container mx-auto px-6 py-10 pb-24 space-y-12">
-          <div className="space-y-3">
-            <div>
-              <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-black dark:text-white">
-                Validator Stats
-              </h1>
-              <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
-                Loading validator statistics for {network}...
-              </p>
+        <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
+          {/* Header Section */}
+          <div className="mb-10">
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <div>
+                <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-black dark:text-white">
+                  Validator Stats
+                </h1>
+                <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed mt-2">
+                  Loading validator statistics for {network}...
+                </p>
+              </div>
             </div>
           </div>
-          <ChartSkeletonLoader />
-        </div>
+
+          {/* Aggregated Stats Cards Skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
+            {/* Total Chains Card */}
+            <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 py-0 h-full flex flex-col lg:col-span-3">
+              <div className="p-6 text-center flex flex-col justify-center flex-1 animate-pulse">
+                <div className="h-4 bg-neutral-300 dark:bg-neutral-700 rounded mb-3 w-24 mx-auto" />
+                <div className="h-10 bg-neutral-300 dark:bg-neutral-700 rounded w-16 mx-auto mb-2" />
+                <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-32 mx-auto" />
+              </div>
+            </Card>
+
+            {/* Total Validators Card */}
+            <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 py-0 h-full flex flex-col lg:col-span-3">
+              <div className="p-6 text-center flex flex-col justify-center flex-1 animate-pulse">
+                <div className="h-4 bg-neutral-300 dark:bg-neutral-700 rounded mb-3 w-28 mx-auto" />
+                <div className="h-10 bg-neutral-300 dark:bg-neutral-700 rounded w-20 mx-auto mb-2" />
+                <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-24 mx-auto" />
+              </div>
+            </Card>
+
+            {/* Version Breakdown Card */}
+            <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 py-0 h-full flex flex-col lg:col-span-6">
+              <div className="p-6 flex flex-col justify-center flex-1 animate-pulse">
+                <div className="h-4 bg-neutral-300 dark:bg-neutral-700 rounded mb-4 w-40" />
+                <div className="h-8 bg-neutral-200 dark:bg-neutral-800 rounded-full mb-4" />
+                <div className="flex flex-wrap gap-3 justify-center">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-20" />
+                  ))}
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Search & Filter Bar Skeleton */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <div className="h-10 bg-neutral-200 dark:bg-neutral-800 rounded-md animate-pulse" />
+            </div>
+            <div className="h-9 w-9 bg-neutral-200 dark:bg-neutral-800 rounded-md animate-pulse" />
+            <div className="flex items-center gap-2">
+              <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-24 animate-pulse" />
+              <div className="h-10 w-40 bg-neutral-200 dark:bg-neutral-800 rounded-md animate-pulse" />
+            </div>
+          </div>
+
+          {/* Table Skeleton */}
+          <Card className="overflow-hidden border border-[#e1e2ea] dark:border-neutral-800 py-0">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
+                  <tr className="border-b border-neutral-200 dark:border-neutral-800">
+                    {["Chain Name", "Validators", "By Nodes %", "By Stake %", "Version Breakdown", "Actions"].map((header, i) => (
+                      <th key={i} className={`border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 ${i === 0 ? 'text-left' : i === 5 ? 'text-center' : 'text-right'}`}>
+                        <div className={`h-4 bg-neutral-300 dark:bg-neutral-700 rounded w-24 animate-pulse ${i === 0 ? '' : i === 5 ? 'mx-auto' : 'ml-auto'}`} />
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-neutral-950">
+                  {[...Array(10)].map((_, rowIndex) => (
+                    <tr key={rowIndex} className="border-b border-neutral-200 dark:border-neutral-800">
+                      <td className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-neutral-200 dark:bg-neutral-800 animate-pulse" />
+                          <div className="flex flex-col gap-1">
+                            <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-32 animate-pulse" />
+                            <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-20 animate-pulse" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-3 text-right">
+                        <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-12 ml-auto animate-pulse" />
+                      </td>
+                      <td className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-3 text-right">
+                        <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-16 ml-auto animate-pulse" />
+                      </td>
+                      <td className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-3 text-right">
+                        <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-16 ml-auto animate-pulse" />
+                      </td>
+                      <td className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-3">
+                        <div className="space-y-2">
+                          <div className="h-6 bg-neutral-200 dark:bg-neutral-800 rounded-full animate-pulse" />
+                          <div className="flex gap-2">
+                            <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-16 animate-pulse" />
+                            <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-16 animate-pulse" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="h-8 w-16 bg-neutral-200 dark:bg-neutral-800 rounded-md mx-auto animate-pulse" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </main>
         <StatsBubbleNav />
       </div>
     );
@@ -427,103 +528,123 @@ export default function ValidatorStatsPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
       <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
-        <div className="mb-10">
-          <div className="flex items-start justify-between gap-4 mb-3">
-            <div>
-              <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-black dark:text-white">
-                Validator Stats
-              </h1>
-              <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed mt-2">
-                Validator statistics and version tracking across Avalanche networks
-              </p>
-            </div>
-          </div>
-        </div>
+        {/* Hero Section */}
+        <div className="relative overflow-hidden rounded-2xl p-8 sm:p-12 mb-10">
+          {/* Multi-layer gradient background */}
+          <div className="absolute inset-0 bg-black" />
+          <div
+            className="absolute inset-0 opacity-60"
+            style={{
+              background: 'linear-gradient(140deg, #E84142 0%, transparent 70%)'
+            }}
+          />
+          <div
+            className="absolute inset-0 opacity-40"
+            style={{
+              background: 'linear-gradient(to top left, #3752AC 0%, transparent 50%)'
+            }}
+          />
+          <div
+            className="absolute inset-0 opacity-30"
+            style={{
+              background: 'radial-gradient(circle at 50% 50%, #E84142 0%, #3752AC 30%, transparent 70%)'
+            }}
+          />
 
-        {/* Aggregated Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0 h-full flex flex-col lg:col-span-3">
-            <div className="p-6 text-center flex flex-col justify-center flex-1">
-              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                Total Chains
-              </p>
-              <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
-                {aggregatedStats.totalSubnets}
-              </p>
-              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                {aggregatedStats.l1Count} L1s / {aggregatedStats.subnetCount} Subnets
-              </p>
+          {/* Content */}
+          <div className="relative z-10 space-y-8">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-white">
+                  Validator Stats
+                </h1>
+                <p className="text-base text-white/80 max-w-2xl leading-relaxed mt-2">
+                  Validator statistics and version tracking across Avalanche networks
+                </p>
+              </div>
             </div>
-          </Card>
 
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0 h-full flex flex-col lg:col-span-3">
-            <div className="p-6 text-center flex flex-col justify-center flex-1">
-              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                Total Validators
-              </p>
-              <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
-                {formatNumber(aggregatedStats.totalNodes)}
-              </p>
-              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                {upToDatePercentage.toFixed(1)}% up to date
-              </p>
-            </div>
-          </Card>
+            {/* Separator */}
+            <div className="border-t border-white/20" />
 
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0 h-full flex flex-col lg:col-span-6">
-            <div className="p-6 text-center flex flex-col justify-center flex-1">
-              <p className="mb-4 text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                Total Version Breakdown
-              </p>
-              <div className="space-y-2">
-                {/* Horizontal Bar Chart */}
-                <div className="flex h-6 w-full rounded overflow-hidden bg-neutral-100 dark:bg-neutral-800">
-                  {Object.entries(totalVersionBreakdown)
-                    .sort(([v1], [v2]) => compareVersions(v2, v1))
-                    .map(([version, data], index) => {
-                      const percentage = aggregatedStats.totalNodes > 0 
-                        ? (data.nodes / aggregatedStats.totalNodes) * 100 
-                        : 0;
-                      return (
-                        <div
-                          key={version}
-                          className={`h-full transition-all ${getVersionColor(index)}`}
-                          style={{ width: `${percentage}%` }}
-                          title={`${version}: ${data.nodes} nodes (${percentage.toFixed(1)}%)`}
-                        />
-                      );
-                    })}
-                </div>
-                {/* Version Labels */}
-                <div className="flex flex-wrap gap-x-2 gap-y-1 text-xs justify-center">
-                  {Object.entries(totalVersionBreakdown)
-                    .sort(([v1], [v2]) => compareVersions(v2, v1))
-                    .slice(0, 5) // Show top 5 versions
-                    .map(([version, data], index) => {
-                      return (
-                        <div
-                          key={version}
-                          className="flex items-center gap-1"
-                        >
+            {/* Aggregated Stats Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
+              <div className="backdrop-blur-sm bg-white/10 border border-white/20 rounded-xl p-6 text-center flex flex-col justify-center h-full lg:col-span-3 transition-all hover:bg-white/15">
+                <p className="mb-2 text-sm font-medium text-white/70">
+                  Total Chains
+                </p>
+                <p className="text-4xl font-semibold tracking-tight text-white">
+                  {aggregatedStats.totalSubnets}
+                </p>
+                <p className="mt-1 text-xs text-white/70">
+                  {aggregatedStats.l1Count} L1s / {aggregatedStats.subnetCount} Subnets
+                </p>
+              </div>
+
+              <div className="backdrop-blur-sm bg-white/10 border border-white/20 rounded-xl p-6 text-center flex flex-col justify-center h-full lg:col-span-3 transition-all hover:bg-white/15">
+                <p className="mb-2 text-sm font-medium text-white/70">
+                  Total Validators
+                </p>
+                <p className="text-4xl font-semibold tracking-tight text-white">
+                  {formatNumber(aggregatedStats.totalNodes)}
+                </p>
+                <p className="mt-1 text-xs text-white/70">
+                  {upToDatePercentage.toFixed(1)}% up to date
+                </p>
+              </div>
+
+              <div className="backdrop-blur-sm bg-white/10 border border-white/20 rounded-xl p-6 text-center flex flex-col justify-center h-full lg:col-span-6 transition-all hover:bg-white/15">
+                <p className="mb-4 text-sm font-medium text-white/70">
+                  Total Version Breakdown
+                </p>
+                <div className="space-y-2">
+                  {/* Horizontal Bar Chart */}
+                  <div className="flex h-6 w-full rounded overflow-hidden bg-white/20">
+                    {Object.entries(totalVersionBreakdown)
+                      .sort(([v1], [v2]) => compareVersions(v2, v1))
+                      .map(([version, data], index) => {
+                        const percentage = aggregatedStats.totalNodes > 0
+                          ? (data.nodes / aggregatedStats.totalNodes) * 100
+                          : 0;
+                        return (
                           <div
-                            className={`h-2 w-2 rounded-full flex-shrink-0 ${getVersionColor(index)}`}
+                            key={version}
+                            className={`h-full transition-all ${getVersionColor(index)}`}
+                            style={{ width: `${percentage}%` }}
+                            title={`${version}: ${data.nodes} nodes (${percentage.toFixed(1)}%)`}
                           />
-                          <span className="font-mono text-black dark:text-white">
-                            {version}
-                          </span>
-                          <span className="text-neutral-500 dark:text-neutral-500">
-                            ({data.nodes})
-                          </span>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                  </div>
+                  {/* Version Labels */}
+                  <div className="flex flex-wrap gap-x-2 gap-y-1 text-xs justify-center">
+                    {Object.entries(totalVersionBreakdown)
+                      .sort(([v1], [v2]) => compareVersions(v2, v1))
+                      .slice(0, 5) // Show top 5 versions
+                      .map(([version, data], index) => {
+                        return (
+                          <div
+                            key={version}
+                            className="flex items-center gap-1"
+                          >
+                            <div
+                              className={`h-2 w-2 rounded-full flex-shrink-0 ${getVersionColor(index)}`}
+                            />
+                            <span className="font-mono text-white">
+                              {version}
+                            </span>
+                            <span className="text-white/70">
+                              ({data.nodes})
+                            </span>
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
-
-        <div className="border-t border-neutral-200 dark:border-neutral-800 my-8"></div>
 
         {/* Search */}
         <div className="flex items-center gap-4 justify-between">

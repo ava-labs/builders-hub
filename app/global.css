@@ -124,6 +124,41 @@ body:has([data-granite-banner]) .h-\[calc\(100vh-var\(--header-height\)-1rem\)\]
   height: calc(100vh - var(--fd-banner-height, 3rem) - var(--header-height) - 1rem) !important;
 }
 
+/* Integrations page: Add padding-top when banner exists */
+body:has([data-granite-banner]) .integrations-page {
+  padding-top: calc(var(--fd-banner-height, 3rem) + 3rem) !important;
+  scroll-padding-top: calc(var(--fd-banner-height, 3rem) + 4rem) !important;
+}
+
+/* Integrations page: Default scroll padding (no banner) */
+.integrations-page {
+  scroll-padding-top: 4rem;
+}
+
+/* Integrations page: Adjust sticky sidebar position when banner exists */
+body:has([data-granite-banner]) .integrations-page aside > div[class*="sticky"] {
+  top: calc(6rem + var(--fd-banner-height, 3rem)) !important;
+}
+
+/* Integrations page: Add scroll margin to section anchors for proper positioning */
+.integrations-page section[id] {
+  scroll-margin-top: 4rem;
+}
+
+body:has([data-granite-banner]) .integrations-page section[id] {
+  scroll-margin-top: calc(var(--fd-banner-height, 3rem) + 4rem);
+}
+
+/* Integration detail page: Add padding-top when banner exists */
+body:has([data-granite-banner]) .integration-detail-page {
+  padding-top: calc(var(--fd-banner-height, 3rem) + 1rem) !important;
+}
+
+/* Integration detail page: Default padding (no banner) */
+.integration-detail-page {
+  padding-top: 1rem;
+}
+
 /* Remove ALL left whitespace from navbar to fill screen edge */
 body > div > nav,
 body > div > header,

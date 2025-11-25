@@ -1,0 +1,36 @@
+---
+title: Transfer Ownership
+description: Transfer control of the Validator Manager to enable permissionless validator operations
+updated: 2025-03-13
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+import TransferOwnershipToStakingManager from "@/components/toolbox/console/permissionless-l1s/setup/TransferOwnershipToStakingManager.tsx"
+import { Callout } from "fumadocs-ui/components/callout";
+
+## Why Transfer Ownership?
+
+Transfer ownership of the **Validator Manager contract** from your EOA (Externally Owned Account) to the `NativeTokenStakingManager` contract.
+
+Currently, the Validator Manager contract is owned by your wallet address. This means only you can call functions with the `onlyOwner` modifier, such as:
+- Adding validators to the network
+- Removing validators from the network
+- Managing validator weights
+
+By transferring ownership to the `NativeTokenStakingManager` contract, these functions become **permissionless**—anyone can call them through the Staking Manager's public functions, enabling:
+- **Permissionless validator registration**: Anyone can stake tokens and become a validator
+- **Permissionless delegation**: Anyone can delegate to existing validators
+- **Automated validator management**: The Staking Manager handles all validator operations based on staking logic
+
+## Transfer Ownership
+
+<Callout type="warn">
+This is a one-time, irreversible operation. Once ownership is transferred, your EOA will no longer have direct control over validator operations. Ensure the Staking Manager address is correct before proceeding.
+</Callout>
+
+<ToolboxMdxWrapper walletMode="l1">
+    <TransferOwnershipToStakingManager />
+</ToolboxMdxWrapper>
+

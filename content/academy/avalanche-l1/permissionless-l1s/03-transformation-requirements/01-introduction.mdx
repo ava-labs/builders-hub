@@ -1,0 +1,50 @@
+---
+title: Introduction
+description: Precompile contracts necessary for a Permissionless L1 implementation
+updated: 2025-03-13
+authors: [nicolasarnedo]
+icon: Book
+---
+
+## From Proof of Authority to Proof of Stake
+
+Now that we've covered how Proof of Stake serves as a Sybil protection mechanism that enables permissionless participation in an L1, the next question is: How do we actually transform an existing permissioned L1 using [Proof of Authority](/academy/permissioned-l1s/proof-of-authority/proof-of-authority) into a permissionless L1 with Proof of Stake?
+
+In the previous section on [staking token selection](/academy/permissionless-l1s/proof-of-stake/staking-token), we learned that the staking token can either be the native token or a separate ERC20 token. **For this course, we will focus on building a permissionless L1 where the native token is also the staking token**—the most common and straightforward implementation that creates unified token economics.
+
+*Optionally*, or in case you lost access to your previous chain, you can quickly [setup a Permissioned L1](/academy/permissionless-l1s/04-speedrun-base-l1) at the end of this chapter and will transform it the next chapter.
+
+### 1. Opening Validator Management (From Permissioned L1s)
+
+In the [Permissioned L1s course](/academy/permissioned-l1s), we learned about the [Validator Manager Contract](/academy/permissioned-l1s/proof-of-authority/validator-manager-contract)—specifically how PoA restricts validator control to a single owner address. The contract hierarchy showed us:
+
+- **PoA Model**: Only the owner can call `initiateValidatorRegistration()`, `initiateValidatorRemoval()`, and `initiateValidatorWeightUpdate()`
+- **Centralized Control**: One account (EOA or multi-sig) acts as the gatekeeper
+
+To enable PoS, we need to **open these functions to the public**—but with economic requirements instead of permission requirements.
+
+### 2. Adding Token Economics (From L1 Native Tokenomics)
+
+In the [L1 Native Tokenomics course](/academy/l1-native-tokenomics), we learned about [custom native tokens](/academy/l1-native-tokenomics/custom-tokens/introduction) and that [native tokens and staking tokens can be different](/academy/l1-native-tokenomics/custom-tokens/native-vs-staking). We also explored the [Native Minter Precompile](/academy/l1-native-tokenomics/native-minter/introduction) for managing token supply.
+
+Now we need to integrate these token economics with validator management to create the economic security model that defines PoS.
+
+## The Transformation Requirements
+
+To enable native token staking on our L1, we'll need to configure specific precompiles:
+
+### Required: Native Minter Precompile
+
+When using the native token for staking, the **Native Minter Precompile is mandatory**. It enables the minting of staking rewards for validators.
+
+> If we're using an ERC20 token for staking instead, we don't need the Native Minter—the ERC20 token just needs to be mintable.
+
+### Recommended: Reward Manager Precompile
+
+The **Reward Manager Precompile is optional but highly recommended**. It automates reward distribution based on validator performance and participation.
+
+If we choose not to enable the Reward Manager, transaction fees will simply be burned rather than distributed as rewards.
+
+## Next Steps
+
+In the following sections, we'll explore why these precompiles are necessary and how to configure them for our permissionless L1.
