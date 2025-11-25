@@ -1,5 +1,6 @@
 {
   "title": "Chain Configs",
+  "defaultOpen": true,
   "pages": [
     "primary-network",
     "avalanche-l1s"
