@@ -551,6 +551,48 @@ const config = {
         destination: "/academy/avalanche-l1/avacloudapis/:path*",
         permanent: true,
       },
+      {
+        source: "/docs/cross-chain/teleporter/teleporter-on-devnet",
+        destination: "/docs/cross-chain/icm-contracts/icm-contracts-on-devnet",
+        permanent: true,
+      },
+      {
+        source: "/docs/cross-chain/teleporter/teleporter-on-local-network",
+        destination: "/docs/cross-chain/icm-contracts/icm-contracts-on-local-network",
+        permanent: true,
+      },
+      {
+        source: "/docs/cross-chain/teleporter",
+        destination: "/docs/cross-chain/icm-contracts",
+        permanent: true,
+      },
+      {
+        source: "/docs/cross-chain/teleporter/:path*",
+        destination: "/docs/cross-chain/icm-contracts/:path*",
+        source: "/academy/avalanche-l1/interchain-token-transfer/03-tokens/:path*",
+        destination: "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/interchain-token-transfer/04-token-bridging/:path*",
+        destination: "/academy/avalanche-l1/erc20-bridge/01-token-bridging/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/interchain-token-transfer/05-avalanche-interchain-token-transfer/:path*",
+        destination: "/academy/avalanche-l1/erc20-bridge/02-avalanche-interchain-token-transfer/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/interchain-token-transfer/06-erc-20-to-erc-20-bridge/:path*",
+        destination: "/academy/avalanche-l1/erc20-bridge/03-erc-20-to-erc-20-bridge/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/interchain-token-transfer/07-tokens-on-multiple-chains/:path*",
+        destination: "/academy/avalanche-l1/erc20-bridge/04-tokens-on-multiple-chains/:path*",
+        permanent: true,
+      },
     ];
   },
 };

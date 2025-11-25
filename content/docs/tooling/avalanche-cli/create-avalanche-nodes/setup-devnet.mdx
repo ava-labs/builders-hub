@@ -13,7 +13,7 @@ ALPHA WARNING: This command is currently in experimental mode. Proceed at your o
 
 ## Prerequisites
 
-Before we begin, you will need to create an AWS account and have an updated AWS `credentials` file in home directory with [default] profile or set up your GCP account according to [here](/docs/tooling/create-avalanche-nodes/run-validators-gcp).
+Before we begin, you will need to create an AWS account and have an updated AWS `credentials` file in home directory with [default] profile or set up your GCP account according to [here](/docs/tooling/avalanche-cli/create-avalanche-nodes/run-validators-gcp).
 
 Note: the tutorial uses AWS hosts, but Devnets can also be created and operated in other supported cloud providers, such as GCP.
 
@@ -83,10 +83,10 @@ The following settings will be used:
 - `<repoUrl>` `https://github.com/ava-labs/hypersdk/`
 - `<branch>` `vryx-poc`
 - `<buildScript>` `examples/morpheusvm/scripts/build.sh`
-- `<genesisPath>` [Genesis File](/docs/tooling/create-avalanche-nodes/deploy-custom-vm#genesis-file)
-- `<chainConfigPath>` [Blockchain Config](/docs/tooling/create-avalanche-nodes/deploy-custom-vm#blockchain-config)
-- `<subnetConfigPath>` [Avalanche L1 Config](/docs/tooling/create-avalanche-nodes/deploy-custom-vm#avalanche-l1-config)
-- `<avagoConfigPath>` [AvalancheGo Config](/docs/tooling/create-avalanche-nodes/deploy-custom-vm#avalanchego-flags)
+- `<genesisPath>` [Genesis File](/docs/tooling/avalanche-cli/create-avalanche-nodes/deploy-custom-vm#genesis-file)
+- `<chainConfigPath>` [Blockchain Config](/docs/tooling/avalanche-cli/create-avalanche-nodes/deploy-custom-vm#blockchain-config)
+- `<subnetConfigPath>` [Avalanche L1 Config](/docs/tooling/avalanche-cli/create-avalanche-nodes/deploy-custom-vm#avalanche-l1-config)
+- `<avagoConfigPath>` [AvalancheGo Config](/docs/tooling/avalanche-cli/create-avalanche-nodes/deploy-custom-vm#avalanchego-flags)
 
 To spin up a Devnet with 5 validator nodes and 1 API node in 5 regions each
 (us-west-2,us-east-1,ap-south-1,ap-northeast-1,eu-west-1) in AWS with each node having spec of

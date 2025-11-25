@@ -9,15 +9,15 @@ For more information on cross chain messaging through Teleporter and Warp, check
 
 - [Cross Chain References](/docs/cross-chain)
 
-Note that currently only [Subnet-EVM](https://github.com/ava-labs/subnet-evm) and [Subnet-EVM-Based](/docs/virtual-machines/evm-customization/introduction) virtual machines support Teleporter.
+Note that currently only [Subnet-EVM](https://github.com/ava-labs/subnet-evm) and [Subnet-EVM-Based](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1) virtual machines support Teleporter.
 
 ## Prerequisites
 
-- [Avalanche-CLI installed](/docs/tooling/get-avalanche-cli)
+- [Avalanche-CLI installed](/docs/tooling/avalanche-cli)
 
 ## Create Avalanche L1 Configurations
 
-Let's create an Avalanche L1 called `<chain1>` with the latest Subnet-EVM version, a chain ID of 1, TOKEN1 as the token name, and with default Subnet-EVM parameters (more information regarding Avalanche L1 creation can be found [here](/docs/tooling/create-avalanche-l1#create-your-avalanche-l1-configuration)):
+Let's create an Avalanche L1 called `<chain1>` with the latest Subnet-EVM version, a chain ID of 1, TOKEN1 as the token name, and with default Subnet-EVM parameters (more information regarding Avalanche L1 creation can be found [here](/docs/tooling/avalanche-cli#create-your-avalanche-l1-configuration)):
 
 ```bash
 avalanche blockchain create <chain1> --evm --latest\

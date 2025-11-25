@@ -1,0 +1,8 @@
+{
+  "title": "Golang VMs",
+  "pages": [
+    "simple-golang-vm",
+    "complex-golang-vm"
+  ]
+}
+

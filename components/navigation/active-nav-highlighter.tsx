@@ -45,8 +45,8 @@ export function ActiveNavHighlighter() {
         if (href) {
           // Check if this link's href matches or starts with the active section
           if (href === activeSection || href.startsWith(activeSection + '/')) {
-            // Special handling for docs (which might have url '/docs/quick-start')
-            if (activeSection === '/docs' && (href === '/docs/quick-start' || href.startsWith('/docs/'))) {
+            // Special handling for docs (which might have url '/docs/dapps')
+            if (activeSection === '/docs' && (href === '/docs/dapps' || href.startsWith('/docs/'))) {
               link.setAttribute('data-active', 'true');
               link.setAttribute('aria-current', 'page');
             }
