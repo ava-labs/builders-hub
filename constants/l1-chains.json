@@ -736,6 +736,17 @@
     ]
   },
   {
+    "chainId": "1510",
+    "chainName": "Orange",
+    "chainLogoURI": "https://irp.cdn-website.com/e81c109a/dms3rep/multi/orange-web3-logo-v2a-20241018.svg",
+    "subnetId": "4onzNay6p7oru7GfZLCMrXhxvUqtmoC4vz8r8ev9e7r2C5wju",
+    "slug": "orange",
+    "color": "#FF6600",
+    "category": "AI",
+    "explorers": [
+    ]
+  },
+  {
     "chainId": "58166",
     "chainName": "Oumla",
     "chainLogoURI": "",
