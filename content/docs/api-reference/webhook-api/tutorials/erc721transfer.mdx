@@ -1,0 +1,133 @@
+---
+title: Track ERC-721 Transfers
+description: How to track ERC-721 transfers with the Webhooks API
+icon: Wallpaper
+---
+
+In this tutorial, we build upon the previous in which we tracked ERC20 transfers. To monitor NFT transfers, we will utilize the event signature. If you wish to receive a notification every time a Dokyo NFT is transferred, you can use an expression similar to the following:
+
+```bash
+curl --location 'https://glacier-api.avax.network/v1/webhooks' \
+--header 'x-glacier-api-key: <YOUR_API_KEY>' \
+--header 'Content-Type: application/json' \
+--data '{
+    "url": "https://webhook.site/961a0d1b-a7ed-42fd-9eab-d7e4c7eb1227",
+    "chainId": "43114",
+    "eventType": "address_activity",
+    "metadata": {
+        "addresses": ["0x54C800d2331E10467143911aabCa092d68bF4166"],
+        "includeInternalTxs": false,
+        "includeLogs": true,
+        "eventSignatures": [
+           "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+        ]
+
+    },
+    "name": "Dokyo NFT",
+    "description": "Dokyo NFT"
+}'
+```
+
+Whenever an NFT is transferred you’ll receive a payload like this:
+
+```json
+{
+  "webhookId": "6d1bd383-aa8d-47b5-b793-da6d8a115fde",
+  "eventType": "address_activity",
+  "messageId": "6a364b45-47a2-45af-97c3-0ddc2e87ad36",
+  "event": {
+    "transaction": {
+      "blockHash": "0x30da6a8887bf2c26b7921a1501abd6e697529427e4a4f52a9d4fc163a2344b46",
+      "blockNumber": "42649820",
+      "from": "0x0000333883f313AD709f583D0A3d2E18a44EF29b",
+      "gas": "245004",
+      "gasPrice": "30000000000",
+      "maxFeePerGas": "30000000000",
+      "maxPriorityFeePerGas": "30000000000",
+      "txHash": "0x2f1a9e2b8719536997596d878f21b70f2ce0901287aa3480d923e7ffc68ac3bc",
+      "txStatus": "1",
+      "input": "0xafde1b3c0000000000000000000000000…0000000000000000000000000000000000",
+      "nonce": "898",
+      "to": "0x398baa6ffc99126671ab6be565856105a6118a40",
+      "transactionIndex": 0,
+      "value": "0",
+      "type": 0,
+      "chainId": "43114",
+      "receiptCumulativeGasUsed": "163336",
+      "receiptGasUsed": "163336",
+      "receiptEffectiveGasPrice": "30000000000",
+      "receiptRoot": "0xdf05c214cee5ff908744e13a3b2879fdba01c9c7f95073670cb23ed735126178",
+      "contractAddress": "0x0000000000000000000000000000000000000000",
+      "blockTimestamp": 1709930290
+    },
+    "logs": [
+      {
+        "address": "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
+        "topic0": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+        "topic1": "0x0000000000000000000000008cdd7a500f21455361cf1c2e01c0525ce92481b2",
+        "topic2": "0x0000000000000000000000000000333883f313ad709f583d0a3d2e18a44ef29b",
+        "topic3": null,
+        "data": "0x000000000000000000000000000000000000000000000001a6c5c6f4f4f6d060",
+        "transactionIndex": 0,
+        "logIndex": 0,
+        "removed": false
+      },
+      {
+        "address": "0x54C800d2331E10467143911aabCa092d68bF4166",
+        "topic0": "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925",
+        "topic1": "0x0000000000000000000000000000333883f313ad709f583d0a3d2e18a44ef29b",
+        "topic2": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "topic3": "0x0000000000000000000000000000000000000000000000000000000000001350",
+        "data": "0x",
+        "transactionIndex": 0,
+        "logIndex": 1,
+        "removed": false
+      },
+      {
+        "address": "0x54C800d2331E10467143911aabCa092d68bF4166",
+        "topic0": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+        "topic1": "0x0000000000000000000000000000333883f313ad709f583d0a3d2e18a44ef29b",
+        "topic2": "0x0000000000000000000000008cdd7a500f21455361cf1c2e01c0525ce92481b2",
+        "topic3": "0x0000000000000000000000000000000000000000000000000000000000001350",
+        "data": "0x",
+        "transactionIndex": 0,
+        "logIndex": 2,
+        "removed": false
+      },
+      {
+        "address": "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
+        "topic0": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+        "topic1": "0x0000000000000000000000008cdd7a500f21455361cf1c2e01c0525ce92481b2",
+        "topic2": "0x00000000000000000000000087f45335268512cc5593d435e61df4d75b07d2a2",
+        "topic3": null,
+        "data": "0x000000000000000000000000000000000000000000000000087498758a04efb0",
+        "transactionIndex": 0,
+        "logIndex": 3,
+        "removed": false
+      },
+      {
+        "address": "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
+        "topic0": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+        "topic1": "0x0000000000000000000000008cdd7a500f21455361cf1c2e01c0525ce92481b2",
+        "topic2": "0x000000000000000000000000610512654af4fa883bb727afdff2dd78b65342b7",
+        "topic3": null,
+        "data": "0x000000000000000000000000000000000000000000000000021d261d62813bec",
+        "transactionIndex": 0,
+        "logIndex": 4,
+        "removed": false
+      },
+      {
+        "address": "0x398BAa6FFc99126671Ab6be565856105a6118A40",
+        "topic0": "0x50273fa02273cceea9cf085b42de5c8af60624140168bd71357db833535877af",
+        "topic1": null,
+        "topic2": null,
+        "topic3": null,
+        "data": "0x0000000000009911a89f400000000000000000000…0000010",
+        "transactionIndex": 0,
+        "logIndex": 5,
+        "removed": false
+      }
+    ]
+  }
+}
+```

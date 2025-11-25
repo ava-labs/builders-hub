@@ -2,8 +2,9 @@
 @import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
-@import "fumadocs-ui/css/neutral.css";
-@import "fumadocs-ui/css/preset.css";
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+@import 'fumadocs-openapi/css/preset.css';
 
 @source '../node_modules/fumadocs-ui/dist/**/*.js';
 @plugin 'tailwindcss-animate';
@@ -142,20 +143,186 @@ div.group\/accordion h3 {
   margin-top: 0 !important;
 }
 
-/* .light .prose :where(a:not([data-card])):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
-  color: #18181B; 
+/* Make granite banner fixed instead of sticky */
+[data-granite-banner] {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  z-index: 40 !important;
 }
-.light .prose :where(h3):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
-  color: #18181B; 
-} */
 
-/* .dark .prose :where(a:not([data-card])):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
-  color: #F5F5F9;
+/* Set CSS variable for banner height (for TOC positioning) */
+:root {
+  --fd-banner-height: 0rem; /* Default: no banner */
+}
+body:has([data-granite-banner]) {
+  --fd-banner-height: 3rem; /* When banner exists: 3rem */
 }
 
-.dark .prose :where(h3):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
-  color: #F5F5F9;
-} */
+/* Ensure all dropdown menus appear above the banner */
+[data-radix-popover-content],
+[data-radix-popover-content][data-state="open"],
+[data-radix-dropdown-menu-content],
+[data-radix-navigation-menu-content],
+[data-navbar-dropdown] > div[class*="absolute"],
+.PopoverContent,
+nav[aria-label="Main"] [data-radix-popover-content],
+header[aria-label="Main"] [data-radix-popover-content] {
+  z-index: 100 !important;
+  pointer-events: auto !important; /* Ensure all dropdowns are clickable */
+}
+
+/* CRITICAL: When banner exists, PopoverContent wrapper must be above everything */
+body:has([data-granite-banner]) [data-radix-popper-content-wrapper] {
+  z-index: 10000 !important;
+}
+
+body:has([data-granite-banner]) [data-radix-popover-content][data-state="open"],
+body:has([data-granite-banner]) [data-slot="popover-content"][data-state="open"] {
+  z-index: 10000 !important;
+  position: fixed !important;
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure banner doesn't block PopoverContent clicks - ALL BREAKPOINTS */
+body:has([data-radix-popover-content][data-state="open"]) [data-granite-banner] {
+  pointer-events: none !important; /* Allow clicks through banner to PopoverContent */
+}
+
+/* Ensure PopoverTrigger is clickable when banner exists */
+body:has([data-granite-banner]) [data-radix-popover-trigger],
+body:has([data-granite-banner]) button:has([data-radix-popover-trigger]),
+body:has([data-granite-banner]) [role="button"]:has([data-radix-popover-trigger]) {
+  pointer-events: auto !important;
+  z-index: 100 !important; /* Above banner (z-40) */
+  position: relative !important;
+}
+
+
+/* Position navbar below banner (banner is 3rem tall) - only when banner exists */
+body:has([data-granite-banner]) nav[aria-label="Main"],
+body:has([data-granite-banner]) header[aria-label="Main"],
+body:has([data-granite-banner]) #nd-nav {
+  top: 3rem !important;
+}
+
+/* Add padding to homepage content when banner exists to prevent cutoff */
+body:has([data-granite-banner]) .nd-layout-home > main,
+body:has([data-granite-banner]) main.container {
+  padding-top: calc(var(--fd-banner-height, 3rem) + 1rem) !important;
+}
+
+/* Add margin-top to hero section when banner exists to prevent cutoff */
+body:has([data-granite-banner]) section.min-h-\[50vh\] {
+  margin-top: calc(var(--fd-banner-height, 3rem) + 3.5rem) !important; /* Banner + navbar height */
+}
+
+/* Add padding-top to docs layout when banner exists */
+body:has([data-granite-banner]) #nd-docs-layout {
+  padding-top: calc(var(--fd-banner-height, 3rem) + 3.5rem) !important;
+}
+
+/* Add padding-top to table of contents when banner exists */
+#nd-toc {
+  padding-top: 72px !important;
+}
+
+/* Adjust console layout heights when banner exists */
+body:has([data-granite-banner]) .h-screen.overflow-hidden {
+  height: calc(100vh - var(--fd-banner-height, 3rem)) !important;
+  margin-top: var(--fd-banner-height, 3rem) !important;
+}
+
+body:has([data-granite-banner]) .h-\[calc\(100vh-1rem\)\] {
+  height: calc(100vh - var(--fd-banner-height, 3rem) - 1rem) !important;
+}
+
+body:has([data-granite-banner]) .h-\[calc\(100vh-var\(--header-height\)-1rem\)\] {
+  height: calc(100vh - var(--fd-banner-height, 3rem) - var(--header-height) - 1rem) !important;
+}
+
+/* Integrations page: Add padding-top when banner exists */
+body:has([data-granite-banner]) .integrations-page {
+  padding-top: calc(var(--fd-banner-height, 3rem) + 3rem) !important;
+  scroll-padding-top: calc(var(--fd-banner-height, 3rem) + 4rem) !important;
+}
+
+/* Integrations page: Default scroll padding (no banner) */
+.integrations-page {
+  scroll-padding-top: 4rem;
+}
+
+/* Integrations page: Adjust sticky sidebar position when banner exists */
+body:has([data-granite-banner]) .integrations-page aside > div[class*="sticky"] {
+  top: calc(6rem + var(--fd-banner-height, 3rem)) !important;
+}
+
+/* Integrations page: Add scroll margin to section anchors for proper positioning */
+.integrations-page section[id] {
+  scroll-margin-top: 4rem;
+}
+
+body:has([data-granite-banner]) .integrations-page section[id] {
+  scroll-margin-top: calc(var(--fd-banner-height, 3rem) + 4rem);
+}
+
+/* Integration detail page: Add padding-top when banner exists */
+body:has([data-granite-banner]) .integration-detail-page {
+  padding-top: calc(var(--fd-banner-height, 3rem) + 1rem) !important;
+}
+
+/* Integration detail page: Default padding (no banner) */
+.integration-detail-page {
+  padding-top: 1rem;
+}
+
+/* Remove ALL left whitespace from navbar to fill screen edge */
+body > div > nav,
+body > div > header,
+nav[aria-label="Main"],
+header nav,
+.nd-nav,
+.nd-layout-home > nav,
+.nd-layout-home > header {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+  padding-right: 0 !important;
+  margin-right: 0 !important;
+  max-width: 100% !important;
+}
+
+/* Remove container padding/margin */
+nav > div,
+header > div,
+nav[aria-label="Main"] > div,
+.nd-nav > div {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  max-width: 100% !important;
+}
+
+/* Force the navbar to be full width */
+body > div:first-child,
+body > div > main {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Specifically target fumadocs nav container */
+.nd-layout-home,
+.nd-layout-docs {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
 
 .uwu {
   --background: 240 80% 94% !important;
@@ -185,14 +352,6 @@ div.group\/accordion h3 {
   padding: 0 16px;
 }
 
-/* svg.lucide {
-  color: #1f66f4;
-}
-
-.my-6 > svg.lucide {
-  color: #fff;
-} */
-
 .text-fd-primary {
   --tw-text-opacity: 1;
   color: #1f66f4;
@@ -217,10 +376,6 @@ h2.text-sm.font-medium {
 
 .hide-icons svg.lucide.lucide-folder,
 svg.lucide.lucide-folder-open {
-  display: none;
-}
-
-nav a:not(:first-child) {
   display: none;
 }
 
@@ -251,6 +406,68 @@ nav a:not(:first-child) {
 .bg-avax-red {
   --tw-bg-opacity: 1;
   background-color: #e84142;
+}
+
+.text-avax-red {
+  --tw-text-opacity: 1;
+  color: #e84142;
+}
+
+/* Avax red opacity variants */
+.bg-avax-red\/5 {
+  background-color: rgba(232, 65, 66, 0.05);
+}
+
+.bg-avax-red\/10 {
+  background-color: rgba(232, 65, 66, 0.1);
+}
+
+.bg-avax-red\/20 {
+  background-color: rgba(232, 65, 66, 0.2);
+}
+
+.border-avax-red\/30 {
+  border-color: rgba(232, 65, 66, 0.3);
+}
+
+.border-avax-red\/40 {
+  border-color: rgba(232, 65, 66, 0.4);
+}
+
+.border-avax-red\/60 {
+  border-color: rgba(232, 65, 66, 0.6);
+}
+
+.shadow-avax-red\/25 {
+  --tw-shadow-color: rgba(232, 65, 66, 0.25);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+
+.shadow-avax-red\/40 {
+  --tw-shadow-color: rgba(232, 65, 66, 0.4);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+
+/* Additional hover background variants */
+.hover\:bg-avax-red\/5:hover {
+  background-color: rgba(232, 65, 66, 0.05) !important;
+}
+
+.hover\:bg-avax-red\/10:hover {
+  background-color: rgba(232, 65, 66, 0.1) !important;
+}
+
+.hover\:shadow-avax-red\/25:hover {
+  --tw-shadow-color: rgba(232, 65, 66, 0.25);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+
+.group:hover .group-hover\:bg-avax-red\/10 {
+  background-color: rgba(232, 65, 66, 0.1) !important;
+}
+
+.group:hover .group-hover\:bg-avax-red\/20 {
+  background-color: rgba(232, 65, 66, 0.2) !important;
 }
 
 .border-avax-green {
@@ -400,97 +617,10 @@ html body[data-scroll-locked] {
   overflow: visible !important;
   margin-right: 0 !important;
 }
-/* 
-@layer base {
-  :root {
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-    --background: 0 0% 96%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 96%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 45%;
-    --accent: 0 0% 90.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-  }
-  .dark {
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-    --background: 0 0% 0%;
-    --foreground: 210 40% 98%;
-    --card: 0 0% 0%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 0 0% 8%;
-    --muted-foreground: 0 0% 60%;;
-    --accent: 0 0% 15%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 0 0% 14%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-  }
-} */
 
 html {
   scroll-behavior: smooth;
 }
-
-/* This is a workaround for this issue: https://github.com/shadcn-ui/ui/issues/4227 */
-html body[data-scroll-locked] {
-  overflow: visible !important;
-  margin-right: 0 !important;
-}
-
-/* @layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-} */
 
 :root {
   --font-sans: var(--font-geist-sans);
@@ -523,8 +653,8 @@ html body[data-scroll-locked] {
   --sidebar-foreground: oklch(0.129 0.042 264.695);
   --sidebar-primary: oklch(0.208 0.042 265.755);
   --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
+  --sidebar-accent: oklch(0.90 0.007 247.896);
+  --sidebar-accent-foreground: oklch(0.15 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
 }
@@ -557,8 +687,8 @@ html body[data-scroll-locked] {
   --sidebar-foreground: oklch(0.95 0 0);
   --sidebar-primary: oklch(0.9 0 0);
   --sidebar-primary-foreground: oklch(0.1 0 0);
-  --sidebar-accent: oklch(0.12 0 0);
-  --sidebar-accent-foreground: oklch(0.9 0 0);
+  --sidebar-accent: oklch(0.20 0 0);
+  --sidebar-accent-foreground: oklch(1 0 0);
   --sidebar-border: oklch(0.18 0 0);
   --sidebar-ring: oklch(0.7 0 0);
 }
@@ -693,6 +823,7 @@ html body[data-scroll-locked] {
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  
 }
 
 
@@ -920,3 +1051,572 @@ html body[data-scroll-locked] {
     position: relative;
     border: 1px solid #f4f4f5;
   }
+/* Apply consistent padding to all nav items to prevent layout shift */
+nav a {
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+  padding-top: 0.36rem !important;
+  padding-bottom: 0.36rem !important;
+  border-radius: 0.5rem !important;
+  transition: all 0.2s ease !important;
+}
+
+nav button {
+  padding: 0.1rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease !important;
+}
+
+/* Exception for search, theme toggle, and user profile buttons */
+/* Search button - keep it looking like a search bar */
+nav button[data-search-full] {
+  padding: 0.375rem 0.625rem !important;
+  padding-left: 0.625rem !important;
+  border-radius: 9999px !important;
+  background-color: rgba(0, 0, 0, 0.03) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.2s ease !important;
+  gap: 0.5rem !important;
+}
+
+nav button[data-search-full]:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+.dark nav button[data-search-full] {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark nav button[data-search-full]:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Theme toggle button - rounded with proper padding */
+nav button[data-theme-toggle],
+nav button[aria-label="Toggle Theme"] {
+  padding: 0.25rem !important;
+  border-radius: 9999px !important;
+  background-color: transparent !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.2s ease !important;
+}
+
+nav button[data-theme-toggle]:hover,
+nav button[aria-label="Toggle Theme"]:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+.dark nav button[data-theme-toggle],
+.dark nav button[aria-label="Toggle Theme"] {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark nav button[data-theme-toggle]:hover,
+.dark nav button[aria-label="Toggle Theme"]:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* User profile dropdown button - keep rounded */
+nav button[data-slot="dropdown-menu-trigger"] {
+  padding: 0.25rem !important;
+  border-radius: 9999px !important;
+  background-color: transparent !important;
+  transition: all 0.2s ease !important;
+}
+
+nav button[data-slot="dropdown-menu-trigger"]:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.dark nav button[data-slot="dropdown-menu-trigger"]:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Larger padding for type: 'main' items (University, Blog) to match menu hover size */
+nav li > a {
+  padding-left: 0.9rem !important;
+  padding-right: 0.9rem !important;
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+}
+
+/* Left-align sidebar content */
+#nd-sidebar [data-radix-scroll-area-viewport] > div {
+  display: block !important;
+  text-align: left !important;
+}
+
+#nd-sidebar a,
+#nd-sidebar p {
+  text-align: left !important;
+  justify-content: flex-start !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Docs subnav hover and active states */
+.docs-subnav-link:hover:not([data-active="true"]):not([aria-current="page"]) {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.dark .docs-subnav-link:hover:not([data-active="true"]):not([aria-current="page"]) {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
+}
+
+.docs-subnav-link[data-active="true"],
+.docs-subnav-link[aria-current="page"] {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.dark .docs-subnav-link[data-active="true"],
+.dark .docs-subnav-link[aria-current="page"] {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Hover state for type: 'main' nav links (University, Blog) - direct <a> children, not wrapped in buttons */
+nav li > a:hover:not([data-active="true"]):not([aria-current="page"]) {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.dark nav li > a:hover:not([data-active="true"]):not([aria-current="page"]) {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Active navigation item highlighting - matches hover size and prominence */
+nav a[data-active="true"],
+nav a[aria-current="page"],
+nav button[data-active="true"],
+nav button[aria-current="page"] {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+  cursor: default !important;
+}
+
+.dark nav a[data-active="true"],
+.dark nav a[aria-current="page"],
+.dark nav button[data-active="true"],
+.dark nav button[aria-current="page"] {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Keep active state on hover - prevent further changes */
+nav a[data-active="true"]:hover,
+nav a[aria-current="page"]:hover,
+nav button[data-active="true"]:hover,
+nav button[aria-current="page"]:hover {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+  transform: none !important;
+  scale: 1 !important;
+}
+
+.dark nav a[data-active="true"]:hover,
+.dark nav a[aria-current="page"]:hover,
+.dark nav button[data-active="true"]:hover,
+.dark nav button[aria-current="page"]:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
+  transform: none !important;
+  scale: 1 !important;
+}
+
+/* Simplified navbar responsive - compress then switch to mobile early */
+/* Keep logo from getting squished at all sizes */
+#nd-nav a[href="/"] {
+  flex-shrink: 0 !important;
+  min-width: fit-content !important;
+}
+
+/* Slight compression on larger screens (1200px) */
+@media (max-width: 1200px) {
+  #nd-nav .flex.h-14.w-full.items-center.px-4 {
+    gap: 0.375rem !important;
+  }
+  
+  #nd-nav nav a,
+  #nd-nav nav button {
+    padding-left: 0.625rem !important;
+    padding-right: 0.625rem !important;
+  }
+}
+
+/* More compression (1100px) */
+@media (max-width: 1100px) {
+  #nd-nav .flex.h-14.w-full.items-center.px-4 {
+    gap: 0.25rem !important;
+  }
+  
+  #nd-nav nav a,
+  #nd-nav nav button {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    font-size: 0.875rem !important;
+  }
+}
+
+/* Override Tailwind md: breakpoint for fumadocs components */
+@media (max-width: 1023px) {
+  /* Force fumadocs to think it's below md: breakpoint */
+  .max-md\:hidden {
+    display: none !important;
+  }
+}
+
+/* Switch to mobile menu early (below 1024px) - before anything gets cut off */
+@media (max-width: 1023px) {
+  /* Center the logo on mobile */
+  nav[aria-label="Main"] nav,
+  header[aria-label="Main"] nav,
+  #nd-nav nav {
+    justify-content: space-between !important;
+  }
+  
+  nav[aria-label="Main"] a[href="/"],
+  header[aria-label="Main"] a[href="/"],
+  #nd-nav a[href="/"] {
+    position: absolute !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  
+  /* Hide desktop nav items list in main navbar */
+  #nd-nav ul.flex.flex-row.items-center.gap-2.px-6.max-sm\:hidden {
+    display: none !important;
+  }
+  
+  /* Hide desktop utilities container in main navbar */  
+  #nd-nav div.flex.flex-row.items-center.justify-end.gap-1\.5.flex-1.max-lg\:hidden {
+    display: none !important;
+  }
+  
+  /* Show mobile menu area */
+  #nd-nav ul.flex.flex-row.items-center.ms-auto.-me-1\.5.lg\:hidden {
+    display: flex !important;
+  }
+  
+  /* Hide fumadocs dropdown menu - we use our custom one */
+  #nd-nav ul.flex.flex-row.items-center.ms-auto > li:has(button[aria-label="Toggle Menu"]):not([data-custom-navbar-dropdown]) {
+    display: none !important;
+  }
+  
+  /* Hide fumadocs NavigationMenu viewport/overlay that might block clicks */
+  [data-radix-navigation-menu-viewport] {
+    display: none !important;
+    pointer-events: none !important;
+  }
+  
+  /* Force hide desktop sidebar - override fumadocs max-md:hidden */
+  #nd-sidebar:not(#nd-sidebar-mobile),
+  aside[id="nd-sidebar"]:not([id="nd-sidebar-mobile"]),
+  .max-md\:hidden[id="nd-sidebar"] {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    z-index: -1 !important; /* Ensure it's completely out of the way */
+  }
+  
+  /* CRITICAL: Ensure desktop sidebar children don't block anything when hidden */
+  #nd-sidebar:not(#nd-sidebar-mobile) *,
+  aside[id="nd-sidebar"]:not([id="nd-sidebar-mobile"]) * {
+    pointer-events: none !important;
+  }
+  
+  /* Force mobile sidebar to be in the DOM and toggleable - override fumadocs */
+  /* Fumadocs only renders mobile sidebar below 768px, but we need it at 1024px */
+  body[data-layout="docs"] #nd-sidebar-mobile,
+  body[data-layout="academy"] #nd-sidebar-mobile,
+  aside[id="nd-sidebar-mobile"] {
+    /* Mobile sidebar should be able to appear */
+    position: fixed !important;
+    z-index: 60 !important; /* Above navbar (z-55) so sidebar overlays properly */
+  }
+  
+  /* Add padding-top to SidebarHeader in mobile sidebar on docs to account for navbar */
+  /* This ensures content doesn't get hidden behind navbar while sidebar overlays full screen */
+  body[data-layout="docs"] #nd-sidebar-mobile > div:first-child,
+  body[data-layout="docs"] [data-sidebar="sidebar"][data-mobile="true"] > div:first-child {
+    padding-top: 1rem !important; /* Reduced to match academy closer */
+    margin-top: 0 !important; /* Remove any margin that might add extra spacing */
+  }
+  
+  /* When closed, hide it off-screen */
+  #nd-sidebar-mobile[data-state="closed"],
+  #nd-sidebar-mobile:not([data-state="open"]) {
+    transform: translateX(-100%) !important;
+    display: flex !important; /* Keep in DOM so it can be opened */
+  }
+  
+  /* When open, show it */
+  #nd-sidebar-mobile[data-state="open"] {
+    transform: translateX(0) !important;
+    display: flex !important;
+  }
+  
+  /* Sidebar overlay/backdrop - target the backdrop div that fumadocs creates */
+  /* The backdrop comes BEFORE the sidebar in DOM as a sibling */
+  /* Fumadocs creates: <div data-state="open" class="fixed z-40 inset-0 backdrop-blur-xs ..." /> */
+  /* Use multiple selectors for better browser compatibility and specificity */
+  
+  /* Primary: Target backdrop when sidebar exists (using :has for modern browsers) */
+  body:has(#nd-sidebar-mobile) div.fixed.inset-0.backdrop-blur-xs[data-state]:not(#nd-sidebar-mobile):not(aside),
+  body:has(#nd-sidebar-mobile) div.fixed.z-40.inset-0[data-state]:not(#nd-sidebar-mobile):not(aside):not([id]),
+  /* Target backdrop that's a sibling of the sidebar */
+  :has(> aside#nd-sidebar-mobile) > div.fixed.inset-0.backdrop-blur-xs[data-state],
+  /* Fallback: More specific selector for fumadocs backdrop pattern */
+  /* Match div with data-state, fixed, inset-0, backdrop-blur-xs that's not the sidebar */
+  div.fixed.inset-0.backdrop-blur-xs[data-state="open"]:not(#nd-sidebar-mobile):not(aside):not([id]) {
+    z-index: 45 !important;
+    /* Backdrop should be below sidebar (z-50) - ensure proper stacking */
+    /* Important: This z-index must be lower than sidebar's z-50 */
+  }
+  
+  /* CRITICAL: Backdrop must be below PopoverContent when it's open */
+  body:has([data-radix-popover-content][data-state="open"]) div.fixed.inset-0.backdrop-blur-xs[data-state="open"]:not(#nd-sidebar-mobile):not(aside):not([id]) {
+    z-index: 44 !important; /* Below PopoverContent (z-10000) */
+  }
+  
+  /* CRITICAL: Prevent backdrop from blocking PopoverContent - backdrop must NOT block PopoverContent */
+  body:has([data-radix-popover-content][data-state="open"]) div.fixed.inset-0.backdrop-blur-xs[data-state="open"]:not(#nd-sidebar-mobile):not(aside):not([id]),
+  body:has([data-radix-popover-content][data-state="open"]) div.fixed.z-40.inset-0[data-state="open"]:not(#nd-sidebar-mobile):not(aside):not([id]) {
+    pointer-events: none !important; /* CRITICAL: Allow clicks through to PopoverContent when it's open */
+    z-index: 44 !important; /* Below PopoverContent (z-9999) */
+  }
+  
+  /* Ensure mobile sidebar is above the backdrop and navbar */
+  #nd-sidebar-mobile[data-state="open"],
+  aside#nd-sidebar-mobile[data-state="open"] {
+    z-index: 60 !important; /* Above navbar (z-55) so sidebar overlays properly */
+    pointer-events: auto !important;
+    position: fixed !important;
+  }
+  
+  /* Ensure sidebar children are also clickable and properly layered */
+  #nd-sidebar-mobile[data-state="open"] *,
+  aside#nd-sidebar-mobile[data-state="open"] * {
+    pointer-events: auto !important;
+  }
+  
+  /* CRITICAL: PopoverContent wrapper must be above sidebar backdrop when open */
+  [data-radix-popper-content-wrapper] {
+    z-index: 10000 !important;
+  }
+  
+  [data-radix-popover-content][data-state="open"],
+  [data-slot="popover-content"][data-state="open"] {
+    z-index: 10000 !important;
+    position: fixed !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+  
+  /* Ensure mobile hamburger and dropdown are clickable */
+  #nd-nav ul.flex.flex-row.items-center.ms-auto,
+  #nd-nav ul.flex.flex-row.items-center.ms-auto button,
+  [data-docs-sidebar-toggle],
+  [data-custom-navbar-dropdown] {
+    pointer-events: auto !important;
+    z-index: 60 !important;
+    position: relative !important;
+  }
+  
+  /* Only block overlays that aren't the sidebar overlay */
+  body:not(.search-open) [data-radix-dialog-overlay]:not([data-sidebar-overlay]) {
+    pointer-events: none !important;
+  }
+  
+  /* Ensure navbar area is fully interactive */
+  #nd-nav,
+  nav[aria-label="Main"],
+  header[aria-label="Main"] {
+    pointer-events: auto !important;
+    overflow: visible !important; /* Allow dropdown to show */
+  }
+  
+  /* Ensure navbar children allow overflow */
+  #nd-nav > div,
+  header[aria-label="Main"] > div {
+    overflow: visible !important;
+  }
+  
+  /* Allow sidebar mobile drawer to work */
+  #nd-sidebar-mobile,
+  [data-sidebar="sidebar"][data-mobile="true"],
+  [data-sidebar="sidebar"][data-mobile="true"] [data-radix-dialog-content] {
+    pointer-events: auto !important;
+  }
+}
+
+/* Show desktop sidebar only above 1024px */
+@media (min-width: 1024px) {
+  #nd-sidebar,
+  aside[id="nd-sidebar"] {
+    display: flex !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    opacity: 1 !important;
+  }
+  
+  /* Hide mobile sidebar on desktop */
+  #nd-sidebar-mobile,
+  [data-sidebar="sidebar"][data-mobile="true"] {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+  
+}
+
+/* Ensure proper spacing for navbar container */
+#nd-nav nav {
+  min-width: 0 !important;
+  overflow: visible !important; /* Changed from hidden to allow dropdown */
+}
+
+/* Prevent navbar items from wrapping or overflowing */
+#nd-nav .flex.h-14.w-full.items-center.px-4 {
+  gap: 0.5rem !important;
+  overflow: visible !important; /* Changed from hidden to allow dropdown */
+}
+
+/* Add overflow scroll for mobile menu on small screens */
+@media (max-width: 640px) {
+  #nd-nav [data-radix-navigation-menu-content] {
+    max-height: 70vh !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* Hide sidebar dropdown on /docs/tooling and /docs/acps pages */
+body[data-hide-sidebar-dropdown] #nd-sidebar button:has(> div > p.text-sm.font-medium),
+body[data-hide-sidebar-dropdown] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Always show sidebar folder description - override fumadocs md:hidden */
+/* The RootToggle component hides descriptions with md:hidden on desktop (line 44 of root-toggle.tsx) */
+/* Target description paragraph that comes after title paragraph in RootToggle */
+/* Structure: button > div > p.title + p.description */
+#nd-sidebar button:has(> div > p.text-sm.font-medium) > div > p:not(.text-sm.font-medium),
+#nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div > p:not(.text-sm.font-medium),
+/* Alternative: target description by its classes and position */
+#nd-sidebar button > div > p.text-fd-muted-foreground:nth-child(2),
+#nd-sidebar-mobile button > div > p.text-fd-muted-foreground:nth-child(2) {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Override md:hidden specifically for sidebar descriptions on desktop */
+@media (min-width: 768px) {
+  #nd-sidebar button:has(> div > p.text-sm.font-medium) > div > p:not(.text-sm.font-medium),
+  #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div > p:not(.text-sm.font-medium),
+  #nd-sidebar button > div > p.text-fd-muted-foreground:nth-child(2),
+  #nd-sidebar-mobile button > div > p.text-fd-muted-foreground:nth-child(2) {
+    display: block !important;
+  }
+}
+
+/* Fix icon alignment in RootToggle - position icon halfway between title and description */
+/* RootToggle icon changes from size-9 (36px) on mobile to md:size-5 (20px) on desktop */
+/* Keep icon at a consistent size and align it between the two text lines */
+#nd-sidebar button:has(> div > p.text-sm.font-medium) > div:first-child,
+#nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div:first-child {
+  /* Keep icon at size-9 (36px) on all screen sizes for consistent alignment */
+  width: 2.25rem !important; /* size-9 = 36px = 2.25rem */
+  height: 2.25rem !important;
+  min-width: 2.25rem !important;
+  min-height: 2.25rem !important;
+  flex-shrink: 0 !important;
+  /* Position icon vertically centered between title and description */
+  /* Title is text-sm (~20px line-height), description is text-[13px] (~18px line-height) */
+  /* Center icon between them: start at title baseline, move down by half title height + gap/2 */
+  align-self: flex-start !important;
+  margin-top: 0.625rem !important; /* ~10px - positions icon center between title and description */
+  margin-right: 0 !important; /* No gap between icon and text */
+}
+
+/* Improve RootToggle dropdown formatting - reduce spacing */
+#nd-sidebar button:has(> div > p.text-sm.font-medium),
+#nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) {
+  align-items: flex-start !important; /* Top align so icon can be positioned with margin-top */
+  display: flex !important;
+  gap: 0 !important; /* Remove default gap-2, using margin-right on icon instead */
+  padding: 0.5rem !important; /* Keep padding at p-2 (0.5rem) for comfortable click target */
+}
+
+/* Move right side ChevronsUpDown icon down to align halfway between title and description */
+#nd-sidebar button:has(> div > p.text-sm.font-medium) > svg.lucide,
+#nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > svg.lucide {
+  margin-top: 0.875rem !important; /* Position chevron icon halfway between title and description (matches left icon position + text container margin) */
+  align-self: flex-start !important;
+}
+
+/* Reduce spacing between title and description */
+#nd-sidebar button:has(> div > p.text-sm.font-medium) > div:nth-child(2),
+#nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div:nth-child(2) {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.125rem !important; /* Tight gap between title and description */
+  margin-top: 0.25rem !important; /* Move title and description down */
+}
+
+/* Reduce line-height on title and description for tighter spacing */
+#nd-sidebar button:has(> div > p.text-sm.font-medium) > div > p.text-sm.font-medium,
+#nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div > p.text-sm.font-medium {
+  line-height: 1.25 !important; /* Tighter line-height for title */
+  margin-bottom: 0 !important;
+}
+
+#nd-sidebar button:has(> div > p.text-sm.font-medium) > div > p.text-fd-muted-foreground,
+#nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div > p.text-fd-muted-foreground {
+  line-height: 1.3 !important; /* Tighter line-height for description */
+  margin-top: 0 !important;
+}
+
+/* API Playground Send button customization - make it blue (All APIs) */
+.pchain-api-playground form.not-prose button[type="submit"].bg-fd-primary,
+.cchain-api-playground form.not-prose button[type="submit"].bg-fd-primary,
+.xchain-api-playground form.not-prose button[type="submit"].bg-fd-primary,
+.data-api-playground form.not-prose button[type="submit"].bg-fd-primary,
+.metrics-api-playground form.not-prose button[type="submit"].bg-fd-primary,
+.webhooks-api-playground form.not-prose button[type="submit"].bg-fd-primary {
+  background-color: #3b82f6 !important; /* Blue-500 */
+  color: white !important;
+}
+
+.pchain-api-playground form.not-prose button[type="submit"].bg-fd-primary:hover,
+.cchain-api-playground form.not-prose button[type="submit"].bg-fd-primary:hover,
+.xchain-api-playground form.not-prose button[type="submit"].bg-fd-primary:hover,
+.data-api-playground form.not-prose button[type="submit"].bg-fd-primary:hover,
+.metrics-api-playground form.not-prose button[type="submit"].bg-fd-primary:hover,
+.webhooks-api-playground form.not-prose button[type="submit"].bg-fd-primary:hover {
+  background-color: #2563eb !important; /* Blue-600 on hover */
+}
+
+.pchain-api-playground form.not-prose button[type="submit"].bg-fd-primary:disabled,
+.cchain-api-playground form.not-prose button[type="submit"].bg-fd-primary:disabled,
+.xchain-api-playground form.not-prose button[type="submit"].bg-fd-primary:disabled,
+.data-api-playground form.not-prose button[type="submit"].bg-fd-primary:disabled,
+.metrics-api-playground form.not-prose button[type="submit"].bg-fd-primary:disabled,
+.webhooks-api-playground form.not-prose button[type="submit"].bg-fd-primary:disabled {
+  background-color: #93c5fd !important; /* Blue-300 when disabled */
+  opacity: 0.5;
+}
+

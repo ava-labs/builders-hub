@@ -1,0 +1,192 @@
+---
+title: Read Validator Manager Contract
+description: Learn how to query and read data from the Validator Manager
+updated: 2025-07-31
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+import ReadContract from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/ReadContract.tsx"
+
+## Overview
+
+Reading data from the Validator Manager contract is essential for monitoring your L1's validator set and understanding the current state of the system.
+
+## Query Contract State
+
+
+
+<ToolboxMdxWrapper walletMode="l1">
+    <ReadContract />
+</ToolboxMdxWrapper>
+
+## Key Read Functions
+
+### Configuration Data
+
+#### `subnetID()`
+Returns your L1's unique identifier:
+```solidity
+function subnetID() external view returns (bytes32)
+```
+
+#### `owner()`
+Returns the current contract owner:
+```solidity
+function owner() external view returns (address)
+```
+
+#### Churn Parameters
+Get the churn configuration:
+```solidity
+function churnPeriodSeconds() external view returns (uint64)
+function maximumChurnPercentage() external view returns (uint8)
+```
+
+### Validator Information
+
+#### `getValidator(bytes32 validationID)`
+Get detailed information about a specific validator:
+```solidity
+struct Validator {
+    ValidatorStatus status;  // Current status
+    bytes nodeID;           // Node identifier
+    uint64 weight;          // Voting weight
+    uint64 startedAt;       // Start timestamp
+    uint64 endedAt;         // End timestamp
+}
+```
+
+#### `getWeight(bytes32 validationID)`
+Get a validator's current weight:
+```solidity
+function getWeight(bytes32 validationID) external view returns (uint64)
+```
+
+### Aggregate Data
+
+#### `totalWeight()`
+Get the total weight of all active validators:
+```solidity
+function totalWeight() external view returns (uint64)
+```
+
+#### `activeValidatorCount()`
+Get the number of active validators:
+```solidity
+function activeValidatorCount() external view returns (uint256)
+```
+
+## Understanding Validator Status
+
+Validators can have different statuses:
+
+1. **Active**: Currently validating
+2. **PendingAdded**: Registration initiated, not yet complete
+3. **PendingRemoved**: Removal initiated, not yet complete
+4. **Completed**: No longer active
+
+## Churn Tracker State
+
+Monitor churn consumption:
+
+```solidity
+function getCurrentChurnPeriod() external view returns (
+    uint256 startTime,
+    uint64 initialWeight,
+    uint64 totalWeight,
+    uint64 churnAmount
+)
+```
+
+### Interpreting Churn Data
+
+- **startTime**: When current period began
+- **initialWeight**: Total weight at period start
+- **totalWeight**: Current total weight
+- **churnAmount**: Amount changed this period
+
+## Common Queries
+
+### List All Validators
+While there's no built-in function to list all validators, you can:
+1. Listen to events from contract creation
+2. Track `ValidatorRegistered` events
+3. Build an off-chain index
+
+### Check Validator Eligibility
+Before adding a validator, check:
+```javascript
+// Get current churn usage
+const churn = await validatorManager.getCurrentChurnPeriod();
+const maxChange = (churn.totalWeight * maxChurnPercentage) / 100;
+const remainingChurn = maxChange - churn.churnAmount;
+
+// Check if new validator weight fits
+if (newValidatorWeight <= remainingChurn) {
+    console.log("Can add validator");
+} else {
+    console.log("Must wait for new churn period");
+}
+```
+
+### Monitor Pending Operations
+Check for pending validator operations:
+```javascript
+// Check if validator has pending operation
+const validator = await validatorManager.getValidator(validationID);
+if (validator.status === "PendingAdded") {
+    console.log("Registration pending completion");
+}
+```
+
+## Event Monitoring
+
+Subscribe to contract events for real-time updates:
+
+```javascript
+// Listen for new validators
+validatorManager.on("ValidatorRegistered", (nodeID, weight) => {
+    console.log(`New validator: ${nodeID}, weight: ${weight}`);
+});
+
+// Listen for removals
+validatorManager.on("ValidatorRemoved", (nodeID) => {
+    console.log(`Validator removed: ${nodeID}`);
+});
+
+// Listen for weight updates
+validatorManager.on("ValidatorWeightUpdated", (nodeID, newWeight) => {
+    console.log(`Weight updated: ${nodeID}, new weight: ${newWeight}`);
+});
+```
+
+## Best Practices
+
+1. **Regular Monitoring**: Check validator states periodically
+2. **Event Tracking**: Use events for real-time updates
+3. **Churn Planning**: Monitor churn usage before operations
+4. **State Verification**: Verify state after operations
+
+## Troubleshooting
+
+### Reading Issues
+
+1. **Wrong Network**: Ensure connected to correct chain
+2. **Invalid Address**: Verify contract address
+3. **ABI Mismatch**: Use correct contract ABI
+
+### Data Interpretation
+
+1. **Timestamps**: All times are Unix timestamps
+2. **Weights**: Understand weight units for your system
+3. **Status Codes**: Map numeric status to names
+
+## Next Steps
+
+After understanding how to read the contract:
+1. Initialize the validator set with existing validators
+2. Query and verify the initial state
+3. Begin active validator management

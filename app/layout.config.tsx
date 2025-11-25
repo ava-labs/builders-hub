@@ -10,13 +10,14 @@ import {
   Cable,
   Bot,
   Cpu,
-  Cog,
   Snowflake,
   BriefcaseBusiness,
   MessageSquareQuote,
   Github,
+  Hexagon,
   Waypoints,
   HandCoins,
+  Network,
   Wallet,
   Search,
   Cloud,
@@ -25,6 +26,8 @@ import {
   Ticket,
   Earth,
   ArrowLeftRight,
+  DraftingCompass,
+  GraduationCap,
 } from "lucide-react";
 import Image from "next/image";
 import { SiGithub } from "@icons-pack/react-simple-icons";
@@ -99,10 +102,80 @@ export const integrationsMenu: LinkItemType = {
   ],
 };
 
-export const docsMenu: LinkItemType = {
+export const blogMenu: LinkItemType = {
+  type: 'main',
+  text: 'Blog',
+  url: '/guides',
+};
+
+export const stats: LinkItemType = {
   type: "menu",
-  text: "Documentation",
-  url: "/docs",
+  text: "Stats",
+  url: "/stats/overview",
+  items: [
+    {
+      menu: {
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
+              src="/builderhub-playground.png"
+              alt='Playground Preview'
+              width={500}
+              height={140}
+              className='rounded-t-lg object-cover'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-2 lg:col-span-1',
+      },
+      icon: <DraftingCompass />,
+      text: "Playground",
+      url: "/stats/playground",
+      description:
+      "Create and customize multiple charts with real-time chain metrics.",
+    },
+    {
+      icon: <Logs />,
+      text: "Avalanche L1s",
+      url: "/stats/overview",
+      description:
+      "View the latest metrics for all Avalanche L1s in the network.",
+      menu: {
+        className: 'lg:col-start-2 lg:row-start-1',
+      },
+    },
+    {
+      icon: <Network />,
+      text: "C-Chain",
+      url: "/stats/primary-network/c-chain",
+      description:
+      "View the latest metrics for the Avalanche C-Chain.",
+      menu: {
+        className: 'lg:col-start-2 lg:row-start-2',
+      },
+    },
+    {
+      icon: <Hexagon />,
+      text: "Primary Network Validators",
+      url: "/stats/validators",
+      description:
+      "View the latest metrics for the Avalanche Primary Network validators.",
+      menu: {
+        className: 'lg:col-start-3 lg:row-start-1',
+      },
+    },
+
+  ],
+};
+
+export const docsMenu: LinkItemType = {
+
+  type: 'menu',
+  text: 'Documentation',
+  url: '/docs/quick-start',
   items: [
     {
       menu: {
@@ -161,8 +234,8 @@ export const docsMenu: LinkItemType = {
       icon: <ArrowUpRight />,
       text: "Browse All Docs",
       description:
-        "Explore our in-depth documentation, guides, and resources to bring your ideas to life.",
-      url: "/docs",
+        'Explore our in-depth documentation, guides, and resources to bring your ideas to life.',
+      url: '/docs/quick-start',
       menu: {
         className: "lg:col-start-3",
       },
@@ -196,50 +269,58 @@ export const academyMenu: LinkItemType = {
         className: "md:row-span-2",
       },
       icon: <Sprout />,
-      text: "Avalanche Fundamentals",
+      text: 'Avalanche L1 Academy',
       description:
-        "Get a high level overview of Avalanche Consensus, L1s and VMs",
-      url: "/academy/avalanche-fundamentals",
+        'Master blockchain development with comprehensive courses on Avalanche fundamentals, L1s, and advanced topics',
+      url: '/academy?path=avalanche-l1',
     },
     {
-      icon: <SendHorizontal />,
-      text: "Avalanche Interchain Messaging",
-      description:
-        "Utilize Avalanche Interchain Messaging to build cross-chain dApps in the Avalanche ecosystem.",
-      url: "/academy/interchain-messaging",
       menu: {
-        className: "lg:col-start-2 lg:row-start-1",
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase-Entrepreneur-Academy-banner.png"}
+              alt='Entrepreneur Academy'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-2 lg:col-start-2',
       },
+      icon: <BriefcaseBusiness />,
+      text: 'Entrepreneur Academy',
+      description:
+        'Transform from builder to founder with courses on business fundamentals, fundraising, and go-to-market strategies',
+      url: '/academy?path=entrepreneur',
     },
     {
-      icon: <ArrowLeftRight />,
-      text: "Avalanche Interchain Token Transfer",
-      description:
-        "Bridge tokens between Avalanche L1s using the Interchain Token Transfer protocol.",
-      url: "/academy/interchain-token-transfer",
       menu: {
-        className: "lg:col-start-2 lg:row-start-2",
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
+              src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/customizing-evm-DkMcINMgCwhkuHuumtAZtrPzROU74M.jpg"
+              alt='Blockchain Academy'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-2 lg:col-start-3',
       },
-    },
-    {
-      icon: <Cpu />,
-      text: "Customizing the EVM",
+      icon: <GraduationCap />,
+      text: 'Blockchain Academy',
       description:
-        "Learn how to customize the Ethereum Virtual Machine and add your own custom precompiles.",
-      url: "/academy/customizing-evm",
-      menu: {
-        className: "lg:col-start-3 lg:row-start-1",
-      },
-    },
-    {
-      icon: <ArrowUpRight />,
-      text: "Check All Courses",
-      description:
-        "Supercharge your learning journey with expert-curated courses offered by Avalanche Academy and earn certificates.",
-      url: "/academy",
-      menu: {
-        className: "lg:col-start-3",
-      },
+        'Build a rock-solid foundation in blockchain fundamentals, smart contracts, and privacy-preserving tech.',
+      url: '/academy?path=blockchain',
     },
   ],
 };
@@ -378,6 +459,12 @@ export const grantsMenu: LinkItemType = {
   ],
 };
 
+export const universityMenu: LinkItemType = {
+  type: 'main',
+  text: 'University',
+  url: '/university',
+};
+
 export const eventsMenu: LinkItemType = {
   type: "menu",
   text: "Events",
@@ -470,33 +557,18 @@ const userMenu: LinkItemType = {
   secondary: true,
 };
 
-const github: LinkItemType = {
-  type: "icon",
-  icon: <SiGithub />,
-  url: "https://github.com/ava-labs/avalanche-docs",
-  text: "Github",
-  active: "none",
-};
-
-const hackathons: LinkItemType = {
-  icon: <Cog />,
-  text: "Hackathons",
-  url: "/hackathons",
-  active: "nested-url",
-};
-
 export const ambassadorMenu: LinkItemType = {
   text: "Team 1",
   url: "/ambassador-dao",
   active: "nested-url",
+
 };
 
 export const baseOptions: BaseLayoutProps = {
-  // githubUrl: 'https://github.com/ava-labs/builders-hub',
   nav: {
     title: (
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-        <AvalancheLogo className='size-7' fill='currentColor' />
+        <AvalancheLogo className="size-7" fill="currentColor" />
         <span style={{ fontSize: "large", marginTop: "4px" }}>Builder Hub</span>
       </div>
     ),
@@ -507,9 +579,11 @@ export const baseOptions: BaseLayoutProps = {
     consoleMenu,
     eventsMenu,
     grantsMenu,
+    stats,
     integrationsMenu,
-    github,
     userMenu,
-    ambassadorMenu
+    ambassadorMenu,
+    blogMenu,
+    universityMenu
   ],
 };

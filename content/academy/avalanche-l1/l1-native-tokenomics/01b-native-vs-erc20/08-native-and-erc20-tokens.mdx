@@ -1,0 +1,39 @@
+---
+title: Key Differences
+description: Learn the key differences between native tokens and ERC20 tokens on Avalanche L1s
+updated: 2025-01-15
+authors: [nicolasarnedo]
+icon: Book
+---
+
+Before moving forward, and now that we have seen both, it's crucial to understand the fundamental differences between native tokens and ERC20 tokens. Each has distinct characteristics that affect how they function within your blockchain ecosystem.
+
+## Key Differences
+
+| Feature | ERC20 | Native |
+|---------|-------|--------|
+| **Defined By** | Smart Contract Deployer | Protocol Level |
+| **Balance Storage** | Mapping in contract storage<br/>`mapping(address => balance)` | EVM Account state<br/>`account.balance` |
+| **Transfer Logic** | Handled by contract functions<br/>`transfer()`, `transferFrom()` | Handled by EVM opcodes<br/>`CALL`, `SELFDESTRUCT` |
+| **Smart Contract Awareness** | Built-in hooks for DeFi compatibility<br/>Allows programmatic approvals<br/>(e.g., Uniswap, Aave) | Can't call functions<br/>`approve()`, `transferFrom()` |
+| **Receiving in Functions** | No special modifier needed<br/>`function deposit(token, amount)` | Requires `payable` modifier<br/>`function deposit() payable` |
+
+## The Protocol Limitation
+
+One critical limitation of native tokens is that **protocols cannot "pull" native tokens from your wallet using `transferFrom()`**. This fundamental difference impacts how DeFi protocols interact with native tokens.
+
+## Real-World Example: Aave Lending
+
+Let's look at how supplying ETH (a native token) to Aave works:
+
+1. **Wrap it into WETH** - Convert native ETH to ERC20 WETH
+2. **Call `approve()`** - Give Aave permission to spend your WETH
+3. **Aave calls `transferFrom()`** - Aave pulls the WETH from your wallet
+4. **You receive aTokens** - Start earning interest and can borrow against your deposit
+
+## Why ERC20 Standardization Matters
+
+The main advantage of ERC20 tokens is **standardization**. Without it:
+- You could build a `deposit()` payable function for native tokens
+- But then you'd have two different logics for depositing tokens
+- This creates complexity and potential security issues

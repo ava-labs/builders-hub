@@ -1,13 +1,6 @@
 "use client";
 
-import { lazy } from "react";
-
-const L1ExplorerSetup = lazy(() => 
-  import("../../../../toolbox/src/toolbox/L1/SelfHostedExplorer").then(module => ({
-    default: module.default
-  }))
-);
-
+import L1ExplorerSetup from "@/components/toolbox/console/layer-1/create/SelfHostedExplorer";
 
 export default function Page() {
   return (

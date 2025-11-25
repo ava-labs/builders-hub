@@ -1,0 +1,33 @@
+---
+title: Recap of Multi-Chain Networks
+description:  Learn about interoperability and it's importance in multichain systems
+updated: 2024-05-31
+authors: [martineckardt]
+icon: BookOpen
+---
+
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/l1s.png)
+
+Avalanche is a multi-chain network, meaning the network has multiple chains being validated in parallel, while other networks, such as Bitcoin and Ethereum only have single chain.
+
+This feature provides greater scalability, independence, and customizability. Each blockchain is optimized for specialized use cases, boosting the network's overall performance.
+
+## Transactions per Second (TPS) and Time to Finality (TTF)
+
+To measure the performance of a blockchain, we can use two primary metrics: Time to finality (measured in seconds) and throughput (measured in transactions per second, TPS). To illustrate, we can think of a highway an as analogy.
+
+![](/common-images/consensus/tps-vs-ttf.png)
+
+Having a short time to finality is a short highway, taking a direct route from origin (submitting a transaction) to destination (finalization of the transaction) without any unnecessary detours. A finalized transaction is irreversibly written to the ledger. Once a transaction is final, users can be sure it has executed.
+
+Having high transaction throughput is like having many lanes on the highway, meaning many cars (transactions) can use it at the same time. When building blockchain systems, we want to achieve high throughput.
+
+## Scaling For The Masses
+
+Different blockchain networks use different scaling approaches, such as Layer 2s, including roll-ups. Networks aim to maximize the throughput. Multi-chain systems have a simple, but incredible effective way of scaling. By running independent chains in parallel, the overall network can reach a massive combined throughput.
+
+![](/common-images/multi-chain-architecture/combined-throughput.png)
+
+While roll-ups may enable a very high-throughput of a single chain, they can never outcompete the combined throughput of a multi-chain system. This is because there's no limit to the number of chains that can run in parallel.
+
+<Quiz quizId="302"/>

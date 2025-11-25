@@ -21,6 +21,8 @@ import MentorsJudges from "@/components/hackathons/hackathon/sections/MentorsJud
 import OverviewBanner from "@/components/hackathons/hackathon/sections/OverviewBanner";
 import JoinButton from "@/components/hackathons/hackathon/JoinButton";
 import JoinBannerLink from "@/components/hackathons/hackathon/JoinBannerLink";
+import { createMetadata } from "@/utils/metadata";
+import type { Metadata } from "next";
 
 export const revalidate = 60;
 export const dynamicParams = true;
@@ -30,6 +32,41 @@ export async function generateStaticParams() {
   return hackathons.map((hackathon) => ({
     id: hackathon.id,
   }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  
+  try {
+    const hackathon = await getHackathon(id);
+    
+    if (!hackathon) {
+      return createMetadata({
+        title: 'Hackathon Not Found',
+        description: 'The requested hackathon could not be found',
+      });
+    }
+
+    return createMetadata({
+      title: hackathon.title,
+      description: hackathon.description,
+      openGraph: {
+        images: `/api/og/hackathons/${id}`,
+      },
+      twitter: {
+        images: `/api/og/hackathons/${id}`,
+      },
+    });
+  } catch (error) {
+    return createMetadata({
+      title: 'Hackathons',
+      description: 'Join exciting blockchain hackathons and build the future on Avalanche',
+    });
+  }
 }
 
 export default async function HackathonPage({
@@ -117,7 +154,7 @@ export default async function HackathonPage({
             <Resources hackathon={hackathon} />
             {hackathon.content.schedule && <Schedule hackathon={hackathon} />}
             <Submission hackathon={hackathon} />
-            {hackathon.content.speakers && (
+            {hackathon.content.speakers && hackathon.content.speakers.length > 0 && (
               <MentorsJudges hackathon={hackathon} />
             )}
             <Community hackathon={hackathon} />

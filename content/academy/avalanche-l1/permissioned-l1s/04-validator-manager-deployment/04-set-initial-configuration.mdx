@@ -1,0 +1,40 @@
+---
+title: Set Initial Configuration
+description: Configure your Validator Manager with initial parameters
+updated: 2025-07-31
+authors: [nicolasarnedo]
+icon: Terminal
+---
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+import Initialize from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/Initialize.tsx"
+
+Setting the initial configuration is a critical step that establishes how your Validator Manager will operate. 
+
+This process involves calling the `initialize` function through the **TransparentUpgradeableProxy**, which forwards the call to your ValidatorManager implementation.
+
+![Validator Manager Deployment Initialize](/common-images/permissioned-l1s/VMCDeploy5.png)
+
+## How Initialization Works
+
+### The Initialize Function
+
+The configuration is set by calling `initialize()` with a `ValidatorManagerSettings` struct. This call:
+- Goes through the proxy at `0xfacade...` (not directly to the implementation)
+- Can only be called once due to OpenZeppelin's `initializer` modifier
+- Sets up the ownership structure and operational parameters
+
+## Configuration Parameters
+
+The `ValidatorManagerSettings` struct contains four essential parameters:
+
+1. **Admin Address**: The account that controls validator management operations (your connected wallet). Can be changed through ownership transfer.
+2. **Subnet ID**: Links the Validator Manager to your specific L1 & can't be changed after initialization.
+3. **Churn Period Seconds**:Time window for tracking validator set changes (must be ≤ 86400 seconds)
+4. **Maximum Churn Percentage**: Limits how much validator weight can change per period (1-20% protocol maximum). 
+*Example*: 20% means max 1/5 of total weight can change
+
+## Set Configuration
+
+<ToolboxMdxWrapper walletMode="l1">
+    <Initialize />
+</ToolboxMdxWrapper>

@@ -19,6 +19,9 @@ export const { docs, meta } = defineDocs({
       index: z.boolean().default(false),
       edit_url: z.string().optional(),
     }),
+    postprocess: {
+      includeProcessedMarkdown: true,
+    },
   },
   meta: {
     schema: metaSchema.extend({
@@ -40,8 +43,8 @@ export const course = defineCollections({
         context.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid date" });
         return z.NEVER;
       }
-    }),
-    authors: z.array(z.string()),
+    }).optional(),
+    authors: z.array(z.string()).optional(),
     comments: z.boolean().default(false),
   }),
 });
@@ -59,7 +62,7 @@ export const integrations = defineCollections({
   async: true,
   dir: 'content/integrations',
   schema: frontmatterSchema.extend({
-    category: z.string(),
+    category: z.union([z.string(), z.array(z.string())]),
     available: z.array(z.string()).optional(),
     logo: z.string().optional(),
     developer: z.string().optional(),
@@ -70,12 +73,12 @@ export const integrations = defineCollections({
   }),
 });
 
-export const guide = defineCollections({
+export const blog = defineCollections({
   type: 'doc',
-  dir: 'content/guides',
+  dir: 'content/blog',
   schema: frontmatterSchema.extend({
-    authors: z.array(z.string()),
-    topics: z.array(z.string()),
+    authors: z.array(z.string()).optional(),
+    topics: z.array(z.string()).optional(),
     date: z.string().date().or(z.date()).optional(),
     comments: z.boolean().default(false),
   }),
@@ -86,7 +89,6 @@ export default defineConfig({
   mdxOptions: {
     rehypeCodeOptions: {
       lazy: true,
-      experimentalJSEngine: true,
       langs: ['ts', 'js', 'html', 'tsx', 'mdx'],
       inline: 'tailing-curly-colon',
       themes: {

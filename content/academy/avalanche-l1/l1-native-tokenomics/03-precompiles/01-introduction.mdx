@@ -1,0 +1,29 @@
+---
+title: Introduction
+description: Chapter overview and core blockchain concepts review
+updated: 2025-01-15
+authors: [nicolasarnedo]
+icon: Book
+---
+
+In this section we are going to quickly address what Precompiles are, why we need them and how they are implemented. The reason we cover this in the L1 Native Tokenomics course is because in the next two sections we will be working with 2 precompiles that heavily influence the tokenomics of a chain, the [Native Minter](/l1-native-tokenomics/04-native-minter) and [Fee Config](/l1-native-tokenomics/05-fee-config) Precompiles.
+
+Specifically we are going to look into **Stateful Precompiles**, but if you wish to learn more in detail about Precompiles and how you can use them to configure your L1 please check out the [Customizing the VM](/customizing-evm) course!
+
+## Core Concepts Review (Optional)
+
+Before we look more closely into precompiles, it is important we re-visit and fully understand some core concepts about how blockchains and virtual machines work.
+
+### Deterministic State Transitions
+
+Blockchains rely on a **deterministic machine (the EVM)** to calculate transitions from one state to the next. Every transaction modifies the blockchain state in a predictable, reproducible way—ensuring all nodes reach consensus on the new state.
+
+![State Transitions](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Precompiles_State.png)
+
+### EVM as a Configurable Specification
+
+Think of the EVM like a class in Object-Oriented Programming: it's a specification that defines behavior. Each blockchain—Ethereum, Avalanche C-Chain, or your custom L1—is an **instance** of this EVM class, with its own configuration.
+
+![EVM Instances](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Precompiles_OOP.png)
+
+**Through Avalanche, you can configure your EVM instance with precompiles that live at the execution level** (will dive deeper into this later), giving you control over core blockchain functionality like native token minting and transaction fee configuration.

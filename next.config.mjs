@@ -5,7 +5,12 @@ const withMDX = createMDX();
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
-  serverExternalPackages: ["ts-morph", "typescript", "twoslash"],
+  serverExternalPackages: [
+    'ts-morph',
+    'typescript',
+    'twoslash',
+    'shiki',
+  ],
   env: {
     APIKEY: process.env.APIKEY,
   },
@@ -34,10 +39,6 @@ const config = {
       },
       {
         protocol: "https",
-        hostname: "cdn.prod.website-files.com",
-      },
-      {
-        protocol: "https",
         hostname: "*.s3.amazonaws.com",
         port: "",
         pathname: "/**",
@@ -53,43 +54,189 @@ const config = {
         hostname: "s3.eu-west-2.amazonaws.com",
         port: "",
         pathname: "/**",
+        protocol: 'https',
+        hostname: 'f005.backblazeb2.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'explorer-binaryholdings.cogitus.io',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.prod.website-files.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'developers.avacloud.io',
+      },
+      {
+        protocol: 'https',
+        hostname: 'dashboard-assets.dappradar.com',
       },
     ],
-  },
-  async rewrites() {
-    return [
-      {
-        source: "/docs/:path*.mdx",
-        destination: "/llms.mdx/docs/:path*",
-      },
-      {
-        source: "/academy/:path*.mdx",
-        destination: "/llms.mdx/academy/:path*",
-      },
-      {
-        source: "/guides/:path*.mdx",
-        destination: "/llms.mdx/guides/:path*",
-      },
-      {
-        source: "/integrations/:path*.mdx",
-        destination: "/llms.mdx/integrations/:path*",
-      },
-    ];
   },
   async redirects() {
     return [
       {
-        source: "/hackathon",
-        destination: "/hackathons/26bfce9b-4d44-4d40-8fbe-7903e76d48fa",
+        source: '/docs/api-reference/p-chain/txn-format',
+        destination: '/docs/rpcs/p-chain/txn-format',
         permanent: true,
       },
       {
-        source: "/tools/l1-launcher",
-        destination:
-          "/academy/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1",
+        source: '/docs/api-reference/c-chain/txn-format',
+        destination: '/docs/rpcs/c-chain/txn-format',
         permanent: true,
       },
-      // Redirects from old VM paths
+      {
+        source: '/docs/api-reference/x-chain/txn-format',
+        destination: '/docs/rpcs/x-chain/txn-format',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/c-chain/api',
+        destination: '/docs/rpcs/c-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/p-chain/api',
+        destination: '/docs/rpcs/p-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/x-chain/api',
+        destination: '/docs/rpcs/x-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/info-api',
+        destination: '/docs/rpcs/other/info-rpc',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/index-api',
+        destination: '/docs/rpcs/other/index-rpc',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/health-api',
+        destination: '/docs/rpcs/other/health-rpc',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/admin-api',
+        destination: '/docs/rpcs/other',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/proposervm-api',
+        destination: '/docs/rpcs/other/proposervm-rpc',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/subnet-evm-api',
+        destination: '/docs/rpcs/subnet-evm',
+        permanent: true,
+      },
+      {
+        source: '/docs/rpcs',
+        destination: '/docs/rpcs/c-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling',
+        destination: '/docs/tooling/avalanche-sdk',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference',
+        destination: '/docs/api-reference/data-api',
+        permanent: true,
+      },
+      {
+        source: '/introduction',
+        destination: '/docs/api-reference/introduction',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/rpc-providers',
+        destination: '/integrations#rpc-providers',
+        permanent: true,
+      },
+      {
+        source: '/data-api/:path*',
+        destination: '/docs/api-reference/data-api/:path*',
+        permanent: false,
+      },
+      {
+        source: '/webhooks-api/:path*',
+        destination: '/docs/api-reference/webhooks-api/:path*',
+        permanent: false,
+      },
+      {
+        source: '/metrics-api/:path*',
+        destination: '/docs/api-reference/metrics-api/:path*',
+        permanent: false,
+      },
+      {
+        source: '/rpc-api/:path*',
+        destination: '/docs/api-reference/rpc-api/:path*',
+        permanent: false,
+      },
+      {
+        source: '/avalanche-sdk/:path*',
+        destination: '/docs/api-reference/avalanche-sdk/:path*',
+        permanent: false,
+      },
+      {
+        source: '/changelog/:path*',
+        destination: '/docs/api-reference/changelog/:path*',
+        permanent: false,
+      },
+      {
+        source: '/codebase-entrepreneur',
+        destination: '/academy/entrepreneur',
+        permanent: true,
+      },
+      {
+        source: '/codebase-entrepreneur/:path*',
+        destination: '/academy/entrepreneur/:path*',
+        permanent: true,
+      },
+      {
+        source: '/codebase-entrepreneur-academy',
+        destination: '/academy',
+        permanent: true,
+      },
+      {
+        source: '/codebase-entrepreneur-academy/:path*',
+        destination: '/academy/entrepreneur/:path*',
+        permanent: true,
+      },
+      {
+        source: '/hackathon',
+        destination: '/hackathons',
+        permanent: true,
+      },
+      {
+        source: '/tools/l1-launcher',
+        destination: '/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1',
+        permanent: true,
+      },
+      {
+        source: '/tools/:path*',
+        destination: '/console',
+        permanent: true,
+      },
+      {
+        source: '/guides',
+        destination: '/blog',
+        permanent: true,
+      },
+      {
+        source: '/guides/:path*',
+        destination: '/blog/:path*',
+        permanent: true,
+      },
       {
         source: "/docs/virtual-machines/default-precompiles/index",
         destination:
@@ -144,62 +291,42 @@ const config = {
         permanent: true,
       },
       {
-        source:
-          "/academy/interchain-messaging/10-running-a-relayer/01-running-a-relayer",
-        destination:
-          "/academy/interchain-messaging/10-running-a-relayer/01-relayer-introduction",
+        source: '/academy/interchain-messaging/10-running-a-relayer/01-running-a-relayer',
+        destination: '/academy/avalanche-l1/interchain-messaging/10-running-a-relayer/01-relayer-introduction',
         permanent: true,
       },
       {
-        source:
-          "/academy/interchain-messaging/10-running-a-relayer/02-control-the-avalanche-cli-relayer",
-        destination:
-          "/academy/interchain-messaging/10-running-a-relayer/03-configure-and-run-the-relayer",
+        source: '/academy/interchain-messaging/10-running-a-relayer/02-control-the-avalanche-cli-relayer',
+        destination: '/academy/avalanche-l1/interchain-messaging/10-running-a-relayer/03-configure-and-run-the-relayer',
         permanent: true,
-      },
-      {
-        source:
-          "/academy/interchain-messaging/10-running-a-relayer/03-install-relayer",
-        destination:
-          "/academy/interchain-messaging/10-running-a-relayer/03-configure-and-run-the-relayer",
+      }, {
+        source: '/academy/interchain-messaging/10-running-a-relayer/03-install-relayer',
+        destination: '/academy/avalanche-l1/interchain-messaging/10-running-a-relayer/03-configure-and-run-the-relayer',
         permanent: true,
-      },
-      {
-        source:
-          "/academy/interchain-messaging/10-running-a-relayer/05-multichain-relayer-config",
-        destination:
-          "/academy/interchain-messaging/10-running-a-relayer/02-relayer-configuration#multichain-relayer-configuration",
+      }, {
+        source: '/academy/interchain-messaging/10-running-a-relayer/05-multichain-relayer-config',
+        destination: '/academy/avalanche-l1/interchain-messaging/10-running-a-relayer/02-relayer-configuration#multichain-relayer-configuration',
         permanent: true,
-      },
-      {
-        source:
-          "/academy/interchain-messaging/10-running-a-relayer/06-analyze-relayer-logs",
-        destination:
-          "/academy/interchain-messaging/10-running-a-relayer/03-configure-and-run-the-relayer",
+      }, {
+        source: '/academy/interchain-messaging/10-running-a-relayer/06-analyze-relayer-logs',
+        destination: '/academy/avalanche-l1/interchain-messaging/10-running-a-relayer/03-configure-and-run-the-relayer',
         permanent: true,
-      },
-      {
-        source:
-          "/academy/interchain-messaging/03-avalanche-starter-kit/03-create-blockchain",
-        destination:
-          "/academy/interchain-messaging/03-avalanche-starter-kit/04-networks",
+      }, {
+        source: '/academy/interchain-messaging/03-avalanche-starter-kit/03-create-blockchain',
+        destination: '/academy/avalanche-l1/interchain-messaging/03-avalanche-starter-kit/04-networks',
         permanent: true,
-      },
-      {
-        source:
-          "/academy/interchain-messaging/03-avalanche-starter-kit/06-pause-and-resume",
-        destination:
-          "/academy/interchain-messaging/03-avalanche-starter-kit/04-networks",
+      }, {
+        source: '/academy/interchain-messaging/03-avalanche-starter-kit/06-pause-and-resume',
+        destination: '/academy/avalanche-l1/interchain-messaging/03-avalanche-starter-kit/04-networks',
         permanent: true,
       },
       {
         source: "/docs/subnets/customize-a-subnet",
         destination: "/docs/avalanche-l1s/upgrade/customize-avalanche-l1",
         permanent: true,
-      },
-      {
-        source: "/docs/build/tutorials/platform/create-a-local-test-network",
-        destination: "/academy/avalanche-fundamentals",
+      },       {
+        source: '/docs/build/tutorials/platform/create-a-local-test-network',
+        destination: '/academy/avalanche-l1/avalanche-fundamentals',
         permanent: true,
       },
       {
@@ -299,25 +426,185 @@ const config = {
         destination:
           "/docs/tooling/create-deploy-avalanche-l1s/deploy-on-fuji-testnet",
         permanent: true,
-      },
-      {
-        source: "/docs/tooling/avalanche-cli#avalanche-l1-deploy",
-        destination: "/docs/tooling/cli-commands#deploy",
-        permanent: true,
-      },
-      {
-        source: "/docs/tooling/avalanche-cli#network-start",
-        destination: "/docs/tooling/cli-commands#start",
-        permanent: true,
-      },
-      {
-        source: "/docs/tooling/avalanche-cli",
-        destination: "/docs/tooling/cli-commands",
-        permanent: true,
-      },
+      }, 
       {
         source: "/academy/l1-validator-management",
-        destination: "/academy/permissioned-l1s",
+        destination: "/academy/avalanche-l1/permissioned-l1s",
+        permanent: true,
+      },
+      {
+        source: "/academy/l1-validator-management/:path*",
+        destination: "/academy/avalanche-l1/permissioned-l1s/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/l1-tokenomics",
+        destination: "/academy/avalanche-l1/l1-native-tokenomics",
+        permanent: true,
+      },
+      {
+        source: "/academy/l1-tokenomics/:path*",
+        destination: "/academy/avalanche-l1/l1-native-tokenomics/:path*",
+        permanent: true,
+      },
+      {
+        source: "/console/permissioned-l1s/transactor-allowlist",
+        destination: "/console/l1-access-restrictions/transactor-allowlist",
+        permanent: true,
+      },
+      {
+        source: "/console/permissioned-l1s/deployer-allowlist",
+        destination: "/console/l1-access-restrictions/deployer-allowlist",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/configure/chain-configs/p-chain",
+        destination: "/docs/nodes/chain-configs/p-chain",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/configure/chain-configs/x-chain",
+        destination: "/docs/nodes/chain-configs/x-chain",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/configure/chain-configs/c-chain",
+        destination: "/docs/nodes/chain-configs/c-chain",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/configure/chain-configs/subnet-evm",
+        destination: "/docs/nodes/chain-configs/subnet-evm",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-fundamentals",
+        destination: "/academy/avalanche-l1/avalanche-fundamentals",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-fundamentals/:path*",
+        destination: "/academy/avalanche-l1/avalanche-fundamentals/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/blockchain-fundamentals",
+        destination: "/academy/blockchain/blockchain-fundamentals",
+        permanent: true,
+      },
+      {
+        source: "/academy/blockchain-fundamentals/:path*",
+        destination: "/academy/blockchain/blockchain-fundamentals/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/solidity-foundry",
+        destination: "/academy/blockchain/solidity-foundry",
+        permanent: true,
+      },
+      {
+        source: "/academy/solidity-foundry/:path*",
+        destination: "/academy/blockchain/solidity-foundry/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/encrypted-erc",
+        destination: "/academy/blockchain/encrypted-erc",
+        permanent: true,
+      },
+      {
+        source: "/academy/encrypted-erc/:path*",
+        destination: "/academy/blockchain/encrypted-erc/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/customizing-evm",
+        destination: "/academy/avalanche-l1/customizing-evm",
+        permanent: true,
+      },
+      {
+        source: "/academy/customizing-evm/:path*",
+        destination: "/academy/avalanche-l1/customizing-evm/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/interchain-messaging",
+        destination: "/academy/avalanche-l1/interchain-messaging",
+        permanent: true,
+      },
+      {
+        source: "/academy/interchain-messaging/:path*",
+        destination: "/academy/avalanche-l1/interchain-messaging/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/interchain-token-transfer",
+        destination: "/academy/avalanche-l1/interchain-token-transfer",
+        permanent: true,
+      },
+      {
+        source: "/academy/interchain-token-transfer/:path*",
+        destination: "/academy/avalanche-l1/interchain-token-transfer/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/icm-chainlink",
+        destination: "/academy/avalanche-l1/icm-chainlink",
+        permanent: true,
+      },
+      {
+        source: "/academy/icm-chainlink/:path*",
+        destination: "/academy/avalanche-l1/icm-chainlink/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/permissioned-l1s",
+        destination: "/academy/avalanche-l1/permissioned-l1s",
+        permanent: true,
+      },
+      {
+        source: "/academy/permissioned-l1s/:path*",
+        destination: "/academy/avalanche-l1/permissioned-l1s/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/l1-native-tokenomics",
+        destination: "/academy/avalanche-l1/l1-native-tokenomics",
+        permanent: true,
+      },
+      {
+        source: "/academy/l1-native-tokenomics/:path*",
+        destination: "/academy/avalanche-l1/l1-native-tokenomics/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/permissionless-l1s",
+        destination: "/academy/avalanche-l1/permissionless-l1s",
+        permanent: true,
+      },
+      {
+        source: "/academy/permissionless-l1s/:path*",
+        destination: "/academy/avalanche-l1/permissionless-l1s/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/multi-chain-architecture",
+        destination: "/academy/avalanche-l1/multi-chain-architecture",
+        permanent: true,
+      },
+      {
+        source: "/academy/multi-chain-architecture/:path*",
+        destination: "/academy/avalanche-l1/multi-chain-architecture/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/avacloudapis",
+        destination: "/academy/avalanche-l1/avacloudapis",
+        permanent: true,
+      },
+      {
+        source: "/academy/avacloudapis/:path*",
+        destination: "/academy/avalanche-l1/avacloudapis/:path*",
         permanent: true,
       },
     ];

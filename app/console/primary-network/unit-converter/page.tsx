@@ -1,14 +1,7 @@
 "use client";
 
-import { lazy } from "react";
-import ToolboxConsoleWrapper from "../../../../toolbox/src/components/ToolboxConsoleWrapper";
-
-const UnitConverter = lazy(() => 
-  import("../../../../toolbox/src/toolbox/Conversion/UnitConverter").then(module => ({
-    default: module.default
-  }))
-);
-
+import UnitConverter from "@/components/toolbox/console/primary-network/UnitConverter";
+import ToolboxConsoleWrapper from "@/components/toolbox/components/ToolboxConsoleWrapper";
 
 export default function Page() {
   return (

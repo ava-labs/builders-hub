@@ -1,0 +1,27 @@
+---
+title: Claim Testnet Tokens
+description: Learn how to connect Core wallet and claim testnet AVAX.
+updated: 2025-03-13
+authors: [owenwahlgren]
+icon: Coins
+---
+
+Connect your Core wallet below to claim testnet AVAX on the C-Chain and P-Chain. With a Builder Hub account, **tokens are automatically sent to your wallet** - no manual claims or coupon codes needed!
+
+<ToolboxMdxWrapper walletMode="c-chain">
+    <Faucet />
+</ToolboxMdxWrapper>
+
+<Callout type="info">
+**Automated Faucet:** Once you connect your wallet with a Builder Hub account, testnet tokens are automatically sent to your wallet when needed. You can also manually request tokens using the buttons above.
+</Callout>
+
+## Alternative Faucet
+
+If you don't want to create a [Builder Hub Account](https://build.avax.network/login), you can use the external [Avalanche Faucet](https://core.app/tools/testnet-faucet/?subnet=c&token=c) with coupon code `avalanche-academy` or `avalanche-academy25` to get 2 AVAX on the C-Chain.
+
+After you have claimed some AVAX on the C-Chain, you can bridge it to the P-Chain using this tool:
+
+<ToolboxMdxWrapper walletMode="c-chain">
+    <CrossChainTransfer />
+</ToolboxMdxWrapper>

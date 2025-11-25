@@ -1,0 +1,76 @@
+---
+title: Current Uses in Blockchain
+description: Explore how ERC-20, ERC-721, and ERC-1155 standards are applied in the Avalanche ecosystem.
+updated: 2025-09-02
+authors: [alejandro99so]
+icon: Activity
+---
+
+In the previous section, we covered the main **token standards** used on Avalanche: ERC-20, ERC-721, and ERC-1155. Now, let’s explore **how these standards are applied today** in the Avalanche ecosystem across the C-Chain **Mainnet**, **Fuji (Testnet)**, and **custom L1s**.
+
+---
+
+## ERC-20: Fungible Token Use Cases
+
+**On Avalanche C-Chain Mainnet**
+- **Stablecoins**:  
+  USDT: Widely used for DeFi protocols, payments, and trading pairs.  
+  USDC: Popular for lending, liquidity provision, and cross-chain settlements.  
+- **Native Avalanche Tokens**:  
+  WAVAX: Wrapped AVAX used for liquidity pools, lending markets, and DEX operations.  
+- **Governance Tokens**:  
+  JOE: Token powering governance and incentives in Trader Joe.  
+  QI: Governance token for Benqi lending and liquid staking platform.
+
+**On L1 Deployments**
+- **Custom Ecosystem Tokens**: L1 projects can issue ERC-20 tokens for payments, in-game economies, or DeFi services, with full control over tokenomics.
+
+**On Avalanche C-Chain Fuji (Testnet)**
+- Developers test token logic, minting, and burning before deploying to C-Chain or an L1, avoiding the cost of mainnet errors.
+
+---
+
+## ERC-721: Non-Fungible Token Use Cases
+
+**On Avalanche C-Chain Mainnet**
+- **NFT Marketplaces**:  
+  Kalao: Marketplace for art, gaming, and utility NFTs.  
+  NFTrade: Cross-chain NFT marketplace supporting Avalanche.  
+- **In-Game Unique Assets**:  
+  Gaming NFTs: Rare weapons, characters, and skins in Avalanche C-Chain-native games.
+
+**On L1 Deployments**
+- **Project-Specific Collections**: L1s can issue NFTs for branding, game achievements, or membership systems, keeping transactions isolated from C-Chain congestion.
+- **Sports & Entertainment**: FIFA+ Collect: Official FIFA digital collectibles platform on L1 Avalanche, featuring historic moments, iconic goals, and tournament highlights.  
+
+**On Avalanche C-Chain Fuji (Testnet)**
+- Used to test metadata integration, marketplace listings, and batch minting.
+
+---
+
+## ERC-1155: Multi-Token Standard Use Cases
+
+**On Avalanche C-Chain Mainnet**
+- **Gaming Projects**:  
+  Crabada: Combines fungible resources (minerals, tokens) with unique NFT characters in one contract.  
+- **Collectible Platforms**:  
+  Multi-series collections: Managed without deploying new contracts for each.
+
+**On L1 Deployments**
+- **Metaverse Economies**: L1s can host both in-game currencies and unique items in one ERC-1155 contract, benefiting from low latency and high scalability.
+
+**On Avalanche C-Chain Fuji (Testnet)**
+- Testing batch transfers, multi-asset minting, and marketplace integrations before L1 or C-Chain Mainnet launch.
+
+---
+
+## Observations from Avalanche’s Current Uses
+
+- **Low Fees Enable Microtransactions**: The cost-efficiency of Avalanche makes even small-value ERC-20 and ERC-1155 transfers practical.  
+- **L1s Enable Asset Isolation**: Projects with heavy transaction loads can launch their own L1 to keep asset operations unaffected by C-Chain activity.  
+- **Fuji Testnet is a Critical Step**: Almost every major Avalanche project tests token standards on Fuji before going live.  
+- **Bridging Expands Liquidity**: Avalanche supports assets from other EVM networks, extending utility and user reach.
+
+---
+
+In the **next section**, we will analyze **the limits companies face when using these standards**, focusing on challenges like **privacy, compliance, and scalability** and set the stage for introducing **privacy-focused solutions like eERC**.

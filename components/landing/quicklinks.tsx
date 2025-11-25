@@ -18,7 +18,7 @@ const quickLinks = [
     title: "Faucet",
     description: "Get testnet AVAX",
     icon: Droplet,
-    href: "https://build.avax.network/tools/l1-toolbox#faucet"
+    href: "/console/primary-network/faucet"
   },
   {
     id: 2,
@@ -29,10 +29,10 @@ const quickLinks = [
   },
   {
     id: 3,
-    title: "L1 Toolbox",
-    description: "Launch your own L1",
+    title: "Create New L1",
+    description: "Use our Builder Console to create a new L1",
     icon: Wrench,
-    href: "/tools/l1-toolbox"
+    href: "/console/layer-1/create"
   },
   {
     id: 4,
@@ -53,13 +53,13 @@ const quickLinks = [
 export default function QuickLinks() {
   return (
     <div className="flex flex-col px-4 mb-20">
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center gap-3 mb-8 mx-auto max-w-7xl w-full">
         <h2 className="text-xl font-bold tracking-wide text-zinc-700 dark:text-zinc-300 uppercase">
           Quick Links
         </h2>
       </div>
       
-      <div className="mt-12 mx-auto font-geist relative max-w-7xl w-full">
+      <div className="mx-auto font-geist relative max-w-7xl w-full">
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
           {quickLinks.map((link, index) => (
             <Link

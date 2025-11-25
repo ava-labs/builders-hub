@@ -81,12 +81,6 @@ export const registerValidations: Validation[] = [
       registerForm.terms_event_conditions === true,
   },
   {
-    field: "newsletter_subscription",
-    message: "You must agree to the newsletter subscription.",
-    validation: (registerForm: RegistrationForm) =>
-      registerForm.newsletter_subscription === true,
-  },
-  {
     field: "prohibited_items",
     message: "You must agree not to bring prohibited items to continue.",
     validation: (registerForm: RegistrationForm) =>
@@ -283,8 +277,8 @@ export async function sendRegistrationToHubSpot(
       'programming_language_familiarity': registrationData.languages || '',
       'employment_role_other': registrationData.roles || 'Other',
       'tooling_familiarity': registrationData.tools || '',
-      'founder_check' : 'No', // TODO: add this to the BH form
-      'avalanche_ecosystem_member' : 'No',  // TODO: add this to the BH form
+      'founder_check': registrationData.founder_check ? 'Yes' : 'No',
+      'avalanche_ecosystem_member': registrationData.avalanche_ecosystem_member ? 'Yes' : 'No',
       //'hackathon_event_id': registrationData.hackathon_id, // TODO: add this to the HS form
       //'hackathon_event_title': hackathon?.title || '', // TODO: add this to the HS form
       

@@ -1,0 +1,242 @@
+---
+title: Query Validator Set
+description: Learn how to query and monitor your L1's validator set
+updated: 2025-07-31
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+import QueryL1ValidatorSet from "@/components/toolbox/console/permissioned-l1s/QueryL1ValidatorSet.tsx"
+
+## Overview
+
+Querying the validator set is essential for monitoring your L1's health, planning changes, and ensuring proper operation. This section covers how to effectively query and interpret validator data.
+
+## Query Tools
+
+
+
+<ToolboxMdxWrapper walletMode="l1">
+    <QueryL1ValidatorSet />
+</ToolboxMdxWrapper>
+
+## Query Methods
+
+### Individual Validator Queries
+
+#### Get Validator by ID
+```javascript
+const validator = await validatorManager.getValidator(validationID);
+console.log({
+    status: validator.status,
+    nodeID: validator.nodeID,
+    weight: validator.weight,
+    startedAt: new Date(validator.startedAt * 1000),
+    endedAt: validator.endedAt > 0 ? new Date(validator.endedAt * 1000) : "Active"
+});
+```
+
+#### Get Validator Weight
+```javascript
+const weight = await validatorManager.getWeight(validationID);
+console.log(`Validator weight: ${weight}`);
+```
+
+### Aggregate Queries
+
+#### Total Network Weight
+```javascript
+const totalWeight = await validatorManager.totalWeight();
+console.log(`Total network weight: ${totalWeight}`);
+```
+
+#### Active Validator Count
+```javascript
+const count = await validatorManager.activeValidatorCount();
+console.log(`Active validators: ${count}`);
+```
+
+## Building a Validator Registry
+
+Since the contract doesn't provide a built-in list function, you can build a registry by:
+
+### 1. Event-Based Approach
+
+```javascript
+// Get all historical events
+const registeredEvents = await validatorManager.queryFilter(
+    validatorManager.filters.ValidatorRegistered()
+);
+
+const removedEvents = await validatorManager.queryFilter(
+    validatorManager.filters.ValidatorRemoved()
+);
+
+// Build active validator list
+const validators = new Map();
+
+registeredEvents.forEach(event => {
+    validators.set(event.args.nodeID, {
+        nodeID: event.args.nodeID,
+        weight: event.args.weight,
+        registeredAt: event.blockNumber
+    });
+});
+
+removedEvents.forEach(event => {
+    validators.delete(event.args.nodeID);
+});
+```
+
+### 2. Off-Chain Index
+
+Maintain a database that tracks:
+- Validator additions
+- Validator removals  
+- Weight updates
+- Current state
+
+## Monitoring Validator Status
+
+### Status Types
+
+```javascript
+enum ValidatorStatus {
+    Active = 0,        // Currently validating
+    PendingAdded = 1,  // Addition initiated
+    PendingRemoved = 2, // Removal initiated
+    Completed = 3      // No longer active
+}
+```
+
+### Check Pending Operations
+
+```javascript
+async function checkPendingOperations(validationID) {
+    const validator = await validatorManager.getValidator(validationID);
+    
+    switch(validator.status) {
+        case 1: // PendingAdded
+            console.log("Waiting for registration completion");
+            break;
+        case 2: // PendingRemoved
+            console.log("Waiting for removal completion");
+            break;
+        case 0: // Active
+            console.log("Validator is active");
+            break;
+        case 3: // Completed
+            console.log("Validator has been removed");
+            break;
+    }
+}
+```
+
+## Churn Analysis
+
+### Current Churn Status
+```javascript
+const churn = await validatorManager.getCurrentChurnPeriod();
+
+const churnPercentageUsed = (churn.churnAmount * 100) / 
+    (churn.totalWeight * maximumChurnPercentage / 100);
+
+console.log(`Churn used: ${churnPercentageUsed.toFixed(2)}%`);
+console.log(`Churn resets at: ${new Date(churn.startTime + churnPeriodSeconds * 1000)}`);
+```
+
+### Available Churn Capacity
+```javascript
+function calculateAvailableChurn(churnData, maxPercentage) {
+    const maxChurn = (churnData.totalWeight * maxPercentage) / 100;
+    const usedChurn = churnData.churnAmount;
+    const availableChurn = maxChurn - usedChurn;
+    
+    return {
+        max: maxChurn,
+        used: usedChurn,
+        available: availableChurn,
+        canAddWeight: availableChurn
+    };
+}
+```
+
+## Creating a Validator Dashboard
+
+Build a comprehensive view:
+
+```javascript
+async function getValidatorSetInfo() {
+    const [totalWeight, activeCount, churn] = await Promise.all([
+        validatorManager.totalWeight(),
+        validatorManager.activeValidatorCount(),
+        validatorManager.getCurrentChurnPeriod()
+    ]);
+    
+    return {
+        summary: {
+            totalWeight,
+            activeValidators: activeCount,
+            averageWeight: totalWeight / activeCount
+        },
+        churn: {
+            periodStart: new Date(churn.startTime * 1000),
+            used: churn.churnAmount,
+            remaining: calculateAvailableChurn(churn, maxChurnPercentage).available
+        }
+    };
+}
+```
+
+## Query Patterns
+
+### Regular Health Checks
+```javascript
+setInterval(async () => {
+    const health = await getValidatorSetInfo();
+    console.log("Network health:", health);
+    
+    // Alert if validators drop below threshold
+    if (health.summary.activeValidators < MIN_VALIDATORS) {
+        console.warn("Low validator count!");
+    }
+}, 60000); // Check every minute
+```
+
+### Pre-Operation Checks
+```javascript
+async function canAddValidator(weight) {
+    const churn = await validatorManager.getCurrentChurnPeriod();
+    const available = calculateAvailableChurn(churn, maxChurnPercentage);
+    
+    return weight <= available.available;
+}
+```
+
+## Best Practices
+
+1. **Cache Results**: Don't query repeatedly for static data
+2. **Batch Queries**: Use multicall for multiple reads
+3. **Event Monitoring**: Subscribe to events for real-time updates
+4. **Error Handling**: Handle query failures gracefully
+
+## Common Issues
+
+### Query Failures
+- **Network Issues**: Check RPC connection
+- **Contract Address**: Verify correct address
+- **ABI Mismatch**: Ensure using correct ABI
+
+### Data Interpretation
+- **Weight Units**: Understand your weight denomination
+- **Timestamps**: Convert Unix timestamps properly
+- **Status Codes**: Map numeric status correctly
+
+## Next Steps
+
+With query capabilities established:
+1. Set up regular monitoring
+2. Build dashboards for visibility
+3. Plan validator management operations
+4. Implement alerting for critical changes

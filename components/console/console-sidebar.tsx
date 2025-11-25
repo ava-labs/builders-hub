@@ -3,12 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  Home, 
-  Layers,  
+import {
+  Home,
+  Layers,
   MessagesSquare,
-  Wrench, 
-  Droplets, 
+  Wrench,
+  Droplets,
   ArrowLeft,
   Shield,
   Network,
@@ -27,7 +27,10 @@ import {
   Hexagon,
   SlidersVertical,
   SquareMinus,
-  SquarePlus
+  SquarePlus,
+  HandCoins,
+  ExternalLink,
+  BookKey
 } from "lucide-react";
 
 import {
@@ -45,7 +48,6 @@ import {
 } from "@/components/ui/sidebar";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 
-
 // Navigation data structure matching user specification
 const data = {
   navMain: [
@@ -55,10 +57,10 @@ const data = {
       icon: Home,
     },
     {
-        title: "Back to Builder Hub",
-        url: "/",
-        icon: ArrowLeft,
-      },
+      title: "Back to Builder Hub",
+      url: "/",
+      icon: ArrowLeft,
+    },
   ],
   navGroups: [
     {
@@ -66,9 +68,19 @@ const data = {
       icon: Network,
       items: [
         {
+          title: "Data API Keys",
+          url: "/console/utilities/data-api-keys",
+          icon: BookKey,
+        },
+        {
           title: "Node Setup",
           url: "/console/primary-network/node-setup",
           icon: Server,
+        },
+        {
+          title: "Stake",
+          url: "/console/primary-network/stake",
+          icon: HandCoins,
         },
         {
           title: "Testnet Faucet",
@@ -107,12 +119,34 @@ const data = {
           icon: Server,
         },
         {
+          title: "L1 Validator Balance",
+          url: "/console/layer-1/l1-validator-balance",
+          icon: Coins,
+        },
+        {
           title: "Explorer Setup",
           url: "/console/layer-1/explorer-setup",
           icon: Telescope,
         },
       ],
     },
+    {
+      title: "Free Testnet Infrastructure",
+      icon: Box,
+      items: [
+        {
+          title: "Nodes",
+          url: "/console/testnet-infra/nodes",
+          icon: Layers,
+        },
+        {
+          title: "ICM Relayer",
+          url: "/console/testnet-infra/icm-relayer",
+          icon: Layers,
+        },
+      ],
+    },
+
     {
       title: "L1 Tokenomics",
       icon: Coins,
@@ -144,6 +178,11 @@ const data = {
           icon: SquareTerminal,
         },
         {
+          title: "Multisig Setup",
+          url: "/console/permissioned-l1s/multisig-setup",
+          icon: ShieldUser,
+        },
+        {
           title: "Query Validator Set",
           url: "/console/layer-1/validator-set",
           icon: Hexagon,
@@ -162,6 +201,11 @@ const data = {
           title: "Change Validator Weight",
           url: "/console/permissioned-l1s/change-validator-weight",
           icon: SlidersVertical,
+        },
+        {
+          title: "Remove Expired Validator Registration",
+          url: "/console/permissioned-l1s/remove-expired-validator-registration",
+          icon: SquareMinus,
         }
       ],
     },
@@ -171,12 +215,12 @@ const data = {
       items: [
         {
           title: "Contract Deployer Allowlist",
-          url: "/console/permissioned-l1s/deployer-allowlist",
+          url: "/console/l1-access-restrictions/deployer-allowlist",
           icon: ShieldCheck,
         },
         {
           title: "Transactor Allowlist",
-          url: "/console/permissioned-l1s/transactor-allowlist",
+          url: "/console/l1-access-restrictions/transactor-allowlist",
           icon: ShieldUser,
         },
       ],
@@ -186,16 +230,9 @@ const data = {
       icon: Globe,
       items: [
         {
-          title: "Migrate from Permissioned L1",
-          url: "/console/permissionless-l1s/deploy-reward-manager",
+          title: "Native Staking Manager Setup",
+          url: "/console/permissionless-l1s/native-staking-manager-setup",
           icon: GitMerge,
-          comingSoon: true,
-        },
-        {
-          title: "Stake & Unstake",
-          url: "/console/permissionless-l1s/manage-validators",
-          icon: Hexagon,
-          comingSoon: true,
         },
       ],
     },
@@ -240,16 +277,31 @@ const data = {
           url: "/console/utilities/format-converter",
           icon: Wrench,
         },
+        {
+          title: "Transfer Proxy Admin Ownership",
+          url: "/console/utilities/transfer-proxy-admin",
+          icon: Wrench,
+        },
+        {
+          title: "Migrate VMC From V1 to V2",
+          url: "/console/utilities/vmcMigrateFromV1",
+          icon: Wrench,
+        },
+        {
+          title: "Revert PoA Manager",
+          url: "/console/utilities/revert-poa-manager",
+          icon: Wrench,
+        }
       ],
     },
   ],
   navSecondary: [],
 };
 
-interface ConsoleSidebarProps extends React.ComponentProps<typeof Sidebar> {}
+interface ConsoleSidebarProps extends React.ComponentProps<typeof Sidebar> { }
 
-export function ConsoleSidebar({ 
-  ...props 
+export function ConsoleSidebar({
+  ...props
 }: ConsoleSidebarProps) {
   const pathname = usePathname();
   return (
@@ -263,7 +315,7 @@ export function ConsoleSidebar({
           <span className="font-large font-semibold">Builder Console</span>
         </Link>
       </SidebarHeader>
-      
+
       <SidebarContent>
         {/* Main Navigation */}
         <SidebarGroup>
@@ -272,8 +324,8 @@ export function ConsoleSidebar({
               const isActive = pathname === item.url;
               return (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
+                  <SidebarMenuButton
+                    asChild
                     isActive={isActive}
                   >
                     <Link href={item.url}>
@@ -296,23 +348,34 @@ export function ConsoleSidebar({
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => {
-                  const isActive = pathname === item.url;
+                  const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
                   const isComingSoon = 'comingSoon' in item && (item as any).comingSoon;
                   return (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton 
+                      <SidebarMenuButton
                         asChild
                         isActive={isActive}
                         className={`${isComingSoon ? 'opacity-50 cursor-not-allowed' : ''}`}
                         disabled={isComingSoon}
                       >
 
-                        
+
                         {isComingSoon ? (
                           <Link href="#">
                             <item.icon />
                             <span>{item.title} (soon)</span>
                           </Link>
+                        ) : item.url.startsWith('https://') ? (
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 w-full"
+                          >
+                            <item.icon />
+                            <span>{item.title}</span>
+                            <ExternalLink className="ml-auto h-4 w-4" />
+                          </a>
                         ) : (
                           <Link href={item.url}>
                             <item.icon />

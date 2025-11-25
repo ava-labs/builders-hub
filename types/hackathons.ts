@@ -3,8 +3,8 @@ export type HackathonHeader = {
   id: string
   title: string
   description: string
-  start_date: Date
-  end_date: Date
+  start_date: string
+  end_date: string
   location: string
   total_prizes: number
   participants: number
@@ -19,6 +19,10 @@ export type HackathonHeader = {
   top_most: boolean
   custom_link: string | undefined
   created_by: string
+  created_by_name?: string
+  updated_by?: string
+  updated_by_name?: string
+  is_public: boolean
 }
 
 export type HackathonsFilters = {

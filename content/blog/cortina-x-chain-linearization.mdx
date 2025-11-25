@@ -1,0 +1,74 @@
+---
+title: "Cortina: X-Chain Linearization"
+description: Paving the way for broader X-Chain adoption, improving the UX of staking on the P-Chain, and allowing for more complex transactions on the C-Chain.
+date: 2023-03-30
+authors: [AvaxDevelopers]
+topics: [Network Updates, Cortina Upgrade, X-Chain, P-Chain, C-Chain, Consensus]
+comments: true
+---
+
+<img src="https://www.avax.network/_astro/65ce1a58b0011dc1f9a94e7c_1_CCP-46v8qu_epfQ4oH8fpQ_ZIq1nU.webp" alt="Cortina: X-Chain Linearization" />
+
+Paving the way for broader X-Chain adoption, improving the UX of staking on the P-Chain, and allowing for more complex transactions on the C-Chain.
+
+---
+
+On Monday, April 3rd, 2023, the pre-release code for the Avalanche Cortina Upgrade will be published. This upgrade will activate at 11 A.M. ET (3 P.M. UTC) on Thursday, April 6th, 2023. **Note, this pre-release code will ONLY work on Fuji.** If you run the code on Mainnet, it will exit on startup.
+
+Pending a successful Cortina Upgrade on Fuji, the Avalanche Mainnet activation time will be announced and the official Cortina AvalancheGo release (v1.10.0) will be published.
+
+The Cortina Upgrade includes protocol optimizations that are not compatible with AvalancheGo versions < v1.10.0. If you run a node on Fuji, you must upgrade your software to AvalancheGo >= v1.10.0 **before** the activation time on Fuji. **If you are a Mainnet node operator, there is no action required until the official AvalancheGo@v1.10.0 code is published.**
+
+## X-Chain Linearization
+
+The X-Chain runs [Avalanche Consensus](https://arxiv.org/pdf/1906.08936.pdf), a leaderless, DAG-based protocol that allows for the concurrent processing of non-conflicting UTXOs at high throughput without establishing a total ordering of activity. The C-Chain, P-Chain, and all Avalanche Subnets, on the other hand, run [Snowman++](https://github.com/ava-labs/avalanchego/blob/master/vms/proposervm/README.md), a chain-based, totally-ordered protocol that sequences conflict-free block production without time-based slots over thousands of participants.
+
+The existing semantics of the X-Chain prevent or significantly complicate the integration of [Avalanche Warp Messaging](https://medium.com/avalancheavax/avalanche-warp-messaging-awm-launches-with-the-first-native-subnet-to-subnet-message-on-avalanche-c0ceec32144a) (AWM), the addition of complex X-Chain transactions, the enablement of state syncing, and broad exchange support. AWM integration requires Snowman++ to verify the [BLS Multi-Signature](https://crypto.stanford.edu/~dabo/pubs/papers/BLSmultisig.html) of incoming messages from other Avalanche Subnets. This limitation means the X-Chain, in its current form, cannot interact with Subnets and that the DAG-based consensus it runs cannot be broadly applied to Subnets, which overwhelmingly wish to communicate seamlessly with other Subnets. The partial-ordering on the X-Chain means there is no canonical state during vertex verification (a vertex is the container for batching transactions on the X-Chain, akin to a block in a blockchain) and that vertices are, by design, processed in a different order on different nodes. Without a canonical state, interacting with shared on-chain objects, such as exchanges, and state syncing to the tip of the network (to avoid re-processing all historical activity) becomes a non-trivial and error-prone problem that takes away from the time the community could spend further evolving Subnets. Finally, the non-deterministic ordering of on-chain activity greatly impedes the ability of many legacy exchanges to integrate with the X-Chain in its current form, as most legacy exchanges are designed for totally-ordered blockchains such as Bitcoin and Ethereum, and they have difficulty reconciling balances at different points in time on a partially-ordered blockchain.
+
+Cortina migrates the X-Chain to run Snowman++ consensus and operate as a totally-ordered blockchain in a process called "linearization". When linearization begins, it will no longer be possible to add additional vertices to the X-Chain DAG. The terminal state of the DAG, now immutable, will then be used as the genesis state of the linearized X-Chain powered by Snowman++. The transaction format used on the X-Chain and the APIs to submit transactions, fetch transaction status, and fetch balance will not change during this process, so most wallets will not need to make any changes to support this linearization event. However, explorers that support the X-Chain will need to migrate to parsing X-Chain blocks instead of parsing X-Chain vertices, which look very similar to P-Chain blocks. Linearization is seamless and should not result in any downtime on the P-Chain, C-Chain, or any Subnets. The X-Chain will, however, be briefly inaccessible.
+
+As alluded to above, this migration paves the way for Avalanche Warp Messaging integration, novel transaction types that modify shared X-Chain state, provides a straightforward path to enable state syncing, and enables exchanges to support the X-Chain, which will contain many of the tokens used on Elastic Subnets. While it is possible to introduce a total ordering over a DAG, doing so on the X-Chain would have required a rewrite of the existing Avalanche Consensus engine and would not have been useful for any Subnets. Migrating to a single consensus engine across the entire Avalanche Network, which reduces the size of the trusted computing base and increases the leverage of existing R&D efforts, will enable faster development and more broadly-applicable innovation.
+
+We've prepared a migration guide for integrators [here](https://build.avax.network/docs/api-reference/x-chain/api) that highlights all changes to the AvalancheGo APIs required to support Cortina.
+
+## Batched Delegator Rewards
+
+Since the launch of the Avalanche Network, validators have had the opportunity to charge a service fee to anyone that delegates to their node. If a validator is online for 80% of a delegation period, they receive a % of the reward (the fee) earned by the delegator. The P-Chain distributes this fee as a separate UTXO per delegation period.
+
+<img src="https://images.ctfassets.net/voq4a5ue459o/1f3582ac2c0c7e3dc5ba7b3175a67746/fbba1b9d2db4e6f5d28f4f1915627bfe/642610015bdc6509dbf97bbf_1_54JcPIBMZNU1_bkmOapOrQ.png?w=1600&q=80&fm=webp" alt="Delegator Rewards Diagram" />
+
+As the number of delegators on the network increased substantially over the last few months (up to ~80k as of 3/20/23), the number of UTXOs that a validator may receive as fees also increased substantially. This often means that a validator will end up with thousands of small UTXOs that must be aggregated to be used for anything. Tracking thousands of UTXOs in explorers and wallets also makes providing a great UX more challenging than it needs to be.
+
+Cortina modifies how these delegation fees are distributed for all validators that begin staking after the Cortina Activation (previously staked validators will see no change). Instead of sending a fee UTXO for each successful delegation period, fees are now batched during a node's entire validation period and are distributed when it is unstaked.
+
+## Increased C-Chain Gas Limit
+
+Since Apricot Phase 1, the C-Chain block gas limit has been [set to 8M gas](https://github.com/ava-labs/coreth/blob/b1223203dbca7708142b8884f46a4deec678d80e/params/avalanche_params.go#L21). Blocks on the C-Chain are produced every ~2s, so this setting limits the max amount of gas that can be consumed every 10s to ~40M gas. The gas target for every rolling 10s window, however, is set to [15M gas](https://github.com/ava-labs/coreth/blob/b1223203dbca7708142b8884f46a4deec678d80e/params/avalanche_params.go#L32). This means that when more than 15M gas is used in a 10s window, the gas price will go up (and go down when less than 15M is used). You can read more about how dynamic fees work on the C-Chain [here](https://medium.com/avalancheavax/apricot-phase-three-c-chain-dynamic-fees-432d32d67b60).
+
+Outside of limiting the amount of gas that can be consumed in some window at any gas price, the block gas limit also limits the complexity of transactions that can be issued in a single block. As different developers on Avalanche began to deploy more complex dApps, they've expressed that 8M gas per block isn't enough for their use case. Cortina increases the C-Chain block gas limit to 15M gas. To avoid increasing the amount of resources required to validate the Primary Network, the gas target will remain unchanged at 15M gas per 10s.
+
+## FAQ
+
+### How do I upgrade my node?
+
+The process to upgrade to AvalancheGo v1.10.0 is the same as any other upgrade. If you build from source, run the build script as before. If you use the pre-compiled binaries, invoke them as before. If you use the [installer script](https://build.avax.network/docs/nodes/using-install-script/preparing-environment), use that as before.
+
+Once you start AvalancheGo v1.10.0, you do not need to do anything else. More information on updating a node can be found [here](https://docs.avax.network/nodes/maintain/upgrade-your-avalanchego-node). As a reminder, it is best practice to [have a backup](https://docs.avax.network/nodes/maintain/node-backup-and-restore) of your staking key/certificate.
+
+### Do I have to upgrade my node?
+
+If you don't upgrade your validator to v1.10.0 before the Avalanche Mainnet activation date (which will be shared in coming days), your node will be marked as offline and other nodes will report your node as having lower uptime, which may jeopardize your staking rewards.
+
+### Is there any change in hardware requirements?
+
+No.
+
+### Will updating decrease my validator's uptime?
+
+No. As a reminder, you can check your validator's estimated uptime using the [info.uptime API call](https://build.avax.network/docs/api-reference/info-api).
+
+<img src="https://images.ctfassets.net/voq4a5ue459o/3d4db985173559c8152c66d947eaa8c6/a55abcafa1a6a4fc0d82719ce5185ea9/6426100118a8ff0a95f40712_1_2zL1ZrQY8vKffH9fVcy4Ig.png?w=1600&q=80&fm=webp" alt="API Call Screenshot" />
+
+### I think something is wrong. What should I do?
+
+First, **make sure that you've read the** [documentation](https://docs.avax.network/) **thoroughly and checked the** [FAQs](https://support.avax.network/en/)**. If you don't see an answer to your question, go to our** [Discord](https://chat.avalabs.org/) **server and search for your question. If it has not already been asked, please post it in the appropriate channel.**

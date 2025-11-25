@@ -1,0 +1,365 @@
+/* Academy-specific navbar styles - ACADEMY ONLY */
+body[data-layout="academy"] > div > nav[aria-label="Main"],
+body[data-layout="academy"] .nd-layout-home > nav:not([role="tablist"]):not(.nd-tabs-nav),
+body[data-layout="academy"] .nd-layout-home > header:not([role="tablist"]):not(.nd-tabs-nav) {
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Remove any top border drawn directly under the navbar - ACADEMY ONLY */
+body[data-layout="academy"] nav[aria-label="Main"] + *,
+body[data-layout="academy"] header + * {
+  border-top: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Hide and remove any subnav borders that might appear - ACADEMY ONLY */
+body[data-layout="academy"] #docs-subnav {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  border: none !important;
+  border-bottom: none !important;
+}
+
+/* Remove any border-bottom from elements that might appear below navbar - ACADEMY ONLY */
+body[data-layout="academy"] nav[aria-label="Main"] ~ *,
+body[data-layout="academy"] header ~ * {
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+}
+
+/* Ensure no border appears on the first element after navbar */
+body[data-layout="academy"] nav[aria-label="Main"] + div,
+body[data-layout="academy"] header + div {
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+}
+
+/* Academy sidebar positioning - use fumadocs defaults, no subnav spacing */
+/* Only override what's necessary - let fumadocs handle the rest */
+body[data-layout="academy"] #nd-sidebar,
+body[data-layout="academy"] [data-sidebar="sidebar"] {
+  /* Use default fumadocs positioning - no subnav to account for */
+  top: 4.5rem !important; /* Only navbar height */
+  height: calc(100vh - 3.5rem) !important; /* Full height minus navbar */
+  padding-left: 0.5rem !important;
+  padding-right: 2rem !important; /* Extra right padding to prevent content overlay on resize */
+  /* Force sidebar to left edge with padding - override fumadocs dynamic width calculation */
+  left: 3rem !important;
+  width: var(--fd-sidebar-width) !important; /* Remove extra spacing and layout offset */
+  /* Remove grey card/background tint in dark mode */
+  background: transparent !important;
+  border-right: none !important;
+}
+/* When banner exists, adjust academy sidebar position */
+body:has([data-granite-banner])[data-layout="academy"] #nd-sidebar,
+body:has([data-granite-banner])[data-layout="academy"] [data-sidebar="sidebar"] {
+  top: 7.5rem !important; /* Banner (3rem) + navbar (3.5rem) */
+  height: calc(100vh - 3rem - 3.5rem) !important; /* Full height minus banner and navbar */
+}
+
+/* Remove padding-top from sidebar first child - prevents spacing issues on refresh */
+/* This ensures no extra spacing appears when elements hydrate */
+body[data-layout="academy"] #nd-sidebar > div:first-child,
+body[data-layout="academy"] [data-sidebar="sidebar"] > div:first-child {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Hide sidebar collapse trigger button - academy doesn't need sidebar collapse */
+body[data-layout="academy"] button[aria-label="Collapse Sidebar"],
+body[data-layout="academy"] [data-collapsed] button[aria-label="Collapse Sidebar"],
+body[data-layout="academy"] #nd-sidebar button[aria-label="Collapse Sidebar"],
+body[data-layout="academy"] [data-sidebar="sidebar"] button[aria-label="Collapse Sidebar"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  position: absolute !important;
+  width: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Mobile styles for academy sidebar - ACADEMY ONLY */
+@media (max-width: 1023px) {
+  /* When we force mobile at <=1023px, remove desktop sidebar spacing */
+  body[data-layout="academy"] #nd-docs-layout {
+    --fd-sidebar-width: 0px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-inline-start: 0 !important;
+  }
+  
+  /* Reset main content padding on mobile - remove sidebar spacing */
+  body[data-layout="academy"] main#nd-docs-layout.fd-notebook-layout,
+  body[data-layout="academy"] main#nd-docs-layout.fd-default-layout {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Reset page content max-width and margins on mobile */
+  body[data-layout="academy"] #nd-page {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    max-width: 100% !important;
+  }
+  
+  /* Reset notebook layout padding on mobile */
+  body[data-layout="academy"] .nd-layout-notebook {
+    padding-left: 0 !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Center the logo on mobile */
+  body[data-layout="academy"] nav[aria-label="Main"] nav,
+  body[data-layout="academy"] header[aria-label="Main"] nav {
+    justify-content: space-between !important;
+  }
+  
+  body[data-layout="academy"] nav[aria-label="Main"] a[href="/"],
+  body[data-layout="academy"] header[aria-label="Main"] a[href="/"] {
+    position: absolute !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+
+  /* Hide the original fumadocs sidebar toggle button on mobile since we're using our own */
+  body[data-layout="academy"] .nd-layout-notebook > div:first-child > button:not([aria-haspopup]):not([role="combobox"]) {
+    display: none !important;
+    visibility: hidden !important;
+    position: absolute !important;
+    opacity: 0 !important;
+    left: -9999px !important;
+    z-index: -1 !important;
+  }
+
+  /* Override fumadocs mobile sidebar to appear from left instead of right */
+  body[data-layout="academy"] #nd-sidebar-mobile {
+    left: 0 !important;
+    right: auto !important;
+    inset-inline-end: auto !important;
+    border-left: none !important;
+    border-right: 1px solid hsl(var(--border)) !important;
+  }
+  
+  /* Change fumadocs sidebar animations to slide from left */
+  body[data-layout="academy"] #nd-sidebar-mobile[data-state="open"] {
+    animation: slideInFromLeftAcademy 0.3s ease-out !important;
+  }
+  
+  body[data-layout="academy"] #nd-sidebar-mobile[data-state="closed"] {
+    animation: slideOutToLeftAcademy 0.2s ease-in !important;
+  }
+  
+  @keyframes slideInFromLeftAcademy {
+    from {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideOutToLeftAcademy {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+  }
+
+  /* Also handle shadcn Sheet-based sidebar if used */
+  body[data-layout="academy"] [data-sidebar="sidebar"][data-mobile="true"] {
+    left: 0 !important;
+    right: auto !important;
+  }
+  
+  body[data-layout="academy"] [data-sidebar="sidebar"][data-mobile="true"] [data-radix-dialog-content] {
+    left: 0 !important;
+    right: auto !important;
+  }
+  
+  /* Allow sidebar overlay to work for closing */
+  body[data-layout="academy"] [data-radix-dialog-overlay],
+  body[data-layout="academy"] #nd-sidebar-mobile ~ [data-radix-dialog-overlay] {
+    pointer-events: auto !important;
+  }
+}
+
+/* Desktop: Center content while maintaining sidebar and TOC spacing */
+@media (min-width: 1024px) {
+  /* Remove layout offset margins from main body */
+  body[data-layout="academy"] main#nd-docs-layout.fd-notebook-layout,
+  body[data-layout="academy"] main#nd-docs-layout.fd-default-layout {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    /* Responsive padding that accounts for sidebar position (3rem) + width + spacing (0.5rem) */
+    padding-left: calc(3rem + var(--fd-sidebar-width) + 0.5rem) !important;
+    padding-right: 5rem !important;
+  }
+  
+  /* Center the page content within available space */
+  body[data-layout="academy"] #nd-page {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-width: var(--fd-page-width) !important;
+  }
+  
+  /* Also add padding to notebook layout container */
+  body[data-layout="academy"] .nd-layout-notebook {
+    padding-right: 2rem !important;
+  }
+}
+
+/* Reduce article padding - ACADEMY ONLY */
+body[data-layout="academy"] .nd-layout-notebook article {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  /* Remove grey background/shadow on article surfaces in dark mode */
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Fix: TOC popover gets cut off on mobile — allow full-height + scroll */
+@media (max-width: 1279px) {
+  body[data-layout="academy"] #nd-tocnav [data-toc-popover] {
+    /* Fill the viewport below banner + navbar + the TOC trigger itself */
+    max-height: calc(100dvh - var(--fd-banner-height) - var(--fd-nav-height) - var(--fd-tocnav-height)) !important;
+    overflow-y: auto !important; /* override default overflow-hidden on Collapsible */
+    overscroll-behavior: contain; /* prevent body scroll while scrolling the list */
+    -webkit-overflow-scrolling: touch; /* smooth momentum scroll on iOS */
+  }
+}
+
+/* Add slight left padding to TOC header when sidebar is visible (desktop) */
+@media (min-width: 1024px) {
+  body[data-layout="academy"] #nd-tocnav {
+    padding-left: 2.5rem !important;
+  }
+}
+
+/* Academy: normalize sidebar icon sizing and text alignment */
+/* The global docs rules adjust RootToggle icon/text positions; override for Academy */
+body[data-layout="academy"] #nd-sidebar button:has(> div > p.text-sm.font-medium),
+body[data-layout="academy"] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) {
+  align-items: center !important; /* center icon + text vertically */
+  gap: 0.5rem !important;        /* standard spacing between icon and text */
+  padding: 0.5rem !important;    /* comfortable hit target */
+}
+
+/* Dark mode: neutralize any global backdrop overlays that add grey tint */
+body[data-layout="academy"].dark .backdrop-blur-xs,
+body[data-layout="academy"].dark [data-radix-dialog-overlay] {
+  background: transparent !important;
+}
+
+/* Left icon container: force consistent 20px size and remove vertical offsets */
+body[data-layout="academy"] #nd-sidebar button:has(> div > p.text-sm.font-medium) > div:first-child,
+body[data-layout="academy"] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div:first-child {
+  width: 1.25rem !important;     /* 20px */
+  height: 1.25rem !important;
+  min-width: 1.25rem !important;
+  min-height: 1.25rem !important;
+  margin-top: 0 !important;
+  margin-right: 0 !important;
+  align-self: center !important;
+}
+
+/* Neutralize fumadocs mobile padding/border on the inner icon wrapper which makes SVG look tiny */
+body[data-layout="academy"] #nd-sidebar button:has(> div > p.text-sm.font-medium) > div:first-child > div,
+body[data-layout="academy"] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div:first-child > div {
+  padding: 0 !important;          /* overrides max-md:p-1.5 */
+  border: 0 !important;           /* overrides max-md:border */
+  background: transparent !important; /* overrides max-md:bg-fd-secondary */
+  border-radius: 0 !important;    /* overrides max-md:rounded-md */
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Ensure nested svg/img inside icon container also render at 20px */
+body[data-layout="academy"] #nd-sidebar button:has(> div > p.text-sm.font-medium) > div:first-child > svg,
+body[data-layout="academy"] #nd-sidebar button:has(> div > p.text-sm.font-medium) > div:first-child > img,
+body[data-layout="academy"] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div:first-child > svg,
+body[data-layout="academy"] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div:first-child > img {
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+}
+
+/* Chevron on the right: center-align, no vertical offset */
+body[data-layout="academy"] #nd-sidebar button:has(> div > p.text-sm.font-medium) > svg.lucide,
+body[data-layout="academy"] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > svg.lucide {
+  margin-top: 0 !important;
+  align-self: center !important;
+}
+
+/* Text block: remove extra top margin; keep compact but readable lines */
+body[data-layout="academy"] #nd-sidebar button:has(> div > p.text-sm.font-medium) > div:nth-child(2),
+body[data-layout="academy"] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div:nth-child(2) {
+  margin-top: 0 !important;
+  gap: 0.125rem !important;
+}
+
+body[data-layout="academy"] #nd-sidebar button:has(> div > p.text-sm.font-medium) > div > p.text-sm.font-medium,
+body[data-layout="academy"] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div > p.text-sm.font-medium {
+  line-height: 1.25 !important;
+}
+
+body[data-layout="academy"] #nd-sidebar button:has(> div > p.text-sm.font-medium) > div > p.text-fd-muted-foreground,
+body[data-layout="academy"] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div > p.text-fd-muted-foreground {
+  line-height: 1.3 !important;
+}
+
+/* No breakpoint overrides: keep 20px icon size on all widths */
+
+/* Enforce 20px for icons placed directly as first child of links/buttons (covers simple items) */
+body[data-layout="academy"] #nd-sidebar a > svg:first-child:not([data-icon]),
+body[data-layout="academy"] #nd-sidebar a > img:first-child,
+body[data-layout="academy"] #nd-sidebar button > svg:first-child:not([data-icon]),
+body[data-layout="academy"] #nd-sidebar button > img:first-child,
+body[data-layout="academy"] #nd-sidebar-mobile a > svg:first-child:not([data-icon]),
+body[data-layout="academy"] #nd-sidebar-mobile a > img:first-child,
+body[data-layout="academy"] #nd-sidebar-mobile button > svg:first-child:not([data-icon]),
+body[data-layout="academy"] #nd-sidebar-mobile button > img:first-child {
+  width: 1.25rem !important;     /* 20px */
+  height: 1.25rem !important;
+  flex-shrink: 0 !important;
+}
+
+/* Hide nd-subnav on desktop for academy routes (keep visible on mobile/tablet) */
+@media (min-width: 1024px) {
+  body[data-layout="academy"] #nd-subnav {
+    display: none !important;
+  }
+}
+
+body[data-layout="academy"]:has([data-granite-banner]) #nd-docs-layout {
+  padding-top: var(--fd-banner-height) !important;
+}
+
+/* Remove padding-top from layout when banner is visible on academy routes */
+body[data-layout="academy"] #nd-docs-layout {
+  padding-top: 0px !important;
+  background: hsl(var(--background)) !important;
+}
+
+/* Set custom padding-top for table of contents on academy routes */
+body[data-layout="academy"] #nd-toc {
+  padding-top: calc(var(--spacing) * 12) !important;
+}
+
+/* Ensure body has proper background color for academy */
+body[data-layout="academy"] {
+  background: hsl(var(--background)) !important;
+}
+

@@ -1,13 +1,16 @@
 "use client"
 import type React from "react"
 import { useState, useEffect } from "react"
-import { ChevronLeft, ChevronRight, RotateCw, Eye, EyeOff } from "lucide-react"
+import { ChevronLeft, ChevronRight, RotateCw, EyeOff, HelpCircle, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { saveFlashcardProgress, getFlashcardProgress, resetFlashcardProgress } from "@/utils/quizzes/indexedDB"
+import { parseTextWithLinks } from "../../utils/safeHtml"
+import flashcardData from './flashcardData.json'
 
 interface FlashcardProps {
     flashcardSetId: string
+    quizUrl?: string
 }
 
 interface FlashcardDataItem {
@@ -16,39 +19,8 @@ interface FlashcardDataItem {
     example?: string
 }
 
-const flashcardData: Record<string, FlashcardDataItem[]> = {
-    "grants-process": [
-        {
-            term: "Foundation Grants vs. VC Funding",
-            definition: "Unlike VCs seeking ROI, foundation grants prioritize ecosystem impact",
-            example: "A project creating open-source infrastructure that many can build upon",
-        },
-        {
-            term: "Ecosystem Fit",
-            definition: "How well your project addresses a specific gap or need in the Avalanche ecosystem",
-            example: "Building privacy solutions that enable real-world business transactions on Avalanche",
-        },
-        {
-            term: "Proof of Shipping",
-            definition: "Evidence that demonstrates your ability to execute and deliver on your roadmap",
-            example: "A working prototype on Fuji testnet that shows core functionality",
-        },
-        {
-            term: "Grant Hunting",
-            definition: "Applying for grants across multiple ecosystems without customization or commitment",
-            example:
-                "Submitting identical proposals to Avalanche, Solana, and Ethereum without blockchain-specific considerations",
-        },
-        {
-            term: "Business Development Support",
-            definition: "Connections and introductions provided by the foundation to help your project grow",
-            example: "Getting introduced to institutional custodians that would be difficult to reach independently",
-        },
-    ],
-}
-
-const CleanFlashcard: React.FC<FlashcardProps> = ({ flashcardSetId }) => {
-    const [flashcards] = useState<FlashcardDataItem[]>(flashcardData[flashcardSetId] || [])
+const CleanFlashcard: React.FC<FlashcardProps> = ({ flashcardSetId, quizUrl }) => {
+    const [flashcards] = useState<FlashcardDataItem[]>(flashcardData.flashcardSets[flashcardSetId as keyof typeof flashcardData.flashcardSets] || [])
     const [currentIndex, setCurrentIndex] = useState(0)
     const [isRevealed, setIsRevealed] = useState(false)
     const [viewedCards, setViewedCards] = useState<Set<number>>(new Set())
@@ -190,7 +162,7 @@ const CleanFlashcard: React.FC<FlashcardProps> = ({ flashcardSetId }) => {
                     >
                         {!isRevealed ? (
                             <div className="flex flex-col items-center justify-center h-full text-center">
-                                <EyeOff className="h-8 w-8 text-muted-foreground mb-3" />
+                                <HelpCircle className="h-8 w-8 text-muted-foreground mb-3" />
                                 <p className="text-muted-foreground">Click "Reveal Answer" to see the definition</p>
                             </div>
                         ) : (
@@ -202,7 +174,7 @@ const CleanFlashcard: React.FC<FlashcardProps> = ({ flashcardSetId }) => {
                                 {currentCard.example && (
                                     <div>
                                         <h4 className="text-sm font-semibold text-primary mb-2 uppercase tracking-wide">Example</h4>
-                                        <p className="text-muted-foreground italic leading-relaxed">{currentCard.example}</p>
+                                        {parseTextWithLinks(currentCard.example, "text-muted-foreground italic leading-relaxed")}
                                     </div>
                                 )}
                             </div>
@@ -211,7 +183,14 @@ const CleanFlashcard: React.FC<FlashcardProps> = ({ flashcardSetId }) => {
 
                     {/* Reveal Button */}
                     <div className="text-center mt-6">
-                        <Button onClick={handleReveal} variant={isRevealed ? "outline" : "default"} className="px-6">
+                        <Button
+                            onClick={handleReveal}
+                            variant={isRevealed ? "outline" : "default"}
+                            className={cn(
+                                "px-6",
+                                !isRevealed && "bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700"
+                            )}
+                        >
                             {isRevealed ? (
                                 <>
                                     <EyeOff className="h-4 w-4 mr-2" />
@@ -219,7 +198,7 @@ const CleanFlashcard: React.FC<FlashcardProps> = ({ flashcardSetId }) => {
                                 </>
                             ) : (
                                 <>
-                                    <Eye className="h-4 w-4 mr-2" />
+                                    <HelpCircle className="h-4 w-4 mr-2" />
                                     Reveal Answer
                                 </>
                             )}
@@ -240,15 +219,43 @@ const CleanFlashcard: React.FC<FlashcardProps> = ({ flashcardSetId }) => {
                             Previous
                         </Button>
 
-                        <Button
-                            variant="outline"
-                            onClick={handleNext}
-                            disabled={currentIndex === flashcards.length - 1}
-                            className="flex items-center gap-2 bg-transparent"
-                        >
-                            Next
-                            <ChevronRight className="h-4 w-4" />
-                        </Button>
+                        {currentIndex === flashcards.length - 1 ? (
+                            <div className="flex flex-col items-end gap-2">
+                                <p className="text-sm text-muted-foreground mr-2">Ready to test your knowledge?</p>
+                                {quizUrl ? (
+                                    <a href={quizUrl} className="inline-flex">
+                                        <Button
+                                            variant="default"
+                                            className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white"
+                                        >
+                                            Continue to Quiz
+                                            <ArrowRight className="h-4 w-4" />
+                                        </Button>
+                                    </a>
+                                ) : (
+                                    <Button
+                                        variant="default"
+                                        className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white"
+                                        onClick={() => {
+                                            // Scroll to the bottom to encourage moving to next section
+                                            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                                        }}
+                                    >
+                                        Continue to Quiz
+                                        <ArrowRight className="h-4 w-4" />
+                                    </Button>
+                                )}
+                            </div>
+                        ) : (
+                            <Button
+                                variant="outline"
+                                onClick={handleNext}
+                                className="flex items-center gap-2 bg-transparent"
+                            >
+                                Next
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        )}
                     </div>
 
                     {/* Completion Message */}

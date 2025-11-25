@@ -1,0 +1,46 @@
+---
+title: "Avalanche Octane: Optimizing C-Chain Fees and Gas Target"
+description: The Avalanche Octane upgrade activates ACP-176, enabling validators to dynamically adjust gas targets and implementing improved dynamic fee mechanisms for cheaper gas fees and better network scalability. Activated March 2025.
+date: 2025-03-11
+authors: [AvaxDevelopers]
+topics: [Network Updates, Octane Upgrade, C-Chain, Gas Fees, ACP-176, Dynamic Fees, Validators]
+comments: true
+---
+
+<img src="https://www.avax.network/_astro/67d1a457d18ffe0b373442ab_Screenshot_202025-03-12_20at_208.12.08_E2_80_AFAM_ZQpDwI.webp" alt="Avalanche Octane: Optimizing C-Chain Fees and Gas Target" />
+
+This upgrade activates ACP-176, which positions the Avalanche C-Chain to have cheaper gas fees and better handle future increases in network demand.
+
+---
+
+A [pre-release](https://github.com/ava-labs/avalanchego/releases/tag/v1.13.0-fuji) for the latest upgrade to the Avalanche Network, dubbed the "Octane" upgrade, has been published. The Avalanche Octane upgrade is scheduled to activate on the Fuji Testnet at 11 AM ET (3 PM UTC) on Thursday, March 13, 2025. The upgrade is driven by Avalanche Community Proposal 176 [\[ACP-176\]](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/176-dynamic-evm-gas-limit-and-price-discovery-updates/README.md), titled: Dynamic EVM Gas Limits and Price Discovery Updates. Following successful activation and testing on the Avalanche Fuji Testnet, an Avalanche Mainnet release will be published, with a set future activation time.
+
+**Fuji node operators must upgrade their nodes to** [v1.13.0-fuji](https://github.com/ava-labs/avalanchego/releases/tag/v1.13.0-fuji) **prior to 11 AM ET (3 PM UTC) Thursday, March 13, 2025.** The pre-release includes protocol optimizations that are **not** compatible with AvalancheGo versions \<v1.13.0-fuji. The plugin version is unchanged at 39 and is compatible with version v1.12.2. Please note that this release is unable to run mainnet, and will display "mainnet is not supported" if attempted to run with a mainnet configuration.
+
+**If you are a Mainnet node operator, upgrading to v1.13.0 before the set activation time is mandatory, ensuring the client is running with the correct plugin version.** The Octane Upgrade release includes protocol optimizations that are **not** compatible with AvalancheGo versions \<v1.13.0. If you run a node on Mainnet, you must upgrade your software to AvalancheGo >=v1.13.0 before the scheduled activation time. Activation time and plugin version for mainnet nodes will be specified in the release notes when the mainnet release is published.
+
+## Improving the Dynamic Fee Mechanism on the C-Chain
+
+The Avalanche Octane upgrade activates [ACP-176](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/176-dynamic-evm-gas-limit-and-price-discovery-updates/README.md), which positions the Avalanche C-Chain to have cheaper gas fees and better handle future increases in network demand.
+
+Currently, the C-Chain operates with a static gas target of 15,000,000 gas per 10-second rolling window, using a modified version of the EIP-1559 dynamic fee mechanism. This mechanism has a notable drawback: it can lead to large spikes in gas prices following large blocks that consume their full gas limit. Even smaller subsequent blocks within the same window can trigger further price increases, creating inefficiencies in fee predictability.
+
+The fee mechanism introduced to the C-Chain improves the handling of blocks that consume large amounts of gas by implementing the same mechanism introduced in [ACP-103](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/103-dynamic-fees/README.md) to determine the base fee of a block. Adding this dynamic fee mechanism has made it possible to significantly lower the transaction fees on the C-Chain. Gas fee simulations were performed and discussed publicly in an [Avalanche Developer Community Call](https://www.youtube.com/watch?v=NcjgpG-bU-k). Results have been published and shared [publicly](https://docs.google.com/document/d/1vSNbeaQSi96Pl5EhOMA6WM2uuzGASDVqMtHLkaegP4M/edit?tab=t.0#heading=h.9kukhbsvclk6).
+
+## Validator Voting on Target Gas Consumption
+
+The Avalanche Octane upgrade also includes modifications to allow block proposers (i.e. validators) to dynamically adjust the target gas consumption rate.
+
+Prior to the Octane upgrade, changing the C-Chain's static target gas consumption rate required a network upgrade, making it difficult to adapt to performance optimizations or hardware advancements in a timely manner. ACP-176 proposes a more flexible and efficient solution by introducing dynamic gas target adjustments based on the preference of Primary Network Validators. While validators can set default configuration values for the desired target gas consumption rate, each validator can alternatively choose to set this value independently based on their own considerations.
+
+This upgrade empowers validators to dynamically adjust the target rate of gas consumption, ensuring the network can scale more effectively in response to varying loads and future growth. A validator that values high transactions per second (TPS) and lower gas fees may vote to increase the gas consumption over time by setting their preference higher than the historical target. The higher the target gas consumption, the more resources that are able to be used by the network. Validators should consider whether their machine will be able to reliably support the resources that are required to properly support that level of gas consumption when choosing their preferred gas target.
+
+This change builds on Avalanche's commitment to providing a low-cost, high-performance blockchain experience. By enabling dynamic gas limits and refining price discovery, the upgrade enhances the C-Chain's ability to maintain stable and predictable transaction fees, even during periods of high demand.
+
+## About Avalanche Blockchain Network
+
+Avalanche is a high-performance blockchain platform designed for builders who need to scale. Engineered with a revolutionary three-part Layer 1 (L1) architecture, Avalanche is anchored by its Avalanche Consensus Mechanism, ensuring near-instant finality for transactions. The platform also features an open-source Layer 0 (L0) framework, enabling the seamless creation of interoperable Layer 1 blockchains with high throughput on both public and private networks.
+
+Supported by a global community of developers and validators, Avalanche offers a fast, low-cost environment for building the next generation of decentralized applications (dApps). With its unique blend of speed, flexibility, and scalability, Avalanche is the preferred choice for innovators pushing the boundaries of blockchain technology.
+
+[Website](https://avax.network/) | [Whitepapers](https://avalabs.org/whitepapers) | [X](https://twitter.com/avax) | [Discord](https://chat.avalabs.org/) | [GitHub](https://github.com/ava-labs) | [Documentation](https://docs.avax.network/) | [Telegram](https://t.me/avalancheavax) | [Facebook](https://facebook.com/avalancheavax) | [LinkedIn](https://linkedin.com/company/avalancheavax) | [Reddit](https://reddit.com/r/avax) | [YouTube](https://www.youtube.com/c/Avalancheavax)

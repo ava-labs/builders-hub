@@ -24,7 +24,16 @@ export async function sendOTP(email: string) {
     name: "Avalanche Builder's Hub"
   };
 
-  console.info("code: ", code);
+  if (process.env.NODE_ENV === 'development') {
+    console.log('\n' + '='.repeat(50));
+    console.log('📧 \x1b[36m%s\x1b[0m', 'OTP EMAIL (DEVELOPMENT MODE)');
+    console.log('='.repeat(50));
+    console.log('📬 To: \x1b[33m%s\x1b[0m', email);
+    console.log('🔑 Code: \x1b[1m\x1b[32m%s\x1b[0m', code);
+    console.log('⏰ Expires: \x1b[31m%s\x1b[0m', '3 minutes');
+    console.log('='.repeat(50) + '\n');
+    return;
+  }
 
   const msg = {
     to: email,
@@ -44,7 +53,7 @@ export async function sendOTP(email: string) {
       <p style="font-size: 12px; color: #A1A1AA;">If you did not request this, you can ignore this email.</p>
 
       <div style="margin-top: 20px;">
-        <img src="https://build.avax.network/logo-white.png" alt="Company Logo" style="max-width: 120px; margin-bottom: 10px;">
+        <img src="https://build.avax.network/logo-black.png" alt="Company Logo" style="max-width: 120px; margin-bottom: 10px;">
         <p style="font-size: 12px; color: #A1A1AA;">Avalanche Builder's Hub © 2025</p>
       </div>
     </div>

@@ -1,0 +1,120 @@
+---
+title: Add Validator
+description: Theory walkthrough of adding a validator with ValidatorManager
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+## Adding a Validator
+
+We’re adding a validator in a PoA setup where the `ValidatorManager` contract is owned by your connected wallet and deployed on your L1. The process has two L1 calls with a P-Chain registration in between.
+
+### Phase 1: Initiation (L1)
+
+First we will call [`initiateValidatorRegistration(nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, weight)`](https://github.com/ava-labs/icm-contracts/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L328) on `ValidatorManager`.
+
+Under the hood, the contract:
+- Validates sizes and formats (20-byte `nodeID`, 48-byte `blsPublicKey`, owners, churn limits)
+- Builds a `RegisterL1ValidatorMessage` with a bounded expiry
+- Computes a unique `validationID`
+- Stores pending state mapping `nodeID → validationID`
+- Interacts with ICOM to create a warp message that can be submitted to the P-Chain
+
+### Phase 2: P-Chain Processing
+
+We then will sign and submit the `RegisterL1ValidatorMessage` warped response we got from the last step to the P-Chain, this executes a `RegisterL1ValidatorTx`, and upon success signs and returns an `L1ValidatorRegistrationMessage` warped response.
+
+The P-Chain processes the following message structure:
+
+```go
+// RegisterL1Validator adds a validator to the subnet.
+type RegisterL1Validator struct {
+	payload
+
+	SubnetID              ids.ID                 `serialize:"true" json:"subnetID"`
+	NodeID                types.JSONByteSlice    `serialize:"true" json:"nodeID"`
+	BLSPublicKey          [bls.PublicKeyLen]byte `serialize:"true" json:"blsPublicKey"`
+	Expiry                uint64                 `serialize:"true" json:"expiry"`
+	RemainingBalanceOwner PChainOwner            `serialize:"true" json:"remainingBalanceOwner"`
+	DisableOwner          PChainOwner            `serialize:"true" json:"disableOwner"`
+	Weight                uint64                 `serialize:"true" json:"weight"`
+}
+```
+
+### Phase 3: Completion (L1)
+
+We finally will call the [`completeValidatorRegistration(messageIndex)`](https://github.com/ava-labs/icm-contracts/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L425), where we will pass the message index of the response we received in step 2. The contract verifies it, activates the validator, sets the start time, and emits `CompletedValidatorRegistration`.
+
+Anyone can call `completeValidatorRegistration(messageIndex)` with the signed message.
+
+## Validator Registration Expiry
+
+When registering validators, it's important to understand the **expiry field**:
+
+- **Default Expiry**: Validator registrations expire after **24 hours** by default
+- **Completion Required**: If a validator registration is not completed before the expiry time, the registration becomes invalid
+- **Pending State**: Expired registrations remain in the pending registrations list in the Validator Manager contracts
+- **Cleanup Required**: Expired registrations must be manually removed to keep your validator management system clean
+
+### What Happens When Registrations Expire?
+
+Expired validator registrations can occur due to various reasons:
+- **Network connectivity issues** preventing P-Chain registration
+- **Configuration errors** in validator node setup
+- **Delayed validator setup** taking longer than 24 hours
+- **Manual errors** in the registration process
+
+These expired registrations remain in the pending list indefinitely, which can:
+- Clutter your validator management interface
+- Make it difficult to identify valid pending registrations
+- Skew validator count and status reporting
+
+### Managing Expired Registrations
+
+At the end of this chapter, you'll learn how to identify and clean up expired validator registrations using the [Remove Expired Validator Registration tool](/academy/permissioned-l1s/05-validator-manager-operations/09-expired-validator-registration). This tool helps maintain a clean and organized validator management system.
+
+## Appendix: Adding Validator Flow
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant EOA_Owner as EOA Owner
+    participant ValidatorManager as ValidatorManager
+    participant WarpMessenger as WarpMessenger (precompile)
+    participant PChain as P-Chain
+
+    %% Phase 1: Initiation
+    EOA_Owner->>ValidatorManager: initiateValidatorRegistration(nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, weight)
+
+    ValidatorManager->>ValidatorManager: _initiateValidatorRegistration()
+
+    ValidatorManager->>ValidatorManager: Validate parameters<br/>(BLS key, nodeID, owner structs, weight, churn limits)
+
+    ValidatorManager->>ValidatorManager: Create RegisterL1ValidatorMessage<br/>+ registration expiry
+
+    ValidatorManager->>ValidatorManager: Compute validationID
+
+    ValidatorManager->>ValidatorManager: Update internal state<br/>(_validationPeriods, _registeredValidators,<br/>_pendingRegisterValidationMessages)
+
+    ValidatorManager->>WarpMessenger: sendWarpMessage(message)
+
+    %% Phase 2: P-Chain Processing
+    WarpMessenger->>PChain: Deliver RegisterL1ValidatorMessage
+
+    PChain-->>WarpMessenger: L1ValidatorRegistrationMessage (signed)
+
+    %% Phase 3: Completion
+    participant AnyCaller as Any Caller
+
+    AnyCaller->>ValidatorManager: completeValidatorRegistration(message)
+
+    ValidatorManager->>ValidatorManager: Verify Warp message signature
+
+    ValidatorManager->>ValidatorManager: Update validator status to Active<br/>Set start time
+
+    ValidatorManager-->>AnyCaller: emit CompletedValidatorRegistration
+"
+/>
+
+

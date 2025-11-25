@@ -1,0 +1,144 @@
+---
+title: Example USDC as Native Token (DIY)
+description: Learn how to transfer USDC to a new Avalanche L1 and use it as a native token via ICTT.
+updated: 2024-09-03
+authors: [owenwahlgren]
+icon: Terminal
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+In this section, you will learn how to transfer USDC from Avalanche’s C-Chain to a new Avalanche L1 using Interchain Token Transfers (ICTT) and set it up to act as the **native token** on the new L1. This guide will take you through the steps of configuring a local network environment, deploying the necessary contracts, and transferring tokens.
+
+
+<Steps>
+<Step>
+### Create a new blockchain and Deploy on Local Network
+
+Use the **Avalanche CLI** to create a new blockchain where you will deploy USDC as the native token.
+
+
+```bash
+avalanche blockchain create myblockchain  
+```
+```bash
+avalanche blockchain deploy myblockchain
+```
+</Step>
+<Step>
+### Acquire USDC On Fuji C-Chain
+
+The address for USDC on Fuji C-Chain is [`0x5425890298aed601595a70ab815c96711a31bc65`](https://testnet.snowtrace.io/token/0x5425890298aed601595a70ab815c96711a31bc65).
+For convience we have already deployed a `TokenHome` to the C-Chain for USDC with the address [`0x546526F786115af1FE7c11aa8Ac5682b8c181E3A`](https://testnet.snowtrace.io/address/0x546526F786115af1FE7c11aa8Ac5682b8c181E3A)
+
+You can use the [Core Faucet to get some USDC](https://core.app/en/tools/testnet-faucet/?subnet=c&token=usdcc) on Fuji. 
+
+```bash
+export USDC=0x5425890298aed601595a70ab815c96711a31bc65
+export USDC_HOME_C_CHAIN=0x546526F786115af1FE7c11aa8Ac5682b8c181E3A
+```
+</Step>
+<Step>
+### Deploy Interchain Token Transfer Contracts
+Set up the remote transferer contracts for transferring tokens between the C-Chain and the newly created L1.
+   
+- `NativeTokenRemote` Contract on `myblockchain` 
+```bash 
+forge create --rpc-url myblockchain --private-key $PK --broadcast --optimize --optimizer-runs 200 --constructor-args "($TELEPORTER_REGISTRY_L1, $FUNDED_ADDRESS, "1", $C_CHAIN_BLOCKCHAIN_ID_HEX, $USDC_HOME_C_CHAIN, 6)" "USDC" 100000000000000000000 0 lib/icm-contracts/contracts/ictt/TokenRemote/NativeTokenRemote.sol:NativeTokenRemote
+```
+
+_Note: When deploying the `NativeTokenRemote` contract on the L1, ensure that the **initial amount** matches the native token amount that was minted when the blockchain was created. This ensures consistency between the native token supply and the remote token counterpart._
+
+```
+[⠊] Compiling...
+[⠊] Compiling 34 files with Solc 0.8.25
+[⠒] Solc 0.8.25 finished in 2.00s
+Compiler run successful!
+Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+Deployed to: 0xe17bDC68168d07c1776c362d596adaa5d52A1De7
+Transaction hash: 0x26326b925a210e99e274739dc2ca017ff19447b6e6b1dfb875740d55d5031ad6
+```
+
+<Callout title="Note" type="info">
+The address `0xe17bDC68168d07c1776c362d596adaa5d52A1De7` is your receiver contract address.
+</Callout>
+
+```bash
+export NATIVE_TOKEN_REMOTE_L1=0x...
+```
+</Step>
+<Step>
+### Granting Native Minting Rights to NativeTokenRemote Contract
+To ensure that the `NativeTokenRemote` contract can mint native tokens on the L1 when USDC tokens are transferred from the `C-Chain`, the contract must be granted **minting rights**. This is done by adding the `NativeTokenRemote contract` address to the `Native Minter Precompile`.
+
+1. You will need to interact with the `Native Minter Precompile`, which resides at a fixed address on all Avalanche L1s:  
+**Native Minter Precompile Address**: `0x0200000000000000000000000000000000000001`
+     
+2. Use the following command to grant the `NativeTokenRemote` contract minting rights by setting it as an **enabled** address on the Native Minter Precompile:
+  
+```bash
+cast send --rpc-url myblockchain --private-key $PK 0x0200000000000000000000000000000000000001 "setEnabled(address)" $NATIVE_TOKEN_REMOTE_L1
+```
+
+- `$NATIVE_TOKEN_REMOTE_L1`: The deployed address of the `NativeTokenRemote` contract on your L1.
+
+Once this step is completed, the `NativeTokenRemote` contract will have the necessary permissions to mint native tokens when USDC tokens are transferred from the C-Chain.
+</Step>
+<Step>
+### Register Remote Token with Home Transferer
+Register the remote token on the home chain so that it recognizes the transferer contracts.
+
+```bash 
+cast send --rpc-url myblockchain --private-key $PK $NATIVE_TOKEN_REMOTE_L1 "registerWithHome((address, uint256))" "(0x0000000000000000000000000000000000000000, 0)"
+```
+</Step>
+<Step>
+### Collateralize and Transfer Tokens
+Add collateral to the transferer contract on the home chain, and then send the USDC tokens across chains.
+
+<Accordions>
+<Accordion title="What is Collateral?">
+Collateral in this context refers to the amount of the token that is locked in the `Home Transferer contract` on the source chain (`C-Chain`) to back the value of the token on the destination chain (`myblockchain`). This ensures that for every token minted on the remote chain, there’s an equivalent token locked as collateral on the home chain.
+</Accordion>
+<Accordion title="Why is Collateral Important?">
+Collateralization ensures that the total supply of the token remains consistent across both chains. When tokens are sent from the `home chain`, they are locked as collateral, and a corresponding number of tokens is minted on the remote chain. If tokens are sent back to the home chain, the collateral is unlocked, and the minted tokens on the remote chain are burned.
+</Accordion>
+</Accordions>
+
+- **Approve Tokens for Transfer**  
+Approve a certain number of tokens to be used by the Home Transferer. 
+
+```bash  
+cast send --rpc-url local-c --private-key $PK $USDC "approve(address, uint256)" $USDC_HOME_C_CHAIN 2000000000000000000000
+```
+
+- **Add Collateral and Send Tokens**  
+Add collateral to the transferer contract.
+```bash 
+cast send --rpc-url local-c --private-key $PK $USDC_HOME_C_CHAIN "addCollateral(bytes32, address, uint256)" $L1_BLOCKCHAIN_ID_HEX $NATIVE_TOKEN_REMOTE_L1 100000000000000000000
+```
+You can also confirm whether the Transferer is collateralized now by running the below command:
+
+```bash
+cast call --rpc-url myblockchain $NATIVE_TOKEN_REMOTE_L1 "isCollateralized()(bool)"
+```
+Send tokens to the L1
+```bash 
+cast send --rpc-url local-c --private-key $PK $USDC_HOME_C_CHAIN "send((bytes32, address, address, address, uint256, uint256, uint256, address), uint256)" "(${L1_BLOCKCHAIN_ID_HEX}, ${NATIVE_TOKEN_REMOTE_L1}, ${FUNDED_ADDRESS}, ${USDC}, 0, 0, 250000, 0x0000000000000000000000000000000000000000)" 1000000000000000000000
+```
+</Step>
+
+<Step>
+Check Balance
+```bash
+cast balance --rpc-url myblockchain $FUNDED_ADDRESS
+```
+</Step>
+</Steps>
+
+---
+
+### Conclusion
+
+Follow the steps above to transfer a USDC token from the C-Chain to your custom Avalanche L1 and use it as the native token. This exercise will demonstrate how Avalanche’s **Interchain Token Transfer (ICTT)** system works, ensuring that tokens are properly locked, transferred, and minted across multiple chains.
+
+For more detailed information, refer to the [official Avalanche ICTT documentation](/academy/interchain-token-transfer).

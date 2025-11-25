@@ -1,0 +1,14 @@
+{
+  "title": "Manage Nodes",
+  "description": "CLI commands for running and managing Node operations.",
+  "pages": [
+    "deploy-custom-vm",
+    "execute-ssh-commands",
+    "run-loadtest",
+    "run-validators-aws",
+    "run-validators-gcp",
+    "setup-devnet",
+    "stop-node",
+    "validate-primary-network"
+  ]
+}

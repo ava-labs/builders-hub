@@ -1,0 +1,247 @@
+---
+title: Transaction Lifecycle
+description: Follow a blockchain transaction from creation to finalization. Learn each step in the journey—from signing with your private key to achieving confirmation deep within the blockchain.
+updated: 2025-10-29
+authors: [martineckardt, katherineavalabs]
+icon: Notebook
+---
+
+Understanding the complete lifecycle of a blockchain transaction helps demystify how decentralized systems process payments and maintain security. Let's follow a transaction from start to finish, exploring what happens at each stage.
+
+## Creation
+
+A transaction begins when a user decides to transfer assets. This involves specifying several key pieces of information:
+
+**What's Included**:
+- **Sender's address**: Derived from the sender's public key, identifying who is sending the assets
+- **Recipient's address**: The destination address where the assets will be sent
+- **Amount**: How much cryptocurrency or tokens to transfer
+- **Transaction fee**: Payment offered to miners/validators for including the transaction in a block
+- **Nonce**: A sequence number that prevents the same transaction from being processed multiple times
+- **Additional data**: Optional fields for smart contract interactions or notes
+
+**User Interaction**:
+The user typically interacts with wallet software (desktop app, browser extension, mobile app, or hardware wallet) that provides a user-friendly interface for creating the transaction. Behind the scenes, the wallet constructs the transaction data structure according to the blockchain's protocol specifications.
+
+**Example**:
+Alice wants to send 10 AVAX to Bob. She opens her wallet, enters Bob's address (0x742d35Cc...), specifies 10 AVAX, and reviews the estimated transaction fee of 0.01 avax. She confirms she wants to proceed.
+
+## Signing
+
+Once the transaction is created, it must be cryptographically signed to prove authorization:
+
+**The Signing Process**:
+1. The transaction data is hashed to create a unique fingerprint of the transaction
+2. This hash is encrypted using the sender's **private key**, creating a digital signature
+3. The signature is attached to the transaction along with the sender's public key
+4. The combined package (transaction + signature + public key) is now ready for broadcasting
+
+**Why Signing Matters**:
+- **Authentication**: Proves the transaction was authorized by the owner of the private key
+- **Integrity**: Any modification to the transaction data would invalidate the signature
+- **Non-repudiation**: The sender cannot later deny creating the transaction
+
+**Security Note**: The private key never leaves the wallet and is never transmitted over the network. Only the signature (produced using the private key) is shared.
+
+**Example**:
+Alice's wallet uses her private key to sign the transaction. The wallet computes a unique signature like "0x8f3b2a..." that mathematically binds Alice's authorization to this specific transaction sending 10 AVAX to Bob.
+
+## Broadcasting
+
+After signing, the transaction is broadcast to the peer-to-peer network:
+
+**How Broadcasting Works**:
+1. The wallet sends the signed transaction to one or more nodes it's connected to
+2. Each node that receives the transaction performs basic validation
+3. If valid, the node forwards the transaction to its peer nodes
+4. This process continues until the transaction propagates throughout the network
+5. Within seconds, most nodes have received the transaction
+
+**Network Topology**:
+Blockchain networks use a peer-to-peer (P2P) gossip protocol where each node connects to multiple other nodes. When a node receives a new transaction, it shares it with its neighbors, who share it with their neighbors, creating exponential propagation.
+
+**What Gets Broadcast**:
+- The complete transaction data
+- The digital signature
+- The sender's public key
+
+**Example**:
+Alice's wallet connects to several Avalanche nodes and sends them her signed transaction. Within 1-2 seconds, the transaction has propagated to thousands of nodes worldwide. Each node now knows that Alice wants to send 10 AVAX to Bob.
+
+## Verification
+
+Before accepting a transaction, nodes perform multiple checks:
+
+**Validation Checks**:
+
+1. **Signature Verification**:
+   - Use the provided public key to verify the signature
+   - Confirm the transaction was signed by the owner of the sender's address
+   - Reject if signature is invalid or doesn't match the public key
+
+2. **Balance Check**:
+   - Query the current blockchain state to check the sender's balance
+   - Ensure the sender has enough assets to cover both the transfer amount and the transaction fee
+   - Reject if insufficient balance
+
+3. **Nonce Verification** (account-based systems):
+   - Check that the transaction nonce matches the expected sequence number
+   - Prevents replay attacks and ensures transactions are processed in order
+   - Reject if nonce is incorrect
+
+4. **Format Validation**:
+   - Verify the transaction follows the correct data structure
+   - Check that addresses are valid
+   - Ensure the transaction isn't malformed
+
+5. **Double-Spend Prevention**:
+   - Check that the same input hasn't already been spent in another transaction (UTXO systems like Bitcoin)
+   - Compare against pending transactions in the mempool
+
+**Two-Stage Validation**:
+- **Fast validation**: Nodes do lightweight checks when receiving a transaction via broadcast
+- **Full validation**: Miners/validators do comprehensive checks before including it in a block
+
+**What Happens If Verification Fails**:
+- The node rejects the transaction and doesn't forward it to peers
+- The transaction dies and doesn't enter the mempool
+- The sender's wallet may receive an error message
+- The sender must fix the issue and create a new transaction
+
+**Example**:
+Nodes receive Alice's transaction and verify: (1) The signature is valid using Alice's public key, (2) Alice's account has at least 10.01 AVAX (10 AVAX + 0.01 AVAX fee), (3) The nonce is 47, which is correct for Alice's next transaction, (4) The transaction format is valid. All checks pass, so the transaction enters the mempool.
+
+## Mempool (Transaction Pool)
+
+After verification, valid transactions wait in a temporary holding area:
+
+**What Is the Mempool**:
+- Short for "memory pool"—a collection of unconfirmed transactions stored in each node's RAM
+- Each node maintains its own mempool (they may differ slightly due to network propagation times)
+- Transactions wait here until a miner or validator includes them in a block
+
+**Transaction Ordering in Mempool**:
+Transactions are typically prioritized by:
+- **Fee level**: Higher fees get priority (especially important during network congestion)
+- **Time received**: Older transactions may get preference among same-fee transactions
+- **Dependencies**: Some transactions must wait for others to be confirmed first
+
+**Mempool Dynamics**:
+- Size fluctuates based on network activity
+- During high congestion, mempools grow large and low-fee transactions may wait hours or days
+- Transactions can be evicted if mempool becomes too full (lowest-fee transactions removed first)
+- Users can often replace pending transactions by resubmitting with higher fees (Replace-By-Fee)
+
+**Example**:
+Alice's transaction sits in the mempool of thousands of nodes. She offered a fee of 0.01 AVAX, which is above the minimum required. The transaction will likely be included in the next block as validators select transactions to process.
+
+## Consensus (Block Inclusion)
+
+Validators select transactions from the mempool to include in the next block:
+
+**Block Construction**:
+1. The validator selects transactions from their mempool
+2. Transactions are typically chosen by fee level and arrival time
+3. The block has size or gas limits, so not all transactions can fit
+4. The validator arranges transactions in order and creates a block
+
+**Consensus Process**:
+Different networks use different approaches:
+
+In systems with Proof of Work:
+- Block producers compete to solve a cryptographic puzzle
+- First to solve it gets to propose their block
+- Other nodes verify the solution and accept the block if valid
+- Can take several minutes or even hours per block
+
+In systems with Proof of Stake:
+- Validators are selected (often based on their stake) to propose blocks
+- Other validators attest that the block is valid
+- Block is accepted once enough validators attest to it
+- Can take seconds or minutes depending on implementation
+
+**Block Reward**:
+The validator who successfully adds the block typically receives:
+- Block reward (newly created cryptocurrency, if applicable)
+- All transaction fees from transactions in the block
+
+**Example**:
+A validator selects Alice's transaction along with hundreds of others and includes it in a block. Through the consensus process, the network validates and accepts the block. Alice's transaction now has 1 confirmation.
+
+## Finalization
+
+The final stage is when the transaction becomes permanently part of the blockchain:
+
+**Confirmation Count**:
+- **1 confirmation**: Transaction is in the most recent block
+- **2 confirmations**: One additional block has been added after the block containing the transaction
+- **6 confirmations**: Six blocks deep (generally considered secure in Bitcoin)
+- **12+ confirmations**: Very secure, reversal extremely unlikely
+
+**Why Multiple Confirmations Matter**:
+- The deeper a transaction is in the blockchain, the harder it is to reverse
+- To reverse a transaction with 6 confirmations, an attacker would need to remine 6 blocks faster than the honest network
+- This becomes exponentially more difficult and expensive with each confirmation
+
+**Finality Types**:
+
+* **Probabilistic Finality** (PoW, longest-chain systems):
+   - Never 100% final, but probability of reversal approaches zero
+   - Each additional block makes reversal exponentially more difficult
+   - Standard in Bitcoin, Ethereum (pre-merge), and similar systems
+
+* **Absolute Finality** (Some PoS systems):
+   - Once finalized, transactions are mathematically impossible to reverse
+   - Used in systems with finality gadgets or BFT consensus
+   - Provides faster economic certainty but may sacrifice some decentralization
+
+**State Update**:
+Once confirmed, the transaction's effects are reflected in the blockchain state:
+- Sender's balance decreases by the amount plus fee
+- Recipient's balance increases by the amount
+- The nonce is incremented
+- Smart contract state may be updated (if applicable)
+
+**Example**:
+A few seconds after being included in a block, Alice's transaction is considered final on Avalanche's C-Chain due to its fast-finality consensus. Bob's wallet now shows the 10 AVAX as confirmed and available to spend. Alice's balance shows 10.01 AVAX less than before (10 AVAX transferred + 0.01 AVAX fee). The transaction is complete and irreversible.
+
+## Summary: Complete Lifecycle Visualization
+
+```
+1. CREATION
+   User creates transaction
+   ↓
+2. SIGNING
+   Wallet signs with private key
+   ↓
+3. BROADCASTING
+   Propagates across P2P network
+   ↓
+4. VERIFICATION
+   Nodes validate signature, balance, format
+   ↓
+5. MEMPOOL
+   Waits in memory pool
+   ↓
+6. CONSENSUS
+   Included in block by validator
+   ↓
+7. FINALIZATION
+   Gains confirmations, becomes irreversible
+```
+
+## Key Takeaways
+
+- **Creation**: User specifies transaction details in wallet software
+- **Signing**: Private key cryptographically signs the transaction to prove authorization
+- **Broadcasting**: Transaction propagates through P2P network in seconds
+- **Verification**: Nodes check signature, balance, and format before accepting
+- **Mempool**: Validated transactions wait to be included in a block
+- **Consensus**: Miners/validators include transaction in a block through consensus mechanism
+- **Finalization**: Additional blocks make transaction increasingly irreversible
+
+Understanding this lifecycle helps explain why blockchain transactions take time (consensus process), why fees matter (mempool prioritization), and why multiple confirmations are recommended (finality assurance). Each step serves a crucial purpose in maintaining the security and integrity of the decentralized system.
+
+<Quiz quizId="1003"/>
+
+<Quiz quizId="1006"/>

@@ -1,0 +1,2591 @@
+openapi: 3.0.0
+info:
+  title: Coreth C-Chain API
+  description: >-
+    JSON-RPC 2.0 API for Avalanche's C-Chain (Coreth EVM). All methods use POST to the same
+    endpoint with the method specified in the request body.
+    
+    
+    **Important Notes on Method Availability:**
+    
+    • **Public RPC Limitations:** Not all methods are available on public RPC endpoints.
+    
+    • **Restricted Methods:**
+      - `debug_*` methods: NOT available on public RPCs (require node access)
+      - `personal_*` methods: NOT available on public RPCs (security reasons)  
+      - `txpool_*` methods: May be restricted or rate-limited
+      - Filter methods (`eth_newFilter`, etc.): May have limited functionality
+      - `eth_sign`: Typically disabled for security
+    
+    • **Full Access:** Run your own node or use a dedicated node service for unrestricted access to all methods.
+    
+    • **Custom RPC Endpoints:** While this spec provides common public endpoints, most API clients and tools 
+    allow you to override the server URL with your own RPC endpoint when making requests.
+  version: 1.0.0
+servers:
+  - url: https://api.avax.network
+    description: Avalanche Mainnet (Public RPC)
+  - url: https://api.avax-test.network
+    description: Avalanche Fuji Testnet (Public RPC)
+paths:
+  # web3
+  /ext/bc/C/rpc#web3_clientVersion:
+    post:
+      summary: web3_clientVersion
+      description: Returns the client version.
+      operationId: web3_clientVersion
+      tags:
+        - web3
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: web3_clientVersion
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # net
+  /ext/bc/C/rpc#net_version:
+    post:
+      summary: net_version
+      description: Returns the current network ID as a string.
+      operationId: net_version
+      tags:
+        - net
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: net_version
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # eth - Core Methods
+  /ext/bc/C/rpc#eth_chainId:
+    post:
+      summary: eth_chainId
+      description: Returns the chain ID of the current network.
+      operationId: eth_chainId
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_chainId
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_coinbase:
+    post:
+      summary: eth_coinbase
+      description: |
+        Returns the client coinbase address.
+        
+        **Note:** On public RPC endpoints, this returns the node operator's coinbase address, not yours. This method is mainly useful when running your own node.
+      operationId: eth_coinbase
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_coinbase
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_accounts:
+    post:
+      summary: eth_accounts
+      description: |
+        Returns a list of addresses owned by the client.
+        
+        **Note:** Public RPC endpoints will return an empty array as they don't manage any accounts. This method only returns accounts when using a node you control with unlocked accounts.
+      operationId: eth_accounts
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_accounts
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # eth - Account Methods
+  /ext/bc/C/rpc#eth_getBalance:
+    post:
+      summary: eth_getBalance
+      description: Returns the balance of the account of given address.
+      operationId: eth_getBalance
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_getBalance
+                params:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: string
+                        description: "Address to check balance for (20 bytes, hex encoded with 0x prefix)"
+                        pattern: "^0x[a-fA-F0-9]{40}$"
+                      - type: string
+                        description: "Block parameter - 'latest', 'earliest', 'pending', or block number in hex"
+                        enum: ["latest", "earliest", "pending"]
+                  minItems: 2
+                  maxItems: 2
+                  description: "[address, blockParameter]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_getBalance
+                  params: ['0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb7', 'latest']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_getTransactionCount:
+    post:
+      summary: eth_getTransactionCount
+      description: Returns the number of transactions sent from an address.
+      operationId: eth_getTransactionCount
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_getTransactionCount
+                params:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: string
+                        description: "Address (20 bytes, hex encoded with 0x prefix)"
+                        pattern: "^0x[a-fA-F0-9]{40}$"
+                      - type: string
+                        description: "Block parameter - 'latest', 'earliest', 'pending', or block number in hex"
+                  minItems: 2
+                  maxItems: 2
+                  description: "[address, blockParameter]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_getTransactionCount
+                  params: ['0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb7', 'latest']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_getCode:
+    post:
+      summary: eth_getCode
+      description: Returns code at a given address.
+      operationId: eth_getCode
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_getCode
+                params:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: string
+                        description: "Contract address (20 bytes, hex encoded with 0x prefix)"
+                        pattern: "^0x[a-fA-F0-9]{40}$"
+                      - type: string
+                        description: "Block parameter - 'latest', 'earliest', 'pending', or block number in hex"
+                  minItems: 2
+                  maxItems: 2
+                  description: "[address, blockParameter]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_getCode
+                  params: ['0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b', 'latest']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_getStorageAt:
+    post:
+      summary: eth_getStorageAt
+      description: Returns the value from a storage position at a given address.
+      operationId: eth_getStorageAt
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_getStorageAt
+                params:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: string
+                        description: "Address (20 bytes, hex encoded with 0x prefix)"
+                        pattern: "^0x[a-fA-F0-9]{40}$"
+                      - type: string
+                        description: "Storage position (hex encoded with 0x prefix)"
+                        pattern: "^0x[a-fA-F0-9]+$"
+                      - type: string
+                        description: "Block parameter - 'latest', 'earliest', 'pending', or block number in hex"
+                  minItems: 3
+                  maxItems: 3
+                  description: "[address, storagePosition, blockParameter]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_getStorageAt
+                  params: ['0x295a70b2de5e3953354a6a8344e616ed314d7251', '0x0', 'latest']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # eth - Block Methods
+  /ext/bc/C/rpc#eth_blockNumber:
+    post:
+      summary: eth_blockNumber
+      description: Returns the block number of the chain head.
+      operationId: eth_blockNumber
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_blockNumber
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_gasPrice:
+    post:
+      summary: eth_gasPrice
+      description: Returns a suggestion for a legacy gas price.
+      operationId: eth_gasPrice
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_gasPrice
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_maxPriorityFeePerGas:
+    post:
+      summary: eth_maxPriorityFeePerGas
+      description: Returns a suggestion for a tip cap for dynamic fee transactions.
+      operationId: eth_maxPriorityFeePerGas
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_maxPriorityFeePerGas
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_feeHistory:
+    post:
+      summary: eth_feeHistory
+      description: Returns the fee market history.
+      operationId: eth_feeHistory
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_feeHistory
+                params:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: integer
+                        description: "Number of blocks to retrieve (1-1024)"
+                        minimum: 1
+                        maximum: 1024
+                      - type: string
+                        description: "Highest block number - 'latest', 'earliest', 'pending', or block number in hex"
+                      - type: array
+                        items:
+                          type: number
+                          minimum: 0
+                          maximum: 100
+                        description: "Array of percentiles (0-100) for reward percentiles"
+                  minItems: 2
+                  maxItems: 3
+                  description: "[blockCount, newestBlock, rewardPercentiles(optional)]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_feeHistory
+                  params: [10, 'latest', [10, 50, 90]]
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_getBlockByNumber:
+    post:
+      summary: eth_getBlockByNumber
+      description: Returns the block for a given number. Second param selects full transactions.
+      operationId: eth_getBlockByNumber
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_getBlockByNumber
+                params:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: string
+                        description: "Block parameter - 'latest', 'earliest', 'pending', or block number in hex"
+                      - type: boolean
+                        description: "If true, returns the full transaction objects; if false, only the hashes"
+                  minItems: 2
+                  maxItems: 2
+                  description: "[blockParameter, returnFullTransactions]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_getBlockByNumber
+                  params: ['latest', false]
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_getBlockByHash:
+    post:
+      summary: eth_getBlockByHash
+      description: Returns the block for a given hash. Second param selects full transactions.
+      operationId: eth_getBlockByHash
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_getBlockByHash
+                params:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: string
+                        description: "Block hash (32 bytes, hex encoded with 0x prefix)"
+                        pattern: "^0x[a-fA-F0-9]{64}$"
+                      - type: boolean
+                        description: "If true, returns the full transaction objects; if false, only the hashes"
+                  minItems: 2
+                  maxItems: 2
+                  description: "[blockHash, returnFullTransactions]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_getBlockByHash
+                  params: ['0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331', false]
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # eth - Transaction Methods
+  /ext/bc/C/rpc#eth_getTransactionByHash:
+    post:
+      summary: eth_getTransactionByHash
+      description: Returns the information about a transaction requested by transaction hash.
+      operationId: eth_getTransactionByHash
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_getTransactionByHash
+                params:
+                  type: array
+                  items:
+                    type: string
+                    description: "Transaction hash (32 bytes, hex encoded with 0x prefix)"
+                    pattern: "^0x[a-fA-F0-9]{64}$"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[transactionHash]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_getTransactionByHash
+                  params: ['0xb903239f8543d04b5dc1ba6579132b143087c68db1b2168786408fcbce568238']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_getTransactionReceipt:
+    post:
+      summary: eth_getTransactionReceipt
+      description: Returns the receipt of a transaction by transaction hash.
+      operationId: eth_getTransactionReceipt
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_getTransactionReceipt
+                params:
+                  type: array
+                  items:
+                    type: string
+                    description: "Transaction hash (32 bytes, hex encoded with 0x prefix)"
+                    pattern: "^0x[a-fA-F0-9]{64}$"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[transactionHash]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_getTransactionReceipt
+                  params: ['0xb903239f8543d04b5dc1ba6579132b143087c68db1b2168786408fcbce568238']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_getTransactionByBlockHashAndIndex:
+    post:
+      summary: eth_getTransactionByBlockHashAndIndex
+      description: Returns information about a transaction by block hash and transaction index position.
+      operationId: eth_getTransactionByBlockHashAndIndex
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_getTransactionByBlockHashAndIndex
+                params:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: string
+                        description: "Block hash (32 bytes, hex encoded with 0x prefix)"
+                        pattern: "^0x[a-fA-F0-9]{64}$"
+                      - type: string
+                        description: "Transaction index in hex"
+                        pattern: "^0x[a-fA-F0-9]+$"
+                  minItems: 2
+                  maxItems: 2
+                  description: "[blockHash, transactionIndex]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_getTransactionByBlockHashAndIndex
+                  params: ['0x...', '0x0']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_getTransactionByBlockNumberAndIndex:
+    post:
+      summary: eth_getTransactionByBlockNumberAndIndex
+      description: Returns information about a transaction by block number and transaction index position.
+      operationId: eth_getTransactionByBlockNumberAndIndex
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_getTransactionByBlockNumberAndIndex
+                params:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: string
+                        description: "Block parameter - 'latest', 'earliest', 'pending', or block number in hex"
+                      - type: string
+                        description: "Transaction index in hex"
+                        pattern: "^0x[a-fA-F0-9]+$"
+                  minItems: 2
+                  maxItems: 2
+                  description: "[blockParameter, transactionIndex]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_getTransactionByBlockNumberAndIndex
+                  params: ['latest', '0x0']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_sendRawTransaction:
+    post:
+      summary: eth_sendRawTransaction
+      description: Submits a signed raw transaction.
+      operationId: eth_sendRawTransaction
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_sendRawTransaction
+                params:
+                  type: array
+                  items:
+                    type: string
+                    description: "Signed transaction data (hex encoded with 0x prefix)"
+                    pattern: "^0x[a-fA-F0-9]+$"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[signedTransactionData]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_sendRawTransaction
+                  params: ['0xf869018203e882520894...']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_call:
+    post:
+      summary: eth_call
+      description: Executes a call without sending a transaction.
+      operationId: eth_call
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_call
+                params:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: object
+                        description: "Transaction call object"
+                        properties:
+                          from:
+                            type: string
+                            description: "From address (optional)"
+                            pattern: "^0x[a-fA-F0-9]{40}$"
+                          to:
+                            type: string
+                            description: "To address"
+                            pattern: "^0x[a-fA-F0-9]{40}$"
+                          gas:
+                            type: string
+                            description: "Gas limit (optional, hex)"
+                            pattern: "^0x[a-fA-F0-9]+$"
+                          gasPrice:
+                            type: string
+                            description: "Gas price (optional, hex)"
+                            pattern: "^0x[a-fA-F0-9]+$"
+                          value:
+                            type: string
+                            description: "Value to send (optional, hex)"
+                            pattern: "^0x[a-fA-F0-9]+$"
+                          data:
+                            type: string
+                            description: "Data to send (hex)"
+                            pattern: "^0x[a-fA-F0-9]*$"
+                        required: ["to"]
+                      - type: string
+                        description: "Block parameter - 'latest', 'earliest', 'pending', or block number in hex"
+                  minItems: 2
+                  maxItems: 2
+                  description: "[transactionObject, blockParameter]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_call
+                  params: [
+                    {
+                      to: '0x08a2e41fb99a7599725190b9c970ad3893fa33cf',
+                      data: '0x18160ddd'
+                    },
+                    'latest'
+                  ]
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_estimateGas:
+    post:
+      summary: eth_estimateGas
+      description: Returns the lowest gas limit for a transaction to succeed.
+      operationId: eth_estimateGas
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_estimateGas
+                params:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: object
+                        description: "Transaction object for gas estimation"
+                        properties:
+                          from:
+                            type: string
+                            description: "From address"
+                            pattern: "^0x[a-fA-F0-9]{40}$"
+                          to:
+                            type: string
+                            description: "To address (optional for contract creation)"
+                            pattern: "^0x[a-fA-F0-9]{40}$"
+                          gas:
+                            type: string
+                            description: "Gas limit (optional, hex)"
+                            pattern: "^0x[a-fA-F0-9]+$"
+                          gasPrice:
+                            type: string
+                            description: "Gas price (optional, hex)"
+                            pattern: "^0x[a-fA-F0-9]+$"
+                          value:
+                            type: string
+                            description: "Value to send (optional, hex)"
+                            pattern: "^0x[a-fA-F0-9]+$"
+                          data:
+                            type: string
+                            description: "Data to send (hex)"
+                            pattern: "^0x[a-fA-F0-9]*$"
+                      - type: string
+                        description: "Block parameter (optional) - 'latest', 'earliest', 'pending', or block number in hex"
+                  minItems: 1
+                  maxItems: 2
+                  description: "[transactionObject, blockParameter(optional)]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_estimateGas
+                  params: [
+                    {
+                      from: '0xb60e8dd61c5d32be8058bb8eb970870f07233155',
+                      to: '0xd46e8dd67c5d32be8058bb8eb970870f07244567',
+                      value: '0x9184e72a'
+                    }
+                  ]
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # eth - Filter Methods
+  /ext/bc/C/rpc#eth_getLogs:
+    post:
+      summary: eth_getLogs
+      description: Returns logs matching the given filter object.
+      operationId: eth_getLogs
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_getLogs
+                params:
+                  type: array
+                  items:
+                    type: object
+                    description: "Filter object"
+                    properties:
+                      fromBlock:
+                        type: string
+                        description: "Starting block - 'latest', 'earliest', 'pending', or block number in hex"
+                      toBlock:
+                        type: string
+                        description: "Ending block - 'latest', 'earliest', 'pending', or block number in hex"
+                      address:
+                        oneOf:
+                          - type: string
+                            description: "Contract address to filter"
+                            pattern: "^0x[a-fA-F0-9]{40}$"
+                          - type: array
+                            items:
+                              type: string
+                              pattern: "^0x[a-fA-F0-9]{40}$"
+                            description: "Array of contract addresses"
+                      topics:
+                        type: array
+                        description: "Array of topics to filter (order-dependent, null for wildcards)"
+                        items:
+                          oneOf:
+                            - type: string
+                              pattern: "^0x[a-fA-F0-9]{64}$"
+                            - type: array
+                              items:
+                                type: string
+                                pattern: "^0x[a-fA-F0-9]{64}$"
+                            - type: "null"
+                      blockHash:
+                        type: string
+                        description: "Block hash to get logs from (alternative to fromBlock/toBlock)"
+                        pattern: "^0x[a-fA-F0-9]{64}$"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[filterObject]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_getLogs
+                  params: [
+                    {
+                      fromBlock: '0x1',
+                      toBlock: 'latest',
+                      address: '0x87ac99835e67168d4f9a40580f8f5c33550ba88b',
+                      topics: ['0xd78a0cb8bb633d06981248b816e7bd33c2a35a6089241d099fa519e361cab902']
+                    }
+                  ]
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_newFilter:
+    post:
+      summary: eth_newFilter
+      description: |
+        Creates a filter object, based on filter options, to notify when the state changes (logs).
+        
+        **⚠️ Note:** Filter methods may not be available or may have limited functionality on public RPC endpoints as they require server-side state management.
+      operationId: eth_newFilter
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_newFilter
+                params:
+                  type: array
+                  items:
+                    type: object
+                    description: "Filter object"
+                    properties:
+                      fromBlock:
+                        type: string
+                        description: "Starting block - 'latest', 'earliest', 'pending', or block number in hex"
+                      toBlock:
+                        type: string
+                        description: "Ending block - 'latest', 'earliest', 'pending', or block number in hex"
+                      address:
+                        oneOf:
+                          - type: string
+                            pattern: "^0x[a-fA-F0-9]{40}$"
+                          - type: array
+                            items:
+                              type: string
+                              pattern: "^0x[a-fA-F0-9]{40}$"
+                      topics:
+                        type: array
+                        items:
+                          oneOf:
+                            - type: string
+                              pattern: "^0x[a-fA-F0-9]{64}$"
+                            - type: array
+                              items:
+                                type: string
+                                pattern: "^0x[a-fA-F0-9]{64}$"
+                            - type: "null"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[filterObject]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_newFilter
+                  params: [{}]
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_newBlockFilter:
+    post:
+      summary: eth_newBlockFilter
+      description: |
+        Creates a filter in the node, to notify when a new block arrives.
+        
+        **⚠️ Note:** Filter methods may not be available or may have limited functionality on public RPC endpoints as they require server-side state management.
+      operationId: eth_newBlockFilter
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_newBlockFilter
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_newPendingTransactionFilter:
+    post:
+      summary: eth_newPendingTransactionFilter
+      description: |
+        Creates a filter in the node, to notify when new pending transactions arrive.
+        
+        **⚠️ Note:** Filter methods may not be available or may have limited functionality on public RPC endpoints as they require server-side state management.
+      operationId: eth_newPendingTransactionFilter
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_newPendingTransactionFilter
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_uninstallFilter:
+    post:
+      summary: eth_uninstallFilter
+      description: Uninstalls a filter with given id.
+      operationId: eth_uninstallFilter
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_uninstallFilter
+                params:
+                  type: array
+                  items:
+                    type: string
+                    description: "Filter ID (hex encoded)"
+                    pattern: "^0x[a-fA-F0-9]+$"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[filterId]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_uninstallFilter
+                  params: ['0x...']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_getFilterChanges:
+    post:
+      summary: eth_getFilterChanges
+      description: Polling method for a filter, which returns an array of logs which occurred since last poll.
+      operationId: eth_getFilterChanges
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_getFilterChanges
+                params:
+                  type: array
+                  items:
+                    type: string
+                    description: "Filter ID (hex encoded)"
+                    pattern: "^0x[a-fA-F0-9]+$"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[filterId]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_getFilterChanges
+                  params: ['0x...']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_getFilterLogs:
+    post:
+      summary: eth_getFilterLogs
+      description: Returns an array of all logs matching filter with given id.
+      operationId: eth_getFilterLogs
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_getFilterLogs
+                params:
+                  type: array
+                  items:
+                    type: string
+                    description: "Filter ID (hex encoded)"
+                    pattern: "^0x[a-fA-F0-9]+$"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[filterId]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_getFilterLogs
+                  params: ['0x...']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # eth - Additional Methods
+  /ext/bc/C/rpc#eth_getBlockTransactionCountByHash:
+    post:
+      summary: eth_getBlockTransactionCountByHash
+      description: Returns the number of transactions in a block from a block matching the given block hash.
+      operationId: eth_getBlockTransactionCountByHash
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_getBlockTransactionCountByHash
+                params:
+                  type: array
+                  items:
+                    type: string
+                    description: "Block hash (32 bytes, hex encoded with 0x prefix)"
+                    pattern: "^0x[a-fA-F0-9]{64}$"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[blockHash]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_getBlockTransactionCountByHash
+                  params: ['0x...']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_getBlockTransactionCountByNumber:
+    post:
+      summary: eth_getBlockTransactionCountByNumber
+      description: Returns the number of transactions in a block matching the given block number.
+      operationId: eth_getBlockTransactionCountByNumber
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_getBlockTransactionCountByNumber
+                params:
+                  type: array
+                  items:
+                    type: string
+                    description: "Block parameter - 'latest', 'earliest', 'pending', or block number in hex"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[blockParameter]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_getBlockTransactionCountByNumber
+                  params: ['latest']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_sign:
+    post:
+      summary: eth_sign
+      description: |
+        Signs data with a given address.
+        
+        **⚠️ Security Note:** This method is typically disabled on public RPC endpoints for security reasons. It requires access to private keys and should only be used on nodes you control.
+      operationId: eth_sign
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: eth_sign
+                params:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: string
+                        description: "Address to sign with (20 bytes, hex encoded with 0x prefix)"
+                        pattern: "^0x[a-fA-F0-9]{40}$"
+                      - type: string
+                        description: "Data to sign (hex encoded with 0x prefix)"
+                        pattern: "^0x[a-fA-F0-9]+$"
+                  minItems: 2
+                  maxItems: 2
+                  description: "[address, dataToSign]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_sign
+                  params: ['0x...', '0x...']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#eth_protocolVersion:
+    post:
+      summary: eth_protocolVersion
+      description: Returns the current ethereum protocol version.
+      operationId: eth_protocolVersion
+      tags:
+        - eth
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_protocolVersion
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # txpool - Note: Txpool methods may be restricted on public RPC endpoints
+  /ext/bc/C/rpc#txpool_status:
+    post:
+      summary: txpool_status
+      description: |
+        Returns transaction pool status.
+        
+        **⚠️ Note:** This method may be restricted or rate-limited on public RPC endpoints. Consider running your own node for unrestricted access.
+      operationId: txpool_status
+      tags:
+        - txpool
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: txpool_status
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # personal - Note: Personal methods are NOT available on public RPC endpoints for security reasons
+  /ext/bc/C/rpc#personal_newAccount:
+    post:
+      summary: personal_newAccount
+      description: |
+        Creates a new account with the given password.
+        
+        **⚠️ Security Note:** This method is NOT available on public RPC endpoints for security reasons. Personal methods manage private keys and must only be used on nodes you control.
+      operationId: personal_newAccount
+      tags:
+        - personal
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: personal_newAccount
+                params:
+                  type: array
+                  items:
+                    type: string
+                    description: "Password for the new account"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[password]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: personal_newAccount
+                  params: ['strong_password']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#personal_unlockAccount:
+    post:
+      summary: personal_unlockAccount
+      description: |
+        Unlocks an account with the given password and optional duration.
+        
+        **⚠️ Security Note:** This method is NOT available on public RPC endpoints for security reasons. Personal methods manage private keys and must only be used on nodes you control.
+      operationId: personal_unlockAccount
+      tags:
+        - personal
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: personal_unlockAccount
+                params:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: string
+                        description: "Address to unlock (20 bytes, hex encoded with 0x prefix)"
+                        pattern: "^0x[a-fA-F0-9]{40}$"
+                      - type: string
+                        description: "Password for the account"
+                      - type: integer
+                        description: "Duration in seconds (optional, 0 for indefinite)"
+                  minItems: 2
+                  maxItems: 3
+                  description: "[address, password, duration(optional)]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: personal_unlockAccount
+                  params: ['0x...', 'strong_password', 300]
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # debug - Note: Debug methods are NOT available on public RPC endpoints
+  /ext/bc/C/rpc#debug_getRawBlock:
+    post:
+      summary: debug_getRawBlock
+      description: |
+        Returns RLP-encoded bytes of a single block by number or hash.
+        
+        **⚠️ Note:** This method is NOT available on public RPC endpoints. You must run your own node or use a dedicated node service to access debug methods.
+      operationId: debug_getRawBlock
+      tags:
+        - debug
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: debug_getRawBlock
+                  params: ['latest']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/rpc#debug_getRawTransaction:
+    post:
+      summary: debug_getRawTransaction
+      description: |
+        Returns the bytes of the transaction for the given hash.
+        
+        **⚠️ Note:** This method is NOT available on public RPC endpoints. You must run your own node or use a dedicated node service to access debug methods.
+      operationId: debug_getRawTransaction
+      tags:
+        - debug
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: debug_getRawTransaction
+                  params: ['0x...']
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # Avalanche extensions on RPC
+  /ext/bc/C/rpc#eth_suggestPriceOptions:
+    post:
+      summary: eth_suggestPriceOptions
+      description: Returns suggested fee options (Coreth extension).
+      operationId: eth_suggestPriceOptions
+      tags:
+        - Avalanche
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSONRPCRequest'
+            examples:
+              default:
+                value:
+                  jsonrpc: '2.0'
+                  method: eth_suggestPriceOptions
+                  params: []
+                  id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  # Avalanche-specific avax namespace
+  /ext/bc/C/avax#avax.getUTXOs:
+    post:
+      summary: avax.getUTXOs
+      description: Gets all UTXOs for the specified addresses.
+      operationId: avax_getUTXOs
+      tags:
+        - Avalanche
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: avax.getUTXOs
+                params:
+                  type: array
+                  items:
+                    type: object
+                    description: "UTXO query parameters"
+                    properties:
+                      addresses:
+                        type: array
+                        items:
+                          type: string
+                        description: "Array of addresses to get UTXOs for"
+                      limit:
+                        type: integer
+                        description: "Maximum number of UTXOs to return (optional)"
+                      startIndex:
+                        type: object
+                        description: "Pagination cursor (optional)"
+                        properties:
+                          address:
+                            type: string
+                          utxo:
+                            type: string
+                      sourceChain:
+                        type: string
+                        description: "Source chain ID (optional)"
+                      encoding:
+                        type: string
+                        enum: ["hex", "cb58"]
+                        description: "Encoding format"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[utxoQueryParams]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/avax#avax.issueTx:
+    post:
+      summary: avax.issueTx
+      description: Issues a transaction to the network.
+      operationId: avax_issueTx
+      tags:
+        - Avalanche
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: avax.issueTx
+                params:
+                  type: array
+                  items:
+                    type: string
+                    description: "Signed transaction bytes (hex or cb58 encoded)"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[signedTx]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/avax#avax.getAtomicTxStatus:
+    post:
+      summary: avax.getAtomicTxStatus
+      description: Returns the status of the specified atomic transaction.
+      operationId: avax_getAtomicTxStatus
+      tags:
+        - Avalanche
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: avax.getAtomicTxStatus
+                params:
+                  type: array
+                  items:
+                    type: string
+                    description: "Transaction ID (hex or cb58 encoded)"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[txID]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+  /ext/bc/C/avax#avax.getAtomicTx:
+    post:
+      summary: avax.getAtomicTx
+      description: Returns the specified atomic transaction.
+      operationId: avax_getAtomicTx
+      tags:
+        - Avalanche
+      requestBody:
+        required: true
+        description: JSON-RPC request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  example: '2.0'
+                method:
+                  type: string
+                  example: avax.getAtomicTx
+                params:
+                  type: array
+                  items:
+                    type: string
+                    description: "Transaction ID (hex or cb58 encoded)"
+                  minItems: 1
+                  maxItems: 1
+                  description: "[txID]"
+                id:
+                  type: integer
+                  example: 1
+              required:
+                - jsonrpc
+                - method
+                - params
+                - id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONRPCError'
+
+components:
+  schemas:
+    Address:
+      type: string
+      description: "Ethereum address (20 bytes, hex encoded with 0x prefix)"
+      pattern: "^0x[a-fA-F0-9]{40}$"
+      example: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb7"
+    
+    Hash:
+      type: string
+      description: "32 byte hash (hex encoded with 0x prefix)"
+      pattern: "^0x[a-fA-F0-9]{64}$"
+      example: "0xb903239f8543d04b5dc1ba6579132b143087c68db1b2168786408fcbce568238"
+    
+    HexData:
+      type: string
+      description: "Hex encoded data with 0x prefix"
+      pattern: "^0x[a-fA-F0-9]*$"
+      example: "0x606060405260"
+    
+    HexNumber:
+      type: string
+      description: "Hex encoded number with 0x prefix"
+      pattern: "^0x[a-fA-F0-9]+$"
+      example: "0x1234"
+    
+    BlockParameter:
+      oneOf:
+        - type: string
+          enum: ["latest", "earliest", "pending", "safe", "finalized"]
+          description: "Special block tags"
+        - type: string
+          pattern: "^0x[a-fA-F0-9]+$"
+          description: "Block number in hex"
+      description: "Block specification - either a special tag or hex block number"
+      example: "latest"
+      
+    TransactionObject:
+      type: object
+      description: "Transaction call/send object"
+      properties:
+        from:
+          $ref: '#/components/schemas/Address'
+          description: "Sender address (optional for call)"
+        to:
+          $ref: '#/components/schemas/Address'
+          description: "Recipient address (optional for contract creation)"
+        gas:
+          $ref: '#/components/schemas/HexNumber'
+          description: "Gas limit for the transaction (optional)"
+        gasPrice:
+          $ref: '#/components/schemas/HexNumber'
+          description: "Gas price in wei (optional)"
+        maxFeePerGas:
+          $ref: '#/components/schemas/HexNumber'
+          description: "Maximum fee per gas for EIP-1559 transactions (optional)"
+        maxPriorityFeePerGas:
+          $ref: '#/components/schemas/HexNumber'
+          description: "Maximum priority fee per gas for EIP-1559 transactions (optional)"
+        value:
+          $ref: '#/components/schemas/HexNumber'
+          description: "Value to transfer in wei (optional)"
+        data:
+          $ref: '#/components/schemas/HexData'
+          description: "Input data for the transaction"
+        nonce:
+          $ref: '#/components/schemas/HexNumber'
+          description: "Transaction nonce (optional)"
+    
+    FilterObject:
+      type: object
+      description: "Log filter parameters"
+      properties:
+        fromBlock:
+          $ref: '#/components/schemas/BlockParameter'
+          description: "Starting block for the filter"
+        toBlock:
+          $ref: '#/components/schemas/BlockParameter'
+          description: "Ending block for the filter"
+        address:
+          oneOf:
+            - $ref: '#/components/schemas/Address'
+            - type: array
+              items:
+                $ref: '#/components/schemas/Address'
+          description: "Contract address or array of addresses to filter"
+        topics:
+          type: array
+          description: "Array of topics to filter (order-dependent, null for wildcards)"
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/Hash'
+              - type: array
+                items:
+                  $ref: '#/components/schemas/Hash'
+              - type: "null"
+        blockHash:
+          $ref: '#/components/schemas/Hash'
+          description: "Single block hash to get logs from (alternative to fromBlock/toBlock)"
+    
+    JSONRPCRequest:
+      type: object
+      description: JSON-RPC 2.0 Request
+      properties:
+        jsonrpc:
+          type: string
+          example: '2.0'
+        method:
+          type: string
+        params:
+          type: array
+        id:
+          type: integer
+          example: 1
+      required:
+        - jsonrpc
+        - method
+        - params
+        - id
+    JSONRPCResponse:
+      type: object
+      description: JSON-RPC 2.0 Response
+      properties:
+        jsonrpc:
+          type: string
+          example: '2.0'
+        result:
+          description: The result of the method call
+        error:
+          type: object
+          properties:
+            code:
+              type: integer
+            message:
+              type: string
+            data:
+              description: Additional error data
+        id:
+          type: integer
+          example: 1
+      required:
+        - jsonrpc
+        - id
+    JSONRPCError:
+      type: object
+      description: JSON-RPC 2.0 Error Response
+      properties:
+        jsonrpc:
+          type: string
+          example: '2.0'
+        error:
+          type: object
+          properties:
+            code:
+              type: integer
+            message:
+              type: string
+            data:
+              description: Additional error data
+          required:
+            - code
+            - message
+        id:
+          type: integer
+          example: 1
+      required:
+        - jsonrpc
+        - error
+        - id
+

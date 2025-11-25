@@ -8,27 +8,30 @@ datasource db {
 }
 
 model Hackathon {
-  id            String         @id @default(uuid())
-  title         String
-  description   String
-  location      String
-  total_prizes  Int
-  tags          String[]
-  content       Json           @default("{}")
-  end_date      DateTime       @default(now()) @db.Timestamptz(3)
-  start_date    DateTime       @default(now()) @db.Timestamptz(3)
-  timezone      String         @default("UTC")
-  banner        String         @default("")
-  icon          String         @default("")
-  small_banner  String         @default("")
-  participants  Int
-  top_most      Boolean?       @default(false)
-  organizers    String?
-  custom_link   String?
-  created_by    String?
-  created_by_user User?         @relation(fields: [created_by], references: [id])
-  projects      Project[]
-  registrations RegisterForm[]
+  id              String         @id @default(uuid())
+  title           String
+  description     String
+  location        String
+  total_prizes    Int
+  tags            String[]
+  content         Json           @default("{}")
+  end_date        DateTime       @default(now()) @db.Timestamptz(3)
+  start_date      DateTime       @default(now()) @db.Timestamptz(3)
+  timezone        String         @default("UTC")
+  banner          String         @default("")
+  icon            String         @default("")
+  small_banner    String         @default("")
+  participants    Int
+  top_most        Boolean?       @default(false)
+  organizers      String?
+  custom_link     String?
+  created_by      String?
+  updated_by      String?
+  is_public       Boolean?
+  created_by_user User?          @relation(fields: [created_by], references: [id])
+  updated_by_user User?          @relation("HackathonUpdatedBy", fields: [updated_by], references: [id])
+  projects        Project[]
+  registrations   RegisterForm[]
 }
 
 model User {
@@ -49,10 +52,15 @@ model User {
   custom_attributes   String[]
   telegram_user       String?
   created_at          DateTime      @default(now()) @db.Timestamptz(3)
+  updated_hackathons  Hackathon[] @relation("HackathonUpdatedBy")
   memberships         Member[]
-  registrations       RegisterForm?
+  registrations       RegisterForm[]
   hackathons          Hackathon[]
+  badges              UserBadge[]
   managedTestnetNodes NodeRegistration[]
+  consoleLog          ConsoleLog[]
+  statsPlaygrounds    StatsPlayground[]
+  statsPlaygroundFavorites StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
 }
 
 model VerificationToken {
@@ -68,7 +76,7 @@ model RegisterForm {
   utm                     String
   city                    String
   dietary                 String?
-  email                   String    @unique
+  email                   String
   interests               String
   languages               String
   roles                   String
@@ -93,29 +101,30 @@ model RegisterForm {
 }
 
 model Project {
-  id                  String    @id @default(uuid())
+  id                  String         @id @default(uuid())
   hackaton_id         String
   project_name        String
   short_description   String
-  full_description    String?   @default("")
-  tech_stack          String?   @default("")
-  github_repository   String?   @default("")
-  demo_link           String?   @default("")
-  logo_url            String?   @default("")
-  cover_url           String?   @default("")
-  demo_video_link     String?   @default("")
-  screenshots         String[]  @default([])
-  tracks              String[]  @default([])
-  created_at          DateTime  @default(now()) @db.Timestamptz(3)
-  updated_at          DateTime  @updatedAt @db.Timestamptz(3)
-  explanation         String?   @default("")
-  is_preexisting_idea Boolean   @default(false)
-  small_cover_url     String?   @default("")
-  tags                String[]  @default([])
-  is_winner           Boolean?  @default(false)
+  full_description    String?        @default("")
+  tech_stack          String?        @default("")
+  github_repository   String?        @default("")
+  demo_link           String?        @default("")
+  logo_url            String?        @default("")
+  cover_url           String?        @default("")
+  demo_video_link     String?        @default("")
+  screenshots         String[]       @default([])
+  tracks              String[]       @default([])
+  created_at          DateTime       @default(now()) @db.Timestamptz(3)
+  updated_at          DateTime       @updatedAt @db.Timestamptz(3)
+  explanation         String?        @default("")
+  is_preexisting_idea Boolean        @default(false)
+  small_cover_url     String?        @default("")
+  tags                String[]       @default([])
+  is_winner           Boolean?       @default(false)
   members             Member[]
   prizes              Prize[]
-  hackathon           Hackathon @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)
+  hackathon           Hackathon      @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)
+  badges              ProjectBadge[]
 }
 
 model Prize {
@@ -136,7 +145,49 @@ model Member {
   email      String?
   project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
   user       User?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
 
+model Badge {
+  id          String         @id @default(uuid())
+  name        String
+  description String
+  image_path  String
+  category    String
+  users       UserBadge[]
+  projects    ProjectBadge[]
+  requirements    Json[]         @default([])
+  current_version Int            @default(1)
+}
+
+model UserBadge {
+  id         String   @id @default(uuid())
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id    String
+  badge      Badge    @relation(fields: [badge_id], references: [id], onDelete: Cascade)
+  badge_id   String
+  awarded_at DateTime @default(now())
+  awarded_by String?
+  evidence             Json?
+  requirements_version Int      @default(1)
+  status               Int      @db.SmallInt
+
+  @@unique([user_id, badge_id])
+}
+
+model ProjectBadge {
+  id         String   @id @default(uuid())
+  project    Project  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  project_id String
+  badge      Badge    @relation(fields: [badge_id], references: [id], onDelete: Cascade)
+  badge_id   String
+  awarded_at DateTime @default(now())
+  awarded_by String?
+  evidence              Json?
+  requirements_snapshot Json     @default("{}")
+  requirements_version  Int      @default(1)
+  status                Int      @db.SmallInt
+
+  @@unique([project_id, badge_id])
 }
 
 model NodeRegistration {
@@ -159,4 +210,47 @@ model NodeRegistration {
   @@index([user_id])
   @@index([status])
   @@index([subnet_id])
+}
+
+model ConsoleLog {
+  id          String   @id @default(uuid())
+  user_id     String
+  status      String   // success, error, warning, info
+  action_path String?  // Full path context (e.g., "permissioned-l1s/validator-manager-setup/deploy/validator_manager")
+  data        Json?    // Flexible JSON data
+  created_at  DateTime @default(now()) @db.Timestamptz(3)
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([created_at])
+}
+
+model StatsPlayground {
+  id          String   @id @default(uuid())
+  user_id     String
+  name        String
+  is_public   Boolean  @default(false)
+  charts      Json     // Array of chart configurations
+  view_count  Int      @default(0)
+  created_at  DateTime @default(now()) @db.Timestamptz(3)
+  updated_at  DateTime @updatedAt @db.Timestamptz(3)
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  favorites   StatsPlaygroundFavorite[]
+
+  @@index([user_id])
+  @@index([is_public])
+  @@index([created_at])
+}
+
+model StatsPlaygroundFavorite {
+  id           String    @id @default(uuid())
+  playground_id String
+  user_id      String
+  created_at   DateTime  @default(now()) @db.Timestamptz(3)
+  playground   StatsPlayground @relation(fields: [playground_id], references: [id], onDelete: Cascade)
+  user         User      @relation("StatsPlaygroundFavorites", fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([playground_id, user_id])
+  @@index([playground_id])
+  @@index([user_id])
 }

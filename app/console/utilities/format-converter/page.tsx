@@ -1,13 +1,6 @@
 "use client";
 
-import { lazy } from "react";
-
-const FormatConverter = lazy(() => 
-  import("../../../../toolbox/src/toolbox/Conversion/FormatConverter").then(module => ({
-    default: module.default
-  }))
-);
-
+import FormatConverter from "@/components/toolbox/console/utilities/format-converter/FormatConverter";
 
 export default function Page() {
   return (

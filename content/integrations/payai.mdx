@@ -1,0 +1,166 @@
+---
+title: PayAI
+category: x402
+available: ["C-Chain"]
+description: PayAI offers the x402 protocol, a payment infrastructure that enables monetization of AI agents and services on Avalanche.
+logo: /images/payai.svg
+developer: PayAI
+website: https://payai.network/
+documentation: https://docs.payai.network/introduction
+---
+
+## Overview
+
+PayAI provides the x402 protocol, a comprehensive payment infrastructure designed specifically for AI agent monetization and service payments on Avalanche's C-Chain.
+
+The x402 protocol standardizes how AI agents and services can accept payments, making it easier for developers to build monetized AI applications without worrying about complex payment infrastructure.
+
+## What is x402?
+
+The x402 protocol is a payment standard that facilitates transactions between:
+- **Merchants**: AI service providers and agents that offer paid services
+- **Clients**: Users or applications that consume AI services
+- **Facilitators**: Infrastructure that handles payment processing on Avalanche
+
+## Key Features
+
+- **Avalanche Native**: Built to leverage Avalanche's fast finality and low transaction costs
+- **Simple Integration**: SDKs available in TypeScript and Python for both merchants and clients
+- **Facilitator Network**: PayAI operates facilitators that handle payment routing on Avalanche
+- **AI-First Design**: Built specifically for AI agent monetization and service payments
+
+## Getting Started
+
+### For Merchants (AI Service Providers)
+
+If you're building an AI service or agent that needs to accept payments on Avalanche:
+
+1. **Choose Your SDK**: PayAI provides SDKs in both TypeScript and Python
+2. **Set Up Payment Endpoints**: Configure your service to accept x402 protocol payments on Avalanche
+3. **Configure for Avalanche**: Use the `avalanche` network string for mainnet or `avalanche-fuji` for testnet
+4. **Start Accepting Payments**: Your AI agent can now receive payments for services in AVAX
+
+### For Clients (Service Consumers)
+
+If you're building an application that consumes paid AI services on Avalanche:
+
+1. **Install the Client SDK**: Available in TypeScript and Python
+2. **Configure for Avalanche**: Set up payments using Avalanche C-Chain
+3. **Connect to Services**: Start paying for AI services through the x402 protocol with AVAX
+
+## Use Cases
+
+### AI Agent Monetization
+Enable your AI agents to charge for their services on a per-request or subscription basis.
+
+### Freelance AI Services
+Build marketplaces where AI agents can offer specialized services and receive payment automatically.
+
+### Token-Gated AI Access
+Create premium AI services that require payment to access, with automated payment verification.
+
+### CT (Crypto Twitter) Agent Monetization
+Monetize AI agents that provide crypto analysis, trading signals, or social media insights.
+
+## Documentation
+
+For detailed implementation guides and API references:
+- [PayAI Documentation](https://docs.payai.network/introduction)
+- [Supported Networks](https://docs.payai.network/x402/supported-networks)
+
+## Integration Examples
+
+### Express Server Example
+
+Set up an Express server that accepts x402 payments on Avalanche:
+
+**Environment Variables (.env)**
+
+```bash
+FACILITATOR_URL=https://facilitator.payai.network
+NETWORK=avalanche-fuji # or avalanche for mainnet
+ADDRESS=0x... # wallet public address you want to receive payments to
+```
+
+**Server Code (index.ts)**
+
+```typescript
+import { config } from "dotenv";
+import express from "express";
+import { paymentMiddleware, Resource } from "x402-express";
+config();
+
+const facilitatorUrl = process.env.FACILITATOR_URL as Resource;
+const payTo = process.env.ADDRESS as `0x${string}`;
+
+if (!facilitatorUrl || !payTo) {
+  console.error("Missing required environment variables");
+  process.exit(1);
+}
+
+const app = express();
+
+app.use(
+  paymentMiddleware(
+    payTo,
+    {
+      "GET /weather": {
+        // USDC amount in dollars
+        price: "$0.001",
+        network: "avalanche-fuji", // or "avalanche" for mainnet
+      },
+      "/premium/*": {
+        // Define atomic amounts in any EIP-3009 token
+        price: {
+          amount: "100000",
+          asset: {
+            address: "0xabc",
+            decimals: 18,
+            eip712: {
+              name: "WETH",
+              version: "1",
+            },
+          },
+        },
+        network: "avalanche-fuji", // or "avalanche" for mainnet
+      },
+    },
+    {
+      url: facilitatorUrl,
+    },
+  ),
+);
+
+app.get("/weather", (req, res) => {
+  res.send({
+    report: {
+      weather: "sunny",
+      temperature: 70,
+    },
+  });
+});
+
+app.get("/premium/content", (req, res) => {
+  res.send({
+    content: "This is premium content",
+  });
+});
+
+app.listen(4021, () => {
+  console.log(`Server listening at http://localhost:${4021}`);
+});
+```
+
+## Avalanche C-Chain Integration
+
+When deploying x402 on Avalanche's C-Chain:
+
+- **Network String**: Use `avalanche` for mainnet or `avalanche-fuji` for testnet
+- **Native Token**: AVAX is used for gas fees
+- **Fast Finality**: Benefit from Avalanche's sub-second transaction finality
+- **Low Fees**: Enable micropayments for AI services with minimal transaction costs
+
+## Conclusion
+
+PayAI's x402 protocol makes it simple to build monetized AI services on Avalanche. Whether you're creating AI agents that need to earn revenue or building applications that consume paid AI services, x402 provides the payment infrastructure you need to get started quickly. With Avalanche C-Chain's fast finality and low transaction costs, you can enable seamless micropayments for AI services.
+

@@ -1,238 +1,40 @@
 "use client";
-
-import * as React from "react";
-import { useState, useEffect } from "react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  XAxis,
-  Label,
-  Pie,
-  PieChart,
-} from "recharts";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  type ChartConfig,
-  ChartContainer,
-  ChartStyle,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
-} from "@/components/ui/chart";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import {
-  Landmark,
-  Shield,
-  Loader2,
-  TrendingUp,
-  Monitor,
-  HandCoins,
-} from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Line, LineChart, Brush, ResponsiveContainer, Tooltip, ComposedChart } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { type ChartConfig, ChartLegendContent, ChartStyle, ChartContainer, ChartTooltip, ChartLegend } from "@/components/ui/chart";
+import { Landmark, Shield, TrendingUp, Monitor, HandCoins, Users, Percent } from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
+import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
+import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
+import { TimeSeriesDataPoint, ChartDataPoint, PrimaryNetworkMetrics, VersionCount } from "@/types/stats";
 
-interface PrimaryNetworkMetrics {
-  // Validator versions JSON string
-  validator_versions: string;
-  // 30 days of delegator count
-  delegator_count_day1: number | string;
-  delegator_count_day2: number | string;
-  delegator_count_day3: number | string;
-  delegator_count_day4: number | string;
-  delegator_count_day5: number | string;
-  delegator_count_day6: number | string;
-  delegator_count_day7: number | string;
-  delegator_count_day8: number | string;
-  delegator_count_day9: number | string;
-  delegator_count_day10: number | string;
-  delegator_count_day11: number | string;
-  delegator_count_day12: number | string;
-  delegator_count_day13: number | string;
-  delegator_count_day14: number | string;
-  delegator_count_day15: number | string;
-  delegator_count_day16: number | string;
-  delegator_count_day17: number | string;
-  delegator_count_day18: number | string;
-  delegator_count_day19: number | string;
-  delegator_count_day20: number | string;
-  delegator_count_day21: number | string;
-  delegator_count_day22: number | string;
-  delegator_count_day23: number | string;
-  delegator_count_day24: number | string;
-  delegator_count_day25: number | string;
-  delegator_count_day26: number | string;
-  delegator_count_day27: number | string;
-  delegator_count_day28: number | string;
-  delegator_count_day29: number | string;
-  delegator_count_day30: number | string;
-  // 30 days of delegator weight
-  delegator_weight_day1: number | string;
-  delegator_weight_day2: number | string;
-  delegator_weight_day3: number | string;
-  delegator_weight_day4: number | string;
-  delegator_weight_day5: number | string;
-  delegator_weight_day6: number | string;
-  delegator_weight_day7: number | string;
-  delegator_weight_day8: number | string;
-  delegator_weight_day9: number | string;
-  delegator_weight_day10: number | string;
-  delegator_weight_day11: number | string;
-  delegator_weight_day12: number | string;
-  delegator_weight_day13: number | string;
-  delegator_weight_day14: number | string;
-  delegator_weight_day15: number | string;
-  delegator_weight_day16: number | string;
-  delegator_weight_day17: number | string;
-  delegator_weight_day18: number | string;
-  delegator_weight_day19: number | string;
-  delegator_weight_day20: number | string;
-  delegator_weight_day21: number | string;
-  delegator_weight_day22: number | string;
-  delegator_weight_day23: number | string;
-  delegator_weight_day24: number | string;
-  delegator_weight_day25: number | string;
-  delegator_weight_day26: number | string;
-  delegator_weight_day27: number | string;
-  delegator_weight_day28: number | string;
-  delegator_weight_day29: number | string;
-  delegator_weight_day30: number | string;
-  // 30 days of validator count
-  validator_count_day1: number | string;
-  validator_count_day2: number | string;
-  validator_count_day3: number | string;
-  validator_count_day4: number | string;
-  validator_count_day5: number | string;
-  validator_count_day6: number | string;
-  validator_count_day7: number | string;
-  validator_count_day8: number | string;
-  validator_count_day9: number | string;
-  validator_count_day10: number | string;
-  validator_count_day11: number | string;
-  validator_count_day12: number | string;
-  validator_count_day13: number | string;
-  validator_count_day14: number | string;
-  validator_count_day15: number | string;
-  validator_count_day16: number | string;
-  validator_count_day17: number | string;
-  validator_count_day18: number | string;
-  validator_count_day19: number | string;
-  validator_count_day20: number | string;
-  validator_count_day21: number | string;
-  validator_count_day22: number | string;
-  validator_count_day23: number | string;
-  validator_count_day24: number | string;
-  validator_count_day25: number | string;
-  validator_count_day26: number | string;
-  validator_count_day27: number | string;
-  validator_count_day28: number | string;
-  validator_count_day29: number | string;
-  validator_count_day30: number | string;
-  // 30 days of validator weight
-  validator_weight_day1: number | string;
-  validator_weight_day2: number | string;
-  validator_weight_day3: number | string;
-  validator_weight_day4: number | string;
-  validator_weight_day5: number | string;
-  validator_weight_day6: number | string;
-  validator_weight_day7: number | string;
-  validator_weight_day8: number | string;
-  validator_weight_day9: number | string;
-  validator_weight_day10: number | string;
-  validator_weight_day11: number | string;
-  validator_weight_day12: number | string;
-  validator_weight_day13: number | string;
-  validator_weight_day14: number | string;
-  validator_weight_day15: number | string;
-  validator_weight_day16: number | string;
-  validator_weight_day17: number | string;
-  validator_weight_day18: number | string;
-  validator_weight_day19: number | string;
-  validator_weight_day20: number | string;
-  validator_weight_day21: number | string;
-  validator_weight_day22: number | string;
-  validator_weight_day23: number | string;
-  validator_weight_day24: number | string;
-  validator_weight_day25: number | string;
-  validator_weight_day26: number | string;
-  validator_weight_day27: number | string;
-  validator_weight_day28: number | string;
-  validator_weight_day29: number | string;
-  validator_weight_day30: number | string;
-}
-
-interface ChartDataPoint {
-  day: string;
-  value: number;
-}
-
-interface ValidatorInfo {
-  txHash: string;
+interface ValidatorData {
   nodeId: string;
-  subnetId: string;
   amountStaked: string;
   delegationFee: string;
-  startTimestamp: number;
-  endTimestamp: number;
-  blsCredentials: {
-    publicKey: string;
-    proofOfPossession: string;
-  };
+  validationStatus: string;
   delegatorCount: number;
   amountDelegated: string;
-  rewards: {
-    validationRewardAmount: string;
-    delegationRewardAmount: string;
-    rewardAddresses: string[];
-    rewardTxHash: string;
-  };
-  validationStatus: string;
-  avalancheGoVersion?: string; // This is what we're looking for
 }
 
-interface ValidatorsResponse {
-  nextPageToken?: string;
-  validators: ValidatorInfo[];
-}
-
-interface VersionCount {
-  version: string;
-  count: number;
-  percentage: number;
-  amountStaked: number; // in AVAX
-  stakingPercentage: number;
-}
-
-export default function PrimaryNetworkMetrics() {
+export default function PrimaryNetworkValidatorMetrics() {
   const [metrics, setMetrics] = useState<PrimaryNetworkMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = React.useState("30d");
   const [validatorVersions, setValidatorVersions] = useState<VersionCount[]>(
     []
   );
   const [versionsError, setVersionsError] = useState<string | null>(null);
+  const [validators, setValidators] = useState<ValidatorData[]>([]);
+  const [validatorsLoading, setValidatorsLoading] = useState(true);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch("/api/primary-network-stats");
+      const response = await fetch(`/api/primary-network-stats?timeRange=all`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -244,18 +46,12 @@ export default function PrimaryNetworkMetrics() {
       }
 
       setMetrics(primaryNetworkData);
-      setLastUpdated(new Date().toLocaleString());
 
       if (primaryNetworkData.validator_versions) {
         try {
-          console.log(
-            "Raw validator_versions data:",
-            primaryNetworkData.validator_versions
-          );
           const versionsData = JSON.parse(
             primaryNetworkData.validator_versions
           );
-          console.log("Parsed validator versions data:", versionsData);
 
           const versionArray: VersionCount[] = Object.entries(versionsData)
             .map(([version, data]: [string, any]) => ({
@@ -267,31 +63,21 @@ export default function PrimaryNetworkMetrics() {
             }))
             .sort((a, b) => b.count - a.count);
 
-          const totalValidators = versionArray.reduce(
-            (sum, item) => sum + item.count,
-            0
-          );
-          const totalStaked = versionArray.reduce(
-            (sum, item) => sum + item.amountStaked,
-            0
-          );
+          const totalValidators = versionArray.reduce((sum, item) => sum + item.count, 0);
+          const totalStaked = versionArray.reduce((sum, item) => sum + item.amountStaked, 0);
 
           versionArray.forEach((item) => {
-            item.percentage =
-              totalValidators > 0 ? (item.count / totalValidators) * 100 : 0;
-            item.stakingPercentage =
-              totalStaked > 0 ? (item.amountStaked / totalStaked) * 100 : 0;
+            item.percentage = totalValidators > 0 ? (item.count / totalValidators) * 100 : 0;
+            item.stakingPercentage = totalStaked > 0 ? (item.amountStaked / totalStaked) * 100 : 0;
           });
 
           setValidatorVersions(versionArray);
         } catch (err) {
-          setVersionsError(
-            `Failed to parse validator versions data: ${err instanceof Error ? err.message : "Unknown error"}`
-          );
+          setVersionsError(`Failed to parse validator versions data`);
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(`An error occurred while fetching data`);
     } finally {
       setLoading(false);
     }
@@ -299,6 +85,23 @@ export default function PrimaryNetworkMetrics() {
 
   useEffect(() => {
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    async function fetchValidators() {
+      try {
+        setValidatorsLoading(true);
+        const response = await fetch("/api/primary-network-validators");
+        if (response.ok) {
+          const data = await response.json();
+          setValidators(data.validators || []);
+        }
+      } catch (err) {
+      } finally {
+        setValidatorsLoading(false);
+      }
+    }
+    fetchValidators();
   }, []);
 
   const formatNumber = (num: number | string): string => {
@@ -325,74 +128,193 @@ export default function PrimaryNetworkMetrics() {
     } else if (avaxValue >= 1e3) {
       return `${(avaxValue / 1e3).toFixed(2)}K AVAX`;
     }
-    return `${avaxValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} AVAX`;
+    return `${avaxValue.toLocaleString(undefined, {
+      maximumFractionDigits: 2,
+    })} AVAX`;
   };
 
-  const getChartData = (metricPrefix: string): ChartDataPoint[] => {
-    if (!metrics) return [];
+  const formatWeightForAxis = (weight: number | string): string => {
+    if (weight === "N/A" || weight === "") return "N/A";
+    const numValue =
+      typeof weight === "string" ? Number.parseFloat(weight) : weight;
+    if (isNaN(numValue)) return "N/A";
 
-    const today = new Date();
-    const chartData: ChartDataPoint[] = [];
-    const daysToShow = timeRange === "7d" ? 7 : 30;
+    const avaxValue = numValue / 1e9;
 
-    for (let i = daysToShow - 1; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      const dayLabel = date.toISOString().split("T")[0]; // Use ISO format for consistency
-
-      const dayKey =
-        `${metricPrefix}_day${daysToShow - i}` as keyof PrimaryNetworkMetrics;
-      const value = metrics[dayKey];
-      const numValue =
-        typeof value === "string" ? Number.parseFloat(value) : value;
-
-      chartData.push({
-        day: dayLabel,
-        value: isNaN(numValue as number) ? 0 : (numValue as number),
-      });
+    if (avaxValue >= 1e12) {
+      return `${(avaxValue / 1e12).toFixed(2)}T`;
+    } else if (avaxValue >= 1e9) {
+      return `${(avaxValue / 1e9).toFixed(2)}B`;
+    } else if (avaxValue >= 1e6) {
+      return `${(avaxValue / 1e6).toFixed(2)}M`;
+    } else if (avaxValue >= 1e3) {
+      return `${(avaxValue / 1e3).toFixed(2)}K`;
     }
-
-    return chartData;
+    return avaxValue.toLocaleString(undefined, {
+      maximumFractionDigits: 2,
+    });
   };
 
-  const getCurrentValue = (metricPrefix: string): number | string => {
-    if (!metrics) return "N/A";
-    const currentKey = `${metricPrefix}_day1` as keyof PrimaryNetworkMetrics;
-    return metrics[currentKey] || "N/A";
+  const formatStake = (value: number) => {
+    if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
+    if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
+    if (value >= 1e3) return `${(value / 1e3).toFixed(2)}K`;
+    return value.toFixed(2);
   };
 
-  const getValueChange = (
-    metricPrefix: string
-  ): { change: number; isPositive: boolean } => {
-    if (!metrics) return { change: 0, isPositive: true };
+  const formatPercentage = (value: number) => `${value.toFixed(1)}%`;
 
-    const currentKey = `${metricPrefix}_day1` as keyof PrimaryNetworkMetrics;
-    const previousKey = `${metricPrefix}_day2` as keyof PrimaryNetworkMetrics;
+  // Calculate Validator Weight Distribution (stake + delegations)
+  const validatorWeightDistribution = useMemo(() => {
+    if (!validators.length) return [];
+    const sorted = [...validators]
+      .map((v) => ({
+        nodeId: v.nodeId,
+        weight:
+          (parseFloat(v.amountStaked) + parseFloat(v.amountDelegated)) / 1e9,
+      }))
+      .sort((a, b) => b.weight - a.weight);
+    const totalWeight = sorted.reduce((sum, v) => sum + v.weight, 0);
+    let cumulativeWeight = 0;
+    return sorted.map((v, index) => {
+      cumulativeWeight += v.weight;
+      return {
+        rank: index + 1,
+        weight: v.weight,
+        cumulativePercentage: (cumulativeWeight / totalWeight) * 100,
+      };
+    });
+  }, [validators]);
 
-    const current =
-      typeof metrics[currentKey] === "string"
-        ? Number.parseFloat(metrics[currentKey] as string)
-        : metrics[currentKey];
-    const previous =
-      typeof metrics[previousKey] === "string"
-        ? Number.parseFloat(metrics[previousKey] as string)
-        : metrics[previousKey];
+  // Calculate Validator Stake Distribution (own stake only)
+  const validatorStakeDistribution = useMemo(() => {
+    if (!validators.length) return [];
+    const sorted = [...validators]
+      .map((v) => ({
+        nodeId: v.nodeId,
+        weight: parseFloat(v.amountStaked) / 1e9,
+      }))
+      .sort((a, b) => b.weight - a.weight);
+    const totalWeight = sorted.reduce((sum, v) => sum + v.weight, 0);
+    let cumulativeWeight = 0;
+    return sorted.map((v, index) => {
+      cumulativeWeight += v.weight;
+      return {
+        rank: index + 1,
+        weight: v.weight,
+        cumulativePercentage: (cumulativeWeight / totalWeight) * 100,
+      };
+    });
+  }, [validators]);
 
-    if (
-      isNaN(current as number) ||
-      isNaN(previous as number) ||
-      previous === 0
-    ) {
-      return { change: 0, isPositive: true };
+  // Calculate Delegator Stake Distribution (by validator)
+  const delegatorStakeDistribution = useMemo(() => {
+    if (!validators.length) return [];
+    const sorted = [...validators]
+      .map((v) => ({
+        nodeId: v.nodeId,
+        weight: parseFloat(v.amountDelegated) / 1e9,
+      }))
+      .sort((a, b) => b.weight - a.weight);
+    const totalWeight = sorted.reduce((sum, v) => sum + v.weight, 0);
+    let cumulativeWeight = 0;
+    return sorted.map((v, index) => {
+      cumulativeWeight += v.weight;
+      return {
+        rank: index + 1,
+        weight: v.weight,
+        cumulativePercentage:
+          totalWeight > 0 ? (cumulativeWeight / totalWeight) * 100 : 0,
+      };
+    });
+  }, [validators]);
+
+  // Calculate Delegation Fee Distribution
+  const feeDistribution = useMemo(() => {
+    if (!validators.length) return [];
+    const feeMap = new Map<number, { count: number; totalWeight: number }>();
+    validators.forEach((v) => {
+      const fee = parseFloat(v.delegationFee);
+      const weight = parseFloat(v.amountStaked) / 1e9;
+      if (!feeMap.has(fee)) {
+        feeMap.set(fee, { count: 0, totalWeight: 0 });
+      }
+      const current = feeMap.get(fee)!;
+      current.count += 1;
+      current.totalWeight += weight;
+    });
+    const actualData = Array.from(feeMap.entries())
+      .map(([fee, data]) => ({
+        fee,
+        count: data.count,
+        totalWeight: data.totalWeight,
+      }))
+      .sort((a, b) => a.fee - b.fee);
+    const tickValues = [0, 20, 40, 60, 80, 100];
+    tickValues.forEach((tick) => {
+      if (!actualData.some((d) => d.fee === tick)) {
+        actualData.push({ fee: tick, count: 0, totalWeight: 0 });
+      }
+    });
+    return actualData.sort((a, b) => a.fee - b.fee);
+  }, [validators]);
+
+  const getChartData = (metricKey: keyof Pick<PrimaryNetworkMetrics, "validator_count" | "validator_weight" | "delegator_count" | "delegator_weight">): ChartDataPoint[] => {
+    if (!metrics || !metrics[metricKey]?.data) return [];
+    const today = new Date().toISOString().split("T")[0];
+    const finalizedData = metrics[metricKey].data.filter(
+      (point) => point.date !== today
+    );
+
+    return finalizedData
+      .map((point: TimeSeriesDataPoint) => ({
+        day: point.date,
+        value:
+          typeof point.value === "string"
+            ? parseFloat(point.value)
+            : point.value,
+      }))
+      .reverse();
+  };
+
+  const formatTooltipValue = (value: number, metricKey: string): string => {
+    const roundedValue = ["validator_count", "delegator_count"].includes(
+      metricKey
+    )
+      ? Math.round(value)
+      : value;
+
+    switch (metricKey) {
+      case "validator_count":
+        return `${formatNumber(roundedValue)} Validators`;
+
+      case "validator_weight":
+        return `${formatWeight(value)} Staked`;
+
+      case "delegator_count":
+        return `${formatNumber(roundedValue)} Delegators`;
+
+      case "delegator_weight":
+        return `${formatWeight(value)} Delegated Stake`;
+
+      default:
+        return formatNumber(value);
     }
-
-    const change =
-      (((((current as number) - previous) as number) / previous) as number) *
-      100;
-    return { change: Math.abs(change), isPositive: change >= 0 };
   };
 
-  // Prepare pie chart data
+  const getCurrentValue = (
+    metricKey: keyof Pick<
+      PrimaryNetworkMetrics,
+      | "validator_count"
+      | "validator_weight"
+      | "delegator_count"
+      | "delegator_weight"
+    >
+  ): number | string => {
+    if (!metrics || !metrics[metricKey]) return "N/A";
+    return metrics[metricKey].current_value;
+  };
+
   const getPieChartData = () => {
     if (!validatorVersions.length) return [];
 
@@ -402,11 +324,10 @@ export default function PrimaryNetworkMetrics() {
       percentage: version.percentage,
       amountStaked: version.amountStaked,
       stakingPercentage: version.stakingPercentage,
-      fill: `hsl(${195 + index * 15}, 100%, ${65 - index * 8}%)`, // Direct color values
+      fill: `hsl(${195 + index * 15}, 100%, ${65 - index * 8}%)`,
     }));
   };
 
-  // Generate chart config for versions
   const getVersionsChartConfig = (): ChartConfig => {
     const config: ChartConfig = {
       count: {
@@ -417,7 +338,7 @@ export default function PrimaryNetworkMetrics() {
     validatorVersions.forEach((version, index) => {
       config[version.version] = {
         label: version.version,
-        color: `hsl(${195 + index * 15}, 100%, ${65 - index * 8}%)`, // Blue variations
+        color: `hsl(${195 + index * 15}, 100%, ${65 - index * 8}%)`,
       };
     });
 
@@ -431,73 +352,66 @@ export default function PrimaryNetworkMetrics() {
     {
       title: "Validator Count",
       icon: Monitor,
-      metricPrefix: "validator_count",
-      description: `Number of active validators over the past ${timeRange === "7d" ? "7" : "30"} days`,
-      chartConfig: {
-        value: {
-          label: "Validator Count",
-          color: "#40c9ff",
-        },
-      } satisfies ChartConfig,
+      metricKey: "validator_count" as const,
+      description: "Number of active validators",
+      color: "#40c9ff",
+      chartType: "bar" as const,
     },
     {
       title: "Validator Weight",
       icon: Landmark,
-      metricPrefix: "validator_weight",
-      description: `Total validator weight over the past ${timeRange === "7d" ? "7" : "30"} days`,
-      chartConfig: {
-        value: {
-          label: "Validator Weight",
-          color: "#40c9ff",
-        },
-      } satisfies ChartConfig,
+      metricKey: "validator_weight" as const,
+      description: "Total validator weight",
+      color: "#40c9ff",
+      chartType: "area" as const,
     },
     {
       title: "Delegator Count",
       icon: HandCoins,
-      metricPrefix: "delegator_count",
-      description: `Number of active delegators over the past ${timeRange === "7d" ? "7" : "30"} days`,
-      chartConfig: {
-        value: {
-          label: "Delegator Count",
-          color: "#40c9ff",
-        },
-      } satisfies ChartConfig,
+      metricKey: "delegator_count" as const,
+      description: "Number of active delegators",
+      color: "#8b5cf6",
+      chartType: "bar" as const,
     },
     {
       title: "Delegator Weight",
       icon: Landmark,
-      metricPrefix: "delegator_weight",
-      description: `Total delegator weight over the past ${timeRange === "7d" ? "7" : "30"} days`,
-      chartConfig: {
-        value: {
-          label: "Delegator Weight",
-          color: "#40c9ff",
-        },
-      } satisfies ChartConfig,
+      metricKey: "delegator_weight" as const,
+      description: "Total delegator weight",
+      color: "#a855f7",
+      chartType: "area" as const,
     },
   ];
 
+  const [chartPeriods, setChartPeriods] = useState<
+    Record<string, "D" | "W" | "M" | "Q" | "Y">
+  >(Object.fromEntries(chartConfigs.map((config) => [config.metricKey, "D"])));
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-        <div className="container mx-auto p-6">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="flex flex-col items-center gap-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-muted-foreground">
-                Fetching real-time Primary Network data...
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
+        <div className="container mx-auto mt-4 p-6 pb-24 space-y-12">
+          <div className="space-y-2">
+            <div>
+              <h1 className="text-2xl md:text-5xl mb-4">
+                Primary Network Validator Metrics
+              </h1>
+              <p className="text-zinc-400 text-md text-left">
+                Real-time insights into the Avalanche Primary Network
+                performance and validator distribution
               </p>
             </div>
           </div>
+          <ChartSkeletonLoader />
         </div>
+        <StatsBubbleNav />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
         <div className="container mx-auto p-6">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
@@ -518,46 +432,48 @@ export default function PrimaryNetworkMetrics() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <div className="container mx-auto mt-4 p-6 space-y-12">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
+      <div className="container mx-auto mt-4 p-4 sm:p-6 pb-24 space-y-8 sm:space-y-12">
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl md:text-5xl mb-4">
-                Primary Network Validator Metrics
-              </h1>
-              <p className="text-zinc-400 text-md text-left">
-                Real-time insights into the Avalanche Primary Network
-                performance and validator distribution
-              </p>
-            </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl md:text-5xl mb-2 sm:mb-4 break-words">
+              Primary Network Validator Metrics
+            </h1>
+            <p className="text-zinc-400 text-sm sm:text-md text-left">
+              Real-time insights into the Avalanche Primary Network performance
+              and validator distribution
+            </p>
           </div>
         </div>
 
-        <section className="space-y-6">
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-2xl font-medium text-left">Network Overview</h2>
+            <h2 className="text-lg sm:text-2xl font-medium text-left">
+              Network Overview
+            </h2>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             {chartConfigs.map((config) => {
-              const currentValue = getCurrentValue(config.metricPrefix);
+              const currentValue = getCurrentValue(config.metricKey);
               const Icon = config.icon;
 
               return (
                 <div
-                  key={config.metricPrefix}
-                  className="text-center p-6 rounded-lg bg-card border"
+                  key={config.metricKey}
+                  className="text-center p-4 sm:p-6 rounded-md bg-card border border-gray-200 dark:border-gray-700"
                 >
-                  <Icon
-                    className="h-8 w-8 mx-auto mb-3"
-                    style={{ color: "#40c9ff" }}
-                  />
-                  <p className="text-sm text-muted-foreground mb-1">
-                    {config.title}
-                  </p>
-                  <p className="text-xl font-semibold">
-                    {config.metricPrefix.includes("weight")
+                  <div className="flex items-center justify-center gap-2 mb-2 sm:mb-3">
+                    <Icon
+                      className="h-4 w-4 sm:h-5 sm:w-5"
+                      style={{ color: config.color }}
+                    />
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                      {config.title}
+                    </p>
+                  </div>
+                  <p className="text-xl sm:text-3xl font-mono font-semibold break-all">
+                    {config.metricKey.includes("weight")
                       ? formatWeight(currentValue)
                       : formatNumber(currentValue)}
                   </p>
@@ -567,171 +483,549 @@ export default function PrimaryNetworkMetrics() {
           </div>
         </section>
 
-        <section className="space-y-6">
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-2xl font-medium text-left">
+            <h2 className="text-lg sm:text-2xl font-medium text-left">
               Historical Trends
             </h2>
-            <p className="text-zinc-400 text-md text-left">
+            <p className="text-zinc-400 text-sm sm:text-md text-left">
               Track network growth and validator activity over time
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {chartConfigs.map((config, index) => {
-              const chartData = getChartData(config.metricPrefix);
-              const currentValue = getCurrentValue(config.metricPrefix);
-              const { change, isPositive } = getValueChange(
-                config.metricPrefix
-              );
-              const Icon = config.icon;
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {chartConfigs.map((config) => {
+              const rawData = getChartData(config.metricKey);
+              if (rawData.length === 0) return null;
+
+              const period = chartPeriods[config.metricKey];
+              const currentValue = getCurrentValue(config.metricKey);
 
               return (
-                <Card key={config.metricPrefix} className="w-full">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <CardTitle className="flex items-center gap-2">
-                          <Icon
-                            className="h-5 w-5"
-                            style={{ color: "#40c9ff" }}
-                          />
-                          {config.title}
-                        </CardTitle>
-                        <CardDescription>{config.description}</CardDescription>
-                      </div>
-                      {/* Replaced CardAction with direct div and moved controls to header */}
-                      <div className="flex items-center gap-2">
-                        <ToggleGroup
-                          type="single"
-                          value={timeRange}
-                          onValueChange={setTimeRange}
-                          variant="outline"
-                          className="hidden sm:flex"
-                        >
-                          <ToggleGroupItem value="30d">
-                            Last 30 days
-                          </ToggleGroupItem>
-                          <ToggleGroupItem value="7d">
-                            Last 7 days
-                          </ToggleGroupItem>
-                        </ToggleGroup>
-                        <Select value={timeRange} onValueChange={setTimeRange}>
-                          <SelectTrigger
-                            className="w-40 sm:hidden"
-                            size="sm"
-                            aria-label="Select a value"
-                          >
-                            <SelectValue placeholder="Last 30 days" />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-xl">
-                            <SelectItem value="30d" className="rounded-lg">
-                              Last 30 days
-                            </SelectItem>
-                            <SelectItem value="7d" className="rounded-lg">
-                              Last 7 days
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="text-2xl font-bold">
-                        {config.metricPrefix.includes("weight")
-                          ? formatWeight(currentValue)
-                          : formatNumber(currentValue)}
-                      </div>
-                      {change > 0 && (
-                        <div
-                          className={`flex items-center gap-1 text-sm ${
-                            isPositive ? "text-green-600" : "text-red-600"
-                          }`}
-                        >
-                          <TrendingUp
-                            className={`h-4 w-4 ${isPositive ? "" : "rotate-180"}`}
-                          />
-                          {change.toFixed(1)}%
-                        </div>
-                      )}
-                    </div>
-                    <ChartContainer
-                      config={config.chartConfig}
-                      className="aspect-auto h-[250px] w-full"
-                    >
-                      <AreaChart data={chartData}>
-                        <defs>
-                          <linearGradient
-                            id={`fill-${config.metricPrefix}`}
-                            x1="0"
-                            y1="0"
-                            x2="0"
-                            y2="1"
-                          >
-                            <stop
-                              offset="5%"
-                              stopColor={`var(--color-value)`}
-                              stopOpacity={0.8}
-                            />
-                            <stop
-                              offset="95%"
-                              stopColor={`var(--color-value)`}
-                              stopOpacity={0.1}
-                            />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid vertical={false} />
-                        <XAxis
-                          dataKey="day"
-                          tickLine={false}
-                          axisLine={false}
-                          tickMargin={8}
-                          minTickGap={32}
-                          tickFormatter={(value) => {
-                            const date = new Date(value);
-                            return date.toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            });
-                          }}
-                        />
-                        <ChartTooltip
-                          cursor={false}
-                          content={
-                            <ChartTooltipContent
-                              labelFormatter={(value) => {
-                                return new Date(value).toLocaleDateString(
-                                  "en-US",
-                                  {
-                                    month: "short",
-                                    day: "numeric",
-                                  }
-                                );
-                              }}
-                              indicator="dot"
-                              formatter={(value) => [
-                                config.metricPrefix.includes("weight")
-                                  ? formatWeight(value as number)
-                                  : formatNumber(value as number),
-                                config.title,
-                              ]}
-                            />
-                          }
-                        />
-                        <Area
-                          dataKey="value"
-                          type="natural"
-                          fill={`url(#fill-${config.metricPrefix})`}
-                          stroke={`var(--color-value)`}
-                          strokeWidth={2}
-                        />
-                      </AreaChart>
-                    </ChartContainer>
-                  </CardContent>
-                </Card>
+                <ValidatorChartCard
+                  key={config.metricKey}
+                  config={config}
+                  rawData={rawData}
+                  period={period}
+                  currentValue={currentValue}
+                  onPeriodChange={(newPeriod) =>
+                    setChartPeriods((prev) => ({
+                      ...prev,
+                      [config.metricKey]: newPeriod,
+                    }))
+                  }
+                  formatTooltipValue={(value) =>
+                    formatTooltipValue(value, config.metricKey)
+                  }
+                  formatYAxisValue={
+                    config.metricKey.includes("weight")
+                      ? formatWeightForAxis
+                      : formatNumber
+                  }
+                />
               );
             })}
+          </div>
+        </section>
+
+        <section className="space-y-4 sm:space-y-6">
+          <div className="space-y-2">
+            <h2 className="text-lg sm:text-2xl font-medium text-left">
+              Stake Distribution Analysis
+            </h2>
+            <p className="text-zinc-400 text-sm sm:text-md text-left">
+              Analyze how stake is distributed across validators and delegation
+              patterns
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {validatorsLoading ? (
+              <ChartSkeletonLoader />
+            ) : (
+              <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+                <CardContent className="p-0">
+                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div
+                        className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+                        style={{ backgroundColor: "#40c9ff20" }}
+                      >
+                        <Landmark className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: "#40c9ff" }}/>
+                      </div>
+                      <div>
+                        <h3 className="text-base sm:text-lg font-normal">Current Validator Weight Distribution</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                          Total weight (stake + delegations) by rank
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                    <div className="flex items-center justify-start gap-6 mb-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-[#ef4444]" />
+                        <span>Cumulative Validator Weight Percentage by Rank</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-[#40c9ff]" />
+                        <span>Validator Weight</span>
+                      </div>
+                    </div>
+                    <ResponsiveContainer width="100%" height={350}>
+                      <ComposedChart
+                        data={validatorWeightDistribution}
+                        margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis
+                          dataKey="rank"
+                          label={{
+                            value: "Node Rank by Validator Weight",
+                            position: "insideBottom",
+                            offset: -10,
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          interval="preserveStartEnd"
+                          ticks={Array.from(
+                            {
+                              length:
+                                Math.ceil(
+                                  validatorWeightDistribution.length / 200
+                                ) + 1,
+                            },
+                            (_, i) => i * 200
+                          ).filter(
+                            (v) => v <= validatorWeightDistribution.length
+                          )}
+                        />
+                        <YAxis
+                          yAxisId="left"
+                          label={{
+                            value: "Cumulative Validator Weight % by Rank",
+                            angle: -90,
+                            position: "insideLeft",
+                            style: { textAnchor: "middle" },
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={formatPercentage}
+                        />
+                        <YAxis
+                          yAxisId="right"
+                          orientation="right"
+                          label={{
+                            value: "Weight",
+                            angle: 90,
+                            position: "insideRight",
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={formatStake}
+                        />
+                        <Tooltip
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            return (
+                              <div className="bg-background p-3 border rounded-lg shadow-lg">
+                                <p className="font-semibold">
+                                  Rank: {payload[0].payload.rank}
+                                </p>
+                                <p className="text-sm">
+                                  Weight:{" "}
+                                  {formatStake(payload[0].payload.weight)}
+                                </p>
+                                <p className="text-sm">
+                                  Cumulative:{" "}
+                                  {payload[0].payload.cumulativePercentage.toFixed(
+                                    2
+                                  )}
+                                  %
+                                </p>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Bar yAxisId="right" dataKey="weight" fill="#40c9ff" />
+                        <Line
+                          yAxisId="left"
+                          type="monotone"
+                          dataKey="cumulativePercentage"
+                          stroke="#ef4444"
+                          strokeWidth={2}
+                          dot={false}
+                          name="Cumulative %"
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {validatorsLoading ? (
+              <ChartSkeletonLoader />
+            ) : (
+              <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+                <CardContent className="p-0">
+                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div
+                        className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+                        style={{ backgroundColor: "#40c9ff20" }}
+                      >
+                        <Landmark className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: "#40c9ff" }}/>
+                      </div>
+                      <div>
+                        <h3 className="text-base sm:text-lg font-normal">Validator Stake Distribution</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                          Own stake only (excluding delegations)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                    <div className="flex items-center justify-start gap-6 mb-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-[#ef4444]" />
+                        <span>Cumulative Stake Percentage by Rank</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-[#40c9ff]" />
+                        <span>Validator Stake</span>
+                      </div>
+                    </div>
+                    <ResponsiveContainer width="100%" height={350}>
+                      <ComposedChart
+                        data={validatorStakeDistribution}
+                        margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis
+                          dataKey="rank"
+                          label={{
+                            value: "Validator Rank by AVAX Staked",
+                            position: "insideBottom",
+                            offset: -10,
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          interval="preserveStartEnd"
+                          ticks={Array.from(
+                            {
+                              length:
+                                Math.ceil(
+                                  validatorStakeDistribution.length / 200
+                                ) + 1,
+                            },
+                            (_, i) => i * 200
+                          ).filter(
+                            (v) => v <= validatorStakeDistribution.length
+                          )}
+                        />
+                        <YAxis
+                          yAxisId="left"
+                          label={{
+                            value: "Cumulative Stake % by Rank",
+                            angle: -90,
+                            position: "insideLeft",
+                            style: { textAnchor: "middle" },
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={formatPercentage}
+                        />
+                        <YAxis
+                          yAxisId="right"
+                          orientation="right"
+                          label={{
+                            value: "Stake",
+                            angle: 90,
+                            position: "insideRight",
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={formatStake}
+                        />
+                        <Tooltip
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            return (
+                              <div className="bg-background p-3 border rounded-lg shadow-lg">
+                                <p className="font-semibold">
+                                  Rank: {payload[0].payload.rank}
+                                </p>
+                                <p className="text-sm">
+                                  Stake:{" "}
+                                  {formatStake(payload[0].payload.weight)}
+                                </p>
+                                <p className="text-sm">
+                                  Cumulative:{" "}
+                                  {payload[0].payload.cumulativePercentage.toFixed(
+                                    2
+                                  )}
+                                  %
+                                </p>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Bar yAxisId="right" dataKey="weight" fill="#40c9ff" />
+                        <Line
+                          yAxisId="left"
+                          type="monotone"
+                          dataKey="cumulativePercentage"
+                          stroke="#ef4444"
+                          strokeWidth={2}
+                          dot={false}
+                          name="Cumulative %"
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {validatorsLoading ? (
+              <ChartSkeletonLoader />
+            ) : (
+              <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+                <CardContent className="p-0">
+                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div
+                        className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+                        style={{ backgroundColor: "#a855f720" }}
+                      >
+                        <Users className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: "#a855f7" }}/>
+                      </div>
+                      <div>
+                        <h3 className="text-base sm:text-lg font-normal">Delegator Stake Distribution</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                          Delegated stake across validator nodes
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                    <div className="flex items-center justify-start gap-6 mb-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-[#ef4444]" />
+                        <span>Cumulative Delegator Stake Percentage by Rank</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: "rgba(139, 92, 246, 0.6)" }}
+                        />
+                        <span>Delegator Stake</span>
+                      </div>
+                    </div>
+                    <ResponsiveContainer width="100%" height={350}>
+                      <ComposedChart
+                        data={delegatorStakeDistribution}
+                        margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis
+                          dataKey="rank"
+                          label={{
+                            value: "Node Rank by Delegator Stake",
+                            position: "insideBottom",
+                            offset: -10,
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          interval="preserveStartEnd"
+                          ticks={Array.from(
+                            {
+                              length:
+                                Math.ceil(
+                                  delegatorStakeDistribution.length / 200
+                                ) + 1,
+                            },
+                            (_, i) => i * 200
+                          ).filter(
+                            (v) => v <= delegatorStakeDistribution.length
+                          )}
+                        />
+                        <YAxis
+                          yAxisId="left"
+                          label={{
+                            value: "Cumulative Delegator Stake % by Rank",
+                            angle: -90,
+                            position: "insideLeft",
+                            style: { textAnchor: "middle" },
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={formatPercentage}
+                        />
+                        <YAxis
+                          yAxisId="right"
+                          orientation="right"
+                          label={{
+                            value: "Delegated",
+                            angle: 90,
+                            position: "insideRight",
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={formatStake}
+                        />
+                        <Tooltip
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            return (
+                              <div className="bg-background p-3 border rounded-lg shadow-lg">
+                                <p className="font-semibold">
+                                  Rank: {payload[0].payload.rank}
+                                </p>
+                                <p className="text-sm">
+                                  Delegated:{" "}
+                                  {formatStake(payload[0].payload.weight)}
+                                </p>
+                                <p className="text-sm">
+                                  Cumulative:{" "}
+                                  {payload[0].payload.cumulativePercentage.toFixed(
+                                    2
+                                  )}
+                                  %
+                                </p>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Bar
+                          yAxisId="right"
+                          dataKey="weight"
+                          fill="rgba(139, 92, 246, 0.6)"
+                        />
+                        <Line
+                          yAxisId="left"
+                          type="monotone"
+                          dataKey="cumulativePercentage"
+                          stroke="#ef4444"
+                          strokeWidth={2}
+                          dot={false}
+                          name="Cumulative %"
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {validatorsLoading ? (
+              <ChartSkeletonLoader />
+            ) : (
+              <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+                <CardContent className="p-0">
+                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div
+                        className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+                        style={{ backgroundColor: "#e8414220" }}
+                      >
+                        <Percent className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: "#e84142" }}/>
+                      </div>
+                      <div>
+                        <h3 className="text-base sm:text-lg font-normal">Delegation Fee Distribution</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                          Distribution of fees weighted by stake
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                    <ResponsiveContainer width="100%" height={350}>
+                      <BarChart
+                        data={feeDistribution}
+                        margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          vertical={false}
+                          stroke="rgba(200, 200, 200, 0.2)"
+                        />
+                        <XAxis
+                          dataKey="fee"
+                          label={{
+                            value: "Fee (%)",
+                            position: "insideBottom",
+                            offset: -10,
+                          }}
+                          className="text-xs"
+                          tick={(props: any) => {
+                            const { x, y, payload } = props;
+                            const value = parseFloat(payload.value);
+                            if ([20, 40, 60, 100].includes(value)) {
+                              return (
+                                <text
+                                  x={x}
+                                  y={y + 10}
+                                  textAnchor="middle"
+                                  fontSize={11}
+                                >
+                                  {value}
+                                </text>
+                              );
+                            }
+                            return <g />;
+                          }}
+                          tickLine={false}
+                          interval={0}
+                          axisLine={{ stroke: "rgba(255, 255, 255, 0.1)" }}
+                        />
+                        <YAxis
+                          label={{
+                            value: "Weight",
+                            angle: -90,
+                            position: "insideLeft",
+                          }}
+                          className="text-xs"
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={formatStake}
+                        />
+                        <Tooltip
+                          cursor={{ fill: "#e8414220" }}
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            const data = payload[0].payload;
+                            return (
+                              <div className="rounded-lg border bg-background p-2 shadow-sm">
+                                <div className="grid gap-2">
+                                  <p className="font-medium text-sm">
+                                    Fee: {data.fee}%
+                                  </p>
+                                  <p className="text-sm">
+                                    Validators: {data.count}
+                                  </p>
+                                  <p className="text-sm">
+                                    Weight: {formatStake(data.totalWeight)}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Bar
+                          dataKey="totalWeight"
+                          fill="#e84142"
+                          barSize={6}
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </section>
 
@@ -752,7 +1046,7 @@ export default function PrimaryNetworkMetrics() {
               <Card data-chart="pie-count" className="flex flex-col">
                 <ChartStyle id="pie-count" config={versionsChartConfig} />
                 <CardHeader className="items-center pb-0">
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 font-medium">
                     <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
                     By Validator Count
                   </CardTitle>
@@ -773,13 +1067,13 @@ export default function PrimaryNetworkMetrics() {
                           if (active && payload && payload.length) {
                             const data = payload[0].payload;
                             return (
-                              <div className="rounded-lg border bg-background p-2 shadow-sm">
+                              <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                                 <div className="grid gap-2">
                                   <div className="flex flex-col">
                                     <span className="text-[0.70rem] uppercase text-muted-foreground">
                                       {data.version}
                                     </span>
-                                    <span className="font-bold text-muted-foreground">
+                                    <span className="font-mono font-bold text-muted-foreground">
                                       {data.count} validators (
                                       {data.percentage.toFixed(1)}%)
                                     </span>
@@ -809,7 +1103,7 @@ export default function PrimaryNetworkMetrics() {
               <Card data-chart="pie-stake" className="flex flex-col">
                 <ChartStyle id="pie-stake" config={versionsChartConfig} />
                 <CardHeader className="items-center pb-0">
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 font-medium">
                     <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
                     By Stake Weight
                   </CardTitle>
@@ -830,13 +1124,13 @@ export default function PrimaryNetworkMetrics() {
                           if (active && payload && payload.length) {
                             const data = payload[0].payload;
                             return (
-                              <div className="rounded-lg border bg-background p-2 shadow-sm">
+                              <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                                 <div className="grid gap-2">
                                   <div className="flex flex-col">
                                     <span className="text-[0.70rem] uppercase text-muted-foreground">
                                       {data.version}
                                     </span>
-                                    <span className="font-bold text-muted-foreground">
+                                    <span className="font-mono font-bold text-muted-foreground">
                                       {data.amountStaked.toLocaleString(
                                         undefined,
                                         { maximumFractionDigits: 0 }
@@ -871,7 +1165,7 @@ export default function PrimaryNetworkMetrics() {
           {/* Detailed Version Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl flex items-center gap-2">
+              <CardTitle className="text-xl flex items-center gap-2 font-medium">
                 <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
                 Detailed Version Breakdown
               </CardTitle>
@@ -914,7 +1208,7 @@ export default function PrimaryNetworkMetrics() {
                             <span className="text-sm text-muted-foreground">
                               Validators:
                             </span>
-                            <span className="font-semibold">
+                            <span className="font-mono font-semibold">
                               {versionInfo.count} (
                               {versionInfo.percentage.toFixed(1)}%)
                             </span>
@@ -923,7 +1217,7 @@ export default function PrimaryNetworkMetrics() {
                             <span className="text-sm text-muted-foreground">
                               Staked:
                             </span>
-                            <span className="font-semibold">
+                            <span className="font-mono font-semibold">
                               {versionInfo.amountStaked.toLocaleString(
                                 undefined,
                                 { maximumFractionDigits: 0 }
@@ -975,6 +1269,442 @@ export default function PrimaryNetworkMetrics() {
           <ValidatorWorldMap />
         </section>
       </div>
+
+      {/* Bubble Navigation */}
+      <StatsBubbleNav />
     </div>
+  );
+}
+
+function ValidatorChartCard({
+  config,
+  rawData,
+  period,
+  currentValue,
+  onPeriodChange,
+  formatTooltipValue,
+  formatYAxisValue,
+}: {
+  config: any;
+  rawData: any[];
+  period: "D" | "W" | "M" | "Q" | "Y";
+  currentValue: number | string;
+  onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
+  formatTooltipValue: (value: number) => string;
+  formatYAxisValue: (value: number) => string;
+}) {
+  const [brushIndexes, setBrushIndexes] = useState<{
+    startIndex: number;
+    endIndex: number;
+  } | null>(null);
+
+  const aggregatedData = useMemo(() => {
+    if (period === "D") return rawData;
+
+    const grouped = new Map<
+      string,
+      { sum: number; count: number; date: string }
+    >();
+
+    rawData.forEach((point) => {
+      const date = new Date(point.day);
+      let key: string;
+
+      if (period === "W") {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
+      } else if (period === "M") {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}`;
+      } else if (period === "Q") {
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
+      } else {
+        key = String(date.getFullYear());
+      }
+
+      if (!grouped.has(key)) {
+        grouped.set(key, { sum: 0, count: 0, date: key });
+      }
+
+      const group = grouped.get(key)!;
+      group.sum += point.value;
+      group.count += 1;
+    });
+
+    return Array.from(grouped.values())
+      .map((group) => ({
+        day: group.date,
+        value: group.sum / group.count,
+      }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+  }, [rawData, period]);
+
+  useEffect(() => {
+    if (aggregatedData.length === 0) return;
+
+    if (period === "D") {
+      const daysToShow = 90;
+      setBrushIndexes({
+        startIndex: Math.max(0, aggregatedData.length - daysToShow),
+        endIndex: aggregatedData.length - 1,
+      });
+    } else {
+      setBrushIndexes({
+        startIndex: 0,
+        endIndex: aggregatedData.length - 1,
+      });
+    }
+  }, [period, aggregatedData.length]);
+
+  const displayData = brushIndexes
+    ? aggregatedData.slice(brushIndexes.startIndex, brushIndexes.endIndex + 1)
+    : aggregatedData;
+  const dynamicChange = useMemo(() => {
+    if (!displayData || displayData.length < 2) {
+      return { change: 0, isPositive: true };
+    }
+    const firstValue = displayData[0].value;
+    const lastValue = displayData[displayData.length - 1].value;
+    if (lastValue === 0) {
+      return { change: 0, isPositive: true };
+    }
+    const changePercentage = ((lastValue - firstValue) / firstValue) * 100;
+    return {
+      change: Math.abs(changePercentage),
+      isPositive: changePercentage >= 0,
+    };
+  }, [displayData]);
+
+  const formatXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) {
+        return `${parts[1]} '${parts[0].slice(-2)}`;
+      }
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        year: "2-digit",
+      });
+    }
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  const formatBrushXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) {
+        return `${parts[1]} ${parts[0]}`;
+      }
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatTooltipDate = (value: string) => {
+    if (period === "Y") {
+      return value;
+    }
+
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) {
+        return `${parts[1]} ${parts[0]}`;
+      }
+      return value;
+    }
+
+    const date = new Date(value);
+
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      });
+    }
+
+    if (period === "W") {
+      const endDate = new Date(date);
+      endDate.setDate(date.getDate() + 6);
+      const startMonth = date.toLocaleDateString("en-US", { month: "long" });
+      const endMonth = endDate.toLocaleDateString("en-US", { month: "long" });
+      const startDay = date.getDate();
+      const endDay = endDate.getDate();
+      const year = endDate.getFullYear();
+
+      if (startMonth === endMonth) {
+        return `${startMonth} ${startDay}-${endDay}, ${year}`;
+      } else {
+        return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
+      }
+    }
+
+    return date.toLocaleDateString("en-US", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const Icon = config.icon;
+
+  return (
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+      <CardContent className="p-0">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div
+              className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+              style={{ backgroundColor: `${config.color}20` }}
+            >
+              <Icon
+                className="h-5 w-5 sm:h-6 sm:w-6"
+                style={{ color: config.color }}
+              />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-normal">
+                {config.title}
+              </h3>
+              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                {config.description}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-0.5 sm:gap-1">
+            {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => onPeriodChange(p)}
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm  rounded-md transition-colors ${
+                  period === p
+                    ? "text-white dark:text-white"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+                style={
+                  period === p
+                    ? { backgroundColor: `${config.color}`, opacity: 0.9 }
+                    : {}
+                }
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="px-5 pt-6 pb-6">
+          {/* Current Value and Change */}
+          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4">
+            <div className="text-md sm:text-xl font-mono break-all">
+              {formatTooltipValue(
+                typeof currentValue === "string"
+                  ? parseFloat(currentValue)
+                  : currentValue
+              )}
+            </div>
+            {dynamicChange.change > 0 && (
+              <div
+                className={`flex items-center gap-1 text-xs sm:text-sm ${
+                  dynamicChange.isPositive ? "text-green-600" : "text-red-600"
+                }`}
+                title={`Change over selected time range`}
+              >
+                <TrendingUp
+                  className={`h-3 w-3 sm:h-4 sm:w-4 ${
+                    dynamicChange.isPositive ? "" : "rotate-180"
+                  }`}
+                />
+                {dynamicChange.change.toFixed(1)}%
+              </div>
+            )}
+          </div>
+
+          <div className="mb-6">
+            <ResponsiveContainer width="100%" height={350}>
+              {config.chartType === "bar" ? (
+                <BarChart
+                  data={displayData}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-gray-200 dark:stroke-gray-700"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={formatXAxis}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tickFormatter={formatYAxisValue}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: `${config.color}20` }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const formattedDate = formatTooltipDate(
+                        payload[0].payload.day
+                      );
+                      return (
+                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                          <div className="grid gap-2">
+                            <div className="font-medium text-sm">
+                              {formattedDate}
+                            </div>
+                            <div className="text-sm">
+                              {formatTooltipValue(payload[0].value as number)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar
+                    dataKey="value"
+                    fill={config.color}
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              ) : (
+                <AreaChart
+                  data={displayData}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient
+                      id={`gradient-${config.metricKey}`}
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor={config.color}
+                        stopOpacity={0.3}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor={config.color}
+                        stopOpacity={0}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-gray-200 dark:stroke-gray-700"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={formatXAxis}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tickFormatter={formatYAxisValue}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: `${config.color}20` }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const formattedDate = formatTooltipDate(
+                        payload[0].payload.day
+                      );
+                      return (
+                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                          <div className="grid gap-2">
+                            <div className="font-medium text-sm">
+                              {formattedDate}
+                            </div>
+                            <div className="text-sm">
+                              {formatTooltipValue(payload[0].value as number)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke={config.color}
+                    fill={`url(#gradient-${config.metricKey})`}
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              )}
+            </ResponsiveContainer>
+          </div>
+
+          {/* Brush Slider */}
+          <div className="mt-4 bg-white dark:bg-black pl-[60px]">
+            <ResponsiveContainer width="100%" height={80}>
+              <LineChart
+                data={aggregatedData}
+                margin={{ top: 0, right: 30, left: 0, bottom: 5 }}
+              >
+                <Brush
+                  dataKey="day"
+                  height={80}
+                  stroke={config.color}
+                  fill={`${config.color}20`}
+                  alwaysShowText={false}
+                  startIndex={brushIndexes?.startIndex ?? 0}
+                  endIndex={brushIndexes?.endIndex ?? aggregatedData.length - 1}
+                  onChange={(e: any) => {
+                    if (
+                      e.startIndex !== undefined &&
+                      e.endIndex !== undefined
+                    ) {
+                      setBrushIndexes({
+                        startIndex: e.startIndex,
+                        endIndex: e.endIndex,
+                      });
+                    }
+                  }}
+                  travellerWidth={8}
+                  tickFormatter={formatBrushXAxis}
+                >
+                  <LineChart>
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke={config.color}
+                      strokeWidth={1}
+                      dot={false}
+                    />
+                  </LineChart>
+                </Brush>
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

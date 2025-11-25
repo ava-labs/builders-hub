@@ -1,0 +1,170 @@
+---
+title: Abstract Contracts
+description: Understanding Abstract Contracts and Their Role in Smart Contract Inheritance
+updated: 2025-01-24
+authors: [Andrea Vargas, Ash, martineckardt]
+icon: Book
+---
+
+# Abstract Contracts in Smart Contracts
+
+## Introduction
+
+When developing smart contracts on the EVM, developers often need to create reusable and modular contract structures. **Abstract contracts** provide a way to define base contract logic that other contracts can inherit while leaving certain details for implementation in derived contracts.
+
+Abstract contracts are particularly useful when building **standardized contract templates**, **frameworks for protocols**, and **secure upgradeable contract architectures**. Unlike interfaces, abstract contracts can contain both **implemented and unimplemented (abstract) functions**, making them more flexible for **inheritance-based development**.
+
+In this lesson, we will explore what abstract contracts are, how they work, and their role in designing scalable and maintainable smart contract architectures.
+
+---
+
+## What Is an Abstract Contract?
+
+An **abstract contract** is a contract that **cannot be deployed on its own** because it contains at least one function without an implementation. Instead, it serves as a **base contract** that other contracts can inherit and extend.
+
+Here's an example of an abstract contract:
+
+```solidity
+// Abstract contract defining a base structure
+abstract contract BaseContract {
+    function getValue() public view virtual returns (uint256);
+}
+```
+
+Since `getValue()` is not implemented, `BaseContract` cannot be deployed directly. Any contract inheriting `BaseContract` **must provide an implementation** for `getValue()`.
+
+---
+
+## Why Are Abstract Contracts Important?
+
+Abstract contracts offer several benefits for **EVM smart contract development**:
+
+### 1. **Code Reusability**
+   - Developers can define **common logic** in an abstract contract and extend it in multiple derived contracts.
+   - This reduces code duplication and improves maintainability.
+
+### 2. **Flexibility in Design**
+   - Abstract contracts allow developers to create **modular architectures** where child contracts can implement logic differently based on specific needs.
+
+### 3. **Secure Standardization**
+   - By enforcing the implementation of required functions in child contracts, abstract contracts help prevent **inconsistent implementations**.
+   - This is useful for **token standards, access control mechanisms, and governance contracts**.
+
+---
+
+## Implementing an Abstract Contract
+
+To use an abstract contract, a child contract must **inherit** from it and implement its unimplemented functions. Here’s an example:
+
+```solidity
+// Abstract contract defining a required function
+abstract contract BaseContract {
+    function getValue() public view virtual returns (uint256);
+}
+
+// Concrete contract inheriting from BaseContract
+contract DerivedContract is BaseContract {
+    uint256 private value = 42;
+
+    function getValue() public view override returns (uint256) {
+        return value;
+    }
+}
+```
+
+### Key Points:
+- `BaseContract` defines `getValue()` as a **virtual** function, meaning it must be overridden in a derived contract.
+- `DerivedContract` **inherits** `BaseContract` and provides an implementation for `getValue()`, making it deployable.
+
+---
+
+## Abstract Contracts vs. Interfaces
+
+Both **abstract contracts** and **interfaces** define required function structures, but they have key differences:
+
+| Feature            | Abstract Contract | Interface |
+|-------------------|------------------|-----------|
+| Function Implementation | Yes (can have implementations) | No (only function signatures) |
+| State Variables | Yes | No |
+| Constructor | Yes | No |
+| Multiple Inheritance | No (only single inheritance) | Yes |
+
+### When to Use Which?
+- **Use an abstract contract** when:
+  - You need to provide **some** reusable logic alongside function definitions.
+  - You want to define **shared state variables** that child contracts can inherit.
+  - You are building **modular contract frameworks** with base functionality.
+
+- **Use an interface** when:
+  - You only need to **define function signatures** without implementation.
+  - You want to ensure compatibility with **multiple unrelated contracts**.
+
+---
+
+## Abstract Contracts in Token Standards
+
+Abstract contracts are frequently used in **EVM token standards** to provide **reusable logic**. For example, OpenZeppelin’s implementation of ERC-20 and ERC-721 uses abstract contracts to define **common functionality**:
+
+```solidity
+abstract contract ERC20 {
+    function transfer(address recipient, uint256 amount) public virtual returns (bool);
+}
+
+contract MyToken is ERC20 {
+    function transfer(address recipient, uint256 amount) public override returns (bool) {
+        // Token transfer logic
+        return true;
+    }
+}
+```
+
+By extending the abstract `ERC20` contract, `MyToken` **inherits** its structure while allowing specific implementations for token transfers.
+
+---
+
+## Using Abstract Contracts for Access Control
+
+Another common use case for abstract contracts is **access control**. Developers can create a base contract that **enforces role-based permissions**, allowing child contracts to inherit this functionality.
+
+Example of an **abstract access control contract**:
+
+```solidity
+abstract contract AccessControl {
+    address public owner;
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not the owner");
+        _;
+    }
+
+    function restrictedFunction() public view virtual onlyOwner returns (string memory);
+}
+
+contract SecureContract is AccessControl {
+    function restrictedFunction() public view override onlyOwner returns (string memory) {
+        return "Access granted!";
+    }
+}
+```
+
+### Key Takeaways:
+- `AccessControl` defines an **owner** variable and an `onlyOwner` modifier to restrict access.
+- The function `restrictedFunction()` is declared **virtual**, meaning any child contract **must implement it**.
+- `SecureContract` inherits from `AccessControl` and provides an implementation for `restrictedFunction()`.
+
+---
+
+## Conclusion
+
+Abstract contracts are a **powerful tool** for **modular, reusable, and secure** smart contract development on the **EVM**. They allow developers to define **base contract logic** while enforcing **required implementations** in child contracts.
+
+By leveraging **abstract contracts**, developers can:
+✅ Reduce code duplication  
+✅ Improve security through **standardized implementations**  
+✅ Design flexible and scalable smart contract architectures  
+
+In the next section, we will explore one of the most common contract standard used for **Fungible Tokens**, diving deeper into this standard, and how it extends and interact with one another efficiently in **EVM-based smart contract development**.

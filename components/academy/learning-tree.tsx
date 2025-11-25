@@ -3,145 +3,73 @@
 import React from "react";
 import Link from "next/link";
 import { cn } from "@/utils/cn";
-import { ArrowRight, BookOpen, Code, Layers, ChevronDown, ArrowLeftRight, Coins } from "lucide-react";
+import { ArrowRight, ChevronDown, GraduationCap, BookOpen, Shield } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-interface CourseNode {
-  id: string;
-  name: string;
-  description: string;
-  slug: string;
-  category: string;
-  dependencies?: string[];
-  position: { x: number; y: number };
-  mobileOrder?: number;
+// CourseNode interface definition
+export interface CourseNode {
+    id: string;
+    name: string;
+    description: string;
+    slug: string;
+    category: string;
+    position: { x: number; y: number };
+    dependencies?: string[];
+    mobileOrder: number;
 }
 
-const learningPaths: CourseNode[] = [
-  // Foundation Layer
-  {
-    id: "blockchain-fundamentals",
-    name: "Blockchain Fundamentals",
-    description: "Start here to learn about blockchain and solidity basics",
-    slug: "blockchain-fundamentals",
-    category: "Fundamentals",
-    position: { x: 50, y: 0 },
-    mobileOrder: 1
-  },
+// Import configs
+import { avalancheLearningPaths, avalancheCategoryStyles } from './learning-path-configs/avalanche.config';
+import { entrepreneurLearningPaths, entrepreneurCategoryStyles } from './learning-path-configs/entrepreneur.config';
+import { blockchainLearningPaths, blockchainCategoryStyles } from './learning-path-configs/blockchain.config';
 
-  // Second Layer - Avalanche Fundamentals
-  {
-    id: "avalanche-fundamentals",
-    name: "Avalanche Fundamentals",
-    description: "Learn about Avalanche Consensus, Multi-Chain Architecture, and VMs",
-    slug: "avalanche-fundamentals",
-    category: "Fundamentals",
-    dependencies: ["blockchain-fundamentals"],
-    position: { x: 50, y: 150 },
-    mobileOrder: 2
-  },
+interface LearningTreeProps {
+  pathType?: 'avalanche' | 'entrepreneur' | 'blockchain';
+}
 
-  // Third Layer - Branching paths
-  {
-    id: "interchain-messaging",
-    name: "Interchain Messaging",
-    description: "Build apps leveraging Avalanche's Interchain Messaging",
-    slug: "interchain-messaging",
-    category: "Interoperability",
-    dependencies: ["avalanche-fundamentals"],
-    position: { x: 15, y: 350 },
-    mobileOrder: 3
-  },
-  {
-    id: "permissioned-l1s",
-    name: "Permissioned L1s",
-    description: "Create and manage permissioned blockchains with Proof of Authority",
-    slug: "permissioned-l1s",
-    category: "L1 Development",
-    dependencies: ["avalanche-fundamentals"],
-    position: { x: 40, y: 350 },
-    mobileOrder: 7
-  },
-  {
-    id: "l1-tokenomics",
-    name: "L1 Tokenomics",
-    description: "Design L1 economics with transaction fees and staking",
-    slug: "l1-tokenomics",
-    category: "L1 Tokenomics",
-    dependencies: ["avalanche-fundamentals"],
-    position: { x: 65, y: 350 },
-    mobileOrder: 6
-  },
-  {
-    id: "customizing-evm",
-    name: "Customizing the EVM",
-    description: "Add custom precompiles and configure the EVM",
-    slug: "customizing-evm",
-    category: "VM Customization",
-    dependencies: ["avalanche-fundamentals"],
-    position: { x: 90, y: 350 },
-    mobileOrder: 8
-  },
-
-  // Fourth Layer - Advanced topics (adjusted for no overlap)
-  {
-    id: "interchain-token-transfer",
-    name: "Interchain Token Transfer",
-    description: "Transfer assets between chains using Interchain Messaging",
-    slug: "interchain-token-transfer",
-    category: "Interoperability",
-    dependencies: ["interchain-messaging"],
-    position: { x: 5, y: 550 },
-    mobileOrder: 4
-  },
-  {
-    id: "icm-chainlink",
-    name: "Chainlink via ICM",
-    description: "Use Chainlink services on an L1 through the Interchain Messaging",
-    slug: "icm-chainlink",
-    category: "Interoperability",
-    dependencies: ["interchain-messaging"],
-    position: { x: 35, y: 550 },
-    mobileOrder: 5
-  },
-];
-
-const categoryStyles = {
-  "Fundamentals": {
-    gradient: "from-blue-500 to-blue-600",
-    icon: BookOpen,
-    lightBg: "bg-blue-50",
-    darkBg: "dark:bg-blue-950/30"
-  },
-  "Interoperability": {
-    gradient: "from-purple-500 to-purple-600",
-    icon: ArrowLeftRight,
-    lightBg: "bg-purple-50",
-    darkBg: "dark:bg-purple-950/30"
-  },
-  "L1 Development": {
-    gradient: "from-emerald-500 to-emerald-600",
-    icon: Layers,
-    lightBg: "bg-emerald-50",
-    darkBg: "dark:bg-emerald-950/30"
-  },
-  "L1 Tokenomics": {
-    gradient: "from-red-400 to-red-500",
-    icon: Coins,
-    lightBg: "bg-red-50",
-    darkBg: "dark:bg-red-950/30"
-  },
-  "VM Customization": {
-    gradient: "from-orange-500 to-orange-600",
-    icon: Code,
-    lightBg: "bg-orange-50",
-    darkBg: "dark:bg-orange-950/30"
-  }
-};
-
-export default function LearningTree() {
+export default function LearningTree({ pathType = 'avalanche' }: LearningTreeProps) {
   const [hoveredNode, setHoveredNode] = React.useState<string | null>(null);
+  const [hoveredCategory, setHoveredCategory] = React.useState<string | null>(null);
+  const [isDarkMode, setIsDarkMode] = React.useState(false);
   const isMobile = useIsMobile();
+
+  // Detect dark mode
+  React.useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDarkMode(document.documentElement.classList.contains('dark'));
+    };
+    
+    checkDarkMode();
+    
+    // Watch for theme changes
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+    
+    return () => observer.disconnect();
+  }, []);
+
+  // Select the appropriate learning paths and styles based on pathType
+  const learningPaths = pathType === 'avalanche' 
+    ? avalancheLearningPaths 
+    : pathType === 'blockchain' 
+    ? blockchainLearningPaths 
+    : entrepreneurLearningPaths;
+  const categoryStyles = pathType === 'avalanche' 
+    ? avalancheCategoryStyles 
+    : pathType === 'blockchain' 
+    ? blockchainCategoryStyles 
+    : entrepreneurCategoryStyles;
+
+  const resolveSlug = (slug: string) => {
+    if (pathType === 'entrepreneur') {
+      const cleanSlug = slug.replace(/^entrepreneur\//, '');
+      return `/academy/entrepreneur/${cleanSlug}`;
+    }
+    return `/academy/${slug}`;
+  };
 
   // Function to get all ancestor nodes (dependencies) of a given node
   const getAncestors = (nodeId: string, ancestors: Set<string> = new Set()): Set<string> => {
@@ -171,7 +99,49 @@ export default function LearningTree() {
   }, [hoveredNode]);
 
   // Calculate SVG dimensions based on node positions
-  const maxY = Math.max(...learningPaths.map(node => node.position.y)) + 200;
+  const maxY = Math.max(...learningPaths.map(node => node.position.y)) + 250;
+
+  // Legend component
+  const Legend = ({ isMobile = false, vertical = false }: { isMobile?: boolean; vertical?: boolean }) => (
+    <div className={
+      isMobile 
+        ? "mt-8 grid grid-cols-2 gap-3" 
+        : vertical 
+        ? "flex flex-col gap-10" 
+        : "flex flex-wrap gap-6 justify-center"
+    }>
+      {Object.entries(categoryStyles).map(([category, style]) => {
+        const Icon = style.icon;
+        const isHovered = hoveredCategory === category;
+        return (
+          <div 
+            key={category} 
+            className={cn(
+              "flex items-center gap-2 cursor-pointer transition-all duration-200",
+              isHovered && "scale-110"
+            )}
+            onMouseEnter={() => setHoveredCategory(category)}
+            onMouseLeave={() => setHoveredCategory(null)}
+          >
+            <div className={cn(
+              isMobile ? "w-6 h-6" : "w-8 h-8",
+              "rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm transition-all duration-200",
+              isMobile && "flex-shrink-0",
+              style.gradient,
+              isHovered && "shadow-lg scale-110"
+            )}>
+              <Icon className={isMobile ? "w-3 h-3 text-white" : "w-4 h-4 text-white"} />
+            </div>
+            <span className={cn(
+              isMobile ? "text-xs" : "text-sm",
+              "font-medium text-zinc-600 dark:text-zinc-400 transition-colors duration-200",
+              isHovered && "text-zinc-900 dark:text-zinc-100"
+            )}>{style.label || category}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
 
   const drawConnections = () => {
     const connections: React.JSX.Element[] = [];
@@ -198,34 +168,28 @@ export default function LearningTree() {
             // Calculate control points for curved path
             const midY = (parentBottomY + childTopY) / 2;
 
+            // Adjust the end point to account for arrow marker
+            const adjustedChildTopY = childTopY + (isActive ? 6 : 5); // Account for marker size
+
             // Create a curved path
-            const pathData = `M ${parentCenterX} ${parentBottomY} C ${parentCenterX} ${midY}, ${childCenterX} ${midY}, ${childCenterX} ${childTopY}`;
+            const pathData = `M ${parentCenterX} ${parentBottomY} C ${parentCenterX} ${midY}, ${childCenterX} ${midY}, ${childCenterX} ${adjustedChildTopY}`;
 
+            const inactiveMarker = isDarkMode ? "url(#arrow-inactive-dark)" : "url(#arrow-inactive-light)";
+            const activeMarker = isDarkMode ? "url(#arrow-active-dark)" : "url(#arrow-active-light)";
+            
             connections.push(
-              <g key={`${depId}-${node.id}`}>
-                {/* Main path - thin and elegant */}
-                <path
-                  d={pathData}
-                  fill="none"
-                  stroke={isActive ? "rgb(99, 102, 241)" : "rgb(226, 232, 240)"}
-                  strokeWidth={isActive ? "1.5" : "1"}
-                  opacity={isActive ? "1" : "0.5"}
-                  className="transition-all duration-700 ease-in-out"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-
-                {/* Arrow marker at the end */}
-                {isActive && (
-                  <circle
-                    cx={childCenterX}
-                    cy={childTopY}
-                    r="2"
-                    fill="rgb(99, 102, 241)"
-                    className="transition-all duration-700 ease-in-out"
-                  />
-                )}
-              </g>
+              <path
+                key={`${depId}-${node.id}`}
+                d={pathData}
+                fill="none"
+                stroke={isActive ? (isDarkMode ? "rgb(212, 212, 216)" : "rgb(161, 161, 170)") : isDarkMode ? "rgb(113, 113, 122)" : "rgb(226, 232, 240)"}
+                strokeWidth={isActive ? "1.5" : "1"}
+                opacity={isActive ? "1" : isDarkMode ? "0.6" : "0.5"}
+                className="transition-all duration-700 ease-in-out"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                markerEnd={isActive ? activeMarker : inactiveMarker}
+              />
             );
           }
         });
@@ -245,30 +209,55 @@ export default function LearningTree() {
           {sortedPaths.map((node, index) => {
             const style = categoryStyles[node.category as keyof typeof categoryStyles];
             const Icon = style?.icon || BookOpen;
+            const isCategoryHovered = hoveredCategory === node.category;
 
             return (
               <div key={node.id} className="relative">
                 {/* Connection line from previous course */}
                 {index > 0 && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <ChevronDown className="w-4 h-4 text-zinc-400 dark:text-zinc-600" />
+                    <svg width="16" height="16" viewBox="0 0 16 16" className="text-zinc-400 dark:text-zinc-600">
+                      <path
+                        d="M8 2 L8 10"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        fill="none"
+                      />
+                      <path
+                        d="M4 8 L8 12 L12 8"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        fill="none"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                      />
+                    </svg>
                   </div>
                 )}
 
                 <Link
-                  href={`/academy/${node.slug}`}
+                  href={resolveSlug(node.slug)}
                   className="block relative group"
                 >
                   <div
                     className={cn(
                       "relative w-full p-4 rounded-xl transition-all duration-300",
                       "bg-white dark:bg-zinc-900",
-                      "border border-zinc-200 dark:border-zinc-800",
+                      "border-2 dark:border-zinc-800",
                       "shadow-sm active:shadow-lg",
-                      "active:scale-[0.98]",
+                      isCategoryHovered
+                        ? "shadow-2xl scale-[1.075]"
+                        : "border-zinc-200 active:scale-[0.98]",
                       style?.lightBg,
                       style?.darkBg
                     )}
+                    style={
+                      isCategoryHovered
+                        ? {
+                            boxShadow: `0 25px 50px -12px ${style?.gradient.includes('blue') ? 'rgba(59, 130, 246, 0.4)' : style?.gradient.includes('purple') ? 'rgba(168, 85, 247, 0.4)' : style?.gradient.includes('emerald') ? 'rgba(16, 185, 129, 0.4)' : style?.gradient.includes('red') ? 'rgba(239, 68, 68, 0.4)' : style?.gradient.includes('orange') ? 'rgba(249, 115, 22, 0.4)' : style?.gradient.includes('yellow') ? 'rgba(234, 179, 8, 0.4)' : 'rgba(99, 102, 241, 0.4)'}, 0 0 0 4px ${style?.gradient.includes('blue') ? 'rgba(59, 130, 246, 0.15)' : style?.gradient.includes('purple') ? 'rgba(168, 85, 247, 0.15)' : style?.gradient.includes('emerald') ? 'rgba(16, 185, 129, 0.15)' : style?.gradient.includes('red') ? 'rgba(239, 68, 68, 0.15)' : style?.gradient.includes('orange') ? 'rgba(249, 115, 22, 0.15)' : style?.gradient.includes('yellow') ? 'rgba(234, 179, 8, 0.15)' : 'rgba(99, 102, 241, 0.15)'}`
+                          }
+                        : undefined
+                    }
                   >
                     {/* Category icon */}
                     <div className={cn(
@@ -299,24 +288,6 @@ export default function LearningTree() {
             );
           })}
         </div>
-
-        {/* Legend for mobile */}
-        <div className="mt-8 grid grid-cols-2 gap-3">
-          {Object.entries(categoryStyles).map(([category, style]) => {
-            const Icon = style.icon;
-            return (
-              <div key={category} className="flex items-center gap-2">
-                <div className={cn(
-                  "w-6 h-6 rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm flex-shrink-0",
-                  style.gradient
-                )}>
-                  <Icon className="w-3 h-3 text-white" />
-                </div>
-                <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">{category}</span>
-              </div>
-            );
-          })}
-        </div>
       </div>
     );
   };
@@ -332,6 +303,71 @@ export default function LearningTree() {
           style={{ height: `${maxY}px`, zIndex: 1 }}
           preserveAspectRatio="none"
         >
+          {/* Define arrow markers */}
+          <defs>
+            {/* Light mode inactive arrow */}
+            <marker
+              id="arrow-inactive-light"
+              viewBox="0 0 10 10"
+              refX="5"
+              refY="5"
+              markerWidth="5"
+              markerHeight="5"
+              orient="auto"
+            >
+              <path
+                d="M 0 0 L 10 5 L 0 10 z"
+                fill="rgb(226, 232, 240)"
+                opacity="0.3"
+              />
+            </marker>
+            {/* Dark mode inactive arrow */}
+            <marker
+              id="arrow-inactive-dark"
+              viewBox="0 0 10 10"
+              refX="5"
+              refY="5"
+              markerWidth="5"
+              markerHeight="5"
+              orient="auto"
+            >
+              <path
+                d="M 0 0 L 10 5 L 0 10 z"
+                fill="rgb(113, 113, 122)"
+                opacity="0.6"
+              />
+            </marker>
+            {/* Active arrow for light mode */}
+            <marker
+              id="arrow-active-light"
+              viewBox="0 0 10 10"
+              refX="5"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto"
+            >
+              <path
+                d="M 0 0 L 10 5 L 0 10 z"
+                fill="rgb(161, 161, 170)"
+              />
+            </marker>
+            {/* Active arrow for dark mode */}
+            <marker
+              id="arrow-active-dark"
+              viewBox="0 0 10 10"
+              refX="5"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto"
+            >
+              <path
+                d="M 0 0 L 10 5 L 0 10 z"
+                fill="rgb(212, 212, 216)"
+              />
+            </marker>
+          </defs>
           {drawConnections()}
         </svg>
 
@@ -340,6 +376,7 @@ export default function LearningTree() {
           const style = categoryStyles[node.category as keyof typeof categoryStyles];
           const Icon = style?.icon || BookOpen;
           const isHighlighted = highlightedNodes.has(node.id);
+          const isCategoryHovered = hoveredCategory === node.category;
 
           return (
             <div
@@ -350,27 +387,34 @@ export default function LearningTree() {
                 top: `${node.position.y}px`,
                 transform: 'translateX(-50%)',
                 width: '280px',
-                zIndex: isHighlighted ? 20 : 10
+                zIndex: isHighlighted || isCategoryHovered ? 20 : 10
               }}
               onMouseEnter={() => setHoveredNode(node.id)}
               onMouseLeave={() => setHoveredNode(null)}
             >
               <Link
-                href={`/academy/${node.slug}`}
+                href={resolveSlug(node.slug)}
                 className="block relative group w-full"
               >
                 <div
                   className={cn(
                     "relative w-full p-5 rounded-2xl transition-all duration-300 min-height-[110px]",
                     "bg-white dark:bg-zinc-900",
-                    "border dark:border-zinc-800",
+                    "border-2 dark:border-zinc-800",
                     "shadow-sm",
-                    isHighlighted
-                      ? "border-indigo-500 shadow-lg scale-[1.02]"
+                    isHighlighted || isCategoryHovered
+                      ? "shadow-2xl scale-[1.025]"
                       : "border-zinc-200 hover:shadow-lg hover:scale-[1.02] hover:border-zinc-300 dark:hover:border-zinc-700",
                     style?.lightBg,
                     style?.darkBg
                   )}
+                  style={
+                    isHighlighted || isCategoryHovered
+                      ? {
+                          boxShadow: `0 25px 50px -12px ${style?.gradient.includes('blue') ? 'rgba(59, 130, 246, 0.4)' : style?.gradient.includes('purple') ? 'rgba(168, 85, 247, 0.4)' : style?.gradient.includes('emerald') ? 'rgba(16, 185, 129, 0.4)' : style?.gradient.includes('red') ? 'rgba(239, 68, 68, 0.4)' : style?.gradient.includes('orange') ? 'rgba(249, 115, 22, 0.4)' : style?.gradient.includes('yellow') ? 'rgba(234, 179, 8, 0.4)' : 'rgba(99, 102, 241, 0.4)'}, 0 0 0 4px ${style?.gradient.includes('blue') ? 'rgba(59, 130, 246, 0.15)' : style?.gradient.includes('purple') ? 'rgba(168, 85, 247, 0.15)' : style?.gradient.includes('emerald') ? 'rgba(16, 185, 129, 0.15)' : style?.gradient.includes('red') ? 'rgba(239, 68, 68, 0.15)' : style?.gradient.includes('orange') ? 'rgba(249, 115, 22, 0.15)' : style?.gradient.includes('yellow') ? 'rgba(234, 179, 8, 0.15)' : 'rgba(99, 102, 241, 0.15)'}`
+                        }
+                      : undefined
+                  }
                 >
                   {/* Category icon */}
                   <div className={cn(
@@ -401,39 +445,39 @@ export default function LearningTree() {
           );
         })}
       </div>
-
-      {/* Legend */}
-      <div className="mt-8 flex flex-wrap gap-6 justify-center">
-        {Object.entries(categoryStyles).map(([category, style]) => {
-          const Icon = style.icon;
-          return (
-            <div key={category} className="flex items-center gap-2">
-              <div className={cn(
-                "w-8 h-8 rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm",
-                style.gradient
-              )}>
-                <Icon className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">{category}</span>
-            </div>
-          );
-        })}
-      </div>
     </>
   );
 
   return (
-    <div className="relative w-full">
-      {/* Mobile Layout - visible on small screens, hidden on lg and up */}
-      <div className="block lg:hidden">
-        <MobileLayout />
+    <>
+      {/* Vertical Legend on far left of screen - positioned absolutely relative to viewport */}
+      <div 
+        className="hidden lg:block absolute z-10"
+        style={{
+          left: '1rem',
+          top: '30%',
+          transform: 'translateY(-50%)',
+          marginLeft: 'calc(-50vw + 50%)'
+        }}
+      >
+        <Legend isMobile={false} vertical={true} />
       </div>
 
-      {/* Desktop Layout - hidden on small screens, visible on lg and up */}
-      <div className="hidden lg:block">
-        <DesktopLayout />
-      </div>
-    </div>
+      <div className="relative w-full">
+        {/* Mobile Layout - visible on small screens, hidden on lg and up */}
+        <div className="block lg:hidden">
+          {/* Legend at top for mobile */}
+          <div className="mb-8">
+            <Legend isMobile={true} />
+          </div>
+          <MobileLayout />
+        </div>
 
+        {/* Desktop Layout - hidden on small screens, visible on lg and up */}
+        <div className="hidden lg:block">
+          <DesktopLayout />
+        </div>
+      </div>
+    </>
   );
 } 

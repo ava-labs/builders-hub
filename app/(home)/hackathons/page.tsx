@@ -1,9 +1,22 @@
 import type { HackathonsFilters, HackathonStatus } from "@/types/hackathons";
 import Hackathons from "@/components/hackathons/Hackathons";
 import { getFilteredHackathons } from "@/server/services/hackathons";
+import { createMetadata } from "@/utils/metadata";
+import type { Metadata } from "next";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
+
+export const metadata: Metadata = createMetadata({
+  title: 'Hackathons',
+  description: 'Join exciting blockchain hackathons and build the future on Avalanche',
+  openGraph: {
+    images: '/api/og/hackathons',
+  },
+  twitter: {
+    images: '/api/og/hackathons',
+  },
+});
 
 export default async function HackathonsPage({
   searchParams,

@@ -80,9 +80,14 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
       groups[dateKey].push(activity);
 
       // Sort activities within the day by time
-      groups[dateKey].sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
+      groups[dateKey].sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0;
+        if (isNaN(dateA.getTime())) return 1;
+        if (isNaN(dateB.getTime())) return -1;
+        return dateA.getTime() - dateB.getTime();
+      });
 
       return groups;
     }, {});
@@ -91,14 +96,20 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
   function getDateRange(activities: ScheduleActivity[]): string {
     if (!activities.length) return 'No dates available';
 
-    const dates = activities.map((activity) => new Date(activity.date));
+    const validDates = activities
+      .map((activity) => new Date(activity.date))
+      .filter((date) => !isNaN(date.getTime()));
+    if (!validDates.length) return 'No valid dates available';
 
     const earliestDate = new Date(
-      Math.min(...dates.map((date) => date.getTime()))
+      Math.min(...validDates.map((date) => date.getTime()))
     );
     const latestDate = new Date(
-      Math.max(...dates.map((date) => date.getTime()))
+      Math.max(...validDates.map((date) => date.getTime()))
     );
+    if (isNaN(earliestDate.getTime()) || isNaN(latestDate.getTime())) {
+      return 'Invalid date range';
+    }
 
     const formatter = new Intl.DateTimeFormat(
       'en-US',
@@ -154,7 +165,13 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
           <div className='flex w-full sm:w-auto divide-x divide-zinc-300 dark:divide-zinc-700'>
             {Object.entries(groupActivitiesByDay(hackathon.content.schedule)).map(
               ([formattedDate, activities], index) => {
+                if (!activities || activities.length === 0 || !activities[0]?.date) {
+                  return null;
+                }
                 const date = new Date(activities[0].date);
+                if (isNaN(date.getTime())) {
+                  return null;
+                }
                 const month = date
                   .toLocaleString('en-US', { month: 'long' })
                   .toUpperCase();
@@ -170,8 +187,8 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                     onClick={() => setSelectedDay(formattedDate)}
                   >
                     <div className='flex items-center justify-center gap-1 py-1.5 px-2 sm:px-3'>
-                      <span className='text-xs sm:text-sm font-medium'>{month}</span>
-                      <span className='text-xs sm:text-sm font-medium'>{day}</span>
+                      {month && <span className='text-xs sm:text-sm font-medium'>{month}</span>}
+                      {day && <span className='text-xs sm:text-sm font-medium'>{day}</span>}
                     </div>
                   </div>
                 );
@@ -316,7 +333,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                             <div>
                               <div className='flex justify-between items-center'>
                                 <CardTitle className='text-red-500 text-lg sm:text-base'>
-                                  {activity.name}
+                                  {activity.name || 'Untitled Activity'}
                                 </CardTitle>
                                 {activity.category && (
                                   <Badge className='bg-zinc-600 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900 py-0.5 px-2.5 text-xs rounded-xl'>
@@ -324,9 +341,11 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                                   </Badge>
                                 )}
                               </div>
-                              <span className='dark:text-zinc-400 text-zinc-600 text-s sm:text-sm font-normal'>
-                                {activity.description}
-                              </span>
+                              {activity.description && (
+                                <span className='dark:text-zinc-400 text-zinc-600 text-s sm:text-sm font-normal'>
+                                  {activity.description}
+                                </span>
+                              )}
                             </div>
                             {!voidHost && (
                               <div className='flex flex-row items-center gap-4'>

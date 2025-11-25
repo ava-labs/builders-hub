@@ -6,6 +6,17 @@ interface RateLimitEntry {
 }
 
 const rateLimits = new Map<string, RateLimitEntry>();
+
+setInterval(() => {
+  const now = Date.now();
+  const oneHour = 60 * 60 * 1000;
+  for (const [key, entry] of rateLimits.entries()) {
+    // add 1hr buffer beyond the 24h window
+    if (now - entry.lastRequest > (24 * oneHour + oneHour)) {
+      rateLimits.delete(key);
+    }
+  }
+}, 60 * 60 * 1000);
 export interface RateLimitOptions {
   windowMs: number;
   maxRequests: number;
@@ -20,18 +31,39 @@ const DEFAULT_OPTIONS: RateLimitOptions = {
 async function defaultIdentifier(): Promise<string> {
     const session = await import('@/lib/auth/authSession').then(mod => mod.getAuthSession());
     if (!session) throw new Error('Authentication required');
-    const userId = session.user.id;
-    return userId;
+
+    const email = session.user.email;
+    if (!email || email === '') throw new Error('email required for rate limiting');
+    
+    return email;
 }
 
 function getResetTime(timestamp: number): string {
-  const resetTime = new Date(timestamp);
-  return resetTime.toLocaleString('en-US', { 
+  const resetTime = new Date(timestamp); 
+  const localString = resetTime.toLocaleString('en-US', { 
     month: 'long', 
     day: 'numeric', 
     hour: 'numeric', 
-    minute: '2-digit'
+    minute: '2-digit',
+    timeZoneName: 'short'
   });
+  
+  // add relative time for better user experience
+  const now = Date.now();
+  const diffMs = timestamp - now;
+  const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
+  const diffMinutes = Math.ceil(diffMs / (1000 * 60));
+  
+  let relativeTime = '';
+  if (diffHours >= 1) {
+    relativeTime = `in about ${diffHours} hour${diffHours > 1 ? 's' : ''}`;
+  } else if (diffMinutes > 1) {
+    relativeTime = `in about ${diffMinutes} minute${diffMinutes > 1 ? 's' : ''}`;
+  } else {
+    relativeTime = 'in less than a minute';
+  }
+  
+  return `${localString} (${relativeTime})`;
 }
 
 export function rateLimit(handler: Function, options?: Partial<RateLimitOptions>) {

@@ -1,13 +1,6 @@
 "use client";
 
-import { lazy } from "react";
-
-const FeeManager = lazy(() => 
-  import("../../../../toolbox/src/toolbox/Precompiles/FeeManager").then(module => ({
-    default: module.default
-  }))
-);
-
+import FeeManager from "@/components/toolbox/console/l1-tokenomics/FeeManager";
 
 export default function Page() {
   return (

@@ -17,8 +17,9 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
+    "allowImportingTsExtensions": true,
     "paths": {
       "@/.source": [
         "./.source/index.ts"
@@ -28,24 +29,27 @@
         "toolbox/src/*"
       ],
       "@/stores/*": [
-        "toolbox/src/stores/*"
+        "components/toolbox/stores/*"
       ],
       "@console-header/*": [
-        "toolbox/src/components/console-header/*"
+        "components/toolbox/components/console-header/*"
       ]
     },
     "plugins": [
       {
         "name": "next"
       }
-    ],
+    ]
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
-, "utils/remote-content.mts"  ],
+    ".next/types/**/*.ts",
+    "utils/remote-content.mts",
+    "hooks/getLucideIcon.tsz",
+    ".next/dev/types/**/*.ts"
+  ],
   "exclude": [
     "node_modules"
   ]

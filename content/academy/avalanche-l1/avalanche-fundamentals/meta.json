@@ -1,0 +1,18 @@
+{
+  "title": "Avalanche Fundamentals",
+  "icon": "Snowflake",
+  "root": true,
+  "pages": [
+    "index",
+    "---Primer on Avalanche Consensus---",
+    "...02-avalanche-consensus-intro",
+    "---Multi-Chain Architecture---",
+    "...03-multi-chain-architecture-intro",
+    "---Creating an L1---",
+    "...04-creating-an-l1",
+    "---Interoperability---",
+    "...05-interoperability",
+    "---Course Completion---",
+    "get-certificate"
+  ]
+}

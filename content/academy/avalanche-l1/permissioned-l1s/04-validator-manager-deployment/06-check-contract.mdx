@@ -1,0 +1,18 @@
+---
+title: Read Deployed VMC
+description: Check the Validator Manager Contract.
+updated: 2025-03-13
+authors: [owenwahlgren]
+icon: Terminal
+---
+
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+import ReadContract from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/ReadContract.tsx"
+
+Here you can double check that the `ValidatorManager` contract has been deployed and initialized correctly.
+
+Specifically, you can check the `totalWeight`, `admin`, `subnetID`, `churnPeriodSeconds`, and `maximumChurnPercentage` variables.
+
+<ToolboxMdxWrapper  walletMode="l1">
+    <ReadContract />
+</ToolboxMdxWrapper>

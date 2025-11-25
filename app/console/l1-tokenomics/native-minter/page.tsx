@@ -1,13 +1,6 @@
 "use client";
 
-import { lazy } from "react";
-
-const NativeMinter = lazy(() => 
-  import("../../../../toolbox/src/toolbox/Precompiles/NativeMinter").then(module => ({
-    default: module.default
-  }))
-);
-
+import NativeMinter from "@/components/toolbox/console/l1-tokenomics/NativeMinter";
 
 export default function Page() {
   return (

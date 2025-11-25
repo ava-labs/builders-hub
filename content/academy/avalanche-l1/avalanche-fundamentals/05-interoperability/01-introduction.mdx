@@ -1,0 +1,56 @@
+---
+title: Introduction
+description: Learn about interoperability in the Avalanche ecosystem and its importance in multichain systems
+updated: 2024-08-26
+authors: [martineckardt, nicolasarnedo]
+icon: Book
+---
+
+<YouTube id="eLHOElbSw1k" />
+
+Now that we know about [Avalanche's Multichain Architecture](/academy/avalanche-l1/avalanche-fundamentals/03-multi-chain-architecture-intro/01-multi-chain-architecture) it is important we understand how we achieve **native interoperability** between all of these chains.
+
+## What is Interoperability
+
+Interoperability refers to the ability of different blockchain networks to communicate, share data, and interact with each other seamlessly. This capability allows assets, information, and functionalities to move between separate blockchain ecosystems without the need for intermediaries.
+
+These interactions can take many forms, including:
+- Asset Bridging (Tokens, NFTs, etc.)
+- DAO Voting across Chains
+- Cross-Chain Liquidity Pools
+- Decentralized Data Feeds
+- Cross-Chain Smart Contract Calls
+
+## Why Interoperability Matters
+
+Without interoperability, blockchains face significant challenges:
+
+- **Lack of Liquidity**: New blockchains struggle to attract sufficient liquidity for tokens and financial instruments, limiting their viability and user adoption.
+
+- **Limited Developer Adoption**: Developers are hesitant to build on new blockchains without access to existing tools, communities, and infrastructure from established networks.
+
+- **Restricted User Access**: Users face barriers entering new blockchains due to lack of direct on-ramp services and limited asset availability.
+
+## How Avalanche Achieves Interoperability
+
+Avalanche enables native cross-chain communication through a layered approach:
+
+### Avalanche Warp Messaging (AWM)
+The foundational protocol that enables L1s to exchange authenticated messages. AWM leverages BLS multi-signatures where validators sign outgoing messages, and these signatures are aggregated for efficient verification on the destination chain.
+
+### Interchain Messaging Contracts (ICM)
+Smart contracts that provide a developer-friendly interface on top of AWM. They handle message encoding/decoding, relayer incentives, and cross-chain dApp communication patterns.
+
+### Interchain Token Transfer (ICTT)
+Built on Interchain Messaging contracts, ICTT enables asset transfers between L1s by locking tokens on the source chain and minting representations on the destination chain.
+
+## What You'll Learn
+
+In this section, we'll explore:
+
+1. **Interoperability Fundamentals** - Understanding the core concepts and use cases
+2. **Securing Cross-Chain Communication** - Cryptographic foundations including BLS signatures
+3. **Avalanche's Interoperability Solutions** - Deep dive into AWM and ICTT protocols
+4. **Practical Implementation** - How these technologies work together in real applications
+
+Let's begin by understanding the fundamental concepts that make secure cross-chain communication possible. 

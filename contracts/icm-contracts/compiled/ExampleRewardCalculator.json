@@ -1,0 +1,313 @@
+{
+  "abi": [
+    {
+      "type": "constructor",
+      "inputs": [
+        {
+          "name": "rewardBasisPoints_",
+          "type": "uint64",
+          "internalType": "uint64"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "BIPS_CONVERSION_FACTOR",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint16",
+          "internalType": "uint16"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "SECONDS_IN_YEAR",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "UPTIME_REWARDS_THRESHOLD_PERCENTAGE",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint8",
+          "internalType": "uint8"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "calculateReward",
+      "inputs": [
+        {
+          "name": "stakeAmount",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "validatorStartTime",
+          "type": "uint64",
+          "internalType": "uint64"
+        },
+        {
+          "name": "stakingStartTime",
+          "type": "uint64",
+          "internalType": "uint64"
+        },
+        {
+          "name": "stakingEndTime",
+          "type": "uint64",
+          "internalType": "uint64"
+        },
+        {
+          "name": "uptimeSeconds",
+          "type": "uint64",
+          "internalType": "uint64"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "rewardBasisPoints",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint64",
+          "internalType": "uint64"
+        }
+      ],
+      "stateMutability": "view"
+    }
+  ],
+  "bytecode": {
+    "object": "0x60a0604052348015600e575f80fd5b5060405161036a38038061036a833981016040819052602b91603b565b6001600160401b03166080526066565b5f60208284031215604a575f80fd5b81516001600160401b0381168114605f575f80fd5b9392505050565b6080516102e66100845f395f818160c5015261016101526102e65ff3fe608060405234801561000f575f80fd5b5060043610610055575f3560e01c80634f22429f146100595780635dcc93911461007f578063a9778a7a1461008a578063afba878a146100a6578063bb65b242146100c0575b5f80fd5b61006c6100673660046101db565b610100565b6040519081526020015b60405180910390f35b61006c6301e1338081565b61009361271081565b60405161ffff9091168152602001610076565b6100ae605081565b60405160ff9091168152602001610076565b6100e77f000000000000000000000000000000000000000000000000000000000000000081565b60405167ffffffffffffffff9091168152602001610076565b5f605061010d8685610249565b6101179190610271565b67ffffffffffffffff1661012c836064610271565b67ffffffffffffffff16101561014357505f6101b6565b6127106301e133806101558686610249565b67ffffffffffffffff167f000000000000000000000000000000000000000000000000000000000000000067ffffffffffffffff1689610195919061029d565b61019f919061029d565b6101a991906102ba565b6101b391906102ba565b90505b95945050505050565b803567ffffffffffffffff811681146101d6575f80fd5b919050565b5f805f805f60a086880312156101ef575f80fd5b853594506101ff602087016101bf565b935061020d604087016101bf565b925061021b606087016101bf565b9150610229608087016101bf565b90509295509295909350565b634e487b7160e01b5f52601160045260245ffd5b67ffffffffffffffff82811682821603908082111561026a5761026a610235565b5092915050565b67ffffffffffffffff81811683821602808216919082811461029557610295610235565b505092915050565b80820281158282048414176102b4576102b4610235565b92915050565b5f826102d457634e487b7160e01b5f52601260045260245ffd5b50049056fea164736f6c6343000819000a",
+    "sourceMap": "241:1323:93:-:0;;;535:108;;;;;;;;;;;;;;;;;;;;;;;;;;;;:::i;:::-;-1:-1:-1;;;;;598:38:93;;;241:1323;;14:288:160;83:6;136:2;124:9;115:7;111:23;107:32;104:52;;;152:1;149;142:12;104:52;178:16;;-1:-1:-1;;;;;223:30:160;;213:41;;203:69;;268:1;265;258:12;203:69;291:5;14:288;-1:-1:-1;;;14:288:160:o;:::-;241:1323:93;;;;;;;;;;;;;;;;;",
+    "linkReferences": {}
+  },
+  "deployedBytecode": {
+    "object": "0x608060405234801561000f575f80fd5b5060043610610055575f3560e01c80634f22429f146100595780635dcc93911461007f578063a9778a7a1461008a578063afba878a146100a6578063bb65b242146100c0575b5f80fd5b61006c6100673660046101db565b610100565b6040519081526020015b60405180910390f35b61006c6301e1338081565b61009361271081565b60405161ffff9091168152602001610076565b6100ae605081565b60405160ff9091168152602001610076565b6100e77f000000000000000000000000000000000000000000000000000000000000000081565b60405167ffffffffffffffff9091168152602001610076565b5f605061010d8685610249565b6101179190610271565b67ffffffffffffffff1661012c836064610271565b67ffffffffffffffff16101561014357505f6101b6565b6127106301e133806101558686610249565b67ffffffffffffffff167f000000000000000000000000000000000000000000000000000000000000000067ffffffffffffffff1689610195919061029d565b61019f919061029d565b6101a991906102ba565b6101b391906102ba565b90505b95945050505050565b803567ffffffffffffffff811681146101d6575f80fd5b919050565b5f805f805f60a086880312156101ef575f80fd5b853594506101ff602087016101bf565b935061020d604087016101bf565b925061021b606087016101bf565b9150610229608087016101bf565b90509295509295909350565b634e487b7160e01b5f52601160045260245ffd5b67ffffffffffffffff82811682821603908082111561026a5761026a610235565b5092915050565b67ffffffffffffffff81811683821602808216919082811461029557610295610235565b505092915050565b80820281158282048414176102b4576102b4610235565b92915050565b5f826102d457634e487b7160e01b5f52601260045260245ffd5b50049056fea164736f6c6343000819000a",
+    "sourceMap": "241:1323:93:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;822:740;;;;;;:::i;:::-;;:::i;:::-;;;811:25:160;;;799:2;784:18;822:740:93;;;;;;;;301:50;;343:8;301:50;;427:53;;475:5;427:53;;;;;1021:6:160;1009:19;;;991:38;;979:2;964:18;427:53:93;847:188:160;358:62:93;;418:2;358:62;;;;;1212:4:160;1200:17;;;1182:36;;1170:2;1155:18;358:62:93;1040:184:160;487:41:93;;;;;;;;1403:18:160;1391:31;;;1373:50;;1361:2;1346:18;487:41:93;1229:200:160;822:740:93;1034:7;418:2;1294:35;1311:18;1294:14;:35;:::i;:::-;1293:75;;;;:::i;:::-;1255:113;;:19;:13;1271:3;1255:19;:::i;:::-;:113;;;1238:174;;;-1:-1:-1;1400:1:93;1393:8;;1238:174;475:5;343:8;1465:33;1482:16;1465:14;:33;:::i;:::-;1430:69;;1444:17;1430:31;;:11;:31;;;;:::i;:::-;:69;;;;:::i;:::-;1429:101;;;;:::i;:::-;:126;;;;:::i;:::-;1422:133;;822:740;;;;;;;;:::o;14:171:160:-;81:20;;141:18;130:30;;120:41;;110:69;;175:1;172;165:12;110:69;14:171;;;:::o;190:470::-;281:6;289;297;305;313;366:3;354:9;345:7;341:23;337:33;334:53;;;383:1;380;373:12;334:53;419:9;406:23;396:33;;448:37;481:2;470:9;466:18;448:37;:::i;:::-;438:47;;504:37;537:2;526:9;522:18;504:37;:::i;:::-;494:47;;560:37;593:2;582:9;578:18;560:37;:::i;:::-;550:47;;616:38;649:3;638:9;634:19;616:38;:::i;:::-;606:48;;190:470;;;;;;;;:::o;1434:127::-;1495:10;1490:3;1486:20;1483:1;1476:31;1526:4;1523:1;1516:15;1550:4;1547:1;1540:15;1566:183;1634:18;1685:10;;;1673;;;1669:27;;1708:12;;;1705:38;;;1723:18;;:::i;:::-;1705:38;1566:183;;;;:::o;1754:257::-;1825:18;1875:10;;;1887;;;1871:27;1918:20;;;;1825:18;1957:24;;;1947:58;;1985:18;;:::i;:::-;1947:58;;1754:257;;;;:::o;2016:168::-;2089:9;;;2120;;2137:15;;;2131:22;;2117:37;2107:71;;2158:18;;:::i;:::-;2016:168;;;;:::o;2189:217::-;2229:1;2255;2245:132;;2299:10;2294:3;2290:20;2287:1;2280:31;2334:4;2331:1;2324:15;2362:4;2359:1;2352:15;2245:132;-1:-1:-1;2391:9:160;;2189:217::o",
+    "linkReferences": {},
+    "immutableReferences": {
+      "35953": [
+        {
+          "start": 197,
+          "length": 32
+        },
+        {
+          "start": 353,
+          "length": 32
+        }
+      ]
+    }
+  },
+  "methodIdentifiers": {
+    "BIPS_CONVERSION_FACTOR()": "a9778a7a",
+    "SECONDS_IN_YEAR()": "5dcc9391",
+    "UPTIME_REWARDS_THRESHOLD_PERCENTAGE()": "afba878a",
+    "calculateReward(uint256,uint64,uint64,uint64,uint64)": "4f22429f",
+    "rewardBasisPoints()": "bb65b242"
+  },
+  "rawMetadata": "{\"compiler\":{\"version\":\"0.8.25+commit.b61c2a91\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"rewardBasisPoints_\",\"type\":\"uint64\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"BIPS_CONVERSION_FACTOR\",\"outputs\":[{\"internalType\":\"uint16\",\"name\":\"\",\"type\":\"uint16\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"SECONDS_IN_YEAR\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"UPTIME_REWARDS_THRESHOLD_PERCENTAGE\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"stakeAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"validatorStartTime\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"stakingStartTime\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"stakingEndTime\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"uptimeSeconds\",\"type\":\"uint64\"}],\"name\":\"calculateReward\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"rewardBasisPoints\",\"outputs\":[{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"calculateReward(uint256,uint64,uint64,uint64,uint64)\":{\"notice\":\"A linear, non-compounding reward calculation that rewards a set percentage of tokens per year. See {IRewardCalculator-calculateReward}\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/validator-manager/ExampleRewardCalculator.sol\":\"ExampleRewardCalculator\"},\"evmVersion\":\"shanghai\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"none\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":@avalabs/subnet-evm-contracts@1.2.2/=lib/subnet-evm/contracts/\",\":@forge-std/=lib/forge-std/src/\",\":@mocks/=contracts/mocks/\",\":@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/\",\":@openzeppelin/contracts-upgradeable@5.0.2/=lib/openzeppelin-contracts-upgradeable/contracts/\",\":@openzeppelin/contracts/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/\",\":@openzeppelin/contracts@5.0.2/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/\",\":@teleporter/=contracts/teleporter/\",\":@utilities/=contracts/utilities/\",\":ds-test/=lib/openzeppelin-contracts-upgradeable/lib/forge-std/lib/ds-test/src/\",\":erc4626-tests/=lib/openzeppelin-contracts-upgradeable/lib/erc4626-tests/\",\":forge-std/=lib/forge-std/src/\",\":openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/\",\":openzeppelin-contracts/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/\",\":subnet-evm/=lib/subnet-evm/\"]},\"sources\":{\"contracts/validator-manager/ExampleRewardCalculator.sol\":{\"keccak256\":\"0x54ebc5bcd0b24f170423e3c8d0f00b533928f263e9c799ccb7b28110887fca2a\",\"license\":\"LicenseRef-Ecosystem\",\"urls\":[\"bzz-raw://2c4d5d692944cb17052da22b47bf88a00616595abea2da4703aaa60d10fdced3\",\"dweb:/ipfs/QmWCVZE5w2Sirp958LxgLkgdBDrF8ngFHyHMEXUhW56FcZ\"]},\"contracts/validator-manager/interfaces/IRewardCalculator.sol\":{\"keccak256\":\"0x0e2ed48da58e2eda3766361e315467e2ba9f258e48684501ab337e8a65c29e47\",\"license\":\"LicenseRef-Ecosystem\",\"urls\":[\"bzz-raw://faf1da0f5d33fa1f9e7d29ada9884dc6554b47b4d948af6f1f6261153414e42a\",\"dweb:/ipfs/QmTn97vcnd3Haf9fBVvBzLenp8xwdGGnnzxwxuK9Yt3ryi\"]}},\"version\":1}",
+  "metadata": {
+    "compiler": {
+      "version": "0.8.25+commit.b61c2a91"
+    },
+    "language": "Solidity",
+    "output": {
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "uint64",
+              "name": "rewardBasisPoints_",
+              "type": "uint64"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "BIPS_CONVERSION_FACTOR",
+          "outputs": [
+            {
+              "internalType": "uint16",
+              "name": "",
+              "type": "uint16"
+            }
+          ]
+        },
+        {
+          "inputs": [],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "SECONDS_IN_YEAR",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ]
+        },
+        {
+          "inputs": [],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "UPTIME_REWARDS_THRESHOLD_PERCENTAGE",
+          "outputs": [
+            {
+              "internalType": "uint8",
+              "name": "",
+              "type": "uint8"
+            }
+          ]
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "stakeAmount",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint64",
+              "name": "validatorStartTime",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint64",
+              "name": "stakingStartTime",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint64",
+              "name": "stakingEndTime",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint64",
+              "name": "uptimeSeconds",
+              "type": "uint64"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "calculateReward",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ]
+        },
+        {
+          "inputs": [],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "rewardBasisPoints",
+          "outputs": [
+            {
+              "internalType": "uint64",
+              "name": "",
+              "type": "uint64"
+            }
+          ]
+        }
+      ],
+      "devdoc": {
+        "kind": "dev",
+        "methods": {},
+        "version": 1
+      },
+      "userdoc": {
+        "kind": "user",
+        "methods": {
+          "calculateReward(uint256,uint64,uint64,uint64,uint64)": {
+            "notice": "A linear, non-compounding reward calculation that rewards a set percentage of tokens per year. See {IRewardCalculator-calculateReward}"
+          }
+        },
+        "version": 1
+      }
+    },
+    "settings": {
+      "remappings": [
+        "@avalabs/subnet-evm-contracts@1.2.2/=lib/subnet-evm/contracts/",
+        "@forge-std/=lib/forge-std/src/",
+        "@mocks/=contracts/mocks/",
+        "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
+        "@openzeppelin/contracts-upgradeable@5.0.2/=lib/openzeppelin-contracts-upgradeable/contracts/",
+        "@openzeppelin/contracts/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/",
+        "@openzeppelin/contracts@5.0.2/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/",
+        "@teleporter/=contracts/teleporter/",
+        "@utilities/=contracts/utilities/",
+        "ds-test/=lib/openzeppelin-contracts-upgradeable/lib/forge-std/lib/ds-test/src/",
+        "erc4626-tests/=lib/openzeppelin-contracts-upgradeable/lib/erc4626-tests/",
+        "forge-std/=lib/forge-std/src/",
+        "openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/",
+        "openzeppelin-contracts/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/",
+        "subnet-evm/=lib/subnet-evm/"
+      ],
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "metadata": {
+        "bytecodeHash": "none"
+      },
+      "compilationTarget": {
+        "contracts/validator-manager/ExampleRewardCalculator.sol": "ExampleRewardCalculator"
+      },
+      "evmVersion": "shanghai",
+      "libraries": {}
+    },
+    "sources": {
+      "contracts/validator-manager/ExampleRewardCalculator.sol": {
+        "keccak256": "0x54ebc5bcd0b24f170423e3c8d0f00b533928f263e9c799ccb7b28110887fca2a",
+        "urls": [
+          "bzz-raw://2c4d5d692944cb17052da22b47bf88a00616595abea2da4703aaa60d10fdced3",
+          "dweb:/ipfs/QmWCVZE5w2Sirp958LxgLkgdBDrF8ngFHyHMEXUhW56FcZ"
+        ],
+        "license": "LicenseRef-Ecosystem"
+      },
+      "contracts/validator-manager/interfaces/IRewardCalculator.sol": {
+        "keccak256": "0x0e2ed48da58e2eda3766361e315467e2ba9f258e48684501ab337e8a65c29e47",
+        "urls": [
+          "bzz-raw://faf1da0f5d33fa1f9e7d29ada9884dc6554b47b4d948af6f1f6261153414e42a",
+          "dweb:/ipfs/QmTn97vcnd3Haf9fBVvBzLenp8xwdGGnnzxwxuK9Yt3ryi"
+        ],
+        "license": "LicenseRef-Ecosystem"
+      }
+    },
+    "version": 1
+  },
+  "id": 93
+}
