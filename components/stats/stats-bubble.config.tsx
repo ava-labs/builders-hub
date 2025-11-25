@@ -7,6 +7,7 @@ export const statsBubbleConfig: BubbleNavigationConfig = {
     items: [
         { id: "avalanche-l1s", label: "Avalanche L1s", href: "/stats/overview" },
         { id: "c-chain", label: "C-Chain", href: "/stats/primary-network/c-chain" },
+        { id: "icm-flow", label: "ICM Flow", href: "/stats/icm-flow" },
         { id: "playground", label: "Playground", href: "/stats/playground" },
         { id: "validators", label: "Validators", href: "/stats/validators" },
     ],
@@ -26,6 +27,8 @@ export function StatsBubbleNav() {
             return "";
         } else if (pathname.startsWith("/stats/playground")) {
             return "playground";
+        } else if (pathname.startsWith("/stats/icm-flow")) {
+            return "icm-flow";
         }
         return "overview";
     };
