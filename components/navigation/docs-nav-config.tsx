@@ -11,7 +11,8 @@ import {
   Package,
   Terminal,
   Milestone,
-  Book
+  Book,
+  Eye
 } from 'lucide-react';
 
 export const documentationOptions = [
@@ -136,4 +137,10 @@ export const acpsOptions = [
     icon: <Book className="w-5 h-5" />,
     url: '/docs/acps/99-validatorsetmanager-contract',
   },
+  {
+    title: "View All ACPs",
+    description: 'View all Avalanche Community Proposals',
+    icon: <Eye className="w-5 h-5" />,
+    url: '/docs/acps',
+  }
 ];
