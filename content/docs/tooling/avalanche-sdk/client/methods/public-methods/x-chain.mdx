@@ -76,7 +76,7 @@ console.log("UTXO IDs:", balance.utxoIDs);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgetbalance)
+- [API Reference](https://build.avax.network/docs/rpcs/x-chain#avmgetbalance)
 - [getAllBalances](#getallbalances) - Get balances for all assets
 - [getUTXOs](#getutxos) - Get UTXOs for addresses
 
@@ -138,7 +138,7 @@ allBalances.balances.forEach(({ assetID, balance }) => {
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgetallbalances)
+- [API Reference](https://build.avax.network/docs/rpcs/x-chain#avmgetallbalances)
 - [getBalance](#getbalance) - Get balance for specific asset
 - [getAssetDescription](#getassetdescription) - Get asset information
 
@@ -204,7 +204,7 @@ console.log("Denomination:", asset.denomination);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgetassetdescription)
+- [API Reference](https://build.avax.network/docs/rpcs/x-chain#avmgetassetdescription)
 - [getBalance](#getbalance) - Get balance for this asset
 
 ---
@@ -250,7 +250,7 @@ console.log("Current X-Chain height:", height.height);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgetheight)
+- [API Reference](https://build.avax.network/docs/rpcs/x-chain#avmgetheight)
 - [getBlockByHeight](#getblockbyheight) - Get block at height
 
 ---
@@ -310,7 +310,7 @@ console.log("Block data:", block.block);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgetblockbyheight)
+- [API Reference](https://build.avax.network/docs/rpcs/x-chain#avmgetblockbyheight)
 - [getBlock](#getblock) - Get block by ID
 - [getHeight](#getheight) - Get current height
 
@@ -369,7 +369,7 @@ console.log("Block:", block.block);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgetblock)
+- [API Reference](https://build.avax.network/docs/rpcs/x-chain#avmgetblock)
 - [getBlockByHeight](#getblockbyheight) - Get block by height
 
 ---
@@ -429,7 +429,7 @@ console.log("Transaction:", tx.tx);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgettx)
+- [API Reference](https://build.avax.network/docs/rpcs/x-chain#avmgettx)
 - [getTxStatus](#gettxstatus) - Get transaction status
 - [issueTx](#issuetx) - Submit transaction
 
@@ -505,7 +505,7 @@ if (status.status === "Accepted") {
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgettxstatus)
+- [API Reference](https://build.avax.network/docs/rpcs/x-chain#avmgettxstatus)
 - [getTx](#gettx) - Get transaction details
 
 ---
@@ -553,7 +553,7 @@ console.log("Create asset fee:", fees.createAssetTxFee);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgettxfee)
+- [API Reference](https://build.avax.network/docs/rpcs/x-chain#avmgettxfee)
 
 ---
 
@@ -640,7 +640,7 @@ if (utxos.endIndex) {
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmgetutxos)
+- [API Reference](https://build.avax.network/docs/rpcs/x-chain#avmgetutxos)
 - [getBalance](#getbalance) - Get balance summary
 
 ---
@@ -698,7 +698,7 @@ console.log("Transaction ID:", txID.txID);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmissuetx)
+- [API Reference](https://build.avax.network/docs/rpcs/x-chain#avmissuetx)
 - [getTxStatus](#gettxstatus) - Check transaction status
 
 ---
@@ -783,7 +783,7 @@ console.log("Genesis bytes:", genesis.bytes);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/x-chain/api#avmbuildgenesis)
+- [API Reference](https://build.avax.network/docs/rpcs/x-chain#avmbuildgenesis)
 
 ---
 

@@ -60,7 +60,7 @@ await client.admin.alias({
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/admin-api#adminalias)
+- [API Reference](https://build.avax.network/docs/rpcs/other/admin-rpc#adminalias)
 
 ---
 
@@ -103,7 +103,7 @@ await client.admin.aliasChain({
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/admin-api#adminaliaschain)
+- [API Reference](https://build.avax.network/docs/rpcs/other/admin-rpc#adminaliaschain)
 
 ---
 
@@ -145,7 +145,7 @@ console.log("Chain aliases:", aliases);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/admin-api#admingetchainaliases)
+- [API Reference](https://build.avax.network/docs/rpcs/other/admin-rpc#admingetchainaliases)
 
 ---
 
@@ -209,7 +209,7 @@ if (result.networkID === "1") {
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/info-api#infogetnetworkid)
+- [API Reference](https://build.avax.network/docs/rpcs/other/info-rpc#infogetnetworkid)
 
 ---
 
@@ -248,7 +248,7 @@ console.log("Network:", result.networkName);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/info-api#infogetnetworkname)
+- [API Reference](https://build.avax.network/docs/rpcs/other/info-rpc#infogetnetworkname)
 
 ---
 
@@ -297,7 +297,7 @@ console.log("VM versions:", Object.fromEntries(version.vmVersions));
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/info-api#infogetnodeversion)
+- [API Reference](https://build.avax.network/docs/rpcs/other/info-rpc#infogetnodeversion)
 
 ---
 
@@ -343,7 +343,7 @@ console.log("BLS Public Key:", nodeID.nodePOP.publicKey);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/info-api#infogetnodeid)
+- [API Reference](https://build.avax.network/docs/rpcs/other/info-rpc#infogetnodeid)
 
 ---
 
@@ -382,7 +382,7 @@ console.log("Node IP:", result.ip);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/info-api#infogetnodeip)
+- [API Reference](https://build.avax.network/docs/rpcs/other/info-rpc#infogetnodeip)
 
 ---
 
@@ -433,7 +433,7 @@ console.log("X-Chain ID:", result.blockchainID);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/info-api#infogetblockchainid)
+- [API Reference](https://build.avax.network/docs/rpcs/other/info-rpc#infogetblockchainid)
 
 ---
 
@@ -489,7 +489,7 @@ console.log("Create asset fee:", fees.createAssetTxFee);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/info-api#infogettxfee)
+- [API Reference](https://build.avax.network/docs/rpcs/other/info-rpc#infogettxfee)
 
 ---
 
@@ -530,7 +530,7 @@ console.log("Supported VMs:", vms.vms);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/info-api#infogetvms)
+- [API Reference](https://build.avax.network/docs/rpcs/other/info-rpc#infogetvms)
 
 ---
 
@@ -586,7 +586,7 @@ if (result.isBootstrapped) {
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/info-api#infoisbootstrapped)
+- [API Reference](https://build.avax.network/docs/rpcs/other/info-rpc#infoisbootstrapped)
 
 ---
 
@@ -660,7 +660,7 @@ console.log("Peer details:", peers.peers);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/info-api#infopeers)
+- [API Reference](https://build.avax.network/docs/rpcs/other/info-rpc#infopeers)
 
 ---
 
@@ -702,7 +702,7 @@ console.log("Weighted average percentage:", uptime.weightedAveragePercentage);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/info-api#infouptime)
+- [API Reference](https://build.avax.network/docs/rpcs/other/info-rpc#infouptime)
 
 ---
 
@@ -770,7 +770,7 @@ console.log("Banff upgrade:", upgrades.banffTime);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/info-api#infoupgrades)
+- [API Reference](https://build.avax.network/docs/rpcs/other/info-rpc#infoupgrades)
 
 ---
 
@@ -828,7 +828,7 @@ console.log("ACP preferences:", acps.acps);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/info-api#infoacps)
+- [API Reference](https://build.avax.network/docs/rpcs/other/info-rpc#infoacps)
 
 ---
 
@@ -946,7 +946,7 @@ console.log("C-Chain health:", healthStatus.checks.C);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/health-api#healthhealth)
+- [API Reference](https://build.avax.network/docs/rpcs/other/health-rpc#healthhealth)
 
 ---
 
@@ -990,7 +990,7 @@ if (livenessStatus.healthy) {
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/health-api#healthliveness)
+- [API Reference](https://build.avax.network/docs/rpcs/other/health-rpc#healthliveness)
 
 ---
 
@@ -1056,7 +1056,7 @@ if (readinessStatus.healthy) {
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/health-api#healthreadiness)
+- [API Reference](https://build.avax.network/docs/rpcs/other/health-rpc#healthreadiness)
 
 ---
 
@@ -1133,7 +1133,7 @@ console.log("Container bytes:", container.bytes);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/index-api#indexgetcontainerbyindex)
+- [API Reference](https://build.avax.network/docs/rpcs/other/index-rpc#indexgetcontainerbyindex)
 
 ---
 
@@ -1198,7 +1198,7 @@ console.log("Container index:", container.index);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/index-api#indexgetcontainerbyid)
+- [API Reference](https://build.avax.network/docs/rpcs/other/index-rpc#indexgetcontainerbyid)
 
 ---
 
@@ -1274,7 +1274,7 @@ console.log("Containers:", range.containers.length);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/index-api#indexgetcontainerrange)
+- [API Reference](https://build.avax.network/docs/rpcs/other/index-rpc#indexgetcontainerrange)
 
 ---
 
@@ -1329,7 +1329,7 @@ console.log("Container index:", result.index);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/index-api#indexgetindex)
+- [API Reference](https://build.avax.network/docs/rpcs/other/index-rpc#indexgetindex)
 
 ---
 
@@ -1392,7 +1392,7 @@ console.log("Last accepted index:", lastAccepted.index);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/index-api#indexgetlastaccepted)
+- [API Reference](https://build.avax.network/docs/rpcs/other/index-rpc#indexgetlastaccepted)
 
 ---
 
@@ -1453,7 +1453,7 @@ if (result.isAccepted) {
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/index-api#indexisaccepted)
+- [API Reference](https://build.avax.network/docs/rpcs/other/index-rpc#indexisaccepted)
 
 ---
 
