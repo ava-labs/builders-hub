@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTheme } from "next-themes";
 import Image from "next/image";
 
@@ -40,11 +40,12 @@ interface Star {
   delay: number;
 }
 
-interface Particle {
-  id: number;
+// CSS-based particle for each flow
+interface CSSParticle {
+  id: string;
   flowIndex: number;
-  progress: number;
-  speed: number;
+  duration: number;
+  delay: number;
 }
 
 interface ICMFlowChartProps {
@@ -88,17 +89,6 @@ function adjustColor(color: string, amount: number): string {
   return color;
 }
 
-// Calculate cubic bezier point
-function cubicBezier(t: number, p0: number, p1: number, p2: number, p3: number): number {
-  const oneMinusT = 1 - t;
-  return (
-    oneMinusT * oneMinusT * oneMinusT * p0 +
-    3 * oneMinusT * oneMinusT * t * p1 +
-    3 * oneMinusT * t * t * p2 +
-    t * t * t * p3
-  );
-}
-
 export default function ICMFlowChart({
   data,
   width = 900,
@@ -111,57 +101,51 @@ export default function ICMFlowChart({
   const [isMounted, setIsMounted] = useState(false);
   const [hoveredFlow, setHoveredFlow] = useState<number | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
-  const [particles, setParticles] = useState<Particle[]>([]);
-  const animationRef = useRef<number | null>(null);
-  const lastTimeRef = useRef<number>(0);
   
   const stars = useMemo(() => generateStars(60), []);
+  
+  // Generate CSS particles - dramatically more particles for top routes
+  const cssParticles = useMemo(() => {
+    if (!data || data.flows.length === 0) return [];
+    
+    const particles: CSSParticle[] = [];
+    const flows = data.flows.slice(0, maxFlows);
+    const maxMessages = Math.max(...flows.map(f => f.messageCount));
+    const totalMessages = flows.reduce((sum, f) => sum + f.messageCount, 0);
+    
+    flows.forEach((flow, flowIndex) => {
+      const ratio = flow.messageCount / maxMessages;
+      const percentOfTotal = flow.messageCount / totalMessages;
+      
+      // Particle count based on route importance:
+      // Top 10% of traffic: 12-18 particles
+      // Next 20%: 6-10 particles  
+      // Rest: 1-3 particles
+      let particleCount: number;
+      if (percentOfTotal > 0.1) {
+        particleCount = Math.floor(12 + ratio * 6);
+      } else if (percentOfTotal > 0.02) {
+        particleCount = Math.floor(4 + ratio * 6);
+      } else {
+        particleCount = Math.max(1, Math.floor(ratio * 3));
+      }
+      
+      for (let i = 0; i < particleCount; i++) {
+        particles.push({
+          id: `p-${flowIndex}-${i}`,
+          flowIndex,
+          duration: 2.5 + Math.random() * 3, // 2.5-5.5 seconds (faster)
+          delay: Math.random() * 4, // stagger start times
+        });
+      }
+    });
+    
+    return particles;
+  }, [data, maxFlows]);
   
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
-  // Particle animation
-  useEffect(() => {
-    if (!animationEnabled || !data || data.flows.length === 0) return;
-
-    // Initialize particles
-    const initialParticles: Particle[] = [];
-    const particlesPerFlow = 3;
-    
-    data.flows.slice(0, maxFlows).forEach((_, flowIndex) => {
-      for (let i = 0; i < particlesPerFlow; i++) {
-        initialParticles.push({
-          id: flowIndex * particlesPerFlow + i,
-          flowIndex,
-          progress: Math.random(),
-          speed: 0.001 + Math.random() * 0.002,
-        });
-      }
-    });
-    setParticles(initialParticles);
-
-    const animate = (time: number) => {
-      if (time - lastTimeRef.current > 16) { // ~60fps
-        lastTimeRef.current = time;
-        setParticles(prev => 
-          prev.map(p => ({
-            ...p,
-            progress: (p.progress + p.speed) % 1,
-          }))
-        );
-      }
-      animationRef.current = requestAnimationFrame(animate);
-    };
-
-    animationRef.current = requestAnimationFrame(animate);
-    
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [animationEnabled, data, maxFlows]);
 
   if (!isMounted || !data) {
     return (
@@ -453,27 +437,24 @@ export default function ICMFlowChart({
             })}
           </g>
 
-          {/* Animated particles */}
-          {animationEnabled && particles.map((particle) => {
+          {/* Animated particles using CSS animations - GPU accelerated */}
+          {animationEnabled && cssParticles.map((particle) => {
             const link = linkPaths[particle.flowIndex];
             if (!link) return null;
-            
-            const t = particle.progress;
-            const x = cubicBezier(t, link.x1, link.cx1, link.cx2, link.x2);
-            const y = cubicBezier(t, link.y1, link.y1, link.y2, link.y2);
-            
-            // Interpolate color
-            const color = t < 0.5 ? link.sourceColor : link.targetColor;
             
             return (
               <circle
                 key={particle.id}
-                r={1.5}
-                fill={color}
-                opacity={0.7}
-                filter="url(#glow)"
-                style={{ mixBlendMode: 'screen' }}
-                transform={`translate(${x},${y})`}
+                r={2}
+                className="css-particle"
+                style={{
+                  offsetPath: `path('${link.path}')`,
+                  offsetRotate: '0deg',
+                  animation: `moveAlongPath ${particle.duration}s linear ${particle.delay}s infinite`,
+                  fill: link.sourceColor,
+                  filter: 'url(#glow)',
+                  mixBlendMode: 'screen',
+                }}
               />
             );
           })}
@@ -653,11 +634,30 @@ export default function ICMFlowChart({
         </div>
       )}
 
-      {/* CSS for twinkle animation */}
+      {/* CSS for animations - GPU accelerated */}
       <style jsx>{`
         @keyframes twinkle {
           0%, 100% { opacity: 0.3; transform: scale(1); }
           50% { opacity: 1; transform: scale(1.2); }
+        }
+        @keyframes moveAlongPath {
+          0% { 
+            offset-distance: 0%;
+            opacity: 0;
+          }
+          5% {
+            opacity: 0.8;
+          }
+          95% {
+            opacity: 0.8;
+          }
+          100% { 
+            offset-distance: 100%;
+            opacity: 0;
+          }
+        }
+        .css-particle {
+          will-change: offset-distance, opacity;
         }
       `}</style>
     </div>
