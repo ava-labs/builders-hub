@@ -1,0 +1,101 @@
+---
+title: Transaction AllowList
+description: Control which addresses can submit transactions on your Avalanche L1 blockchain.
+---
+
+## Overview
+
+The Transaction Allowlist enables you to control which addresses can submit transactions to your network. This is essential for:
+
+- Creating fully permissioned networks
+- Implementing KYC/AML requirements for users
+- Controlling network access during testing or initial deployment
+
+| Property | Value |
+|----------|-------|
+| **Address** | `0x0200000000000000000000000000000000000002` |
+| **ConfigKey** | `txAllowListConfig` |
+
+## Configuration
+
+You can activate this precompile in your genesis file:
+
+```json
+{
+  "config": {
+    "txAllowListConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
+    }
+  }
+}
+```
+
+By enabling this feature, you can define which addresses are allowed to submit transactions and manage these permissions over time.
+
+## Interface
+
+The Transaction Allowlist implements the [AllowList interface](/docs/avalanche-l1s/precompiles/allowlist-interface):
+
+```solidity
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+interface IAllowList {
+  event RoleSet(uint256 indexed role, address indexed account, address indexed sender, uint256 oldRole);
+
+  // Set [addr] to have the admin role over the precompile contract.
+  function setAdmin(address addr) external;
+
+  // Set [addr] to be enabled on the precompile contract.
+  function setEnabled(address addr) external;
+
+  // Set [addr] to have the manager role over the precompile contract.
+  function setManager(address addr) external;
+
+  // Set [addr] to have no role for the precompile contract.
+  function setNone(address addr) external;
+
+  // Read the status of [addr].
+  function readAllowList(address addr) external view returns (uint256 role);
+}
+```
+
+## Permissions Management
+
+The Transaction Allowlist uses the [AllowList interface](/docs/avalanche-l1s/precompiles/allowlist-interface) to manage permissions. This provides a consistent way to:
+- Assign and revoke transaction permissions
+- Manage admin and manager roles
+- Control who can submit transactions
+
+For detailed information about the role-based permission system and available functions, see the [AllowList interface documentation](/docs/avalanche-l1s/precompiles/allowlist-interface).
+
+## Best Practices
+
+1. **Initial Setup**: Always configure at least one admin address in the genesis file to ensure you can manage permissions after deployment.
+
+2. **Role Management**:
+   - Use Admin roles sparingly and secure their private keys
+   - Assign Manager roles to trusted entities who need to manage user access
+   - Regularly audit the list of enabled addresses
+
+3. **Security Considerations**:
+   - Keep private keys of admin addresses secure
+   - Implement a multi-sig wallet as an admin for additional security
+   - Maintain an off-chain record of role assignments
+
+4. **Monitoring**:
+   - Monitor the `RoleSet` events to track permission changes
+   - Regularly audit the enabled addresses list
+   - Keep documentation of why each address was granted permissions
+
+## Implementation
+
+You can find the implementation in the [subnet-evm repository](https://github.com/ava-labs/subnet-evm/blob/master/precompile/contracts/txallowlist/contract.go).
+
+## Interacting with the Precompile
+
+For information on how to interact with this precompile, see:
+- [Interacting with Precompiles](/docs/avalanche-l1s/precompiles/interacting-with-precompiles)
+- [Transactor Allowlist Console](/console/l1-access-restrictions/transactor-allowlist)
+

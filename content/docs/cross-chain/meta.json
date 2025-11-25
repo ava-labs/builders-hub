@@ -11,16 +11,16 @@
     "avalanche-warp-messaging/evm-integration",
     "avalanche-warp-messaging/run-relayer",
     "---ICM Contracts---",
-    "teleporter/overview",
-    "teleporter/deep-dive",
-    "teleporter/cli",
-    "teleporter/upgradeability",
-    "teleporter/addresses",
+    "icm-contracts/overview",
+    "icm-contracts/deep-dive",
+    "icm-contracts/cli",
+    "icm-contracts/upgradeability",
+    "icm-contracts/addresses",
     "---Interchain Token Transfer---",
     "interchain-token-transfer/overview",
     "---Examples---",
-    "teleporter/getting-started",
-    "teleporter/teleporter-on-local-network",
-    "teleporter/teleporter-on-devnet"
+    "icm-contracts/getting-started",
+    "icm-contracts/icm-contracts-on-local-network",
+    "icm-contracts/icm-contracts-on-devnet"
   ]
 }

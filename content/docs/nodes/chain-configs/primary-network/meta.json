@@ -1,0 +1,10 @@
+{
+  "title": "Primary Network",
+  "defaultOpen": true,
+  "pages": [
+    "c-chain",
+    "p-chain",
+    "x-chain"
+  ]
+}
+
