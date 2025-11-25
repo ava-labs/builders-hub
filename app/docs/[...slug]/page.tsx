@@ -5,6 +5,7 @@ import { BackToTop } from "@/components/ui/back-to-top";
 import { Feedback } from "@/components/ui/feedback";
 import { SidebarActions } from "@/components/ui/sidebar-actions";
 import { CChainAPIPage, DataAPIPage, MetricsAPIPage, PChainAPIPage, XChainAPIPage } from "@/components/api/api-pages";
+import AddNetworkButtonInline from "@/components/client/AddNetworkButtonInline";
 import { documentation } from "@/lib/source";
 import { createMetadata } from "@/utils/metadata";
 import { Popup, PopupContent, PopupTrigger } from "fumadocs-twoslash/ui";
@@ -112,6 +113,7 @@ export default async function Page(props: {
             Steps,
             YouTube,
             Mermaid,
+            AddNetworkButtonInline,
             TypeTable,
             AutoTypeTable,
             Accordion,

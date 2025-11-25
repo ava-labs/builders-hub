@@ -1,0 +1,17 @@
+{
+    "title": "ERC-20 to ERC-20 Bridge",
+    "icon": "ArrowLeftRight",
+    "root": true,
+    "pages": [
+        "---ERC-20 to ERC-20 Bridge---",
+        "index",
+        "---Token Bridging---",
+        "...01-token-bridging",
+        "---Avalanche Interchain Token Transfer---",
+        "...02-avalanche-interchain-token-transfer",
+        "---ERC-20 to ERC-20 Bridge---",
+        "...03-erc-20-to-erc-20-bridge",
+        "---Tokens on Multiple Chains---",
+        "...04-tokens-on-multiple-chains"
+    ]
+}

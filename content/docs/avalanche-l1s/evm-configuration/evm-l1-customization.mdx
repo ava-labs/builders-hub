@@ -41,7 +41,7 @@ The chain configuration section in your genesis file defines fundamental paramet
 #### Chain ID
 `chainID`: Denotes the ChainID of to be created chain. Must be picked carefully since a conflict with other chains can cause issues. One suggestion is to check with [chainlist.org](https://chainlist.org/) to avoid ID collision, reserve and publish your ChainID properly.
 
-You can use `eth_getChainConfig` RPC call to get the current chain config. See [here](/docs/api-reference/subnet-evm-api#eth_getchainconfig) for more info.
+You can use `eth_getChainConfig` RPC call to get the current chain config. See [here](/docs/rpcs/subnet-evm#eth_getchainconfig) for more info.
 
 #### Hard Forks
 The following parameters define EVM hard fork activation times. These should be handled with care as changes may cause compatibility issues:
@@ -91,13 +91,13 @@ Precompiles are specialized smart contracts that execute native Go code within t
 
 EVM comes with a set of default precompiles that extend the EVM's functionality:
 
-- **AllowList**: Interface that manages access control by allowing or restricting specific addresses, inherited by all precompiles.
-- **Deployer AllowList**: Restricts which addresses can deploy smart contracts.
-- **Native Minter**: Manages the minting and burning of native tokens.
-- **Transaction AllowList**: Controls which addresses can submit transactions.
-- **Fee Manager**: Controls gas fee parameters and fee markets.
-- **Reward Manager**: Handles the distribution of staking rewards to validators.
-- **Warp Messenger**: Enables cross-chain communication between Avalanche L1s.
+- **[AllowList Interface](/docs/avalanche-l1s/precompiles/allowlist-interface)**: Interface that manages access control by allowing or restricting specific addresses, inherited by all precompiles.
+- **[Deployer AllowList](/docs/avalanche-l1s/precompiles/deployer-allowlist)**: Restricts which addresses can deploy smart contracts.
+- **[Transaction AllowList](/docs/avalanche-l1s/precompiles/transaction-allowlist)**: Controls which addresses can submit transactions.
+- **[Native Minter](/docs/avalanche-l1s/precompiles/native-minter)**: Manages the minting and burning of native tokens.
+- **[Fee Manager](/docs/avalanche-l1s/precompiles/fee-manager)**: Controls gas fee parameters and fee markets.
+- **[Reward Manager](/docs/avalanche-l1s/precompiles/reward-manager)**: Handles the distribution of staking rewards to validators.
+- **[Warp Messenger](/docs/avalanche-l1s/precompiles/warp-messenger)**: Enables cross-chain communication between Avalanche L1s.
 
 ### Precompile Addresses and Configuration
 
@@ -107,12 +107,12 @@ Below are the addresses and `ConfigKey` values of default precompiles available 
 
 | Precompile             | ConfigKey                         | Address                                      |
 | ---------------------- | --------------------------------- | -------------------------------------------- |
-| Deployer AllowList     | `contractDeployerAllowListConfig` | `0x0200000000000000000000000000000000000000` |
-| Native Minter          | `contractNativeMinterConfig`      | `0x0200000000000000000000000000000000000001` |
-| Transaction AllowList  | `txAllowListConfig`               | `0x0200000000000000000000000000000000000002` |
-| Fee Manager            | `feeManagerConfig`                | `0x0200000000000000000000000000000000000003` |
-| Reward Manager         | `rewardManagerConfig`             | `0x0200000000000000000000000000000000000004` |
-| Warp Messenger         | `warpConfig`                      | `0x0200000000000000000000000000000000000005` |
+| [Deployer AllowList](/docs/avalanche-l1s/precompiles/deployer-allowlist)     | `contractDeployerAllowListConfig` | `0x0200000000000000000000000000000000000000` |
+| [Native Minter](/docs/avalanche-l1s/precompiles/native-minter)          | `contractNativeMinterConfig`      | `0x0200000000000000000000000000000000000001` |
+| [Transaction AllowList](/docs/avalanche-l1s/precompiles/transaction-allowlist)  | `txAllowListConfig`               | `0x0200000000000000000000000000000000000002` |
+| [Fee Manager](/docs/avalanche-l1s/precompiles/fee-manager)            | `feeManagerConfig`                | `0x0200000000000000000000000000000000000003` |
+| [Reward Manager](/docs/avalanche-l1s/precompiles/reward-manager)         | `rewardManagerConfig`             | `0x0200000000000000000000000000000000000004` |
+| [Warp Messenger](/docs/avalanche-l1s/precompiles/warp-messenger)         | `warpConfig`                      | `0x0200000000000000000000000000000000000005` |
 
 #### Example Interaction
 

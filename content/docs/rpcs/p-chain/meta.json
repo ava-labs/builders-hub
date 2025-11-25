@@ -5,6 +5,7 @@
   "root": true,
   "pages": [
     "index",
+    "txn-format",
     "---RPC Methods---",
     "chain-info",
     "subnets",
@@ -15,8 +16,6 @@
     "balances-utxos",
     "staking",
     "rewards",
-    "fees",
-    "---Reference---",
-    "txn-format"
+    "fees"
   ]
 }

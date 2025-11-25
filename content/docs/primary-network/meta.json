@@ -1,0 +1,22 @@
+{
+  "title": "Primary Network",
+  "description": "Learn about the Avalanche Primary Network and its three blockchains",
+  "icon": "Network",
+  "root": true,
+  "pages": [
+    "index",
+    "avalanche-consensus",
+    "avax-token",
+    "virtual-machines",
+    "---C-Chain---",
+    "verify-contract",
+    "---P-Chain---",
+    "validate/validate-vs-delegate",
+    "validate/rewards-formula",
+    "validate/how-to-stake",
+    "validate/node-validator",
+    "---Advanced Tutorials---",
+    "exchange-integration"
+  ]
+}
+

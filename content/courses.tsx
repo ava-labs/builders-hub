@@ -54,6 +54,19 @@ const officialCourses: Course[] = [
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
+        name: "x402 Payment Infrastructure",
+        description: "Learn about the x402 protocol for instant, permissionless HTTP-native payments on Avalanche",
+        slug: "x402-payment-infrastructure",
+        icon: <Coins />,
+        status: "featured",
+        duration: "2 hours",
+        languages: ["JavaScript", "Typescript"],
+        tools: ["Thirdweb x402", "PayAI", "Ultravioleta DAO", "x402-rs"],
+        instructors: ["Federico Nardelli"],
+        category: "Fundamentals",
+        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
+    },
+    {
         name: "Interchain Messaging",
         description: "Utilize Avalanche Interchain Messaging to build cross-chain dApps in the Avalanche network",
         slug: "interchain-messaging",
@@ -67,11 +80,24 @@ const officialCourses: Course[] = [
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
+        name: "ERC-20 to ERC-20 Bridge",
+        description: "Learn how to bridge ERC-20 tokens between Avalanche L1s using Interchain Token Transfer",
+        slug: "erc20-bridge",
+        icon: <ArrowLeftRight />,
+        status: "featured",
+        duration: "2 hours",
+        tools: ["ICM", "Foundry"],
+        languages: ["Solidity"],
+        instructors: ["Martin Eckardt", "Andrea Vargas", "Ash", "Owen Wahlgren", "Sarp"],
+        category: "Interoperability",
+        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
+    },
+    {
         name: "Interchain Token Transfer",
         description: "Deploy Avalanche Interchain Token Transfer to transfer assets between Avalanche blockchains",
         slug: "interchain-token-transfer",
         icon: <ArrowLeftRight />,
-        status: "featured",
+        status: "normal",
         duration: "2.5 hours",
         tools: ["ICM", "Foundry"],
         languages: ["Solidity"],

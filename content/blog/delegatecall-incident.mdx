@@ -1,0 +1,170 @@
+---
+title: DeletegateCall Incident Overview
+description: A detailed post-mortem on Avalanche's Granite v1.14.0 which permanently resolves a critical precompile delegatecall vulnerability.
+date: 2025-11-24
+authors: [AvaxDevelopers]
+topics: [Granite Upgrade, Security]
+comments: true
+---
+
+# Post-Mortem: The Precompile `delegatecall` Incident and Granite Resolution
+
+On November 19, 2025, the Avalanche Granite network upgrade (AvalancheGo `v1.14.0`) successfully activated on Mainnet. This upgrade implemented significant improvements, but it also served as the final, permanent resolution for a critical security vulnerability discovered and mitigated earlier this year.
+
+A critical flaw was identified in the handling of `delegatecall` and `callcode` by stateful precompiles, allowing a malicious contract to impersonate another caller and potentially forge cross-chain or privileged actions. The vulnerability was never exploited on Mainnet or any public L1.
+
+Security is a continuous process, not a final destination. This process relies on proactive auditing, rigorous engineering, and transparent communication with our developer community. In accordance with this commitment, this post-mortem provides a detailed technical breakdown of the “Precompile DelegateCall Incident”, from its discovery and multi-phase mitigation to its permanent, architectural resolution within the Granite upgrade.
+
+### Key Takeaways
+
+1. A P1-critical vulnerability was discovered by our audit partners, Trail of Bits, during a routine audit.
+2. A rapid, multi-phase incident response successfully neutralized the threat and contained the bug.
+3. The vulnerability was never exploited on Mainnet or any public L1.
+4. As of the Granite upgrade on November 19, 2025, the vulnerability is permanently and architecturally resolved.
+
+This report details the technical nature of the bug, the chronology of the incident response, and the architectural lessons that have already made the Avalanche platform more resilient.
+
+## Executive Summary: Incident and Resolution
+
+During an audit of the `libevm` and `subnet-evm` codebases, security researchers at Trail of Bits flagged a potential issue on July 29, 2025. The issue, which was escalated to a P1-Critical incident, stemmed from an incorrect implementation of `delegatecall` and `callcode` semantics in stateful precompiles.
+
+**The Vulnerability:** The bug was introduced in AvalancheGo `v1.13.1`. It allowed a malicious smart contract to "impersonate" its caller when making a `delegatecall` to a stateful precompile. This flaw made it such that any account that called a malicious contract was susceptible to having calls to stateful precompiles forged from them within the contract call.
+
+## The Vulnerability
+
+### The Discovery
+
+On July 29, 2025, Trail of Bits asked a routine-seeming question about how stateful precompiles handle `delegatecall`. This question prompted an internal investigation. By the next morning, a local test confirmed the vulnerability: the behavior was incorrect, and a P1 incident was declared.
+
+**The Root Cause: Divergent assumptions about `DELEGATECALL` semantics in stateful precompiles.**  
+The vulnerability was traced back to its origin: the introduction of `libevm` in AvalancheGo `v1.13.1`.
+
+While the introduction of `libevm` surfaced the issue, the true root cause was a long-standing, undocumented assumption in stateful precompiles: they allowed `DELEGATECALL` but assumed its EVM semantics would not be honored. The new `libevm` implementation correctly implemented `DELEGATECALL` semantics, and this mismatch between expected behavior (precompiles assuming delegated semantics were ignored) and actual behavior (`libevm` enforcing them) created the impersonation vulnerability.
+
+Here is what went wrong:
+1. The precompile correctly identified the `msg.sender` as the original EOA that called the "Caller" contract.
+2. However, the precompile incorrectly assumed that `DELEGATECALL` semantics would not be honored by where they are invoked from. Specifically, they incorrectly assumed that the “self” account would always be the hardcoded precompile address. By treating the raw caller as authoritative, the precompile effectively shifted the call frame by one level and ended up executing on behalf of the EVM-semantic caller, enabling impersonation.
+
+This combination was problematic. The precompile was executing with the permissions of the original caller but writing to the wrong location. This failure to "disambiguate between the EVM semantic caller/self and the raw caller/self" was the root cause of the impersonation risk.
+
+### Potential Impact (P1-Critical)
+
+This flaw created two critical, high-severity exploit vectors.
+
+1. Impersonation & Teleporter (ICM) Forgery:  
+   The most significant risk was to the C-Chain and any L1 using Teleporter. Because the `TeleporterMessenger` contract delivers cross-chain messages by calling arbitrary receiver contracts via `receiveTeleporterMessage`, a malicious receiver contract could abuse the bug by making a `delegatecall` to the `sendWarpMessage` precompile function. In this scenario, the precompile would incorrectly treat the `TeleporterMessenger` contract as the caller, allowing the malicious receiver to forge arbitrary Teleporter messages originating from any address on that chain.
+
+2. Admin Phishing:  
+   For L1s using stateful precompiles with an allow-list (e.g., a `FeeManagerPrecompile` that only allows an admin to change fees), a similar phishing attack was possible. An attacker could trick an admin EOA into calling their malicious contract. This contract would then `delegatecall` the `FeeManagerPrecompile`. The precompile would incorrectly see the `msg.sender` as the admin EOA and grant it permission to execute admin-only functions.
+
+### Mitigating Factors
+
+Two key factors significantly limited the real-world blast radius of this vulnerability.
+
+First, exploiting the bug required the ability to deploy a malicious smart contract. While this was a meaningful risk on the C-Chain, many L1s operate with a contract deployer allow-list, which provided an additional layer of protection: an attacker would have needed both knowledge of the vulnerability and access to the deployer list to attempt an exploit.
+
+Second, although the network had not yet upgraded enough stake to outright prevent an exploit from being finalized, the fact that many validators were still running v1.13.0 provided early and clear detection. Any transaction attempting to exploit the bug would have produced divergent execution between v1.13.0 and v1.13.1–v1.13.3 nodes, triggering an observable consensus disagreement. We continuously monitor for such divergences, and no anomalies, forks, or unexpected Teleporter activity were ever observed, giving us strong evidence that no exploit was attempted.
+
+## Incident Response
+
+The response to this P1 incident was not a single patch. It was a mature, three-phase, methodical process designed to maximize safety and network stability.
+
+### Phase 1: Immediate Neutralization (Stop-Gap)
+
+Once the team identified the vulnerability was introduced in `v1.13.1`, the immediate action was clear.
+
+- **Action**: Begin an immediate rollback of Foundation mainnet validator nodes to **AvalancheGo** `v1.13.0`, the last known-good version.
+- **Execution**: This rollback began at 5:57 PM EDT on July 30.
+- **Result**: By 7:01 PM EDT (less than 9 hours after the vulnerability was confirmed) sufficient mainnet stake had been rolled back to `v1.13.0` to ensure that any transaction attempting to exploit the bug could not be accepted into a finalized block. This immediately neutralized the exploit vector. The risk of fund theft or message forgery was eliminated. This action downgraded the P1 vulnerability to a lower-grade Network DOS risk (as nodes on different versions might disagree on blocks), allowing the engineering team time to develop a more stable fix.
+
+### Phase 2: Interim Containment (Soft Fork)
+
+While the rollback was in progress, a parallel team was already developing a more robust, interim solution.
+
+- **Action**: Soft fork logic was developed. This was not a full protocol change but a surgical patch: it specifically disallowed the acceptance any transactions that contained `delegatecall` or `callcode` calls  to stateful precompiles.
+- **Execution**: This logic was included in **AvalancheGo** `v1.13.4` and **subnet-evm** `v0.7.8`. The patch was deployed to all Foundation nodes by 11:30 PM EDT on July 30. After thorough testing, it was published for all node operators on August 1.
+- **Result**: This was a superior fix to the rollback. It allowed the entire network to re-converge on a single, safe version, eliminating the DOS risk. The vulnerability was now fully contained at the mempool level; any attempt to exploit it would simply be rejected by nodes.
+
+### Phase 3: Permanent Resolution (The Granite Upgrade)
+
+The soft fork was a highly effective containment, however, as Ava Labs Founder and CEO Emin Gün Sirer [knew in 2016](https://web.archive.org/web/20230919110047/https://hackingdistributed.com/2016/06/28/ethereum-soft-fork-dos-vector/), soft forks allow for mempool DOS vulnerabilities and are not desired long-term fixes.
+
+Instead, the team made the deliberate decision to use the stable soft-forked version to contain the bug, allowing the permanent fix to be developed, thoroughly tested, and bundled into the next scheduled major network upgrade: **Granite** `v1.14.0`. This is a much safer, more stable, and more transparent upgrade path.
+
+- **Action**: The architecturally correct fix was developed.
+- **Execution**: The Granite upgrade, which activated on Mainnet on November 19, 2025, contains two permanent fixes:
+  1. Existing stateful precompiles are updated to explicitly `revert` if they are ever called via `delegatecall` or `callcode`.
+  2. The underlying `libevm` library was patched to properly disambiguate "EVM semantic" and "raw" caller contexts, preventing this class of bug from recurring in future precompiles.
+- **Result**: The issue is now permanently resolved at the protocol level. The interim soft fork logic from `v1.13.4` is now superseded by this protocol-level fix and can be safely removed in a future release.
+
+## Detailed Incident and Resolution Timeline
+
+| Date (2025) | Time (EDT)  | Event                                                                                     | Status                  |
+|-------------|-------------|-------------------------------------------------------------------------------------------|-------------------------|
+| July 29     | 11:02 AM    | Trail of Bits audit team asks a question on `delegatecall` mechanism.                     | Not Started             |
+| July 30     | 8:34 AM     | Question is acknowledged, Ava Labs runs local tests of precompile behavior.               | Investigating           |
+| July 30     | 10:29 AM    | Vulnerability confirmed via local test: `delegatecall` semantics are not honored.         | Confirmed               |
+| July 30     | 10:45 AM    | P1-Critical Incident Declared.                                                            | Triage                  |
+| July 30     | 11:40 AM    | **Phase 2 (Interim Fix)** development begins: Soft fork logic to block vulnerable calls.      | Mitigation in Progress  |
+| July 30     | 2:30 PM     | **Root Cause Identified**: Bug introduced in `v1.13.1` with `libevm`. Rollback viable.        | Planning Updated        |
+| July 30     | 5:57 PM     | **Phase 1 (Immediate Fix)** begins: Foundation validators start rollback to `v1.13.0`.        | Mitigation in Progress  |
+| July 30     | 7:01 PM     | **Phase 1 Complete**: Sufficient stake rolled back. Exploit vector neutralized.               | Mitigated               |
+| July 30     | ~11:30 PM   | **Phase 2 Complete (Internal)**: Private soft fork logic deployed to Foundation nodes.        | Contained               |
+| July 31     | All Day     | **Phase 3 (Permanent Fix)** design begins. Public `v1.13.4` development.                      | Resolution in Progress  |
+| Aug 1       | 7:56 PM     | **Phase 2 Complete (Public)**: AvalancheGo `v1.13.4` published for all node operators.        | Contained               |
+| Aug 4-8     | N/A         | Consensus on permanent fix: Precompiles will `revert` on `delegatecall` in Granite.       | Resolution in Progress  |
+| Nov 19      | 11:00 AM    | **Phase 3 Complete (Permanent)**: Granite Upgrade (`v1.14.0`) activates on Mainnet.           | **Resolved**                |
+
+## Lessons Learned and Future Architectural Commitments
+
+This incident provided valuable lessons that have already been converted into actionable, completed, and ongoing improvements to our security posture. Key takeaways from the internal root cause analysis include:
+
+### 1. Conform globally, diverge locally
+
+**What we learned:**
+
+Stateful precompiles had implicitly diverged from standard EVM `DELEGATECALL` semantics without making that divergence explicit to integrators or future maintainers. This created hidden complexity across multiple codebases and ultimately surfaced as a critical vulnerability.
+
+**What we changed:**
+
+The Granite upgrade explicitly encodes the allowed call types for every stateful precompile. If a precompile does not intentionally support delegated calls, it now *reverts* when invoked via `delegatecall` or `callcode`. This enforces clear boundaries between standard EVM behavior and Avalanche-specific extensions.
+
+### 2. Standards must be the default (unless explicitly marked otherwise)
+
+**What we learned:**
+
+Engineers reasonably assume that any component behaves according to standard EVM rules unless explicitly signaled otherwise. When Avalanche's extensions silently diverged from the standard, those assumptions became dangerous. In the absence of strong signals, developers will default to the ecosystem standard, and we must support that.
+
+**What we changed:**
+
+`libevm` now provides explicit types for **EVMSemantic** vs. **Raw** caller/self contexts. Precompile authors must consciously choose the correct semantics, eliminating ambiguity. This is a concrete application of the recommendation to clearly denote any divergence from ecosystem norms.
+
+### 3. Automated tests must lock in critical (especially non-standard) assumptions
+
+**What we learned:**
+
+The original precompiles assumed `DELEGATECALL` would not be honored, but this was never encoded in tests. When `libevm` refactoring improved semantic correctness, the mismatch between expected and actual behavior was not caught. Non-standard assumptions must be enforced through tests, not tribal knowledge.
+
+**What we changed:**
+
+We are adding regression and end-to-end tests specifically covering call-context behavior for all stateful precompiles. Any future change in EVM call semantics, or in precompile behavior, will surface immediately during automated testing.
+
+## A More Resilient Platform
+
+The `delegatecall` vulnerability was a significant challenge, but the response demonstrates the resilience and maturity of the platform's security and engineering processes. The issue was discovered through our proactive audit program, handled with a methodical, multi-phase mitigation plan that protected all users, and has now been permanently resolved by the Granite network upgrade.
+
+The Avalanche network, including the C-Chain and all L1s, is safe. We can state with high confidence that the vulnerability was never exploited. Any successful attempt would have triggered an immediate, observable consensus divergence between node versions, something we continuously monitor. No such divergence or anomalous Teleporter activity was ever detected, confirming the network was never attacked through this vector.
+
+For more details on the Granite upgrade, see the [Granite release notes](https://github.com/ava-labs/avalanchego/releases/tag/v1.14.0).
+
+---
+
+## About Avalanche
+
+Avalanche is a high-performance blockchain platform designed for builders who need to scale. Engineered with a revolutionary three-part Layer 1 (L1) architecture, Avalanche is anchored by its Avalanche Consensus Mechanism, ensuring near-instant finality for transactions. The platform also features an open-source Layer 0 (L0) framework, enabling the seamless creation of interoperable Layer 1 blockchains with high throughput on both public and private networks. 
+
+Supported by a global community of developers and validators, Avalanche offers a fast, low-cost environment for building the next generation of decentralized applications (dApps). With its unique blend of speed, flexibility, and scalability, Avalanche is the preferred choice for innovators pushing the boundaries of blockchain technology.
+
+---
+
+**Follow [@AvaxDevelopers](https://x.com/AvaxDevelopers) for updates and join our developer community to stay informed about future upgrades and tooling improvements.**

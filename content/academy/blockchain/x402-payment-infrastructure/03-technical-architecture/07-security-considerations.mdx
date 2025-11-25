@@ -1,0 +1,171 @@
+---
+title: Security Considerations
+description: Understanding replay attack prevention, time-bounded authorizations, and settlement monitoring in x402.
+updated: 2025-11-03
+authors: [Federico Nardelli]
+icon: Shield
+---
+
+## Overview
+
+The x402 protocol implements multiple layers of security to protect against common attack vectors while maintaining a seamless user experience. These security measures are built on battle-tested Ethereum standards (EIP-712, EIP-3009) and blockchain cryptography.
+
+## Replay Attack Prevention
+
+Replay attacks occur when an attacker intercepts a valid payment authorization and attempts to reuse it multiple times. x402 prevents this through three complementary mechanisms:
+
+### 1. Nonce-Based Protection
+
+Each payment authorization includes a unique random nonce (32-byte hex string):
+
+```javascript
+const nonce = ethers.hexlify(ethers.randomBytes(32));
+// Example: 0x3456789012345678901234567890123456789012345678901234567890123456
+```
+
+The USDC contract (following EIP-3009) tracks which nonces have been used on-chain. When a `transferWithAuthorization` is executed:
+
+1. The contract checks if the nonce has been used before
+2. If the nonce is new, the transfer proceeds and the nonce is marked as used
+3. If the nonce was already used, the transaction reverts with an error
+
+**This makes each authorization single-use**. Even if an attacker intercepts the authorization, they cannot reuse it because the nonce is already consumed on-chain.
+
+### 2. Time-Bounded Authorizations
+
+Every authorization includes `validAfter` and `validBefore` timestamps (Unix time in seconds):
+
+```json
+{
+  "validAfter": "1740672089",   // January 7, 2025, 10:00:00 AM UTC
+  "validBefore": "1740672389"   // January 7, 2025, 10:05:00 AM UTC (5 minutes later)
+}
+```
+
+The USDC contract enforces these timing constraints:
+- If current time < `validAfter`: Transaction reverts (not yet valid)
+- If current time ≥ `validBefore`: Transaction reverts (expired)
+- Only between these times: Transaction can execute
+
+**Best practices**:
+- Set short validity windows (5-10 minutes) for most payments
+- For delayed/scheduled payments, set appropriate `validAfter`
+- Never set `validBefore` too far in the future (increases replay risk if nonce tracking fails)
+
+### 3. Transaction Hash Uniqueness
+
+Each blockchain transaction has a unique hash. Merchants should track received transaction hashes to ensure they don't fulfill the same payment twice. Even though blockchain nonces prevent double-spending, tracking fulfilled payments prevents edge cases like duplicate facilitator notifications or network issues causing duplicate webhook deliveries.
+
+## Signature Validation
+
+All payment authorizations use EIP-712 typed structured data signatures, providing cryptographic proof that the user authorized the payment.
+
+### Server-Side Signature Verification
+
+Facilitators must validate signatures before submitting transactions:
+
+```javascript
+import { verifyTypedData } from 'ethers';
+
+function validatePaymentSignature(payload) {
+  const { signature, authorization } = payload.payload;
+  const { network } = payload;
+
+  // EIP-712 domain for USDC on Avalanche Fuji
+  const domain = {
+    name: "USD Coin",
+    version: "2",
+    chainId: 43113,  // Avalanche Fuji
+    verifyingContract: "0x5425890298aed601595a70AB815c96711a31Bc65"
+  };
+
+  // EIP-712 type definition
+  const types = {
+    TransferWithAuthorization: [
+      { name: "from", type: "address" },
+      { name: "to", type: "address" },
+      { name: "value", type: "uint256" },
+      { name: "validAfter", type: "uint256" },
+      { name: "validBefore", type: "uint256" },
+      { name: "nonce", type: "bytes32" }
+    ]
+  };
+
+  // Recover signer address from signature
+  const recovered = verifyTypedData(
+    domain,
+    types,
+    authorization,
+    signature
+  );
+
+  // Verify the signer matches the 'from' address
+  if (recovered.toLowerCase() !== authorization.from.toLowerCase()) {
+    throw new Error("Invalid signature: signer does not match 'from' address");
+  }
+
+  return true;
+}
+```
+
+**Key validation steps**:
+1. Recover the signer address from the signature
+2. Verify it matches the `from` field in the authorization
+3. Check all other fields (amount, recipient, timing)
+4. Only submit to blockchain if everything validates
+
+The USDC contract also validates signatures on-chain, providing trustless verification even if the facilitator is malicious.
+
+## Authorization Timing Validation
+
+Facilitators validate timing constraints before submitting transactions to avoid wasting gas on expired authorizations. This prevents submitting transactions that will revert, wasting gas fees, or creating poor user experience from delayed settlements.
+
+## Settlement Monitoring
+
+Facilitators monitor the blockchain in real-time to detect when payments are settled and verify transaction success. Most facilitators provide webhook notifications when settlements complete.
+
+**Best practice**: Always verify webhook data by querying the blockchain directly. Don't trust the webhook alone—use it as a notification, then verify on-chain. Merchants can also monitor blockchain events independently without relying on facilitator notifications.
+
+## Amount Verification
+
+Verify that the payment amount meets your requirements. Amounts are in token base units (see [Amount Specification](./02-http-payment-required#amount-specification) for details). Accept payments equal to or greater than `maxAmountRequired`.
+
+## Network Verification
+
+Verify that the payment is on the expected blockchain network. This prevents:
+- Payments on testnets being accepted as mainnet payments
+- Cross-chain replay attacks
+- Merchant configuration errors
+
+## Recipient Address Verification
+
+Verify that payments are sent to the correct recipient address. This is especially important when supporting multiple merchants, using different addresses for different services, or accepting payments to multiple wallets.
+
+## Token Contract Verification
+
+Verify that the payment uses the expected token (asset) by validating the exact contract address. Attackers could try to pay with worthless tokens that share similar addresses.
+
+## Rate Limiting and Abuse Prevention
+
+Implement rate limiting to prevent spam attacks, nonce exhaustion, and resource abuse. Track payment frequency by address and enforce reasonable limits per time window.
+
+## Summary
+
+x402 security relies on multiple defense layers:
+
+1. **Nonce-based replay prevention**: Each authorization is single-use
+2. **Time-bounded authorizations**: Payments expire after a set time window
+3. **EIP-712 signatures**: Cryptographic proof of user authorization
+4. **On-chain validation**: USDC contract verifies all constraints
+5. **Transaction hash tracking**: Merchants prevent duplicate fulfillment
+6. **Amount, network, and asset verification**: Validate all payment parameters
+7. **Settlement monitoring**: Real-time blockchain monitoring for finality
+
+These mechanisms provide trustless, cryptographically secure payments without requiring users to trust facilitators or merchants. The blockchain enforces all security rules.
+
+## Additional Resources
+
+- [EIP-712: Typed Structured Data Signing](https://eips.ethereum.org/EIPS/eip-712)
+- [EIP-3009: Transfer With Authorization](https://eips.ethereum.org/EIPS/eip-3009)
+- [x402 Whitepaper - Security Model](https://www.x402.org/x402-whitepaper.pdf)
+- [PayAI Security Best Practices](https://docs.payai.network/security)
