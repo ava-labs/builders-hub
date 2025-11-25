@@ -5,6 +5,7 @@
   "root": true,
   "pages": [
     "index",
+    "txn-format",
     "---RPC Methods---",
     "eth",
     "web3",
@@ -13,8 +14,6 @@
     "txpool",
     "debug",
     "avalanche",
-    "warp",
-    "---Reference---",
-    "txn-format"
+    "warp"   
   ]
 }

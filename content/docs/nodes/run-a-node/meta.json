@@ -1,0 +1,13 @@
+{
+  "title": "Install Node",
+  "pages": [
+    "using-binary",
+    "from-source",
+    "using-docker",
+    "using-install-script",
+    "on-third-party-services",
+    "---Avalanche L1s---",
+    "avalanche-l1-nodes"
+  ]
+}
+
