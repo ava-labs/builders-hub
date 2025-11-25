@@ -744,6 +744,10 @@
     "color": "#FF6600",
     "category": "AI",
     "explorers": [
+      {
+          "name": "Avalanche Explorer",
+          "link": "https://subnets.avax.network/orange"
+      }
     ]
   },
   {
