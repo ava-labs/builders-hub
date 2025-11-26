@@ -168,6 +168,10 @@ export default function NetworkDiagram({
   const dragStartRef = useRef({ x: 0, y: 0 });
   const panStartRef = useRef({ x: 0, y: 0 });
   
+  // Touch state for pinch zoom
+  const lastTouchDistRef = useRef<number | null>(null);
+  const lastTouchCenterRef = useRef<{ x: number; y: number } | null>(null);
+  
   // Calculate minimum zoom needed to fit all chains in viewport
   const calculateMinZoom = useCallback(() => {
     const nodes = nodesRef.current;
@@ -488,7 +492,7 @@ export default function NetworkDiagram({
     return () => window.removeEventListener('resize', updateSize);
   }, [isFullscreen]);
 
-  // Prevent page scroll when zooming with wheel
+  // Prevent page scroll when zooming with wheel or touch
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -500,11 +504,22 @@ export default function NetworkDiagram({
       }
     };
 
+    const handleTouchNative = (e: TouchEvent) => {
+      // Prevent default to stop page scrolling while interacting with canvas
+      if (container.contains(e.target as Node)) {
+        e.preventDefault();
+      }
+    };
+
     // Use capture phase and passive: false to ensure preventDefault works
     container.addEventListener('wheel', handleWheelNative, { passive: false, capture: true });
+    container.addEventListener('touchstart', handleTouchNative, { passive: false });
+    container.addEventListener('touchmove', handleTouchNative, { passive: false });
     
     return () => {
       container.removeEventListener('wheel', handleWheelNative, { capture: true } as EventListenerOptions);
+      container.removeEventListener('touchstart', handleTouchNative);
+      container.removeEventListener('touchmove', handleTouchNative);
     };
   }, []);
 
@@ -994,6 +1009,154 @@ export default function NetworkDiagram({
     setZoom(newZoom);
   }, [zoom, dimensions, panOffset, calculateMinZoom]);
 
+  // Touch event handlers
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    
+    if (e.touches.length === 1) {
+      // Single touch - pan or select chain
+      const touch = e.touches[0];
+      const screenX = touch.clientX - rect.left;
+      const screenY = touch.clientY - rect.top;
+      
+      dragStartRef.current = { x: screenX, y: screenY };
+      panStartRef.current = { ...panOffset };
+      
+      // Check if touching a chain
+      const worldPos = screenToWorld(screenX, screenY);
+      let touchedChain: ChainNode | null = null;
+      for (const node of nodesRef.current) {
+        const distance = Math.sqrt((worldPos.x - node.x) ** 2 + (worldPos.y - node.y) ** 2);
+        if (distance < node.radius) {
+          touchedChain = node;
+          break;
+        }
+      }
+      
+      if (touchedChain) {
+        // Select/deselect chain
+        if (selectedChain?.id === touchedChain.id) {
+          setSelectedChain(null);
+          setHoveredChain(touchedChain);
+        } else {
+          setSelectedChain(touchedChain);
+          setHoveredChain(null);
+        }
+        setIsDragging(false);
+      } else {
+        // Deselect and prepare for pan
+        if (selectedChain) {
+          setSelectedChain(null);
+        }
+        setIsDragging(true);
+      }
+      
+      // Reset pinch state
+      lastTouchDistRef.current = null;
+      lastTouchCenterRef.current = null;
+    } else if (e.touches.length === 2) {
+      // Two finger touch - pinch zoom
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      
+      const dx = touch2.clientX - touch1.clientX;
+      const dy = touch2.clientY - touch1.clientY;
+      lastTouchDistRef.current = Math.sqrt(dx * dx + dy * dy);
+      
+      lastTouchCenterRef.current = {
+        x: (touch1.clientX + touch2.clientX) / 2 - rect.left,
+        y: (touch1.clientY + touch2.clientY) / 2 - rect.top,
+      };
+      
+      setIsDragging(false);
+    }
+  }, [panOffset, screenToWorld, selectedChain]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    
+    if (e.touches.length === 1 && isDragging) {
+      // Single touch pan
+      const touch = e.touches[0];
+      const screenX = touch.clientX - rect.left;
+      const screenY = touch.clientY - rect.top;
+      
+      const dx = screenX - dragStartRef.current.x;
+      const dy = screenY - dragStartRef.current.y;
+      
+      setPanOffset({
+        x: panStartRef.current.x + dx,
+        y: panStartRef.current.y + dy,
+      });
+    } else if (e.touches.length === 2 && lastTouchDistRef.current !== null) {
+      // Pinch zoom
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      
+      const dx = touch2.clientX - touch1.clientX;
+      const dy = touch2.clientY - touch1.clientY;
+      const newDist = Math.sqrt(dx * dx + dy * dy);
+      
+      const newCenter = {
+        x: (touch1.clientX + touch2.clientX) / 2 - rect.left,
+        y: (touch1.clientY + touch2.clientY) / 2 - rect.top,
+      };
+      
+      // Calculate zoom change
+      const scale = newDist / lastTouchDistRef.current;
+      const minZoom = calculateMinZoom();
+      const newZoom = Math.max(minZoom, Math.min(5, zoom * scale));
+      
+      // Zoom towards pinch center
+      const centerX = dimensions.width / 2;
+      const centerY = dimensions.height / 2;
+      const zoomRatio = newZoom / zoom;
+      
+      let newPanX = panOffset.x;
+      let newPanY = panOffset.y;
+      
+      if (lastTouchCenterRef.current) {
+        newPanX = newCenter.x - (newCenter.x - centerX - panOffset.x) * zoomRatio - centerX;
+        newPanY = newCenter.y - (newCenter.y - centerY - panOffset.y) * zoomRatio - centerY;
+      }
+      
+      setPanOffset({ x: newPanX, y: newPanY });
+      setZoom(newZoom);
+      
+      lastTouchDistRef.current = newDist;
+      lastTouchCenterRef.current = newCenter;
+    }
+  }, [isDragging, zoom, panOffset, dimensions, calculateMinZoom]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length === 0) {
+      setIsDragging(false);
+      lastTouchDistRef.current = null;
+      lastTouchCenterRef.current = null;
+    } else if (e.touches.length === 1) {
+      // Went from 2 fingers to 1 - reset to pan mode
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        dragStartRef.current = {
+          x: touch.clientX - rect.left,
+          y: touch.clientY - rect.top,
+        };
+        panStartRef.current = { ...panOffset };
+        setIsDragging(true);
+      }
+      lastTouchDistRef.current = null;
+      lastTouchCenterRef.current = null;
+    }
+  }, [panOffset]);
+
   // Reset zoom and pan
   const handleResetView = useCallback(() => {
     setZoom(1);
@@ -1019,12 +1182,16 @@ export default function NetworkDiagram({
         ref={canvasRef}
         width={dimensions.width}
         height={dimensions.height}
-        className={`w-full h-full ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`w-full h-full ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} touch-none`}
         onMouseMove={handleMouseMove}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
         onWheel={handleWheel}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
       />
       
       {/* Controls - fullscreen and zoom */}
