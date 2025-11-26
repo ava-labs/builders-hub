@@ -1,6 +1,6 @@
 "use client";
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { Card } from "@/components/ui/card";
@@ -11,16 +11,150 @@ import {
   ArrowUp,
   ArrowDown,
   Activity,
-  BarChart3,
   Search,
   ArrowUpRight,
+  ExternalLink,
+  X,
 } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { TimeSeriesMetric, ICMMetric, TimeRange, L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
-import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
+import NetworkCosmosChart, { ChainCosmosData, ICMFlowRoute } from "@/components/stats/NetworkCosmosChart";
+
+// Animated number component - continuously increasing
+function AnimatedNumber({ value, duration = 2000 }: { value: number; duration?: number }) {
+  const [displayValue, setDisplayValue] = useState(0);
+  const startTime = useRef<number | null>(null);
+  const lastIncrementTime = useRef<number | null>(null);
+  const baseValue = useRef(0);
+  const animationRef = useRef<number | null>(null);
+  const hasReachedTarget = useRef(false);
+
+  useEffect(() => {
+    startTime.current = null;
+    lastIncrementTime.current = null;
+    baseValue.current = 0;
+    hasReachedTarget.current = false;
+    
+    const animate = (timestamp: number) => {
+      if (!startTime.current) startTime.current = timestamp;
+      
+      if (!hasReachedTarget.current) {
+        // Initial animation to reach target value
+        const progress = Math.min((timestamp - startTime.current) / duration, 1);
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+        const currentValue = Math.floor(easeOut * value);
+        setDisplayValue(currentValue);
+        
+        if (progress >= 1) {
+          hasReachedTarget.current = true;
+          baseValue.current = value;
+          setDisplayValue(value);
+          lastIncrementTime.current = timestamp; // Start tracking for continuous increment
+        }
+      } else {
+        // After reaching target, continuously increment at daily rate
+        if (!lastIncrementTime.current) lastIncrementTime.current = timestamp;
+        
+        const deltaMs = timestamp - lastIncrementTime.current;
+        lastIncrementTime.current = timestamp;
+        
+        // Calculate transactions per millisecond from daily count
+        // Daily txns / (24 hours * 60 minutes * 60 seconds * 1000 ms) = txns per ms
+        const txnsPerMs = value / (24 * 60 * 60 * 1000);
+        const increment = txnsPerMs * deltaMs;
+        baseValue.current += increment;
+        setDisplayValue(Math.floor(baseValue.current));
+      }
+      
+      animationRef.current = requestAnimationFrame(animate);
+    };
+    
+    animationRef.current = requestAnimationFrame(animate);
+    
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, [value, duration]);
+
+  // Just show raw number with commas, no K/M/B formatting
+  return <span>{displayValue.toLocaleString()}</span>;
+}
+
+// Speed gauge component for TPS - needle always at max, vibrating
+function SpeedGauge({ value }: { value: number }) {
+  const [vibration, setVibration] = useState(0);
+  const gaugeId = useRef(`gauge-${Math.random().toString(36).substr(2, 9)}`).current;
+  
+  // Vibration effect - needle shakes at the limit
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVibration(Math.random() * 4 - 2); // Random shake between -2 and 2 degrees
+    }, 50);
+    return () => clearInterval(interval);
+  }, []);
+  
+  return (
+    <div className="relative inline-flex items-baseline gap-2 sm:gap-3 md:gap-4">
+      <div className="relative w-12 h-7 sm:w-16 sm:h-9 md:w-20 md:h-12">
+        {/* Gauge SVG */}
+        <svg className="w-full h-full" viewBox="0 0 80 48" overflow="visible" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <linearGradient id={gaugeId} x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#22c55e" />
+              <stop offset="50%" stopColor="#eab308" />
+              <stop offset="100%" stopColor="#ef4444" />
+            </linearGradient>
+          </defs>
+          
+          {/* Background arc */}
+          <path
+            d="M 8 44 A 32 32 0 0 1 72 44"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="6"
+            strokeLinecap="round"
+            className="text-zinc-200 dark:text-zinc-700"
+          />
+          
+          {/* Colored arc - full */}
+          <path
+            d="M 8 44 A 32 32 0 0 1 72 44"
+            fill="none"
+            stroke={`url(#${gaugeId})`}
+            strokeWidth="6"
+            strokeLinecap="round"
+          />
+          
+          {/* Needle - always at rightmost position (90 degrees = horizontal right) with vibration */}
+          <line
+            x1="40"
+            y1="44"
+            x2="40"
+            y2="16"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            className="text-zinc-800 dark:text-zinc-100"
+            style={{
+              transformOrigin: '40px 44px',
+              transform: `rotate(${90 + vibration}deg)`,
+            }}
+          />
+          
+          {/* Center dot */}
+          <circle cx="40" cy="44" r="4" fill="currentColor" className="text-zinc-800 dark:text-zinc-100" />
+        </svg>
+      </div>
+      <div className="flex items-baseline">
+        <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">{value.toFixed(2)}</span>
+        <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">TPS</span>
+      </div>
+    </div>
+  );
+}
 
 interface ChainOverviewMetrics {
   chainId: string;
@@ -49,33 +183,71 @@ type SortDirection = "asc" | "desc";
 export default function AvalancheMetrics() {
   const { resolvedTheme } = useTheme();
   const [isMounted, setIsMounted] = useState(false);
-  const [overviewMetrics, setOverviewMetrics] =
-    useState<OverviewMetrics | null>(null);
+  const [overviewMetrics, setOverviewMetrics] = useState<OverviewMetrics | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<string>("weeklyActiveAddresses");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [visibleCount, setVisibleCount] = useState(25);
   const [searchTerm, setSearchTerm] = useState("");
-  const timeRange: TimeRange = "1y"; // Fixed time range
+  const timeRange: TimeRange = "1y";
+  
+  const [cosmosData, setCosmosData] = useState<ChainCosmosData[]>([]);
+  const [icmFlows, setIcmFlows] = useState<ICMFlowRoute[]>([]);
+  const [cosmosLoading, setCosmosLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
+  const fetchCosmosData = useCallback(async () => {
+    try {
+      setCosmosLoading(true);
+      const [cosmosResponse, icmResponse] = await Promise.all([
+        fetch('/api/network-cosmos'),
+        fetch('/api/icm-flow?days=30').catch(() => null)
+      ]);
+      
+      if (cosmosResponse.ok) {
+        const data: ChainCosmosData[] = await cosmosResponse.json();
+        setCosmosData(data);
+      }
+      
+      if (icmResponse && icmResponse.ok) {
+        try {
+          const icmData = await icmResponse.json();
+          if (icmData.flows && Array.isArray(icmData.flows)) {
+            setIcmFlows(icmData.flows.map((f: any) => ({
+              sourceChainId: f.sourceChainId,
+              targetChainId: f.targetChainId,
+              messageCount: f.messageCount,
+            })));
+          }
+        } catch (e) {
+          console.warn('Could not parse ICM flow data:', e);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching cosmos data:', err);
+    } finally {
+      setCosmosLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCosmosData();
+  }, [fetchCosmosData]);
+
   const getChainSlug = (chainId: string, chainName: string): string | null => {
     const chain = l1ChainsData.find(
-      (c) =>
-        c.chainId === chainId ||
-        c.chainName.toLowerCase() === chainName.toLowerCase()
+      (c) => c.chainId === chainId || c.chainName.toLowerCase() === chainName.toLowerCase()
     );
     return chain?.slug || null;
   };
 
   const getThemedLogoUrl = (logoUrl: string): string => {
     if (!isMounted || !logoUrl) return logoUrl;
-
-    // fix to handle both light and dark mode logos
     if (resolvedTheme === "dark") {
       return logoUrl.replace(/Light/g, "Dark");
     } else {
@@ -87,49 +259,32 @@ export default function AvalancheMetrics() {
     const fetchMetrics = async () => {
       setLoading(true);
       setError(null);
-
       try {
-        const response = await fetch(
-          `/api/overview-stats?timeRange=${timeRange}`
-        );
-        if (!response.ok) {
-          throw new Error(`Failed to fetch metrics: ${response.status}`);
-        }
-
+        const response = await fetch(`/api/overview-stats?timeRange=${timeRange}`);
+        if (!response.ok) throw new Error(`Failed to fetch metrics: ${response.status}`);
         const metrics = await response.json();
         setOverviewMetrics(metrics);
       } catch (err: any) {
         console.error("Error fetching metrics data:", err);
         setError(err?.message || "Failed to load metrics data");
       }
-
       setLoading(false);
     };
-
     fetchMetrics();
   }, [timeRange]);
 
   const formatNumber = (num: number | string): string => {
-    if (num === "N/A" || num === "" || num === null || num === undefined)
-      return "N/A";
+    if (num === "N/A" || num === "" || num === null || num === undefined) return "N/A";
     const numValue = typeof num === "string" ? Number.parseFloat(num) : num;
     if (isNaN(numValue)) return "N/A";
-
-    if (numValue >= 1e12) {
-      return `${(numValue / 1e12).toFixed(2)}T`;
-    } else if (numValue >= 1e9) {
-      return `${(numValue / 1e9).toFixed(2)}B`;
-    } else if (numValue >= 1e6) {
-      return `${(numValue / 1e6).toFixed(2)}M`;
-    } else if (numValue >= 1e3) {
-      return `${(numValue / 1e3).toFixed(2)}K`;
-    }
+    if (numValue >= 1e12) return `${(numValue / 1e12).toFixed(1)}T`;
+    if (numValue >= 1e9) return `${(numValue / 1e9).toFixed(1)}B`;
+    if (numValue >= 1e6) return `${(numValue / 1e6).toFixed(1)}M`;
+    if (numValue >= 1e3) return `${(numValue / 1e3).toFixed(1)}K`;
     return numValue.toLocaleString();
   };
 
-  const formatFullNumber = (num: number): string => {
-    return num.toLocaleString();
-  };
+  const formatFullNumber = (num: number): string => num.toLocaleString();
 
   const handleSort = (field: string) => {
     if (sortField === field) {
@@ -141,50 +296,49 @@ export default function AvalancheMetrics() {
     setVisibleCount(25);
   };
 
-  const chains = overviewMetrics?.chains || [];
+  const getChainCategory = (chainId: string, chainName: string): string => {
+    const chain = l1ChainsData.find(
+      (c) => c.chainId === chainId || c.chainName.toLowerCase() === chainName.toLowerCase()
+    );
+    return chain?.category || "General";
+  };
 
+  const chains = overviewMetrics?.chains || [];
+  
+  // Extract unique categories
+  const categories = useMemo(() => {
+    const cats = new Set<string>();
+    chains.forEach(chain => {
+      const category = getChainCategory(chain.chainId, chain.chainName);
+      cats.add(category);
+    });
+    return ["All", ...Array.from(cats).sort()];
+  }, [chains]);
+  
+  // Filter by category first, then by search term
   const filteredData = chains.filter((chain) => {
-    return chain.chainName.toLowerCase().includes(searchTerm.toLowerCase());
+    const chainCategory = getChainCategory(chain.chainId, chain.chainName);
+    const matchesCategory = selectedCategory === "All" || chainCategory === selectedCategory;
+    const matchesSearch = chain.chainName.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
   });
 
   const sortedData = [...filteredData].sort((a, b) => {
-    let aValue: any;
-    let bValue: any;
-
+    let aValue: any, bValue: any;
     switch (sortField) {
       case "chainName":
-        aValue = a.chainName;
-        bValue = b.chainName;
-        break;
+        aValue = a.chainName; bValue = b.chainName; break;
       case "weeklyTxCount":
-        aValue =
-          typeof a.txCount.current_value === "number"
-            ? a.txCount.current_value / 365
-            : 0;
-        bValue =
-          typeof b.txCount.current_value === "number"
-            ? b.txCount.current_value / 365
-            : 0;
+        aValue = typeof a.txCount.current_value === "number" ? a.txCount.current_value / 365 : 0;
+        bValue = typeof b.txCount.current_value === "number" ? b.txCount.current_value / 365 : 0;
         break;
       case "weeklyActiveAddresses":
-        aValue =
-          typeof a.activeAddresses.current_value === "number"
-            ? a.activeAddresses.current_value
-            : 0;
-        bValue =
-          typeof b.activeAddresses.current_value === "number"
-            ? b.activeAddresses.current_value
-            : 0;
+        aValue = typeof a.activeAddresses.current_value === "number" ? a.activeAddresses.current_value : 0;
+        bValue = typeof b.activeAddresses.current_value === "number" ? b.activeAddresses.current_value : 0;
         break;
       case "totalIcmMessages":
-        aValue =
-          typeof a.icmMessages.current_value === "number"
-            ? a.icmMessages.current_value / 365
-            : 0;
-        bValue =
-          typeof b.icmMessages.current_value === "number"
-            ? b.icmMessages.current_value / 365
-            : 0;
+        aValue = typeof a.icmMessages.current_value === "number" ? a.icmMessages.current_value / 365 : 0;
+        bValue = typeof b.icmMessages.current_value === "number" ? b.icmMessages.current_value / 365 : 0;
         break;
       case "validatorCount":
         aValue = typeof a.validatorCount === "number" ? a.validatorCount : 0;
@@ -198,249 +352,85 @@ export default function AvalancheMetrics() {
         aValue = getChainCategory(a.chainId, a.chainName);
         bValue = getChainCategory(b.chainId, b.chainName);
         break;
-      default:
-        aValue = 0;
-        bValue = 0;
+      default: aValue = 0; bValue = 0;
     }
-
     if (typeof aValue === "string" && typeof bValue === "string") {
-      return sortDirection === "asc"
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
+      return sortDirection === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
     }
-
-    const aNum = typeof aValue === "number" ? aValue : 0;
-    const bNum = typeof bValue === "number" ? bValue : 0;
-    return sortDirection === "asc" ? aNum - bNum : bNum - aNum;
+    return sortDirection === "asc" ? (aValue || 0) - (bValue || 0) : (bValue || 0) - (aValue || 0);
   });
 
   const visibleData = sortedData.slice(0, visibleCount);
   const hasMoreData = visibleCount < sortedData.length;
+  const handleLoadMore = () => setVisibleCount((prev) => Math.min(prev + 25, sortedData.length));
 
-  const handleLoadMore = () => {
-    setVisibleCount((prev) => Math.min(prev + 25, sortedData.length));
-  };
-
-  const SortButton = ({
-    field,
-    children,
-  }: {
-    field: string;
-    children: React.ReactNode;
-  }) => (
+  const SortButton = ({ field, children, align = "left" }: { field: string; children: React.ReactNode; align?: "left" | "right" | "center" }) => (
     <button
-      className="flex items-center gap-2 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100"
+      className={`w-full flex items-center gap-1.5 transition-colors hover:text-black dark:hover:text-white ${
+        align === "right" ? "justify-end" : align === "center" ? "justify-center" : "justify-start"
+      }`}
       onClick={() => handleSort(field)}
     >
       {children}
       {sortField === field ? (
-        sortDirection === "asc" ? (
-          <ArrowUp className="h-3.5 w-3.5" />
-        ) : (
-          <ArrowDown className="h-3.5 w-3.5" />
-        )
+        sortDirection === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
       ) : (
-        <ArrowUpDown className="h-3.5 w-3.5" />
+        <ArrowUpDown className="h-3 w-3 opacity-40" />
       )}
     </button>
   );
 
-  const getChainCategory = (chainId: string, chainName: string): string => {
-    // Look up category from constants/l1-chains.json
-    const chain = l1ChainsData.find(
-      (c) =>
-        c.chainId === chainId ||
-        c.chainName.toLowerCase() === chainName.toLowerCase()
-    );
-    return chain?.category || "General";
-  };
-
   const getCategoryColor = (category: string): string => {
     const colors: { [key: string]: string } = {
-      General:
-        "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300",
-      DeFi: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-      Gaming:
-        "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
-      Institutions:
-        "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-      RWAs: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-      Payments: "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300",
+      General: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
+      DeFi: "bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
+      Gaming: "bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-400",
+      Institutions: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
+      RWAs: "bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
+      Payments: "bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     };
-    return (
-      colors[category] ||
-      "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
-    );
+    return colors[category] || colors.General;
   };
 
   const getChainTPS = (chain: ChainOverviewMetrics): string => {
-    const txCount =
-      typeof chain.txCount.current_value === "number"
-        ? chain.txCount.current_value
-        : 0;
-    const secondsInYear = 365 * 24 * 60 * 60;
-    const tps = txCount / secondsInYear;
-    return tps.toFixed(2);
+    const txCount = typeof chain.txCount.current_value === "number" ? chain.txCount.current_value : 0;
+    return (txCount / (365 * 24 * 60 * 60)).toFixed(2);
   };
 
+  // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
-        <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
-          {/* Hero Section - Loading State */}
-          <div className="relative overflow-hidden rounded-2xl p-8 sm:p-12 mb-10">
-            {/* Multi-layer gradient background */}
-            <div className="absolute inset-0 bg-black" />
-            <div
-              className="absolute inset-0 opacity-60"
-              style={{
-                background: 'linear-gradient(140deg, #E84142 0%, transparent 70%)'
-              }}
-            />
-            <div
-              className="absolute inset-0 opacity-40"
-              style={{
-                background: 'linear-gradient(to top left, #3752AC 0%, transparent 50%)'
-              }}
-            />
-            <div
-              className="absolute inset-0 opacity-30"
-              style={{
-                background: 'radial-gradient(circle at 50% 50%, #E84142 0%, #3752AC 30%, transparent 70%)'
-              }}
-            />
-
-            {/* Content */}
-            <div className="relative z-10 space-y-8">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex-1">
-                  <h1 className="text-3xl sm:text-4xl font-semibold text-white mb-3">
-                    Avalanche L1s Index
-                  </h1>
-                  <p className="text-white/80 text-sm sm:text-base max-w-3xl">
-                    Loading comprehensive stats for Avalanche Mainnet L1s...
-                  </p>
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
+          <div className="animate-pulse space-y-8 sm:space-y-12">
+            <div className="space-y-4">
+              <div className="h-8 sm:h-12 w-48 sm:w-96 bg-zinc-200 dark:bg-zinc-800 rounded" />
+              <div className="h-4 sm:h-6 w-32 sm:w-64 bg-zinc-200 dark:bg-zinc-800 rounded" />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="space-y-2">
+                  <div className="h-3 sm:h-4 w-16 sm:w-20 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                  <div className="h-8 sm:h-10 w-24 sm:w-32 bg-zinc-200 dark:bg-zinc-800 rounded" />
                 </div>
-
-                {/* Submit button skeleton */}
-                <div className="flex-shrink-0 h-9 w-32 bg-white/20 rounded-md animate-pulse" />
-              </div>
-
-              {/* Separator */}
-              <div className="border-t border-white/20" />
-
-              {/* Main metrics - 3 cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-6 text-center animate-pulse">
-                    <div className="h-4 bg-white/20 rounded mb-3 w-2/3 mx-auto" />
-                    <div className="h-10 bg-white/30 rounded w-1/2 mx-auto" />
-                  </div>
-                ))}
-              </div>
-
-              {/* Secondary metrics - 4 cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-5 text-center animate-pulse">
-                    <div className="h-3 bg-white/20 rounded mb-3 w-3/4 mx-auto" />
-                    <div className="h-7 bg-white/30 rounded w-1/3 mx-auto" />
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
+            <div className="h-[300px] sm:h-[400px] md:h-[500px] bg-zinc-200 dark:bg-zinc-800 rounded-2xl" />
           </div>
-
-          {/* Separator */}
-          <div className="border-t border-neutral-200 dark:border-neutral-800 my-8" />
-
-          {/* Search Bar Skeleton */}
-          <div className="flex items-center gap-2">
-            <div className="h-10 bg-neutral-200 dark:bg-neutral-800 rounded-full flex-1 max-w-sm animate-pulse" />
-            <div className="h-9 w-28 bg-neutral-200 dark:bg-neutral-800 rounded-full animate-pulse" />
-          </div>
-
-          {/* Table Skeleton */}
-          <Card className="overflow-hidden border border-neutral-200 dark:border-neutral-800 py-0">
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
-                  <tr className="border-b border-neutral-200 dark:border-neutral-800">
-                    {["L1 Name", "Addresses", "Transactions", "ICM", "Validators", "Throughput", "Category", "Explorer"].map((header, i) => (
-                      <th key={i} className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
-                        <div className="h-4 bg-neutral-300 dark:bg-neutral-700 rounded w-20 animate-pulse" />
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-neutral-950">
-                  {[...Array(10)].map((_, rowIndex) => (
-                    <tr key={rowIndex} className="border-b border-slate-100 dark:border-neutral-800">
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-neutral-200 dark:bg-neutral-800 animate-pulse" />
-                          <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-24 animate-pulse" />
-                        </div>
-                      </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                        <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-16 animate-pulse" />
-                      </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                        <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-16 animate-pulse" />
-                      </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                        <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-12 animate-pulse" />
-                      </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                        <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-12 animate-pulse" />
-                      </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                        <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-16 animate-pulse" />
-                      </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                        <div className="h-6 bg-neutral-200 dark:bg-neutral-800 rounded-full w-20 animate-pulse" />
-                      </td>
-                      <td className="px-4 py-2">
-                        <div className="flex items-center justify-center">
-                          <div className="h-8 w-16 bg-neutral-200 dark:bg-neutral-800 rounded-md animate-pulse" />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </main>
-
-        {/* Bubble Navigation */}
+        </div>
         <StatsBubbleNav />
       </div>
     );
   }
 
+  // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
-        <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <Card className="max-w-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-              <div className="p-6 text-center">
-                <div className="w-12 h-12 bg-red-50 dark:bg-red-950 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Activity className="h-6 w-6 text-red-600 dark:text-red-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
-                  Failed to Load Data
-                </h3>
-                <p className="text-red-600 dark:text-red-400 text-sm">
-                  {error}
-                </p>
-              </div>
-            </Card>
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Activity className="h-12 w-12 text-red-500 mx-auto" />
+          <p className="text-red-600 dark:text-red-400">{error}</p>
           </div>
-        </main>
-
-        {/* Bubble Navigation */}
         <StatsBubbleNav />
       </div>
     );
@@ -448,412 +438,381 @@ export default function AvalancheMetrics() {
 
   if (!overviewMetrics || overviewMetrics.chains.length === 0) {
     return (
-      <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
-        <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <Card className="max-w-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-              <div className="p-6 text-center">
-                <div className="w-12 h-12 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <BarChart3 className="h-6 w-6 text-neutral-500 dark:text-neutral-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
-                  No Data Available
-                </h3>
-                <p className="text-neutral-600 dark:text-neutral-400 text-sm">
-                  No chain metrics found from the API.
-                </p>
-              </div>
-            </Card>
-          </div>
-        </main>
-
-        {/* Bubble Navigation */}
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
+        <p className="text-zinc-500">No data available</p>
         <StatsBubbleNav />
       </div>
     );
   }
 
+  const dailyTx = typeof overviewMetrics.aggregated.totalTxCount.current_value === "number" 
+    ? Math.round(overviewMetrics.aggregated.totalTxCount.current_value / 365) : 0;
+  const totalTps = typeof overviewMetrics.aggregated.totalTxCount.current_value === "number"
+    ? (overviewMetrics.aggregated.totalTxCount.current_value / (365 * 24 * 60 * 60)).toFixed(2) : "0";
+  const dailyIcm = Math.round(overviewMetrics.aggregated.totalICMMessages.current_value / 365);
+
   return (
-    <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
-      <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
-        {/* Hero Section */}
-        <div className="relative overflow-hidden rounded-2xl p-8 sm:p-12 mb-10">
-          {/* Multi-layer gradient background */}
-          <div className="absolute inset-0 bg-black" />
-          <div
-            className="absolute inset-0 opacity-60"
-            style={{
-              background: 'linear-gradient(140deg, #E84142 0%, transparent 70%)'
-            }}
-          />
-          <div
-            className="absolute inset-0 opacity-40"
-            style={{
-              background: 'linear-gradient(to top left, #3752AC 0%, transparent 50%)'
-            }}
-          />
-          <div
-            className="absolute inset-0 opacity-30"
-            style={{
-              background: 'radial-gradient(circle at 50% 50%, #E84142 0%, #3752AC 30%, transparent 70%)'
-            }}
-          />
-
-          {/* Content */}
-          <div className="relative z-10 space-y-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              {/* Title and description */}
-              <div className="flex-1">
-                <h1 className="text-3xl sm:text-4xl font-semibold text-white mb-3">
-                  Avalanche L1s Index
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      {/* Hero - Clean typographic approach */}
+      <div className="border-b border-zinc-200 dark:border-zinc-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
+            <div className="space-y-4 sm:space-y-6 flex-1">
+              <div>
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                  <AvalancheLogo className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" />
+                  <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
+                    Avalanche Ecosystem
+                  </p>
+                </div>
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                  L1s Index
                 </h1>
-                <p className="text-white/80 text-sm sm:text-base max-w-3xl">
-                  Opinionated stats for Mainnet L1s in the Avalanche ecosystem.
-                </p>
               </div>
 
-              {/* Submit button */}
-              <Button
-                size="sm"
-                onClick={() =>
-                  window.open(
-                    "https://github.com/ava-labs/builders-hub/blob/master/constants/l1-chains.json",
-                    "_blank"
-                  )
-                }
-                className="flex-shrink-0 border border-white bg-black text-white hover:bg-neutral-800 dark:bg-transparent dark:hover:border-neutral-400 transition-colors"
+              {/* Key metrics - 2x2 grid on mobile, inline on desktop */}
+              <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-3 sm:gap-6 md:gap-12 pt-4">
+                <div>
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    {overviewMetrics.chains.length}
+                  </span>
+                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">chains</span>
+                </div>
+                <div>
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    <AnimatedNumber value={dailyTx} />
+                  </span>
+                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">txns</span>
+                </div>
+                <div>
+                  <SpeedGauge value={parseFloat(totalTps)} />
+                </div>
+                <div>
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    {formatNumber(overviewMetrics.aggregated.totalValidators)}
+                  </span>
+                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">validators</span>
+                </div>
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open("https://github.com/ava-labs/builders-hub/blob/master/constants/l1-chains.json", "_blank")}
+              className="w-full sm:w-auto mt-2 gap-2 text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600"
+            >
+              Submit L1
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+
+          {/* Secondary stats row - responsive */}
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6 md:gap-8 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-zinc-200 dark:border-zinc-800">
+            <div className="flex items-center gap-2">
+              <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">Daily ICM:</span>
+              <span className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-white">{formatNumber(dailyIcm)}</span>
+            </div>
+            <div className="hidden sm:block w-px h-4 bg-zinc-300 dark:bg-zinc-700" />
+            <div className="flex items-center gap-2">
+              <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">Validation Fees:</span>
+              <div className="flex items-center gap-1">
+                <AvalancheLogo className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" />
+                <span className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-white">8,310</span>
+              </div>
+            </div>
+            <div className="hidden sm:block w-px h-4 bg-zinc-300 dark:bg-zinc-700" />
+            <div className="flex items-center gap-2">
+              <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">Fees Burned:</span>
+              <div className="flex items-center gap-1">
+                <AvalancheLogo className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" />
+                <span className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-white">{formatNumber(4930978)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Network visualization - full bleed */}
+      <div className="bg-zinc-900 dark:bg-black">
+        <div className="h-[400px] sm:h-[500px] md:h-[560px]">
+          {cosmosLoading ? (
+            <div className="h-full flex items-center justify-center">
+              <div className="flex items-center gap-3 text-zinc-400">
+                <div className="w-5 h-5 border-2 border-zinc-600 border-t-zinc-400 rounded-full animate-spin" />
+                <span className="text-xs sm:text-sm">Loading network...</span>
+              </div>
+            </div>
+          ) : cosmosData.length > 0 ? (
+            <NetworkCosmosChart data={cosmosData} icmFlows={icmFlows} />
+          ) : (
+            <div className="h-full flex items-center justify-center text-zinc-500 text-xs sm:text-sm">
+              No network data
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Table section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        {/* Table header */}
+        <div className="mb-4">
+          <div className="flex items-baseline gap-2 sm:gap-3 mb-4">
+            <h2 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-white">All Chains</h2>
+            <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">{sortedData.length} tracked</span>
+          </div>
+          
+          {/* Category filter badges and search bar in same row */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+            {/* Category filter badges */}
+            <div className="flex flex-wrap gap-2 flex-1">
+          {categories.map(category => {
+            const isSelected = selectedCategory === category;
+            const count = category === "All" 
+              ? chains.length 
+              : chains.filter(c => getChainCategory(c.chainId, c.chainName) === category).length;
+            
+            // Category badge styles
+            const getBadgeStyle = (cat: string, selected: boolean) => {
+              if (cat === "All") {
+                return selected 
+                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent" 
+                  : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700";
+              }
+              const styles: Record<string, { selected: string; normal: string }> = {
+                'DeFi': { 
+                  selected: 'bg-blue-500 text-white border-transparent', 
+                  normal: 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900' 
+                },
+                'Gaming': { 
+                  selected: 'bg-violet-500 text-white border-transparent', 
+                  normal: 'bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-950 dark:text-violet-400 dark:border-violet-800 hover:bg-violet-100 dark:hover:bg-violet-900' 
+                },
+                'Institutions': { 
+                  selected: 'bg-emerald-500 text-white border-transparent', 
+                  normal: 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900' 
+                },
+                'RWAs': { 
+                  selected: 'bg-orange-500 text-white border-transparent', 
+                  normal: 'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-950 dark:text-orange-400 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900' 
+                },
+                'Payments': { 
+                  selected: 'bg-pink-500 text-white border-transparent', 
+                  normal: 'bg-pink-50 text-pink-600 border-pink-200 dark:bg-pink-950 dark:text-pink-400 dark:border-pink-800 hover:bg-pink-100 dark:hover:bg-pink-900' 
+                },
+                'General': { 
+                  selected: 'bg-zinc-500 text-white border-transparent', 
+                  normal: 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700' 
+                },
+              };
+              const style = styles[cat] || styles['General'];
+              return selected ? style.selected : style.normal;
+            };
+            
+            return (
+              <button
+                key={category}
+                onClick={() => {
+                  setSelectedCategory(category);
+                  setVisibleCount(25); // Reset pagination when filter changes
+                }}
+                className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full border transition-all ${getBadgeStyle(category, isSelected)}`}
               >
-                Submit Your L1
-                <ArrowUpRight className="ml-1.5 h-4 w-4" />
-              </Button>
+                {category} <span className="opacity-70">({count})</span>
+              </button>
+            );
+          })}
             </div>
-
-            {/* Separator */}
-            <div className="border-t border-white/20" />
-
-            {/* Main metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-6 text-center">
-                <p className="mb-2 text-sm font-medium text-white/60">
-                  Mainnet Avalanche L1s
-                </p>
-                <p className="text-4xl font-semibold tracking-tight text-white">
-                  {overviewMetrics.chains.length}
-                </p>
-              </div>
-
-              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-6 text-center">
-                <p className="mb-2 text-sm font-medium text-white/60">
-                  Daily Transactions
-                </p>
-                <p className="text-4xl font-semibold tracking-tight text-white">
-                  {formatNumber(
-                    typeof overviewMetrics.aggregated.totalTxCount
-                      .current_value === "number"
-                      ? Math.round(
-                          overviewMetrics.aggregated.totalTxCount.current_value /
-                            365
-                        )
-                      : 0
-                  )}
-                </p>
-              </div>
-
-              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-6 text-center">
-                <p className="mb-2 text-sm font-medium text-white/60">
-                  Combined Throughput
-                </p>
-                <p className="text-4xl font-semibold tracking-tight text-white">
-                  {(() => {
-                    const totalTxs =
-                      typeof overviewMetrics.aggregated.totalTxCount
-                        .current_value === "number"
-                        ? overviewMetrics.aggregated.totalTxCount.current_value
-                        : 0;
-                    const secondsInYear = 365 * 24 * 60 * 60;
-                    const tps = (totalTxs / secondsInYear).toFixed(2);
-                    return tps;
-                  })()}{" "}
-                  TPS
-                </p>
-              </div>
-            </div>
-
-            {/* Secondary metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-5 text-center">
-                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-white/60">
-                  Daily ICM Count
-                </p>
-                <p className="text-2xl font-semibold text-white">
-                  {formatNumber(
-                    Math.round(
-                      overviewMetrics.aggregated.totalICMMessages.current_value /
-                        365
-                    )
-                  )}
-                </p>
-              </div>
-
-              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-5 text-center">
-                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-white/60">
-                  Total Validators
-                </p>
-                <p className="text-2xl font-semibold text-white">
-                  {formatNumber(overviewMetrics.aggregated.totalValidators)}
-                </p>
-              </div>
-
-              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-5 text-center">
-                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-white/60">
-                  All-Time Validation Fees
-                </p>
-                <div className="flex items-center justify-center gap-2">
-                  <AvalancheLogo className="w-6 h-6" fill="white" />
-                  <p className="text-2xl font-semibold text-white">
-                    8,310
-                  </p>
-                </div>
-              </div>
-
-              <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-5 text-center">
-                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-white/60">
-                  Total Network Fees Burned
-                </p>
-                <div className="flex items-center justify-center gap-2">
-                  <AvalancheLogo className="w-6 h-6" fill="white" />
-                  <p className="text-2xl font-semibold text-white">
-                    {formatNumber(4930978)}
-                  </p>
-                </div>
-              </div>
+            
+            {/* Search bar */}
+            <div className="relative w-full sm:w-auto sm:flex-shrink-0 sm:max-w-sm">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 pointer-events-none z-10" />
+              <Input
+                placeholder="Search chains..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-10 rounded-lg border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-sm sm:text-base text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setVisibleCount(25);
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full z-20 transition-colors"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="border-t border-neutral-200 dark:border-neutral-800 my-8"></div>
-
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500" />
-            <Input
-              placeholder="Search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 rounded-full border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
-            />
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setSearchTerm("");
-              setVisibleCount(25);
-            }}
-            className="text-neutral-600 dark:text-neutral-400 hover:bg-[#fcfcfd] dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white rounded-full"
-          >
-            Clear Search
-          </Button>
-        </div>
-
-        <Card className="overflow-hidden border border-neutral-200 dark:border-neutral-800 py-0">
+        {/* Table */}
+        <Card className="overflow-hidden py-0 border-0 shadow-none rounded-lg">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
-                <tr className="border-b border-neutral-200 dark:border-neutral-800">
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
-                    <div className="flex items-center gap-2">
-                      <SortButton field="chainName">
-                        <span className="text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
-                          L1 Name
-                        </span>
-                      </SortButton>
-                    </div>
-                  </th>
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
-                    <div className="flex items-center gap-2">
-                      <SortButton field="weeklyActiveAddresses">
-                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
-                          Active Addresses
-                        </span>
-                        <span className="lg:hidden text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">
-                          Addresses
-                        </span>
-                      </SortButton>
-                    </div>
-                  </th>
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
-                    <div className="flex items-center gap-2">
-                      <SortButton field="weeklyTxCount">
-                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
-                          Transactions
-                        </span>
-                        <span className="lg:hidden text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">
-                          Transactions
-                        </span>
-                      </SortButton>
-                    </div>
-                  </th>
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
-                    <div className="flex items-center gap-2">
-                      <SortButton field="totalIcmMessages">
-                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
-                          Interchain Messages
-                        </span>
-                        <span className="lg:hidden text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">
-                          ICM
-                        </span>
-                      </SortButton>
-                    </div>
-                  </th>
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
-                    <div className="flex items-center gap-2">
-                      <SortButton field="validatorCount">
-                        <span className="hidden lg:flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
-                          Validators
-                        </span>
-                      </SortButton>
-                    </div>
-                  </th>
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
-                    <div className="flex items-center gap-2">
-                      <SortButton field="throughput">
-                        <span className="text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
-                          Throughput
-                        </span>
-                      </SortButton>
-                    </div>
-                  </th>
-                  <th className="border-r border-neutral-200 dark:border-neutral-800 px-4 py-2 text-left">
-                    <div className="flex items-center gap-2">
-                      <SortButton field="category">
-                        <span className="text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
-                          Category
-                        </span>
-                      </SortButton>
-                    </div>
-                  </th>
-                  <th className="px-4 py-2 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <span className="text-sm font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
-                        Block Explorer
+                <tr>
+                  {/* Chain Name - left aligned (text) */}
+                  <th className="px-2 sm:px-3 md:px-4 py-2 text-left">
+                    <SortButton field="chainName" align="left">
+                      <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                        Chain Name
                       </span>
-                    </div>
+                    </SortButton>
+                  </th>
+                  {/* Active Addresses - right aligned (numeric) */}
+                  <th className="px-2 sm:px-3 md:px-4 py-2 text-right">
+                    <SortButton field="weeklyActiveAddresses" align="right">
+                      <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                        Active Addresses
+                      </span>
+                    </SortButton>
+                  </th>
+                  {/* Daily Txns - right aligned (numeric) */}
+                  <th className="px-2 sm:px-3 md:px-4 py-2 text-right">
+                    <SortButton field="weeklyTxCount" align="right">
+                      <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                        Daily Txns
+                      </span>
+                    </SortButton>
+                  </th>
+                  {/* Daily ICM - right aligned (numeric) */}
+                  <th className="px-2 sm:px-3 md:px-4 py-2 text-right">
+                    <SortButton field="totalIcmMessages" align="right">
+                      <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                        Daily ICM
+                      </span>
+                    </SortButton>
+                  </th>
+                  {/* Validators - right aligned (numeric) */}
+                  <th className="px-2 sm:px-3 md:px-4 py-2 text-right">
+                    <SortButton field="validatorCount" align="right">
+                      <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                        Validators
+                      </span>
+                    </SortButton>
+                  </th>
+                  {/* TPS - right aligned (numeric) */}
+                  <th className="px-2 sm:px-3 md:px-4 py-2 text-right">
+                    <SortButton field="throughput" align="right">
+                      <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                        TPS
+                      </span>
+                    </SortButton>
+                  </th>
+                  {/* Category - left aligned (text) */}
+                  <th className="px-2 sm:px-3 md:px-4 py-2 text-left">
+                    <SortButton field="category" align="left">
+                      <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                        Category
+                      </span>
+                    </SortButton>
+                  </th>
+                  {/* Explorer - center aligned (action button) */}
+                  <th className="px-2 sm:px-3 md:px-4 py-2 text-center">
+                    <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                      Explorer
+                    </span>
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-neutral-950">
-                {visibleData.map((chain, index) => {
-                  const chainSlug = getChainSlug(
-                    chain.chainId,
-                    chain.chainName
-                  );
+                {visibleData.map((chain) => {
+                  const chainSlug = getChainSlug(chain.chainId, chain.chainName);
                   return (
                     <tr
                       key={chain.chainId}
                       className={`border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50 ${
                         chainSlug ? "cursor-pointer" : ""
                       }`}
-                      onClick={() => {
-                        if (chainSlug) {
-                          window.location.href = `/stats/l1/${chainSlug}`;
-                        }
-                      }}
+                      onClick={() => chainSlug && (window.location.href = `/stats/l1/${chainSlug}`)}
                     >
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                        <div className="flex items-center gap-3 group">
-                          <div className="relative">
+                      {/* Chain Name - left aligned */}
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-2 sm:px-3 md:px-4 py-2 text-left">
+                        <div className="flex items-center gap-2 sm:gap-3 group">
+                          <div className="relative h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 flex-shrink-0">
                             {chain.chainLogoURI ? (
                               <Image
-                                src={
-                                  getThemedLogoUrl(chain.chainLogoURI) ||
-                                  "/placeholder.svg"
-                                }
-                                alt={`${chain.chainName} logo`}
+                                src={getThemedLogoUrl(chain.chainLogoURI) || "/placeholder.svg"}
+                                alt={chain.chainName}
                                 width={32}
                                 height={32}
-                                className="rounded-full flex-shrink-0 shadow-sm"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = "none";
-                                }}
+                                className="h-full w-full rounded-full object-cover flex-shrink-0 shadow-sm"
+                                onError={(e) => { e.currentTarget.style.display = "none"; }}
                               />
                             ) : (
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 shadow-sm">
-                                <span className="text-sm font-bold text-white">
+                              <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 shadow-sm flex-shrink-0">
+                                <span className="text-xs sm:text-sm font-bold text-white">
                                   {chain.chainName.charAt(0)}
                                 </span>
                               </div>
                             )}
                           </div>
-                          <span className="font-medium text-black dark:text-white">
+                          <span className="font-medium text-sm sm:text-base text-black dark:text-white truncate max-w-[120px] sm:max-w-none">
                             {chain.chainName}
                           </span>
                           {chainSlug && (
-                            <div className="relative overflow-hidden w-4 h-4 flex-shrink-0">
-                              <ArrowUpRight className="h-4 w-4 text-blue-600 dark:text-blue-400 absolute transition-all duration-300 ease-out transform translate-y-4 translate-x-4 opacity-0 group-hover:translate-y-0 group-hover:translate-x-0 group-hover:opacity-100" />
+                            <div className="relative overflow-hidden w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0">
+                              <ArrowUpRight className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400 absolute transition-all duration-300 ease-out transform translate-y-4 translate-x-4 opacity-0 group-hover:translate-y-0 group-hover:translate-x-0 group-hover:opacity-100" />
                             </div>
                           )}
                         </div>
                       </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                        <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                          {typeof chain.activeAddresses.current_value ===
-                          "number"
-                            ? formatFullNumber(
-                                chain.activeAddresses.current_value
-                              )
+                      {/* Active Addresses - right aligned */}
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-2 sm:px-3 md:px-4 py-2 text-right">
+                        <div className="text-xs sm:text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                          {typeof chain.activeAddresses.current_value === "number" 
+                            ? formatFullNumber(chain.activeAddresses.current_value) 
                             : chain.activeAddresses.current_value}
-                        </span>
+                        </div>
                       </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                        <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      {/* Daily Txns - right aligned */}
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-2 sm:px-3 md:px-4 py-2 text-right">
+                        <div className="text-xs sm:text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {typeof chain.txCount.current_value === "number"
-                            ? formatFullNumber(
-                                Math.round(chain.txCount.current_value / 365)
-                              )
+                            ? formatFullNumber(Math.round(chain.txCount.current_value / 365))
                             : chain.txCount.current_value}
-                        </span>
+                        </div>
                       </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                        <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      {/* Daily ICM - right aligned */}
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-2 sm:px-3 md:px-4 py-2 text-right">
+                        <div className="text-xs sm:text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {typeof chain.icmMessages.current_value === "number"
-                            ? formatFullNumber(
-                                Math.round(
-                                  chain.icmMessages.current_value / 365
-                                )
-                              )
+                            ? formatFullNumber(Math.round(chain.icmMessages.current_value / 365))
                             : chain.icmMessages.current_value}
-                        </span>
+                        </div>
                       </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                        <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      {/* Validators - right aligned */}
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-2 sm:px-3 md:px-4 py-2 text-right">
+                        <div className="text-xs sm:text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {typeof chain.validatorCount === "number"
                             ? formatFullNumber(chain.validatorCount)
                             : chain.validatorCount}
-                        </span>
+                        </div>
                       </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                        <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                          {getChainTPS(chain)} TPS
-                        </span>
+                      {/* TPS - right aligned */}
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-2 sm:px-3 md:px-4 py-2 text-right">
+                        <div className="text-xs sm:text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                          {getChainTPS(chain)}
+                        </div>
                       </td>
-                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                      {/* Category - left aligned */}
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-2 sm:px-3 md:px-4 py-2 text-left">
                         <span
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(
-                            getChainCategory(chain.chainId, chain.chainName)
-                          )}`}
+                          className={`inline-flex items-center px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${getCategoryColor(getChainCategory(chain.chainId, chain.chainName))}`}
                         >
                           {getChainCategory(chain.chainId, chain.chainName)}
                         </span>
                       </td>
-                      <td className="px-4 py-2">
-                        <div className="flex items-center justify-center">
+                      {/* Explorer - center aligned */}
+                      <td className="px-2 sm:px-3 md:px-4 py-2 text-center">
+                        <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
                           <ExplorerDropdown
-                            explorers={
-                              (l1ChainsData.find(
-                                (c) => c.chainId === chain.chainId
-                              ) as L1Chain)?.explorers
-                            }
+                            explorers={(l1ChainsData.find((c) => c.chainId === chain.chainId) as L1Chain)?.explorers}
                             size="sm"
                             variant="outline"
                             showIcon={true}
@@ -870,20 +829,21 @@ export default function AvalancheMetrics() {
         </Card>
 
         {hasMoreData && (
-          <div className="flex justify-center">
+          <div className="flex justify-center mt-4 sm:mt-6">
             <Button
               onClick={handleLoadMore}
               variant="outline"
               size="lg"
-              className="px-8 py-3 border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-900 text-black dark:text-white transition-colors hover:border-black dark:hover:border-white hover:bg-[#fcfcfd] dark:hover:bg-neutral-900"
+              className="px-4 sm:px-8 py-2 sm:py-3 text-sm sm:text-base border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-900 text-black dark:text-white transition-colors hover:border-black dark:hover:border-white hover:bg-[#fcfcfd] dark:hover:bg-neutral-900"
             >
-              Load More Chains ({sortedData.length - visibleCount} remaining)
+              <span className="hidden sm:inline">Load More Chains </span>
+              <span className="sm:hidden">Load More </span>
+              ({sortedData.length - visibleCount} remaining)
             </Button>
           </div>
         )}
-      </main>
+      </div>
 
-      {/* Bubble Navigation */}
       <StatsBubbleNav />
     </div>
   );

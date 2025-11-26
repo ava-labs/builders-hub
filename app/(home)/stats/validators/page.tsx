@@ -749,14 +749,7 @@ export default function ValidatorStatsPage() {
                   return (
                     <tr
                       key={subnet.id}
-                      className={`border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50 ${
-                        subnet.id === "11111111111111111111111111111111LpoYY" ? "cursor-pointer" : ""
-                      }`}
-                      onClick={() => {
-                        if (subnet.id === "11111111111111111111111111111111LpoYY") {
-                          router.push("/stats/primary-network/validators");
-                        }
-                      }}
+                      className={`border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50`}
                     >
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                         <div className="flex items-center gap-3">
@@ -905,12 +898,10 @@ export default function ValidatorStatsPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          disabled={subnet.id !== "11111111111111111111111111111111LpoYY"}
+                          disabled={true}
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (subnet.id === "11111111111111111111111111111111LpoYY") {
-                              router.push("/stats/primary-network/validators");
-                            }
+                            // Removed redirect to primary-network/validators
                           }}
                           className="disabled:opacity-50 disabled:cursor-not-allowed"
                         >
