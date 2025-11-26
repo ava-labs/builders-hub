@@ -506,7 +506,9 @@ export default function NetworkDiagram({
 
     const handleTouchNative = (e: TouchEvent) => {
       // Prevent default to stop page scrolling while interacting with canvas
-      if (container.contains(e.target as Node)) {
+      // Only prevent on canvas element, not on buttons/controls
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'CANVAS') {
         e.preventDefault();
       }
     };
@@ -1195,22 +1197,23 @@ export default function NetworkDiagram({
       />
       
       {/* Controls - fullscreen and zoom */}
-      <div className="absolute top-4 right-4 flex flex-col gap-1 bg-black/50 backdrop-blur-sm rounded-lg p-1">
+      <div className="absolute top-4 right-4 flex flex-col gap-1 bg-black/50 backdrop-blur-sm rounded-lg p-1 z-10">
         {/* Fullscreen toggle */}
         <button
           onClick={toggleFullscreen}
-          className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
+          onTouchEnd={(e) => { e.preventDefault(); toggleFullscreen(); }}
+          className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-white/80 hover:text-white active:bg-white/20 hover:bg-white/10 rounded transition-colors touch-manipulation"
           title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
         >
           {isFullscreen ? (
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M8 3v3a2 2 0 0 1-2 2H3"/>
               <path d="M21 8h-3a2 2 0 0 1-2-2V3"/>
               <path d="M3 16h3a2 2 0 0 1 2 2v3"/>
               <path d="M16 21v-3a2 2 0 0 1 2-2h3"/>
             </svg>
           ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
               <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
               <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
@@ -1224,10 +1227,11 @@ export default function NetworkDiagram({
         {/* Zoom in */}
         <button
           onClick={handleZoomIn}
-          className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
+          onTouchEnd={(e) => { e.preventDefault(); handleZoomIn(); }}
+          className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-white/80 hover:text-white active:bg-white/20 hover:bg-white/10 rounded transition-colors touch-manipulation"
           title="Zoom in"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"/>
             <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             <line x1="11" y1="8" x2="11" y2="14"/>
@@ -1238,10 +1242,11 @@ export default function NetworkDiagram({
         {/* Zoom out */}
         <button
           onClick={handleZoomOut}
-          className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
+          onTouchEnd={(e) => { e.preventDefault(); handleZoomOut(); }}
+          className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-white/80 hover:text-white active:bg-white/20 hover:bg-white/10 rounded transition-colors touch-manipulation"
           title="Zoom out"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"/>
             <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             <line x1="8" y1="11" x2="14" y2="11"/>
@@ -1252,10 +1257,11 @@ export default function NetworkDiagram({
         {(zoom !== 1 || panOffset.x !== 0 || panOffset.y !== 0) && (
           <button
             onClick={handleResetView}
-            className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
+            onTouchEnd={(e) => { e.preventDefault(); handleResetView(); }}
+            className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-white/80 hover:text-white active:bg-white/20 hover:bg-white/10 rounded transition-colors touch-manipulation"
             title="Reset view"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
               <path d="M3 3v5h5"/>
             </svg>
@@ -1334,10 +1340,15 @@ export default function NetworkDiagram({
                   setSelectedChain(null);
                   setHoveredChain(null);
                 }}
-                className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors"
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  setSelectedChain(null);
+                  setHoveredChain(null);
+                }}
+                className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center text-white/60 hover:text-white active:bg-white/20 hover:bg-white/10 rounded transition-colors touch-manipulation"
                 title="Close"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"/>
                   <line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
@@ -1469,7 +1480,11 @@ export default function NetworkDiagram({
                     onClick={() => {
                       window.location.href = `/stats/l1/${chainSlug}`;
                     }}
-                    className="w-full text-xs text-cyan-400 hover:text-cyan-300 transition-colors text-center underline decoration-dotted underline-offset-2 cursor-pointer"
+                    onTouchEnd={(e) => {
+                      e.preventDefault();
+                      window.location.href = `/stats/l1/${chainSlug}`;
+                    }}
+                    className="w-full py-2 text-sm text-cyan-400 hover:text-cyan-300 active:text-cyan-200 transition-colors text-center underline decoration-dotted underline-offset-2 cursor-pointer touch-manipulation"
                   >
                     Click here for more stats →
                   </button>
