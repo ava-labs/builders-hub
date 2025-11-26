@@ -22,7 +22,7 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import { TimeSeriesMetric, ICMMetric, TimeRange, L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
-import NetworkCosmosChart, { ChainCosmosData, ICMFlowRoute } from "@/components/stats/NetworkCosmosChart";
+import NetworkDiagram, { ChainCosmosData, ICMFlowRoute } from "@/components/stats/NetworkDiagram";
 
 // Animated number component - continuously increasing
 function AnimatedNumber({ value, duration = 2000 }: { value: number; duration?: number }) {
@@ -199,9 +199,8 @@ export default function AvalancheMetrics() {
   const [searchTerm, setSearchTerm] = useState("");
   const timeRange: TimeRange = "1y";
   
-  const [cosmosData, setCosmosData] = useState<ChainCosmosData[]>([]);
   const [icmFlows, setIcmFlows] = useState<ICMFlowRoute[]>([]);
-  const [cosmosLoading, setCosmosLoading] = useState(true);
+  const [icmLoading, setIcmLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
@@ -210,18 +209,11 @@ export default function AvalancheMetrics() {
     setIsMounted(true);
   }, []);
 
-  const fetchCosmosData = useCallback(async () => {
+  // Fetch ICM flows separately (only additional data needed for NetworkDiagram)
+  const fetchIcmFlows = useCallback(async () => {
     try {
-      setCosmosLoading(true);
-      const [cosmosResponse, icmResponse] = await Promise.all([
-        fetch('/api/network-cosmos'),
-        fetch('/api/icm-flow?days=30').catch(() => null)
-      ]);
-      
-      if (cosmosResponse.ok) {
-        const data: ChainCosmosData[] = await cosmosResponse.json();
-        setCosmosData(data);
-      }
+      setIcmLoading(true);
+      const icmResponse = await fetch('/api/icm-flow?days=30').catch(() => null);
       
       if (icmResponse && icmResponse.ok) {
         try {
@@ -238,15 +230,15 @@ export default function AvalancheMetrics() {
         }
       }
     } catch (err) {
-      console.error('Error fetching cosmos data:', err);
+      console.error('Error fetching ICM flows:', err);
     } finally {
-      setCosmosLoading(false);
+      setIcmLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchCosmosData();
-  }, [fetchCosmosData]);
+    fetchIcmFlows();
+  }, [fetchIcmFlows]);
 
   const getChainSlug = (chainId: string, chainName: string): string | null => {
     const chain = l1ChainsData.find(
@@ -254,6 +246,57 @@ export default function AvalancheMetrics() {
     );
     return chain?.slug || null;
   };
+
+  // Helper to generate consistent color from chain name
+  const generateColorFromName = (name: string): string => {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = hash % 360;
+    return `hsl(${hue}, 70%, 50%)`;
+  };
+
+  // Transform overviewMetrics.chains to ChainCosmosData for NetworkDiagram
+  const cosmosData: ChainCosmosData[] = useMemo(() => {
+    if (!overviewMetrics?.chains) return [];
+    
+    return overviewMetrics.chains
+      .map((chain) => {
+        // Get additional info from l1-chains.json
+        const l1Chain = l1ChainsData.find(
+          (c) => c.chainId === chain.chainId || c.chainName.toLowerCase() === chain.chainName.toLowerCase()
+        );
+        
+        const validatorCount = typeof chain.validatorCount === 'number' ? chain.validatorCount : 0;
+        if (validatorCount === 0) return null;
+        
+        const txCount = typeof chain.txCount.current_value === 'number' ? chain.txCount.current_value : 0;
+        const secondsInYear = 365 * 24 * 60 * 60;
+        const tps = txCount / secondsInYear;
+        
+        return {
+          id: l1Chain?.subnetId || chain.chainId,
+          chainId: chain.chainId,
+          name: chain.chainName,
+          logo: chain.chainLogoURI,
+          color: l1Chain?.color || generateColorFromName(chain.chainName),
+          validatorCount,
+          subnetId: l1Chain?.subnetId,
+          activeAddresses: typeof chain.activeAddresses?.daily?.current_value === 'number' 
+            ? chain.activeAddresses.daily.current_value 
+            : undefined,
+          txCount: txCount > 0 ? Math.round(txCount / 365) : undefined,
+          icmMessages: typeof chain.icmMessages.current_value === 'number'
+            ? Math.round(chain.icmMessages.current_value / 365)
+            : undefined,
+          tps: tps > 0 ? parseFloat(tps.toFixed(2)) : undefined,
+          category: l1Chain?.category || 'General',
+        } as ChainCosmosData;
+      })
+      .filter((chain): chain is ChainCosmosData => chain !== null)
+      .sort((a, b) => b.validatorCount - a.validatorCount);
+  }, [overviewMetrics?.chains]);
 
   const getThemedLogoUrl = (logoUrl: string): string => {
     if (!isMounted || !logoUrl) return logoUrl;
@@ -652,15 +695,8 @@ export default function AvalancheMetrics() {
       {/* Network visualization - full bleed */}
       <div className="bg-zinc-900 dark:bg-black">
         <div className="h-[400px] sm:h-[500px] md:h-[560px]">
-          {cosmosLoading ? (
-            <div className="h-full flex items-center justify-center">
-              <div className="flex items-center gap-3 text-zinc-400">
-                <div className="w-5 h-5 border-2 border-zinc-600 border-t-zinc-400 rounded-full animate-spin" />
-                <span className="text-xs sm:text-sm">Loading network...</span>
-              </div>
-            </div>
-          ) : cosmosData.length > 0 ? (
-            <NetworkCosmosChart data={cosmosData} icmFlows={icmFlows} />
+          {cosmosData.length > 0 ? (
+            <NetworkDiagram data={cosmosData} icmFlows={icmFlows} />
           ) : (
             <div className="h-full flex items-center justify-center text-zinc-500 text-xs sm:text-sm">
               No network data

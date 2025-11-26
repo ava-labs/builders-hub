@@ -26,7 +26,7 @@ export interface ICMFlowRoute {
   messageCount: number;
 }
 
-interface NetworkCosmosChartProps {
+interface NetworkDiagramProps {
   data: ChainCosmosData[];
   icmFlows?: ICMFlowRoute[];
   onChainHover?: (chain: ChainCosmosData | null) => void;
@@ -137,11 +137,11 @@ function getPointOnLine(t: number, x0: number, y0: number, x1: number, y1: numbe
   };
 }
 
-export default function NetworkCosmosChart({
+export default function NetworkDiagram({
   data,
   icmFlows = [],
   onChainHover,
-}: NetworkCosmosChartProps) {
+}: NetworkDiagramProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
