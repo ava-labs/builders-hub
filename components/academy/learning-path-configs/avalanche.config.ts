@@ -23,6 +23,8 @@ export const avalancheLearningPaths: CourseNode[] = [
         position: { x: 87.5, y: 250 },
         mobileOrder: 2
     },
+
+    // Third Layer - Branching paths
     {
         id: "interchain-messaging",
         name: "Interchain Messaging",
@@ -65,12 +67,12 @@ export const avalancheLearningPaths: CourseNode[] = [
         mobileOrder: 4
     },
     {
-        id: "icm-chainlink",
-        name: "Chainlink via ICM",
-        description: "Use Chainlink services on an L1 through the Interchain Messaging",
-        slug: "avalanche-l1/icm-chainlink",
+        id: "erc20-to-erc20-bridge",
+        name: "ERC20 to ERC20 Bridge",
+        description: "Bridge ERC20 tokens between chains using Interchain Token Transfer",
+        slug: "avalanche-l1/erc20-bridge",
         category: "Interoperability",
-        dependencies: ["interchain-messaging"],
+        dependencies: ["interchain-messaging", "l1-native-tokenomics"],
         position: { x: 52.5, y: 500 },
         mobileOrder: 5
     },

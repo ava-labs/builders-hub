@@ -1,0 +1,14 @@
+{
+  "title": "Precompiles",
+  "pages": [
+    "allowlist-interface",
+    "deployer-allowlist",
+    "transaction-allowlist",
+    "native-minter",
+    "fee-manager",
+    "reward-manager",
+    "warp-messenger",
+    "interacting-with-precompiles"
+  ]
+}
+

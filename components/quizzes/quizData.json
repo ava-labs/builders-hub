@@ -149,6 +149,14 @@
         "1101",
         "1102"
       ]
+    },
+    "x402-payment-infrastructure": {
+      "title": "x402 Payment Infrastructure",
+      "quizzes": [
+        "5001",
+        "5002",
+        "5003"
+      ]
     }
   },
   "quizzes": {
@@ -2262,6 +2270,52 @@
       "hint": "Tokenomics can't save a bad product.",
       "explanation": "A good product that provides value should be the foundation of any tokenomics design. Without genuine utility and value, even the best tokenomics will eventually fail.",
       "chapter": "Mastering Tokenomics"
+    },
+    "5001": {
+      "question": "What is the primary innovation that x402 brings to internet payments?",
+      "options": [
+        "It creates a new cryptocurrency for making payments",
+        "It activates the HTTP 402 status code for instant, blockchain-based payments directly through HTTP",
+        "It provides a faster credit card processing system",
+        "It replaces traditional banking with decentralized finance"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about what HTTP status code x402 activates and how it integrates with web infrastructure.",
+      "explanation": "x402 activates the long-reserved HTTP 402 'Payment Required' status code, making payments a native part of internet communication. By combining HTTP with blockchain settlement, x402 enables instant (~2 seconds), permissionless payments without requiring accounts, KYC, or API keys. This is fundamentally different from creating a new cryptocurrency or improving existing card processing.",
+      "chapter": "Introduction to x402"
+    },
+    "5002": {
+      "question": "Why are micropayments (like charging $0.01 per API request) economically impossible with traditional payment systems?",
+      "options": [
+        "Banks don't allow transactions under $1",
+        "The fixed fees (~$0.30) and percentage fees would exceed the payment amount itself",
+        "Micropayments require special government licenses",
+        "Credit cards can't process payments faster than once per minute"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Consider the fee structure mentioned: Stripe/PayPal charge around 2.9% + $0.30 per transaction.",
+      "explanation": "For a $0.01 API request, traditional payment processors charge ~$0.30 in fixed fees plus 2.9% percentage fees. This means the processing cost would be 3,000% of the payment value, making the transaction economically impossible. This forces developers into subscription models even when pay-per-use would better serve users. x402 solves this with ultra-low blockchain gas fees (~$0.001) instead of percentage-based fees.",
+      "chapter": "The Traditional Payment Problem"
+    },
+    "5003": {
+      "question": "What is the fundamental reason AI agents cannot use traditional payment systems? (Select all that apply)",
+      "options": [
+        "AI agents can't complete CAPTCHA verification and KYC processes required for account creation",
+        "AI agents don't have bank accounts",
+        "Traditional payment fees make micropayments economically infeasible",
+        "AI agents require human authorization for every payment"
+      ],
+      "correctAnswers": [
+        0,
+        2
+      ],
+      "hint": "Think about the barriers mentioned: account creation requirements and economic viability of small payments.",
+      "explanation": "AI agents face two critical barriers with traditional payments: (1) They cannot complete human-centric verification like CAPTCHA, email verification, or KYC processes required for account creation, and (2) The high transaction fees make micropayments economically infeasible when fees exceed the payment itself. While 'requiring human authorization' is a problem, it's not required for EVERY payment—it's more about the initial setup barriers. x402 solves both issues with permissionless, account-free payments and ultra-low transaction costs.",
+      "chapter": "The AI Agent Payment Problem"
     }
   }
 }

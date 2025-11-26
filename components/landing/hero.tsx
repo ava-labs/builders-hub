@@ -200,12 +200,11 @@ function RotatingText() {
 // Extract Background Component
 export function HeroBackground() {
   return (
-    <div className="fixed inset-0 -z-10">
+    <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
       {/* Premium Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-[#0A0A0A] dark:via-[#0A0A0A] dark:to-[#0A0A0A]">
+      <div className="absolute inset-0 bg-slate-50 dark:bg-[#0A0A0A]">
         {/* Subtle grid overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)]"></div>
-
       </div>
     </div>
   );
@@ -232,38 +231,37 @@ export default function Hero() {
                 <RotatingText />
               </h2>
               
-              <p className="text-xl sm:text-2xl lg:text-2xl xl:text-3xl text-slate-600 dark:text-slate-300 font-light leading-[1.5] tracking-[-0.025em] max-w-2xl mx-auto lg:mx-0 text-balance">
+              {/* <p className="text-xl sm:text-2xl lg:text-2xl xl:text-3xl text-slate-600 dark:text-slate-300 font-light leading-[1.5] tracking-[-0.025em] max-w-2xl mx-auto lg:mx-0 text-balance">
                 Everything you need to go from idea to impact.
-              </p>
+              </p> */}
             </div>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center lg:justify-start items-center">
               <Link
                 href="/academy"
-                className="group premium-button inline-flex items-center justify-center px-8 py-4 text-lg sm:text-base font-bold tracking-[-0.015em] rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-xl shadow-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/50 hover:scale-[1.02] transition-all duration-300 dark:shadow-blue-500/50 dark:hover:shadow-blue-500/70"
+                className="group premium-button inline-flex items-center justify-center px-8 py-4 text-lg sm:text-base font-bold tracking-[-0.015em] rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-xl shadow-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/50 hover:scale-[1.02] transition-all duration-300 dark:shadow-blue-500/50 dark:hover:shadow-blue-500/70 min-w-[160px]"
               >
                 <GraduationCap className="w-6 h-6 sm:w-5 sm:h-5 mr-3" />
                 Start Learning
               </Link>
               
               <Link
-                href="/docs/quick-start"
-                className="group premium-button inline-flex items-center justify-center px-8 py-4 text-lg sm:text-base font-bold tracking-[-0.015em] rounded-xl bg-white/10 glass-effect border border-slate-200/30 text-slate-900 dark:text-white hover:bg-white/20 hover:scale-[1.02] transition-all duration-300 backdrop-blur-sm dark:border-slate-700/40"
+                href="/docs/primary-network"
+                className="group premium-button inline-flex items-center justify-center px-8 py-4 text-lg sm:text-base font-bold tracking-[-0.015em] rounded-xl bg-white/10 glass-effect border border-slate-200/30 text-slate-900 dark:text-white hover:bg-white/20 hover:scale-[1.02] transition-all duration-300 backdrop-blur-sm dark:border-slate-700/40 min-w-[160px]"
               >
                 Build
                 <svg className="w-6 h-6 sm:w-5 sm:h-5 ml-3 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
               </Link>
-            </div>
-            
-            {/* AI Assistant */}
-            <div className="flex justify-center lg:justify-start mt-4">
-              <Chatbot 
-                variant="static" 
-                className="bg-transparent border-slate-200 dark:border-slate-700 shadow-none hover:shadow-lg min-w-[160px]" 
-              />
+
+              <div className="hidden sm:block">
+                <Chatbot 
+                  variant="static" 
+                  className="ml-2" 
+                />
+              </div>
             </div>
           </div>
 

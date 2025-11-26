@@ -11,9 +11,9 @@ ALPHA WARNING: This command is currently in experimental mode. Proceed at your o
 
 Before we begin, you will need to have:
 
-- Created a Cloud Server node as described for [AWS](/docs/tooling/create-avalanche-nodes/run-validators-aws) or [GCP](/docs/tooling/create-avalanche-nodes/run-validators-gcp)
-- A node bootstrapped to the Primary Network (run `avalanche node status <clusterName>`to check bootstrap status as described [here](/docs/tooling/create-avalanche-nodes/run-validators-aws#check-bootstrap-status)
-- Stored key / Ledger with AVAX to pay for gas fess associated with adding node as Primary Network. Instructions on how to fund stored key on Fuji can be found [here](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-fuji-testnet#funding-the-key).
+- Created a Cloud Server node as described for [AWS](/docs/tooling/avalanche-cli/create-avalanche-nodes/run-validators-aws) or [GCP](/docs/tooling/avalanche-cli/create-avalanche-nodes/run-validators-gcp)
+- A node bootstrapped to the Primary Network (run `avalanche node status <clusterName>`to check bootstrap status as described [here](/docs/tooling/avalanche-cli/create-avalanche-nodes/run-validators-aws#check-bootstrap-status)
+- Stored key / Ledger with AVAX to pay for gas fess associated with adding node as Primary Network. Instructions on how to fund stored key on Fuji can be found [here](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-fuji-testnet#funding-the-key).
 
 Be a Primary Network Validator[​](#be-a-primary-network-validator "Direct link to heading")
 -------------------------------------------------------------------------------------------
@@ -36,7 +36,7 @@ The wizard will ask us how we want to pay for the transaction fee. Choose `Use s
     Use ledger
 ```
 
-Once you have selected the key to pay with, choose how many AVAX you would like to stake in the validator. Default is the minimum amount of AVAX that can be staked in a Fuji Network Validator. More info regarding minimum staking amount in different networks can be found [here](/docs/nodes/validate/how-to-stake#fuji-testnet).
+Once you have selected the key to pay with, choose how many AVAX you would like to stake in the validator. Default is the minimum amount of AVAX that can be staked in a Fuji Network Validator. More info regarding minimum staking amount in different networks can be found [here](/docs/primary-network/validate/how-to-stake#fuji-testnet).
 
 ```bash
  What stake weight would you like to assign to the validator?:
