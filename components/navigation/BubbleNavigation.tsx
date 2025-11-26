@@ -174,6 +174,7 @@ export default function BubbleNavigation({
                 onMouseEnter={() => setHoveredItem(item.id)}
                 onMouseLeave={() => setHoveredItem(null)}
                 className={cn(
+                  "cursor-pointer",
                   "relative flex items-center justify-center",
                   "transition-all duration-300 ease-out",
                   "transform-gpu",

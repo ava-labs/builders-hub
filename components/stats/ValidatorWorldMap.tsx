@@ -379,7 +379,7 @@ export function ValidatorWorldMap() {
             <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
               {sortedCountries.map((country, index) => (
                 <div
-                  key={country.countryCode}
+                  key={`${country.countryCode}-${index}`}
                   className="flex items-center justify-between p-3 rounded-lg bg-neutral-50 dark:bg-neutral-900 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
                 >
                   <div className="flex items-center gap-3">
