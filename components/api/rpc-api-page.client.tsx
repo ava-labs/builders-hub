@@ -75,13 +75,41 @@ export function BodyFieldWithExpandedParams({
                 id={`body.${fieldPath}`}
                 placeholder={propSchema.default || "Enter value"}
                 type={propSchema.type === 'integer' || propSchema.type === 'number' ? 'number' : 'text'}
-                value={(field.value && typeof field.value === 'object' && key in field.value ? (field.value as Record<string, any>)[key] : propSchema.default) || ''}
+                value={(() => {
+                  const pathParts = fieldPath.split('.');
+                  let value = field.value;
+                  for (const part of pathParts) {
+                    if (value && typeof value === 'object' && part in value) {
+                      value = (value as Record<string, any>)[part];
+                    } else {
+                      return propSchema.default || '';
+                    }
+                  }
+                  return value || '';
+                })()}
                 onChange={(e) => {
-                  const newValue = propSchema.type === 'integer' || propSchema.type === 'number' 
-                    ? Number(e.target.value) 
+                  const newValue = propSchema.type === 'integer' || propSchema.type === 'number'
+                    ? Number(e.target.value)
                     : e.target.value;
                   const currentValue = (field.value && typeof field.value === 'object') ? field.value as Record<string, any> : {};
-                  field.onChange({ ...currentValue, [key]: newValue });
+
+                  // Handle nested path
+                  const pathParts = fieldPath.split('.');
+                  const updated = { ...currentValue };
+                  let current: any = updated;
+
+                  for (let i = 0; i < pathParts.length - 1; i++) {
+                    const part = pathParts[i];
+                    if (!(part in current) || typeof current[part] !== 'object') {
+                      current[part] = {};
+                    } else {
+                      current[part] = { ...current[part] };
+                    }
+                    current = current[part];
+                  }
+
+                  current[pathParts[pathParts.length - 1]] = newValue;
+                  field.onChange(updated);
                 }}
                 name={`body.${fieldPath}`}
                 {...(propSchema.type === 'number' || propSchema.type === 'integer' ? { step: propSchema.type === 'integer' ? '1' : 'any' } : {})}
