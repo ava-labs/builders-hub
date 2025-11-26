@@ -31,8 +31,14 @@ interface ICMMetric {
   data: ICMDataPoint[];
 }
 
+interface ActiveAddressesMetric {
+  daily: TimeSeriesMetric;
+  weekly: TimeSeriesMetric;
+  monthly: TimeSeriesMetric;
+}
+
 interface CChainMetrics {
-  activeAddresses: TimeSeriesMetric;
+  activeAddresses: ActiveAddressesMetric;
   activeSenders: TimeSeriesMetric;
   cumulativeAddresses: TimeSeriesMetric;
   cumulativeDeployers: TimeSeriesMetric;
@@ -183,11 +189,28 @@ export default function ChainMetricsPage({
   };
 
   const getChartData = (
-    metricKey: keyof Omit<CChainMetrics, "last_updated" | "icmMessages">
+    metricKey: keyof Omit<CChainMetrics, "last_updated" | "icmMessages" | "activeAddresses"> | "activeAddresses"
   ) => {
-    if (!metrics || !metrics[metricKey]?.data) return [];
+    if (!metrics) return [];
 
-    return metrics[metricKey].data
+    // Handle activeAddresses specially since it has nested structure
+    if (metricKey === "activeAddresses") {
+      if (!metrics.activeAddresses?.daily?.data) return [];
+      return metrics.activeAddresses.daily.data
+        .map((point: TimeSeriesDataPoint) => ({
+          day: point.date,
+          value:
+            typeof point.value === "string"
+              ? Number.parseFloat(point.value)
+              : point.value,
+        }))
+        .reverse();
+    }
+
+    const metric = metrics[metricKey as keyof Omit<CChainMetrics, "last_updated" | "icmMessages" | "activeAddresses">];
+    if (!metric?.data) return [];
+
+    return metric.data
       .map((point: TimeSeriesDataPoint) => ({
         day: point.date,
         value:
@@ -268,8 +291,16 @@ export default function ChainMetricsPage({
   const getCurrentValue = (
     metricKey: keyof Omit<CChainMetrics, "last_updated">
   ): number | string => {
-    if (!metrics || !metrics[metricKey]) return "N/A";
-    return metrics[metricKey].current_value;
+    if (!metrics) return "N/A";
+    
+    // Handle activeAddresses specially since it has nested structure
+    if (metricKey === "activeAddresses") {
+      return metrics.activeAddresses?.daily?.current_value ?? "N/A";
+    }
+    
+    const metric = metrics[metricKey as keyof Omit<CChainMetrics, "last_updated" | "activeAddresses">];
+    if (!metric) return "N/A";
+    return metric.current_value;
   };
 
   const chartConfigs = [

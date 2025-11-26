@@ -8,7 +8,6 @@ export const statsBubbleConfig: BubbleNavigationConfig = {
         { id: "ecosytem", label: "Ecosystem", href: "/stats/overview" },
         { id: "playground", label: "Playground", href: "/stats/playground" },
         { id: "validators", label: "Validators", href: "/stats/validators" },
-        { id: "avax-token", label: "AVAX", href: "/stats/avax-token" },
     ],
     activeColor: "bg-red-600",
     darkActiveColor: "dark:bg-red-500",

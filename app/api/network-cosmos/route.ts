@@ -42,9 +42,8 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 async function fetchOverviewMetrics(): Promise<Map<string, ChainOverviewMetrics>> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
     
     const response = await fetch(`${baseUrl}/api/overview-stats?timeRange=1y`, {
       headers: { 'Accept': 'application/json' },
@@ -75,9 +74,8 @@ async function fetchOverviewMetrics(): Promise<Map<string, ChainOverviewMetrics>
 async function fetchValidatorStats(): Promise<SubnetStats[]> {
   try {
     // Fetch from our own API
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
     
     const response = await fetch(`${baseUrl}/api/validator-stats?network=mainnet`, {
       headers: { 'Accept': 'application/json' },

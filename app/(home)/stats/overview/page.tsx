@@ -15,6 +15,7 @@ import {
   ArrowUpRight,
   ExternalLink,
   X,
+  ChevronDown,
 } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -156,12 +157,18 @@ function SpeedGauge({ value }: { value: number }) {
   );
 }
 
+interface ActiveAddressesMetric {
+  daily: TimeSeriesMetric;
+  weekly: TimeSeriesMetric;
+  monthly: TimeSeriesMetric;
+}
+
 interface ChainOverviewMetrics {
   chainId: string;
   chainName: string;
   chainLogoURI: string;
   txCount: TimeSeriesMetric;
-  activeAddresses: TimeSeriesMetric;
+  activeAddresses: ActiveAddressesMetric;
   icmMessages: ICMMetric;
   validatorCount: number | string;
 }
@@ -170,7 +177,7 @@ interface OverviewMetrics {
   chains: ChainOverviewMetrics[];
   aggregated: {
     totalTxCount: TimeSeriesMetric;
-    totalActiveAddresses: TimeSeriesMetric;
+    totalActiveAddresses: ActiveAddressesMetric;
     totalICMMessages: ICMMetric;
     totalValidators: number;
     activeChains: number;
@@ -196,6 +203,8 @@ export default function AvalancheMetrics() {
   const [icmFlows, setIcmFlows] = useState<ICMFlowRoute[]>([]);
   const [cosmosLoading, setCosmosLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -305,15 +314,41 @@ export default function AvalancheMetrics() {
 
   const chains = overviewMetrics?.chains || [];
   
-  // Extract unique categories
-  const categories = useMemo(() => {
-    const cats = new Set<string>();
+  // Extract unique categories sorted by count (descending)
+  const { sortedCategories, visibleCategories, overflowCategories } = useMemo(() => {
+    const catCounts = new Map<string, number>();
     chains.forEach(chain => {
       const category = getChainCategory(chain.chainId, chain.chainName);
-      cats.add(category);
+      catCounts.set(category, (catCounts.get(category) || 0) + 1);
     });
-    return ["All", ...Array.from(cats).sort()];
+    
+    // Sort by count descending
+    const sorted = Array.from(catCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([cat]) => cat);
+    
+    // Show "All" + top 4 categories as buttons, rest in dropdown
+    const MAX_VISIBLE = 4;
+    const visible = ["All", ...sorted.slice(0, MAX_VISIBLE)];
+    const overflow = sorted.slice(MAX_VISIBLE);
+    
+    return {
+      sortedCategories: ["All", ...sorted],
+      visibleCategories: visible,
+      overflowCategories: overflow,
+    };
   }, [chains]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+        setCategoryDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   
   // Filter by category first, then by search term
   const filteredData = chains.filter((chain) => {
@@ -333,8 +368,8 @@ export default function AvalancheMetrics() {
         bValue = typeof b.txCount.current_value === "number" ? b.txCount.current_value / 365 : 0;
         break;
       case "weeklyActiveAddresses":
-        aValue = typeof a.activeAddresses.current_value === "number" ? a.activeAddresses.current_value : 0;
-        bValue = typeof b.activeAddresses.current_value === "number" ? b.activeAddresses.current_value : 0;
+        aValue = typeof a.activeAddresses?.daily?.current_value === "number" ? a.activeAddresses.daily.current_value : 0;
+        bValue = typeof b.activeAddresses?.daily?.current_value === "number" ? b.activeAddresses.daily.current_value : 0;
         break;
       case "totalIcmMessages":
         aValue = typeof a.icmMessages.current_value === "number" ? a.icmMessages.current_value / 365 : 0;
@@ -384,12 +419,93 @@ export default function AvalancheMetrics() {
     const colors: { [key: string]: string } = {
       General: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
       DeFi: "bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
+      Finance: "bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
       Gaming: "bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-400",
       Institutions: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
       RWAs: "bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
       Payments: "bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
+      Telecom: "bg-cyan-50 text-cyan-600 dark:bg-cyan-950 dark:text-cyan-400",
+      SocialFi: "bg-pink-50 text-pink-600 dark:bg-pink-950 dark:text-pink-400",
+      Sports: "bg-orange-50 text-orange-600 dark:bg-orange-950 dark:text-orange-400",
+      Fitness: "bg-lime-50 text-lime-600 dark:bg-lime-950 dark:text-lime-400",
+      AI: "bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
+      "AI Agents": "bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
+      Loyalty: "bg-yellow-50 text-yellow-600 dark:bg-yellow-950 dark:text-yellow-400",
+      Ticketing: "bg-teal-50 text-teal-600 dark:bg-teal-950 dark:text-teal-400",
     };
     return colors[category] || colors.General;
+  };
+
+  const getCategoryBadgeStyle = (cat: string, selected: boolean): string => {
+    if (cat === "All") {
+      return selected 
+        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent" 
+        : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700";
+    }
+    const styles: Record<string, { selected: string; normal: string }> = {
+      'DeFi': { 
+        selected: 'bg-blue-500 text-white border-transparent', 
+        normal: 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900' 
+      },
+      'Finance': { 
+        selected: 'bg-blue-500 text-white border-transparent', 
+        normal: 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900' 
+      },
+      'Gaming': { 
+        selected: 'bg-violet-500 text-white border-transparent', 
+        normal: 'bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-950 dark:text-violet-400 dark:border-violet-800 hover:bg-violet-100 dark:hover:bg-violet-900' 
+      },
+      'Institutions': { 
+        selected: 'bg-emerald-500 text-white border-transparent', 
+        normal: 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900' 
+      },
+      'RWAs': { 
+        selected: 'bg-amber-500 text-white border-transparent', 
+        normal: 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900' 
+      },
+      'Payments': { 
+        selected: 'bg-rose-500 text-white border-transparent', 
+        normal: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950 dark:text-rose-400 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900' 
+      },
+      'Telecom': { 
+        selected: 'bg-cyan-500 text-white border-transparent', 
+        normal: 'bg-cyan-50 text-cyan-600 border-cyan-200 dark:bg-cyan-950 dark:text-cyan-400 dark:border-cyan-800 hover:bg-cyan-100 dark:hover:bg-cyan-900' 
+      },
+      'SocialFi': { 
+        selected: 'bg-pink-500 text-white border-transparent', 
+        normal: 'bg-pink-50 text-pink-600 border-pink-200 dark:bg-pink-950 dark:text-pink-400 dark:border-pink-800 hover:bg-pink-100 dark:hover:bg-pink-900' 
+      },
+      'Sports': { 
+        selected: 'bg-orange-500 text-white border-transparent', 
+        normal: 'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-950 dark:text-orange-400 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900' 
+      },
+      'Fitness': { 
+        selected: 'bg-lime-500 text-white border-transparent', 
+        normal: 'bg-lime-50 text-lime-600 border-lime-200 dark:bg-lime-950 dark:text-lime-400 dark:border-lime-800 hover:bg-lime-100 dark:hover:bg-lime-900' 
+      },
+      'AI': { 
+        selected: 'bg-purple-500 text-white border-transparent', 
+        normal: 'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-950 dark:text-purple-400 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900' 
+      },
+      'AI Agents': { 
+        selected: 'bg-purple-500 text-white border-transparent', 
+        normal: 'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-950 dark:text-purple-400 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900' 
+      },
+      'Loyalty': { 
+        selected: 'bg-yellow-500 text-white border-transparent', 
+        normal: 'bg-yellow-50 text-yellow-600 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-400 dark:border-yellow-800 hover:bg-yellow-100 dark:hover:bg-yellow-900' 
+      },
+      'Ticketing': { 
+        selected: 'bg-teal-500 text-white border-transparent', 
+        normal: 'bg-teal-50 text-teal-600 border-teal-200 dark:bg-teal-950 dark:text-teal-400 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900' 
+      },
+      'General': { 
+        selected: 'bg-zinc-500 text-white border-transparent', 
+        normal: 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700' 
+      },
+    };
+    const style = styles[cat] || styles['General'];
+    return selected ? style.selected : style.normal;
   };
 
   const getChainTPS = (chain: ChainOverviewMetrics): string => {
@@ -565,63 +681,74 @@ export default function AvalancheMetrics() {
           {/* Category filter badges and search bar in same row */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
             {/* Category filter badges */}
-            <div className="flex flex-wrap gap-2 flex-1">
-          {categories.map(category => {
-            const isSelected = selectedCategory === category;
-            const count = category === "All" 
-              ? chains.length 
-              : chains.filter(c => getChainCategory(c.chainId, c.chainName) === category).length;
-            
-            // Category badge styles
-            const getBadgeStyle = (cat: string, selected: boolean) => {
-              if (cat === "All") {
-                return selected 
-                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent" 
-                  : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700";
-              }
-              const styles: Record<string, { selected: string; normal: string }> = {
-                'DeFi': { 
-                  selected: 'bg-blue-500 text-white border-transparent', 
-                  normal: 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900' 
-                },
-                'Gaming': { 
-                  selected: 'bg-violet-500 text-white border-transparent', 
-                  normal: 'bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-950 dark:text-violet-400 dark:border-violet-800 hover:bg-violet-100 dark:hover:bg-violet-900' 
-                },
-                'Institutions': { 
-                  selected: 'bg-emerald-500 text-white border-transparent', 
-                  normal: 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900' 
-                },
-                'RWAs': { 
-                  selected: 'bg-orange-500 text-white border-transparent', 
-                  normal: 'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-950 dark:text-orange-400 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900' 
-                },
-                'Payments': { 
-                  selected: 'bg-pink-500 text-white border-transparent', 
-                  normal: 'bg-pink-50 text-pink-600 border-pink-200 dark:bg-pink-950 dark:text-pink-400 dark:border-pink-800 hover:bg-pink-100 dark:hover:bg-pink-900' 
-                },
-                'General': { 
-                  selected: 'bg-zinc-500 text-white border-transparent', 
-                  normal: 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700' 
-                },
-              };
-              const style = styles[cat] || styles['General'];
-              return selected ? style.selected : style.normal;
-            };
-            
-            return (
-              <button
-                key={category}
-                onClick={() => {
-                  setSelectedCategory(category);
-                  setVisibleCount(25); // Reset pagination when filter changes
-                }}
-                className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full border transition-all ${getBadgeStyle(category, isSelected)}`}
-              >
-                {category} <span className="opacity-70">({count})</span>
-              </button>
-            );
-          })}
+            <div className="flex flex-wrap items-center gap-2 flex-1">
+              {/* Visible category badges */}
+              {visibleCategories.map(category => {
+                const isSelected = selectedCategory === category;
+                const count = category === "All" 
+                  ? chains.length 
+                  : chains.filter(c => getChainCategory(c.chainId, c.chainName) === category).length;
+                
+                return (
+                  <button
+                    key={category}
+                    onClick={() => {
+                      setSelectedCategory(category);
+                      setVisibleCount(25);
+                    }}
+                    className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full border transition-all ${getCategoryBadgeStyle(category, isSelected)}`}
+                  >
+                    {category} <span className="opacity-70">({count})</span>
+                  </button>
+                );
+              })}
+              
+              {/* More dropdown for overflow categories */}
+              {overflowCategories.length > 0 && (
+                <div className="relative" ref={categoryDropdownRef}>
+                  <button
+                    onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
+                    className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full border transition-all flex items-center gap-1 ${
+                      overflowCategories.includes(selectedCategory)
+                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent"
+                        : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                    }`}
+                  >
+                    {overflowCategories.includes(selectedCategory) ? selectedCategory : "More"}
+                    <ChevronDown className={`h-3 w-3 transition-transform ${categoryDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {categoryDropdownOpen && (
+                    <div className="absolute top-full left-0 mt-1 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg z-50 min-w-[160px]">
+                      {overflowCategories.map(category => {
+                        const isSelected = selectedCategory === category;
+                        const count = chains.filter(c => getChainCategory(c.chainId, c.chainName) === category).length;
+                        
+                        return (
+                          <button
+                            key={category}
+                            onClick={() => {
+                              setSelectedCategory(category);
+                              setVisibleCount(25);
+                              setCategoryDropdownOpen(false);
+                            }}
+                            className={`w-full px-3 py-2 text-left text-xs sm:text-sm transition-colors ${
+                              isSelected
+                                ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-medium"
+                                : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                            }`}
+                          >
+                            <span className="flex items-center justify-between">
+                              <span>{category}</span>
+                              <span className="text-zinc-400 dark:text-zinc-500">({count})</span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             
             {/* Search bar */}
@@ -765,9 +892,9 @@ export default function AvalancheMetrics() {
                       {/* Active Addresses - right aligned */}
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-2 sm:px-3 md:px-4 py-2 text-right">
                         <div className="text-xs sm:text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                          {typeof chain.activeAddresses.current_value === "number" 
-                            ? formatFullNumber(chain.activeAddresses.current_value) 
-                            : chain.activeAddresses.current_value}
+                          {typeof chain.activeAddresses?.daily?.current_value === "number" 
+                            ? formatFullNumber(chain.activeAddresses.daily.current_value) 
+                            : "N/A"}
                         </div>
                       </td>
                       {/* Daily Txns - right aligned */}
