@@ -168,6 +168,10 @@ export default function NetworkDiagram({
   const dragStartRef = useRef({ x: 0, y: 0 });
   const panStartRef = useRef({ x: 0, y: 0 });
   
+  // Touch state for pinch zoom
+  const lastTouchDistRef = useRef<number | null>(null);
+  const lastTouchCenterRef = useRef<{ x: number; y: number } | null>(null);
+  
   // Calculate minimum zoom needed to fit all chains in viewport
   const calculateMinZoom = useCallback(() => {
     const nodes = nodesRef.current;
@@ -488,7 +492,7 @@ export default function NetworkDiagram({
     return () => window.removeEventListener('resize', updateSize);
   }, [isFullscreen]);
 
-  // Prevent page scroll when zooming with wheel
+  // Prevent page scroll when zooming with wheel or touch
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -500,11 +504,24 @@ export default function NetworkDiagram({
       }
     };
 
+    const handleTouchNative = (e: TouchEvent) => {
+      // Prevent default to stop page scrolling while interacting with canvas
+      // Only prevent on canvas element, not on buttons/controls
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'CANVAS') {
+        e.preventDefault();
+      }
+    };
+
     // Use capture phase and passive: false to ensure preventDefault works
     container.addEventListener('wheel', handleWheelNative, { passive: false, capture: true });
+    container.addEventListener('touchstart', handleTouchNative, { passive: false });
+    container.addEventListener('touchmove', handleTouchNative, { passive: false });
     
     return () => {
       container.removeEventListener('wheel', handleWheelNative, { capture: true } as EventListenerOptions);
+      container.removeEventListener('touchstart', handleTouchNative);
+      container.removeEventListener('touchmove', handleTouchNative);
     };
   }, []);
 
@@ -994,6 +1011,154 @@ export default function NetworkDiagram({
     setZoom(newZoom);
   }, [zoom, dimensions, panOffset, calculateMinZoom]);
 
+  // Touch event handlers
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    
+    if (e.touches.length === 1) {
+      // Single touch - pan or select chain
+      const touch = e.touches[0];
+      const screenX = touch.clientX - rect.left;
+      const screenY = touch.clientY - rect.top;
+      
+      dragStartRef.current = { x: screenX, y: screenY };
+      panStartRef.current = { ...panOffset };
+      
+      // Check if touching a chain
+      const worldPos = screenToWorld(screenX, screenY);
+      let touchedChain: ChainNode | null = null;
+      for (const node of nodesRef.current) {
+        const distance = Math.sqrt((worldPos.x - node.x) ** 2 + (worldPos.y - node.y) ** 2);
+        if (distance < node.radius) {
+          touchedChain = node;
+          break;
+        }
+      }
+      
+      if (touchedChain) {
+        // Select/deselect chain
+        if (selectedChain?.id === touchedChain.id) {
+          setSelectedChain(null);
+          setHoveredChain(touchedChain);
+        } else {
+          setSelectedChain(touchedChain);
+          setHoveredChain(null);
+        }
+        setIsDragging(false);
+      } else {
+        // Deselect and prepare for pan
+        if (selectedChain) {
+          setSelectedChain(null);
+        }
+        setIsDragging(true);
+      }
+      
+      // Reset pinch state
+      lastTouchDistRef.current = null;
+      lastTouchCenterRef.current = null;
+    } else if (e.touches.length === 2) {
+      // Two finger touch - pinch zoom
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      
+      const dx = touch2.clientX - touch1.clientX;
+      const dy = touch2.clientY - touch1.clientY;
+      lastTouchDistRef.current = Math.sqrt(dx * dx + dy * dy);
+      
+      lastTouchCenterRef.current = {
+        x: (touch1.clientX + touch2.clientX) / 2 - rect.left,
+        y: (touch1.clientY + touch2.clientY) / 2 - rect.top,
+      };
+      
+      setIsDragging(false);
+    }
+  }, [panOffset, screenToWorld, selectedChain]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    
+    if (e.touches.length === 1 && isDragging) {
+      // Single touch pan
+      const touch = e.touches[0];
+      const screenX = touch.clientX - rect.left;
+      const screenY = touch.clientY - rect.top;
+      
+      const dx = screenX - dragStartRef.current.x;
+      const dy = screenY - dragStartRef.current.y;
+      
+      setPanOffset({
+        x: panStartRef.current.x + dx,
+        y: panStartRef.current.y + dy,
+      });
+    } else if (e.touches.length === 2 && lastTouchDistRef.current !== null) {
+      // Pinch zoom
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      
+      const dx = touch2.clientX - touch1.clientX;
+      const dy = touch2.clientY - touch1.clientY;
+      const newDist = Math.sqrt(dx * dx + dy * dy);
+      
+      const newCenter = {
+        x: (touch1.clientX + touch2.clientX) / 2 - rect.left,
+        y: (touch1.clientY + touch2.clientY) / 2 - rect.top,
+      };
+      
+      // Calculate zoom change
+      const scale = newDist / lastTouchDistRef.current;
+      const minZoom = calculateMinZoom();
+      const newZoom = Math.max(minZoom, Math.min(5, zoom * scale));
+      
+      // Zoom towards pinch center
+      const centerX = dimensions.width / 2;
+      const centerY = dimensions.height / 2;
+      const zoomRatio = newZoom / zoom;
+      
+      let newPanX = panOffset.x;
+      let newPanY = panOffset.y;
+      
+      if (lastTouchCenterRef.current) {
+        newPanX = newCenter.x - (newCenter.x - centerX - panOffset.x) * zoomRatio - centerX;
+        newPanY = newCenter.y - (newCenter.y - centerY - panOffset.y) * zoomRatio - centerY;
+      }
+      
+      setPanOffset({ x: newPanX, y: newPanY });
+      setZoom(newZoom);
+      
+      lastTouchDistRef.current = newDist;
+      lastTouchCenterRef.current = newCenter;
+    }
+  }, [isDragging, zoom, panOffset, dimensions, calculateMinZoom]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length === 0) {
+      setIsDragging(false);
+      lastTouchDistRef.current = null;
+      lastTouchCenterRef.current = null;
+    } else if (e.touches.length === 1) {
+      // Went from 2 fingers to 1 - reset to pan mode
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        dragStartRef.current = {
+          x: touch.clientX - rect.left,
+          y: touch.clientY - rect.top,
+        };
+        panStartRef.current = { ...panOffset };
+        setIsDragging(true);
+      }
+      lastTouchDistRef.current = null;
+      lastTouchCenterRef.current = null;
+    }
+  }, [panOffset]);
+
   // Reset zoom and pan
   const handleResetView = useCallback(() => {
     setZoom(1);
@@ -1019,31 +1184,36 @@ export default function NetworkDiagram({
         ref={canvasRef}
         width={dimensions.width}
         height={dimensions.height}
-        className={`w-full h-full ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`w-full h-full ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} touch-none`}
         onMouseMove={handleMouseMove}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
         onWheel={handleWheel}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
       />
       
       {/* Controls - fullscreen and zoom */}
-      <div className="absolute top-4 right-4 flex flex-col gap-1 bg-black/50 backdrop-blur-sm rounded-lg p-1">
+      <div className="absolute top-4 right-4 flex flex-col gap-1 bg-black/50 backdrop-blur-sm rounded-lg p-1 z-10">
         {/* Fullscreen toggle */}
         <button
           onClick={toggleFullscreen}
-          className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
+          onTouchEnd={(e) => { e.preventDefault(); toggleFullscreen(); }}
+          className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-white/80 hover:text-white active:bg-white/20 hover:bg-white/10 rounded transition-colors touch-manipulation"
           title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
         >
           {isFullscreen ? (
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M8 3v3a2 2 0 0 1-2 2H3"/>
               <path d="M21 8h-3a2 2 0 0 1-2-2V3"/>
               <path d="M3 16h3a2 2 0 0 1 2 2v3"/>
               <path d="M16 21v-3a2 2 0 0 1 2-2h3"/>
             </svg>
           ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
               <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
               <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
@@ -1057,10 +1227,11 @@ export default function NetworkDiagram({
         {/* Zoom in */}
         <button
           onClick={handleZoomIn}
-          className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
+          onTouchEnd={(e) => { e.preventDefault(); handleZoomIn(); }}
+          className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-white/80 hover:text-white active:bg-white/20 hover:bg-white/10 rounded transition-colors touch-manipulation"
           title="Zoom in"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"/>
             <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             <line x1="11" y1="8" x2="11" y2="14"/>
@@ -1071,10 +1242,11 @@ export default function NetworkDiagram({
         {/* Zoom out */}
         <button
           onClick={handleZoomOut}
-          className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
+          onTouchEnd={(e) => { e.preventDefault(); handleZoomOut(); }}
+          className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-white/80 hover:text-white active:bg-white/20 hover:bg-white/10 rounded transition-colors touch-manipulation"
           title="Zoom out"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"/>
             <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             <line x1="8" y1="11" x2="14" y2="11"/>
@@ -1085,10 +1257,11 @@ export default function NetworkDiagram({
         {(zoom !== 1 || panOffset.x !== 0 || panOffset.y !== 0) && (
           <button
             onClick={handleResetView}
-            className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
+            onTouchEnd={(e) => { e.preventDefault(); handleResetView(); }}
+            className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-white/80 hover:text-white active:bg-white/20 hover:bg-white/10 rounded transition-colors touch-manipulation"
             title="Reset view"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
               <path d="M3 3v5h5"/>
             </svg>
@@ -1167,10 +1340,15 @@ export default function NetworkDiagram({
                   setSelectedChain(null);
                   setHoveredChain(null);
                 }}
-                className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors"
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  setSelectedChain(null);
+                  setHoveredChain(null);
+                }}
+                className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center text-white/60 hover:text-white active:bg-white/20 hover:bg-white/10 rounded transition-colors touch-manipulation"
                 title="Close"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"/>
                   <line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
@@ -1302,7 +1480,11 @@ export default function NetworkDiagram({
                     onClick={() => {
                       window.location.href = `/stats/l1/${chainSlug}`;
                     }}
-                    className="w-full text-xs text-cyan-400 hover:text-cyan-300 transition-colors text-center underline decoration-dotted underline-offset-2 cursor-pointer"
+                    onTouchEnd={(e) => {
+                      e.preventDefault();
+                      window.location.href = `/stats/l1/${chainSlug}`;
+                    }}
+                    className="w-full py-2 text-sm text-cyan-400 hover:text-cyan-300 active:text-cyan-200 transition-colors text-center underline decoration-dotted underline-offset-2 cursor-pointer touch-manipulation"
                   >
                     Click here for more stats →
                   </button>

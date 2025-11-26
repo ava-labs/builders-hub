@@ -98,8 +98,8 @@ function SpeedGauge({ value }: { value: number }) {
   }, []);
   
   return (
-    <div className="relative inline-flex items-baseline gap-2 sm:gap-3 md:gap-4">
-      <div className="relative w-12 h-7 sm:w-16 sm:h-9 md:w-20 md:h-12">
+    <div className="relative inline-flex items-baseline gap-1.5 sm:gap-3 md:gap-4">
+      <div className="relative w-10 h-6 sm:w-16 sm:h-9 md:w-20 md:h-12">
         {/* Gauge SVG */}
         <svg className="w-full h-full" viewBox="0 0 80 48" overflow="visible" preserveAspectRatio="xMidYMid meet">
           <defs>
@@ -630,23 +630,23 @@ export default function AvalancheMetrics() {
               </div>
 
               {/* Key metrics - 2x2 grid on mobile, inline on desktop */}
-              <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-3 sm:gap-6 md:gap-12 pt-4">
-                <div>
+              <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-y-3 gap-x-6 sm:gap-6 md:gap-12 pt-4">
+                <div className="flex items-baseline">
                   <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
                     {overviewMetrics.chains.length}
                   </span>
                   <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">chains</span>
                 </div>
-                <div>
+                <div className="flex items-baseline justify-end sm:justify-start">
                   <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
                     <AnimatedNumber value={dailyTx} />
                   </span>
                   <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">txns</span>
                 </div>
-                <div>
+                <div className="flex items-baseline">
                   <SpeedGauge value={parseFloat(totalTps)} />
                 </div>
-                <div>
+                <div className="flex items-baseline justify-end sm:justify-start">
                   <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
                     {formatNumber(overviewMetrics.aggregated.totalValidators)}
                   </span>
