@@ -32,7 +32,7 @@ function Tracks({ hackathon }: { hackathon: HackathonHeader }) {
               <span className="text-xl font-bold text-zinc-900">
                 ${(hackathon.total_prizes || 0).toLocaleString("en-US")}
               </span>
-              <span className="text-sm text-zinc-900">Total price pool</span>
+              <span className="text-sm text-zinc-900">Total prize pool</span>
             </div>
           </CardContent>
         </Card>
