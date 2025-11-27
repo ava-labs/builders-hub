@@ -862,19 +862,25 @@ export function TransactionLifecycle() {
 
       // Step 3: Form new block from mempool (synced with proposed block animation)
       setTimeout(() => {
+        // Increment block ID once outside state setter to avoid React Strict Mode double-increment
+        const nextBlockId = blockIdRef.current + 1
+        const now = Date.now()
+        const uid = `${nextBlockId}-${now}-${Math.random().toString(36).slice(2, 9)}`
+        let blockCreated = false
+        
         setMempoolTxs((currentMempool) => {
-          if (currentMempool.length >= 4) {
-            blockIdRef.current += 1
+          if (currentMempool.length >= 4 && !blockCreated) {
+            blockCreated = true
+            blockIdRef.current = nextBlockId
             // Take 4-16 transactions (capped at MAX_TX for visual consistency)
             const takeAll = Math.random() > 0.7 // 30% chance to take all available (up to 16)
             const availableToTake = Math.min(currentMempool.length, MAX_TX)
             const txCount = takeAll 
               ? availableToTake 
               : Math.min(Math.floor(Math.random() * 9) + 4, availableToTake)
-            const now = Date.now()
             const newBlock: Block = {
-              id: blockIdRef.current,
-              uid: `${blockIdRef.current}-${now}-${Math.random().toString(36).slice(2, 9)}`,
+              id: nextBlockId,
+              uid,
               txCount,
               createdAt: now,
             }
