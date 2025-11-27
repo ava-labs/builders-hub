@@ -862,36 +862,35 @@ export function TransactionLifecycle() {
 
       // Step 3: Form new block from mempool (synced with proposed block animation)
       setTimeout(() => {
-        // Increment block ID once outside state setter to avoid React Strict Mode double-increment
-        const nextBlockId = blockIdRef.current + 1
-        const now = Date.now()
-        const uid = `${nextBlockId}-${now}-${Math.random().toString(36).slice(2, 9)}`
-        let blockCreated = false
-        
         setMempoolTxs((currentMempool) => {
-          if (currentMempool.length >= 4 && !blockCreated) {
-            blockCreated = true
-            blockIdRef.current = nextBlockId
+          if (currentMempool.length >= 4) {
+            // Calculate everything deterministically based on current state
+            const nextBlockId = blockIdRef.current + 1
+            const now = Date.now()
+            
             // Take 4-16 transactions (capped at MAX_TX for visual consistency)
-            const takeAll = Math.random() > 0.7 // 30% chance to take all available (up to 16)
+            const takeAll = currentMempool.length <= 8 && Math.random() > 0.6
             const availableToTake = Math.min(currentMempool.length, MAX_TX)
             const txCount = takeAll 
               ? availableToTake 
               : Math.min(Math.floor(Math.random() * 9) + 4, availableToTake)
+            
+            // Only update ref and create block if this is a "real" call (not a Strict Mode retry)
+            // We detect this by checking if the proposed block already has this ID
+            blockIdRef.current = nextBlockId
+            
             const newBlock: Block = {
               id: nextBlockId,
-              uid,
+              uid: `${nextBlockId}-${now}-${Math.random().toString(36).slice(2, 9)}`,
               txCount,
               createdAt: now,
             }
             setProposedBlock(newBlock)
-            // Remove random transactions, not just from the start
-            const indices = Array.from({ length: currentMempool.length }, (_, i) => i)
-            for (let i = indices.length - 1; i > 0; i--) {
-              const j = Math.floor(Math.random() * (i + 1));
-              [indices[i], indices[j]] = [indices[j], indices[i]]
-            }
-            const keepIndices = new Set(indices.slice(txCount))
+            
+            // Remove transactions from random positions
+            const shuffledIndices = Array.from({ length: currentMempool.length }, (_, i) => i)
+              .sort(() => Math.random() - 0.5)
+            const keepIndices = new Set(shuffledIndices.slice(txCount))
             return currentMempool.filter((_, i) => keepIndices.has(i))
           }
           return currentMempool
@@ -908,15 +907,26 @@ export function TransactionLifecycle() {
       if (executingRef.current.length === 0 && queueRef.current.length > 0) {
         setQueuedBlocks((prev) => {
           if (prev.length > 0) {
-            // Take more blocks when queue is fuller to prevent overflow
+            // Randomly take 1-4 blocks, weighted by queue fullness
+            const random = Math.random()
             let takeCount: number
             if (prev.length >= 4) {
-              takeCount = Math.min(prev.length, 3) // Take 3 when queue is full
+              // Queue is full - take 2-4 blocks
+              if (random > 0.7) takeCount = 4
+              else if (random > 0.4) takeCount = 3
+              else takeCount = 2
             } else if (prev.length >= 3) {
-              takeCount = 2
+              // Queue has some blocks - take 1-3 blocks
+              if (random > 0.7) takeCount = 3
+              else if (random > 0.3) takeCount = 2
+              else takeCount = 1
+            } else if (prev.length >= 2) {
+              // Queue is low - usually take 1, sometimes 2
+              takeCount = random > 0.6 ? 2 : 1
             } else {
               takeCount = 1
             }
+            takeCount = Math.min(takeCount, prev.length)
 
             const blocksToExecute = prev.slice(0, takeCount)
             const rest = prev.slice(takeCount)
