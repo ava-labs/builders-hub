@@ -64,6 +64,71 @@ interface RpcBlock {
   number: string;
 }
 
+interface TokenInfo {
+  symbol: string;
+  decimals: number;
+}
+
+// Simple cache for token info to avoid repeated RPC calls
+const tokenInfoCache = new Map<string, TokenInfo>();
+
+async function fetchTokenInfo(rpcUrl: string, tokenAddress: string): Promise<TokenInfo> {
+  const cacheKey = `${rpcUrl}:${tokenAddress}`;
+  
+  // Check cache first
+  if (tokenInfoCache.has(cacheKey)) {
+    return tokenInfoCache.get(cacheKey)!;
+  }
+
+  let symbol = 'UNKNOWN';
+  let decimals = 18;
+
+  try {
+    // Fetch symbol using eth_call with ERC20 symbol() signature (0x95d89b41)
+    const symbolResult = await fetchFromRPC(rpcUrl, 'eth_call', [
+      { to: tokenAddress, data: '0x95d89b41' },
+      'latest'
+    ]) as string;
+    
+    if (symbolResult && symbolResult !== '0x' && symbolResult.length > 2) {
+      // Decode string return value
+      // Skip first 64 chars (offset) and next 64 chars (length), then decode
+      if (symbolResult.length > 130) {
+        const lengthHex = symbolResult.slice(66, 130);
+        const length = parseInt(lengthHex, 16);
+        const dataHex = symbolResult.slice(130, 130 + length * 2);
+        symbol = Buffer.from(dataHex, 'hex').toString('utf8').replace(/\0/g, '');
+      } else if (symbolResult.length === 66) {
+        // Might be bytes32 encoded (like some old tokens)
+        const hex = symbolResult.slice(2);
+        symbol = Buffer.from(hex, 'hex').toString('utf8').replace(/\0/g, '');
+      }
+    }
+  } catch (e) {
+    console.log(`Could not fetch symbol for ${tokenAddress}`);
+  }
+
+  try {
+    // Fetch decimals using eth_call with ERC20 decimals() signature (0x313ce567)
+    const decimalsResult = await fetchFromRPC(rpcUrl, 'eth_call', [
+      { to: tokenAddress, data: '0x313ce567' },
+      'latest'
+    ]) as string;
+    
+    if (decimalsResult && decimalsResult !== '0x' && decimalsResult.length > 2) {
+      decimals = parseInt(decimalsResult, 16);
+      if (isNaN(decimals) || decimals > 77) decimals = 18; // Sanity check
+    }
+  } catch (e) {
+    console.log(`Could not fetch decimals for ${tokenAddress}, defaulting to 18`);
+  }
+
+  const tokenInfo = { symbol, decimals };
+  tokenInfoCache.set(cacheKey, tokenInfo);
+  
+  return tokenInfo;
+}
+
 async function fetchFromRPC(rpcUrl: string, method: string, params: unknown[] = []): Promise<unknown> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -234,17 +299,49 @@ export async function GET(
     // Decode input data (only if we have full tx)
     const decodedInput = tx?.input ? decodeERC20Input(tx.input) : null;
 
-    // Decode transfer events from receipt logs
-    const transfers: Array<{ from: string; to: string; value: string; tokenAddress: string }> = [];
+    // Decode transfer events from receipt logs and fetch token info
+    const transfers: Array<{ from: string; to: string; value: string; formattedValue: string; tokenAddress: string; tokenSymbol: string; tokenDecimals: number }> = [];
     if (receipt.logs) {
+      // First, collect all unique token addresses
+      const tokenAddresses = new Set<string>();
+      const rawTransfers: Array<{ from: string; to: string; value: string; tokenAddress: string }> = [];
+      
       for (const log of receipt.logs) {
         const transfer = decodeTransferLog(log);
         if (transfer) {
-          transfers.push({
+          tokenAddresses.add(log.address.toLowerCase());
+          rawTransfers.push({
             ...transfer,
             tokenAddress: log.address,
           });
         }
+      }
+
+      // Fetch token info for all unique addresses in parallel
+      const tokenInfoMap = new Map<string, TokenInfo>();
+      await Promise.all(
+        Array.from(tokenAddresses).map(async (addr) => {
+          const info = await fetchTokenInfo(rpcUrl, addr);
+          tokenInfoMap.set(addr, info);
+        })
+      );
+
+      // Build transfers with token info
+      for (const transfer of rawTransfers) {
+        const tokenInfo = tokenInfoMap.get(transfer.tokenAddress.toLowerCase()) || { symbol: 'UNKNOWN', decimals: 18 };
+        const rawValue = BigInt(transfer.value);
+        const divisor = BigInt(10 ** tokenInfo.decimals);
+        const intPart = rawValue / divisor;
+        const fracPart = rawValue % divisor;
+        const fracStr = fracPart.toString().padStart(tokenInfo.decimals, '0').slice(0, 6);
+        const formattedValue = `${intPart}.${fracStr}`;
+        
+        transfers.push({
+          ...transfer,
+          formattedValue,
+          tokenSymbol: tokenInfo.symbol,
+          tokenDecimals: tokenInfo.decimals,
+        });
       }
     }
 

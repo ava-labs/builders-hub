@@ -31,7 +31,7 @@ interface TransactionDetail {
   transactionIndex: string | null;
   input: string;
   decodedInput: { method: string; params: Record<string, string> } | null;
-  transfers: Array<{ from: string; to: string; value: string; tokenAddress: string }>;
+  transfers: Array<{ from: string; to: string; value: string; formattedValue: string; tokenAddress: string; tokenSymbol: string; tokenDecimals: number }>;
   type: number;
   maxFeePerGas: string | null;
   maxPriorityFeePerGas: string | null;
@@ -665,21 +665,32 @@ export default function TransactionDetailPage({
                 label={`ERC-20 Tokens Transferred (${tx.transfers.length})`}
                 themeColor={themeColor}
                 value={
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {tx.transfers.map((transfer, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-sm flex-wrap">
-                        <span className="text-zinc-500">From</span>
-                        <span className="font-mono" style={{ color: themeColor }}>
-                          {formatAddress(transfer.from)}
-                        </span>
-                        <span className="text-zinc-500">To</span>
-                        <span className="font-mono" style={{ color: themeColor }}>
-                          {formatAddress(transfer.to)}
-                        </span>
-                        <span className="text-zinc-500">For</span>
-                        <span className="font-medium text-zinc-900 dark:text-white">
-                          {(Number(transfer.value) / 1e18).toFixed(6)}
-                        </span>
+                      <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-zinc-500">From</span>
+                          <span className="font-mono text-xs" style={{ color: themeColor }}>
+                            {formatAddress(transfer.from)}
+                          </span>
+                          <span className="text-zinc-400">→</span>
+                          <span className="text-zinc-500">To</span>
+                          <span className="font-mono text-xs" style={{ color: themeColor }}>
+                            {formatAddress(transfer.to)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-zinc-500">For</span>
+                          <span className="font-semibold text-zinc-900 dark:text-white">
+                            {transfer.formattedValue}
+                          </span>
+                          <span 
+                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                            style={{ backgroundColor: `${themeColor}20`, color: themeColor }}
+                          >
+                            {transfer.tokenSymbol}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
