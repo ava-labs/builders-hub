@@ -127,6 +127,80 @@ function shortenAddress(address: string | null): string {
 // Cache for AVAX price
 let avaxPriceCache: { price: number; timestamp: number } | null = null;
 
+// Cache for daily transactions
+let dailyTxsCache: { data: Map<string, TransactionHistoryPoint[]>; timestamp: number } | null = null;
+const DAILY_TXS_CACHE_TTL = 300000; // 5 minutes
+
+interface DailyTxsResponse {
+  dates: string[];
+  chains: Array<{
+    evmChainId: number;
+    name: string;
+    values: number[];
+  }>;
+}
+
+async function fetchDailyTxsByChain(): Promise<Map<string, TransactionHistoryPoint[]>> {
+  // Check cache
+  if (dailyTxsCache && Date.now() - dailyTxsCache.timestamp < DAILY_TXS_CACHE_TTL) {
+    return dailyTxsCache.data;
+  }
+
+  const result = new Map<string, TransactionHistoryPoint[]>();
+
+  try {
+    const response = await fetch(
+      'https://idx6.solokhin.com/api/global/overview/dailyTxsByChainCompact',
+      {
+        headers: { 'Accept': 'application/json' },
+        next: { revalidate: 300 }
+      }
+    );
+
+    if (!response.ok) {
+      console.warn(`Daily txs API error: ${response.status}`);
+      return result;
+    }
+
+    const json: DailyTxsResponse = await response.json();
+    const { dates, chains } = json;
+
+    if (!dates || !chains || dates.length === 0) {
+      return result;
+    }
+
+    // Get last 14 days of data
+    const last14DatesStart = Math.max(0, dates.length - 14);
+    const last14Dates = dates.slice(last14DatesStart);
+
+    // Process each chain
+    for (const chain of chains) {
+      const chainId = chain.evmChainId.toString();
+      const last14Values = chain.values.slice(last14DatesStart);
+      
+      const history: TransactionHistoryPoint[] = last14Dates.map((dateStr, index) => {
+        // Parse date string (format: "2024-11-27") and format to "Nov 27"
+        const d = new Date(dateStr);
+        const formattedDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        
+        return {
+          date: formattedDate,
+          transactions: last14Values[index] || 0,
+        };
+      });
+
+      result.set(chainId, history);
+    }
+
+    // Update cache
+    dailyTxsCache = { data: result, timestamp: Date.now() };
+    return result;
+  } catch (error) {
+    console.warn("Failed to fetch daily txs:", error);
+    return result;
+  }
+}
+
 async function fetchAvaxPrice(): Promise<number> {
   // Check AVAX price cache
   if (avaxPriceCache && Date.now() - avaxPriceCache.timestamp < PRICE_CACHE_TTL) {
@@ -204,7 +278,7 @@ async function fetchPrice(coingeckoId: string): Promise<PriceData | undefined> {
   }
 }
 
-async function fetchExplorerData(chainId: string, rpcUrl: string, coingeckoId?: string, tokenSymbol?: string): Promise<ExplorerData> {
+async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: string, coingeckoId?: string, tokenSymbol?: string): Promise<ExplorerData> {
   // Get latest block number
   const latestBlockHex = await fetchFromRPC(rpcUrl, "eth_blockNumber");
   const latestBlockNumber = hexToNumber(latestBlockHex);
@@ -301,21 +375,9 @@ async function fetchExplorerData(chainId: string, rpcUrl: string, coingeckoId?: 
     lastFinalizedBlock: latestBlockNumber - 2, // Approximate finalized block
   };
 
-  // Generate transaction history for the last 14 days based on recent activity
-  const transactionHistory: TransactionHistoryPoint[] = [];
-  const now = new Date();
-  const avgDailyTxs = tps * 86400; // Rough estimate
-  
-  for (let i = 13; i >= 0; i--) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - i);
-    // Add some variance to make it look realistic
-    const variance = 0.7 + Math.random() * 0.6; // 70% to 130%
-    transactionHistory.push({
-      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      transactions: Math.round(avgDailyTxs * variance),
-    });
-  }
+  // Fetch real daily transaction history
+  const dailyTxsData = await fetchDailyTxsByChain();
+  const transactionHistory: TransactionHistoryPoint[] = dailyTxsData.get(evmChainId) || [];
 
   // Fetch price if coingeckoId is available
   let price: PriceData | undefined;
@@ -357,8 +419,8 @@ export async function GET(
       return NextResponse.json(cached.data);
     }
 
-    // Fetch fresh data
-    const data = await fetchExplorerData(chainId, rpcUrl, chain.coingeckoId, chain.tokenSymbol);
+    // Fetch fresh data (chainId is also the evmChainId)
+    const data = await fetchExplorerData(chainId, chainId, rpcUrl, chain.coingeckoId, chain.tokenSymbol);
 
     // Update cache
     cache.set(chainId, { data, timestamp: Date.now() });
