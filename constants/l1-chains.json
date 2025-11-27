@@ -110,6 +110,9 @@
     "category": "Gaming",
     "description": "By leveraging their own Avalanche L1, Beam takes advantage of high-speed consensus and customizing its own gas economy, Beam enables instant, feeless in-game transactions, on-chain asset ownership, and interoperability across multiple games.",
     "website": "https://onbeam.com/",
+    "socials": {
+      "twitter": "BuildOnBeam"
+    },
     "explorers": [
       {
         "name": "Snowtrace",
@@ -131,6 +134,9 @@
     "category": "Telecom",
     "description": "The Binary Holdings is a Web3 infrastructure firm powers loyalty programs for telcos in South East Asia, has officially deployed its native Avalanche L1, giving TBH the foundation to accelerate user adoption through its unique telco-powered distribution network.",
     "website": "https://www.thebinaryholdings.com/",
+    "socials": {
+      "linkedin": "the-binary-holdings"
+    },
     "explorers": [
       {
         "name": "Cogitus Explorer",
@@ -307,6 +313,10 @@
     "category": "Finance",
     "description": "Dinari, the leading provider of tokenized U.S. public securities, has launched the Dinari Financial Network—the first Layer 1 blockchain designed to enable omni-chain liquidity and settlement for Dinari's partner network.",
     "website": "https://dinari.com/",
+    "socials": {
+      "twitter": "DinariGlobal",
+      "linkedin": "dinari-global"
+    },
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -413,6 +423,9 @@
     "category": "Sports",
     "description": "The FIFA Blockchain is a custom Avalanche L1, designed to streamline operations, optimize user experience, and deliver consistent, interoperable digital products to its fan base of over five billion people, even during high-traffic events like World Cup matches or major tournament launches.",
     "website": "https://collect.fifa.com/",
+    "socials": {
+      "twitter": "FIFACollect"
+    },
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -492,6 +505,10 @@
     "category": "General",
     "description": "Hashfire, built on a custom Avalanche L1 using AvaCloud's infrastructure, allows governments and enterprises to embed approval processes, compliance rules and payment instructions directly into smart contracts.",
     "website": "https://hashfire.xyz/",
+    "socials": {
+      "twitter": "hashfirexyz",
+      "linkedin": "hashfire"
+    },
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -509,6 +526,9 @@
     "category": "Gaming",
     "description": "Henesys as an Avalanche L1 gives MapleStory full control over performance, fees, and game logic—enabling seamless on-chain item ownership, player-driven economies, and real-time gameplay—without compromising the speed or scalability players expect from the MapleStory franchise.",
     "website": "https://msu.io/",
+    "socials": {
+      "twitter": "MaplestoryU"
+    },
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -773,6 +793,9 @@
     "category": "AI",
     "description": "Purpose-built L1 for AI-native creators. Orange Web3 provides the tools to turn AI-assisted and vibe coded ideas into live products, backed by on-chain rewards and an active user ecosystem.",
     "website": "https://www.orangeweb3.com/",
+    "socials": {
+      "twitter": "orange_web3"
+    },
     "explorers": [
       {
           "name": "Avalanche Explorer",
@@ -833,6 +856,9 @@
     "category": "Gaming",
     "description": "PLYR is a gaming-first Layer 1 blockchain built as its own chain on Avalanche. It offers ultra-fast, low-cost transactions tailored for Web3 games, a universal gamer ID (PLYR-ID), SDKs/APIs for devs, and full cross-chain token/NFT support so players and developers can move assets and games seamlessly across chains.",
     "website": "https://plyr.network/",
+    "socials": {
+      "twitter": "OnPlyr"
+    },
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -869,6 +895,10 @@
     "category": "Loyalty",
     "description": "Quboid is a decentralized network that manages liquidity and streamlines settlements for loyalty points and brand tokens on its own Avalanche L1. By leveraging blockchain technology, Quboid empowers brands to enhance engagement, gain actionable insights, and foster innovation—all while reducing operational costs and complexities.",
     "website": "https://qubo.id/",
+    "socials": {
+      "twitter": "Quboid_HQ",
+      "linkedin": "quboid-hq"
+    },
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -966,6 +996,10 @@
     "category": "Gaming",
     "description": "The Growth Protocol (TGP) is a Web3 marketing platform built on its own blockchain on Avalanche. The protocol is backed by xpUSD: stablecoin issuance and infrastructure for tokenizing growth.",
     "website": "https://growthprotocol.xyz/",
+    "socials": {
+      "twitter": "GrowthProtocol_",
+      "linkedin": "the-growth-protocol"
+    },
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -1027,6 +1061,10 @@
     "category": "Ticketing",
     "description": "By operating as a dedicated Avalanche L1 for onchain ticketing, Tixbase can ensure instant finality, prevent bots and fraud through transparent on-chain records, and create a programmable ticketing ecosystem without being constrained by the congestion or costs of shared networks.",
     "website": "https://www.tixbase.com/",
+    "socials": {
+      "twitter": "tixbase",
+      "linkedin": "tixbase"
+    },
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -1063,6 +1101,10 @@
     "category": "AI Agents",
     "description": "TURF Network is a real‑time data‑orchestration protocol for gaming and AI built on Avalanche. It converts gameplay events into on‑chain, validated data structures via a network of nodes. Games integrate with TURF to turn in‑game telemetry into composable, verifiable data for analytics, AI, e‑sports, prediction markets, and more.",
     "website": "https://turf.network/",
+    "socials": {
+      "twitter": "turf_network",
+      "linkedin": "turf-gg"
+    },
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -1119,6 +1161,9 @@
     "category": "Finance",
     "description": "Watr, the blockchain infrastructure purpose-built for the $20T global commodities industry, migrated to an Avalanche L1. This move brings one of the world's most critical sectors—spanning metals, minerals, food, and fuel—onchain, leveraging Avalanche's infrastructure to unlock composability and capital efficiency at scale.",
     "website": "https://www.watr.org",
+    "socials": {
+      "linkedin": "watrprotocol"
+    },
     "explorers": [
     ]
   },

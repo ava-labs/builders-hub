@@ -66,6 +66,10 @@ export interface L1Chain {
   category?: string;
   description?: string;
   website?: string;
+  socials?: {
+    twitter?: string;
+    linkedin?: string;
+  };
   explorers?: BlockExplorer[];
 }
 
