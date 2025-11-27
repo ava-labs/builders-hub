@@ -202,31 +202,74 @@ export default function NetworkDiagram({
     return zoomToFit >= 1 ? 1 : Math.max(0.3, zoomToFit);
   }, [dimensions.width, dimensions.height]);
 
-  // Fullscreen toggle
+  // Check if fullscreen API is supported
+  const supportsFullscreen = typeof document !== 'undefined' && (
+    document.fullscreenEnabled ||
+    (document as any).webkitFullscreenEnabled ||
+    (document as any).mozFullScreenEnabled ||
+    (document as any).msFullscreenEnabled
+  );
+
+  // Fullscreen toggle with cross-browser support
   const toggleFullscreen = useCallback(() => {
-    if (!document.fullscreenElement && containerRef.current) {
-      containerRef.current.requestFullscreen().then(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const requestFS = container.requestFullscreen ||
+      (container as any).webkitRequestFullscreen ||
+      (container as any).mozRequestFullScreen ||
+      (container as any).msRequestFullscreen;
+
+    const exitFS = document.exitFullscreen ||
+      (document as any).webkitExitFullscreen ||
+      (document as any).mozCancelFullScreen ||
+      (document as any).msExitFullscreen;
+
+    const isCurrentlyFullscreen = !!(
+      document.fullscreenElement ||
+      (document as any).webkitFullscreenElement ||
+      (document as any).mozFullScreenElement ||
+      (document as any).msFullscreenElement
+    );
+
+    if (!isCurrentlyFullscreen && requestFS) {
+      requestFS.call(container).then(() => {
         setIsFullscreen(true);
-      }).catch(err => {
+      }).catch((err: Error) => {
         console.error('Error enabling fullscreen:', err);
       });
-    } else if (document.fullscreenElement) {
-      document.exitFullscreen().then(() => {
+    } else if (isCurrentlyFullscreen && exitFS) {
+      exitFS.call(document).then(() => {
         setIsFullscreen(false);
-      }).catch(err => {
+      }).catch((err: Error) => {
         console.error('Error exiting fullscreen:', err);
       });
     }
   }, []);
 
-  // Listen for fullscreen changes
+  // Listen for fullscreen changes (with vendor prefixes)
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const isFS = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+      setIsFullscreen(isFS);
     };
     
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+    
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
   }, []);
 
   // Escape key to exit fullscreen
@@ -478,18 +521,43 @@ export default function NetworkDiagram({
     }
   }, []);
 
-  // Update dimensions
+  // Update dimensions - debounced and ignores small height changes on mobile
   useEffect(() => {
-    const updateSize = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setDimensions({ width: rect.width, height: rect.height });
+    let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
+    const lastDimensions = { width: 0, height: 0 };
+    
+    const updateSize = (immediate = false) => {
+      if (!containerRef.current) return;
+      
+      const rect = containerRef.current.getBoundingClientRect();
+      const newWidth = Math.round(rect.width);
+      const newHeight = Math.round(rect.height);
+      
+      // On mobile, browser chrome (address bar) hiding/showing causes height changes
+      // Only update if width changes or height changes significantly (more than 100px)
+      const widthChanged = Math.abs(newWidth - lastDimensions.width) > 2;
+      const heightChangedSignificantly = Math.abs(newHeight - lastDimensions.height) > 100;
+      
+      if (immediate || widthChanged || heightChangedSignificantly) {
+        lastDimensions.width = newWidth;
+        lastDimensions.height = newHeight;
+        setDimensions({ width: newWidth, height: newHeight });
       }
     };
-
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
+    
+    const handleResize = () => {
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => updateSize(false), 150);
+    };
+    
+    // Initial update is immediate
+    updateSize(true);
+    
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+    };
   }, [isFullscreen]);
 
   // Prevent page scroll when zooming with wheel or touch
@@ -525,13 +593,42 @@ export default function NetworkDiagram({
     };
   }, []);
 
-  // Initialize stars
+  // Initialize stars - expanded area with higher density at center
   useEffect(() => {
     const stars: { x: number; y: number; size: number; brightness: number }[] = [];
-    for (let i = 0; i < 300; i++) {
+    const expandFactor = 3;
+    const centerX = dimensions.width / 2;
+    const centerY = dimensions.height / 2;
+    const maxRadius = Math.max(dimensions.width, dimensions.height) * expandFactor / 2;
+    
+    // Gaussian-like distribution for center density
+    const gaussianRandom = () => {
+      // Box-Muller transform for normal distribution
+      const u1 = Math.random();
+      const u2 = Math.random();
+      return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    };
+    
+    for (let i = 0; i < 800; i++) {
+      let x, y;
+      
+      if (i < 500) {
+        // 60% of stars use gaussian distribution (concentrated at center)
+        const spreadX = dimensions.width * 0.8;
+        const spreadY = dimensions.height * 0.8;
+        x = centerX + gaussianRandom() * spreadX;
+        y = centerY + gaussianRandom() * spreadY;
+      } else {
+        // 40% of stars spread uniformly across the full area
+        const angle = Math.random() * Math.PI * 2;
+        const radius = Math.random() * maxRadius;
+        x = centerX + Math.cos(angle) * radius;
+        y = centerY + Math.sin(angle) * radius;
+      }
+      
       stars.push({
-        x: Math.random() * dimensions.width,
-        y: Math.random() * dimensions.height,
+        x,
+        y,
         size: Math.random() * 2 + 0.3,
         brightness: Math.random() * 0.6 + 0.2,
       });
@@ -598,49 +695,66 @@ export default function NetworkDiagram({
         }
       });
 
-      // === BACKGROUND ===
+      // === CLEAR CANVAS ===
+      ctx.fillStyle = '#020208';
+      ctx.fillRect(0, 0, dimensions.width, dimensions.height);
+
+      // Apply zoom and pan transform for everything (background moves with content)
+      ctx.save();
+      ctx.translate(dimensions.width / 2 + panOffset.x, dimensions.height / 2 + panOffset.y);
+      ctx.scale(zoom, zoom);
+      ctx.translate(-dimensions.width / 2, -dimensions.height / 2);
+
+      // === BACKGROUND (moves with pan) ===
+      // Expand bounds to cover area when panned
+      const expandSize = Math.max(dimensions.width, dimensions.height) * 2;
+      const offsetX = -expandSize / 2;
+      const offsetY = -expandSize / 2;
+      const bgWidth = dimensions.width + expandSize;
+      const bgHeight = dimensions.height + expandSize;
+
       const bgGradient = ctx.createRadialGradient(
         dimensions.width / 2, dimensions.height / 2, 0,
-        dimensions.width / 2, dimensions.height / 2, Math.max(dimensions.width, dimensions.height)
+        dimensions.width / 2, dimensions.height / 2, Math.max(bgWidth, bgHeight)
       );
       bgGradient.addColorStop(0, '#12122a');
       bgGradient.addColorStop(0.5, '#0a0a18');
       bgGradient.addColorStop(1, '#020208');
       ctx.fillStyle = bgGradient;
-      ctx.fillRect(0, 0, dimensions.width, dimensions.height);
+      ctx.fillRect(offsetX, offsetY, bgWidth, bgHeight);
 
-      // Nebulas
+      // Nebulas (expanded to cover pan area)
       const nebula1 = ctx.createRadialGradient(
         dimensions.width * 0.2, dimensions.height * 0.3, 0,
-        dimensions.width * 0.2, dimensions.height * 0.3, dimensions.width * 0.55
+        dimensions.width * 0.2, dimensions.height * 0.3, dimensions.width * 0.8
       );
       nebula1.addColorStop(0, 'rgba(139, 92, 246, 0.25)');
       nebula1.addColorStop(0.4, 'rgba(139, 92, 246, 0.1)');
       nebula1.addColorStop(1, 'transparent');
       ctx.fillStyle = nebula1;
-      ctx.fillRect(0, 0, dimensions.width, dimensions.height);
+      ctx.fillRect(offsetX, offsetY, bgWidth, bgHeight);
 
       const nebula2 = ctx.createRadialGradient(
         dimensions.width * 0.8, dimensions.height * 0.6, 0,
-        dimensions.width * 0.8, dimensions.height * 0.6, dimensions.width * 0.5
+        dimensions.width * 0.8, dimensions.height * 0.6, dimensions.width * 0.7
       );
       nebula2.addColorStop(0, 'rgba(6, 182, 212, 0.22)');
       nebula2.addColorStop(0.4, 'rgba(6, 182, 212, 0.08)');
       nebula2.addColorStop(1, 'transparent');
       ctx.fillStyle = nebula2;
-      ctx.fillRect(0, 0, dimensions.width, dimensions.height);
+      ctx.fillRect(offsetX, offsetY, bgWidth, bgHeight);
 
       const nebula3 = ctx.createRadialGradient(
         dimensions.width * 0.5, dimensions.height * 0.9, 0,
-        dimensions.width * 0.5, dimensions.height * 0.9, dimensions.width * 0.45
+        dimensions.width * 0.5, dimensions.height * 0.9, dimensions.width * 0.6
       );
       nebula3.addColorStop(0, 'rgba(236, 72, 153, 0.18)');
       nebula3.addColorStop(0.4, 'rgba(236, 72, 153, 0.06)');
       nebula3.addColorStop(1, 'transparent');
       ctx.fillStyle = nebula3;
-      ctx.fillRect(0, 0, dimensions.width, dimensions.height);
+      ctx.fillRect(offsetX, offsetY, bgWidth, bgHeight);
 
-      // Stars (drawn before transform so they stay fixed)
+      // Stars (now move with pan)
       starsRef.current.forEach((star) => {
         const twinkle = star.brightness + 0.2 * Math.sin(time * 1.5 + star.x * 0.01);
         ctx.beginPath();
@@ -648,12 +762,6 @@ export default function NetworkDiagram({
         ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0.1, twinkle)})`;
         ctx.fill();
       });
-
-      // Apply zoom and pan transform
-      ctx.save();
-      ctx.translate(dimensions.width / 2 + panOffset.x, dimensions.height / 2 + panOffset.y);
-      ctx.scale(zoom, zoom);
-      ctx.translate(-dimensions.width / 2, -dimensions.height / 2);
 
       // === ICM LINKS (straight lines) ===
       linksRef.current.forEach((link, i) => {
@@ -1198,36 +1306,40 @@ export default function NetworkDiagram({
       
       {/* Controls - fullscreen and zoom */}
       <div className="absolute top-4 right-4 flex flex-col gap-1 bg-black/50 backdrop-blur-sm rounded-lg p-1 z-10">
-        {/* Fullscreen toggle */}
-        <button
-          onClick={toggleFullscreen}
-          onTouchEnd={(e) => { e.preventDefault(); toggleFullscreen(); }}
-          className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-white/80 hover:text-white active:bg-white/20 hover:bg-white/10 rounded transition-colors touch-manipulation"
-          title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-        >
-          {isFullscreen ? (
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M8 3v3a2 2 0 0 1-2 2H3"/>
-              <path d="M21 8h-3a2 2 0 0 1-2-2V3"/>
-              <path d="M3 16h3a2 2 0 0 1 2 2v3"/>
-              <path d="M16 21v-3a2 2 0 0 1 2-2h3"/>
-            </svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
-              <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
-              <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
-              <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
-            </svg>
-          )}
-        </button>
-        
-        <div className="w-full h-px bg-white/20 my-0.5" />
+        {/* Fullscreen toggle - only show if supported */}
+        {supportsFullscreen && (
+          <>
+            <button
+              onClick={toggleFullscreen}
+              onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); toggleFullscreen(); }}
+              className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-white/80 hover:text-white active:bg-white/20 hover:bg-white/10 rounded transition-colors touch-manipulation"
+              title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+            >
+              {isFullscreen ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 3v3a2 2 0 0 1-2 2H3"/>
+                  <path d="M21 8h-3a2 2 0 0 1-2-2V3"/>
+                  <path d="M3 16h3a2 2 0 0 1 2 2v3"/>
+                  <path d="M16 21v-3a2 2 0 0 1 2-2h3"/>
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
+                  <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
+                  <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
+                  <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+                </svg>
+              )}
+            </button>
+            
+            <div className="w-full h-px bg-white/20 my-0.5" />
+          </>
+        )}
         
         {/* Zoom in */}
         <button
           onClick={handleZoomIn}
-          onTouchEnd={(e) => { e.preventDefault(); handleZoomIn(); }}
+          onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); handleZoomIn(); }}
           className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-white/80 hover:text-white active:bg-white/20 hover:bg-white/10 rounded transition-colors touch-manipulation"
           title="Zoom in"
         >
@@ -1242,7 +1354,7 @@ export default function NetworkDiagram({
         {/* Zoom out */}
         <button
           onClick={handleZoomOut}
-          onTouchEnd={(e) => { e.preventDefault(); handleZoomOut(); }}
+          onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); handleZoomOut(); }}
           className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-white/80 hover:text-white active:bg-white/20 hover:bg-white/10 rounded transition-colors touch-manipulation"
           title="Zoom out"
         >
@@ -1257,7 +1369,7 @@ export default function NetworkDiagram({
         {(zoom !== 1 || panOffset.x !== 0 || panOffset.y !== 0) && (
           <button
             onClick={handleResetView}
-            onTouchEnd={(e) => { e.preventDefault(); handleResetView(); }}
+            onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); handleResetView(); }}
             className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-white/80 hover:text-white active:bg-white/20 hover:bg-white/10 rounded transition-colors touch-manipulation"
             title="Reset view"
           >
@@ -1342,6 +1454,7 @@ export default function NetworkDiagram({
                 }}
                 onTouchEnd={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   setSelectedChain(null);
                   setHoveredChain(null);
                 }}
@@ -1482,6 +1595,7 @@ export default function NetworkDiagram({
                     }}
                     onTouchEnd={(e) => {
                       e.preventDefault();
+                      e.stopPropagation();
                       window.location.href = `/stats/l1/${chainSlug}`;
                     }}
                     className="w-full py-2 text-sm text-cyan-400 hover:text-cyan-300 active:text-cyan-200 transition-colors text-center underline decoration-dotted underline-offset-2 cursor-pointer touch-manipulation"
@@ -1499,24 +1613,32 @@ export default function NetworkDiagram({
         <p className="font-semibold text-white mb-2">Network</p>
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-full border-2 border-purple-400/70 bg-purple-400/20" />
+            <div className="w-6 flex items-center justify-center">
+              <div className="w-5 h-5 rounded-full border-2 border-purple-400/70 bg-purple-400/20" />
+            </div>
             <span>Chain</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-white/90" />
+            <div className="w-6 flex items-center justify-center">
+              <div className="w-2.5 h-2.5 rounded-full bg-white/90" />
+            </div>
             <span>Validator node</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="relative w-5 h-5 flex items-center justify-center">
-              <div className="absolute w-3 h-3 rounded-full border border-purple-400/60" />
-              <div className="absolute w-4 h-4 rounded-full border border-purple-400/40" />
-              <div className="absolute w-5 h-5 rounded-full border border-purple-400/20" />
+            <div className="w-6 flex items-center justify-center">
+              <div className="relative w-5 h-5 flex items-center justify-center">
+                <div className="absolute w-3 h-3 rounded-full border border-purple-400/60" />
+                <div className="absolute w-4 h-4 rounded-full border border-purple-400/40" />
+                <div className="absolute w-5 h-5 rounded-full border border-purple-400/20" />
+              </div>
             </div>
             <span>TPS activity wave</span>
           </div>
           {linksRef.current.length > 0 && (
             <div className="flex items-center gap-2">
-              <div className="w-6 h-0.5 bg-gradient-to-r from-purple-400 to-cyan-400 opacity-70" />
+              <div className="w-6 flex items-center justify-center">
+                <div className="w-5 h-0.5 bg-gradient-to-r from-purple-400 to-cyan-400 opacity-70" />
+              </div>
               <span>ICM message route</span>
             </div>
           )}
