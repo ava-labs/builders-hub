@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight } from "lucide-react";
+import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
@@ -65,6 +65,11 @@ interface ChainMetricsPageProps {
   description?: string;
   themeColor?: string;
   chainLogoURI?: string;
+  website?: string;
+  socials?: {
+    twitter?: string;
+    linkedin?: string;
+  };
 }
 
 export default function ChainMetricsPage({
@@ -73,6 +78,8 @@ export default function ChainMetricsPage({
   description = "Real-time metrics and analytics for the Avalanche C-Chain",
   themeColor = "#E57373",
   chainLogoURI,
+  website,
+  socials,
 }: ChainMetricsPageProps) {
   const [metrics, setMetrics] = useState<CChainMetrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -667,13 +674,74 @@ export default function ChainMetricsPage({
               </div>
             </div>
 
-            {!chainName.includes("C-Chain") && currentChain?.explorers && (
-              <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
-                <ExplorerDropdown
-                  explorers={currentChain.explorers}
-                  variant="outline"
-                  size="sm"
-                />
+            {!chainName.includes("C-Chain") && (
+              <div className="flex flex-col sm:flex-row items-end gap-2">
+                {/* Main action buttons */}
+                <div className="flex items-center gap-2">
+                  {website && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
+                    >
+                      <a href={website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                        Website
+                        <ArrowUpRight className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  )}
+                  
+                  {/* Social buttons */}
+                  {currentChain?.socials && (currentChain.socials.twitter || currentChain.socials.linkedin) && (
+                    <>
+                      {currentChain.socials.twitter && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
+                        >
+                          <a 
+                            href={`https://x.com/${currentChain.socials.twitter}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            aria-label="Twitter"
+                          >
+                            <Twitter className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      )}
+                      {currentChain.socials.linkedin && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
+                        >
+                          <a 
+                            href={`https://linkedin.com/company/${currentChain.socials.linkedin}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            aria-label="LinkedIn"
+                          >
+                            <Linkedin className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      )}
+                    </>
+                  )}
+                  
+                  {currentChain?.explorers && (
+                    <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
+                      <ExplorerDropdown
+                        explorers={currentChain.explorers}
+                        variant="outline"
+                        size="sm"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
