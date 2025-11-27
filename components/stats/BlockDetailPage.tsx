@@ -20,6 +20,7 @@ interface BlockDetail {
   gasUsed: string;
   gasLimit: string;
   baseFeePerGas?: string;
+  gasFee?: string; // Gas fee in native token
   size?: string;
   nonce?: string;
   difficulty?: string;
@@ -678,6 +679,26 @@ export default function BlockDetailPage({
                   </span>
                 }
               />
+
+              {/* Gas Fee */}
+              {block?.gasFee && parseFloat(block.gasFee) > 0 && (
+                <DetailRow
+                  icon={<Fuel className="w-4 h-4" />}
+                  label="Block Gas Fee"
+                  themeColor={themeColor}
+                  value={
+                    <span className="text-sm text-zinc-900 dark:text-white">
+                      {chainId === "43114" && <span className="mr-1">🔥</span>}
+                      {parseFloat(block.gasFee).toFixed(6)} <TokenDisplay symbol={tokenSymbol} />
+                      {tokenPrice && (
+                        <span className="text-zinc-500 dark:text-zinc-400 ml-2">
+                          (${(parseFloat(block.gasFee) * tokenPrice).toFixed(4)} USD)
+                        </span>
+                      )}
+                    </span>
+                  }
+                />
+              )}
 
               {/* Gas Limit */}
               <DetailRow

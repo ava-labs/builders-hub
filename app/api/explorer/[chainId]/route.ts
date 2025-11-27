@@ -10,6 +10,43 @@ interface Block {
   gasUsed: string;
   gasLimit: string;
   baseFeePerGas?: string;
+  gasFee?: string; // Total gas fee in native token (sum of all tx fees)
+}
+
+interface RpcTransaction {
+  hash: string;
+  from: string;
+  to: string | null;
+  value: string;
+  gas: string;
+  gasPrice: string;
+  maxFeePerGas?: string;
+  maxPriorityFeePerGas?: string;
+  nonce: string;
+  blockNumber: string;
+  blockHash: string;
+  transactionIndex: string;
+  input: string;
+  type?: string;
+}
+
+interface RpcTransactionReceipt {
+  transactionHash: string;
+  gasUsed: string;
+  effectiveGasPrice: string;
+  status: string;
+}
+
+interface RpcBlock {
+  number: string;
+  hash: string;
+  parentHash: string;
+  timestamp: string;
+  miner: string;
+  transactions: RpcTransaction[];
+  gasUsed: string;
+  gasLimit: string;
+  baseFeePerGas?: string;
 }
 
 interface Transaction {
@@ -30,6 +67,7 @@ interface ExplorerStats {
   gasPrice: string;
   tps: number;
   lastFinalizedBlock?: number;
+  totalGasFeesInBlocks?: string; // Total gas fees for latest blocks in native token
 }
 
 interface TransactionHistoryPoint {
@@ -320,8 +358,8 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
   const latestBlockHex = await fetchFromRPC(rpcUrl, "eth_blockNumber");
   const latestBlockNumber = hexToNumber(latestBlockHex);
 
-  // Fetch latest 10 blocks
-  const blockPromises: Promise<any>[] = [];
+  // Fetch latest 10 blocks with full transaction objects (using true parameter)
+  const blockPromises: Promise<RpcBlock>[] = [];
   for (let i = 0; i < 10; i++) {
     const blockNum = latestBlockNumber - i;
     if (blockNum >= 0) {
@@ -330,9 +368,54 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
   }
 
   const blockResults = await Promise.all(blockPromises);
-  const blocks: Block[] = blockResults
-    .filter(block => block !== null)
-    .map(block => ({
+  const validBlocks = blockResults.filter(block => block !== null);
+
+  // Collect all transaction hashes from all blocks for receipt fetching
+  const allTxHashes: { blockIndex: number; txHash: string }[] = [];
+  for (let blockIndex = 0; blockIndex < validBlocks.length; blockIndex++) {
+    const block = validBlocks[blockIndex];
+    if (block?.transactions) {
+      for (const tx of block.transactions) {
+        allTxHashes.push({ blockIndex, txHash: tx.hash });
+      }
+    }
+  }
+
+  // Fetch all transaction receipts in parallel
+  const receiptPromises = allTxHashes.map(({ txHash }) =>
+    fetchFromRPC(rpcUrl, "eth_getTransactionReceipt", [txHash]).catch(() => null) as Promise<RpcTransactionReceipt | null>
+  );
+  const receipts = await Promise.all(receiptPromises);
+
+  // Create a map of txHash -> receipt for quick lookup
+  const receiptMap = new Map<string, RpcTransactionReceipt>();
+  for (let i = 0; i < allTxHashes.length; i++) {
+    const receipt = receipts[i];
+    if (receipt) {
+      receiptMap.set(allTxHashes[i].txHash, receipt);
+    }
+  }
+
+  // Calculate gas fees per block by summing transaction fees
+  const blockGasFees = new Map<number, bigint>();
+  for (let i = 0; i < allTxHashes.length; i++) {
+    const { blockIndex, txHash } = allTxHashes[i];
+    const receipt = receiptMap.get(txHash);
+    if (receipt && receipt.gasUsed && receipt.effectiveGasPrice) {
+      const gasUsed = BigInt(receipt.gasUsed);
+      const effectiveGasPrice = BigInt(receipt.effectiveGasPrice);
+      const txFee = gasUsed * effectiveGasPrice;
+      const currentFee = blockGasFees.get(blockIndex) || BigInt(0);
+      blockGasFees.set(blockIndex, currentFee + txFee);
+    }
+  }
+
+  // Build Block array with gas fees from receipts
+  const blocks: Block[] = validBlocks.map((block, blockIndex) => {
+    const gasFeeWei = blockGasFees.get(blockIndex) || BigInt(0);
+    const gasFee = gasFeeWei > 0 ? (Number(gasFeeWei) / 1e18).toFixed(6) : undefined;
+    
+    return {
       number: hexToNumber(block.number).toString(),
       hash: block.hash,
       timestamp: formatTimestamp(block.timestamp),
@@ -341,16 +424,16 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
       gasUsed: hexToNumber(block.gasUsed).toLocaleString(),
       gasLimit: hexToNumber(block.gasLimit).toLocaleString(),
       baseFeePerGas: block.baseFeePerGas ? formatGasPrice(block.baseFeePerGas) : undefined,
-    }));
+      gasFee,
+    };
+  });
 
   // Extract transactions from blocks
-  const allTransactions: any[] = [];
-  for (const block of blockResults) {
+  const allTransactions: (RpcTransaction & { blockTimestamp: string })[] = [];
+  for (const block of validBlocks) {
     if (block?.transactions) {
       for (const tx of block.transactions) {
-        if (typeof tx === 'object') {
-          allTransactions.push({ ...tx, blockTimestamp: block.timestamp });
-        }
+        allTransactions.push({ ...tx, blockTimestamp: block.timestamp });
       }
     }
   }
@@ -400,10 +483,19 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
   // Fetch real cumulative transactions from API
   const totalTransactions = await fetchCumulativeTxs(evmChainId);
 
+  // Calculate total gas fees for latest blocks by summing all block fees
+  let totalGasFeesWei = BigInt(0);
+  for (const gasFee of blockGasFees.values()) {
+    totalGasFeesWei += gasFee;
+  }
+  // Convert from wei to native token (divide by 1e18)
+  const totalGasFeesInBlocks = (Number(totalGasFeesWei) / 1e18).toFixed(6);
+
   const stats: ExplorerStats = {
     latestBlock: latestBlockNumber,
     totalTransactions,
     avgBlockTime: Math.round(avgBlockTime * 100) / 100,
+    totalGasFeesInBlocks,
     gasPrice: `${gasPrice} Gwei`,
     tps: Math.round(tps * 100) / 100,
     lastFinalizedBlock: latestBlockNumber - 2, // Approximate finalized block

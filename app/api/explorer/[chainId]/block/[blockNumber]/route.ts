@@ -1,13 +1,37 @@
 import { NextResponse } from 'next/server';
 import l1ChainsData from '@/constants/l1-chains.json';
 
+interface RpcTransaction {
+  hash: string;
+  from: string;
+  to: string | null;
+  value: string;
+  gas: string;
+  gasPrice: string;
+  maxFeePerGas?: string;
+  maxPriorityFeePerGas?: string;
+  nonce: string;
+  blockNumber: string;
+  blockHash: string;
+  transactionIndex: string;
+  input: string;
+  type?: string;
+}
+
+interface RpcTransactionReceipt {
+  transactionHash: string;
+  gasUsed: string;
+  effectiveGasPrice: string;
+  status: string;
+}
+
 interface RpcBlock {
   number: string;
   hash: string;
   parentHash: string;
   timestamp: string;
   miner: string;
-  transactions: string[];
+  transactions: RpcTransaction[];
   gasUsed: string;
   gasLimit: string;
   baseFeePerGas?: string;
@@ -96,12 +120,40 @@ export async function GET(
       blockParam = `0x${parseInt(blockNumber).toString(16)}`;
     }
 
-    // Fetch block with full transaction objects
-    const block = await fetchFromRPC(rpcUrl, 'eth_getBlockByNumber', [blockParam, false]) as RpcBlock | null;
+    // Fetch block with full transaction objects (using true parameter)
+    const block = await fetchFromRPC(rpcUrl, 'eth_getBlockByNumber', [blockParam, true]) as RpcBlock | null;
 
     if (!block) {
       return NextResponse.json({ error: 'Block not found' }, { status: 404 });
     }
+
+    // Calculate total gas fee by fetching receipts and summing all transaction fees
+    let gasFee: string | undefined;
+    let totalGasFeeWei = BigInt(0);
+
+    if (block.transactions && block.transactions.length > 0) {
+      // Fetch all transaction receipts in parallel
+      const receiptPromises = block.transactions.map(tx => 
+        fetchFromRPC(rpcUrl, 'eth_getTransactionReceipt', [tx.hash]) as Promise<RpcTransactionReceipt | null>
+      );
+      
+      const receipts = await Promise.all(receiptPromises);
+      
+      // Sum up all transaction fees: gasUsed * effectiveGasPrice
+      for (const receipt of receipts) {
+        if (receipt && receipt.gasUsed && receipt.effectiveGasPrice) {
+          const gasUsed = BigInt(receipt.gasUsed);
+          const effectiveGasPrice = BigInt(receipt.effectiveGasPrice);
+          totalGasFeeWei += gasUsed * effectiveGasPrice;
+        }
+      }
+      
+      // Convert from wei to native token (divide by 1e18)
+      gasFee = (Number(totalGasFeeWei) / 1e18).toFixed(6);
+    }
+
+    // Extract transaction hashes for the response
+    const transactionHashes = block.transactions.map(tx => tx.hash);
 
     // Format the response
     const formattedBlock = {
@@ -111,10 +163,11 @@ export async function GET(
       timestamp: hexToTimestamp(block.timestamp),
       miner: block.miner,
       transactionCount: block.transactions.length,
-      transactions: block.transactions,
+      transactions: transactionHashes,
       gasUsed: formatHexToNumber(block.gasUsed),
       gasLimit: formatHexToNumber(block.gasLimit),
       baseFeePerGas: block.baseFeePerGas ? formatGwei(block.baseFeePerGas) : undefined,
+      gasFee,
       size: block.size ? formatHexToNumber(block.size) : undefined,
       nonce: block.nonce,
       difficulty: block.difficulty ? formatHexToNumber(block.difficulty) : undefined,

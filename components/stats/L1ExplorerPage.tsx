@@ -20,6 +20,7 @@ interface Block {
   gasUsed: string;
   gasLimit: string;
   baseFeePerGas?: string;
+  gasFee?: string; // Gas fee in native token
 }
 
 interface Transaction {
@@ -40,6 +41,7 @@ interface ExplorerStats {
   gasPrice: string;
   tps: number;
   lastFinalizedBlock?: number;
+  totalGasFeesInBlocks?: string;
 }
 
 interface TransactionHistoryPoint {
@@ -840,9 +842,10 @@ export default function L1ExplorerPage({
                         </div>
                       </div>
                     </div>
-                    {block.baseFeePerGas && (
-                      <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 flex-shrink-0">
-                        {block.baseFeePerGas} Gwei
+                    {block.gasFee && parseFloat(block.gasFee) > 0 && (
+                      <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex-shrink-0">
+                        {chainId === "43114" && <span className="mr-1">🔥</span>}
+                        {parseFloat(block.gasFee).toFixed(4)} <TokenDisplay symbol={tokenSymbol} />
                       </div>
                     )}
                   </div>
