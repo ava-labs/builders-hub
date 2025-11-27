@@ -22,7 +22,8 @@ export function L1BubbleNav({ chainSlug, themeColor = "#E57373" }: L1BubbleNavPr
   };
 
   const getActiveItem = (pathname: string) => {
-    if (pathname.endsWith('/explorer')) {
+    // Match /explorer and all sub-pages like /explorer/block/123, /explorer/tx/0x...
+    if (pathname.includes('/explorer')) {
       return "explorer";
     }
     return "overview";
