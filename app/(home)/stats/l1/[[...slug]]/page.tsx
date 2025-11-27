@@ -67,6 +67,7 @@ export default async function L1Metrics({
       themeColor={currentChain.color || "#E57373"}
       chainLogoURI={currentChain.chainLogoURI}
       website={currentChain.website}
+      socials={currentChain.socials}
     />
   );
 }
