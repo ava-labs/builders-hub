@@ -7,8 +7,8 @@
     "slug": "aibmainnet",
     "color": "#3B82F6",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/80000/rpc"
   },
   {
     "chainId": "8787",
@@ -23,7 +23,8 @@
         "name": "Snowtrace",
         "link": "https://8787.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/8787/rpc"
   },
   {
     "chainId": "4313",
@@ -42,7 +43,8 @@
         "name": "Snowtrace",
         "link": "https://4313.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/4313/rpc"
   },
   {
     "chainId": "65713",
@@ -52,8 +54,8 @@
     "slug": "as0314t1tp",
     "color": "#F59E0B",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/65713/rpc"
   },
   {
     "chainId": "43114",
@@ -76,7 +78,10 @@
         "name": "SnowScan",
         "link": "https://snowscan.xyz/"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/43114/rpc",
+    "coingeckoId": "avalanche-2",
+    "tokenSymbol": "AVAX"
   },
   {
     "chainId": "40404",
@@ -86,8 +91,8 @@
     "slug": "bango",
     "color": "#EC4899",
     "category": "Gaming",
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/40404/rpc"
   },
   {
     "chainId": "5506",
@@ -97,8 +102,8 @@
     "slug": "bangochain",
     "color": "#6366F1",
     "category": "Gaming",
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/5506/rpc"
   },
   {
     "chainId": "4337",
@@ -122,7 +127,10 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/beam"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/4337/rpc",
+    "coingeckoId": "beam-2",
+    "tokenSymbol": "BEAM"
   },
   {
     "chainId": "836",
@@ -142,7 +150,8 @@
         "name": "Cogitus Explorer",
         "link": "https://explorer-binaryholdings.cogitus.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/836/rpc"
   },
   {
     "chainId": "46975",
@@ -157,7 +166,8 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/blaze"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/46975/rpc"
   },
   {
     "chainId": "1344",
@@ -172,7 +182,8 @@
         "name": "Snowtrace",
         "link": "https://1344.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/1344/rpc"
   },
   {
     "chainId": "28530",
@@ -191,7 +202,8 @@
         "name": "Snowtrace",
         "link": "https://28530.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/28530/rpc"
   },
   {
     "chainId": "35414",
@@ -201,8 +213,8 @@
     "slug": "cedomis",
     "color": "#84CC16",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/35414/rpc"
   },
   {
     "chainId": "235235",
@@ -212,8 +224,8 @@
     "slug": "codenekt",
     "color": "#22C55E",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/235235/rpc"
   },
   {
     "chainId": "42069",
@@ -228,7 +240,10 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/coqnet"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/42069/rpc",
+    "coingeckoId": "coq-inu",
+    "tokenSymbol": "COQ"
   },
   {
     "chainId": "737373",
@@ -243,7 +258,8 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/cx"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/737373/rpc"
   },
   {
     "chainId": "326663",
@@ -253,8 +269,8 @@
     "slug": "dcomm",
     "color": "#10B981",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/326663/rpc"
   },
   {
     "chainId": "96786",
@@ -269,7 +285,8 @@
         "name": "Snowtrace",
         "link": "https://96786.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/96786/rpc"
   },
   {
     "chainId": "20250320",
@@ -279,8 +296,8 @@
     "slug": "deraalpha",
     "color": "#8B5CF6",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/20250320/rpc"
   },
   {
     "chainId": "432204",
@@ -301,7 +318,10 @@
         "name": "Snowtrace",
         "link": "https://432204.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/432204/rpc",
+    "coingeckoId": "dexalot",
+    "tokenSymbol": "ALOT"
   },
   {
     "chainId": "202110",
@@ -322,7 +342,8 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/dinari"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/202110/rpc"
   },
   {
     "chainId": "53935",
@@ -343,7 +364,10 @@
         "name": "Snowtrace",
         "link": "https://53935.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/53935/rpc",
+    "coingeckoId": "defi-kingdoms",
+    "tokenSymbol": "JEWEL"
   },
   {
     "chainId": "7979",
@@ -358,7 +382,8 @@
         "name": "Snowtrace",
         "link": "https://7979.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/7979/rpc"
   },
   {
     "chainId": "389",
@@ -373,7 +398,8 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/etx"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/389/rpc"
   },
   {
     "chainId": "33345",
@@ -390,7 +416,8 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/even"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/33345/rpc"
   },
   {
     "chainId": "33311",
@@ -411,7 +438,8 @@
         "name": "Snowtrace",
         "link": "https://33311.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/33311/rpc"
   },
   {
     "chainId": "13322",
@@ -435,7 +463,8 @@
         "name": "Snowtrace",
         "link": "https://13322.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/13322/rpc"
   },
   {
     "chainId": "62789",
@@ -450,7 +479,8 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/frqtalnet"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/62789/rpc"
   },
   {
     "chainId": "741741",
@@ -460,8 +490,8 @@
     "slug": "goodcare",
     "color": "#F43F5E",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/741741/rpc"
   },
   {
     "chainId": "7084",
@@ -471,8 +501,8 @@
     "slug": "growfitter",
     "color": "#22C55E",
     "category": "Fitness",
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/7084/rpc"
   },
   {
     "chainId": "43419",
@@ -493,7 +523,9 @@
         "name": "Snowtrace",
         "link": "https://43419.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/43419/rpc",
+    "coingeckoId": "gunz"
   },
   {
     "chainId": "7272",
@@ -514,7 +546,8 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/hashfire"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/7272/rpc"
   },
   {
     "chainId": "68414",
@@ -538,7 +571,8 @@
         "name": "Snowtrace",
         "link": "https://68414.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/68414/rpc"
   },
   {
     "chainId": "10036",
@@ -557,7 +591,8 @@
         "name": "Snowtrace",
         "link": "https://10036.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/10036/rpc"
   },
   {
     "chainId": "151122",
@@ -567,8 +602,8 @@
     "slug": "intainmkt",
     "color": "#10B981",
     "category": "Finance",
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/151122/rpc"
   },
   {
     "chainId": "1216",
@@ -587,7 +622,8 @@
         "name": "Snowtrace",
         "link": "https://1216.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/1216/rpc"
   },
   {
     "chainId": "6533",
@@ -606,7 +642,8 @@
         "name": "Snowtrace",
         "link": "https://6533.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/6533/rpc"
   },
   {
     "chainId": "379",
@@ -621,7 +658,8 @@
         "name": "Snowtrace",
         "link": "https://379.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/379/rpc"
   },
   {
     "chainId": "10849",
@@ -642,7 +680,8 @@
         "name": "Snowtrace",
         "link": "https://10849.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/10849/rpc"
   },
   {
     "chainId": "10850",
@@ -661,7 +700,8 @@
         "name": "Snowtrace",
         "link": "https://10850.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/10850/rpc"
   },
   {
     "chainId": "50776",
@@ -676,7 +716,8 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/letsbuyhc"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/50776/rpc"
   },
   {
     "chainId": "72379",
@@ -693,7 +734,8 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/loyal"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/72379/rpc"
   },
   {
     "chainId": "62521",
@@ -708,7 +750,8 @@
         "name": "Snowtrace",
         "link": "https://62521.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/62521/rpc"
   },
   {
     "chainId": "17177",
@@ -725,7 +768,8 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/lylty"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/17177/rpc"
   },
   {
     "chainId": "5419",
@@ -735,8 +779,8 @@
     "slug": "marnisa",
     "color": "#EF4444",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/5419/rpc"
   },
   {
     "chainId": "1888",
@@ -751,7 +795,8 @@
         "name": "Snowtrace",
         "link": "https://1888.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/1888/rpc"
   },
   {
     "chainId": "29111",
@@ -761,8 +806,8 @@
     "slug": "mugen",
     "color": "#0EA5E9",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/29111/rpc"
   },
   {
     "chainId": "8021",
@@ -781,7 +826,8 @@
         "name": "Snowtrace",
         "link": "https://8021.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/8021/rpc"
   },
   {
     "chainId": "1510",
@@ -798,10 +844,11 @@
     },
     "explorers": [
       {
-          "name": "Avalanche Explorer",
-          "link": "https://subnets.avax.network/orange"
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/orange"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/1510/rpc"
   },
   {
     "chainId": "58166",
@@ -811,8 +858,8 @@
     "slug": "oumla",
     "color": "#10B981",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/58166/rpc"
   },
   {
     "chainId": "7776",
@@ -822,8 +869,8 @@
     "slug": "pandasea",
     "color": "#3B82F6",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/7776/rpc"
   },
   {
     "chainId": "3011",
@@ -844,7 +891,10 @@
         "name": "Snowtrace",
         "link": "https://3011.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/3011/rpc",
+    "coingeckoId": "playa3ull-games-2",
+    "tokenSymbol": "3ULL"
   },
   {
     "chainId": "16180",
@@ -868,7 +918,10 @@
         "name": "Snowtrace",
         "link": "https://16180.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/16180/rpc",
+    "coingeckoId": "plyr",
+    "tokenSymbol": "PLYR"
   },
   {
     "chainId": "77757",
@@ -883,7 +936,8 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/qr0723t1ms"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/77757/rpc"
   },
   {
     "chainId": "12150",
@@ -908,7 +962,8 @@
         "name": "Snowtrace",
         "link": "https://12150.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/12150/rpc"
   },
   {
     "chainId": "6119",
@@ -929,7 +984,8 @@
         "name": "Snowtrace",
         "link": "https://6119.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/6119/rpc"
   },
   {
     "chainId": "8227",
@@ -948,7 +1004,8 @@
         "name": "Snowtrace",
         "link": "https://8227.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/8227/rpc"
   },
   {
     "chainId": "1234",
@@ -963,7 +1020,10 @@
         "name": "Snowtrace",
         "link": "https://1234.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/1234/rpc",
+    "coingeckoId": "step-app-fitfi",
+    "tokenSymbol": "FITFI"
   },
   {
     "chainId": "5566",
@@ -984,7 +1044,8 @@
         "name": "Snowtrace",
         "link": "https://5566.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/5566/rpc"
   },
   {
     "chainId": "61587",
@@ -1009,7 +1070,8 @@
         "name": "Snowtrace",
         "link": "https://61587.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/61587/rpc"
   },
   {
     "chainId": "710420",
@@ -1028,7 +1090,8 @@
         "name": "Snowtrace",
         "link": "https://710420.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/710420/rpc"
   },
   {
     "chainId": "84358",
@@ -1049,7 +1112,8 @@
         "name": "Snowtrace",
         "link": "https://84358.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/84358/rpc"
   },
   {
     "chainId": "13790",
@@ -1070,7 +1134,8 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/tixchain"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/13790/rpc"
   },
   {
     "chainId": "21024",
@@ -1089,7 +1154,8 @@
         "name": "Snowtrace",
         "link": "https://21024.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/21024/rpc"
   },
   {
     "chainId": "62334",
@@ -1110,7 +1176,8 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/turf"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/62334/rpc"
   },
   {
     "chainId": "237007",
@@ -1120,8 +1187,8 @@
     "slug": "ulalo",
     "color": "#3B82F6",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/237007/rpc"
   },
   {
     "chainId": "40875",
@@ -1131,8 +1198,8 @@
     "slug": "v1migrate",
     "color": "#10B981",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/40875/rpc"
   },
   {
     "chainId": "299792",
@@ -1149,7 +1216,8 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/warp"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/299792/rpc"
   },
   {
     "chainId": "192",
@@ -1164,8 +1232,8 @@
     "socials": {
       "linkedin": "watrprotocol"
     },
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/192/rpc"
   },
   {
     "chainId": "98968",
@@ -1175,8 +1243,8 @@
     "slug": "wow",
     "color": "#F59E0B",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/98968/rpc"
   },
   {
     "chainId": "8888",
@@ -1186,8 +1254,8 @@
     "slug": "xanachain",
     "color": "#E57373",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": [],
+    "rpcUrl": "https://idx6.solokhin.com/api/8888/rpc"
   },
   {
     "chainId": "61360",
@@ -1204,7 +1272,8 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/youmio"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/61360/rpc"
   },
   {
     "chainId": "27827",
@@ -1221,7 +1290,8 @@
         "name": "Snowtrace",
         "link": "https://27827.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/27827/rpc"
   },
   {
     "chainId": "8198",
@@ -1236,7 +1306,8 @@
         "name": "Blockscout",
         "link": "https://hatchyverse-explorer.ash.center"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/8198/rpc"
   },
   {
     "chainId": "69420",
@@ -1251,6 +1322,7 @@
         "name": "Blockscout",
         "link": "https://eto-explorer.ash.center"
       }
-    ]
+    ],
+    "rpcUrl": "https://idx6.solokhin.com/api/69420/rpc"
   }
 ]

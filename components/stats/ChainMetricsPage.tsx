@@ -3,8 +3,10 @@ import { useState, useEffect, useMemo } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin } from "lucide-react";
+import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
+import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
@@ -62,6 +64,7 @@ interface CChainMetrics {
 interface ChainMetricsPageProps {
   chainId?: string;
   chainName?: string;
+  chainSlug?: string;
   description?: string;
   themeColor?: string;
   chainLogoURI?: string;
@@ -75,6 +78,7 @@ interface ChainMetricsPageProps {
 export default function ChainMetricsPage({
   chainId = "43114",
   chainName = "Avalanche C-Chain",
+  chainSlug,
   description = "Real-time metrics and analytics for the Avalanche C-Chain",
   themeColor = "#E57373",
   chainLogoURI,
@@ -489,6 +493,13 @@ export default function ChainMetricsPage({
           />
           
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
+            {/* Breadcrumb Skeleton */}
+            <div className="flex items-center gap-1.5 mb-3">
+              <div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              <div className="w-3.5 h-3.5 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+            </div>
+
             <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
               <div className="space-y-4 sm:space-y-6 flex-1">
                 <div>
@@ -581,7 +592,11 @@ export default function ChainMetricsPage({
             </div>
           </section>
         </div>
-        <StatsBubbleNav />
+        {chainSlug ? (
+          <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} />
+        ) : (
+          <StatsBubbleNav />
+        )}
       </div>
     );
   }
@@ -599,7 +614,11 @@ export default function ChainMetricsPage({
             </div>
           </div>
         </div>
-        <StatsBubbleNav />
+        {chainSlug ? (
+          <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} />
+        ) : (
+          <StatsBubbleNav />
+        )}
       </div>
     );
   }
@@ -627,6 +646,20 @@ export default function ChainMetricsPage({
         )}
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-1.5 text-sm mb-3">
+            <Link 
+              href="/stats/overview" 
+              className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+            >
+              Overview
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
+            <span className="text-zinc-900 dark:text-zinc-100 font-medium">
+              {chainName}
+            </span>
+          </nav>
+
           <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
             <div className="space-y-4 sm:space-y-6 flex-1">
               <div>
@@ -1038,7 +1071,11 @@ export default function ChainMetricsPage({
       </div>
 
       {/* Bubble Navigation */}
-      <StatsBubbleNav />
+      {chainSlug ? (
+        <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} />
+      ) : (
+        <StatsBubbleNav />
+      )}
     </div>
   );
 }

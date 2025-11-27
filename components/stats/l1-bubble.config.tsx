@@ -1,0 +1,33 @@
+"use client";
+
+import BubbleNavigation from '@/components/navigation/BubbleNavigation';
+import type { BubbleNavigationConfig } from '@/components/navigation/bubble-navigation.types';
+
+export interface L1BubbleNavProps {
+  chainSlug: string;
+  themeColor?: string;
+}
+
+export function L1BubbleNav({ chainSlug, themeColor = "#E57373" }: L1BubbleNavProps) {
+  const l1BubbleConfig: BubbleNavigationConfig = {
+    items: [
+      { id: "overview", label: "Overview", href: `/stats/l1/${chainSlug}` },
+      { id: "explorer", label: "Explorer", href: `/stats/l1/${chainSlug}/explorer` },
+    ],
+    activeColor: "bg-zinc-900 dark:bg-white",
+    darkActiveColor: "",
+    focusRingColor: "focus:ring-zinc-500",
+    pulseColor: "bg-zinc-200/40",
+    darkPulseColor: "dark:bg-zinc-400/40",
+  };
+
+  const getActiveItem = (pathname: string) => {
+    if (pathname.endsWith('/explorer')) {
+      return "explorer";
+    }
+    return "overview";
+  };
+
+  return <BubbleNavigation config={l1BubbleConfig} getActiveItem={getActiveItem} />;
+}
+
