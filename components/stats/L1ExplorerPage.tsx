@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Search, ArrowRightLeft, Clock, Fuel, Box, Layers, DollarSign, Globe, ArrowUpRight, Twitter, Linkedin, Circle, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
@@ -158,10 +159,13 @@ export default function L1ExplorerPage({
   website,
   socials,
 }: L1ExplorerPageProps) {
+  const router = useRouter();
   const [data, setData] = useState<ExplorerData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [newBlockNumbers, setNewBlockNumbers] = useState<Set<string>>(new Set());
   const [newTxHashes, setNewTxHashes] = useState<Set<string>>(new Set());
@@ -216,9 +220,56 @@ export default function L1ExplorerPage({
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Searching for:", searchQuery);
+    const query = searchQuery.trim();
+    
+    if (!query) {
+      setSearchError("Please enter a search term");
+      return;
+    }
+
+    setSearchError(null);
+    setIsSearching(true);
+
+    try {
+      // Check if it's a block number (numeric string)
+      if (/^\d+$/.test(query)) {
+        // Validate block exists
+        const blockNum = parseInt(query);
+        if (blockNum >= 0 && blockNum <= (data?.stats.latestBlock || Infinity)) {
+          router.push(buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, query));
+          return;
+        } else {
+          setSearchError("Block number not found");
+          return;
+        }
+      }
+
+      // Check if it's a transaction hash (0x + 64 hex chars = 66 total)
+      if (/^0x[a-fA-F0-9]{64}$/.test(query)) {
+        // Navigate to transaction page - it will show error if not found
+        router.push(buildTxUrl(`/stats/l1/${chainSlug}/explorer`, query));
+        return;
+      }
+
+      // Check if it's a hex block number (0x...)
+      if (/^0x[a-fA-F0-9]+$/.test(query) && query.length < 66) {
+        const blockNum = parseInt(query, 16);
+        if (!isNaN(blockNum) && blockNum >= 0) {
+          router.push(buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, blockNum.toString()));
+          return;
+        }
+      }
+
+      // TODO: Address search can be added later
+      // For now, show error for unrecognized format
+      setSearchError("Please enter a valid block number or transaction hash (0x...)");
+    } catch (err) {
+      setSearchError("Search failed. Please try again.");
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   // Generate transaction history if not available
@@ -484,20 +535,35 @@ export default function L1ExplorerPage({
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
               <Input
                 type="text"
-                placeholder="Search by Address / Txn Hash / Block / Token"
+                placeholder="Search by Block Number or Txn Hash (0x...)"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 pr-24 h-12 text-sm rounded-xl border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 focus:ring-2 focus:ring-offset-0"
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setSearchError(null);
+                }}
+                className={`pl-12 pr-24 h-12 text-sm rounded-xl border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 focus:ring-2 focus:ring-offset-0 ${
+                  searchError ? 'border-red-500 dark:border-red-500' : ''
+                }`}
               />
               <Button
                 type="submit"
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-4 sm:px-6 rounded-lg text-white"
+                disabled={isSearching}
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-4 sm:px-6 rounded-lg text-white disabled:opacity-50"
                 style={{ backgroundColor: themeColor }}
               >
-                <Search className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Search</span>
+                {isSearching ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Search className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Search</span>
+                  </>
+                )}
               </Button>
             </div>
+            {searchError && (
+              <p className="text-red-500 text-sm mt-2">{searchError}</p>
+            )}
           </form>
         </div>
       </div>
