@@ -169,7 +169,7 @@ export const stats: LinkItemType = {
     {
       icon: <Network />,
       text: "C-Chain",
-      url: "/stats/primary-network/c-chain",
+      url: "/stats/l1/c-chain",
       description:
       "View the latest metrics for the Avalanche C-Chain.",
       menu: {

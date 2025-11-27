@@ -355,6 +355,11 @@ export default function AvalancheMetrics() {
     return chain?.category || "General";
   };
 
+  const getChainTPS = (chain: ChainOverviewMetrics): string => {
+    const txCount = typeof chain.txCount.current_value === "number" ? chain.txCount.current_value : 0;
+    return (txCount / (365 * 24 * 60 * 60)).toFixed(2);
+  };
+
   const chains = overviewMetrics?.chains || [];
   
   // Extract unique categories sorted by count (descending)
@@ -549,11 +554,6 @@ export default function AvalancheMetrics() {
     };
     const style = styles[cat] || styles['General'];
     return selected ? style.selected : style.normal;
-  };
-
-  const getChainTPS = (chain: ChainOverviewMetrics): string => {
-    const txCount = typeof chain.txCount.current_value === "number" ? chain.txCount.current_value : 0;
-    return (txCount / (365 * 24 * 60 * 60)).toFixed(2);
   };
 
   // Loading state
