@@ -353,7 +353,86 @@ export default function ICMStatsPage() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16">
-          <ChartSkeletonLoader />
+          {/* Charts Skeleton */}
+          <section className="space-y-6">
+            <div className="space-y-2">
+              <div className="h-6 sm:h-8 w-40 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              <div className="h-4 w-64 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:gap-6">
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
+                <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-200 dark:border-zinc-800">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-5 h-5 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                      <div>
+                        <div className="h-5 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-1" />
+                        <div className="h-3 w-48 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((j) => (
+                        <div
+                          key={j}
+                          className="h-7 w-8 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="px-5 pt-6 pb-6">
+                  <div className="mb-4 flex items-baseline gap-2">
+                    <div className="h-8 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                    <div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                  </div>
+                  <div className="h-[350px] bg-zinc-100 dark:bg-zinc-800/50 rounded-lg animate-pulse" />
+                  <div className="mt-4 h-20 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg animate-pulse" />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Top Chains Skeleton */}
+          <section className="space-y-6">
+            <div className="space-y-2">
+              <div className="h-6 sm:h-8 w-48 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              <div className="h-4 w-64 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="h-[400px] bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
+              <div className="flex flex-col gap-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div
+                    key={i}
+                    className="h-20 bg-white/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-lg animate-pulse"
+                  />
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* ICTT Skeleton */}
+          <section className="space-y-6">
+            <div className="space-y-2">
+              <div className="h-6 sm:h-8 w-56 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              <div className="h-4 w-72 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-800 p-4 rounded-lg"
+                >
+                  <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 text-sm mb-2">
+                    <div className="h-4 w-4 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse" />
+                    <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse" />
+                  </div>
+                  <div className="h-8 w-24 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse mb-1" />
+                  <div className="h-3 w-16 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
         <StatsBubbleNav />
       </div>
