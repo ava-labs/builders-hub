@@ -558,7 +558,8 @@ paths:
                 value:
                   jsonrpc: '2.0'
                   method: platform.getCurrentValidators
-                  params: {}
+                  params:
+                    subnetID: 2Ypm6RVhddu5Ps8DEbb35Y1PgX4uXE76yyxn6JMhnZy8ftAFLW
                   id: 1
       responses:
         '200':
