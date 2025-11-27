@@ -108,6 +108,8 @@
     "slug": "beam",
     "color": "#14B8A6",
     "category": "Gaming",
+    "description": "By leveraging their own Avalanche L1, Beam takes advantage of high-speed consensus and customizing its own gas economy, Beam enables instant, feeless in-game transactions, on-chain asset ownership, and interoperability across multiple games.",
+    "website": "https://onbeam.com/",
     "explorers": [
       {
         "name": "Snowtrace",
@@ -127,6 +129,8 @@
     "slug": "binary-holdings",
     "color": "#F97316",
     "category": "Telecom",
+    "description": "The Binary Holdings is a Web3 infrastructure firm powers loyalty programs for telcos in South East Asia, has officially deployed its native Avalanche L1, giving TBH the foundation to accelerate user adoption through its unique telco-powered distribution network.",
+    "website": "https://www.thebinaryholdings.com/",
     "explorers": [
       {
         "name": "Cogitus Explorer",
@@ -280,6 +284,8 @@
     "slug": "dexalot",
     "color": "#F59E0B",
     "category": "Finance",
+    "description": "Operates as its own Avalanche L1, giving it the dedicated performance, custom fee structure, and deterministic finality of a centralized exchange—while still being fully decentralized and interoperable with the broader Avalanche ecosystem.",
+    "website": "https://dexalot.com/en",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -299,6 +305,8 @@
     "slug": "dinari-financial-network",
     "color": "#E57373",
     "category": "Finance",
+    "description": "Dinari, the leading provider of tokenized U.S. public securities, has launched the Dinari Financial Network—the first Layer 1 blockchain designed to enable omni-chain liquidity and settlement for Dinari's partner network.",
+    "website": "https://dinari.com/",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -314,6 +322,8 @@
     "slug": "defikingdoms",
     "color": "#EC4899",
     "category": "Gaming",
+    "description": "DeFi Kingdoms is a fantasy RPG game built on a strong DeFi protocol. The game features DEXs, liquidity pool opportunities, and a market of rare, utility-driven NFTs, which all together create a beautiful, immersive online world in the incredibly nostalgic form of fantasy pixel art.",
+    "website": "https://defikingdoms.com/",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -363,6 +373,8 @@
     "slug": "even",
     "color": "#F97316",
     "category": "General",
+    "description": "EVEN's custom Avalanche L1 is an end-to-end platform for artists to release music directly to their fans, designed to onboard creators faster, support real-time token-gated access, enable transparent revenue distribution, and build data-rich tools that help artists better understand and monetize their audiences.",
+    "website": "https://www.avax.network/about/blog/even-moves-to-avalanche-to-power-the-future-of-fan-first-music",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -378,6 +390,8 @@
     "slug": "feature",
     "color": "#EF4444",
     "category": "General",
+    "description": "Feature is an entertainment studio and technology company that's pioneering the evolution of storytelling. Feature is reimagining the way fans experience content - turning passive consumption into active participation with new Smart Content technology on Avalanche.",
+    "website": "https://www.feature.io/",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -397,6 +411,8 @@
     "slug": "fifa",
     "color": "#A855F7",
     "category": "Sports",
+    "description": "The FIFA Blockchain is a custom Avalanche L1, designed to streamline operations, optimize user experience, and deliver consistent, interoperable digital products to its fan base of over five billion people, even during high-traffic events like World Cup matches or major tournament launches.",
+    "website": "https://collect.fifa.com/",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -453,6 +469,8 @@
     "slug": "gunzilla",
     "color": "#D946EF",
     "category": "Gaming",
+    "description": "The dedicated L1 gives Gunzilla full control over infrastructure, offering instant, gasless transactions, custom game logic, and complete ownership of digital assets, ensuring scalability, security, and interoperability across future titles in its ecosystem.",
+    "website": "https://gameoffthegrid.com/#about",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -472,6 +490,8 @@
     "slug": "hashfire",
     "color": "#F59E0B",
     "category": "General",
+    "description": "Hashfire, built on a custom Avalanche L1 using AvaCloud's infrastructure, allows governments and enterprises to embed approval processes, compliance rules and payment instructions directly into smart contracts.",
+    "website": "https://hashfire.xyz/",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -487,6 +507,8 @@
     "slug": "henesys",
     "color": "#3B82F6",
     "category": "Gaming",
+    "description": "Henesys as an Avalanche L1 gives MapleStory full control over performance, fees, and game logic—enabling seamless on-chain item ownership, player-driven economies, and real-time gameplay—without compromising the speed or scalability players expect from the MapleStory franchise.",
+    "website": "https://msu.io/",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -589,6 +611,8 @@
     "slug": "lamina1",
     "color": "#EC4899",
     "category": "General",
+    "description": "The Lamina1 Network is a Layer 1 blockchain built on Avalanche, built as a creator-owned platform and new economy designed for the future of IP and storytelling.",
+    "website": "https://lamina1.com/home",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -642,6 +666,8 @@
     "slug": "loyal",
     "color": "#F97316",
     "category": "General",
+    "description": "Japanese enterprise Loyalty Marketing partnered with blockchain services provider PlayThink to bring Loyalty Marketing's popular loyalty rewards program, 'Ponta', onchain to its 100M users. The Avalanche L1 issues and manage digital loyalty points and NFTs, enabling faster, cheaper, and more transparent customer rewards.",
+    "website": "https://www.avax.network/about/press/playthink-and-loyalty-marketing-announce-web3-ecosystem-avalanche/?utm_source=chatgpt.com",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -672,6 +698,8 @@
     "slug": "lylty",
     "color": "#F97316",
     "category": "General",
+    "description": "Fanhub built an economy with the blockchain layer completely abstracted and ready for adoption – every wallet represents a real fan and every transaction is a real behavior, all captured transparently on an Avalanche L1. Decentralized technology that enables an organic economy with new value flows between fans, teams, and brands.",
+    "website": "https://www.avax.network/about/blog/fanhub-a-fantech-breakthrough-turning-sports-fandom-into-a-real-economy",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -743,6 +771,8 @@
     "slug": "orange",
     "color": "#FF6600",
     "category": "AI",
+    "description": "Purpose-built L1 for AI-native creators. Orange Web3 provides the tools to turn AI-assisted and vibe coded ideas into live products, backed by on-chain rewards and an active user ecosystem.",
+    "website": "https://www.orangeweb3.com/",
     "explorers": [
       {
           "name": "Avalanche Explorer",
@@ -780,6 +810,8 @@
     "slug": "playa3ull",
     "color": "#10B981",
     "category": "General",
+    "description": "PLAYA3ULL built a gaming-centric blockchain ecosystem: a dedicated Avalanche L1 powering the native token for in-game gas, transactions and deflationary mechanics. It enables players to truly own, trade, and earn from their in-game assets across a growing library of Web3 titles built on the PLAYA3ULL chain.",
+    "website": "https://playa3ull.games/",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -799,6 +831,8 @@
     "slug": "plyr",
     "color": "#E57373",
     "category": "Gaming",
+    "description": "PLYR is a gaming-first Layer 1 blockchain built as its own chain on Avalanche. It offers ultra-fast, low-cost transactions tailored for Web3 games, a universal gamer ID (PLYR-ID), SDKs/APIs for devs, and full cross-chain token/NFT support so players and developers can move assets and games seamlessly across chains.",
+    "website": "https://plyr.network/",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -833,6 +867,8 @@
     "slug": "qchain",
     "color": "#6366F1",
     "category": "Loyalty",
+    "description": "Quboid is a decentralized network that manages liquidity and streamlines settlements for loyalty points and brand tokens on its own Avalanche L1. By leveraging blockchain technology, Quboid empowers brands to enhance engagement, gain actionable insights, and foster innovation—all while reducing operational costs and complexities.",
+    "website": "https://qubo.id/",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -852,6 +888,8 @@
     "slug": "skplanet",
     "color": "#F97316",
     "category": "Loyalty",
+    "description": "SK Planet built the UPTN chain on Avalanche — a dedicated Web3 chain integrated with its major loyalty app OK Cashbag, enabling NFTs, digital wallets and decentralized communities for tens of millions of users. OK Cashbag is the largest e-commerce loyalty program in Korea.",
+    "website": "https://www.avax.network/about/blog/sk-planet-announces-uptn-south-koreas-long-awaited-web3-ecosystem-built-on-avalanche",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -905,6 +943,8 @@
     "slug": "straitsx",
     "color": "#84CC16",
     "category": "General",
+    "description": "StraitsX integrated its SGD-pegged stablecoin XSGD on Avalanche, enabling faster, lower-fee, compliant cross-border payments and DeFi liquidity in Southeast Asia. Built for institutions, exchanges, and fintechs globally, StraitsX powers compliant, programmable transactions with stablecoins.",
+    "website": "https://www.straitsx.com/",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -924,6 +964,8 @@
     "slug": "tgp",
     "color": "#22C55E",
     "category": "Gaming",
+    "description": "The Growth Protocol (TGP) is a Web3 marketing platform built on its own blockchain on Avalanche. The protocol is backed by xpUSD: stablecoin issuance and infrastructure for tokenizing growth.",
+    "website": "https://growthprotocol.xyz/",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -962,6 +1004,8 @@
     "slug": "titan",
     "color": "#F59E0B",
     "category": "General",
+    "description": "Titan Content, the Los Angeles–based K-pop powerhouse, introduced 2GATHR, a next-generation fan engagement app powered by TITAN, a custom Avalanche L1 built with AvaCloud. The app will soon be live on Google Play and the Apple App Store, offering K-pop fans an interactive, verifiable way to connect with their favorite artists.",
+    "website": "https://www.avax.network/about/blog/titan-content-launches-2gathr-on-avalanche",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -981,6 +1025,8 @@
     "slug": "tixchain",
     "color": "#3B82F6",
     "category": "Ticketing",
+    "description": "By operating as a dedicated Avalanche L1 for onchain ticketing, Tixbase can ensure instant finality, prevent bots and fraud through transparent on-chain records, and create a programmable ticketing ecosystem without being constrained by the congestion or costs of shared networks.",
+    "website": "https://www.tixbase.com/",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -1015,6 +1061,8 @@
     "slug": "turf",
     "color": "#22C55E",
     "category": "AI Agents",
+    "description": "TURF Network is a real‑time data‑orchestration protocol for gaming and AI built on Avalanche. It converts gameplay events into on‑chain, validated data structures via a network of nodes. Games integrate with TURF to turn in‑game telemetry into composable, verifiable data for analytics, AI, e‑sports, prediction markets, and more.",
+    "website": "https://turf.network/",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -1052,6 +1100,8 @@
     "slug": "warp",
     "color": "#F59E0B",
     "category": "Gaming",
+    "description": "WARP (built on Avalanche) is a Web3 gaming ecosystem with its own custom Layer‑1 chain that offers game studios tools for true ownership of digital assets, global asset interoperability, and AI‑driven tokenomics & economy management.",
+    "website": "https://gam3s.gg/news/warp-gaming-ecosystem-avalanche/?utm_source=chatgpt.com",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -1067,6 +1117,8 @@
     "slug": "watr",
     "color": "#8B5CF6",
     "category": "Finance",
+    "description": "Watr, the blockchain infrastructure purpose-built for the $20T global commodities industry, migrated to an Avalanche L1. This move brings one of the world's most critical sectors—spanning metals, minerals, food, and fuel—onchain, leveraging Avalanche's infrastructure to unlock composability and capital efficiency at scale.",
+    "website": "https://www.watr.org",
     "explorers": [
     ]
   },
@@ -1100,6 +1152,8 @@
     "slug": "youmio",
     "color": "#F59E0B",
     "category": "AI Agents",
+    "description": "Youmio is a new kind of blockchain: the first Layer 1 built from the ground up as an agent chain, introducing foundational infrastructure for autonomous agents to operate across apps, games and digital environments.",
+    "website": "https://youmio.ai/",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -1115,6 +1169,8 @@
     "slug": "zeroonemainnet",
     "color": "#EC4899",
     "category": "SocialFi",
+    "description": "By operating its own chain, Zeroone can offer gasless minting, instant transactions, and customizable economics for creators and collectors—delivering the performance of Web2 social platforms with the transparency and true ownership of Web3.",
+    "website": "https://zeroone.art/",
     "explorers": [
       {
         "name": "Snowtrace",

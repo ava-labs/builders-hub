@@ -65,6 +65,7 @@ interface ChainMetricsPageProps {
   description?: string;
   themeColor?: string;
   chainLogoURI?: string;
+  website?: string;
 }
 
 export default function ChainMetricsPage({
@@ -73,6 +74,7 @@ export default function ChainMetricsPage({
   description = "Real-time metrics and analytics for the Avalanche C-Chain",
   themeColor = "#E57373",
   chainLogoURI,
+  website,
 }: ChainMetricsPageProps) {
   const [metrics, setMetrics] = useState<CChainMetrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -667,13 +669,30 @@ export default function ChainMetricsPage({
               </div>
             </div>
 
-            {!chainName.includes("C-Chain") && currentChain?.explorers && (
-              <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
-                <ExplorerDropdown
-                  explorers={currentChain.explorers}
-                  variant="outline"
-                  size="sm"
-                />
+            {!chainName.includes("C-Chain") && (
+              <div className="flex items-center gap-2">
+                {website && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
+                  >
+                    <a href={website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                      Visit Website
+                      <ArrowUpRight className="h-4 w-4" />
+                    </a>
+                  </Button>
+                )}
+                {currentChain?.explorers && (
+                  <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
+                    <ExplorerDropdown
+                      explorers={currentChain.explorers}
+                      variant="outline"
+                      size="sm"
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>

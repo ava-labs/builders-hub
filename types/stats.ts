@@ -64,6 +64,8 @@ export interface L1Chain {
   slug: string;
   color?: string;
   category?: string;
+  description?: string;
+  website?: string;
   explorers?: BlockExplorer[];
 }
 

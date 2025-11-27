@@ -60,9 +60,13 @@ export default async function L1Metrics({
     <ChainMetricsPage
       chainId={currentChain.chainId}
       chainName={currentChain.chainName}
-      description={`Real-time insights into ${currentChain.chainName} L1 activity and network usage`}
+      description={
+        currentChain.description ||
+        `Real-time insights into ${currentChain.chainName} L1 activity and network usage`
+      }
       themeColor={currentChain.color || "#E57373"}
       chainLogoURI={currentChain.chainLogoURI}
+      website={currentChain.website}
     />
   );
 }
