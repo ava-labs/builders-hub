@@ -126,6 +126,67 @@ function TokenDisplay({ symbol }: { symbol?: string }) {
   return <span>{symbol}</span>;
 }
 
+// Animated block number component - animates when value changes
+function AnimatedBlockNumber({ value }: { value: number }) {
+  const [displayValue, setDisplayValue] = useState(value);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const previousValue = useRef(value);
+  const animationRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // Skip animation on initial render or if value hasn't changed
+    if (previousValue.current === value) {
+      setDisplayValue(value);
+      return;
+    }
+
+    const startValue = previousValue.current;
+    const endValue = value;
+    const duration = 600; // Animation duration in ms
+    let startTime: number | null = null;
+
+    setIsAnimating(true);
+
+    const animate = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      
+      // Easing function for smooth animation
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      const currentValue = Math.floor(startValue + (endValue - startValue) * easeOut);
+      
+      setDisplayValue(currentValue);
+
+      if (progress < 1) {
+        animationRef.current = requestAnimationFrame(animate);
+      } else {
+        setDisplayValue(endValue);
+        setIsAnimating(false);
+        previousValue.current = endValue;
+      }
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [value]);
+
+  // Update previous value ref when value changes
+  useEffect(() => {
+    previousValue.current = value;
+  }, [value]);
+
+  return (
+    <span className={`transition-colors duration-300 ${isAnimating ? 'text-green-500' : ''}`}>
+      {displayValue.toLocaleString()}
+    </span>
+  );
+}
+
 // Animation styles for new items
 const newItemStyles = `
   @keyframes slideInHighlight {
@@ -216,7 +277,7 @@ export default function L1ExplorerPage({
   useEffect(() => {
     fetchData();
     // Auto-refresh every 10 seconds
-    const interval = setInterval(fetchData, 10000);
+    const interval = setInterval(fetchData, 2500);
     return () => clearInterval(interval);
   }, [fetchData]);
 
@@ -669,7 +730,7 @@ export default function L1ExplorerPage({
                 </div>
               </div>
 
-              {/* Last Finalized Block */}
+              {/* Last Block */}
               <div className="flex items-center gap-2.5">
                 <div 
                   className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -682,7 +743,7 @@ export default function L1ExplorerPage({
                     Last Block
                   </div>
                   <div className="text-base font-bold text-zinc-900 dark:text-white">
-                    {(data?.stats.latestBlock || 0).toLocaleString()}
+                    <AnimatedBlockNumber value={data?.stats.latestBlock || 0} />
                   </div>
                 </div>
               </div>
