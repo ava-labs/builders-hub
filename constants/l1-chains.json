@@ -572,7 +572,8 @@
         "link": "https://68414.snowtrace.io"
       }
     ],
-    "rpcUrl": "https://idx6.solokhin.com/api/68414/rpc"
+    "rpcUrl": "https://idx6.solokhin.com/api/68414/rpc",
+    "coingeckoId": "nexpace"
   },
   {
     "chainId": "10036",
