@@ -131,6 +131,10 @@ let avaxPriceCache: { price: number; timestamp: number } | null = null;
 let dailyTxsCache: { data: Map<string, TransactionHistoryPoint[]>; timestamp: number } | null = null;
 const DAILY_TXS_CACHE_TTL = 300000; // 5 minutes
 
+// Cache for cumulative transactions
+const cumulativeTxsCache = new Map<string, { cumulativeTxs: number; timestamp: number }>();
+const CUMULATIVE_TXS_CACHE_TTL = 30000; // 30 seconds
+
 interface DailyTxsResponse {
   dates: string[];
   chains: Array<{
@@ -138,6 +142,39 @@ interface DailyTxsResponse {
     name: string;
     values: number[];
   }>;
+}
+
+async function fetchCumulativeTxs(evmChainId: string): Promise<number> {
+  // Check cache
+  const cached = cumulativeTxsCache.get(evmChainId);
+  if (cached && Date.now() - cached.timestamp < CUMULATIVE_TXS_CACHE_TTL) {
+    return cached.cumulativeTxs;
+  }
+
+  try {
+    const response = await fetch(
+      `https://idx6.solokhin.com/api/${evmChainId}/stats/cumulative-txs`,
+      {
+        headers: { 'Accept': 'application/json' },
+        next: { revalidate: 30 }
+      }
+    );
+
+    if (!response.ok) {
+      console.warn(`Cumulative txs API error for chain ${evmChainId}: ${response.status}`);
+      return 0;
+    }
+
+    const data = await response.json();
+    const cumulativeTxs = data.cumulativeTxs || 0;
+
+    // Update cache
+    cumulativeTxsCache.set(evmChainId, { cumulativeTxs, timestamp: Date.now() });
+    return cumulativeTxs;
+  } catch (error) {
+    console.warn(`Failed to fetch cumulative txs for chain ${evmChainId}:`, error);
+    return 0;
+  }
 }
 
 async function fetchDailyTxsByChain(): Promise<Map<string, TransactionHistoryPoint[]>> {
@@ -360,11 +397,8 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     tps = totalTxs / totalTime;
   }
 
-  // Calculate total transactions (estimate from block numbers and avg txs)
-  const avgTxPerBlock = blocks.length > 0
-    ? blocks.reduce((sum, b) => sum + b.transactionCount, 0) / blocks.length
-    : 0;
-  const totalTransactions = Math.round(latestBlockNumber * avgTxPerBlock);
+  // Fetch real cumulative transactions from API
+  const totalTransactions = await fetchCumulativeTxs(evmChainId);
 
   const stats: ExplorerStats = {
     latestBlock: latestBlockNumber,

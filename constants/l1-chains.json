@@ -305,7 +305,7 @@
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/6tKCXL3AqxfxSUzXLGfN6r/be31715b87bc30c0e4d3da01a3d24e9a/dexalot-subnet.png",
     "subnetId": "wenKDikJWAYQs3f2v9JhV86fC6kHZwkFZsuUBftnmgZ4QXPnu",
     "slug": "dexalot",
-    "color": "#F59E0B",
+    "color": "#e51988",
     "category": "Finance",
     "description": "Operates as its own Avalanche L1, giving it the dedicated performance, custom fee structure, and deterministic finality of a centralized exchange—while still being fully decentralized and interoperable with the broader Avalanche ecosystem.",
     "website": "https://dexalot.com/en",
