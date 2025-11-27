@@ -2,6 +2,8 @@
 import { useEffect, useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useTheme } from "next-themes"
+import Link from "next/link"
+import { AvalancheLogo } from "@/components/navigation/avalanche-logo"
 
 // C-Chain spec: tau = 5s
 const SAE_CONFIG = {
@@ -182,22 +184,17 @@ function AcceptedStage({ block, colors }: { block: Block | null; colors: Colors 
         className={`relative border ${colors.border} flex items-center justify-center overflow-hidden`}
         style={{ width: 80, height: 80 }}
       >
-        {[0, 1, 2, 3].map((i) => (
-          <motion.div
-            key={i}
-            className="absolute w-3 h-3"
-            style={{
-              top: i < 2 ? 2 : "auto",
-              bottom: i >= 2 ? 2 : "auto",
-              left: i % 2 === 0 ? 2 : "auto",
-              right: i % 2 === 1 ? 2 : "auto",
-              backgroundColor: colors.stroke,
-              opacity: 0.1,
-            }}
-            animate={{ opacity: [0.05, 0.15, 0.05] }}
-            transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY, delay: i * 0.2 }}
-          />
-        ))}
+        {/* Subtle pulsing border glow */}
+        <motion.div
+          className="absolute inset-0 pointer-events-none"
+          style={{ 
+            border: `1px solid ${colors.stroke}`,
+          }}
+          animate={{ 
+            opacity: [0.1, 0.25, 0.1],
+          }}
+          transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+        />
         <AnimatePresence mode="wait">
           {block ? (
             <motion.div
@@ -214,10 +211,10 @@ function AcceptedStage({ block, colors }: { block: Block | null; colors: Colors 
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.1, type: "spring", stiffness: 500 }}
-                className={`absolute -top-2 -right-2 w-5 h-5 border ${colors.borderStrong} flex items-center justify-center`}
+                className={`absolute -top-1.5 -right-1.5 w-4 h-4 border ${colors.borderStrong} flex items-center justify-center z-10`}
                 style={{ backgroundColor: `${colors.stroke}10` }}
               >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none">
                   <motion.path
                     d="M5 13l4 4L19 7"
                     stroke={colors.stroke}
@@ -244,11 +241,11 @@ function AcceptedStage({ block, colors }: { block: Block | null; colors: Colors 
 
 function QueueStage({ blocks, colors }: { blocks: Block[]; colors: Colors }) {
   return (
-    <div className="flex items-center justify-center w-full gap-4">
-      <span className={`text-[10px] ${colors.textFaint} uppercase tracking-widest`}>Out</span>
+    <div className="flex items-center justify-center w-full gap-2 sm:gap-4">
+      <span className={`text-[8px] sm:text-[10px] ${colors.textFaint} uppercase tracking-widest`}>Out</span>
 
       <div
-        className={`relative h-14 flex-1 max-w-md border ${colors.border} flex items-center justify-start gap-3 px-4 overflow-hidden`}
+        className={`relative h-12 sm:h-14 flex-1 max-w-md border ${colors.border} flex items-center justify-start gap-2 sm:gap-3 px-2 sm:px-4 overflow-hidden`}
       >
         <motion.div
           className="absolute bottom-0 left-0 h-px"
@@ -279,7 +276,7 @@ function QueueStage({ blocks, colors }: { blocks: Block[]; colors: Colors }) {
         </AnimatePresence>
       </div>
 
-      <span className={`text-[10px] ${colors.textFaint} uppercase tracking-widest`}>In</span>
+      <span className={`text-[8px] sm:text-[10px] ${colors.textFaint} uppercase tracking-widest`}>In</span>
     </div>
   )
 }
@@ -439,10 +436,10 @@ function SettledStage({ blocks, colors }: { blocks: Block[]; colors: Colors }) {
 }
 
 function DecouplingDiagram({ colors }: { colors: Colors }) {
-  const blockSize = 70
-  const gap = 16
+  const blockSize = 120
+  const gap = 32
   const consensusY = 0
-  const executionY = blockSize + 50 // increased gap to 50 for more arrow room
+  const executionY = blockSize + 60 // increased gap for more arrow room
 
   const consensusBlocks = [0, 1, 2, 3, 4].map((i) => ({
     id: i,
@@ -698,7 +695,7 @@ function LeanExecutionSection({ colors }: { colors: Colors }) {
 
 function FlowArrow({ colors }: { colors: Colors }) {
   return (
-    <div className="flex items-center justify-center -mt-4">
+    <div className="flex items-center justify-center sm:-mt-4">
       <svg width="40" height="16" viewBox="0 0 40 16" fill="none">
         <line x1="0" y1="8" x2="34" y2="8" stroke={colors.stroke} strokeOpacity="0.35" strokeWidth="2" />
         <path
@@ -843,7 +840,11 @@ export function TransactionLifecycle() {
             if (q.some((b) => b.uid === currentAccepted.uid)) {
               return q
             }
-            return [...q.slice(-7), currentAccepted]
+            // Cap queue at 5 to prevent it from getting too full
+            if (q.length >= 5) {
+              return q
+            }
+            return [...q, currentAccepted]
           })
         }
         return null
@@ -901,14 +902,11 @@ export function TransactionLifecycle() {
       if (executingRef.current.length === 0 && queueRef.current.length > 0) {
         setQueuedBlocks((prev) => {
           if (prev.length > 0) {
-            const maxTake = Math.min(prev.length, 4)
-            const random = Math.random()
-            let takeCount = 2
-            if (maxTake >= 4 && random > 0.8) {
-              takeCount = 4
-            } else if (maxTake >= 3 && random > 0.4) {
-              takeCount = 3
-            } else if (maxTake >= 2) {
+            // Take more blocks when queue is fuller to prevent overflow
+            let takeCount: number
+            if (prev.length >= 4) {
+              takeCount = Math.min(prev.length, 3) // Take 3 when queue is full
+            } else if (prev.length >= 3) {
               takeCount = 2
             } else {
               takeCount = 1
@@ -951,14 +949,23 @@ export function TransactionLifecycle() {
       className={`relative w-full min-h-screen ${colors.bg} flex flex-col items-center justify-center p-4 md:p-12 overflow-hidden`}
     >
       {/* Header */}
-      <div className="text-center mb-12 max-w-5xl w-full mx-auto">
+      <div className="text-center mb-6 md:mb-12 max-w-5xl w-full mx-auto px-2">
+        <div className="mb-4">
+          <AvalancheLogo className="w-8 h-8 sm:w-10 sm:h-10 mx-auto" />
+        </div>
         <h1
-          className={`text-xl md:text-3xl font-medium ${colors.text} uppercase tracking-[0.2em] mb-6 font-mono whitespace-nowrap`}
+          className={`text-base sm:text-xl md:text-3xl font-medium ${colors.text} uppercase tracking-[0.1em] sm:tracking-[0.2em] mb-4 md:mb-6 font-mono`}
         >
           Streaming Asynchronous Execution
         </h1>
-        <p className={`text-xs md:text-sm ${colors.textMuted} font-mono uppercase tracking-[0.1em]`}>
-          ACP-194 — Decoupling Consensus and Execution
+        <p className={`text-[10px] sm:text-xs md:text-sm ${colors.textMuted} font-mono uppercase tracking-[0.1em]`}>
+          <Link 
+            href="/docs/acps/194-streaming-asynchronous-execution" 
+            className="underline underline-offset-4 hover:opacity-70 transition-opacity"
+          >
+            ACP-194
+          </Link>
+          {" "}: Decoupling Consensus and Execution
         </p>
       </div>
 
@@ -974,16 +981,20 @@ export function TransactionLifecycle() {
             <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
           </div>
 
-          <div className={`border ${colors.border} p-6 ${colors.blockBg}`}>
-            <div className="flex items-center">
+          <div className={`border ${colors.border} p-3 sm:p-6 ${colors.blockBg}`}>
+            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-0">
               <div className="flex-1 flex justify-center">
                 <MempoolStage txs={mempoolTxs} colors={colors} />
               </div>
-              <FlowArrow colors={colors} />
+              <div className="rotate-90 sm:rotate-0">
+                <FlowArrow colors={colors} />
+              </div>
               <div className="flex-1 flex justify-center">
                 <ProposedStage block={proposedBlock} colors={colors} />
               </div>
-              <FlowArrow colors={colors} />
+              <div className="rotate-90 sm:rotate-0">
+                <FlowArrow colors={colors} />
+              </div>
               <div className="flex-1 flex justify-center">
                 <AcceptedStage block={acceptedBlock} colors={colors} />
               </div>
@@ -992,7 +1003,7 @@ export function TransactionLifecycle() {
         </div>
 
         {/* Connection */}
-        <div className="flex justify-end pr-24 py-1">
+        <div className="flex justify-center sm:justify-end sm:pr-24 py-1">
           <svg width="24" height="36" viewBox="0 0 24 36">
             <line
               x1="12"
@@ -1030,7 +1041,7 @@ export function TransactionLifecycle() {
         </div>
 
         {/* Connection */}
-        <div className="flex justify-start pl-24 py-1">
+        <div className="flex justify-center sm:justify-start sm:pl-24 py-1">
           <svg width="24" height="36" viewBox="0 0 24 36">
             <line
               x1="12"
@@ -1063,13 +1074,15 @@ export function TransactionLifecycle() {
             </span>
             <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
           </div>
-          <div className={`border ${colors.border} ${colors.blockBg} p-4`}>
-            <div className="flex items-center justify-center gap-6">
-              <div className="flex justify-center" style={{ minWidth: 180 }}>
+          <div className={`border ${colors.border} ${colors.blockBg} p-3 sm:p-4`}>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+              <div className="flex justify-center" style={{ minWidth: 140 }}>
                 <ExecutedStage blocks={executingBlocks} colors={colors} />
               </div>
-              <FlowArrow colors={colors} />
-              <div className="flex justify-start">
+              <div className="rotate-90 sm:rotate-0">
+                <FlowArrow colors={colors} />
+              </div>
+              <div className="flex justify-center sm:justify-start">
                 <SettledStage blocks={settledBlocks} colors={colors} />
               </div>
             </div>
@@ -1077,11 +1090,15 @@ export function TransactionLifecycle() {
         </div>
       </div>
 
-      {/* Decoupling Diagram */}
-      <DecouplingDiagram colors={colors} />
+      {/* Decoupling Diagram - hidden on mobile */}
+      <div className="hidden md:block">
+        <DecouplingDiagram colors={colors} />
+      </div>
 
-      {/* Lean Execution Section */}
-      <LeanExecutionSection colors={colors} />
+      {/* Lean Execution Section - hidden on mobile */}
+      <div className="hidden md:block">
+        <LeanExecutionSection colors={colors} />
+      </div>
     </div>
   )
 }
