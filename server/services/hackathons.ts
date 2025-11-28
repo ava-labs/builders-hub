@@ -104,7 +104,7 @@ export interface GetHackathonsOptions {
   include_private?: boolean;
 }
 
-export async function getHahackathonsLitelengthckathonZ(id: string) {
+export async function getHackathon(id: string) {
   const hackathon = await prisma.hackathon.findUnique({
     where: { id },
   });
