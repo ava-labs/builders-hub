@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { ChevronDown, CircleUserRound, Moon, Sun } from 'lucide-react';
 
@@ -13,6 +14,7 @@ export function NavbarDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { setTheme, resolvedTheme } = useTheme();
 
   // Close on navigation
   useEffect(() => {
@@ -121,13 +123,7 @@ export function NavbarDropdown() {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    const html = document.documentElement;
-                    const currentTheme = html.classList.contains('dark') ? 'dark' : 'light';
-                    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                    html.classList.remove('light', 'dark');
-                    html.classList.add(newTheme);
-                    html.style.colorScheme = newTheme;
-                    localStorage.setItem('theme', newTheme);
+                    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
                   }}
                   className="inline-flex items-center rounded-full border p-1 hover:bg-accent"
                   aria-label="Toggle Theme"

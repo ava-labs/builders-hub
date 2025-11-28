@@ -432,7 +432,7 @@ function QueueStage({ blocks, colors }: { blocks: Block[]; colors: Colors }) {
                 borderColor: `${colors.stroke}20`
               }}
             >
-              <div className={`text-[10px] font-mono uppercase tracking-wider ${colors.text} mb-2`}>
+              <div className={`text-[11px] font-mono uppercase tracking-wider ${colors.text} font-semibold mb-2`}>
                 FIFO Queue
               </div>
               <div className={`text-[9px] font-mono leading-relaxed`} style={{ color: `${colors.stroke}90` }}>
@@ -768,11 +768,9 @@ function DecouplingDiagram({ colors }: { colors: Colors }) {
     <div className="mb-2 mt-4">
       {/* Section header */}
       <div className="flex items-center gap-2 mb-3 px-1">
-        <div className={`w-2 h-2 ${colors.blockFaint}`} />
-        <span className={`text-[11px] uppercase tracking-[0.15em] ${colors.textFaint} font-medium`}>
+        <span className={`text-[11px] uppercase tracking-[0.15em] ${colors.text} font-semibold`}>
           Block Relationship
         </span>
-        <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
       </div>
 
       <div className={`border ${colors.border} p-6 sm:p-8 ${colors.blockBg} overflow-x-auto`}>
@@ -783,11 +781,11 @@ function DecouplingDiagram({ colors }: { colors: Colors }) {
               className="w-4 h-4"
               style={{ backgroundColor: `${colors.stroke}25`, border: `1px solid ${colors.stroke}40` }}
             />
-            <span className={`text-[10px] uppercase tracking-widest ${colors.textMuted}`}>Consensus Stream</span>
+            <span className={`text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Consensus Stream</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4" style={{ backgroundColor: "#ef4444", border: `1px solid #ef4444` }} />
-            <span className={`text-[10px] uppercase tracking-widest ${colors.textMuted}`}>Execution Stream</span>
+            <span className={`text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Execution Stream</span>
           </div>
         </div>
 
@@ -894,11 +892,9 @@ function DecouplingDiagram({ colors }: { colors: Colors }) {
       {/* Pessimistic Fee Validation */}
       <div className="mt-10">
         <div className="flex items-center gap-2 mb-6 px-1">
-          <div className="w-2 h-2" style={{ backgroundColor: '#ef4444' }} />
-          <span className={`text-[11px] uppercase tracking-[0.15em] ${colors.textFaint} font-medium`}>
+          <span className={`text-[11px] uppercase tracking-[0.15em] ${colors.text} font-semibold`}>
             Pessimistic Fee Validation
           </span>
-          <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -989,11 +985,9 @@ function DecouplingDiagram({ colors }: { colors: Colors }) {
       {/* Technical Specification */}
       <div className="mt-10">
         <div className="flex items-center gap-2 mb-6 px-1">
-          <div className={`w-2 h-2 ${colors.blockFaint}`} />
-          <span className={`text-[11px] uppercase tracking-[0.15em] ${colors.textFaint} font-medium`}>
+          <span className={`text-[11px] uppercase tracking-[0.15em] ${colors.text} font-semibold`}>
             Technical Specification
           </span>
-          <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
         </div>
         
         {/* Configuration Parameters Table */}
@@ -2204,7 +2198,7 @@ export function TransactionLifecycle() {
 
       <div className="w-full max-w-5xl">
         {/* Problem statement hook */}
-        <div className="mt-8 mb-8">
+        <div className="mt-4 mb-10">
           <p className={`text-sm md:text-base ${colors.textMuted} leading-relaxed`}>
             Traditional blockchains have a bottleneck: consensus waits for execution, execution waits for consensus.
           </p>
@@ -2241,11 +2235,9 @@ export function TransactionLifecycle() {
           {/* Consensus Lane */}
           <div className="mb-2">
             <div className="flex items-center gap-2 mb-3 px-1">
-              <div className={`w-2 h-2 ${colors.blockFaint}`} />
-              <span className={`text-[11px] uppercase tracking-[0.15em] ${colors.textFaint} font-medium`}>
+              <span className={`text-[11px] uppercase tracking-[0.15em] ${colors.text} font-semibold`}>
                 Consensus Stream (Snowman)
               </span>
-              <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
             </div>
 
             <div className={`border ${colors.border} p-3 sm:p-6 ${colors.blockBg}`}>
@@ -2300,9 +2292,7 @@ export function TransactionLifecycle() {
           {/* Queue */}
           <div className="mb-2">
             <div className="flex items-center gap-2 mb-3 px-1">
-              <div className="w-2 h-2" style={{ backgroundColor: "#3b82f6" }} />
-              <span className={`text-[10px] ${colors.textFaint} uppercase tracking-widest`}>FIFO Queue</span>
-              <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
+              <span className={`text-[11px] ${colors.text} uppercase tracking-widest font-semibold`}>FIFO Queue</span>
             </div>
 
             <div className={`border ${colors.border} p-4 ${colors.blockBg}`}>
@@ -2341,11 +2331,9 @@ export function TransactionLifecycle() {
           {/* Execution Lane */}
           <div className="mt-1">
             <div className="flex items-center gap-2 mb-3 px-1">
-              <div className="w-2 h-2" style={{ backgroundColor: "#ef4444" }} />
-              <span className={`text-[11px] uppercase tracking-[0.15em] ${colors.textFaint} font-medium`}>
+              <span className={`text-[11px] uppercase tracking-[0.15em] ${colors.text} font-semibold`}>
                 Execution Stream
               </span>
-              <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
             </div>
             <div className={`border ${colors.border} ${colors.blockBg} p-3 sm:p-4`}>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
