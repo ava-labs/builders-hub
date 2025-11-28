@@ -593,6 +593,26 @@ const config = {
         destination: "/academy/avalanche-l1/erc20-bridge/04-tokens-on-multiple-chains/:path*",
         permanent: true,
       },
+      {
+        source: "/academy/avalanche-l1/interchain-token-transfer",
+        destination: "/academy/avalanche-l1/cross-chain-l1-native-tokens",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/interchain-token-transfer/:path*",
+        destination: "/academy/avalanche-l1/cross-chain-l1-native-tokens/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/interchain-token-transfer",
+        destination: "/academy/avalanche-l1/cross-chain-l1-native-tokens",
+        permanent: true,
+      },
+      {
+        source: "/academy/interchain-token-transfer/:path*",
+        destination: "/academy/avalanche-l1/cross-chain-l1-native-tokens/:path*",
+        permanent: true,
+      },
     ];
   },
 };

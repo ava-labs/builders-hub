@@ -5,8 +5,8 @@
     "l1-native-tokenomics",
     "permissionless-l1s",
     "interchain-messaging",
-    "interchain-token-transfer",
     "erc20-bridge",
+    "cross-chain-l1-native-tokens",
     "customizing-evm"
   ]
 }
