@@ -1,0 +1,184 @@
+---
+title: Primary Network
+description: Learn about the Avalanche Primary Network and its three blockchains.
+---
+
+import { Network, Layers, Terminal, ArrowRight, Database, Package } from 'lucide-react';
+
+Avalanche is a heterogeneous network of blockchains. As opposed to homogeneous networks, where all applications reside in the same chain, heterogeneous networks allow separate chains to be created for different applications.
+
+![Primary Network Architecture](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/multi-chain-architecture/multi-chain.png)
+
+The Primary Network is a special [Avalanche L1](/docs/avalanche-l1s) that runs three blockchains:
+
+- The Contract Chain [(C-Chain)](/docs/primary-network#c-chain-contract-chain)
+- The Platform Chain [(P-Chain)](/docs/primary-network#p-chain-platform-chain)
+- The Exchange Chain [(X-Chain)](/docs/primary-network#x-chain-exchange-chain)
+
+<Mermaid chart={`
+graph TB
+    PN["<b>Primary Network</b>"]
+    
+    PN ==> XC["<b>Exchange (X) Chain</b><br/>━━━━━━━━━━━━━━━<br/>Snowman Consensus Protocol"]
+    PN ==> PC["<b>Platform (P) Chain</b><br/>━━━━━━━━━━━━━━━<br/>Snowman Consensus Protocol"]
+    PN ==> CC["<b>Contract (C) Chain</b><br/>━━━━━━━━━━━━━━━<br/>Snowman Consensus Protocol"]
+    
+    XC --> XF1["<b>Creates Assets</b>"]
+    XC --> XF2["<b>Exchanges Assets</b>"]
+    
+    PC --> PF1["<b>Validator Registry</b>"]
+    PC --> PF2["<b>Creates Subnets / Layer 1s</b>"]
+    
+    CC --> CF1["<b>Executes EVM Contracts</b>"]
+    CC --> CF2["<b>Smart Contracts</b>"]
+    
+    XF1 -.-> A1["Asset 1"]
+    XF1 -.-> A2["Asset 2"]
+    XF2 -.-> AV["AVAX"]
+    
+    PF2 -.-> C1["Custom Chain 1"]
+    PF2 -.-> C2["Custom Chain 2"]
+    
+    CF2 -.-> N1["NFT"]
+    CF2 -.-> E1["ERC20"]
+    CF2 -.-> D1["DAPP"]
+    
+    style PN fill:#e74c3c,stroke:#c0392b,stroke-width:4px,color:#fff,rx:15,ry:15
+    style XC fill:#3498db,stroke:#2980b9,stroke-width:3px,color:#fff,rx:10,ry:10
+    style PC fill:#9b59b6,stroke:#8e44ad,stroke-width:3px,color:#fff,rx:10,ry:10
+    style CC fill:#16a085,stroke:#138d75,stroke-width:3px,color:#fff,rx:10,ry:10
+    
+    style XF1 fill:#5dade2,stroke:#3498db,stroke-width:2px,color:#fff,rx:8,ry:8
+    style XF2 fill:#5dade2,stroke:#3498db,stroke-width:2px,color:#fff,rx:8,ry:8
+    style PF1 fill:#bb8fce,stroke:#9b59b6,stroke-width:2px,color:#fff,rx:8,ry:8
+    style PF2 fill:#bb8fce,stroke:#9b59b6,stroke-width:2px,color:#fff,rx:8,ry:8
+    style CF1 fill:#52be80,stroke:#16a085,stroke-width:2px,color:#fff,rx:8,ry:8
+    style CF2 fill:#52be80,stroke:#16a085,stroke-width:2px,color:#fff,rx:8,ry:8
+    
+    style A1 fill:#85c1e9,stroke:#5dade2,stroke-width:1px,color:#2c3e50,rx:5,ry:5
+    style A2 fill:#85c1e9,stroke:#5dade2,stroke-width:1px,color:#2c3e50,rx:5,ry:5
+    style AV fill:#85c1e9,stroke:#5dade2,stroke-width:1px,color:#2c3e50,rx:5,ry:5
+    style C1 fill:#d7bde2,stroke:#bb8fce,stroke-width:1px,color:#2c3e50,rx:5,ry:5
+    style C2 fill:#d7bde2,stroke:#bb8fce,stroke-width:1px,color:#2c3e50,rx:5,ry:5
+    style N1 fill:#a3e4d7,stroke:#52be80,stroke-width:1px,color:#2c3e50,rx:5,ry:5
+    style E1 fill:#a3e4d7,stroke:#52be80,stroke-width:1px,color:#2c3e50,rx:5,ry:5
+    style D1 fill:#a3e4d7,stroke:#52be80,stroke-width:1px,color:#2c3e50,rx:5,ry:5
+`} />
+
+<Callout title="Note">
+Avalanche Mainnet is comprised of the Primary Network and all deployed Avalanche L1s.
+</Callout>
+
+A node can become a validator for the Primary Network by staking at least **2,000 AVAX**.
+
+### C-Chain (Contract Chain)
+
+The **C-Chain** is an implementation of the Ethereum Virtual Machine (EVM). The [C-Chain's API](/docs/rpcs/c-chain) supports Geth's API and supports the deployment and execution of smart contracts written in Solidity.
+
+The C-Chain is an instance of the [Coreth](https://github.com/ava-labs/coreth) Virtual Machine.
+
+| Property | Mainnet | Fuji Testnet |
+|----------|---------|--------------|
+| **Network Name** | Avalanche C-Chain | Avalanche Fuji C-Chain |
+| **Chain ID** | 43114 (0xA86A) | 43113 (0xA869) |
+| **Currency** | AVAX | AVAX |
+| **RPC URL** | https://api.avax.network/ext/bc/C/rpc | https://api.avax-test.network/ext/bc/C/rpc |
+| **Explorer** | https://subnets.avax.network/c-chain | https://subnets-test.avax.network/c-chain |
+| **Faucet** | - | [Get Test AVAX](/console/primary-network/faucet) |
+| **Add to Wallet** | <AddNetworkButtonInline network="mainnet" /> | <AddNetworkButtonInline network="fuji" /> |
+
+### P-Chain (Platform Chain)
+
+The **P-Chain** is responsible for all validator and Avalanche L1-level operations. The [P-Chain API](/docs/rpcs/p-chain) supports the creation of new blockchains and Avalanche L1s, the addition of validators to Avalanche L1s, staking operations, and other platform-level operations.
+
+The P-Chain is an instance of the [Platform Virtual Machine](https://github.com/ava-labs/avalanchego/tree/master/vms/platformvm).
+
+| Property | Mainnet | Fuji Testnet |
+|----------|---------|--------------|
+| **RPC URL** | https://api.avax.network/ext/bc/P | https://api.avax-test.network/ext/bc/P |
+| **Currency** | AVAX | AVAX |
+| **Explorer** | https://subnets.avax.network/p-chain | https://subnets-test.avax.network/p-chain |
+
+### X-Chain (Exchange Chain)
+
+The **X-Chain** is responsible for operations on digital smart assets known as **Avalanche Native Tokens**. A smart asset is a representation of a real-world resource (for example, equity, or a bond) with sets of rules that govern its behavior, like "can't be traded until tomorrow." The [X-Chain API](/docs/rpcs/x-chain) supports the creation and trade of Avalanche Native Tokens.
+
+One asset traded on the X-Chain is AVAX. When you issue a transaction to a blockchain on Avalanche, you pay a fee denominated in AVAX.
+
+The X-Chain is an instance of the Avalanche Virtual Machine (AVM).
+
+| Property | Mainnet | Fuji Testnet |
+|----------|---------|--------------|
+| **RPC URL** | https://api.avax.network/ext/bc/X | https://api.avax-test.network/ext/bc/X |
+| **Currency** | AVAX | AVAX |
+| **Explorer** | https://subnets.avax.network/x-chain | https://subnets-test.avax.network/x-chain |
+
+## Explore More
+
+<div className="not-prose grid grid-cols-1 md:grid-cols-3 gap-4 my-8">
+  <a
+    href="/docs/avalanche-l1s"
+    className="group block p-6 rounded-lg transition-all duration-150 bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 hover:border-zinc-300/50 dark:hover:border-zinc-700/50"
+  >
+    <div className="flex flex-col h-full">
+      <div className="mb-4">
+        <Layers className="w-6 h-6 text-zinc-600 dark:text-zinc-400" />
+      </div>
+      <div className="flex-1">
+        <h3 className="text-lg font-semibold mb-2 text-zinc-900 dark:text-zinc-100">
+          Avalanche L1s
+        </h3>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+          Discover how to build sovereign networks with custom rules and token economics.
+        </p>
+      </div>
+      <div className="mt-4 flex justify-end">
+        <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors" />
+      </div>
+    </div>
+  </a>
+
+ <a
+    href="/docs/api-reference/data-api"
+    className="group block p-6 rounded-lg transition-all duration-150 bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 hover:border-zinc-300/50 dark:hover:border-zinc-700/50"
+  >
+    <div className="flex flex-col h-full">
+      <div className="mb-4">
+        <Database className="w-6 h-6 text-zinc-600 dark:text-zinc-400" />
+      </div>
+      <div className="flex-1">
+        <h3 className="text-lg font-semibold mb-2 text-zinc-900 dark:text-zinc-100">
+          Data APIs
+        </h3>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+          Access data APIs for the C-Chain, P-Chain, and X-Chain.
+        </p>
+      </div>
+      <div className="mt-4 flex justify-end">
+        <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors" />
+      </div>
+    </div>
+  </a>
+  <a
+    href="/console"
+    className="group block p-6 rounded-lg transition-all duration-150 bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 hover:border-zinc-300/50 dark:hover:border-zinc-700/50"
+  >
+    <div className="flex flex-col h-full">
+      <div className="mb-4">
+        <Terminal className="w-6 h-6 text-zinc-600 dark:text-zinc-400" />
+      </div>
+      <div className="flex-1">
+        <h3 className="text-lg font-semibold mb-2 text-zinc-900 dark:text-zinc-100">
+          Console
+        </h3>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+          Access developer tools, deploy contracts, and manage your blockchain infrastructure.
+        </p>
+      </div>
+      <div className="mt-4 flex justify-end">
+        <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors" />
+      </div>
+    </div>
+  </a>
+</div>
+

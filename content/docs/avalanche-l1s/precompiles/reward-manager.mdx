@@ -1,0 +1,104 @@
+---
+title: Reward Manager
+description: Control how transaction fees are distributed or burned on your Avalanche L1 blockchain.
+---
+
+## Overview
+
+The Reward Manager allows you to control how transaction fees are handled in your network. You can:
+
+- Send fees to a specific address (e.g., treasury)
+- Allow validators to collect fees
+- Burn fees entirely
+
+| Property | Value |
+|----------|-------|
+| **Address** | `0x0200000000000000000000000000000000000004` |
+| **ConfigKey** | `rewardManagerConfig` |
+
+## Configuration
+
+You can activate this precompile in your genesis file:
+
+```json
+{
+  "config": {
+    "rewardManagerConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"],
+      "initialRewardConfig": {
+        // Choose one of:
+        "allowFeeRecipients": true,  // Allow validators to collect fees
+        "rewardAddress": "0x...",    // Send fees to specific address
+        // Empty config = burn fees
+      }
+    }
+  }
+}
+```
+
+## Reward Mechanisms
+
+The Reward Manager supports three mutually exclusive mechanisms:
+
+1. **Validator Fee Collection** (`allowFeeRecipients`)
+   - Validators can specify their own fee recipient addresses
+   - Fees go to the block producer's chosen address
+   - Good for incentivizing network participation
+
+2. **Fixed Reward Address** (`rewardAddress`)
+   - All fees go to a single specified address
+   - Can be a contract or EOA
+   - Useful for treasury or DAO-controlled fee collection
+
+3. **Fee Burning** (default)
+   - All transaction fees are burned
+   - Reduces total token supply over time
+   - Similar to Ethereum's EIP-1559
+
+## Interface
+
+```solidity
+interface IRewardManager {
+  event RewardAddressChanged(
+    address indexed sender,
+    address indexed oldRewardAddress,
+    address indexed newRewardAddress
+  );
+  event FeeRecipientsAllowed(address indexed sender);
+  event RewardsDisabled(address indexed sender);
+
+  function setRewardAddress(address addr) external;
+  function allowFeeRecipients() external;
+  function disableRewards() external;
+  function currentRewardAddress() external view returns (address rewardAddress);
+  function areFeeRecipientsAllowed() external view returns (bool isAllowed);
+}
+```
+
+The Reward Manager precompile uses the [AllowList interface](/docs/avalanche-l1s/precompiles/allowlist-interface) to restrict access to its functionality.
+
+## Best Practices
+
+1. **Reward Management**:
+   - Choose reward mechanism based on network goals
+   - Consider using a multi-sig or DAO as reward address
+   - Monitor fee collection and distribution
+   - Keep documentation of fee policy changes
+
+2. **Security Considerations**:
+   - Use multi-sig for admin addresses
+   - Test reward changes on testnet first
+   - Monitor events for unauthorized changes
+   - Have a plan for reward parameter adjustments
+
+## Implementation
+
+You can find the Reward Manager implementation in the [subnet-evm repository](https://github.com/ava-labs/subnet-evm/blob/master/precompile/contracts/rewardmanager/contract.go).
+
+## Interacting with the Precompile
+
+For information on how to interact with this precompile, see:
+- [Interacting with Precompiles](/docs/avalanche-l1s/precompiles/interacting-with-precompiles)
+- [Reward Manager Console](/console/l1-tokenomics/reward-manager)
+

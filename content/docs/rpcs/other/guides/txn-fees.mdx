@@ -40,9 +40,9 @@ Transaction fees for non-atomic transactions are based on Ethereum's EIP-1559 st
 
 The fee cap specifies the maximum price the transaction is willing to pay per unit of gas. The tip cap (also called the priority fee) specifies the maximum amount above the base fee that the transaction is willing to pay per unit of gas. Therefore, the effective gas price paid by a transaction will be `min(gasFeeCap, baseFee + gasTipCap)`. Unlike in Ethereum, where the priority fee is paid to the miner that produces the block, in Avalanche both the base fee and the priority fee are burned. For legacy transactions, which only specify a single gas price, the gas price serves as both the gas fee cap and the gas tip cap.
 
-Use the [`eth_baseFee`](/docs/api-reference/c-chain/api#eth_basefee) API method to estimate the base fee for the next block. If more blocks are produced in between the time that you construct your transaction and it is included in a block, the base fee could be different from the base fee estimated by the API call, so it is important to treat this value as an estimate.
+Use the [`eth_baseFee`](/docs/rpcs/c-chain#eth_basefee) API method to estimate the base fee for the next block. If more blocks are produced in between the time that you construct your transaction and it is included in a block, the base fee could be different from the base fee estimated by the API call, so it is important to treat this value as an estimate.
 
-Next, use [eth\_maxPriorityFeePerGas](/docs/api-reference/c-chain/api#eth_maxpriorityfeepergas) API call to estimate the priority fee needed to be included in a block. This API call will look at the most recent blocks and see what tips have been paid by recent transactions in order to be included in the block.
+Next, use [eth\_maxPriorityFeePerGas](/docs/rpcs/c-chain#eth_maxpriorityfeepergas) API call to estimate the priority fee needed to be included in a block. This API call will look at the most recent blocks and see what tips have been paid by recent transactions in order to be included in the block.
 
 Transactions are ordered by the priority fee, then the timestamp (oldest first).
 
@@ -50,12 +50,7 @@ Based off of this information, you can specify the `gasFeeCap` and `gasTipCap` t
 
 #### Base Fee[​](#base-fee)
 
-The base fee can go as low as 1 nAVAX (Gwei) and has no upper bound. You can use the [`eth_baseFee`](/docs/api-reference/c-chain/api#eth_basefee) and [eth\_maxPriorityFeePerGas](/docs/api-reference/c-chain/api#eth_maxpriorityfeepergas) API methods, or [Snowtrace's C-Chain Gas Tracker](https://snowtrace.io/gastracker), to estimate the gas price to use in your transactions.
-
-#### Further Readings[​](#further-readings)
-
-- [Adjusting Gas Price During High Network Activity](/docs/dapps/advanced-tutorials/manually-adjust-gas-price)
-- [Sending Transactions with Dynamic Fees using JavaScript](/docs/dapps/advanced-tutorials/dynamic-gas-fees)
+The base fee can go as low as 1 nAVAX (Gwei) and has no upper bound. You can use the [`eth_baseFee`](/docs/rpcs/c-chain#eth_basefee) and [eth\_maxPriorityFeePerGas](/docs/rpcs/c-chain#eth_maxpriorityfeepergas) API methods, or [Snowtrace's C-Chain Gas Tracker](https://snowtrace.io/gastracker), to estimate the gas price to use in your transactions.
 
 ### Atomic Transaction Fees[​](#atomic-transaction-fees)
 
@@ -99,7 +94,7 @@ The total gas consumed ($G$) by a transaction is:
 G = B + 1000R + 1000W + 4C
 ```
 
-The current fee dimension weight configurations as well as the parameter configurations of the P-Chain can be read at any time with the [`platform.getFeeConfig`](/docs/api-reference/p-chain/api#platformgetfeeconfig) API endpoint. 
+The current fee dimension weight configurations as well as the parameter configurations of the P-Chain can be read at any time with the [`platform.getFeeConfig`](/docs/rpcs/p-chain#platformgetfeeconfig) API endpoint. 
 
 ### Fee Adjustment Mechanism
 Fees adjust dynamically based on excess gas consumption, the difference between current gas usage and the target gas rate. The exponential adjustment ensures consistent reactivity regardless of the current gas price. Fee changes scale proportionally with excess gas consumption, maintaining fairness and network stability. The technical specification of this mechanism is documented in [ACP-103](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/103-dynamic-fees/README.md#mechanism).

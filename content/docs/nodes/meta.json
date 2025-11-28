@@ -1,28 +1,19 @@
 {
-  "title": "Nodes & Validators",
-  "description": "Participate in the Network",
+  "title": "AvalancheGo Node",
+  "description": "Run nodes and validators",
   "icon": "MonitorCheck",
   "root": true,
   "pages": [
     "index",
+    "---Getting Started---",
     "system-requirements",
-    "---Run A Node---",
-    "run-a-node/from-source",
-    "run-a-node/using-binary",
-    "run-a-node/using-docker",
-    "using-install-script",
-    "run-a-node/avalanche-l1-nodes",
-    "on-third-party-services",
-    "run-a-node/common-errors",
-    "---Configure Node---",
+    "run-a-node",
+    "---AvalancheGo Configuration---",
     "configure/configs-flags",
-    "chain-configs",
-    "configure/avalanche-l1-configs",
-    "---Validate---",
-    "validate/validate-vs-delegate",
-    "validate/how-to-stake",
-    "validate/node-validator",
-    "---Maintain---",
-    "...maintain"
+    "chain-configs/primary-network",
+    "chain-configs/avalanche-l1s",
+    "---Maintenance---",
+    "...maintain",
+    "run-a-node/common-errors"
   ]
 }

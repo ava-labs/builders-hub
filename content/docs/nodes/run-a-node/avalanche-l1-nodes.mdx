@@ -5,7 +5,7 @@ description: Learn how to run an Avalanche node that tracks an Avalanche L1.
 
 This article describes how to run a node that tracks an Avalanche L1. It requires building AvalancheGo, adding Virtual Machine binaries as plugins to your local data directory, and running AvalancheGo to track these binaries.
 
-This tutorial specifically covers tracking an Avalanche L1 built with Avalanche's [Subnet-EVM](https://github.com/ava-labs/subnet-evm), the default [Virtual Machine](/docs/quick-start/virtual-machines) run by Avalanche L1s on Avalanche.
+This tutorial specifically covers tracking an Avalanche L1 built with Avalanche's [Subnet-EVM](https://github.com/ava-labs/subnet-evm), the default [Virtual Machine](/docs/primary-network/virtual-machines) run by Avalanche L1s on Avalanche.
 
 ## Build AvalancheGo
 
@@ -96,6 +96,6 @@ XXX.XX.XX.XXX:9650/ext/bc/<BlockchainID>/rpc
 
 if run on a cloud provider. The “X”s should be replaced with the public IP of your EC2 instance.
 
-For more information on the requests available at these endpoints, please see the [Subnet-EVM API Reference](/docs/api-reference/subnet-evm-api) documentation.
+For more information on the requests available at these endpoints, please see the [Subnet-EVM API Reference](/docs/rpcs/subnet-evm) documentation.
 
 Because each node is also tracking the Primary Network, those [RPC endpoints](/docs/nodes/run-a-node/from-source#rpc) are available as well.

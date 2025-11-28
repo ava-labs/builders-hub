@@ -8,6 +8,7 @@ import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { TimeSeriesDataPoint, ChartDataPoint, PrimaryNetworkMetrics, VersionCount } from "@/types/stats";
+import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 
 interface ValidatorData {
   nodeId: string;
@@ -387,21 +388,85 @@ export default function PrimaryNetworkValidatorMetrics() {
     Record<string, "D" | "W" | "M" | "Q" | "Y">
   >(Object.fromEntries(chartConfigs.map((config) => [config.metricKey, "D"])));
 
+  // Active section tracking for navbar
+  const [activeSection, setActiveSection] = useState<string>("trends");
+
+  // Navigation categories
+  const navCategories = [
+    { id: "trends", label: "Historical Trends" },
+    { id: "distribution", label: "Stake Distribution" },
+    { id: "versions", label: "Software Versions" },
+    { id: "map", label: "Global Map" },
+  ];
+
+  // Track active section on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = navCategories.map(cat => document.getElementById(cat.id));
+      const scrollPosition = window.scrollY + 180; // Account for navbar height
+
+      for (let i = sections.length - 1; i >= 0; i--) {
+        const section = sections[i];
+        if (section && section.offsetTop <= scrollPosition) {
+          setActiveSection(navCategories[i].id);
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Set initial state
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Smooth scroll to section
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      const offset = 180; // Account for both navbars
+      const elementPosition = element.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({
+        top: elementPosition - offset,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
-        <div className="container mx-auto mt-4 p-6 pb-24 space-y-12">
-          <div className="space-y-2">
-            <div>
-              <h1 className="text-2xl md:text-5xl mb-4">
-                Primary Network Validator Metrics
-              </h1>
-              <p className="text-zinc-400 text-md text-left">
-                Real-time insights into the Avalanche Primary Network
-                performance and validator distribution
-              </p>
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+        {/* Header Skeleton with gradient */}
+        <div className="relative overflow-hidden border-b border-zinc-200 dark:border-zinc-800">
+          <div 
+            className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
+            style={{
+              background: `linear-gradient(to left, rgba(229, 115, 115, 0.21) 0%, rgba(229, 115, 115, 0.12) 40%, rgba(229, 115, 115, 0.03) 70%, transparent 100%)`,
+            }}
+          />
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
+            <div className="animate-pulse space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="h-4 w-4 sm:h-5 sm:w-5 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                <div className="h-4 w-32 bg-zinc-200 dark:bg-zinc-800 rounded" />
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-zinc-200 dark:bg-zinc-800 rounded-xl" />
+                <div className="h-10 sm:h-12 w-64 sm:w-96 bg-zinc-200 dark:bg-zinc-800 rounded" />
+              </div>
+              <div className="h-4 w-48 sm:w-80 bg-zinc-200 dark:bg-zinc-800 rounded" />
+              <div className="h-6 w-32 bg-zinc-200 dark:bg-zinc-800 rounded-full" />
             </div>
           </div>
+        </div>
+        {/* Navbar Skeleton */}
+        <div className="sticky top-14 z-40 w-full bg-zinc-50/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b border-t border-zinc-200 dark:border-zinc-800">
+          <div className="flex items-center gap-2 py-3 px-4 sm:px-6 max-w-7xl mx-auto">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-8 w-24 sm:w-32 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
+            ))}
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
           <ChartSkeletonLoader />
         </div>
         <StatsBubbleNav />
@@ -411,84 +476,119 @@ export default function PrimaryNetworkValidatorMetrics() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
-        <div className="container mx-auto p-6">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <p className="text-destructive text-lg mb-4">
-                Error loading data: {error}
-              </p>
-              <button
-                onClick={fetchData}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-              >
-                Retry
-              </button>
-            </div>
-          </div>
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Monitor className="h-12 w-12 text-red-500 mx-auto" />
+          <p className="text-red-600 dark:text-red-400">{error}</p>
+          <button
+            onClick={fetchData}
+            className="px-4 py-2 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 rounded-md hover:opacity-90"
+          >
+            Retry
+          </button>
         </div>
+        <StatsBubbleNav />
       </div>
     );
   }
 
+  // C-Chain config from l1-chains.json
+  const chainConfig = {
+    chainLogoURI: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
+    color: "#E57373",
+    category: "Primary Network",
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
-      <div className="container mx-auto mt-4 p-4 sm:p-6 pb-24 space-y-8 sm:space-y-12">
-        <div className="space-y-2">
-          <div>
-            <h1 className="text-xl sm:text-2xl md:text-5xl mb-2 sm:mb-4 break-words">
-              Primary Network Validator Metrics
-            </h1>
-            <p className="text-zinc-400 text-sm sm:text-md text-left">
-              Real-time insights into the Avalanche Primary Network performance
-              and validator distribution
-            </p>
-          </div>
-        </div>
-
-        <section className="space-y-4 sm:space-y-6">
-          <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
-              Network Overview
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            {chartConfigs.map((config) => {
-              const currentValue = getCurrentValue(config.metricKey);
-              const Icon = config.icon;
-
-              return (
-                <div
-                  key={config.metricKey}
-                  className="text-center p-4 sm:p-6 rounded-md bg-card border border-gray-200 dark:border-gray-700"
-                >
-                  <div className="flex items-center justify-center gap-2 mb-2 sm:mb-3">
-                    <Icon
-                      className="h-4 w-4 sm:h-5 sm:w-5"
-                      style={{ color: config.color }}
-                    />
-                    <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                      {config.title}
-                    </p>
-                  </div>
-                  <p className="text-xl sm:text-3xl font-mono font-semibold break-all">
-                    {config.metricKey.includes("weight")
-                      ? formatWeight(currentValue)
-                      : formatNumber(currentValue)}
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      {/* Hero - with gradient decoration */}
+      <div className="relative overflow-hidden border-zinc-200 dark:border-zinc-800">
+        {/* Gradient decoration on the right */}
+        <div 
+          className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
+          style={{
+            background: `linear-gradient(to left, ${chainConfig.color}35 0%, ${chainConfig.color}20 40%, ${chainConfig.color}08 70%, transparent 100%)`,
+          }}
+        />
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
+            <div className="space-y-4 sm:space-y-6 flex-1">
+              <div>
+                <div className="flex items-center gap-2 sm:gap-3 mb-3">
+                  <AvalancheLogo className="w-4 h-4 sm:w-5 sm:h-5" fill="#E84142" />
+                  <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
+                    Avalanche Ecosystem
                   </p>
                 </div>
-              );
-            })}
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <img
+                    src={chainConfig.chainLogoURI}
+                    alt="Primary Network logo"
+                    className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain rounded-xl"
+                  />
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                    Primary Network Validators
+                  </h1>
+                </div>
+                <div className="flex items-center gap-3 mt-3">
+                  <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
+                    Real-time insights into the Avalanche Primary Network performance and validator distribution
+                  </p>
+                </div>
+                <div className="mt-3">
+                  <span 
+                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
+                    style={{
+                      backgroundColor: `${chainConfig.color}15`,
+                      color: chainConfig.color,
+                    }}
+                  >
+                    {chainConfig.category}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-        </section>
+        </div>
+      </div>
 
-        <section className="space-y-4 sm:space-y-6">
+      {/* Sticky Navigation Bar */}
+      <div className="sticky top-14 z-40 w-full bg-zinc-50/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b border-t border-zinc-200 dark:border-zinc-800">
+        <div className="w-full">
+          <div 
+            className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-3 px-4 sm:px-6 max-w-7xl mx-auto"
+            style={{ 
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            {navCategories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => scrollToSection(category.id)}
+                className={`px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap transition-all flex-shrink-0 ${
+                  activeSection === category.id
+                    ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm"
+                    : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100"
+                }`}
+              >
+                {category.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8 sm:space-y-12">
+
+        <section id="trends" className="space-y-4 sm:space-y-6 scroll-mt-32">
           <div className="space-y-2">
             <h2 className="text-lg sm:text-2xl font-medium text-left">
               Historical Trends
             </h2>
-            <p className="text-zinc-400 text-sm sm:text-md text-left">
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
               Track network growth and validator activity over time
             </p>
           </div>
@@ -528,14 +628,13 @@ export default function PrimaryNetworkValidatorMetrics() {
           </div>
         </section>
 
-        <section className="space-y-4 sm:space-y-6">
+        <section id="distribution" className="space-y-4 sm:space-y-6 scroll-mt-32">
           <div className="space-y-2">
             <h2 className="text-lg sm:text-2xl font-medium text-left">
               Stake Distribution Analysis
             </h2>
-            <p className="text-zinc-400 text-sm sm:text-md text-left">
-              Analyze how stake is distributed across validators and delegation
-              patterns
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
+              Analyze how stake is distributed across validators and delegation patterns
             </p>
           </div>
 
@@ -1029,12 +1128,12 @@ export default function PrimaryNetworkValidatorMetrics() {
           </div>
         </section>
 
-        <section className="space-y-6">
+        <section id="versions" className="space-y-4 sm:space-y-6 scroll-mt-32">
           <div className="space-y-2">
-            <h2 className="text-2xl font-medium text-left">
+            <h2 className="text-lg sm:text-2xl font-medium text-left">
               Software Versions
             </h2>
-            <p className="text-zinc-400 text-md text-left">
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
               Distribution of AvalancheGo versions across validators
             </p>
           </div>
@@ -1265,10 +1364,10 @@ export default function PrimaryNetworkValidatorMetrics() {
         </section>
 
         {/* Global Validator Distribution Map */}
-        <section className="space-y-6">
+        <section id="map" className="space-y-4 sm:space-y-6 scroll-mt-32">
           <ValidatorWorldMap />
         </section>
-      </div>
+      </main>
 
       {/* Bubble Navigation */}
       <StatsBubbleNav />
