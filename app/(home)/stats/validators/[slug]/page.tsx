@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Activity, TrendingUp, Users, Coins } from "lucide-react";
+import { ArrowLeft, Activity } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -298,15 +298,32 @@ export default function ChainValidatorsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
-        <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
-          <div className="space-y-3">
-            <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-black dark:text-white">
-              Loading Validator Data...
-            </h1>
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+        <div className="border-b border-zinc-200 dark:border-zinc-800">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
+            <div className="animate-pulse space-y-6">
+              <div className="h-10 w-40 bg-zinc-200 dark:bg-zinc-800 rounded" />
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 bg-zinc-200 dark:bg-zinc-800 rounded-full" />
+                <div className="space-y-3 flex-1">
+                  <div className="h-10 w-64 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                  <div className="h-4 w-96 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="h-10 w-20 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                    <div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
           <ChartSkeletonLoader />
-        </main>
+        </div>
         <StatsBubbleNav />
       </div>
     );
@@ -314,143 +331,132 @@ export default function ChainValidatorsPage() {
 
   if (error || !chainInfo) {
     return (
-      <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
-        <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
-          <Button
-            variant="ghost"
-            onClick={() => router.push("/stats/validators")}
-            className="mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to All Validators
-          </Button>
-          <Card className="border border-gray-200 dark:border-gray-700 rounded-md bg-card shadow-none">
-            <div className="p-6 text-center">
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+        <div className="border-b border-zinc-200 dark:border-zinc-800">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
+            <Button
+              variant="ghost"
+              onClick={() => router.push("/stats/validators")}
+              className="mb-4 -ml-2"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to All Validators
+            </Button>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center space-y-4">
+              <Activity className="h-12 w-12 text-red-500 mx-auto" />
               <p className="text-red-600 dark:text-red-400">
                 {error || "Chain not found"}
               </p>
             </div>
-          </Card>
-        </main>
+          </div>
+        </div>
         <StatsBubbleNav />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
-      <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
-        <div className="flex items-center gap-4 mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => router.push("/stats/validators")}
-            className="mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to All Validators
-          </Button>
-        </div>
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      {/* Hero - Clean typographic approach */}
+      <div className="border-b border-zinc-200 dark:border-zinc-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
+          <div className="space-y-6">
+            <Button
+              variant="ghost"
+              onClick={() => router.push("/stats/validators")}
+              className="mb-2 -ml-2"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to All Validators
+            </Button>
 
-        <div className="space-y-3">
-          <div className="flex items-center gap-4">
-            {chainInfo.chainLogoURI && (
-              <Image
-                src={chainInfo.chainLogoURI}
-                alt={chainInfo.chainName}
-                width={64}
-                height={64}
-                className="rounded-full"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                }}
-              />
-            )}
-            <div>
-              <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-black dark:text-white">
-                {chainInfo.chainName} Validators
-              </h1>
-              <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed mt-2">
-                Active validators and delegation metrics for{" "}
-                {chainInfo.chainName}
-              </p>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+              {chainInfo.chainLogoURI && (
+                <Image
+                  src={chainInfo.chainLogoURI}
+                  alt={chainInfo.chainName}
+                  width={64}
+                  height={64}
+                  className="rounded-full"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
+              )}
+              <div className="space-y-2">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                  {chainInfo.chainName} Validators
+                </h1>
+                <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
+                  Active validators and delegation metrics for{" "}
+                  {chainInfo.chainName}
+                </p>
+              </div>
+            </div>
+
+            {/* Key metrics - inline */}
+            <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-3 sm:gap-6 md:gap-12 pt-4">
+              <div>
+                <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                  {stats.totalValidators}
+                </span>
+                <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                  validators
+                </span>
+              </div>
+              <div>
+                <span
+                  className={`text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums ${getHealthColor(
+                    versionStats.nodesPercentAbove
+                  )}`}
+                >
+                  {versionStats.nodesPercentAbove.toFixed(1)}%
+                </span>
+                <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                  by nodes
+                </span>
+              </div>
+              <div>
+                <span
+                  className={`text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums ${getHealthColor(
+                    versionStats.stakePercentAbove
+                  )}`}
+                >
+                  {versionStats.stakePercentAbove.toFixed(1)}%
+                </span>
+                <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                  by stake
+                </span>
+              </div>
+              {isL1 ? (
+                <div>
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    {formatNumber(stats.totalWeight)}
+                  </span>
+                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                    total weight
+                  </span>
+                </div>
+              ) : (
+                <div>
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    {formatNumber(stats.totalDelegators)}
+                  </span>
+                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                    delegators
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 py-0 h-full flex flex-col">
-            <div className="p-6 text-center flex flex-col justify-center flex-1">
-              <p className="mb-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
-                Total Validators
-              </p>
-              <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
-                {stats.totalValidators}
-              </p>
-            </div>
-          </Card>
-
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 py-0 h-full flex flex-col">
-            <div className="p-6 text-center flex flex-col justify-center flex-1">
-              <p className="mb-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
-                By Nodes %
-              </p>
-              <p
-                className={`text-4xl font-semibold tracking-tight ${getHealthColor(
-                  versionStats.nodesPercentAbove
-                )}`}
-              >
-                {versionStats.nodesPercentAbove.toFixed(1)}%
-              </p>
-              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-500">
-                on {minVersion || "latest"}+
-              </p>
-            </div>
-          </Card>
-
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 py-0 h-full flex flex-col">
-            <div className="p-6 text-center flex flex-col justify-center flex-1">
-              <p className="mb-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
-                By Stake %
-              </p>
-              <p
-                className={`text-4xl font-semibold tracking-tight ${getHealthColor(
-                  versionStats.stakePercentAbove
-                )}`}
-              >
-                {versionStats.stakePercentAbove.toFixed(1)}%
-              </p>
-              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-500">
-                on {minVersion || "latest"}+
-              </p>
-            </div>
-          </Card>
-
-          {isL1 ? (
-            <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 py-0 h-full flex flex-col">
-              <div className="p-6 text-center flex flex-col justify-center flex-1">
-                <p className="mb-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
-                  Total Weight
-                </p>
-                <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
-                  {formatNumber(stats.totalWeight)}
-                </p>
-              </div>
-            </Card>
-          ) : (
-            <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 py-0 h-full flex flex-col">
-              <div className="p-6 text-center flex flex-col justify-center flex-1">
-                <p className="mb-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
-                  Total Delegators
-                </p>
-                <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
-                  {formatNumber(stats.totalDelegators)}
-                </p>
-              </div>
-            </Card>
-          )}
-        </div>
-
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
         {/* Version Breakdown Card */}
         {versionBreakdown && availableVersions.length > 0 && (
           <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 py-0">
@@ -652,16 +658,10 @@ export default function ChainValidatorsPage() {
                         </span>
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 font-mono text-xs">
-                        <a
-                          href={`https://subnets.avax.network/validators/${validator.nodeId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 dark:text-blue-400 hover:underline"
-                          title={validator.nodeId}
-                        >
+                        <span title={validator.nodeId}>
                           {validator.nodeId.slice(0, 12)}...
                           {validator.nodeId.slice(-8)}
-                        </a>
+                        </span>
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 font-mono text-xs">
                         <span
@@ -677,16 +677,10 @@ export default function ChainValidatorsPage() {
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 font-mono text-xs">
                         {validator.validationId ? (
-                          <a
-                            href={`https://subnets.avax.network/validators/${validator.validationId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 dark:text-blue-400 hover:underline"
-                            title={validator.validationId}
-                          >
+                          <span title={validator.validationId}>
                             {validator.validationId.slice(0, 12)}...
                             {validator.validationId.slice(-8)}
-                          </a>
+                          </span>
                         ) : (
                           "N/A"
                         )}
@@ -741,16 +735,10 @@ export default function ChainValidatorsPage() {
                         </span>
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 font-mono text-xs">
-                        <a
-                          href={`https://subnets.avax.network/validators/${validator.nodeId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 dark:text-blue-400 hover:underline"
-                          title={validator.nodeId}
-                        >
+                        <span title={validator.nodeId}>
                           {validator.nodeId.slice(0, 12)}...
                           {validator.nodeId.slice(-8)}
-                        </a>
+                        </span>
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 font-mono text-xs">
                         <span
