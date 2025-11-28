@@ -72,16 +72,38 @@ export function TransactionLifecycle() {
         >
           Streaming Asynchronous Execution
         </h1>
-        <p className={`text-[10px] sm:text-xs md:text-sm ${colors.textMuted} font-mono uppercase tracking-[0.1em] mb-2 md:mb-6`}>
-          <Link 
-            href="/docs/acps/194-streaming-asynchronous-execution" 
-            className="underline underline-offset-4 hover:opacity-70 transition-opacity"
-          >
-            ACP-194
-          </Link>
-          {" "}: Decoupling Consensus and Execution
+        <p className={`text-[10px] sm:text-xs md:text-sm ${colors.textMuted} font-mono uppercase tracking-[0.1em] mb-4 md:mb-6`}>
+          ACP-194: Decoupling Consensus and Execution
         </p>
         
+        {/* Learn More links */}
+        <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+          <Link 
+            href="/docs/acps/194-streaming-asynchronous-execution"
+            className={`group flex items-center gap-2 px-4 py-2 border ${colors.border} ${colors.blockBg} hover:${colors.blockBgStrong} transition-all`}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.stroke} strokeWidth="1.5" className="opacity-50 group-hover:opacity-100 transition-opacity">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+            <span className={`text-xs ${colors.text} font-mono uppercase tracking-[0.1em]`}>Read Spec</span>
+          </Link>
+          
+          <a 
+            href="https://www.youtube.com/watch?v=yxAeRq4vSoQ"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`group flex items-center gap-2 px-4 py-2 border ${colors.border} ${colors.blockBg} hover:${colors.blockBgStrong} transition-all`}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.stroke} strokeWidth="1.5" className="opacity-50 group-hover:opacity-100 transition-opacity">
+              <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
+              <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
+            </svg>
+            <span className={`text-xs ${colors.text} font-mono uppercase tracking-[0.1em]`}>Watch Video</span>
+          </a>
+        </div>
       </div>
 
       <div className="w-full max-w-5xl">
@@ -190,6 +212,52 @@ export function TransactionLifecycle() {
             <div className="md:transform-none origin-top-left transform scale-[0.55] sm:scale-[0.75] md:scale-100 w-[182%] sm:w-[133%] md:w-full">
               <Payoff colors={colors} />
             </div>
+          </div>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {/* LEARN MORE */}
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        <div className="pt-8 pb-12 md:pt-12 md:pb-16">
+          <div className="flex items-center gap-4 mb-6 md:mb-8">
+            <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
+            <span className={`text-sm uppercase tracking-[0.2em] ${colors.text} font-medium`}>Learn More</span>
+            <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link 
+              href="/docs/acps/194-streaming-asynchronous-execution"
+              className={`group flex items-center gap-3 px-6 py-4 border ${colors.border} ${colors.blockBg} hover:${colors.blockBgStrong} transition-all`}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={colors.stroke} strokeWidth="1.5" className="opacity-50 group-hover:opacity-100 transition-opacity">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+              <div className="text-left">
+                <div className={`text-xs uppercase tracking-[0.15em] ${colors.textMuted} font-mono`}>Documentation</div>
+                <div className={`text-sm ${colors.text} font-mono`}>ACP-194 Specification</div>
+              </div>
+            </Link>
+            
+            <a 
+              href="https://www.youtube.com/watch?v=yxAeRq4vSoQ"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`group flex items-center gap-3 px-6 py-4 border ${colors.border} ${colors.blockBg} hover:${colors.blockBgStrong} transition-all`}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={colors.stroke} strokeWidth="1.5" className="opacity-50 group-hover:opacity-100 transition-opacity">
+                <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
+                <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
+              </svg>
+              <div className="text-left">
+                <div className={`text-xs uppercase tracking-[0.15em] ${colors.textMuted} font-mono`}>Video</div>
+                <div className={`text-sm ${colors.text} font-mono`}>Watch Explainer</div>
+              </div>
+            </a>
           </div>
         </div>
 
