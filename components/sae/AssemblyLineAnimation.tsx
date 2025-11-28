@@ -667,7 +667,7 @@ export function AssemblyLineCard({ colors }: { colors: Colors }) {
           Assembly Lines, but for Blockchains!
         </h2>
         <p className={`text-sm sm:text-xs ${colors.textMuted} font-mono uppercase tracking-[0.1em]`}>
-          Blockchain go vroom!
+          Blockchain go brrr!
         </p>
       </div>
       
