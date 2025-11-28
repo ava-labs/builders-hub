@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Hash, Clock, Box, Fuel, DollarSign, FileText, ArrowUpRight, Twitter, Linkedin, ChevronRight, ChevronUp, ChevronDown, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Hash, Clock, Box, Fuel, DollarSign, FileText, ArrowUpRight, Twitter, Linkedin, ChevronRight, ChevronUp, ChevronDown, CheckCircle, XCircle, AlertCircle, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { DetailRow, CopyButton } from "@/components/stats/DetailRow";
 import Link from "next/link";
+import Image from "next/image";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { useExplorer } from "@/components/stats/ExplorerContext";
+import { decodeEventLog, getEventByTopic } from "@/abi/event-signatures.generated";
+import l1ChainsData from "@/constants/l1-chains.json";
 
 interface TransactionDetail {
   hash: string;
@@ -95,31 +98,158 @@ function formatAddress(address: string): string {
   return `${address.slice(0, 10)}...${address.slice(-8)}`;
 }
 
-// Decode Transfer event from log
-function decodeTransferEvent(log: { topics: string[]; data: string }): { name: string; params: Array<{ name: string; type: string; value: string }> } | null {
-  // Transfer(address,address,uint256) signature
-  const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
-  
-  if (log.topics[0]?.toLowerCase() !== TRANSFER_TOPIC.toLowerCase() || log.topics.length < 3) {
-    return null;
-  }
-
+// Format wei amount with decimals (default 18)
+function formatTokenAmount(amount: string, decimals: number = 18): string {
+  if (!amount || amount === '0') return '0';
   try {
-    const from = '0x' + log.topics[1].slice(26);
-    const to = '0x' + log.topics[2].slice(26);
-    const value = BigInt(log.data || '0x0').toString();
+    const value = BigInt(amount);
+    const divisor = BigInt(10 ** decimals);
+    const intPart = value / divisor;
+    const fracPart = value % divisor;
     
-    return {
-      name: 'Transfer',
-      params: [
-        { name: '_from', type: 'address', value: from },
-        { name: '_to', type: 'address', value: to },
-        { name: '_value', type: 'uint256', value: value },
-      ],
-    };
+    // Format fractional part with leading zeros
+    let fracStr = fracPart.toString().padStart(decimals, '0');
+    // Trim trailing zeros but keep at least 2 decimal places for display
+    fracStr = fracStr.replace(/0+$/, '');
+    if (fracStr.length < 2) fracStr = fracStr.padEnd(2, '0');
+    if (fracStr.length > 6) fracStr = fracStr.slice(0, 6);
+    
+    const numValue = parseFloat(`${intPart}.${fracStr}`);
+    
+    // Format large numbers
+    if (numValue >= 1e9) {
+      return `${(numValue / 1e9).toFixed(2)}B`;
+    } else if (numValue >= 1e6) {
+      return `${(numValue / 1e6).toFixed(2)}M`;
+    } else if (numValue >= 1e3) {
+      return `${(numValue / 1e3).toFixed(2)}K`;
+    } else if (numValue >= 1) {
+      return numValue.toFixed(4);
+    } else {
+      return numValue.toFixed(6);
+    }
   } catch {
-    return null;
+    return amount;
   }
+}
+
+// Get chain info from hex blockchain ID
+interface ChainLookupResult {
+  chainName: string;
+  chainLogoURI: string;
+  slug: string;
+  color: string;
+  chainId: string;
+  tokenSymbol: string;
+}
+
+function getChainFromBlockchainId(hexBlockchainId: string): ChainLookupResult | null {
+  const normalizedHex = hexBlockchainId.toLowerCase();
+  
+  // Find by blockchainId field (hex format)
+  const chain = (l1ChainsData as any[]).find(c => 
+    c.blockchainId?.toLowerCase() === normalizedHex
+  );
+  
+  if (!chain) return null;
+  
+  return {
+    chainName: chain.chainName,
+    chainLogoURI: chain.chainLogoURI || '',
+    slug: chain.slug,
+    color: chain.color || '#6B7280',
+    chainId: chain.chainId,
+    tokenSymbol: chain.tokenSymbol || '',
+  };
+}
+
+// Cross-chain transfer event topic hashes (from ERC20TokenHome, NativeTokenHome, etc.)
+const CROSS_CHAIN_TOPICS = {
+  TokensSent: '0x93f19bf1ec58a15dc643b37e7e18a1c13e85e06cd11929e283154691ace9fb52',
+  TokensAndCallSent: '0x5d76dff81bf773b908b050fa113d39f7d8135bb4175398f313ea19cd3a1a0b16',
+  TokensRouted: '0x825080857c76cef4a1629c0705a7f8b4ef0282ddcafde0b6715c4fb34b68aaf0',
+  TokensAndCallRouted: '0x42eff9005856e3c586b096d67211a566dc926052119fd7cc08023c70937ecb30',
+};
+
+interface CrossChainTransfer {
+  type: 'TokensSent' | 'TokensAndCallSent' | 'TokensRouted' | 'TokensAndCallRouted';
+  teleporterMessageID: string;
+  sender: string;
+  destinationBlockchainID: string;
+  destinationTokenTransferrerAddress: string;
+  recipient: string;
+  amount: string;
+  contractAddress: string;
+}
+
+// Extract cross-chain transfers from logs
+function extractCrossChainTransfers(logs: Array<{ topics: string[]; data: string; address: string }>): CrossChainTransfer[] {
+  const transfers: CrossChainTransfer[] = [];
+  
+  for (const log of logs) {
+    if (!log.topics || log.topics.length === 0) continue;
+    
+    const topic0 = log.topics[0]?.toLowerCase();
+    
+    // Check if this is a cross-chain transfer event
+    let eventType: CrossChainTransfer['type'] | null = null;
+    for (const [name, hash] of Object.entries(CROSS_CHAIN_TOPICS)) {
+      if (topic0 === hash.toLowerCase()) {
+        eventType = name as CrossChainTransfer['type'];
+        break;
+      }
+    }
+    
+    if (!eventType) continue;
+    
+    try {
+      // Decode the event
+      const decoded = decodeEventLog(log);
+      if (!decoded) continue;
+      
+      // Extract teleporterMessageID from topics[1]
+      const teleporterMessageID = log.topics[1] || '';
+      
+      // Extract sender from topics[2]
+      const sender = log.topics[2] ? '0x' + log.topics[2].slice(-40) : '';
+      
+      // Parse the input tuple from decoded params
+      const inputParam = decoded.params.find(p => p.name === 'input');
+      const amountParam = decoded.params.find(p => p.name === 'amount');
+      
+      // Extract tuple components
+      let destinationBlockchainID = '';
+      let destinationTokenTransferrerAddress = '';
+      let recipient = '';
+      
+      if (inputParam?.components) {
+        const destChainComp = inputParam.components.find(c => c.name === 'destinationBlockchainID');
+        const destAddrComp = inputParam.components.find(c => c.name === 'destinationTokenTransferrerAddress');
+        const recipientComp = inputParam.components.find(c => c.name === 'recipient') || 
+                             inputParam.components.find(c => c.name === 'recipientContract');
+        
+        destinationBlockchainID = destChainComp?.value || '';
+        destinationTokenTransferrerAddress = destAddrComp?.value || '';
+        recipient = recipientComp?.value || '';
+      }
+      
+      transfers.push({
+        type: eventType,
+        teleporterMessageID,
+        sender,
+        destinationBlockchainID,
+        destinationTokenTransferrerAddress,
+        recipient,
+        amount: amountParam?.value || '0',
+        contractAddress: log.address,
+      });
+    } catch {
+      // Skip logs that can't be decoded
+      continue;
+    }
+  }
+  
+  return transfers;
 }
 
 // Format hex to number
@@ -711,7 +841,7 @@ export default function TransactionDetailPage({
                         <div className="flex items-center gap-2">
                           <span className="text-zinc-500">For</span>
                           <span className="font-semibold text-zinc-900 dark:text-white">
-                            {transfer.formattedValue}
+                            {formatTokenAmount(transfer.value, transfer.tokenDecimals)}
                           </span>
                           <Link 
                             href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.tokenAddress)}
@@ -727,6 +857,116 @@ export default function TransactionDetailPage({
                 }
               />
             )}
+
+            {/* Cross-Chain Transfers (ICM) */}
+            {(() => {
+              const crossChainTransfers = tx?.logs ? extractCrossChainTransfers(tx.logs) : [];
+              if (crossChainTransfers.length === 0) return null;
+              
+              // Get source chain info for display
+              const sourceChainInfo = l1ChainsData.find(c => c.chainId === chainId);
+              
+              return (
+                <DetailRow
+                  icon={<ArrowRightLeft className="w-4 h-4" />}
+                  label={`Cross-Chain Tokens Transferred (${crossChainTransfers.length})`}
+                  themeColor={themeColor}
+                  value={
+                    <div className="space-y-3">
+                      {crossChainTransfers.map((transfer, idx) => {
+                        const destChain = getChainFromBlockchainId(transfer.destinationBlockchainID);
+                        const formattedAmount = formatTokenAmount(transfer.amount);
+                        // Use destination chain token symbol if available, otherwise source chain's
+                        const transferTokenSymbol = destChain?.tokenSymbol || sourceChainInfo?.tokenSymbol || tokenSymbol || 'Token';
+                        
+                        return (
+                          <div 
+                            key={idx} 
+                            className="flex flex-col gap-2 text-sm p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50"
+                          >
+                            {/* Line 1: Source Chain → Destination Chain */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {/* Source Chain */}
+                              <Link 
+                                href={`/stats/l1/${chainSlug}/explorer`}
+                                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium hover:underline"
+                                style={{ backgroundColor: `${themeColor}20`, color: themeColor }}
+                              >
+                                {chainLogoURI && (
+                                  <Image
+                                    src={chainLogoURI}
+                                    alt={chainName}
+                                    width={14}
+                                    height={14}
+                                    className="rounded-full"
+                                  />
+                                )}
+                                {chainName}
+                              </Link>
+                              
+                              <span className="text-zinc-400">→</span>
+                              
+                              {/* Destination Chain */}
+                              {destChain ? (
+                                <Link 
+                                  href={`/stats/l1/${destChain.slug}/explorer`}
+                                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium hover:underline"
+                                  style={{ backgroundColor: `${destChain.color}20`, color: destChain.color }}
+                                >
+                                  {destChain.chainLogoURI && (
+                                    <Image
+                                      src={destChain.chainLogoURI}
+                                      alt={destChain.chainName}
+                                      width={14}
+                                      height={14}
+                                      className="rounded-full"
+                                    />
+                                  )}
+                                  {destChain.chainName}
+                                </Link>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-mono bg-zinc-100 dark:bg-zinc-700/50 text-zinc-600 dark:text-zinc-400">
+                                  <span className="w-3.5 h-3.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+                                  {transfer.destinationBlockchainID.slice(0, 10)}...
+                                </span>
+                              )}
+                            </div>
+                            
+                            {/* Line 2: From → To For Amount Token */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-zinc-500">From</span>
+                              <Link 
+                                href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.sender)}
+                                className="font-mono text-xs hover:underline" 
+                                style={{ color: themeColor }}
+                              >
+                                {formatAddress(transfer.sender)}
+                              </Link>
+                              <span className="text-zinc-400">→</span>
+                              <span className="text-zinc-500">To</span>
+                              <span className="font-mono text-xs text-zinc-600 dark:text-zinc-400">
+                                {formatAddress(transfer.recipient)}
+                              </span>
+                              <span className="text-zinc-500">For</span>
+                              <span className="font-semibold text-zinc-900 dark:text-white">
+                                {formattedAmount}
+                              </span>
+                              <Link 
+                                href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.contractAddress)}
+                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:underline"
+                                style={{ backgroundColor: `${themeColor}20`, color: themeColor }}
+                              >
+                                {transferTokenSymbol}
+                              </Link>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  }
+                />
+              );
+            })()}
 
             {/* Value */}
             <DetailRow
@@ -849,7 +1089,7 @@ export default function TransactionDetailPage({
                 <div className="space-y-4">
                   {tx.logs.map((log, index) => {
                     const logIndex = parseInt(log.logIndex || '0', 16);
-                    const decodedEvent = decodeTransferEvent(log);
+                    const decodedEvent = decodeEventLog(log);
                     
                     return (
                       <div
@@ -906,9 +1146,12 @@ export default function TransactionDetailPage({
                                   </span>
                                   {decodedEvent.params.map((param, paramIdx) => (
                                     <span key={paramIdx} className="text-sm">
+                                      {param.indexed && (
+                                        <span className="text-xs text-blue-500 dark:text-blue-400 mr-1">indexed</span>
+                                      )}
                                       <span className="text-zinc-600 dark:text-zinc-400">{param.type} </span>
-                                      <span className="font-medium" style={{ color: paramIdx === 0 ? '#10b981' : paramIdx === 1 ? '#ef4444' : '#10b981' }}>
-                                        {param.name}
+                                      <span className="font-medium" style={{ color: param.indexed ? '#3b82f6' : '#10b981' }}>
+                                        {param.name || `param${paramIdx}`}
                                       </span>
                                       {paramIdx < decodedEvent.params.length - 1 && (
                                         <span className="text-zinc-600 dark:text-zinc-400">, </span>
@@ -938,24 +1181,30 @@ export default function TransactionDetailPage({
                                   </span>
                                 </div>
                                 <div className="space-y-2">
-                                  {log.topics.map((topic, topicIdx) => (
-                                    <div key={topicIdx} className="flex items-start gap-2">
-                                      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 w-6 flex-shrink-0">
-                                        {topicIdx}:
-                                      </span>
-                                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                                        <span className="font-mono text-xs break-all text-zinc-600 dark:text-zinc-400">
-                                          {topic}
+                                  {log.topics.map((topic, topicIdx) => {
+                                    // Find the corresponding indexed parameter for this topic
+                                    const indexedParams = decodedEvent?.params.filter(p => p.indexed) || [];
+                                    const paramForTopic = topicIdx > 0 ? indexedParams[topicIdx - 1] : null;
+                                    
+                                    return (
+                                      <div key={topicIdx} className="flex items-start gap-2">
+                                        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 w-6 flex-shrink-0">
+                                          {topicIdx}:
                                         </span>
-                                        <CopyButton text={topic} />
-                                        {topicIdx > 0 && topicIdx <= 2 && decodedEvent && decodedEvent.params[topicIdx - 1] && (
-                                          <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                                            ({formatAddress(decodedEvent.params[topicIdx - 1].value)})
+                                        <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
+                                          <span className="font-mono text-xs break-all text-zinc-600 dark:text-zinc-400">
+                                            {topic}
                                           </span>
-                                        )}
+                                          <CopyButton text={topic} />
+                                          {paramForTopic && (
+                                            <span className="text-xs px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
+                                              {paramForTopic.name}: {paramForTopic.type === 'address' ? formatAddress(paramForTopic.value) : paramForTopic.value}
+                                            </span>
+                                          )}
+                                        </div>
                                       </div>
-                                    </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               </div>
                             )}
@@ -968,25 +1217,38 @@ export default function TransactionDetailPage({
                                     Data
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  {decodedEvent && decodedEvent.params[2] ? (
-                                    <>
-                                      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mr-1">
-                                        Num:
-                                      </span>
-                                      <span className="text-sm font-medium text-zinc-900 dark:text-white">
-                                        {decodedEvent.params[2].value}
-                                      </span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <span className="font-mono text-xs break-all text-zinc-600 dark:text-zinc-400">
-                                        {log.data}
-                                      </span>
-                                      <CopyButton text={log.data} />
-                                    </>
-                                  )}
-                                </div>
+                                {decodedEvent ? (
+                                  <div className="space-y-2">
+                                    {decodedEvent.params
+                                      .filter(p => !p.indexed)
+                                      .map((param, paramIdx) => (
+                                        <div key={paramIdx} className="flex items-center gap-2">
+                                          <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                                            {param.name || `param${paramIdx}`}:
+                                          </span>
+                                          <span className="text-sm font-medium text-zinc-900 dark:text-white font-mono">
+                                            {param.type === 'address' ? formatAddress(param.value) : param.value}
+                                          </span>
+                                          <CopyButton text={param.value} />
+                                        </div>
+                                      ))}
+                                    {decodedEvent.params.filter(p => !p.indexed).length === 0 && (
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-mono text-xs break-all text-zinc-600 dark:text-zinc-400">
+                                          {log.data}
+                                        </span>
+                                        <CopyButton text={log.data} />
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono text-xs break-all text-zinc-600 dark:text-zinc-400">
+                                      {log.data}
+                                    </span>
+                                    <CopyButton text={log.data} />
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
