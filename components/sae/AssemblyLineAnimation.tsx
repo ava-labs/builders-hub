@@ -238,9 +238,9 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
   }, [isProcessing, beltBlocks])
 
   return (
-    <div className={`w-full py-8 ${colors.bg}`}>
-      {/* Assembly Line */}
-      <div className="flex items-center justify-center gap-1">
+    <div className={`w-full py-2 md:py-8 ${colors.bg}`}>
+      {/* Assembly Line - scales down on mobile */}
+      <div className="flex items-center justify-center gap-1" style={{ minWidth: 900 }}>
         {/* Consensus Box */}
         <div
           className={`relative border ${colors.border} ${colors.blockBg} flex items-center justify-center`}
@@ -503,18 +503,13 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
 
 export function AssemblyLineCard({ colors }: { colors: Colors }) {
   return (
-    <div className="py-8 md:py-12">
-      {/* Separator line */}
-      <div className={`flex items-center mb-8`}>
-        <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
-      </div>
-
+    <div className="py-2 md:py-12">
       {/* Header - matching main title style */}
-      <div className="text-center mb-6">
-        <h2 className={`text-base sm:text-xl md:text-2xl font-medium ${colors.text} uppercase tracking-[0.1em] sm:tracking-[0.2em] mb-3 font-mono`}>
+      <div className="text-center mb-3 md:mb-6">
+        <h2 className={`text-2xl sm:text-xl md:text-2xl font-medium ${colors.text} uppercase tracking-[0.1em] sm:tracking-[0.2em] mb-1 md:mb-3 font-mono`}>
           Assembly Lines, but for Blockchains!
         </h2>
-        <p className={`text-[10px] sm:text-xs ${colors.textMuted} font-mono uppercase tracking-[0.1em]`}>
+        <p className={`text-sm sm:text-xs ${colors.textMuted} font-mono uppercase tracking-[0.1em]`}>
           Blockchain go vroom!
         </p>
       </div>
@@ -523,7 +518,7 @@ export function AssemblyLineCard({ colors }: { colors: Colors }) {
       <AssemblyLineAnimation colors={colors} />
       
       {/* Description underneath */}
-      <p className={`text-[11px] ${colors.textMuted} mt-4 font-mono uppercase tracking-wider text-center`}>
+      <p className={`text-lg sm:text-xs md:text-[11px] ${colors.textMuted} mt-2 md:mt-4 font-mono uppercase tracking-wider text-center`}>
         Faster block acceptance • Saturated execution • Instant receipts
       </p>
     </div>
@@ -532,15 +527,15 @@ export function AssemblyLineCard({ colors }: { colors: Colors }) {
 
 export function LeanExecutionSection({ colors }: { colors: Colors }) {
   return (
-    <div className={`border ${colors.border} p-8 ${colors.blockBg}`}>
+    <div className={`border ${colors.border} p-3 md:p-8 ${colors.blockBg}`}>
       {/* Section header */}
-      <div className="flex items-center gap-3 mb-8">
+      <div className="flex items-center gap-3 mb-3 md:mb-8">
         <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
-        <span className={`text-[11px] uppercase tracking-[0.2em] ${colors.textFaint} font-mono`}>LEAN EXECUTION</span>
+        <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-[0.2em] ${colors.textFaint} font-mono`}>LEAN EXECUTION</span>
         <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
       </div>
 
-      <div className="grid grid-cols-2 gap-12">
+      <div className="grid grid-cols-2 gap-4 md:gap-12">
         {/* Left side - headline */}
         <div className="flex flex-col justify-center">
           <h3 className={`text-2xl font-mono uppercase tracking-[0.1em] ${colors.text} mb-3`}>
