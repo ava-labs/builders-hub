@@ -104,7 +104,7 @@ export interface GetHackathonsOptions {
   include_private?: boolean;
 }
 
-export async function getHackathon(id: string) {
+export async function getHahackathonsLitelengthckathonZ(id: string) {
   const hackathon = await prisma.hackathon.findUnique({
     where: { id },
   });
@@ -214,6 +214,23 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
     ];
 
     conditions.push({ OR: searchFilters });
+  }
+  
+  if (options.status) {
+    switch (options.status) {
+      case "ENDED":
+        conditions.push({ end_date: { lt: new Date() } });
+        break;
+      case "ONGOING":
+        conditions.push({
+          start_date: { lte: new Date() },
+          end_date: { gte: new Date() },
+        });
+        break;
+      case "UPCOMING":
+        conditions.push({ start_date: { gt: new Date() } });
+        break;
+    }
   }
   
   // Combine all conditions with AND
