@@ -7,7 +7,7 @@ import { AssemblyLineCard } from "./AssemblyLineAnimation"
 import { Colors } from "./types"
 import { SynchronousExecution } from "./SynchronousExecution"
 import { StreamingAsyncExecution } from "./StreamingAsyncExecution"
-import { UnderTheHood } from "./UnderTheHood"
+import { UnderTheHood, BlockRelationship } from "./UnderTheHood"
 import { Payoff } from "./Payoff"
 import { SynchronousExecutionDiagram } from "./SynchronousExecutionDiagram"
 
@@ -140,6 +140,13 @@ export function TransactionLifecycle() {
           </div>
         </div>
 
+        {/* Block Relationship diagram */}
+        <div className="overflow-hidden md:overflow-visible -mb-[100px] sm:-mb-[50px] md:mb-8">
+          <div className="md:transform-none origin-top-left transform scale-[0.5] sm:scale-[0.7] md:scale-100 w-[200%] sm:w-[143%] md:w-full">
+            <BlockRelationship colors={colors} />
+          </div>
+        </div>
+
         {/* Assembly Line - simplified view, part of the solution */}
         {/* Scale down on mobile to fit, keep desktop unchanged */}
         <div className="mb-4 md:mt-8 md:mb-24 overflow-hidden md:overflow-visible -mt-[80px] sm:-mt-[40px] md:mt-0">
@@ -160,7 +167,7 @@ export function TransactionLifecycle() {
           </div>
           
           {/* Scale down on mobile - use explicit height to avoid dead space from transform */}
-          <div className="overflow-hidden md:overflow-visible h-[2100px] sm:h-[2400px] md:h-auto">
+          <div className="overflow-hidden md:overflow-visible h-[1600px] sm:h-[1900px] md:h-auto">
             <div className="md:transform-none origin-top-left transform scale-[0.45] sm:scale-[0.65] md:scale-100 w-[222%] sm:w-[154%] md:w-full">
               <UnderTheHood colors={colors} />
             </div>

@@ -90,6 +90,72 @@ function Block({
   )
 }
 
+// Executing block with animated disappearing txs
+function ExecutingBlock({
+  colors,
+  blockId,
+  txCount = MAX_TX,
+  txColors,
+  processedIndices,
+}: {
+  colors: Colors
+  blockId: number
+  txCount?: number
+  txColors?: string[]
+  processedIndices: Set<string>
+}) {
+  const s = { box: 20, txSize: 2, gap: 0.5, padding: 1 } // xs size
+
+  return (
+    <div
+      className={`relative border ${colors.border}`}
+      style={{
+        width: s.box,
+        height: s.box,
+        backgroundColor: `${colors.stroke}10`,
+      }}
+    >
+      <div className="absolute inset-0 grid grid-cols-4" style={{ padding: s.padding, gap: s.gap }}>
+        {[...Array(MAX_TX)].map((_, i) => {
+          const isProcessed = processedIndices.has(`${blockId}-${i}`)
+          const hasTx = i < txCount
+          
+          return (
+            <AnimatePresence key={i} mode="popLayout">
+              {hasTx && !isProcessed ? (
+                <motion.div
+                  key={`tx-${i}`}
+                  style={{
+                    width: s.txSize,
+                    height: s.txSize,
+                    backgroundColor: txColors?.[i] || `${colors.stroke}40`,
+                  }}
+                  exit={{ 
+                    opacity: 0,
+                    scale: 0,
+                    y: -8,
+                    x: 4,
+                  }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                />
+              ) : (
+                <div
+                  key={`empty-${i}`}
+                  style={{
+                    width: s.txSize,
+                    height: s.txSize,
+                    backgroundColor: `${colors.stroke}10`,
+                  }}
+                />
+              )}
+            </AnimatePresence>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
   const [incomingBlock, setIncomingBlock] = useState<{
     id: number
@@ -108,21 +174,27 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
     }[]
   >([])
   const [isProcessing, setIsProcessing] = useState(false)
+  const [smokeParticles, setSmokeParticles] = useState<{ id: number; color: string; x: number }[]>([])
+  const [processedTxIndices, setProcessedTxIndices] = useState<Set<string>>(new Set()) // "blockId-txIndex"
   const blockIdRef = useRef(0)
+  const smokeIdRef = useRef(0)
   const batchIdRef = useRef(0)
-  const lastTimeRef = useRef(Date.now())
   const lastExecutionRef = useRef(0)
 
   const beltWidth = 400
   const blockSize = 36
   const blockGap = 6
   const maxBeltBlocks = 8
-  const beltTravelTime = 6500 // Sped up from 7500ms
-  const settledTravelTime = 3000
+  const beltTravelTime = 3500 // Faster belt
+  const settledTravelTime = 2000
   const settledBeltWidth = 240
   const beltLineSpacing = beltWidth / 8
-  const maxTravel = beltWidth - blockSize - 16 // 276px - actual distance blocks travel
-  const beltLineDuration = (beltTravelTime / 1000) * (beltLineSpacing / maxTravel) // Time to move one spacing at block speed
+  // Belt lines move at same speed as blocks: beltWidth / beltTravelTime
+  const beltLineDuration = beltTravelTime / 1000 / 8 // Time to move one spacing at block speed
+  // Settled belt: batches travel fixedMaxTravel (180px) in settledTravelTime
+  const settledLineSpacing = settledBeltWidth / 8 // 30px
+  const settledMaxTravel = settledBeltWidth - 60 // 180px - matches fixedMaxTravel in render
+  const settledLineDuration = (settledLineSpacing / settledMaxTravel) * (settledTravelTime / 1000)
 
   // Reset animation state when page becomes visible again
   useEffect(() => {
@@ -197,6 +269,59 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
     return () => clearInterval(interval)
   }, [])
 
+  // Clear processed indices when new blocks start executing
+  useEffect(() => {
+    if (isProcessing && executingBlocks.length > 0) {
+      setProcessedTxIndices(new Set())
+    }
+  }, [isProcessing, executingBlocks.length])
+
+  // Emit smoke particles while processing - using tx colors from executing blocks
+  useEffect(() => {
+    if (!isProcessing || executingBlocks.length === 0) return
+    
+    // Build list of all txs with their block id and index
+    const allTxs: { blockId: number; txIndex: number; color: string }[] = []
+    executingBlocks.forEach(block => {
+      block.txColors.forEach((color, idx) => {
+        allTxs.push({ blockId: block.id, txIndex: idx, color })
+      })
+    })
+    if (allTxs.length === 0) return
+    
+    // Calculate interval to spread txs evenly across execution time (1500ms)
+    const executionDuration = 1400 // slightly less than 1500ms to finish before settling
+    const emitInterval = Math.floor(executionDuration / allTxs.length)
+    
+    const emitParticle = () => {
+      // Find unprocessed txs
+      const unprocessed = allTxs.filter(tx => !processedTxIndices.has(`${tx.blockId}-${tx.txIndex}`))
+      if (unprocessed.length === 0) return
+      
+      // Pick the first unprocessed tx (sequential order)
+      const tx = unprocessed[0]
+      const key = `${tx.blockId}-${tx.txIndex}`
+      
+      // Mark as processed
+      setProcessedTxIndices(prev => new Set([...prev, key]))
+      
+      const id = smokeIdRef.current++
+      const x = Math.random() * 16 - 8
+      setSmokeParticles(prev => [...prev, { id, color: tx.color, x }])
+      
+      // Remove particle after animation
+      setTimeout(() => {
+        setSmokeParticles(prev => prev.filter(p => p.id !== id))
+      }, 1200)
+    }
+    
+    // Emit particles at calculated intervals to fill execution time
+    emitParticle()
+    const interval = setInterval(emitParticle, emitInterval)
+    
+    return () => clearInterval(interval)
+  }, [isProcessing, executingBlocks, processedTxIndices])
+
   useEffect(() => {
     if (isProcessing) return
     if (beltBlocks.length < 1) return
@@ -209,7 +334,7 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
     if (!queueFull && !oldestReady) return
 
     const now = Date.now()
-    const minInterval = 2500
+    const minInterval = 1800
     if (now - lastExecutionRef.current < minInterval) return
     lastExecutionRef.current = now
 
@@ -242,9 +367,24 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
       {/* Assembly Line - scales down on mobile */}
       <div className="flex items-center justify-center gap-1" style={{ minWidth: 900 }}>
         {/* Consensus Box */}
-        <div
-          className={`relative border ${colors.border} ${colors.blockBg} flex items-center justify-center`}
-          style={{ width: 100, height: 90, minWidth: 100 }}
+        <motion.div
+          className={`relative ${colors.blockBg} flex items-center justify-center`}
+          style={{ 
+            width: 100, 
+            height: 90, 
+            minWidth: 100,
+            border: incomingBlock?.phase === "accepted" ? "1.5px solid #22c55e" : `1px solid ${colors.stroke}30`,
+          }}
+          animate={incomingBlock && incomingBlock.phase !== "accepted" ? {
+            x: [0, -1.5, 1.5, -1, 1, 0],
+            y: [0, 1, -1, 0.5, -0.5, 0],
+          } : { x: 0, y: 0 }}
+          transition={{
+            duration: 0.3,
+            repeat: incomingBlock && incomingBlock.phase !== "accepted" ? Infinity : 0,
+            repeatType: "loop",
+            ease: "easeInOut",
+          }}
         >
           <div
             className={`absolute top-1 left-0 right-0 text-center text-[8px] uppercase tracking-[0.15em] ${colors.textFaint} font-mono`}
@@ -263,31 +403,6 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
                 transition={{ duration: 0.4 }}
               >
                 <Block colors={colors} txCount={incomingBlock.txCount} txColors={incomingBlock.txColors} size="md" />
-                {/* Checkmark when accepted */}
-                <AnimatePresence>
-                  {incomingBlock.phase === "accepted" && (
-                    <motion.div
-                      className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center"
-                      style={{ backgroundColor: colors.bg, border: `1px solid ${colors.stroke}` }}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      exit={{ scale: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <svg width="10" height="10" viewBox="0 0 10 10">
-                        <motion.path
-                          d="M2 5 L4 7 L8 3"
-                          stroke={colors.stroke}
-                          strokeWidth="1.5"
-                          fill="none"
-                          initial={{ pathLength: 0 }}
-                          animate={{ pathLength: 1 }}
-                          transition={{ duration: 0.2 }}
-                        />
-                      </svg>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </motion.div>
             )}
           </AnimatePresence>
@@ -298,7 +413,7 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
               <path d="M0 8 L12 8 M8 4 L12 8 L8 12" stroke={colors.stroke} strokeWidth="1.5" fill="none" />
             </svg>
           </div>
-        </div>
+        </motion.div>
 
         {/* Conveyor Belt (FIFO Queue) */}
         <div
@@ -389,7 +504,14 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
                 transition={{ duration: 0.3, ease: "easeOut" }}
               >
                 {executingBlocks.map((block) => (
-                  <Block key={block.id} colors={colors} txCount={block.txCount} txColors={block.txColors} size="xs" />
+                  <ExecutingBlock 
+                    key={block.id} 
+                    colors={colors} 
+                    blockId={block.id}
+                    txCount={block.txCount} 
+                    txColors={block.txColors} 
+                    processedIndices={processedTxIndices}
+                  />
                 ))}
               </motion.div>
             )}
@@ -410,6 +532,50 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
               />
             </motion.div>
           )}
+
+          {/* Exhaust vent - top right */}
+          <div className="absolute -top-1 right-3 z-20">
+            {/* Vent opening */}
+            <svg width="12" height="8" viewBox="0 0 12 8" className="relative z-10">
+              <rect x="0" y="4" width="12" height="4" fill={colors.stroke + "30"} stroke={colors.stroke + "50"} strokeWidth="0.5" />
+              <line x1="3" y1="4" x2="3" y2="8" stroke={colors.stroke + "40"} strokeWidth="0.5" />
+              <line x1="6" y1="4" x2="6" y2="8" stroke={colors.stroke + "40"} strokeWidth="0.5" />
+              <line x1="9" y1="4" x2="9" y2="8" stroke={colors.stroke + "40"} strokeWidth="0.5" />
+            </svg>
+            
+            {/* Tx color particles */}
+            <AnimatePresence>
+              {smokeParticles.map((particle) => (
+                <motion.div
+                  key={particle.id}
+                  className="absolute"
+                  style={{
+                    left: 6 + particle.x,
+                    top: 0,
+                  }}
+                  initial={{ y: 0, opacity: 0.9, scale: 1 }}
+                  animate={{ 
+                    y: -35, 
+                    opacity: 0, 
+                    x: particle.x * 1.5,
+                  }}
+                  exit={{ opacity: 0 }}
+                  transition={{ 
+                    duration: 1, 
+                    ease: "easeOut",
+                  }}
+                >
+                  <div 
+                    style={{
+                      width: 4,
+                      height: 4,
+                      backgroundColor: particle.color,
+                    }}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
 
           {/* Output arrow */}
           <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10">
@@ -434,10 +600,10 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
                   left: `${(i * 100) / 8}%`,
                 }}
                 animate={{
-                  x: [0, settledBeltWidth / 8],
+                  x: [0, settledLineSpacing],
                 }}
                 transition={{
-                  duration: settledTravelTime / 1000,
+                  duration: settledLineDuration,
                   repeat: Number.POSITIVE_INFINITY,
                   ease: "linear",
                 }}
@@ -462,33 +628,24 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
                 return (
                   <motion.div
                     key={batch.id}
-                    className="absolute flex gap-0.5 p-1.5 top-0"
+                    className="absolute flex gap-1 top-0"
                     style={{
                       left: xPos,
-                      backgroundColor: colors.stroke + "08",
                     }}
                     initial={{ x: -20, opacity: 0, scale: 0.8 }}
                     animate={{ x: 0, opacity: 1, scale: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.3 }}
                   >
-                    {/* Pulsing secure border */}
-                    <motion.div
-                      className="absolute inset-0 pointer-events-none z-10"
-                      style={{ border: `2px solid #22c55e` }}
-                      animate={{ 
-                        opacity: [0.3, 0.7, 0.3],
-                        boxShadow: [
-                          '0 0 0px rgba(34, 197, 94, 0)',
-                          '0 0 6px rgba(34, 197, 94, 0.4)',
-                          '0 0 0px rgba(34, 197, 94, 0)',
-                        ]
-                      }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                    />
-                    
                     {batch.blocks.map((block) => (
-                      <Block key={block.id} colors={colors} txCount={block.txCount} txColors={block.txColors} size="md" />
+                      <div key={block.id} className="relative">
+                        {/* Static green border */}
+                        <div
+                          className="absolute -inset-[2px] pointer-events-none z-10"
+                          style={{ border: `1.5px solid #22c55e` }}
+                        />
+                        <Block colors={colors} txCount={block.txCount} txColors={block.txColors} size="md" />
+                      </div>
                     ))}
                   </motion.div>
                 )
@@ -574,3 +731,4 @@ export function LeanExecutionSection({ colors }: { colors: Colors }) {
     </div>
   )
 }
+

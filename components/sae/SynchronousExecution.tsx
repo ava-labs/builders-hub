@@ -407,7 +407,7 @@ export function SynchronousExecution({ colors }: { colors: Colors }) {
           Transaction Lifecycle
         </span>
         <span className={`text-[10px] ${colors.textFaint} font-mono`}>
-          *simplified for illustration
+          *simplified for illustrative purposes
         </span>
       </div>
       <div className={`border ${colors.border} p-2 sm:p-6 ${colors.blockBg}`}>

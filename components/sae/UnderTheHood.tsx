@@ -140,13 +140,13 @@ function Checkpoints({ colors }: { colors: Colors }) {
   )
 }
 
-function DecouplingDiagram({ colors }: { colors: Colors }) {
+export function BlockRelationship({ colors }: { colors: Colors }) {
   return (
     <div className="mb-1 mt-2 md:mb-2 md:mt-4">
       {/* Section header */}
       <div className="flex items-center gap-2 mb-3 px-1">
         <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-[0.15em] ${colors.text} font-semibold`}>
-          Block Relationship
+          Streaming Asynchronous Execution (SAE)
         </span>
       </div>
 
@@ -264,11 +264,11 @@ function DecouplingDiagram({ colors }: { colors: Colors }) {
       </div>
       <div className="mt-2 md:mt-4 space-y-2">
         <p className={`text-sm sm:text-xs md:text-[11px] text-red-500 font-mono uppercase tracking-wider`}>
-          Execution blocks can span multiple consensus blocks
-        </p>
-        <p className={`text-sm sm:text-xs md:text-[11px] ${colors.textMuted} font-mono uppercase tracking-wider`}>
-          consensus guarantees execution, <span className="italic normal-case">eventually</span>
-        </p>
+        Execution blocks can span multiple consensus blocks
+      </p>
+      <p className={`text-sm sm:text-xs md:text-[11px] ${colors.textMuted} font-mono uppercase tracking-wider`}>
+        consensus guarantees execution, <span className="italic normal-case">eventually</span>
+      </p>
         <p className={`text-sm ${colors.textMuted} leading-relaxed`}>
           Accepted blocks enter a FIFO queue guaranteed to execute. Order is fixed at acceptance, execution is deterministic, duration is measured in gas. Concurrent streams eliminate context switching — consensus no longer waits on execution. Bursty demand is absorbed by eagerly accepting transactions while execution processes the queue and reports state roots for later consensus rounds to record.
         </p>
@@ -309,8 +309,8 @@ function PessimisticFeeValidation({ colors }: { colors: Colors }) {
           <div className="space-y-6">
             <div>
               <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">
-                Affordability ≠ Success
-              </h4>
+            Affordability ≠ Success
+          </h4>
               <p className="text-sm text-gray-700 leading-relaxed">
                 Worst-case gas price is calculated using <span className="font-mono text-gray-900">g<sub>L</sub></span> (gas limit) instead of <span className="font-mono text-gray-900">g<sub>C</sub></span> (gas charged). Consensus only checks that you can pay this upper bound. If you can afford the worst case, you&apos;re guaranteed to execute — but reverts and out-of-gas are still possible.
               </p>
@@ -545,7 +545,6 @@ function TechnicalSpecification({ colors }: { colors: Colors }) {
 export function UnderTheHood({ colors }: { colors: Colors }) {
   return (
     <>
-      <DecouplingDiagram colors={colors} />
       <GasClock colors={colors} />
       <Checkpoints colors={colors} />
       <PessimisticFeeValidation colors={colors} />
