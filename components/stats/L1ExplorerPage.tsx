@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { Line, LineChart, ResponsiveContainer, Tooltip, YAxis } from "recharts";
-import { buildBlockUrl, buildTxUrl } from "@/utils/eip3091";
+import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
+import { useExplorer } from "@/components/stats/ExplorerContext";
 
 interface Block {
   number: string;
@@ -81,6 +82,7 @@ interface L1ExplorerPageProps {
     twitter?: string;
     linkedin?: string;
   };
+  rpcUrl?: string;
 }
 
 function formatTimeAgo(timestamp: string): string {
@@ -92,6 +94,12 @@ function formatTimeAgo(timestamp: string): string {
   if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
   return `${Math.floor(diffInSeconds / 86400)}d ago`;
+}
+
+function shortenAddress(address: string | null): string {
+  if (!address) return '';
+  if (address.length < 12) return address;
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 function formatNumber(num: number): string {
@@ -221,8 +229,12 @@ export default function L1ExplorerPage({
   description,
   website,
   socials,
+  rpcUrl,
 }: L1ExplorerPageProps) {
   const router = useRouter();
+  // Get token data from shared context (avoids duplicate fetches across explorer pages)
+  const { tokenSymbol: contextTokenSymbol, priceData: contextPriceData, glacierSupported } = useExplorer();
+  
   const [data, setData] = useState<ExplorerData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -234,8 +246,8 @@ export default function L1ExplorerPage({
   const [newTxHashes, setNewTxHashes] = useState<Set<string>>(new Set());
   const previousDataRef = useRef<ExplorerData | null>(null);
 
-  // Get actual token symbol from API data or props
-  const tokenSymbol = data?.tokenSymbol || data?.price?.symbol || nativeToken || undefined;
+  // Get actual token symbol - prefer context (shared), fallback to API data or props
+  const tokenSymbol = contextTokenSymbol || data?.tokenSymbol || data?.price?.symbol || nativeToken || undefined;
 
   const fetchData = useCallback(async () => {
     try {
@@ -316,8 +328,14 @@ export default function L1ExplorerPage({
         return;
       }
 
+      // Check if it's an address (0x + 40 hex chars = 42 total)
+      if (/^0x[a-fA-F0-9]{40}$/.test(query)) {
+        router.push(buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, query));
+        return;
+      }
+
       // Check if it's a hex block number (0x...)
-      if (/^0x[a-fA-F0-9]+$/.test(query) && query.length < 66) {
+      if (/^0x[a-fA-F0-9]+$/.test(query) && query.length < 42) {
         const blockNum = parseInt(query, 16);
         if (!isNaN(blockNum) && blockNum >= 0) {
           router.push(buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, blockNum.toString()));
@@ -325,9 +343,8 @@ export default function L1ExplorerPage({
         }
       }
 
-      // TODO: Address search can be added later
-      // For now, show error for unrecognized format
-      setSearchError("Please enter a valid block number or transaction hash (0x...)");
+      // Show error for unrecognized format
+      setSearchError("Please enter a valid block number, transaction hash, or address (0x...)");
     } catch (err) {
       setSearchError("Search failed. Please try again.");
     } finally {
@@ -426,7 +443,7 @@ export default function L1ExplorerPage({
             ))}
           </div>
         </div>
-        <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} />
+        <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} />
       </div>
     );
   }
@@ -459,7 +476,7 @@ export default function L1ExplorerPage({
             <Button onClick={fetchData}>Retry</Button>
           </div>
         </div>
-        <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} />
+        <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} />
       </div>
     );
   }
@@ -598,7 +615,7 @@ export default function L1ExplorerPage({
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
               <Input
                 type="text"
-                placeholder="Search by Block Number or Txn Hash (0x...)"
+                placeholder="Search by Address, Txn Hash, or Block Number"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -630,6 +647,25 @@ export default function L1ExplorerPage({
           </form>
         </div>
       </div>
+
+      {/* Glacier Support Warning Banner */}
+      {!glacierSupported && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <svg className="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                <span className="font-medium">Indexing support is not available for this chain.</span>{' '}
+                Some functionalities like address portfolios, token transfers, and detailed transaction history may not be available.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Card - Left stats, Right transaction history */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5">
@@ -868,9 +904,9 @@ export default function L1ExplorerPage({
             </div>
             <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
               {data?.transactions.map((tx, index) => (
-                <Link 
+                <div 
                   key={`${tx.hash}-${index}`}
-                  href={buildTxUrl(`/stats/l1/${chainSlug}/explorer`, tx.hash)}
+                  onClick={() => router.push(buildTxUrl(`/stats/l1/${chainSlug}/explorer`, tx.hash))}
                   className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
                     newTxHashes.has(tx.hash) ? 'new-item' : ''
                   }`}
@@ -894,11 +930,29 @@ export default function L1ExplorerPage({
                         </div>
                         <div className="text-xs text-zinc-500 mt-0.5">
                           <span className="text-zinc-400">From </span>
-                          <span className="font-mono" style={{ color: themeColor }}>{tx.from}</span>
+                          <Link 
+                            href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.from)} 
+                            className="font-mono hover:underline" 
+                            style={{ color: themeColor }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {shortenAddress(tx.from)}
+                          </Link>
                         </div>
                         <div className="text-xs text-zinc-500">
                           <span className="text-zinc-400">To </span>
-                          <span className="font-mono" style={{ color: themeColor }}>{tx.to}</span>
+                          {tx.to ? (
+                            <Link 
+                              href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.to)} 
+                              className="font-mono hover:underline" 
+                              style={{ color: themeColor }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {shortenAddress(tx.to)}
+                            </Link>
+                          ) : (
+                            <span className="font-mono text-zinc-400">Contract Creation</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -906,7 +960,7 @@ export default function L1ExplorerPage({
                       {tx.value} <TokenDisplay symbol={tokenSymbol} />
                     </div>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           </div>
@@ -914,7 +968,7 @@ export default function L1ExplorerPage({
       </div>
 
       {/* Bubble Navigation */}
-      <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} />
+      <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} />
     </div>
   );
 }

@@ -6,9 +6,16 @@ import type { BubbleNavigationConfig } from '@/components/navigation/bubble-navi
 export interface L1BubbleNavProps {
   chainSlug: string;
   themeColor?: string;
+  rpcUrl?: string;
 }
 
-export function L1BubbleNav({ chainSlug, themeColor = "#E57373" }: L1BubbleNavProps) {
+export function L1BubbleNav({ chainSlug, themeColor = "#E57373", rpcUrl }: L1BubbleNavProps) {
+  // Don't render the bubble navigation if there's no RPC URL
+  // (only Overview page would be available, no need for navigation)
+  if (!rpcUrl) {
+    return null;
+  }
+
   const l1BubbleConfig: BubbleNavigationConfig = {
     items: [
       { id: "overview", label: "Overview", href: `/stats/l1/${chainSlug}` },

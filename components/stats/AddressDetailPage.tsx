@@ -1,0 +1,1283 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { Wallet, ChevronRight, ChevronDown, ChevronLeft, FileCode, Copy, Check, ArrowUpRight, Twitter, Linkedin, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
+import Link from "next/link";
+import { buildTxUrl, buildBlockUrl, buildAddressUrl } from "@/utils/eip3091";
+import { useExplorer } from "@/components/stats/ExplorerContext";
+
+interface NativeBalance {
+  balance: string;
+  balanceFormatted: string;
+  symbol: string;
+  price?: number;
+  valueUsd?: number;
+}
+
+interface Erc20Balance {
+  contractAddress: string;
+  name: string;
+  symbol: string;
+  decimals: number;
+  balance: string;
+  balanceFormatted: string;
+  price?: number;
+  valueUsd?: number;
+  logoUri?: string;
+}
+
+interface Transaction {
+  hash: string;
+  blockNumber: string;
+  blockIndex: number;
+  timestamp: number;
+  from: string;
+  to: string | null;
+  value: string;
+  gasLimit: string;
+  gasUsed: string;
+  gasPrice: string;
+  nonce: string;
+  txStatus: string;
+  txType: number;
+  method?: string;
+  methodId?: string;
+}
+
+interface Erc20Transfer {
+  txHash: string;
+  blockNumber: string;
+  timestamp: number;
+  from: string;
+  to: string;
+  value: string;
+  tokenAddress: string;
+  tokenName: string;
+  tokenSymbol: string;
+  tokenDecimals: number;
+  tokenLogo?: string;
+  logIndex: number;
+}
+
+interface NftTransfer {
+  txHash: string;
+  blockNumber: string;
+  timestamp: number;
+  from: string;
+  to: string;
+  tokenAddress: string;
+  tokenName: string;
+  tokenSymbol: string;
+  tokenId: string;
+  tokenType: 'ERC-721' | 'ERC-1155';
+  value?: string;
+  logIndex: number;
+}
+
+interface InternalTransaction {
+  txHash: string;
+  blockNumber: string;
+  timestamp: number;
+  from: string;
+  to: string;
+  value: string;
+  gasUsed: string;
+  gasLimit: string;
+  txType: string;
+  isReverted: boolean;
+}
+
+interface ContractMetadata {
+  name?: string;
+  description?: string;
+  officialSite?: string;
+  email?: string;
+  logoUri?: string;
+  bannerUri?: string;
+  color?: string;
+  resourceLinks?: Array<{ type: string; url: string }>;
+  tags?: string[];
+  deploymentDetails?: {
+    txHash?: string;
+    deployerAddress?: string;
+    deployerContractAddress?: string;
+  };
+  ercType?: string;
+  symbol?: string;
+}
+
+interface AddressChain {
+  chainId: string;
+  chainName: string;
+  chainLogoUri?: string;
+}
+
+interface AddressData {
+  address: string;
+  isContract: boolean;
+  contractMetadata?: ContractMetadata;
+  nativeBalance: NativeBalance;
+  erc20Balances: Erc20Balance[];
+  transactions: Transaction[];
+  erc20Transfers: Erc20Transfer[];
+  nftTransfers: NftTransfer[];
+  internalTransactions: InternalTransaction[];
+  nextPageToken?: string;
+  totalValueUsd?: number;
+  addressChains?: AddressChain[];
+}
+
+interface AddressDetailPageProps {
+  chainId: string;
+  chainName: string;
+  chainSlug: string;
+  address: string;
+  themeColor?: string;
+  chainLogoURI?: string;
+  nativeToken?: string;
+  description?: string;
+  website?: string;
+  socials?: {
+    twitter?: string;
+    linkedin?: string;
+  };
+  rpcUrl?: string;
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors"
+      title="Copy to clipboard"
+    >
+      {copied ? (
+        <Check className="w-4 h-4 text-green-500" />
+      ) : (
+        <Copy className="w-4 h-4 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" />
+      )}
+    </button>
+  );
+}
+
+function formatTimestamp(timestamp: number): string {
+  if (!timestamp) return '-';
+  const date = new Date(timestamp * 1000); // Convert seconds to milliseconds
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return `${diffInSeconds} secs ago`;
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} mins ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hrs ago`;
+  return `${Math.floor(diffInSeconds / 86400)} days ago`;
+}
+
+function formatAddress(address: string): string {
+  if (!address) return '-';
+  return `${address.slice(0, 10)}...${address.slice(-8)}`;
+}
+
+function formatAddressShort(address: string): string {
+  if (!address) return '-';
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+function formatValue(value: string): string {
+  if (!value || value === '0') return '0';
+  const wei = BigInt(value);
+  const eth = Number(wei) / 1e18;
+  if (eth === 0) return '0';
+  if (eth < 0.000001) return '<0.000001';
+  return eth.toFixed(6);
+}
+
+function formatUsd(value: number | undefined): string {
+  if (value === undefined || value === 0) return '$0.00';
+  if (value < 0.01) return '<$0.01';
+  return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function formatBalance(balance: string, decimals: number = 18): string {
+  if (!balance || balance === '0') return '0';
+  const value = Number(balance) / Math.pow(10, decimals);
+  if (value === 0) return '0';
+  if (value < 0.000001) return '<0.000001';
+  if (value >= 1000000) return `${(value / 1000000).toFixed(2)}M`;
+  if (value >= 1000) return `${(value / 1000).toFixed(2)}K`;
+  return value.toFixed(6);
+}
+
+function formatTxFee(gasPrice: string, gasUsed?: string): string {
+  if (!gasPrice || gasPrice === '0') return '0';
+  try {
+    const gasPriceNum = BigInt(gasPrice);
+    const gasUsedNum = gasUsed ? BigInt(gasUsed) : BigInt(21000);
+    const feeWei = gasPriceNum * gasUsedNum;
+    const fee = Number(feeWei) / 1e18;
+    return fee.toFixed(8);
+  } catch {
+    return '0';
+  }
+}
+
+export default function AddressDetailPage({
+  chainId,
+  chainName,
+  chainSlug,
+  address,
+  themeColor = "#E57373",
+  chainLogoURI,
+  nativeToken,
+  description,
+  website,
+  socials,
+  rpcUrl,
+}: AddressDetailPageProps) {
+  // Get Glacier support status from context
+  const { glacierSupported } = useExplorer();
+  
+  const [data, setData] = useState<AddressData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [txLoading, setTxLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showTokenDropdown, setShowTokenDropdown] = useState(false);
+  const [tokenSearch, setTokenSearch] = useState('');
+  const [pageTokens, setPageTokens] = useState<string[]>([]); // Stack of page tokens for back navigation
+  const [currentPageToken, setCurrentPageToken] = useState<string | undefined>(undefined);
+  
+  // Private Name Tags state
+  const [privateTags, setPrivateTags] = useState<string[]>([]);
+  const [showAddTag, setShowAddTag] = useState(false);
+  const [newTagInput, setNewTagInput] = useState('');
+  
+  // Load private tags from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storageKey = `private_tags_${address.toLowerCase()}`;
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        try {
+          setPrivateTags(JSON.parse(stored));
+        } catch {
+          setPrivateTags([]);
+        }
+      }
+    }
+  }, [address]);
+  
+  // Save private tags to localStorage
+  const savePrivateTags = (tags: string[]) => {
+    if (typeof window !== 'undefined') {
+      const storageKey = `private_tags_${address.toLowerCase()}`;
+      localStorage.setItem(storageKey, JSON.stringify(tags));
+      setPrivateTags(tags);
+    }
+  };
+  
+  const addPrivateTag = () => {
+    const tag = newTagInput.trim();
+    if (tag && !privateTags.includes(tag)) {
+      savePrivateTags([...privateTags, tag]);
+      setNewTagInput('');
+      setShowAddTag(false);
+    }
+  };
+  
+  const removePrivateTag = (tagToRemove: string) => {
+    savePrivateTags(privateTags.filter(tag => tag !== tagToRemove));
+  };
+
+  // Read initial tab from URL hash
+  const getInitialTab = (): string => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash.slice(1);
+      if (['transactions', 'internal', 'erc20', 'nft'].includes(hash)) {
+        return hash;
+      }
+    }
+    return 'transactions';
+  };
+  
+  const [activeTab, setActiveTab] = useState<string>(getInitialTab);
+  
+  // Update URL hash when tab changes
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      const hash = tab === 'transactions' ? '' : `#${tab}`;
+      window.history.replaceState(null, '', `${window.location.pathname}${hash}`);
+    }
+  };
+  
+  // Listen for hash changes (back/forward navigation)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1);
+      if (['transactions', 'internal', 'erc20', 'nft'].includes(hash)) {
+        setActiveTab(hash);
+      } else {
+        setActiveTab('transactions');
+      }
+    };
+    
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const fetchAddressData = useCallback(async (pageToken?: string) => {
+    try {
+      if (pageToken) {
+        setTxLoading(true);
+      } else {
+        setLoading(true);
+      }
+      setError(null);
+      const url = pageToken 
+        ? `/api/explorer/${chainId}/address/${address}?pageToken=${encodeURIComponent(pageToken)}`
+        : `/api/explorer/${chainId}/address/${address}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch address data");
+      }
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
+      setTxLoading(false);
+    }
+  }, [chainId, address]);
+
+  useEffect(() => {
+    fetchAddressData();
+  }, [fetchAddressData]);
+
+  const handleNextPage = () => {
+    if (data?.nextPageToken) {
+      // Save current token before moving to next page
+      if (currentPageToken) {
+        setPageTokens(prev => [...prev, currentPageToken]);
+      } else {
+        setPageTokens(prev => [...prev, '']); // Empty string represents first page
+      }
+      setCurrentPageToken(data.nextPageToken);
+      fetchAddressData(data.nextPageToken);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (pageTokens.length > 0) {
+      const prevTokens = [...pageTokens];
+      const prevToken = prevTokens.pop();
+      setPageTokens(prevTokens);
+      setCurrentPageToken(prevToken || undefined);
+      fetchAddressData(prevToken || undefined);
+    }
+  };
+
+  // Calculate token holdings value
+  const tokenHoldingsValue = data?.erc20Balances?.reduce((sum, token) => sum + (token.valueUsd || 0), 0) || 0;
+  const tokenCount = data?.erc20Balances?.length || 0;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-zinc-950">
+        <div className="relative overflow-hidden">
+          <div 
+            className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
+            style={{
+              background: `linear-gradient(to left, ${themeColor}35 0%, ${themeColor}20 40%, ${themeColor}08 70%, transparent 100%)`,
+            }}
+          />
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
+            <div className="flex items-center gap-1.5 mb-3">
+              <div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              <div className="w-3.5 h-3.5 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-zinc-200 dark:bg-zinc-800 rounded-xl animate-pulse" />
+                <div className="h-10 w-64 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 h-48 animate-pulse" />
+            ))}
+          </div>
+        </div>
+        <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-zinc-950">
+        <div className="relative overflow-hidden">
+          <div 
+            className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
+            style={{
+              background: `linear-gradient(to left, ${themeColor}35 0%, ${themeColor}20 40%, ${themeColor}08 70%, transparent 100%)`,
+            }}
+          />
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
+            <nav className="flex items-center gap-1.5 text-sm mb-3">
+              <Link href="/stats/overview" className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
+                Overview
+              </Link>
+              <ChevronRight className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
+              <Link href={`/stats/l1/${chainSlug}`} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
+                {chainName}
+              </Link>
+              <ChevronRight className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
+              <Link href={`/stats/l1/${chainSlug}/explorer`} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
+                Explorer
+              </Link>
+            </nav>
+            <div className="flex items-center gap-2 sm:gap-3 mb-3">
+              <AvalancheLogo className="w-4 h-4 sm:w-5 sm:h-5" fill="#E84142" />
+              <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
+                Avalanche Ecosystem
+              </p>
+            </div>
+            <div className="flex items-center gap-3 sm:gap-4">
+              {chainLogoURI && (
+                <img
+                  src={chainLogoURI}
+                  alt={`${chainName} logo`}
+                  className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain rounded-xl"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              )}
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                {chainName}
+              </h1>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+          <div className="text-center">
+            <p className="text-red-500 mb-4">{error}</p>
+            <Button onClick={() => fetchAddressData()}>Retry</Button>
+          </div>
+        </div>
+        <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} />
+      </div>
+    );
+  }
+
+  const tabs = [
+    { id: 'transactions', label: 'Transactions' },
+    { id: 'internal', label: 'Internal Txns' },
+    { id: 'erc20', label: 'ERC-20 Transfers' },
+    { id: 'nft', label: 'NFT Transfers' },
+  ];
+
+  return (
+    <div className="min-h-screen bg-white dark:bg-zinc-950">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden">
+        <div 
+          className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
+          style={{
+            background: `linear-gradient(to left, ${themeColor}35 0%, ${themeColor}20 40%, ${themeColor}08 70%, transparent 100%)`,
+          }}
+        />
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-1.5 text-sm mb-3">
+            <Link 
+              href="/stats/overview" 
+              className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+            >
+              Overview
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
+            <Link 
+              href={`/stats/l1/${chainSlug}`} 
+              className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+            >
+              {chainName}
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
+            <Link 
+              href={`/stats/l1/${chainSlug}/explorer`} 
+              className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+            >
+              Explorer
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
+            <span className="text-zinc-900 dark:text-zinc-100 font-medium">
+              {data?.isContract ? 'Contract' : 'Address'}
+            </span>
+          </nav>
+
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
+            <div className="space-y-4 sm:space-y-6 flex-1">
+              <div>
+                <div className="flex items-center gap-2 sm:gap-3 mb-3">
+                  <AvalancheLogo className="w-4 h-4 sm:w-5 sm:h-5" fill="#E84142" />
+                  <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
+                    Avalanche Ecosystem
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 sm:gap-4">
+                  {chainLogoURI && (
+                    <img
+                      src={chainLogoURI}
+                      alt={`${chainName} logo`}
+                      className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain rounded-xl"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  )}
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                    {chainName}
+                  </h1>
+                </div>
+                {description && (
+                  <div className="flex items-center gap-3 mt-3">
+                    <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
+                      {description}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Social Links */}
+            {(website || socials) && (
+              <div className="flex flex-col sm:flex-row items-end gap-2">
+                <div className="flex items-center gap-2">
+                  {website && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
+                    >
+                      <a href={website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                        Website
+                        <ArrowUpRight className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  )}
+                  {socials?.twitter && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
+                    >
+                      <a href={`https://x.com/${socials.twitter}`} target="_blank" rel="noopener noreferrer" aria-label="Twitter">
+                        <Twitter className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  )}
+                  {socials?.linkedin && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
+                    >
+                      <a href={`https://linkedin.com/company/${socials.linkedin}`} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                        <Linkedin className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Glacier Support Warning Banner */}
+      {!glacierSupported && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <svg className="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                <span className="font-medium">Indexing support is not available for this chain.</span>{' '}
+                Some functionalities like address portfolios, token transfers, and detailed transaction history may not be available.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Address Title */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
+            {data?.isContract ? 'Contract' : 'Address'}
+          </h2>
+          <span className="text-zinc-500 dark:text-zinc-400 font-mono text-sm hidden sm:inline mt-1">
+            {address}
+          </span>
+          <span className="text-zinc-500 dark:text-zinc-400 font-mono text-sm sm:hidden mt-1">
+            {formatAddress(address)}
+          </span>
+          <CopyButton text={address} />
+        </div>
+      </div>
+
+      {/* Three Panel Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Overview Panel */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5">
+            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-4">Overview</h3>
+            
+            {/* Native Balance */}
+            <div className="mb-4">
+              <div className="text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mb-1">
+                {data?.nativeBalance.symbol} BALANCE
+              </div>
+              <div className="flex items-center gap-2">
+                {chainLogoURI && (
+                  <img src={chainLogoURI} alt="" className="w-4 h-4 rounded-full" />
+                )}
+                <span className="text-zinc-900 dark:text-white font-medium">
+                  {data?.nativeBalance.balanceFormatted} {data?.nativeBalance.symbol}
+                </span>
+              </div>
+            </div>
+
+            {/* Native Value */}
+            <div className="mb-4">
+              <div className="text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mb-1">
+                {data?.nativeBalance.symbol} VALUE
+              </div>
+              <div className="text-zinc-900 dark:text-white">
+                {formatUsd(data?.nativeBalance.valueUsd)}
+                {data?.nativeBalance.price && (
+                  <span className="text-zinc-500 dark:text-zinc-400 text-sm ml-1">
+                    (@ ${data.nativeBalance.price.toFixed(2)}/{data?.nativeBalance.symbol})
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Token Holdings */}
+            <div>
+              <div className="text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mb-1">
+                TOKEN HOLDINGS
+              </div>
+              <div className="relative">
+                <button
+                  onClick={() => setShowTokenDropdown(!showTokenDropdown)}
+                  className="flex items-center justify-between w-full bg-zinc-100 dark:bg-zinc-800 rounded-lg px-3 py-2 text-left hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                >
+                  <span className="text-zinc-900 dark:text-white">
+                    {formatUsd(tokenHoldingsValue)} <span className="text-zinc-500 dark:text-zinc-400">({tokenCount} Tokens)</span>
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-zinc-400 transition-transform ${showTokenDropdown ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {/* Token Dropdown */}
+                {showTokenDropdown && tokenCount > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl z-10 max-h-80 overflow-hidden">
+                    {/* Search Bar */}
+                    <div className="p-2 border-b border-zinc-200 dark:border-zinc-700 sticky top-0 bg-white dark:bg-zinc-800">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                        <input
+                          type="text"
+                          placeholder="Search tokens..."
+                          value={tokenSearch}
+                          onChange={(e) => setTokenSearch(e.target.value)}
+                          className="w-full pl-8 pr-3 py-1.5 text-sm bg-zinc-100 dark:bg-zinc-700 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-300 dark:focus:ring-zinc-600 text-zinc-900 dark:text-white placeholder-zinc-400"
+                        />
+                      </div>
+                    </div>
+                    {/* Token List */}
+                    <div className="max-h-56 overflow-y-auto">
+                      {data?.erc20Balances
+                        .filter(token => 
+                          !tokenSearch || 
+                          token.symbol?.toLowerCase().includes(tokenSearch.toLowerCase()) ||
+                          token.name?.toLowerCase().includes(tokenSearch.toLowerCase())
+                        )
+                        .map((token) => (
+                          <div key={token.contractAddress} className="flex items-center justify-between px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700">
+                            <div className="flex items-center gap-2">
+                              {token.logoUri ? (
+                                <img src={token.logoUri} alt="" className="w-5 h-5 rounded-full" />
+                              ) : (
+                                <div className="w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-600 flex items-center justify-center text-xs">
+                                  {token.symbol?.charAt(0)}
+                                </div>
+                              )}
+                              <div className="flex flex-col">
+                                <span className="text-sm text-zinc-900 dark:text-white">{token.symbol}</span>
+                                <span className="text-xs text-zinc-400">{token.name}</span>
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end">
+                              <span className="text-sm text-zinc-900 dark:text-white">
+                                {formatBalance(token.balance, token.decimals)}
+                              </span>
+                              {token.valueUsd !== undefined && token.valueUsd > 0 && (
+                                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                  {formatUsd(token.valueUsd)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* More Info Panel */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5">
+            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-4">More Info</h3>
+            
+            {/* Contract Name & Symbol */}
+            {data?.contractMetadata?.name && (
+              <div className="mb-4">
+                <div className="text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mb-1">
+                  CONTRACT NAME
+                </div>
+                <div className="flex items-center gap-2">
+                  {data.contractMetadata.logoUri && (
+                    <img src={data.contractMetadata.logoUri} alt="" className="w-5 h-5 rounded-full" />
+                  )}
+                  <span className="text-zinc-900 dark:text-white font-medium">
+                    {data.contractMetadata.name}
+                    {data.contractMetadata.symbol && (
+                      <span className="text-zinc-500 dark:text-zinc-400 ml-1">({data.contractMetadata.symbol})</span>
+                    )}
+                  </span>
+                  {data.contractMetadata.ercType && (
+                    <span className="px-2 py-0.5 text-xs rounded bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400">
+                      {data.contractMetadata.ercType}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Tags */}
+            {data?.contractMetadata?.tags && data.contractMetadata.tags.length > 0 && (
+              <div className="mb-4">
+                <div className="text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mb-2">
+                  TAGS
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {data.contractMetadata.tags.map((tag, idx) => (
+                    <span key={idx} className="px-2 py-0.5 text-xs rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Official Site */}
+            {data?.contractMetadata?.officialSite && (
+              <div className="mb-4">
+                <div className="text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mb-1">
+                  OFFICIAL SITE
+                </div>
+                <a 
+                  href={data.contractMetadata.officialSite} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-sm hover:underline flex items-center gap-1"
+                  style={{ color: themeColor }}
+                >
+                  {data.contractMetadata.officialSite}
+                  <ArrowUpRight className="w-3 h-3" />
+                </a>
+              </div>
+            )}
+
+            {/* Contract Creator - only show if data is available */}
+            {data?.isContract && (data.contractMetadata?.deploymentDetails?.deployerAddress) && (
+              <div className="mb-4">
+                <div className="text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mb-2">
+                  CONTRACT CREATOR
+                </div>
+                <div className="flex items-center gap-2 text-sm flex-wrap">
+                  <Link 
+                    href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, data.contractMetadata.deploymentDetails.deployerAddress)}
+                    className="hover:underline"
+                    style={{ color: themeColor }}
+                  >
+                    {formatAddressShort(data.contractMetadata.deploymentDetails.deployerAddress)}
+                  </Link>
+                  <CopyButton text={data.contractMetadata.deploymentDetails.deployerAddress} />
+                  {data.contractMetadata.deploymentDetails.txHash && (
+                    <>
+                      <span className="text-zinc-400">at txn</span>
+                      <Link 
+                        href={buildTxUrl(`/stats/l1/${chainSlug}/explorer`, data.contractMetadata.deploymentDetails.txHash)}
+                        className="hover:underline font-mono"
+                        style={{ color: themeColor }}
+                      >
+                        {formatAddressShort(data.contractMetadata.deploymentDetails.txHash)}
+                      </Link>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Private Name Tags */}
+            <div className="mb-4">
+              <div className="text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mb-2">
+                PRIVATE NAME TAGS
+              </div>
+              
+              {/* Display existing tags */}
+              {privateTags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {privateTags.map((tag, idx) => (
+                    <span 
+                      key={idx} 
+                      className="inline-flex items-center gap-1.5 px-3 py-1 text-sm rounded-md bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400"
+                    >
+                      {tag}
+                      <button 
+                        onClick={() => removePrivateTag(tag)}
+                        className="hover:text-blue-900 dark:hover:text-blue-200 text-base leading-none"
+                        title="Remove tag"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              
+              {/* Add tag input */}
+              {showAddTag ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newTagInput}
+                    onChange={(e) => setNewTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') addPrivateTag();
+                      if (e.key === 'Escape') {
+                        setShowAddTag(false);
+                        setNewTagInput('');
+                      }
+                    }}
+                    placeholder="Enter tag name..."
+                    className="flex-1 h-8 px-3 text-sm bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-zinc-900 dark:text-white"
+                    autoFocus
+                  />
+                  <button 
+                    onClick={addPrivateTag}
+                    className="h-8 px-3 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+                  >
+                    Add
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setShowAddTag(false);
+                      setNewTagInput('');
+                    }}
+                    className="h-8 px-3 text-sm font-medium text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => setShowAddTag(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                >
+                  + Add
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Multichain Info Panel */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5">
+            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-4">Multichain Info</h3>
+            
+            {/* Multichain Portfolio value - hidden for now */}
+            {/* <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg px-3 py-2 mb-4">
+              <Wallet className="w-4 h-4 text-zinc-400" />
+              <span className="text-zinc-900 dark:text-white font-medium">
+                {formatUsd(data?.totalValueUsd)} <span className="text-zinc-500 dark:text-zinc-400 text-sm">(Multichain Portfolio)</span>
+              </span>
+            </div> */}
+
+            {/* Address Chains */}
+            {data?.addressChains && data.addressChains.length > 0 ? (
+              <div className="space-y-2">
+                <div className="text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mb-2">
+                  ACTIVE ON {data.addressChains.length} CHAIN{data.addressChains.length > 1 ? 'S' : ''}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {data.addressChains.map((chain) => (
+                    <div 
+                      key={chain.chainId}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg"
+                    >
+                      {chain.chainLogoUri ? (
+                        <img src={chain.chainLogoUri} alt="" className="w-5 h-5 rounded-full" />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+                      )}
+                      <span className="text-sm text-zinc-700 dark:text-zinc-300">{chain.chainName}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-zinc-500 dark:text-zinc-400 text-sm">
+                No multichain activity found
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs - Outside Container */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="flex items-center gap-2 mb-4">
+          {tabs.map((tab) => (
+            <Link
+              key={tab.id}
+              href={tab.id === 'transactions' ? '#' : `#${tab.id}`}
+              onClick={(e) => {
+                e.preventDefault();
+                handleTabChange(tab.id);
+              }}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+              }`}
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Transaction Table Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+          {/* Table */}
+          <div className="overflow-x-auto relative">
+            {txLoading && (
+              <div className="absolute inset-0 bg-white/50 dark:bg-zinc-900/50 flex items-center justify-center z-10">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: themeColor }}></div>
+              </div>
+            )}
+            
+            {/* Native Transactions Tab */}
+            {activeTab === 'transactions' && (
+              <>
+                <table className="w-full">
+                  <thead className="bg-[#fcfcfd] dark:bg-neutral-900 border-b border-zinc-100 dark:border-zinc-800">
+                    <tr>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Txn Hash</span></th>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Method</span></th>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Block</span></th>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">From</span></th>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">To</span></th>
+                      <th className="px-4 py-2 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Amount</span></th>
+                      <th className="px-4 py-2 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Txn Fee</span></th>
+                      <th className="px-4 py-2 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Age</span></th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-neutral-950">
+                    {data?.transactions.map((tx, index) => {
+                      const methodName = tx.method || 'Transfer';
+                      const truncatedMethod = methodName.length > 12 ? methodName.slice(0, 12) + '...' : methodName;
+                      return (
+                        <tr key={tx.hash || index} className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50">
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <div className="flex items-center gap-1.5">
+                              <Link href={buildTxUrl(`/stats/l1/${chainSlug}/explorer`, tx.hash)} className="font-mono text-sm hover:underline" style={{ color: themeColor }}>{formatAddressShort(tx.hash)}</Link>
+                              <CopyButton text={tx.hash} />
+                            </div>
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <span className="px-2 py-1 text-xs font-mono rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700" title={methodName}>{truncatedMethod}</span>
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <Link href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, tx.blockNumber)} className="text-sm hover:underline" style={{ color: themeColor }}>{tx.blockNumber}</Link>
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <div className="flex items-center gap-1.5">
+                              <Link href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.from)} className="font-mono text-sm hover:underline" style={{ color: themeColor }}>{formatAddressShort(tx.from)}</Link>
+                              <CopyButton text={tx.from} />
+                            </div>
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <div className="flex items-center gap-1.5">
+                              {tx.to ? (<><Link href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.to)} className="font-mono text-sm hover:underline" style={{ color: themeColor }}>{formatAddressShort(tx.to)}</Link><CopyButton text={tx.to} /></>) : (<span className="text-neutral-400 text-sm">Contract Creation</span>)}
+                            </div>
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right"><span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{formatValue(tx.value)} {data?.nativeBalance.symbol}</span></td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right"><span className="text-sm font-medium text-neutral-500 dark:text-neutral-400">{formatTxFee(tx.gasPrice, tx.gasUsed)}</span></td>
+                          <td className="px-4 py-2 text-right text-sm text-neutral-500 dark:text-neutral-400">{formatTimestamp(tx.timestamp)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {(!data?.transactions || data.transactions.length === 0) && (
+                  <div className="p-8 text-center"><p className="text-zinc-500 dark:text-zinc-400">No transactions found.</p></div>
+                )}
+              </>
+            )}
+
+            {/* ERC20 Transfers Tab */}
+            {activeTab === 'erc20' && (
+              <>
+                <table className="w-full">
+                  <thead className="bg-[#fcfcfd] dark:bg-neutral-900 border-b border-zinc-100 dark:border-zinc-800">
+                    <tr>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Txn Hash</span></th>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Block</span></th>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">From</span></th>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">To</span></th>
+                      <th className="px-4 py-2 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Value</span></th>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Token</span></th>
+                      <th className="px-4 py-2 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Age</span></th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-neutral-950">
+                    {data?.erc20Transfers?.map((transfer, index) => (
+                      <tr key={`${transfer.txHash}-${transfer.logIndex}`} className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50">
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <div className="flex items-center gap-1.5">
+                            <Link href={buildTxUrl(`/stats/l1/${chainSlug}/explorer`, transfer.txHash)} className="font-mono text-sm hover:underline" style={{ color: themeColor }}>{formatAddressShort(transfer.txHash)}</Link>
+                            <CopyButton text={transfer.txHash} />
+                          </div>
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <Link href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, transfer.blockNumber)} className="text-sm hover:underline" style={{ color: themeColor }}>{transfer.blockNumber}</Link>
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <div className="flex items-center gap-1.5">
+                            <Link href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.from)} className="font-mono text-sm hover:underline" style={{ color: themeColor }}>{formatAddressShort(transfer.from)}</Link>
+                            <CopyButton text={transfer.from} />
+                          </div>
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <div className="flex items-center gap-1.5">
+                            <Link href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.to)} className="font-mono text-sm hover:underline" style={{ color: themeColor }}>{formatAddressShort(transfer.to)}</Link>
+                            <CopyButton text={transfer.to} />
+                          </div>
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right">
+                          <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{formatBalance(transfer.value, transfer.tokenDecimals)}</span>
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <div className="flex items-center gap-2">
+                            {transfer.tokenLogo && <img src={transfer.tokenLogo} alt="" className="w-4 h-4 rounded-full" />}
+                            <Link href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.tokenAddress)} className="text-sm hover:underline text-neutral-900 dark:text-neutral-100">{transfer.tokenSymbol}</Link>
+                          </div>
+                        </td>
+                        <td className="px-4 py-2 text-right text-sm text-neutral-500 dark:text-neutral-400">{formatTimestamp(transfer.timestamp)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {(!data?.erc20Transfers || data.erc20Transfers.length === 0) && (
+                  <div className="p-8 text-center"><p className="text-zinc-500 dark:text-zinc-400">No ERC-20 transfers found.</p></div>
+                )}
+              </>
+            )}
+
+            {/* NFT Transfers Tab */}
+            {activeTab === 'nft' && (
+              <>
+                <table className="w-full">
+                  <thead className="bg-[#fcfcfd] dark:bg-neutral-900 border-b border-zinc-100 dark:border-zinc-800">
+                    <tr>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Txn Hash</span></th>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Block</span></th>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">From</span></th>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">To</span></th>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Token</span></th>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Token ID</span></th>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Type</span></th>
+                      <th className="px-4 py-2 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Age</span></th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-neutral-950">
+                    {data?.nftTransfers?.map((transfer, index) => (
+                      <tr key={`${transfer.txHash}-${transfer.logIndex}`} className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50">
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <div className="flex items-center gap-1.5">
+                            <Link href={buildTxUrl(`/stats/l1/${chainSlug}/explorer`, transfer.txHash)} className="font-mono text-sm hover:underline" style={{ color: themeColor }}>{formatAddressShort(transfer.txHash)}</Link>
+                            <CopyButton text={transfer.txHash} />
+                          </div>
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <Link href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, transfer.blockNumber)} className="text-sm hover:underline" style={{ color: themeColor }}>{transfer.blockNumber}</Link>
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <div className="flex items-center gap-1.5">
+                            <Link href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.from)} className="font-mono text-sm hover:underline" style={{ color: themeColor }}>{formatAddressShort(transfer.from)}</Link>
+                            <CopyButton text={transfer.from} />
+                          </div>
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <div className="flex items-center gap-1.5">
+                            <Link href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.to)} className="font-mono text-sm hover:underline" style={{ color: themeColor }}>{formatAddressShort(transfer.to)}</Link>
+                            <CopyButton text={transfer.to} />
+                          </div>
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <Link href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.tokenAddress)} className="text-sm hover:underline text-neutral-900 dark:text-neutral-100">{transfer.tokenName || transfer.tokenSymbol || 'Unknown'}</Link>
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <span className="text-sm font-mono text-neutral-600 dark:text-neutral-400">#{transfer.tokenId.length > 10 ? transfer.tokenId.slice(0, 10) + '...' : transfer.tokenId}</span>
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <span className={`px-2 py-0.5 text-xs rounded ${transfer.tokenType === 'ERC-721' ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'}`}>{transfer.tokenType}</span>
+                        </td>
+                        <td className="px-4 py-2 text-right text-sm text-neutral-500 dark:text-neutral-400">{formatTimestamp(transfer.timestamp)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {(!data?.nftTransfers || data.nftTransfers.length === 0) && (
+                  <div className="p-8 text-center"><p className="text-zinc-500 dark:text-zinc-400">No NFT transfers found.</p></div>
+                )}
+              </>
+            )}
+
+            {/* Internal Transactions Tab */}
+            {activeTab === 'internal' && (
+              <>
+                <table className="w-full">
+                  <thead className="bg-[#fcfcfd] dark:bg-neutral-900 border-b border-zinc-100 dark:border-zinc-800">
+                    <tr>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Parent Txn Hash</span></th>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Block</span></th>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">From</span></th>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">To</span></th>
+                      <th className="px-4 py-2 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Value</span></th>
+                      <th className="px-4 py-2 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Type</span></th>
+                      <th className="px-4 py-2 text-center"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Status</span></th>
+                      <th className="px-4 py-2 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Age</span></th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-neutral-950">
+                    {data?.internalTransactions?.map((itx, index) => (
+                      <tr key={`${itx.txHash}-${index}`} className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50">
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <div className="flex items-center gap-1.5">
+                            <Link href={buildTxUrl(`/stats/l1/${chainSlug}/explorer`, itx.txHash)} className="font-mono text-sm hover:underline" style={{ color: themeColor }}>{formatAddressShort(itx.txHash)}</Link>
+                            <CopyButton text={itx.txHash} />
+                          </div>
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <Link href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, itx.blockNumber)} className="text-sm hover:underline" style={{ color: themeColor }}>{itx.blockNumber}</Link>
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <div className="flex items-center gap-1.5">
+                            <Link href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, itx.from)} className="font-mono text-sm hover:underline" style={{ color: themeColor }}>{formatAddressShort(itx.from)}</Link>
+                            <CopyButton text={itx.from} />
+                          </div>
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <div className="flex items-center gap-1.5">
+                            <Link href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, itx.to)} className="font-mono text-sm hover:underline" style={{ color: themeColor }}>{formatAddressShort(itx.to)}</Link>
+                            <CopyButton text={itx.to} />
+                          </div>
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right">
+                          <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{formatValue(itx.value)} {data?.nativeBalance.symbol}</span>
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <span className="px-2 py-0.5 text-xs rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">{itx.txType}</span>
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-center">
+                          {itx.isReverted ? (
+                            <span className="px-2 py-0.5 text-xs rounded bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400">Reverted</span>
+                          ) : (
+                            <span className="px-2 py-0.5 text-xs rounded bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400">Success</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-right text-sm text-neutral-500 dark:text-neutral-400">{formatTimestamp(itx.timestamp)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {(!data?.internalTransactions || data.internalTransactions.length === 0) && (
+                  <div className="p-8 text-center"><p className="text-zinc-500 dark:text-zinc-400">No internal transactions found.</p></div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Pagination - Only show for transactions tab */}
+          {activeTab === 'transactions' && (pageTokens.length > 0 || data?.nextPageToken) && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-200 dark:border-zinc-800 bg-[#fcfcfd] dark:bg-neutral-900">
+              <div className="text-sm text-zinc-500 dark:text-zinc-400">
+                Page {pageTokens.length + 1}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handlePrevPage}
+                  disabled={pageTokens.length === 0 || txLoading}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </button>
+                <button
+                  onClick={handleNextPage}
+                  disabled={!data?.nextPageToken || txLoading}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} />
+    </div>
+  );
+}

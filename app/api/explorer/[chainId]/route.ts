@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Avalanche } from "@avalanche-sdk/chainkit";
 import l1ChainsData from "@/constants/l1-chains.json";
+
+// Initialize Avalanche SDK
+const avalanche = new Avalanche({
+  network: "mainnet",
+});
 
 interface Block {
   number: string;
@@ -443,8 +449,8 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     .slice(0, 10)
     .map(tx => ({
       hash: tx.hash,
-      from: shortenAddress(tx.from),
-      to: shortenAddress(tx.to),
+      from: tx.from, // Keep full address for linking
+      to: tx.to, // Keep full address for linking
       value: formatValue(tx.value || "0x0"),
       blockNumber: hexToNumber(tx.blockNumber).toString(),
       timestamp: formatTimestamp(tx.blockTimestamp),
@@ -521,6 +527,20 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
   };
 }
 
+// Check if Glacier supports this chain
+async function checkGlacierSupport(chainId: string): Promise<boolean> {
+  try {
+    const result = await avalanche.data.evm.chains.get({
+      chainId: chainId,
+    });
+    // If we get a result with a chainId, the chain is supported
+    return !!result?.chainId;
+  } catch (error) {
+    // Chain not supported by Glacier
+    return false;
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ chainId: string }> }
@@ -545,13 +565,19 @@ export async function GET(
       return NextResponse.json(cached.data);
     }
 
-    // Fetch fresh data (chainId is also the evmChainId)
-    const data = await fetchExplorerData(chainId, chainId, rpcUrl, chain.coingeckoId, chain.tokenSymbol);
+    // Fetch fresh data and check Glacier support in parallel
+    const [data, glacierSupported] = await Promise.all([
+      fetchExplorerData(chainId, chainId, rpcUrl, chain.coingeckoId, chain.tokenSymbol),
+      checkGlacierSupport(chainId),
+    ]);
+
+    // Add glacierSupported to the response
+    const responseData = { ...data, glacierSupported };
 
     // Update cache
-    cache.set(chainId, { data, timestamp: Date.now() });
+    cache.set(chainId, { data: responseData, timestamp: Date.now() });
 
-    return NextResponse.json(data);
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error("Explorer API error:", error);
     return NextResponse.json(

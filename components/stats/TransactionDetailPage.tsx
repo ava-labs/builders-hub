@@ -7,7 +7,8 @@ import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { DetailRow, CopyButton } from "@/components/stats/DetailRow";
 import Link from "next/link";
-import { buildBlockUrl, buildTxUrl } from "@/utils/eip3091";
+import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
+import { useExplorer } from "@/components/stats/ExplorerContext";
 
 interface TransactionDetail {
   hash: string;
@@ -61,6 +62,7 @@ interface TransactionDetailPageProps {
     twitter?: string;
     linkedin?: string;
   };
+  rpcUrl?: string;
 }
 
 function formatTimestamp(timestamp: string): string {
@@ -177,31 +179,15 @@ export default function TransactionDetailPage({
   description,
   website,
   socials,
+  rpcUrl,
 }: TransactionDetailPageProps) {
+  // Get token data from shared context
+  const { tokenSymbol, tokenPrice, glacierSupported } = useExplorer();
+  
   const [tx, setTx] = useState<TransactionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showMore, setShowMore] = useState(false);
-  const [tokenSymbol, setTokenSymbol] = useState<string | undefined>(nativeToken);
-  const [tokenPrice, setTokenPrice] = useState<number | null>(null);
-  
-  // Fetch token symbol and price from explorer API
-  useEffect(() => {
-    const fetchTokenData = async () => {
-      try {
-        const response = await fetch(`/api/explorer/${chainId}`);
-        if (response.ok) {
-          const data = await response.json();
-          const symbol = data?.tokenSymbol || data?.price?.symbol || nativeToken;
-          if (symbol) setTokenSymbol(symbol);
-          if (data?.price?.price) setTokenPrice(data.price.price);
-        }
-      } catch (err) {
-        console.error("Error fetching token data:", err);
-      }
-    };
-    fetchTokenData();
-  }, [chainId, nativeToken]);
   
   // Read initial tab from URL hash
   const getInitialTab = (): 'overview' | 'logs' => {
@@ -301,7 +287,7 @@ export default function TransactionDetailPage({
             </div>
           </div>
         </div>
-        <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} />
+        <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} />
       </div>
     );
   }
@@ -372,7 +358,7 @@ export default function TransactionDetailPage({
             <Button onClick={fetchTransaction}>Retry</Button>
           </div>
         </div>
-        <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} />
+        <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} />
       </div>
     );
   }
@@ -503,6 +489,25 @@ export default function TransactionDetailPage({
         </div>
       </div>
 
+      {/* Glacier Support Warning Banner */}
+      {!glacierSupported && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <svg className="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                <span className="font-medium">Indexing support is not available for this chain.</span>{' '}
+                Some functionalities like address portfolios, token transfers, and detailed transaction history may not be available.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Transaction Details Title */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-4">
         <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
@@ -613,9 +618,17 @@ export default function TransactionDetailPage({
               label="From"
               themeColor={themeColor}
               value={
-                <span className="text-sm font-mono break-all" style={{ color: themeColor }}>
-                  {tx?.from || '-'}
-                </span>
+                tx?.from ? (
+                  <Link
+                    href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.from)}
+                    className="text-sm font-mono break-all hover:underline"
+                    style={{ color: themeColor }}
+                  >
+                    {tx.from}
+                  </Link>
+                ) : (
+                  <span className="text-sm font-mono">-</span>
+                )
               }
               copyValue={tx?.from}
             />
@@ -627,15 +640,23 @@ export default function TransactionDetailPage({
               themeColor={themeColor}
               value={
                 tx?.to ? (
-                  <span className="text-sm font-mono break-all" style={{ color: themeColor }}>
+                  <Link
+                    href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.to)}
+                    className="text-sm font-mono break-all hover:underline"
+                    style={{ color: themeColor }}
+                  >
                     {tx.to}
-                  </span>
+                  </Link>
                 ) : tx?.contractAddress ? (
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-zinc-500">[Contract Created]</span>
-                    <span className="text-sm font-mono" style={{ color: themeColor }}>
+                    <Link
+                      href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.contractAddress)}
+                      className="text-sm font-mono hover:underline"
+                      style={{ color: themeColor }}
+                    >
                       {tx.contractAddress}
-                    </span>
+                    </Link>
                   </div>
                 ) : (
                   <span className="text-sm text-zinc-500">-</span>
@@ -670,26 +691,35 @@ export default function TransactionDetailPage({
                       <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-zinc-500">From</span>
-                          <span className="font-mono text-xs" style={{ color: themeColor }}>
+                          <Link 
+                            href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.from)}
+                            className="font-mono text-xs hover:underline" 
+                            style={{ color: themeColor }}
+                          >
                             {formatAddress(transfer.from)}
-                          </span>
+                          </Link>
                           <span className="text-zinc-400">→</span>
                           <span className="text-zinc-500">To</span>
-                          <span className="font-mono text-xs" style={{ color: themeColor }}>
+                          <Link 
+                            href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.to)}
+                            className="font-mono text-xs hover:underline" 
+                            style={{ color: themeColor }}
+                          >
                             {formatAddress(transfer.to)}
-                          </span>
+                          </Link>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-zinc-500">For</span>
                           <span className="font-semibold text-zinc-900 dark:text-white">
                             {transfer.formattedValue}
                           </span>
-                          <span 
-                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                          <Link 
+                            href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.tokenAddress)}
+                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:underline"
                             style={{ backgroundColor: `${themeColor}20`, color: themeColor }}
                           >
                             {transfer.tokenSymbol}
-                          </span>
+                          </Link>
                         </div>
                       </div>
                     ))}
@@ -975,7 +1005,7 @@ export default function TransactionDetailPage({
         </div>
       </div>
 
-      <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} />
+      <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} />
     </div>
   );
 }

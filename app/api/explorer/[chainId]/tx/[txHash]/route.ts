@@ -258,27 +258,30 @@ export async function GET(
   try {
     const rpcUrl = chain.rpcUrl;
 
-    // Use eth_getTransactionReceipt as the primary method (more widely available)
-    const receipt = await fetchFromRPC(rpcUrl, 'eth_getTransactionReceipt', [txHash]) as RpcReceipt | null;
+    // Fetch receipt and transaction in parallel for better performance
+    const [receiptResult, txResult] = await Promise.allSettled([
+      fetchFromRPC(rpcUrl, 'eth_getTransactionReceipt', [txHash]),
+      fetchFromRPC(rpcUrl, 'eth_getTransactionByHash', [txHash]),
+    ]);
+
+    const receipt = receiptResult.status === 'fulfilled' ? receiptResult.value as RpcReceipt | null : null;
+    const tx = txResult.status === 'fulfilled' ? txResult.value as RpcTransaction | null : null;
 
     if (!receipt) {
       return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
     }
 
-    // Try to get full transaction details (may not be available on all RPCs)
-    let tx: RpcTransaction | null = null;
-    try {
-      tx = await fetchFromRPC(rpcUrl, 'eth_getTransactionByHash', [txHash]) as RpcTransaction | null;
-    } catch {
-      // eth_getTransactionByHash not available, continue with receipt only
-      console.log('eth_getTransactionByHash not available, using receipt only');
+    // Log if transaction fetch failed but continue with receipt
+    if (txResult.status === 'rejected') {
+      console.log(`eth_getTransactionByHash failed for ${txHash}, using receipt only:`, txResult.reason);
     }
 
-    // Fetch block for timestamp
+    // Fetch block for timestamp (use tx blockNumber if receipt doesn't have it, though receipt should always have it)
     let timestamp = null;
-    if (receipt.blockNumber) {
+    const blockNumberForTimestamp = receipt.blockNumber || tx?.blockNumber;
+    if (blockNumberForTimestamp) {
       try {
-        const block = await fetchFromRPC(rpcUrl, 'eth_getBlockByNumber', [receipt.blockNumber, false]) as RpcBlock | null;
+        const block = await fetchFromRPC(rpcUrl, 'eth_getBlockByNumber', [blockNumberForTimestamp, false]) as RpcBlock | null;
         if (block) {
           timestamp = hexToTimestamp(block.timestamp);
         }
@@ -291,7 +294,10 @@ export async function GET(
     let confirmations = 0;
     try {
       const latestBlock = await fetchFromRPC(rpcUrl, 'eth_blockNumber', []) as string;
-      confirmations = receipt.blockNumber ? parseInt(latestBlock, 16) - parseInt(receipt.blockNumber, 16) : 0;
+      const txBlockNumber = receipt.blockNumber || tx?.blockNumber;
+      if (txBlockNumber) {
+        confirmations = Math.max(0, parseInt(latestBlock, 16) - parseInt(txBlockNumber, 16));
+      }
     } catch {
       // Block number fetch failed
     }
@@ -347,26 +353,45 @@ export async function GET(
 
     // Calculate transaction fee using receipt data
     const gasUsed = formatHexToNumber(receipt.gasUsed);
+    // Prefer effectiveGasPrice from receipt (more accurate for EIP-1559), fallback to tx gasPrice
     const effectiveGasPrice = receipt.effectiveGasPrice || tx?.gasPrice || '0x0';
     const txFee = effectiveGasPrice !== '0x0'
       ? (BigInt(receipt.gasUsed) * BigInt(effectiveGasPrice)).toString()
       : '0';
 
-    // Build response using receipt data primarily, supplement with tx data if available
+    // Use transaction fields when available, fallback to receipt fields
+    // Transaction object has more complete data, so prefer it when available
+    const transactionIndex = tx?.transactionIndex 
+      ? formatHexToNumber(tx.transactionIndex) 
+      : receipt.transactionIndex 
+        ? formatHexToNumber(receipt.transactionIndex) 
+        : null;
+    
+    const blockNumber = tx?.blockNumber 
+      ? formatHexToNumber(tx.blockNumber) 
+      : receipt.blockNumber 
+        ? formatHexToNumber(receipt.blockNumber) 
+        : null;
+    
+    const blockHash = tx?.blockHash || receipt.blockHash || null;
+    const from = tx?.from || receipt.from;
+    const to = tx?.to !== undefined ? tx.to : receipt.to;
+
+    // Build response using transaction data when available, supplement with receipt data
     const formattedTx = {
-      hash: receipt.transactionHash,
+      hash: tx?.hash || receipt.transactionHash,
       status: receipt.status === '0x1' ? 'success' : 'failed',
-      blockNumber: receipt.blockNumber ? formatHexToNumber(receipt.blockNumber) : null,
-      blockHash: receipt.blockHash,
+      blockNumber,
+      blockHash,
       timestamp,
       confirmations,
-      from: receipt.from,
-      to: receipt.to,
+      from,
+      to,
       contractAddress: receipt.contractAddress || null,
       // Value only available from tx, default to 0 if not available
       value: tx?.value ? formatWeiToEther(tx.value) : '0',
       valueWei: tx?.value || '0x0',
-      // Gas price from receipt's effectiveGasPrice or tx's gasPrice
+      // Gas price: prefer receipt's effectiveGasPrice (accurate for EIP-1559), fallback to tx's gasPrice
       gasPrice: effectiveGasPrice !== '0x0' ? formatGwei(effectiveGasPrice) : 'N/A',
       gasPriceWei: effectiveGasPrice,
       // Gas limit only from tx
@@ -376,12 +401,14 @@ export async function GET(
       txFeeWei: txFee,
       // Nonce only from tx
       nonce: tx?.nonce ? formatHexToNumber(tx.nonce) : 'N/A',
-      transactionIndex: receipt.transactionIndex ? formatHexToNumber(receipt.transactionIndex) : null,
+      transactionIndex,
       // Input only from tx
       input: tx?.input || '0x',
       decodedInput,
       transfers,
-      type: tx?.type ? parseInt(tx.type, 16) : 0,
+      // Transaction type: parse hex string to number
+      type: tx?.type ? (typeof tx.type === 'string' ? parseInt(tx.type, 16) : tx.type) : 0,
+      // EIP-1559 fields only from tx
       maxFeePerGas: tx?.maxFeePerGas ? formatGwei(tx.maxFeePerGas) : null,
       maxPriorityFeePerGas: tx?.maxPriorityFeePerGas ? formatGwei(tx.maxPriorityFeePerGas) : null,
       logs: receipt.logs || [],

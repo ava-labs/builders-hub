@@ -73,6 +73,7 @@ interface ChainMetricsPageProps {
     twitter?: string;
     linkedin?: string;
   };
+  rpcUrl?: string;
 }
 
 export default function ChainMetricsPage({
@@ -84,6 +85,7 @@ export default function ChainMetricsPage({
   chainLogoURI,
   website,
   socials,
+  rpcUrl,
 }: ChainMetricsPageProps) {
   const [metrics, setMetrics] = useState<CChainMetrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -593,7 +595,7 @@ export default function ChainMetricsPage({
           </section>
         </div>
         {chainSlug ? (
-          <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} />
+          <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} />
         ) : (
           <StatsBubbleNav />
         )}
@@ -615,7 +617,7 @@ export default function ChainMetricsPage({
           </div>
         </div>
         {chainSlug ? (
-          <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} />
+          <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} />
         ) : (
           <StatsBubbleNav />
         )}
@@ -1072,7 +1074,7 @@ export default function ChainMetricsPage({
 
       {/* Bubble Navigation */}
       {chainSlug ? (
-        <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} />
+        <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} />
       ) : (
         <StatsBubbleNav />
       )}

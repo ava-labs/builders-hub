@@ -3,6 +3,8 @@ import ChainMetricsPage from "@/components/stats/ChainMetricsPage";
 import L1ExplorerPage from "@/components/stats/L1ExplorerPage";
 import BlockDetailPage from "@/components/stats/BlockDetailPage";
 import TransactionDetailPage from "@/components/stats/TransactionDetailPage";
+import AddressDetailPage from "@/components/stats/AddressDetailPage";
+import { ExplorerProvider } from "@/components/stats/ExplorerContext";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { Metadata } from "next";
 import { L1Chain } from "@/types/stats";
@@ -18,8 +20,10 @@ export async function generateMetadata({
   const isExplorer = slugArray[1] === "explorer";
   const isBlock = slugArray[2] === "block";
   const isTx = slugArray[2] === "tx";
+  const isAddress = slugArray[2] === "address";
   const blockNumber = isBlock ? slugArray[3] : undefined;
   const txHash = isTx ? slugArray[3] : undefined;
+  const address = isAddress ? slugArray[3] : undefined;
   
   const currentChain = l1ChainsData.find((c) => c.slug === chainSlug) as L1Chain;
 
@@ -29,7 +33,12 @@ export async function generateMetadata({
   let description = `Track ${currentChain.chainName} L1 activity with real-time metrics including active addresses, transactions, gas usage, fees, and network performance data.`;
   let url = `/stats/l1/${chainSlug}`;
 
-  if (isExplorer && isTx && txHash) {
+  if (isExplorer && isAddress && address) {
+    const shortAddress = `${address.slice(0, 10)}...${address.slice(-8)}`;
+    title = `Address ${shortAddress} | ${currentChain.chainName} Explorer`;
+    description = `View address details on ${currentChain.chainName} - balance, tokens, transactions, and more.`;
+    url = `/stats/l1/${chainSlug}/explorer/address/${address}`;
+  } else if (isExplorer && isTx && txHash) {
     const shortHash = `${txHash.slice(0, 10)}...${txHash.slice(-8)}`;
     title = `Transaction ${shortHash} | ${currentChain.chainName} Explorer`;
     description = `View transaction details on ${currentChain.chainName} - status, value, gas, and more.`;
@@ -79,8 +88,10 @@ export default async function L1Page({
   const isExplorer = slugArray[1] === "explorer";
   const isBlock = slugArray[2] === "block";
   const isTx = slugArray[2] === "tx";
+  const isAddress = slugArray[2] === "address";
   const blockNumber = isBlock ? slugArray[3] : undefined;
   const txHash = isTx ? slugArray[3] : undefined;
+  const address = isAddress ? slugArray[3] : undefined;
 
   if (!chainSlug) { notFound(); }
 
@@ -88,56 +99,53 @@ export default async function L1Page({
 
   if (!currentChain) { notFound(); }
 
-  // Transaction detail page: /stats/l1/{chainSlug}/explorer/tx/{txHash}
-  if (isExplorer && isTx && txHash) {
-    return (
-      <TransactionDetailPage
-        chainId={currentChain.chainId}
-        chainName={currentChain.chainName}
-        chainSlug={currentChain.slug}
-        txHash={txHash}
-        themeColor={currentChain.color || "#E57373"}
-        chainLogoURI={currentChain.chainLogoURI}
-        nativeToken={currentChain.tokenSymbol}
-        description={currentChain.description}
-        website={currentChain.website}
-        socials={currentChain.socials}
-      />
-    );
-  }
-
-  // Block detail page: /stats/l1/{chainSlug}/explorer/block/{blockNumber}
-  if (isExplorer && isBlock && blockNumber) {
-    return (
-      <BlockDetailPage
-        chainId={currentChain.chainId}
-        chainName={currentChain.chainName}
-        chainSlug={currentChain.slug}
-        blockNumber={blockNumber}
-        themeColor={currentChain.color || "#E57373"}
-        chainLogoURI={currentChain.chainLogoURI}
-        nativeToken={currentChain.tokenSymbol}
-        description={currentChain.description}
-        website={currentChain.website}
-        socials={currentChain.socials}
-      />
-    );
-  }
-
-  // Explorer page: /stats/l1/{chainSlug}/explorer
+  // All explorer pages wrapped with ExplorerProvider
   if (isExplorer) {
+    const explorerProps = {
+      chainId: currentChain.chainId,
+      chainName: currentChain.chainName,
+      chainSlug: currentChain.slug,
+      themeColor: currentChain.color || "#E57373",
+      chainLogoURI: currentChain.chainLogoURI,
+      nativeToken: currentChain.tokenSymbol,
+      description: currentChain.description,
+      website: currentChain.website,
+      socials: currentChain.socials,
+      rpcUrl: currentChain.rpcUrl,
+    };
+
+    // Address detail page: /stats/l1/{chainSlug}/explorer/address/{address}
+    if (isAddress && address) {
+      return (
+        <ExplorerProvider {...explorerProps}>
+          <AddressDetailPage {...explorerProps} address={address} />
+        </ExplorerProvider>
+      );
+    }
+
+    // Transaction detail page: /stats/l1/{chainSlug}/explorer/tx/{txHash}
+    if (isTx && txHash) {
+      return (
+        <ExplorerProvider {...explorerProps}>
+          <TransactionDetailPage {...explorerProps} txHash={txHash} />
+        </ExplorerProvider>
+      );
+    }
+
+    // Block detail page: /stats/l1/{chainSlug}/explorer/block/{blockNumber}
+    if (isBlock && blockNumber) {
+      return (
+        <ExplorerProvider {...explorerProps}>
+          <BlockDetailPage {...explorerProps} blockNumber={blockNumber} />
+        </ExplorerProvider>
+      );
+    }
+
+    // Explorer home page: /stats/l1/{chainSlug}/explorer
     return (
-      <L1ExplorerPage
-        chainId={currentChain.chainId}
-        chainName={currentChain.chainName}
-        chainSlug={currentChain.slug}
-        themeColor={currentChain.color || "#E57373"}
-        chainLogoURI={currentChain.chainLogoURI}
-        nativeToken={currentChain.tokenSymbol}
-        description={currentChain.description}
-        website={currentChain.website}
-        socials={currentChain.socials}
-      />
+      <ExplorerProvider {...explorerProps}>
+        <L1ExplorerPage {...explorerProps} />
+      </ExplorerProvider>
     );
   }
 
@@ -155,6 +163,7 @@ export default async function L1Page({
       chainLogoURI={currentChain.chainLogoURI}
       website={currentChain.website}
       socials={currentChain.socials}
+      rpcUrl={currentChain.rpcUrl}
     />
   );
 }
