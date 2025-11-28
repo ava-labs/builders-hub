@@ -5,10 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
-import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
-import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 
 interface TimeSeriesDataPoint {
@@ -60,35 +58,26 @@ interface CChainMetrics {
 }
 
 interface ChainMetricsPageProps {
-  chainId?: string;
-  chainName?: string;
-  description?: string;
-  themeColor?: string;
-  chainLogoURI?: string;
-  website?: string;
-  socials?: {
-    twitter?: string;
-    linkedin?: string;
-  };
+  chain: L1Chain;
 }
 
-export default function ChainMetricsPage({
-  chainId = "43114",
-  chainName = "Avalanche C-Chain",
-  description = "Real-time metrics and analytics for the Avalanche C-Chain",
-  themeColor = "#E57373",
-  chainLogoURI,
-  website,
-  socials,
-}: ChainMetricsPageProps) {
+export default function ChainMetricsPage({ chain }: ChainMetricsPageProps) {
   const [metrics, setMetrics] = useState<CChainMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Find the current chain to get explorers
-  const currentChain = useMemo(() => {
-    return l1ChainsData.find((chain) => chain.chainId === chainId) as L1Chain | undefined;
-  }, [chainId]);
+  // Destructure chain properties for cleaner code
+  const {
+    chainId,
+    chainName,
+    chainLogoURI,
+    color: themeColor = "#E57373",
+    description = `Real-time insights into ${chainName} L1 activity and network usage`,
+    website,
+    socials,
+    category,
+    explorers
+  } = chain;
 
   const fetchData = async () => {
     try {
@@ -658,7 +647,7 @@ export default function ChainMetricsPage({
                     {description}
                   </p>
                 </div>
-                {currentChain?.category && (
+                {category && (
                   <div className="mt-3">
                     <span 
                       className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
@@ -667,7 +656,7 @@ export default function ChainMetricsPage({
                         color: themeColor,
                       }}
                     >
-                      {currentChain.category}
+                      {category}
                     </span>
                   </div>
                 )}
@@ -693,9 +682,9 @@ export default function ChainMetricsPage({
                   )}
                   
                   {/* Social buttons */}
-                  {currentChain?.socials && (currentChain.socials.twitter || currentChain.socials.linkedin) && (
+                  {socials && (socials.twitter || socials.linkedin) && (
                     <>
-                      {currentChain.socials.twitter && (
+                      {socials.twitter && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -703,7 +692,7 @@ export default function ChainMetricsPage({
                           className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
                         >
                           <a 
-                            href={`https://x.com/${currentChain.socials.twitter}`} 
+                            href={`https://x.com/${socials.twitter}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             aria-label="Twitter"
@@ -712,7 +701,7 @@ export default function ChainMetricsPage({
                           </a>
                         </Button>
                       )}
-                      {currentChain.socials.linkedin && (
+                      {socials.linkedin && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -720,7 +709,7 @@ export default function ChainMetricsPage({
                           className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
                         >
                           <a 
-                            href={`https://linkedin.com/company/${currentChain.socials.linkedin}`} 
+                            href={`https://linkedin.com/company/${socials.linkedin}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             aria-label="LinkedIn"
@@ -732,10 +721,10 @@ export default function ChainMetricsPage({
                     </>
                   )}
                   
-                  {currentChain?.explorers && (
+                  {explorers && (
                     <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
                       <ExplorerDropdown
-                        explorers={currentChain.explorers}
+                        explorers={explorers}
                         variant="outline"
                         size="sm"
                       />
