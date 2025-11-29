@@ -1,9 +1,12 @@
-import { AuthOptions } from '@/lib/auth/authOptions';
+
 import { withAuth } from '@/lib/protectedRoute';
 import { del, put } from '@vercel/blob';
-import { getServerSession } from 'next-auth';
 import { NextResponse, NextRequest } from 'next/server';
-import { canUserDeleteFile } from '@/server/services/fileValidation';
+import { 
+  canUserDeleteFile,
+  canUserUploadFile,
+  isValidFileSize
+} from '@/server/services/fileValidation';
 
 
 export const POST = withAuth(async (request: Request, context: any, session: any) => {
@@ -17,6 +20,38 @@ export const POST = withAuth(async (request: Request, context: any, session: any
 
     const typedFile = file as File;
 
+    // Validate file size (max 10MB)
+    if (!isValidFileSize(typedFile, 10)) {
+      return NextResponse.json(
+        { error: 'File size exceeds the maximum limit of 10MB' },
+        { status: 400 }
+      );
+    }
+
+    // Validate permissions
+    const customAttributes = (session?.user?.custom_attributes as string[]) || [];
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID is required' },
+        { status: 401 }
+      );
+    }
+
+    const hasPermission = await canUserUploadFile(
+      userId,
+      customAttributes
+    );
+
+    if (!hasPermission) {
+      return NextResponse.json(
+        { error: 'You do not have permission to upload files' },
+        { status: 403 }
+      );
+    }
+
+    // Upload the file
     const blob = await put(typedFile.name, typedFile, {
       access: 'public',
       token: process.env.BLOB_READ_WRITE_TOKEN!,

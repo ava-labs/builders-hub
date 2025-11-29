@@ -150,3 +150,38 @@ async function findProfileByImageUrl(fileIdentifier: string): Promise<{ id: stri
   return user;
 }
 
+/**
+ * Validates if a user has permissions to upload a file
+ * Reuses the same validation logic as delete: admin check
+ * 
+ * Validation rules:
+ * 1. If the user has "admin" role in custom_attributes, they can upload any file
+ * 2. Otherwise, allow upload (authentication is already handled by withAuth middleware)
+ * 
+ * Note: Most uploads don't include hackathon_id, so we only validate admin status.
+ * If hackathon-specific validation is needed in the future, it can be added here.
+ * 
+ * @param userId - ID of the user attempting to upload the file
+ * @param customAttributes - Array of user custom attributes (includes roles)
+ * @returns Promise<boolean> - true if has permissions, false otherwise
+ */
+export async function canUserUploadFile(
+  userId: string,
+  customAttributes: string[] = []
+): Promise<boolean> {
+  // Check if user is admin (same logic as delete)
+  if (customAttributes.includes("admin")) {
+    return true;
+  }
+
+  // All authenticated users can upload files (authentication is handled by withAuth)
+  return true;
+}
+
+/**
+ * Validates file size (max 10MB by default)
+ */
+export function isValidFileSize(file: File, maxSizeMB: number = 10): boolean {
+  const maxSizeBytes = maxSizeMB * 1024 * 1024;
+  return file.size <= maxSizeBytes;
+}
