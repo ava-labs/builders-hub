@@ -239,6 +239,7 @@
     "chainId": "737373",
     "chainName": "CX",
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/3wVuWA4oz9iMadkIpywUMM/377249d5b8243e4dfa3a426a1af5eaa5/14.png",
+    "blockchainId": "0x8ef5dc1c38fc403fe671cdc1f2304d4a74b6bc5350d18a0fdb9d644d777e8b9c",
     "subnetId": "WChFQ1twkXBLxZGo4qojC9AgizFrRdMRnPCK9FZmisY7z6pUs",
     "slug": "cx",
     "color": "#F59E0B",
