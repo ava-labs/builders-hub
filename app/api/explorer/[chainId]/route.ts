@@ -131,7 +131,7 @@ interface ExplorerData {
   blocks: Block[];
   transactions: Transaction[];
   icmMessages: Transaction[]; // Cross-chain transactions
-  transactionHistory: TransactionHistoryPoint[];
+  transactionHistory?: TransactionHistoryPoint[]; // Optional - undefined means don't update
   price?: PriceData;
   tokenSymbol?: string;
 }
@@ -507,14 +507,44 @@ async function fetchHistoricalIcmMessages(
   }
 }
 
-async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: string, coingeckoId?: string, tokenSymbol?: string, currentBlockchainId?: string, initialLoad?: boolean): Promise<ExplorerData> {
+async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: string, coingeckoId?: string, tokenSymbol?: string, currentBlockchainId?: string, initialLoad?: boolean, lastFetchedBlock?: number): Promise<ExplorerData> {
   // Get latest block number
   const latestBlockHex = await fetchFromRPC(rpcUrl, "eth_blockNumber");
   const latestBlockNumber = hexToNumber(latestBlockHex);
 
-  // Fetch latest 10 blocks with full transaction objects (using true parameter)
+  // If lastFetchedBlock equals latest block, return empty data (nothing new)
+  const noNewBlocks = lastFetchedBlock !== undefined && lastFetchedBlock >= latestBlockNumber;
+  
+  if (noNewBlocks) {
+    // Return minimal response - nothing new to fetch
+    // transactionHistory is undefined to signal UI not to update it
+    return {
+      stats: {
+        latestBlock: latestBlockNumber,
+        totalTransactions: 0,
+        avgBlockTime: 0,
+        tps: 0,
+        gasPrice: "0",
+      },
+      blocks: [],
+      transactions: [],
+      icmMessages: [],
+      tokenSymbol,
+    };
+  }
+
+  // Calculate how many blocks to fetch
+  // If lastFetchedBlock is provided, fetch from latest down to lastFetchedBlock (with a reasonable max)
+  // Otherwise fetch 10 blocks
+  let blocksToFetch = 10;
+  if (lastFetchedBlock !== undefined && lastFetchedBlock > 0) {
+    // Fetch blocks from latest down to lastFetchedBlock (exclusive, since we already have lastFetchedBlock)
+    blocksToFetch = Math.min(latestBlockNumber - lastFetchedBlock, 50); // Cap at 50 to prevent too many requests
+  }
+
+  // Fetch blocks with full transaction objects (using true parameter)
   const blockPromises: Promise<RpcBlock>[] = [];
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < blocksToFetch; i++) {
     const blockNum = latestBlockNumber - i;
     if (blockNum >= 0) {
       blockPromises.push(fetchFromRPC(rpcUrl, "eth_getBlockByNumber", [`0x${blockNum.toString(16)}`, true]));
@@ -779,6 +809,8 @@ export async function GET(
     const { chainId } = await params;
     const { searchParams } = new URL(request.url);
     const initialLoad = searchParams.get('initialLoad') === 'true';
+    const lastFetchedBlockParam = searchParams.get('lastFetchedBlock');
+    const lastFetchedBlock = lastFetchedBlockParam ? parseInt(lastFetchedBlockParam, 10) : undefined;
     
     // Find chain config
     const chain = l1ChainsData.find(c => c.chainId === chainId) as ChainConfig | undefined;
@@ -793,7 +825,7 @@ export async function GET(
 
     // Fetch fresh data and check Glacier support in parallel
     const [data, glacierSupported] = await Promise.all([
-      fetchExplorerData(chainId, chainId, rpcUrl, chain.coingeckoId, chain.tokenSymbol, chain.blockchainId, initialLoad),
+      fetchExplorerData(chainId, chainId, rpcUrl, chain.coingeckoId, chain.tokenSymbol, chain.blockchainId, initialLoad, lastFetchedBlock),
       checkGlacierSupport(chainId),
     ]);
 

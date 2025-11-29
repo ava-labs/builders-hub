@@ -269,54 +269,122 @@ export default function L1ExplorerPage({
   const [isRateLimited, setIsRateLimited] = useState(false); // Track if we hit rate limit
   const [newBlockNumbers, setNewBlockNumbers] = useState<Set<string>>(new Set());
   const [newTxHashes, setNewTxHashes] = useState<Set<string>>(new Set());
+  const [accumulatedBlocks, setAccumulatedBlocks] = useState<Block[]>([]); // Accumulated blocks
+  const [accumulatedTransactions, setAccumulatedTransactions] = useState<Transaction[]>([]); // Accumulated transactions
   const [icmMessages, setIcmMessages] = useState<Transaction[]>([]);
   const previousDataRef = useRef<ExplorerData | null>(null);
   const isFirstLoadRef = useRef(true); // Track if this is the first load
+  const isFetchingRef = useRef(false); // Prevent overlapping fetches
+  const lastFetchedBlockRef = useRef<string | null>(null); // Track last fetched block
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Track refresh timeout
+  const BLOCK_LIMIT = 100; // Maximum number of blocks to keep
+  const TRANSACTION_LIMIT = 100; // Maximum number of transactions to keep
   const ICM_MESSAGE_LIMIT = 100; // Maximum number of ICM messages to keep
   const NORMAL_INTERVAL = 2500; // Normal refresh interval (ms)
   const RATE_LIMITED_INTERVAL = NORMAL_INTERVAL * 2; // Rate limited interval (2x normal)
+  const FETCH_TIMEOUT = NORMAL_INTERVAL * 2; // Timeout for fetch requests (5s)
 
   // Get actual token symbol - prefer context (shared), fallback to API data
   // Don't use nativeToken as placeholder - show N/A instead
   const tokenSymbol = contextTokenSymbol || data?.tokenSymbol || data?.price?.symbol || undefined;
 
+  // Fetch data and schedule next fetch after completion
   const fetchData = useCallback(async () => {
+    // Prevent overlapping fetches - wait for previous to complete
+    if (isFetchingRef.current) {
+      return;
+    }
+    
+    // Clear any pending timeout
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = null;
+    }
+    
+    isFetchingRef.current = true;
+    let shouldScheduleNext = false;
+    let nextIsRateLimited = false;
+    
     try {
       setIsRefreshing(true);
-      // On first load, request historical ICM messages
-      const url = isFirstLoadRef.current 
-        ? `/api/explorer/${chainId}?initialLoad=true`
-        : `/api/explorer/${chainId}`;
-      const response = await fetch(url);
+      
+      // Build URL with query parameters
+      const params = new URLSearchParams();
+      if (isFirstLoadRef.current) {
+        params.set('initialLoad', 'true');
+      } else if (lastFetchedBlockRef.current) {
+        // Send last fetched block for incremental updates
+        params.set('lastFetchedBlock', lastFetchedBlockRef.current);
+      }
+      const url = `/api/explorer/${chainId}${params.toString() ? `?${params.toString()}` : ''}`;
+      
+      // Create timeout promise
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout')), FETCH_TIMEOUT);
+      });
+      
+      // Race fetch against timeout
+      const response = await Promise.race([
+        fetch(url),
+        timeoutPromise
+      ]);
+      
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to fetch data");
       }
       const result = await response.json();
       
-      // Detect new blocks and transactions for animation
-      if (previousDataRef.current) {
-        const prevBlockNumbers = new Set(previousDataRef.current.blocks.map(b => b.number));
-        const prevTxHashes = new Set(previousDataRef.current.transactions.map(t => t.hash));
-        const prevIcmHashes = new Set((previousDataRef.current.icmMessages || []).map(t => t.hash));
+      // Update last fetched block from the response
+      if (result.blocks && result.blocks.length > 0) {
+        // Get the highest block number from the response
+        const highestBlock = result.blocks.reduce((max: string, b: Block) => 
+          parseInt(b.number) > parseInt(max) ? b.number : max, 
+          result.blocks[0].number
+        );
+        lastFetchedBlockRef.current = highestBlock;
+      }
+      
+      // Accumulate blocks from API response
+      setAccumulatedBlocks((prevBlocks) => {
+        const existingNumbers = new Set(prevBlocks.map(b => b.number));
+        const newBlocks = (result.blocks || []).filter((b: Block) => 
+          !existingNumbers.has(b.number)
+        );
         
-        const newBlocks = result.blocks.filter((b: Block) => !prevBlockNumbers.has(b.number)).map((b: Block) => b.number);
-        const newTxs = result.transactions.filter((t: Transaction) => !prevTxHashes.has(t.hash)).map((t: Transaction) => t.hash);
-        const newIcmTxs = (result.icmMessages || []).filter((t: Transaction) => !prevIcmHashes.has(t.hash)).map((t: Transaction) => t.hash);
-        
+        // Detect new blocks for animation
         if (newBlocks.length > 0) {
-          setNewBlockNumbers(new Set(newBlocks));
+          setNewBlockNumbers(new Set(newBlocks.map((b: Block) => b.number)));
           setTimeout(() => setNewBlockNumbers(new Set()), 1000);
         }
+        
+        // Add new blocks to the beginning (most recent first) and sort by block number
+        const updatedBlocks = [...newBlocks, ...prevBlocks]
+          .sort((a, b) => parseInt(b.number) - parseInt(a.number));
+        
+        // Apply limit - keep only the most recent blocks
+        return updatedBlocks.slice(0, BLOCK_LIMIT);
+      });
+      
+      // Accumulate transactions from API response
+      setAccumulatedTransactions((prevTxs) => {
+        const existingHashes = new Set(prevTxs.map(tx => tx.hash));
+        const newTxs = (result.transactions || []).filter((tx: Transaction) => 
+          !existingHashes.has(tx.hash)
+        );
+        
+        // Detect new transactions for animation
         if (newTxs.length > 0) {
-          setNewTxHashes(new Set(newTxs));
+          setNewTxHashes(new Set(newTxs.map((tx: Transaction) => tx.hash)));
           setTimeout(() => setNewTxHashes(new Set()), 1000);
         }
-        if (newIcmTxs.length > 0) {
-          setNewTxHashes(new Set(newIcmTxs));
-          setTimeout(() => setNewTxHashes(new Set()), 1000);
-        }
-      }
+        
+        // Add new transactions to the beginning (most recent first)
+        const updatedTxs = [...newTxs, ...prevTxs];
+        
+        // Apply limit - keep only the most recent transactions
+        return updatedTxs.slice(0, TRANSACTION_LIMIT);
+      });
       
       // Accumulate ICM messages from API response
       setIcmMessages((prevIcmMessages) => {
@@ -333,55 +401,87 @@ export default function L1ExplorerPage({
       });
       
       previousDataRef.current = result;
-      setData(result);
+      // Only update data if there's new content, preserve existing data otherwise
+      setData(prevData => {
+        // If no new blocks/transactions, preserve existing data but update stats if needed
+        if (result.blocks?.length === 0 && result.transactions?.length === 0) {
+          // Nothing new - keep previous data as is
+          return prevData;
+        }
+        // Merge new data, keeping transactionHistory from previous if not provided
+        return {
+          ...result,
+          transactionHistory: result.transactionHistory ?? prevData?.transactionHistory ?? [],
+        };
+      });
       setError(null);
-      setIsRateLimited(false); // Reset rate limit on success
+      setIsRateLimited(false);
+      nextIsRateLimited = false;
       
-      // Mark first load as complete
+      // Mark first load as complete and schedule next fetch
       if (isFirstLoadRef.current) {
         isFirstLoadRef.current = false;
       }
+      shouldScheduleNext = true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An error occurred";
       const rateLimited = errorMessage.includes('429');
+      const isTimeout = errorMessage === 'Request timeout';
       
-      // Set rate limit flag for longer retry interval
-      if (rateLimited) {
+      // Set rate limit flag for longer retry interval (also for timeouts)
+      if (rateLimited || isTimeout) {
         setIsRateLimited(true);
+        nextIsRateLimited = true;
       }
       
       // Only show error if we don't have existing data to display
       if (!data) {
         setError(errorMessage);
       }
-      // If we have data, silently fail and retry on next interval
+      // Schedule next fetch even on error
+      shouldScheduleNext = !isFirstLoadRef.current;
     } finally {
+      isFetchingRef.current = false;
       setLoading(false);
       setIsRefreshing(false);
+      
+      // Schedule next fetch AFTER this one completes (wait full interval after response)
+      if (shouldScheduleNext) {
+        const intervalTime = nextIsRateLimited ? RATE_LIMITED_INTERVAL : NORMAL_INTERVAL;
+        refreshTimeoutRef.current = setTimeout(() => {
+          fetchData();
+        }, intervalTime);
+      }
     }
-  }, [chainId, data]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chainId]);
 
-  // Reset first load flag when chain changes
+  // Reset state when chain changes
   useEffect(() => {
+    // Clear any pending timeout when chain changes
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = null;
+    }
     isFirstLoadRef.current = true;
+    lastFetchedBlockRef.current = null;
+    setAccumulatedBlocks([]); // Clear accumulated blocks when switching chains
+    setAccumulatedTransactions([]); // Clear accumulated transactions when switching chains
     setIcmMessages([]); // Clear ICM messages when switching chains
   }, [chainId]);
 
-  // Initial data fetch
+  // Initial data fetch - fetchData will self-schedule subsequent fetches
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
-
-  // Start auto-refresh only after first load completes
-  useEffect(() => {
-    // Don't start interval until first load is complete
-    if (loading && !data) return;
     
-    // Use longer interval when rate limited (2x normal)
-    const intervalTime = isRateLimited ? RATE_LIMITED_INTERVAL : NORMAL_INTERVAL;
-    const interval = setInterval(fetchData, intervalTime);
-    return () => clearInterval(interval);
-  }, [fetchData, loading, data, isRateLimited]);
+    // Cleanup: clear timeout when component unmounts
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
+      }
+    };
+  }, [fetchData]);
 
   // Generate transaction history if not available
   const transactionHistory = useMemo(() => {
@@ -648,7 +748,7 @@ export default function L1ExplorerPage({
               </div>
             </div>
             <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
-              {data?.blocks.map((block) => (
+              {accumulatedBlocks.slice(0, 10).map((block) => (
                 <Link 
                   key={block.number}
                   href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, block.number)}
@@ -704,7 +804,7 @@ export default function L1ExplorerPage({
               </div>
             </div>
             <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
-              {data?.transactions.map((tx, index) => (
+              {accumulatedTransactions.slice(0, 10).map((tx, index) => (
                 <div 
                   key={`${tx.hash}-${index}`}
                   onClick={() => router.push(buildTxUrl(`/stats/l1/${chainSlug}/explorer`, tx.hash))}
