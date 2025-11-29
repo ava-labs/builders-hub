@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { ArrowRightLeft, Clock, Fuel, Box, Layers, DollarSign, Globe, Circle, Link2 } from "lucide-react";
+import { ArrowRightLeft, ArrowRight, Clock, Fuel, Box, Layers, DollarSign, Globe, Circle, Link2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Line, LineChart, ResponsiveContainer, Tooltip, YAxis } from "recharts";
@@ -10,6 +11,37 @@ import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { useExplorer } from "@/components/stats/ExplorerContext";
 import { formatTokenValue } from "@/utils/formatTokenValue";
 import { formatPrice, formatAvaxPrice } from "@/utils/formatPrice";
+import l1ChainsData from "@/constants/l1-chains.json";
+
+// Get chain info from hex blockchain ID
+interface ChainLookupResult {
+  chainName: string;
+  chainLogoURI: string;
+  slug: string;
+  color: string;
+  chainId: string;
+  tokenSymbol: string;
+}
+
+function getChainFromBlockchainId(hexBlockchainId: string): ChainLookupResult | null {
+  const normalizedHex = hexBlockchainId.toLowerCase();
+  
+  // Find by blockchainId field (hex format)
+  const chain = (l1ChainsData as any[]).find(c => 
+    c.blockchainId?.toLowerCase() === normalizedHex
+  );
+  
+  if (!chain) return null;
+    
+  return {
+    chainName: chain.chainName,
+    chainLogoURI: chain.chainLogoURI || '',
+    slug: chain.slug,
+    color: chain.color || '#6B7280',
+    chainId: chain.chainId,
+    tokenSymbol: chain.tokenSymbol || '',
+  };
+}
 
 interface Block {
   number: string;
@@ -33,6 +65,9 @@ interface Transaction {
   gasPrice: string;
   gas: string;
   isCrossChain?: boolean;
+  // Cross-chain info - blockchain IDs in hex format
+  sourceBlockchainId?: string;
+  destinationBlockchainId?: string;
 }
 
 interface ExplorerStats {
@@ -64,6 +99,7 @@ interface ExplorerData {
   stats: ExplorerStats;
   blocks: Block[];
   transactions: Transaction[];
+  icmMessages: Transaction[]; // Cross-chain transactions from API
   transactionHistory?: TransactionHistoryPoint[];
   price?: PriceData;
   tokenSymbol?: string;
@@ -254,9 +290,11 @@ export default function L1ExplorerPage({
       if (previousDataRef.current) {
         const prevBlockNumbers = new Set(previousDataRef.current.blocks.map(b => b.number));
         const prevTxHashes = new Set(previousDataRef.current.transactions.map(t => t.hash));
+        const prevIcmHashes = new Set((previousDataRef.current.icmMessages || []).map(t => t.hash));
         
         const newBlocks = result.blocks.filter((b: Block) => !prevBlockNumbers.has(b.number)).map((b: Block) => b.number);
         const newTxs = result.transactions.filter((t: Transaction) => !prevTxHashes.has(t.hash)).map((t: Transaction) => t.hash);
+        const newIcmTxs = (result.icmMessages || []).filter((t: Transaction) => !prevIcmHashes.has(t.hash)).map((t: Transaction) => t.hash);
         
         if (newBlocks.length > 0) {
           setNewBlockNumbers(new Set(newBlocks));
@@ -266,13 +304,17 @@ export default function L1ExplorerPage({
           setNewTxHashes(new Set(newTxs));
           setTimeout(() => setNewTxHashes(new Set()), 1000);
         }
+        if (newIcmTxs.length > 0) {
+          setNewTxHashes(new Set(newIcmTxs));
+          setTimeout(() => setNewTxHashes(new Set()), 1000);
+        }
       }
       
-      // Accumulate ICM messages
+      // Accumulate ICM messages from API response
       setIcmMessages((prevIcmMessages) => {
         const existingHashes = new Set(prevIcmMessages.map(tx => tx.hash));
-        const newIcmTransactions = result.transactions.filter((tx: Transaction) => 
-          tx.isCrossChain && !existingHashes.has(tx.hash)
+        const newIcmTransactions = (result.icmMessages || []).filter((tx: Transaction) => 
+          !existingHashes.has(tx.hash)
         );
         
         // Add new ICM messages to the beginning (most recent first)
@@ -688,64 +730,110 @@ export default function L1ExplorerPage({
                 <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800">
                     <h2 className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
-                      <Link2 className="w-4 h-4 text-purple-500" />
+                      <Link2 className="w-4 h-4" style={{ color: themeColor }} />
                       ICM Messages
                     </h2>
                     <div className="flex items-center gap-1.5">
                       <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
                       <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Live</span>
-        </div>
-      </div>
+                    </div>
+                  </div>
                   <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
                     {icmMessages.map((tx, index) => (
                       <div 
                         key={`icm-${tx.hash}-${index}`}
                         onClick={() => router.push(buildTxUrl(`/stats/l1/${chainSlug}/explorer`, tx.hash))}
-                        className={`block px-4 py-3 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors cursor-pointer ${
+                        className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
                           newTxHashes.has(tx.hash) ? 'new-item' : ''
                         }`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-purple-100 dark:bg-purple-900/50">
-                              <Link2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                            <div 
+                              className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                              style={{ backgroundColor: `${themeColor}15` }}
+                            >
+                              <Link2 className="w-4 h-4" style={{ color: themeColor }} />
                             </div>
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5">
-                                <span className="font-mono text-xs hover:underline text-purple-600 dark:text-purple-400">
+                                <span className="font-mono text-xs hover:underline" style={{ color: themeColor }}>
                                   {tx.hash.slice(0, 16)}...
                                 </span>
                                 <span className="text-xs text-zinc-400">
                                   {formatTimeAgo(tx.timestamp)}
                                 </span>
                               </div>
-                              <div className="text-xs text-zinc-500 mt-0.5">
-                                <span className="text-zinc-400">From </span>
-                                <Link 
-                                  href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.from)} 
-                                  className="font-mono hover:underline cursor-pointer text-purple-600 dark:text-purple-400" 
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {shortenAddress(tx.from)}
-                                </Link>
-                              </div>
-                              <div className="text-xs text-zinc-500">
-                                <span className="text-zinc-400">To </span>
-                                {tx.to ? (
-                                  <Link 
-                                    href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.to)} 
-                                    className="font-mono hover:underline cursor-pointer text-purple-600 dark:text-purple-400" 
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    {shortenAddress(tx.to)}
-                                  </Link>
-                                ) : (
-                                  <span className="font-mono text-zinc-400">Contract Creation</span>
-                                )}
-                              </div>
+                              {/* Cross-chain transfer chips */}
+                              {(() => {
+                                const sourceChain = tx.sourceBlockchainId ? getChainFromBlockchainId(tx.sourceBlockchainId) : null;
+                                const destChain = tx.destinationBlockchainId ? getChainFromBlockchainId(tx.destinationBlockchainId) : null;
+                                
+                                return (
+                                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                    {/* Source Chain Chip */}
+                                    {sourceChain ? (
+                                      <Link 
+                                        href={`/stats/l1/${sourceChain.slug}/explorer`}
+                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium hover:opacity-80 cursor-pointer"
+                                        style={{ backgroundColor: `${sourceChain.color}20`, color: sourceChain.color }}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {sourceChain.chainLogoURI ? (
+                                          <Image
+                                            src={sourceChain.chainLogoURI}
+                                            alt={sourceChain.chainName}
+                                            width={12}
+                                            height={12}
+                                            className="rounded-full"
+                                          />
+                                        ) : (
+                                          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: sourceChain.color }} />
+                                        )}
+                                        {sourceChain.chainName}
+                                      </Link>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500 dark:text-zinc-400">
+                                        <span className="w-3 h-3 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+                                        Unknown
+                                      </span>
+                                    )}
+                                    
+                                    <span className="text-zinc-400">→</span>
+                                    
+                                    {/* Destination Chain Chip */}
+                                    {destChain ? (
+                                      <Link 
+                                        href={`/stats/l1/${destChain.slug}/explorer`}
+                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium hover:opacity-80 cursor-pointer"
+                                        style={{ backgroundColor: `${destChain.color}20`, color: destChain.color }}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {destChain.chainLogoURI ? (
+                                          <Image
+                                            src={destChain.chainLogoURI}
+                                            alt={destChain.chainName}
+                                            width={12}
+                                            height={12}
+                                            className="rounded-full"
+                                          />
+                                        ) : (
+                                          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: destChain.color }} />
+                                        )}
+                                        {destChain.chainName}
+                                      </Link>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500 dark:text-zinc-400">
+                                        <span className="w-3 h-3 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+                                        Unknown
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </div>
-                          <div className="text-xs px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 flex-shrink-0">
+                          <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 flex-shrink-0">
                             {formatTokenValue(tx.value)} <TokenDisplay symbol={tokenSymbol} />
                           </div>
                         </div>

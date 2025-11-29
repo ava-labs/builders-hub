@@ -96,6 +96,9 @@ interface Transaction {
   gasPrice: string;
   gas: string;
   isCrossChain?: boolean;
+  // Cross-chain info (for ICM messages) - blockchain IDs in hex format
+  sourceBlockchainId?: string;
+  destinationBlockchainId?: string;
 }
 
 interface ExplorerStats {
@@ -127,6 +130,7 @@ interface ExplorerData {
   stats: ExplorerStats;
   blocks: Block[];
   transactions: Transaction[];
+  icmMessages: Transaction[]; // Cross-chain transactions
   transactionHistory: TransactionHistoryPoint[];
   price?: PriceData;
   tokenSymbol?: string;
@@ -138,6 +142,7 @@ interface ChainConfig {
   rpcUrl?: string;
   coingeckoId?: string;
   tokenSymbol?: string;
+  blockchainId?: string;
 }
 
 // Cache for explorer data
@@ -391,7 +396,7 @@ async function fetchPrice(coingeckoId: string): Promise<PriceData | undefined> {
   }
 }
 
-async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: string, coingeckoId?: string, tokenSymbol?: string): Promise<ExplorerData> {
+async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: string, coingeckoId?: string, tokenSymbol?: string, currentBlockchainId?: string): Promise<ExplorerData> {
   // Get latest block number
   const latestBlockHex = await fetchFromRPC(rpcUrl, "eth_blockNumber");
   const latestBlockNumber = hexToNumber(latestBlockHex);
@@ -487,20 +492,72 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     );
   }
 
-  // Get latest 10 transactions
-  const transactions: Transaction[] = allTransactions
-    .slice(0, 10)
-    .map(tx => ({
+  // Helper function to extract blockchain IDs from SendCrossChainMessage or ReceiveCrossChainMessage logs
+  function extractCrossChainInfo(txHash: string): {
+    sourceBlockchainId?: string;
+    destinationBlockchainId?: string;
+  } {
+    const receipt = receiptMap.get(txHash);
+    if (!receipt?.logs) return {};
+
+    const sendTopic = CROSS_CHAIN_TOPICS.SendCrossChainMessage.toLowerCase();
+    const receiveTopic = CROSS_CHAIN_TOPICS.ReceiveCrossChainMessage.toLowerCase();
+
+    let sourceBlockchainId: string | undefined;
+    let destinationBlockchainId: string | undefined;
+
+    for (const log of receipt.logs) {
+      const topic0 = log.topics?.[0]?.toLowerCase();
+      if (!topic0) continue;
+
+      if (topic0 === sendTopic) {
+        // SendCrossChainMessage: current chain is the source, destination is in topic[2]
+        sourceBlockchainId = currentBlockchainId;
+        if (log.topics.length > 2) {
+          destinationBlockchainId = log.topics[2];
+        }
+      } else if (topic0 === receiveTopic) {
+        // ReceiveCrossChainMessage: current chain is the destination, source is in topic[2]
+        destinationBlockchainId = currentBlockchainId;
+        if (log.topics.length > 2) {
+          sourceBlockchainId = log.topics[2];
+        }
+      }
+    }
+
+    return { sourceBlockchainId, destinationBlockchainId };
+  }
+
+  // Map all transactions first to check cross-chain status
+  const allMappedTransactions: Transaction[] = allTransactions.map(tx => {
+    const isCrossChain = isCrossChainTx(tx.hash);
+    const baseTx: Transaction = {
       hash: tx.hash,
-      from: tx.from, // Keep full address for linking
-      to: tx.to, // Keep full address for linking
+      from: tx.from,
+      to: tx.to,
       value: formatValue(tx.value || "0x0"),
       blockNumber: hexToNumber(tx.blockNumber).toString(),
       timestamp: formatTimestamp(tx.blockTimestamp),
       gasPrice: formatGasPrice(tx.gasPrice || "0x0"),
       gas: hexToNumber(tx.gas || "0x0").toLocaleString(),
-      isCrossChain: isCrossChainTx(tx.hash),
-    }));
+      isCrossChain,
+    };
+
+    // For cross-chain transactions, extract chain info
+    if (isCrossChain) {
+      const chainInfo = extractCrossChainInfo(tx.hash);
+      return { ...baseTx, ...chainInfo };
+    }
+
+    return baseTx;
+  });
+
+  // Separate cross-chain transactions (ICM messages) from all transactions
+  const icmMessages = allMappedTransactions.filter(tx => tx.isCrossChain);
+  
+  // Get latest 10 non-cross-chain transactions
+  const transactions = allMappedTransactions
+    .slice(0, 10);
 
   // Get current gas price
   let gasPrice = "0";
@@ -565,6 +622,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     stats, 
     blocks, 
     transactions, 
+    icmMessages,
     transactionHistory, 
     price,
     tokenSymbol: price?.symbol || tokenSymbol
@@ -611,7 +669,7 @@ export async function GET(
 
     // Fetch fresh data and check Glacier support in parallel
     const [data, glacierSupported] = await Promise.all([
-      fetchExplorerData(chainId, chainId, rpcUrl, chain.coingeckoId, chain.tokenSymbol),
+      fetchExplorerData(chainId, chainId, rpcUrl, chain.coingeckoId, chain.tokenSymbol, chain.blockchainId),
       checkGlacierSupport(chainId),
     ]);
 
