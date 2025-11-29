@@ -9,6 +9,7 @@ import { Line, LineChart, ResponsiveContainer, Tooltip, YAxis } from "recharts";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { useExplorer } from "@/components/stats/ExplorerContext";
 import { formatTokenValue } from "@/utils/formatTokenValue";
+import { formatPrice, formatAvaxPrice } from "@/utils/formatPrice";
 
 interface Block {
   number: string;
@@ -109,11 +110,6 @@ function formatNumber(num: number): string {
   return num.toLocaleString();
 }
 
-function formatPrice(num: number): string {
-  if (num >= 1) return `$${num.toFixed(2)}`;
-  if (num >= 0.01) return `$${num.toFixed(4)}`;
-  return `$${num.toFixed(6)}`;
-}
 
 function formatMarketCap(num: number): string {
   if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
@@ -407,7 +403,7 @@ export default function L1ExplorerPage({
                   )}
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400 tracking-wide">
                     <TokenDisplay symbol={tokenSymbol} /> Price
                   </div>
                   {data?.price ? (
@@ -417,7 +413,7 @@ export default function L1ExplorerPage({
                       </span>
                       {data.price.priceInAvax && (
                         <span className="text-[11px] text-zinc-500">
-                          @ {data.price.priceInAvax.toFixed(4)} AVAX
+                          @ {formatAvaxPrice(data.price.priceInAvax)} AVAX
                         </span>
                       )}
                       <span className={`text-[11px] ${data.price.change24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>

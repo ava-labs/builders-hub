@@ -10,6 +10,7 @@ import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { useExplorer } from "@/components/stats/ExplorerContext";
 import { decodeEventLog, getEventByTopic, decodeFunctionInput } from "@/abi/event-signatures.generated";
 import { formatTokenValue, formatUsdValue } from "@/utils/formatTokenValue";
+import { formatPrice } from "@/utils/formatPrice";
 import l1ChainsData from "@/constants/l1-chains.json";
 
 interface TransactionDetail {
@@ -924,13 +925,13 @@ export default function TransactionDetailPage({
               label="Transaction Fee"
               themeColor={themeColor}
               value={
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                <div className="flex flex-col gap-1">
                   <span className="text-sm text-zinc-900 dark:text-white">
                     {formatTokenValue(tx?.txFee)} <TokenDisplay symbol={tokenSymbol} />
                   </span>
                   {tokenPrice && tx?.txFee && parseFloat(tx.txFee) > 0 && (
                     <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                      ({formatUsdValue(parseFloat(tx.txFee) * tokenPrice)} USD)
+                      ({formatPrice(parseFloat(tx.txFee) * tokenPrice)} USD)
                     </span>
                   )}
                 </div>

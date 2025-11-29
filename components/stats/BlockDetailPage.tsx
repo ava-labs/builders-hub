@@ -9,6 +9,7 @@ import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { useExplorer } from "@/components/stats/ExplorerContext";
 import { decodeFunctionInput } from "@/abi/event-signatures.generated";
 import { formatTokenValue, formatUsdValue } from "@/utils/formatTokenValue";
+import { formatPrice } from "@/utils/formatPrice";
 
 interface BlockDetail {
   number: string;
@@ -388,8 +389,8 @@ export default function BlockDetailPage({
                       {chainId === "43114" && <span className="mr-1">🔥</span>}
                       {formatTokenValue(block.gasFee)} <TokenDisplay symbol={tokenSymbol} />
                       {tokenPrice && (
-                        <span className="text-zinc-500 dark:text-zinc-400 ml-2">
-                          ({formatUsdValue(parseFloat(block.gasFee) * tokenPrice)} USD)
+                        <span className="text-zinc-500 dark:text-zinc-400">
+                          ({formatPrice(parseFloat(block.gasFee) * tokenPrice)} USD)
                         </span>
                       )}
                     </span>
