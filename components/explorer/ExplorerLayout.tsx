@@ -178,56 +178,56 @@ export function ExplorerLayout({
           ) : (
             <>
               {/* Breadcrumb */}
-              <nav className="explorer-breadcrumb flex items-center gap-1.5 text-sm mb-4">
+              <nav className="explorer-breadcrumb flex items-center gap-1.5 text-xs sm:text-sm mb-4 overflow-x-auto scrollbar-hide pb-1">
                 <Link 
                   href="/stats/overview" 
-                  className="inline-flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
-                  <BarChart3 className="w-3.5 h-3.5" />
+                  <BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   <span>Stats</span>
                 </Link>
-                <ChevronRight className="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-600" />
+                <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
                 <Link 
                   href={`/stats/l1/${chainSlug}`} 
-                  className="inline-flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
                   {chainLogoURI && (
                     <img 
                       src={chainLogoURI} 
                       alt="" 
-                      className="w-3.5 h-3.5 rounded-sm object-contain"
+                      className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-sm object-contain"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
                   )}
-                  <span>{chainName}</span>
+                  <span className="max-w-[80px] sm:max-w-none truncate">{chainName}</span>
                 </Link>
-                <ChevronRight className="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-600" />
+                <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
                 {breadcrumbItems.length === 0 ? (
-                  <span className="inline-flex items-center gap-1.5 font-medium text-zinc-900 dark:text-zinc-100">
-                    <Compass className="w-3.5 h-3.5" style={{ color: themeColor }} />
+                  <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap flex-shrink-0">
+                    <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5" style={{ color: themeColor }} />
                     <span>Explorer</span>
                   </span>
                 ) : (
                   <>
                     <Link 
                       href={`/stats/l1/${chainSlug}/explorer`} 
-                      className="inline-flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
                     >
-                      <Compass className="w-3.5 h-3.5" />
+                      <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                       <span>Explorer</span>
                     </Link>
                     {breadcrumbItems.map((item, idx) => (
-                      <span key={idx} className="flex items-center gap-1.5">
-                        <ChevronRight className="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-600" />
+                      <span key={idx} className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+                        <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600" />
                         {item.href ? (
                           <Link 
                             href={item.href}
-                            className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
+                            className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap max-w-[100px] sm:max-w-none truncate"
                           >
                             {item.label}
                           </Link>
                         ) : (
-                          <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                          <span className="font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap max-w-[100px] sm:max-w-none truncate">
                             {item.label}
                           </span>
                         )}

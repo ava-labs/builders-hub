@@ -704,24 +704,25 @@ export default function AddressDetailPage({
     <>
       {/* Address Title */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
-            {data?.isContract ? 'Contract' : 'Address'}
-          </h2>
-          {/* Verified Badge */}
-          {data?.isContract && sourcifyData?.match === 'match' && (
-            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" title="Verified on Sourcify">
-              <ShieldCheck className="w-4 h-4" />
-              <span className="text-xs font-medium">Verified</span>
-            </div>
-          )}
-          <span className="text-zinc-500 dark:text-zinc-400 font-mono text-sm hidden sm:inline mt-1">
-            {address}
-          </span>
-          <span className="text-zinc-500 dark:text-zinc-400 font-mono text-sm sm:hidden mt-1">
-            {formatAddress(address)}
-          </span>
-          <CopyButton text={address} />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-zinc-900 dark:text-white">
+              {data?.isContract ? 'Contract' : 'Address'}
+            </h2>
+            {/* Verified Badge */}
+            {data?.isContract && sourcifyData?.match === 'match' && (
+              <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" title="Verified on Sourcify">
+                <ShieldCheck className="w-4 h-4" />
+                <span className="text-xs font-medium">Verified</span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-zinc-500 dark:text-zinc-400 font-mono text-xs sm:text-sm truncate">
+              {address}
+            </span>
+            <CopyButton text={address} />
+          </div>
         </div>
         
         {/* Dune Labels */}
@@ -1148,7 +1149,7 @@ export default function AddressDetailPage({
 
       {/* Tabs - Outside Container */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-stretch gap-2 mb-4 overflow-x-auto pb-1 scrollbar-hide">
           {tabs.map((tab) => (
             <Link
               key={tab.id}
@@ -1157,7 +1158,7 @@ export default function AddressDetailPage({
                 e.preventDefault();
                 handleTabChange(tab.id);
               }}
-              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+              className={`flex items-center justify-center gap-1.5 px-3 sm:px-4 h-10 text-xs sm:text-sm font-medium rounded-lg transition-colors cursor-pointer whitespace-nowrap flex-shrink-0 ${
                 activeTab === tab.id
                   ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
                   : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
