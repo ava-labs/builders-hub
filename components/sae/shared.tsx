@@ -2,11 +2,20 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { Colors, Block, MAX_TX } from "./types"
 
-export function FlowArrow({ colors }: { colors: Colors }) {
+export function FlowArrow({ colors, dotted = false }: { colors: Colors; dotted?: boolean }) {
   return (
     <div className="flex items-center justify-center sm:-mt-4">
       <svg width="40" height="16" viewBox="0 0 40 16" fill="none">
-        <line x1="0" y1="8" x2="34" y2="8" stroke={colors.stroke} strokeOpacity="0.35" strokeWidth="2" />
+        <line 
+          x1="0" 
+          y1="8" 
+          x2={dotted ? "24" : "34"} 
+          y2="8" 
+          stroke={colors.stroke} 
+          strokeOpacity="0.35" 
+          strokeWidth="2" 
+          strokeDasharray={dotted ? "4 3" : undefined}
+        />
         <path
           d="M26 3l8 5-8 5"
           stroke={colors.stroke}
@@ -15,6 +24,7 @@ export function FlowArrow({ colors }: { colors: Colors }) {
           fill="none"
           strokeLinecap="round"
           strokeLinejoin="round"
+          strokeDasharray={dotted ? "4 3" : undefined}
         />
       </svg>
     </div>

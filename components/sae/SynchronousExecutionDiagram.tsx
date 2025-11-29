@@ -15,7 +15,7 @@ export function SynchronousExecutionDiagram({ colors }: { colors: Colors }) {
 
             <div className={`border ${colors.border} p-4 sm:p-8 ${colors.blockBg} overflow-x-auto`}>
                 {/* Legend */}
-                <div className="flex items-center gap-4 mb-4 md:gap-6 md:mb-8">
+                <div className="flex items-center gap-4 mb-4 md:gap-6 md:mb-8 flex-wrap">
                     <div className="flex items-center gap-2">
                         <div
                             className="w-4 h-4"
@@ -26,6 +26,12 @@ export function SynchronousExecutionDiagram({ colors }: { colors: Colors }) {
                     <div className="flex items-center gap-2">
                         <div className="w-4 h-4" style={{ backgroundColor: executionColor, border: `1px solid ${executionColor}` }} />
                         <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Execution</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <svg width="16" height="16" viewBox="0 0 16 16">
+                            <line x1="0" y1="8" x2="16" y2="8" stroke={colors.stroke} strokeWidth="2" strokeOpacity="0.6" strokeDasharray="6 4" />
+                        </svg>
+                        <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Context Switching</span>
                     </div>
                 </div>
 

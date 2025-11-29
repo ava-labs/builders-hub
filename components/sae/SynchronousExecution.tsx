@@ -23,16 +23,33 @@ function SyncBlockDisplay({
 }) {
   const executionColor = "#ef4444" // red
   const [filledCells, setFilledCells] = useState(0)
+  const [proposingPhase, setProposingPhase] = useState<'executing' | 'consensus' | 'idle'>('idle')
+  const [checkmarkVisible, setCheckmarkVisible] = useState(false)
+
+  // Delay checkmark visibility to match animation
+  useEffect(() => {
+    if (showCheckmark && block) {
+      const timer = setTimeout(() => {
+        setCheckmarkVisible(true)
+      }, 1200) // Match checkmark delay
+      return () => {
+        clearTimeout(timer)
+        setCheckmarkVisible(false)
+      }
+    } else {
+      setCheckmarkVisible(false)
+    }
+  }, [showCheckmark, block])
 
   // Animate cells filling when proposing
   useEffect(() => {
     if (isProposing && block) {
       setFilledCells(0)
+      setProposingPhase('executing')
       const totalCells = block.txCount
-      // Dynamic timing: total fill animation is ~3 seconds regardless of cell count
-      // More cells = faster per-cell animation
-      const totalFillTime = 3000 // 3 seconds total
-      const fillInterval = Math.max(100, totalFillTime / totalCells) // At least 100ms per cell
+      // Dynamic timing: total fill animation is ~2.2 seconds regardless of cell count
+      const totalFillTime = 2200
+      const fillInterval = Math.max(80, totalFillTime / totalCells)
 
       let currentCell = 0
       const interval = setInterval(() => {
@@ -40,31 +57,101 @@ function SyncBlockDisplay({
         setFilledCells(currentCell)
         if (currentCell >= totalCells) {
           clearInterval(interval)
+          // Switch to consensus phase after filling
+          setProposingPhase('consensus')
         }
       }, fillInterval)
 
-      return () => clearInterval(interval)
+      return () => {
+        clearInterval(interval)
+        setProposingPhase('idle')
+      }
     } else if (!isProposing) {
       // When not proposing, show all cells immediately
       setFilledCells(block?.txCount || 0)
+      setProposingPhase('idle')
     }
   }, [isProposing, block])
+
+  // Determine border style based on proposing phase
+  const getBorderStyle = () => {
+    if (showSpinner && block) {
+      return { border: `2px solid ${executionColor}`, boxShadow: `0 0 8px ${executionColor}50` }
+    }
+    return { border: `1px solid ${colors.stroke}20` }
+  }
+
+  const showProposingPulse = isProposing && block && (proposingPhase === 'executing' || proposingPhase === 'consensus')
+  const showAcceptedPulse = showCheckmark && block
 
   return (
     <div className="flex flex-col items-center gap-2">
       <div
-        className={`relative flex items-center justify-center overflow-hidden`}
+        className={`relative flex items-center justify-center overflow-visible`}
         style={{
           width: 64,
           height: 64,
-          border: isDotted
-            ? `2px dashed ${colors.stroke}30`
-            : showSpinner && block
-              ? `2px solid ${executionColor}`
-              : `1px solid ${colors.stroke}20`,
-          boxShadow: showSpinner && block ? `0 0 8px ${executionColor}50` : undefined,
+          ...getBorderStyle(),
         }}
       >
+        {/* Grey loading border for accepted state - fills around the box */}
+        {showAcceptedPulse && (
+          <svg
+            className="absolute -inset-[2px] pointer-events-none z-20"
+            style={{ width: 68, height: 68 }}
+            viewBox="0 0 68 68"
+          >
+            <motion.rect
+              x="2"
+              y="2"
+              width="64"
+              height="64"
+              fill="none"
+              stroke="#9ca3af"
+              strokeWidth="2"
+              strokeDasharray="256"
+              initial={{ strokeDashoffset: 256 }}
+              animate={{ strokeDashoffset: 0 }}
+              transition={{ duration: 1.2, ease: "linear" }}
+            />
+          </svg>
+        )}
+        {/* Traveling border - color changes from red to grey */}
+        {showProposingPulse && (
+          <svg
+            className="absolute -inset-[2px] pointer-events-none z-20"
+            style={{ width: 68, height: 68 }}
+            viewBox="0 0 68 68"
+          >
+            <motion.rect
+              x="2"
+              y="2"
+              width="64"
+              height="64"
+              fill="none"
+              stroke={proposingPhase === 'executing' ? executionColor : "#9ca3af"}
+              strokeWidth="2"
+              strokeDasharray="40 216"
+              initial={{ strokeDashoffset: 0 }}
+              animate={{ strokeDashoffset: -256 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatType: "loop" }}
+            />
+          </svg>
+        )}
+        {/* Pulsing glow during consensus phase */}
+        {showProposingPulse && proposingPhase === 'consensus' && (
+          <motion.div
+            className="absolute -inset-[1px] pointer-events-none z-10"
+            animate={{ 
+              boxShadow: [
+                `0 0 0px rgba(156, 163, 175, 0)`,
+                `0 0 12px rgba(156, 163, 175, 0.5)`,
+                `0 0 0px rgba(156, 163, 175, 0)`,
+              ]
+            }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+          />
+        )}
         <AnimatePresence mode="wait">
           {block ? (
             <motion.div
@@ -76,12 +163,13 @@ function SyncBlockDisplay({
               className="relative"
             >
               <div
-                className={`border ${colors.borderStrong} grid gap-0.5 p-1`}
+                className="border grid gap-0.5 p-1"
                 style={{
                   gridTemplateColumns: "repeat(4, 1fr)",
                   width: 40,
                   height: 40,
                   backgroundColor: `${colors.stroke}05`,
+                  borderColor: checkmarkVisible ? "#22c55e" : `${colors.stroke}30`,
                 }}
               >
                 {Array.from({ length: 16 }).map((_, i) => {
@@ -104,8 +192,9 @@ function SyncBlockDisplay({
               </div>
               {showCheckmark && (
                 <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 1.2, duration: 0.2 }}
                   className={`absolute -top-1 -right-1 w-3.5 h-3.5 border ${colors.borderStrong} flex items-center justify-center z-10`}
                   style={{ backgroundColor: `${colors.stroke}10` }}
                 >
@@ -345,7 +434,7 @@ export function SynchronousExecution({ colors }: { colors: Colors }) {
     },
     proposing: {
       title: "Block Proposing",
-      content: "The validator creates a block by selecting transactions from the mempool. Watch the block fill with transactions before being sent to the network."
+      content: "The proposer must execute transactions (red) before proposing, then wait for consensus (grey). This execution happens before the block is even shared with other validators."
     },
     executing: {
       title: "Executing Transactions",
@@ -466,7 +555,7 @@ export function SynchronousExecution({ colors }: { colors: Colors }) {
             {renderTooltip('proposing')}
           </div>
 
-          <FlowArrow colors={colors} />
+          <FlowArrow colors={colors} dotted />
 
           {/* Executing */}
           <div
@@ -483,7 +572,7 @@ export function SynchronousExecution({ colors }: { colors: Colors }) {
             {renderTooltip('executing')}
           </div>
 
-          <FlowArrow colors={colors} />
+          <FlowArrow colors={colors} dotted />
 
           {/* Accepted */}
           <div

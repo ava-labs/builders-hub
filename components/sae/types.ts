@@ -78,8 +78,8 @@ export const SAE_CONFIG = {
 
 // Synchronous Execution Configuration - much slower, must wait for full settlement
 export const SYNC_CONFIG = {
-  proposeTime: 4500, // Time in proposed state (3s fill animation + 1.5s buffer)
-  acceptTime: 1200, // Time in accepted state
+  proposeTime: 5500, // Time in proposed state (2.2s fill animation + consensus phase)
+  acceptTime: 3000, // Time in accepted state (1.2s fill + checkmark visible)
   executeTime: 3500, // Time in executing state (this is the bottleneck!)
   settleDelay: 600, // Brief pause after settling before next block
   mempoolMinDelay: 150,
