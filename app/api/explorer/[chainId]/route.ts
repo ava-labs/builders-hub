@@ -34,6 +34,23 @@ interface RpcTransaction {
   transactionIndex: string;
   input: string;
   type?: string;
+  accessList?: unknown[];
+  chainId?: string;
+  v?: string;
+  r?: string;
+  s?: string;
+  yParity?: string;
+}
+
+interface RpcLog {
+  address: string;
+  topics: string[];
+  data: string;
+  logIndex: string;
+  transactionIndex: string;
+  transactionHash: string;
+  blockHash: string;
+  blockNumber: string;
 }
 
 interface RpcTransactionReceipt {
@@ -41,7 +58,20 @@ interface RpcTransactionReceipt {
   gasUsed: string;
   effectiveGasPrice: string;
   status: string;
+  logs: RpcLog[];
 }
+
+// TeleporterMessenger cross-chain event topic hashes (from generated signatures)
+const CROSS_CHAIN_TOPICS = {
+  // TeleporterMessenger events
+  SendCrossChainMessage: '0x2a211ad4a59ab9d003852404f9c57c690704ee755f3c79d2c2812ad32da99df8',
+  ReceiveCrossChainMessage: '0x292ee90bbaf70b5d4936025e09d56ba08f3e421156b6a568cf3c2840d9343e34',
+  MessageExecuted: '0x34795cc6b122b9a0ae684946319f1e14a577b4e8f9b3dda9ac94c21a54d3188c',
+  ReceiptReceived: '0xd13a7935f29af029349bed0a2097455b91fd06190a30478c575db3f31e00bf57',
+  // Token transfer events (from ERC20TokenHome, NativeTokenHome, etc.)
+  TokensSent: '0x93f19bf1ec58a15dc643b37e7e18a1c13e85e06cd11929e283154691ace9fb52',
+  TokensAndCallSent: '0x5d76dff81bf773b908b050fa113d39f7d8135bb4175398f313ea19cd3a1a0b16',
+};
 
 interface RpcBlock {
   number: string;
@@ -64,6 +94,7 @@ interface Transaction {
   timestamp: string;
   gasPrice: string;
   gas: string;
+  isCrossChain?: boolean;
 }
 
 interface ExplorerStats {
@@ -444,6 +475,17 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     }
   }
 
+  // Helper function to check if a transaction has cross-chain events
+  function isCrossChainTx(txHash: string): boolean {
+    const receipt = receiptMap.get(txHash);
+    if (!receipt?.logs) return false;
+    
+    const crossChainTopics = Object.values(CROSS_CHAIN_TOPICS).map(t => t.toLowerCase());
+    return receipt.logs.some(log => 
+      log.topics?.[0] && crossChainTopics.includes(log.topics[0].toLowerCase())
+    );
+  }
+
   // Get latest 10 transactions
   const transactions: Transaction[] = allTransactions
     .slice(0, 10)
@@ -456,6 +498,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
       timestamp: formatTimestamp(tx.blockTimestamp),
       gasPrice: formatGasPrice(tx.gasPrice || "0x0"),
       gas: hexToNumber(tx.gas || "0x0").toLocaleString(),
+      isCrossChain: isCrossChainTx(tx.hash),
     }));
 
   // Get current gas price

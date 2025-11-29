@@ -304,10 +304,22 @@ async function getAddressChains(address: string): Promise<AddressChain[]> {
     const chainList = result.indexedChains || [];
     
     for (const chain of chainList) {
+      const chainId = chain.chainId || '';
+      const isTestnet = chain.isTestnet || false;
+      
+      // Look up chain info from l1-chains.json
+      const chainInfo = l1ChainsData.find(c => c.chainId === chainId);
+      
+      // Build chain name with testnet suffix if needed
+      let chainName = chain.chainName || chainInfo?.chainName || '';
+      if (isTestnet && !chainName.endsWith(' - Testnet')) {
+        chainName = `${chainName} - Testnet`;
+      }
+      
       chains.push({
-        chainId: chain.chainId || '',
-        chainName: chain.chainName || '',
-        chainLogoUri: chain.chainLogoUri || undefined,
+        chainId,
+        chainName,
+        chainLogoUri: chain.chainLogoUri || chainInfo?.chainLogoURI || undefined,
       });
     }
 
@@ -361,10 +373,16 @@ async function getTransactions(
         
         // Native transaction
         // Clean method name - remove parameters like "mint(address)" -> "mint"
-        let methodName = nativeTx.method?.methodName || nativeTx.method?.methodHash || undefined;
+        let methodName = nativeTx.method?.methodName || undefined;
         if (methodName && methodName.includes('(')) {
           methodName = methodName.split('(')[0];
         }
+        
+        // Use methodHash as methodId (function selector) for decoding
+        const methodHash = nativeTx.method?.methodHash;
+        const methodId = methodHash && methodHash.startsWith('0x') && methodHash.length === 10 
+          ? methodHash 
+          : undefined;
         
         transactions.push({
           hash: txHash,
@@ -381,7 +399,7 @@ async function getTransactions(
           txStatus: nativeTx.txStatus?.toString() || '1',
           txType: nativeTx.txType ?? 0,
           method: methodName,
-          methodId: nativeTx.method?.callType || undefined,
+          methodId: methodId,
         });
         
         // ERC20 transfers

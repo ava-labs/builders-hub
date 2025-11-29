@@ -97,7 +97,8 @@ export function ExplorerProvider({
   const [tokenPrice, setTokenPrice] = useState<number | null>(null);
   const [priceData, setPriceData] = useState<PriceData | null>(null);
   const [glacierSupported, setGlacierSupported] = useState<boolean>(false);
-  const [isTokenDataLoading, setIsTokenDataLoading] = useState(false);
+  // Start with true to prevent showing banner before data is fetched
+  const [isTokenDataLoading, setIsTokenDataLoading] = useState(true);
   
   const fetchTokenData = useCallback(async (forceRefresh = false) => {
     // Check cache first
@@ -109,6 +110,7 @@ export function ExplorerProvider({
       setPriceData(cached.data);
       setTokenPrice(cached.data?.price || null);
       setGlacierSupported(cached.glacierSupported);
+      setIsTokenDataLoading(false);
       return;
     }
     

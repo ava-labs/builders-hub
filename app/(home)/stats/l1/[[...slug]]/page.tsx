@@ -5,6 +5,7 @@ import BlockDetailPage from "@/components/stats/BlockDetailPage";
 import TransactionDetailPage from "@/components/stats/TransactionDetailPage";
 import AddressDetailPage from "@/components/stats/AddressDetailPage";
 import { ExplorerProvider } from "@/components/stats/ExplorerContext";
+import { ExplorerLayout } from "@/components/stats/ExplorerLayout";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { Metadata } from "next";
 import { L1Chain } from "@/types/stats";
@@ -99,7 +100,7 @@ export default async function L1Page({
 
   if (!currentChain) { notFound(); }
 
-  // All explorer pages wrapped with ExplorerProvider
+  // All explorer pages wrapped with ExplorerProvider and ExplorerLayout
   if (isExplorer) {
     const explorerProps = {
       chainId: currentChain.chainId,
@@ -116,18 +117,24 @@ export default async function L1Page({
 
     // Address detail page: /stats/l1/{chainSlug}/explorer/address/{address}
     if (isAddress && address) {
+      const shortAddress = `${address.slice(0, 10)}...${address.slice(-8)}`;
       return (
         <ExplorerProvider {...explorerProps}>
-          <AddressDetailPage {...explorerProps} address={address} />
+          <ExplorerLayout {...explorerProps} breadcrumbItems={[{ label: shortAddress }]}>
+            <AddressDetailPage {...explorerProps} address={address} />
+          </ExplorerLayout>
         </ExplorerProvider>
       );
     }
 
     // Transaction detail page: /stats/l1/{chainSlug}/explorer/tx/{txHash}
     if (isTx && txHash) {
+      const shortHash = `${txHash.slice(0, 10)}...${txHash.slice(-8)}`;
       return (
         <ExplorerProvider {...explorerProps}>
-          <TransactionDetailPage {...explorerProps} txHash={txHash} />
+          <ExplorerLayout {...explorerProps} breadcrumbItems={[{ label: shortHash }]}>
+            <TransactionDetailPage {...explorerProps} txHash={txHash} />
+          </ExplorerLayout>
         </ExplorerProvider>
       );
     }
@@ -136,7 +143,9 @@ export default async function L1Page({
     if (isBlock && blockNumber) {
       return (
         <ExplorerProvider {...explorerProps}>
-          <BlockDetailPage {...explorerProps} blockNumber={blockNumber} />
+          <ExplorerLayout {...explorerProps} breadcrumbItems={[{ label: `Block #${blockNumber}` }]}>
+            <BlockDetailPage {...explorerProps} blockNumber={blockNumber} />
+          </ExplorerLayout>
         </ExplorerProvider>
       );
     }
@@ -144,7 +153,9 @@ export default async function L1Page({
     // Explorer home page: /stats/l1/{chainSlug}/explorer
     return (
       <ExplorerProvider {...explorerProps}>
-        <L1ExplorerPage {...explorerProps} />
+        <ExplorerLayout {...explorerProps} showSearch>
+          <L1ExplorerPage {...explorerProps} />
+        </ExplorerLayout>
       </ExplorerProvider>
     );
   }

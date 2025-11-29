@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Box, Clock, Fuel, Hash, ArrowLeft, ArrowRight, ChevronRight, ChevronUp, ChevronDown, Layers, FileText, ArrowRightLeft, ArrowUpRight, Twitter, Linkedin } from "lucide-react";
+import { Box, Clock, Fuel, Hash, ArrowLeft, ArrowRight, ChevronUp, ChevronDown, Layers, FileText, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
-import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { DetailRow, CopyButton } from "@/components/stats/DetailRow";
 import Link from "next/link";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { useExplorer } from "@/components/stats/ExplorerContext";
+import { decodeFunctionInput } from "@/abi/event-signatures.generated";
+import { formatTokenValue, formatUsdValue } from "@/utils/formatTokenValue";
 
 interface BlockDetail {
   number: string;
@@ -103,9 +103,7 @@ function formatValue(value: string): string {
   if (!value) return '0';
   const wei = BigInt(value);
   const eth = Number(wei) / 1e18;
-  if (eth === 0) return '0';
-  if (eth < 0.000001) return '<0.000001';
-  return eth.toFixed(6);
+  return formatTokenValue(eth);
 }
 
 // Token symbol display component
@@ -228,34 +226,9 @@ export default function BlockDetailPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-zinc-950">
-        <div className="relative overflow-hidden">
-          <div 
-            className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
-            style={{
-              background: `linear-gradient(to left, ${themeColor}35 0%, ${themeColor}20 40%, ${themeColor}08 70%, transparent 100%)`,
-            }}
-          />
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
-            <div className="flex items-center gap-1.5 mb-3">
-              <div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-              <div className="w-3.5 h-3.5 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-              <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-              <div className="w-3.5 h-3.5 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-              <div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-              <div className="w-3.5 h-3.5 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-              <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-zinc-200 dark:bg-zinc-800 rounded-xl animate-pulse" />
-                <div className="h-10 w-64 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-              </div>
-            </div>
-          </div>
-        </div>
+      <>
         {/* Tabs skeleton */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
           <div className="flex items-center gap-2 mb-4">
             <div className="h-10 w-24 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
             <div className="h-10 w-32 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
@@ -273,304 +246,23 @@ export default function BlockDetailPage({
             </div>
           </div>
         </div>
-        <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} />
-      </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white dark:bg-zinc-950">
-        <div className="relative overflow-hidden">
-          <div 
-            className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
-            style={{
-              background: `linear-gradient(to left, ${themeColor}35 0%, ${themeColor}20 40%, ${themeColor}08 70%, transparent 100%)`,
-            }}
-          />
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
-            <nav className="flex items-center gap-1.5 text-sm mb-3">
-              <Link href="/stats/overview" className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
-                Overview
-              </Link>
-              <ChevronRight className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
-              <Link href={`/stats/l1/${chainSlug}`} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
-                {chainName}
-              </Link>
-              <ChevronRight className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
-              <Link href={`/stats/l1/${chainSlug}/explorer`} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
-                Explorer
-              </Link>
-              <ChevronRight className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
-              <span className="text-zinc-900 dark:text-zinc-100 font-medium">
-                Block #{blockNumber}
-              </span>
-            </nav>
-            <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
-              <div className="space-y-4 sm:space-y-6 flex-1">
-                <div>
-                  <div className="flex items-center gap-2 sm:gap-3 mb-3">
-                    <AvalancheLogo className="w-4 h-4 sm:w-5 sm:h-5" fill="#E84142" />
-                    <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
-                      Avalanche Ecosystem
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    {chainLogoURI && (
-                      <img
-                        src={chainLogoURI}
-                        alt={`${chainName} logo`}
-                        className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain rounded-xl"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    )}
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                      {chainName}
-                    </h1>
-                  </div>
-                  {description && (
-                    <div className="flex items-center gap-3 mt-3">
-                      <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
-                        {description}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Social Links - Top Right, Matching Explorer Page */}
-              {(website || socials) && (
-                <div className="flex flex-col sm:flex-row items-end gap-2">
-                  <div className="flex items-center gap-2">
-                    {website && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
-                      >
-                        <a href={website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                          Website
-                          <ArrowUpRight className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
-                    
-                    {/* Social buttons */}
-                    {socials && (socials.twitter || socials.linkedin) && (
-                      <>
-                        {socials.twitter && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                          >
-                            <a 
-                              href={`https://x.com/${socials.twitter}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              aria-label="Twitter"
-                            >
-                              <Twitter className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
-                        {socials.linkedin && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                          >
-                            <a 
-                              href={`https://linkedin.com/company/${socials.linkedin}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              aria-label="LinkedIn"
-                            >
-                              <Linkedin className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <Button onClick={fetchBlock} className="cursor-pointer">Retry</Button>
         </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-          <div className="text-center">
-            <p className="text-red-500 mb-4">{error}</p>
-            <Button onClick={fetchBlock}>Retry</Button>
-          </div>
-        </div>
-        <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div 
-          className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
-          style={{
-            background: `linear-gradient(to left, ${themeColor}35 0%, ${themeColor}20 40%, ${themeColor}08 70%, transparent 100%)`,
-          }}
-        />
-        
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
-          {/* Breadcrumb */}
-          <nav className="flex items-center gap-1.5 text-sm mb-3">
-            <Link 
-              href="/stats/overview" 
-              className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-            >
-              Overview
-            </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
-            <Link 
-              href={`/stats/l1/${chainSlug}`} 
-              className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-            >
-              {chainName}
-            </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
-            <Link 
-              href={`/stats/l1/${chainSlug}/explorer`} 
-              className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-            >
-              Explorer
-            </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
-            <span className="text-zinc-900 dark:text-zinc-100 font-medium">
-              Block #{blockNumber}
-            </span>
-          </nav>
-
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
-            <div className="space-y-4 sm:space-y-6 flex-1">
-              <div>
-                <div className="flex items-center gap-2 sm:gap-3 mb-3">
-                  <AvalancheLogo className="w-4 h-4 sm:w-5 sm:h-5" fill="#E84142" />
-                  <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
-                    Avalanche Ecosystem
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 sm:gap-4">
-                  {chainLogoURI && (
-                    <img
-                      src={chainLogoURI}
-                      alt={`${chainName} logo`}
-                      className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain rounded-xl"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  )}
-                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                    {chainName}
-                  </h1>
-                </div>
-                {description && (
-                  <div className="flex items-center gap-3 mt-3">
-                    <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
-                      {description}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Social Links - Top Right, Matching Explorer Page */}
-            {(website || socials) && (
-              <div className="flex flex-col sm:flex-row items-end gap-2">
-                <div className="flex items-center gap-2">
-                  {website && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                      className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
-                    >
-                      <a href={website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                        Website
-                        <ArrowUpRight className="h-4 w-4" />
-                      </a>
-                    </Button>
-                  )}
-                  
-                  {/* Social buttons */}
-                  {socials && (socials.twitter || socials.linkedin) && (
-                    <>
-                      {socials.twitter && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                          className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                        >
-                          <a 
-                            href={`https://x.com/${socials.twitter}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            aria-label="Twitter"
-                          >
-                            <Twitter className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      )}
-                      {socials.linkedin && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                          className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                        >
-                          <a 
-                            href={`https://linkedin.com/company/${socials.linkedin}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            aria-label="LinkedIn"
-                          >
-                            <Linkedin className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Glacier Support Warning Banner */}
-      {!glacierSupported && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-3">
-            <div className="flex items-center gap-3">
-              <div className="flex-shrink-0">
-                <svg className="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <p className="text-sm text-amber-800 dark:text-amber-200">
-                <span className="font-medium">Indexing support is not available for this chain.</span>{' '}
-                Some functionalities like address portfolios, token transfers, and detailed transaction history may not be available.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
+    <>
       {/* Block Title */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-4">
         <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
@@ -587,7 +279,7 @@ export default function BlockDetailPage({
               e.preventDefault();
               handleTabChange('overview');
             }}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
               activeTab === 'overview'
                 ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -601,7 +293,7 @@ export default function BlockDetailPage({
               e.preventDefault();
               handleTabChange('transactions');
             }}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
               activeTab === 'transactions'
                 ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -630,13 +322,13 @@ export default function BlockDetailPage({
                     <div className="flex items-center gap-1">
                       <Link
                         href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, prevBlock)}
-                        className="p-1 rounded bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                        className="p-1 rounded bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                       >
                         <ArrowLeft className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
                       </Link>
                       <Link
                         href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, nextBlock)}
-                        className="p-1 rounded bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                        className="p-1 rounded bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                       >
                         <ArrowRight className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
                       </Link>
@@ -665,7 +357,7 @@ export default function BlockDetailPage({
                 value={
                   <button
                     onClick={() => handleTabChange('transactions')}
-                    className="inline-flex items-center px-3 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                    className="inline-flex items-center px-3 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                     style={{ color: themeColor }}
                   >
                     {block?.transactionCount || 0} transaction{(block?.transactionCount || 0) !== 1 ? 's' : ''}
@@ -694,10 +386,10 @@ export default function BlockDetailPage({
                   value={
                     <span className="text-sm text-zinc-900 dark:text-white">
                       {chainId === "43114" && <span className="mr-1">🔥</span>}
-                      {parseFloat(block.gasFee).toFixed(6)} <TokenDisplay symbol={tokenSymbol} />
+                      {formatTokenValue(block.gasFee)} <TokenDisplay symbol={tokenSymbol} />
                       {tokenPrice && (
                         <span className="text-zinc-500 dark:text-zinc-400 ml-2">
-                          (${(parseFloat(block.gasFee) * tokenPrice).toFixed(4)} USD)
+                          ({formatUsdValue(parseFloat(block.gasFee) * tokenPrice)} USD)
                         </span>
                       )}
                     </span>
@@ -734,7 +426,7 @@ export default function BlockDetailPage({
               {/* Show More Toggle */}
               <button
                 onClick={() => setShowMore(!showMore)}
-                className="flex items-center gap-1 text-sm font-medium transition-colors"
+                className="flex items-center gap-1 text-sm font-medium transition-colors cursor-pointer"
                 style={{ color: themeColor }}
               >
                 {showMore ? 'Click to see Less' : 'Click to see More'}
@@ -764,7 +456,7 @@ export default function BlockDetailPage({
                     value={
                       <Link
                         href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, prevBlock)}
-                        className="text-sm font-mono break-all hover:underline"
+                        className="text-sm font-mono break-all hover:underline cursor-pointer"
                         style={{ color: themeColor }}
                       >
                         {block?.parentHash || '-'}
@@ -782,7 +474,7 @@ export default function BlockDetailPage({
                       block?.miner ? (
                         <Link
                           href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, block.miner)}
-                          className="text-sm font-mono break-all hover:underline"
+                          className="text-sm font-mono break-all hover:underline cursor-pointer"
                           style={{ color: themeColor }}
                         >
                           {block.miner}
@@ -858,6 +550,11 @@ export default function BlockDetailPage({
                       </th>
                       <th className="px-4 py-2 text-left">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                          Method
+                        </span>
+                      </th>
+                      <th className="px-4 py-2 text-left">
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           From
                         </span>
                       </th>
@@ -884,68 +581,76 @@ export default function BlockDetailPage({
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-neutral-950">
-                    {transactions.map((tx, index) => (
-                      <tr
-                        key={tx.hash || index}
-                        className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
-                      >
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                          <div className="flex items-center gap-1.5">
-                            <Link
-                              href={buildTxUrl(`/stats/l1/${chainSlug}/explorer`, tx.hash)}
-                              className="font-mono text-sm hover:underline cursor-pointer"
-                              style={{ color: themeColor }}
-                            >
-                              {formatAddress(tx.hash)}
-                            </Link>
-                            <CopyButton text={tx.hash} />
-                          </div>
-                        </td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                          <div className="flex items-center gap-1.5">
-                            <Link
-                              href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.from)}
-                              className="font-mono text-sm hover:underline"
-                              style={{ color: themeColor }}
-                            >
-                              {formatAddress(tx.from)}
-                            </Link>
-                            <CopyButton text={tx.from} />
-                          </div>
-                        </td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-center">
-                          <ArrowRightLeft className="w-4 h-4 text-neutral-400 dark:text-neutral-500 inline-block" />
-                        </td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                          <div className="flex items-center gap-1.5">
-                            {tx.to ? (
+                    {transactions.map((tx, index) => {
+                      const decoded = tx.input ? decodeFunctionInput(tx.input) : null;
+                      const methodName = decoded?.name || (tx.input === '0x' || !tx.input ? 'Transfer' : tx.input.slice(0, 10));
+                      const truncatedMethod = methodName.length > 12 ? methodName.slice(0, 12) + '...' : methodName;
+                      return (
+                        <tr
+                          key={tx.hash || index}
+                          className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
+                        >
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <div className="flex items-center gap-1.5">
                               <Link
-                                href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.to)}
-                                className="font-mono text-sm hover:underline"
+                                href={buildTxUrl(`/stats/l1/${chainSlug}/explorer`, tx.hash)}
+                                className="font-mono text-sm hover:underline cursor-pointer"
                                 style={{ color: themeColor }}
                               >
-                                {formatAddress(tx.to)}
+                                {formatAddress(tx.hash)}
                               </Link>
-                            ) : (
-                              <span className="font-mono text-sm text-neutral-400">Contract Creation</span>
-                            )}
-                            {tx.to && <CopyButton text={tx.to} />}
-                          </div>
-                        </td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right">
-                          <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                            {formatValue(tx.value)} <TokenDisplay symbol={tokenSymbol} />
-                          </span>
-                        </td>
-                        <td className="px-4 py-2 text-right">
-                          <span className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                            {formatValue(
-                              (BigInt(tx.gasPrice || '0') * BigInt(tx.gas || '0')).toString()
-                            )} <TokenDisplay symbol={tokenSymbol} />
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                              <CopyButton text={tx.hash} />
+                            </div>
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <span className="px-2 py-1 text-xs font-mono rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700" title={decoded?.signature || methodName}>{truncatedMethod}</span>
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <div className="flex items-center gap-1.5">
+                              <Link
+                                href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.from)}
+                                className="font-mono text-sm hover:underline cursor-pointer"
+                                style={{ color: themeColor }}
+                              >
+                                {formatAddress(tx.from)}
+                              </Link>
+                              <CopyButton text={tx.from} />
+                            </div>
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-center">
+                            <ArrowRightLeft className="w-4 h-4 text-neutral-400 dark:text-neutral-500 inline-block" />
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <div className="flex items-center gap-1.5">
+                              {tx.to ? (
+                                <Link
+                                  href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.to)}
+                                  className="font-mono text-sm hover:underline cursor-pointer"
+                                  style={{ color: themeColor }}
+                                >
+                                  {formatAddress(tx.to)}
+                                </Link>
+                              ) : (
+                                <span className="font-mono text-sm text-neutral-400">Contract Creation</span>
+                              )}
+                              {tx.to && <CopyButton text={tx.to} />}
+                            </div>
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right">
+                            <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                              {formatValue(tx.value)} <TokenDisplay symbol={tokenSymbol} />
+                            </span>
+                          </td>
+                          <td className="px-4 py-2 text-right">
+                            <span className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
+                              {formatValue(
+                                (BigInt(tx.gasPrice || '0') * BigInt(tx.gas || '0')).toString()
+                              )} <TokenDisplay symbol={tokenSymbol} />
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               ) : (
@@ -957,8 +662,6 @@ export default function BlockDetailPage({
           )}
         </div>
       </div>
-
-      <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} />
-    </div>
+    </>
   );
 }

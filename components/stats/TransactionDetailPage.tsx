@@ -1,16 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { Hash, Clock, Box, Fuel, DollarSign, FileText, ArrowUpRight, Twitter, Linkedin, ChevronRight, ChevronUp, ChevronDown, CheckCircle, XCircle, AlertCircle, ArrowRightLeft } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Hash, Clock, Box, Fuel, DollarSign, FileText, ChevronUp, ChevronDown, CheckCircle, XCircle, AlertCircle, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
-import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { DetailRow, CopyButton } from "@/components/stats/DetailRow";
 import Link from "next/link";
 import Image from "next/image";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { useExplorer } from "@/components/stats/ExplorerContext";
-import { decodeEventLog, getEventByTopic } from "@/abi/event-signatures.generated";
+import { decodeEventLog, getEventByTopic, decodeFunctionInput } from "@/abi/event-signatures.generated";
+import { formatTokenValue, formatUsdValue } from "@/utils/formatTokenValue";
 import l1ChainsData from "@/constants/l1-chains.json";
 
 interface TransactionDetail {
@@ -34,8 +33,6 @@ interface TransactionDetail {
   nonce: string;
   transactionIndex: string | null;
   input: string;
-  decodedInput: { method: string; params: Record<string, string> } | null;
-  transfers: Array<{ from: string; to: string; value: string; formattedValue: string; tokenAddress: string; tokenSymbol: string; tokenDecimals: number }>;
   type: number;
   maxFeePerGas: string | null;
   maxPriorityFeePerGas: string | null;
@@ -99,7 +96,7 @@ function formatAddress(address: string): string {
 }
 
 // Format wei amount with decimals (default 18)
-function formatTokenAmount(amount: string, decimals: number = 18): string {
+function formatTokenAmountFromWei(amount: string, decimals: number = 18): string {
   if (!amount || amount === '0') return '0';
   try {
     const value = BigInt(amount);
@@ -109,25 +106,10 @@ function formatTokenAmount(amount: string, decimals: number = 18): string {
     
     // Format fractional part with leading zeros
     let fracStr = fracPart.toString().padStart(decimals, '0');
-    // Trim trailing zeros but keep at least 2 decimal places for display
-    fracStr = fracStr.replace(/0+$/, '');
-    if (fracStr.length < 2) fracStr = fracStr.padEnd(2, '0');
-    if (fracStr.length > 6) fracStr = fracStr.slice(0, 6);
-    
+    // Create the numeric value
     const numValue = parseFloat(`${intPart}.${fracStr}`);
     
-    // Format large numbers
-    if (numValue >= 1e9) {
-      return `${(numValue / 1e9).toFixed(2)}B`;
-    } else if (numValue >= 1e6) {
-      return `${(numValue / 1e6).toFixed(2)}M`;
-    } else if (numValue >= 1e3) {
-      return `${(numValue / 1e3).toFixed(2)}K`;
-    } else if (numValue >= 1) {
-      return numValue.toFixed(4);
-    } else {
-      return numValue.toFixed(6);
-    }
+    return formatTokenValue(numValue);
   } catch {
     return amount;
   }
@@ -180,6 +162,126 @@ interface CrossChainTransfer {
   recipient: string;
   amount: string;
   contractAddress: string;
+}
+
+// ERC20 Transfer event topic hash
+const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+
+interface ERC20Transfer {
+  from: string;
+  to: string;
+  value: string;
+  tokenAddress: string;
+}
+
+// Extract ERC20 transfers from logs
+function extractERC20Transfers(logs: Array<{ topics: string[]; data: string; address: string }>): ERC20Transfer[] {
+  const transfers: ERC20Transfer[] = [];
+  
+  for (const log of logs) {
+    if (!log.topics || log.topics.length < 3) continue;
+    
+    const topic0 = log.topics[0]?.toLowerCase();
+    if (topic0 !== TRANSFER_TOPIC.toLowerCase()) continue;
+    
+    try {
+      const decoded = decodeEventLog(log);
+      if (!decoded || decoded.name !== 'Transfer') continue;
+      
+      const fromParam = decoded.params.find(p => p.name === 'from');
+      const toParam = decoded.params.find(p => p.name === 'to');
+      const valueParam = decoded.params.find(p => p.name === 'value' || p.name === 'tokenId');
+      
+      if (fromParam && toParam && valueParam) {
+        transfers.push({
+          from: fromParam.value,
+          to: toParam.value,
+          value: valueParam.value,
+          tokenAddress: log.address,
+        });
+      }
+    } catch {
+      // Skip logs that can't be decoded
+      continue;
+    }
+  }
+  
+  return transfers;
+}
+
+interface TokenInfo {
+  symbol: string;
+  decimals: number;
+}
+
+// Fetch token info from RPC
+async function fetchTokenInfo(rpcUrl: string, tokenAddress: string): Promise<TokenInfo> {
+  let symbol = 'UNKNOWN';
+  let decimals = 18;
+
+  try {
+    // Fetch symbol using eth_call with ERC20 symbol() signature (0x95d89b41)
+    const symbolResponse = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'eth_call',
+        params: [{ to: tokenAddress, data: '0x95d89b41' }, 'latest'],
+      }),
+    });
+
+    if (symbolResponse.ok) {
+      const symbolData = await symbolResponse.json();
+      const symbolResult = symbolData.result as string;
+      
+      if (symbolResult && symbolResult !== '0x' && symbolResult.length > 2) {
+        // Decode string return value
+        if (symbolResult.length > 130) {
+          const lengthHex = symbolResult.slice(66, 130);
+          const length = parseInt(lengthHex, 16);
+          const dataHex = symbolResult.slice(130, 130 + length * 2);
+          // Convert hex to string
+          symbol = dataHex.match(/.{1,2}/g)?.map(byte => String.fromCharCode(parseInt(byte, 16))).join('').replace(/\0/g, '') || 'UNKNOWN';
+        } else if (symbolResult.length === 66) {
+          // Might be bytes32 encoded (like some old tokens)
+          const hex = symbolResult.slice(2);
+          symbol = hex.match(/.{1,2}/g)?.map(byte => String.fromCharCode(parseInt(byte, 16))).join('').replace(/\0/g, '') || 'UNKNOWN';
+        }
+      }
+    }
+  } catch (e) {
+    console.log(`Could not fetch symbol for ${tokenAddress}`);
+  }
+
+  try {
+    // Fetch decimals using eth_call with ERC20 decimals() signature (0x313ce567)
+    const decimalsResponse = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'eth_call',
+        params: [{ to: tokenAddress, data: '0x313ce567' }, 'latest'],
+      }),
+    });
+
+    if (decimalsResponse.ok) {
+      const decimalsData = await decimalsResponse.json();
+      const decimalsResult = decimalsData.result as string;
+      
+      if (decimalsResult && decimalsResult !== '0x' && decimalsResult.length > 2) {
+        decimals = parseInt(decimalsResult, 16);
+        if (isNaN(decimals) || decimals > 77) decimals = 18; // Sanity check
+      }
+    }
+  } catch (e) {
+    console.log(`Could not fetch decimals for ${tokenAddress}, defaulting to 18`);
+  }
+
+  return { symbol, decimals };
 }
 
 // Extract cross-chain transfers from logs
@@ -318,6 +420,51 @@ export default function TransactionDetailPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showMore, setShowMore] = useState(false);
+  const [showRawInput, setShowRawInput] = useState(false);
+  const [erc20Transfers, setErc20Transfers] = useState<Array<ERC20Transfer & { symbol: string; decimals: number }>>([]);
+  
+  // Extract ERC20 transfers and fetch token info
+  useEffect(() => {
+    if (!tx?.logs || !rpcUrl) {
+      setErc20Transfers([]);
+      return;
+    }
+
+    const extractAndFetch = async () => {
+      const transfers = extractERC20Transfers(tx.logs);
+      
+      if (transfers.length === 0) {
+        setErc20Transfers([]);
+        return;
+      }
+
+      // Get unique token addresses
+      const uniqueTokenAddresses = Array.from(new Set(transfers.map(t => t.tokenAddress.toLowerCase())));
+      
+      // Fetch token info for all unique addresses in parallel
+      const tokenInfoMap = new Map<string, TokenInfo>();
+      await Promise.all(
+        uniqueTokenAddresses.map(async (addr) => {
+          const info = await fetchTokenInfo(rpcUrl, addr);
+          tokenInfoMap.set(addr, info);
+        })
+      );
+
+      // Combine transfers with token info
+      const transfersWithInfo = transfers.map(transfer => {
+        const tokenInfo = tokenInfoMap.get(transfer.tokenAddress.toLowerCase()) || { symbol: 'UNKNOWN', decimals: 18 };
+        return {
+          ...transfer,
+          symbol: tokenInfo.symbol,
+          decimals: tokenInfo.decimals,
+        };
+      });
+
+      setErc20Transfers(transfersWithInfo);
+    };
+
+    extractAndFetch();
+  }, [tx?.logs, rpcUrl]);
   
   // Read initial tab from URL hash
   const getInitialTab = (): 'overview' | 'logs' => {
@@ -380,264 +527,34 @@ export default function TransactionDetailPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-zinc-950">
-        <div className="relative overflow-hidden">
-          <div 
-            className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
-            style={{
-              background: `linear-gradient(to left, ${themeColor}35 0%, ${themeColor}20 40%, ${themeColor}08 70%, transparent 100%)`,
-            }}
-          />
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
-            <div className="flex items-center gap-1.5 mb-3">
-              <div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-              <div className="w-3.5 h-3.5 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-              <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-              <div className="w-3.5 h-3.5 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-              <div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-zinc-200 dark:bg-zinc-800 rounded-xl animate-pulse" />
-                <div className="h-10 w-64 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6">
+          <div className="space-y-6">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div key={i} className="flex items-start gap-4">
+                <div className="h-5 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                <div className="h-5 w-64 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
               </div>
-              <div className="h-8 w-80 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-            </div>
+            ))}
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6">
-            <div className="space-y-6">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <div key={i} className="flex items-start gap-4">
-                  <div className="h-5 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-                  <div className="h-5 w-64 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-        <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white dark:bg-zinc-950">
-        <div className="relative overflow-hidden">
-          <div 
-            className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
-            style={{
-              background: `linear-gradient(to left, ${themeColor}35 0%, ${themeColor}20 40%, ${themeColor}08 70%, transparent 100%)`,
-            }}
-          />
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
-            <nav className="flex items-center gap-1.5 text-sm mb-3">
-              <Link href="/stats/overview" className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
-                Overview
-              </Link>
-              <ChevronRight className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
-              <Link href={`/stats/l1/${chainSlug}`} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
-                {chainName}
-              </Link>
-              <ChevronRight className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
-              <Link href={`/stats/l1/${chainSlug}/explorer`} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
-                Explorer
-              </Link>
-            </nav>
-            <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
-              <div className="space-y-4 sm:space-y-6 flex-1">
-                <div>
-                  <div className="flex items-center gap-2 sm:gap-3 mb-3">
-                    <AvalancheLogo className="w-4 h-4 sm:w-5 sm:h-5" fill="#E84142" />
-                    <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
-                      Avalanche Ecosystem
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    {chainLogoURI && (
-                      <img
-                        src={chainLogoURI}
-                        alt={`${chainName} logo`}
-                        className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain rounded-xl"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    )}
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                      {chainName}
-                    </h1>
-                  </div>
-                  {description && (
-                    <div className="flex items-center gap-3 mt-3">
-                      <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
-                        {description}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <Button onClick={fetchTransaction}>Retry</Button>
         </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-          <div className="text-center">
-            <p className="text-red-500 mb-4">{error}</p>
-            <Button onClick={fetchTransaction}>Retry</Button>
-          </div>
-        </div>
-        <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div 
-          className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
-          style={{
-            background: `linear-gradient(to left, ${themeColor}35 0%, ${themeColor}20 40%, ${themeColor}08 70%, transparent 100%)`,
-          }}
-        />
-        
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
-          {/* Breadcrumb */}
-          <nav className="flex items-center gap-1.5 text-sm mb-3">
-            <Link 
-              href="/stats/overview" 
-              className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-            >
-              Overview
-            </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
-            <Link 
-              href={`/stats/l1/${chainSlug}`} 
-              className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-            >
-              {chainName}
-            </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
-            <Link 
-              href={`/stats/l1/${chainSlug}/explorer`} 
-              className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-            >
-              Explorer
-            </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
-            <span className="text-zinc-900 dark:text-zinc-100 font-medium">
-              Transaction
-            </span>
-          </nav>
-
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
-            <div className="space-y-4 sm:space-y-6 flex-1">
-              <div>
-                <div className="flex items-center gap-2 sm:gap-3 mb-3">
-                  <AvalancheLogo className="w-4 h-4 sm:w-5 sm:h-5" fill="#E84142" />
-                  <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
-                    Avalanche Ecosystem
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 sm:gap-4">
-                  {chainLogoURI && (
-                    <img
-                      src={chainLogoURI}
-                      alt={`${chainName} logo`}
-                      className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain rounded-xl"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  )}
-                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                    {chainName}
-                  </h1>
-                </div>
-                {description && (
-                  <div className="flex items-center gap-3 mt-3">
-                    <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
-                      {description}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Social Links */}
-            {(website || socials) && (
-              <div className="flex flex-col sm:flex-row items-end gap-2">
-                <div className="flex items-center gap-2">
-                  {website && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                      className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
-                    >
-                      <a href={website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                        Website
-                        <ArrowUpRight className="h-4 w-4" />
-                      </a>
-                    </Button>
-                  )}
-                  {socials && (socials.twitter || socials.linkedin) && (
-                    <>
-                      {socials.twitter && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                          className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                        >
-                          <a href={`https://x.com/${socials.twitter}`} target="_blank" rel="noopener noreferrer" aria-label="Twitter">
-                            <Twitter className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      )}
-                      {socials.linkedin && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                          className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                        >
-                          <a href={`https://linkedin.com/company/${socials.linkedin}`} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
-                            <Linkedin className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Glacier Support Warning Banner */}
-      {!glacierSupported && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-3">
-            <div className="flex items-center gap-3">
-              <div className="flex-shrink-0">
-                <svg className="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <p className="text-sm text-amber-800 dark:text-amber-200">
-                <span className="font-medium">Indexing support is not available for this chain.</span>{' '}
-                Some functionalities like address portfolios, token transfers, and detailed transaction history may not be available.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
+    <>
       {/* Transaction Details Title */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-4">
         <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
@@ -654,7 +571,7 @@ export default function TransactionDetailPage({
               e.preventDefault();
               handleTabChange('overview');
             }}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
               activeTab === 'overview'
                 ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -668,7 +585,7 @@ export default function TransactionDetailPage({
               e.preventDefault();
               handleTabChange('logs');
             }}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
               activeTab === 'logs'
                 ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -715,7 +632,7 @@ export default function TransactionDetailPage({
                   <div className="flex items-center gap-2">
                     <Link
                       href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, tx.blockNumber)}
-                      className="text-sm font-medium hover:underline"
+                      className="text-sm font-medium hover:underline cursor-pointer"
                       style={{ color: themeColor }}
                     >
                       {parseInt(tx.blockNumber).toLocaleString()}
@@ -751,7 +668,7 @@ export default function TransactionDetailPage({
                 tx?.from ? (
                   <Link
                     href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.from)}
-                    className="text-sm font-mono break-all hover:underline"
+                    className="text-sm font-mono break-all hover:underline cursor-pointer"
                     style={{ color: themeColor }}
                   >
                     {tx.from}
@@ -772,7 +689,7 @@ export default function TransactionDetailPage({
                 tx?.to ? (
                   <Link
                     href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.to)}
-                    className="text-sm font-mono break-all hover:underline"
+                    className="text-sm font-mono break-all hover:underline cursor-pointer"
                     style={{ color: themeColor }}
                   >
                     {tx.to}
@@ -782,7 +699,7 @@ export default function TransactionDetailPage({
                     <span className="text-sm text-zinc-500">[Contract Created]</span>
                     <Link
                       href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.contractAddress)}
-                      className="text-sm font-mono hover:underline"
+                      className="text-sm font-mono hover:underline cursor-pointer"
                       style={{ color: themeColor }}
                     >
                       {tx.contractAddress}
@@ -796,34 +713,38 @@ export default function TransactionDetailPage({
             />
 
             {/* Decoded Method */}
-            {tx?.decodedInput && (
-              <DetailRow
-                icon={<FileText className="w-4 h-4" />}
-                label="Method"
-                themeColor={themeColor}
-                value={
-                  <span className="inline-flex items-center px-3 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-sm font-mono">
-                    {tx.decodedInput.method}
-                  </span>
-                }
-              />
-            )}
+            {(() => {
+              const decoded = tx?.input ? decodeFunctionInput(tx.input) : null;
+              if (!decoded) return null;
+              return (
+                <DetailRow
+                  icon={<FileText className="w-4 h-4" />}
+                  label="Method"
+                  themeColor={themeColor}
+                  value={
+                    <span className="inline-flex items-center px-3 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-sm font-mono">
+                      {decoded.name}
+                    </span>
+                  }
+                />
+              );
+            })()}
 
             {/* ERC-20 Transfers */}
-            {tx?.transfers && tx.transfers.length > 0 && (
+            {erc20Transfers.length > 0 && (
               <DetailRow
                 icon={<FileText className="w-4 h-4" />}
-                label={`ERC-20 Tokens Transferred (${tx.transfers.length})`}
+                label={`ERC-20 Tokens Transferred (${erc20Transfers.length})`}
                 themeColor={themeColor}
                 value={
                   <div className="space-y-3">
-                    {tx.transfers.map((transfer, idx) => (
+                    {erc20Transfers.map((transfer, idx) => (
                       <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-zinc-500">From</span>
                           <Link 
                             href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.from)}
-                            className="font-mono text-xs hover:underline" 
+                            className="font-mono text-xs hover:underline cursor-pointer" 
                             style={{ color: themeColor }}
                           >
                             {formatAddress(transfer.from)}
@@ -832,7 +753,7 @@ export default function TransactionDetailPage({
                           <span className="text-zinc-500">To</span>
                           <Link 
                             href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.to)}
-                            className="font-mono text-xs hover:underline" 
+                            className="font-mono text-xs hover:underline cursor-pointer" 
                             style={{ color: themeColor }}
                           >
                             {formatAddress(transfer.to)}
@@ -841,14 +762,14 @@ export default function TransactionDetailPage({
                         <div className="flex items-center gap-2">
                           <span className="text-zinc-500">For</span>
                           <span className="font-semibold text-zinc-900 dark:text-white">
-                            {formatTokenAmount(transfer.value, transfer.tokenDecimals)}
+                            {formatTokenAmountFromWei(transfer.value, transfer.decimals)}
                           </span>
                           <Link 
                             href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.tokenAddress)}
-                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:underline"
+                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:underline cursor-pointer"
                             style={{ backgroundColor: `${themeColor}20`, color: themeColor }}
                           >
-                            {transfer.tokenSymbol}
+                            {transfer.symbol}
                           </Link>
                         </div>
                       </div>
@@ -875,7 +796,7 @@ export default function TransactionDetailPage({
                     <div className="space-y-3">
                       {crossChainTransfers.map((transfer, idx) => {
                         const destChain = getChainFromBlockchainId(transfer.destinationBlockchainID);
-                        const formattedAmount = formatTokenAmount(transfer.amount);
+                        const formattedAmount = formatTokenAmountFromWei(transfer.amount);
                         // Use destination chain token symbol if available, otherwise source chain's
                         const transferTokenSymbol = destChain?.tokenSymbol || sourceChainInfo?.tokenSymbol || tokenSymbol || 'Token';
                         
@@ -889,7 +810,7 @@ export default function TransactionDetailPage({
                               {/* Source Chain */}
                               <Link 
                                 href={`/stats/l1/${chainSlug}/explorer`}
-                                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium hover:underline"
+                                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium hover:underline cursor-pointer"
                                 style={{ backgroundColor: `${themeColor}20`, color: themeColor }}
                               >
                                 {chainLogoURI && (
@@ -910,7 +831,7 @@ export default function TransactionDetailPage({
                               {destChain ? (
                                 <Link 
                                   href={`/stats/l1/${destChain.slug}/explorer`}
-                                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium hover:underline"
+                                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium hover:underline cursor-pointer"
                                   style={{ backgroundColor: `${destChain.color}20`, color: destChain.color }}
                                 >
                                   {destChain.chainLogoURI && (
@@ -937,23 +858,33 @@ export default function TransactionDetailPage({
                               <span className="text-zinc-500">From</span>
                               <Link 
                                 href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.sender)}
-                                className="font-mono text-xs hover:underline" 
+                                className="font-mono text-xs hover:underline cursor-pointer" 
                                 style={{ color: themeColor }}
                               >
                                 {formatAddress(transfer.sender)}
                               </Link>
                               <span className="text-zinc-400">→</span>
                               <span className="text-zinc-500">To</span>
-                              <span className="font-mono text-xs text-zinc-600 dark:text-zinc-400">
-                                {formatAddress(transfer.recipient)}
-                              </span>
+                              {destChain ? (
+                                <Link 
+                                  href={buildAddressUrl(`/stats/l1/${destChain.slug}/explorer`, transfer.recipient)}
+                                  className="font-mono text-xs hover:underline cursor-pointer" 
+                                  style={{ color: destChain.color }}
+                                >
+                                  {formatAddress(transfer.recipient)}
+                                </Link>
+                              ) : (
+                                <span className="font-mono text-xs text-zinc-600 dark:text-zinc-400">
+                                  {formatAddress(transfer.recipient)}
+                                </span>
+                              )}
                               <span className="text-zinc-500">For</span>
                               <span className="font-semibold text-zinc-900 dark:text-white">
                                 {formattedAmount}
                               </span>
                               <Link 
                                 href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.contractAddress)}
-                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:underline"
+                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:underline cursor-pointer"
                                 style={{ backgroundColor: `${themeColor}20`, color: themeColor }}
                               >
                                 {transferTokenSymbol}
@@ -976,11 +907,11 @@ export default function TransactionDetailPage({
               value={
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1">
                   <span className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {tx?.value || '0'} <TokenDisplay symbol={tokenSymbol} />
+                    {formatTokenValue(tx?.value)} <TokenDisplay symbol={tokenSymbol} />
                   </span>
                   {tokenPrice && tx?.value && parseFloat(tx.value) > 0 && (
                     <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                      (${(parseFloat(tx.value) * tokenPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD)
+                      ({formatUsdValue(parseFloat(tx.value) * tokenPrice)} USD)
                     </span>
                   )}
                 </div>
@@ -995,11 +926,11 @@ export default function TransactionDetailPage({
               value={
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1">
                   <span className="text-sm text-zinc-900 dark:text-white">
-                    {tx?.txFee || '0'} <TokenDisplay symbol={tokenSymbol} />
+                    {formatTokenValue(tx?.txFee)} <TokenDisplay symbol={tokenSymbol} />
                   </span>
                   {tokenPrice && tx?.txFee && parseFloat(tx.txFee) > 0 && (
                     <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                      (${(parseFloat(tx.txFee) * tokenPrice).toFixed(6)} USD)
+                      ({formatUsdValue(parseFloat(tx.txFee) * tokenPrice)} USD)
                     </span>
                   )}
                 </div>
@@ -1021,7 +952,7 @@ export default function TransactionDetailPage({
             {/* Show More Toggle */}
             <button
               onClick={() => setShowMore(!showMore)}
-              className="flex items-center gap-1 text-sm font-medium transition-colors"
+              className="flex items-center gap-1 text-sm font-medium transition-colors cursor-pointer"
               style={{ color: themeColor }}
             >
               {showMore ? 'Click to see Less' : 'Click to see More'}
@@ -1067,18 +998,143 @@ export default function TransactionDetailPage({
                 />
 
                 {/* Input Data */}
-                <DetailRow
-                  icon={<FileText className="w-4 h-4" />}
-                  label="Input Data"
-                  themeColor={themeColor}
-                  value={
-                    <div className="w-full">
-                      <pre className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 p-3 rounded-lg overflow-x-auto max-h-32 text-zinc-700 dark:text-zinc-300">
-                        {tx?.input || '0x'}
-                      </pre>
-                    </div>
-                  }
-                />
+                {(() => {
+                  const decodedInput = tx?.input ? decodeFunctionInput(tx.input) : null;
+                  return (
+                    <DetailRow
+                      icon={<FileText className="w-4 h-4" />}
+                      label="Input Data"
+                      themeColor={themeColor}
+                      value={
+                        <div className="w-full space-y-3">
+                          {/* Toggle between decoded and raw */}
+                          {decodedInput && (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => setShowRawInput(false)}
+                                className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                                  !showRawInput
+                                    ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
+                                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                                }`}
+                              >
+                                Decoded
+                              </button>
+                              <button
+                                onClick={() => setShowRawInput(true)}
+                                className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                                  showRawInput
+                                    ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
+                                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                                }`}
+                              >
+                                Raw
+                              </button>
+                            </div>
+                          )}
+                          
+                          {/* Decoded View */}
+                          {decodedInput && !showRawInput ? (
+                            <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-3">
+                              {/* Method Signature */}
+                              <div>
+                                <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Function</div>
+                                <div className="text-sm font-mono font-semibold text-zinc-900 dark:text-zinc-100">
+                                  {decodedInput.name}
+                                </div>
+                                <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 font-mono">
+                                  {decodedInput.signature}
+                                </div>
+                                <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 font-mono">
+                                  Selector: {decodedInput.selector}
+                                </div>
+                              </div>
+                              
+                              {/* Parameters */}
+                              {decodedInput.params.length > 0 && (
+                                <div>
+                                  <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-2">Parameters</div>
+                                  <div className="space-y-2">
+                                    {decodedInput.params.map((param, idx) => {
+                                      const isAddress = param.type === 'address' && param.value.startsWith('0x') && param.value.length === 42;
+                                      const isNumber = (param.type.startsWith('uint') || param.type.startsWith('int')) && /^\d+$/.test(param.value);
+                                      
+                                      return (
+                                        <div key={idx} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2 text-sm">
+                                          <span className="text-zinc-600 dark:text-zinc-400 font-medium min-w-[100px] sm:min-w-[160px]">
+                                            <span className="text-zinc-400 dark:text-zinc-500 text-xs">{param.type}</span>{' '}
+                                            {param.name || `param${idx}`}:
+                                          </span>
+                                          <div className="flex-1 min-w-0">
+                                            {isAddress ? (
+                                              <Link
+                                                href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, param.value)}
+                                                className="font-mono text-xs hover:underline cursor-pointer break-all"
+                                                style={{ color: themeColor }}
+                                              >
+                                                {param.value}
+                                              </Link>
+                                            ) : isNumber ? (
+                                              <span className="font-mono text-xs text-zinc-900 dark:text-zinc-100 break-all">
+                                                {BigInt(param.value).toLocaleString()}
+                                              </span>
+                                            ) : param.components && param.components.length > 0 ? (
+                                              <div className="bg-zinc-100 dark:bg-zinc-800 p-2 rounded text-xs space-y-1">
+                                                {param.components.map((comp, compIdx) => {
+                                                  const compIsAddress = comp.type === 'address' && comp.value.startsWith('0x') && comp.value.length === 42;
+                                                  const compIsNumber = (comp.type.startsWith('uint') || comp.type.startsWith('int')) && /^\d+$/.test(comp.value);
+                                                  return (
+                                                    <div key={compIdx} className="flex items-start gap-2">
+                                                      <span className="text-zinc-400 dark:text-zinc-500 font-mono">
+                                                        {comp.name || `[${compIdx}]`}:
+                                                      </span>
+                                                      {compIsAddress ? (
+                                                        <Link
+                                                          href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, comp.value)}
+                                                          className="font-mono hover:underline cursor-pointer break-all"
+                                                          style={{ color: themeColor }}
+                                                        >
+                                                          {comp.value}
+                                                        </Link>
+                                                      ) : compIsNumber ? (
+                                                        <span className="font-mono text-zinc-900 dark:text-zinc-100 break-all">
+                                                          {BigInt(comp.value).toLocaleString()}
+                                                        </span>
+                                                      ) : (
+                                                        <span className="font-mono text-zinc-900 dark:text-zinc-100 break-all">
+                                                          {comp.value}
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                  );
+                                                })}
+                                              </div>
+                                            ) : (
+                                              <span className="font-mono text-xs text-zinc-900 dark:text-zinc-100 break-all">
+                                                {param.value}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            /* Raw View */
+                            <div className="w-full">
+                              <pre className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 p-3 rounded-lg overflow-x-auto max-h-64 text-zinc-700 dark:text-zinc-300">
+                                {tx?.input || '0x'}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      }
+                    />
+                  );
+                })()}
               </>
             )}
             </div>
@@ -1121,7 +1177,7 @@ export default function TransactionDetailPage({
                                 <CopyButton text={log.address} />
                                 <Link
                                   href={`/stats/l1/${chainSlug}/explorer`}
-                                  className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                                  className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 cursor-pointer"
                                   title="View contract"
                                 >
                                   <Hash className="w-4 h-4" />
@@ -1266,9 +1322,7 @@ export default function TransactionDetailPage({
           )}
         </div>
       </div>
-
-      <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} />
-    </div>
+    </>
   );
 }
 

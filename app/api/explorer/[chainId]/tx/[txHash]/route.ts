@@ -1,19 +1,6 @@
 import { NextResponse } from 'next/server';
 import l1ChainsData from '@/constants/l1-chains.json';
 
-// ERC20 function signatures
-const ERC20_SIGNATURES: Record<string, { name: string; inputs: string[] }> = {
-  '0xa9059cbb': { name: 'transfer', inputs: ['address', 'uint256'] },
-  '0x23b872dd': { name: 'transferFrom', inputs: ['address', 'address', 'uint256'] },
-  '0x095ea7b3': { name: 'approve', inputs: ['address', 'uint256'] },
-  '0x70a08231': { name: 'balanceOf', inputs: ['address'] },
-  '0xdd62ed3e': { name: 'allowance', inputs: ['address', 'address'] },
-  '0x18160ddd': { name: 'totalSupply', inputs: [] },
-  '0x313ce567': { name: 'decimals', inputs: [] },
-  '0x06fdde03': { name: 'name', inputs: [] },
-  '0x95d89b41': { name: 'symbol', inputs: [] },
-};
-
 interface RpcTransaction {
   hash: string;
   nonce: string;
@@ -64,71 +51,6 @@ interface RpcBlock {
   number: string;
 }
 
-interface TokenInfo {
-  symbol: string;
-  decimals: number;
-}
-
-// Simple cache for token info to avoid repeated RPC calls
-const tokenInfoCache = new Map<string, TokenInfo>();
-
-async function fetchTokenInfo(rpcUrl: string, tokenAddress: string): Promise<TokenInfo> {
-  const cacheKey = `${rpcUrl}:${tokenAddress}`;
-  
-  // Check cache first
-  if (tokenInfoCache.has(cacheKey)) {
-    return tokenInfoCache.get(cacheKey)!;
-  }
-
-  let symbol = 'UNKNOWN';
-  let decimals = 18;
-
-  try {
-    // Fetch symbol using eth_call with ERC20 symbol() signature (0x95d89b41)
-    const symbolResult = await fetchFromRPC(rpcUrl, 'eth_call', [
-      { to: tokenAddress, data: '0x95d89b41' },
-      'latest'
-    ]) as string;
-    
-    if (symbolResult && symbolResult !== '0x' && symbolResult.length > 2) {
-      // Decode string return value
-      // Skip first 64 chars (offset) and next 64 chars (length), then decode
-      if (symbolResult.length > 130) {
-        const lengthHex = symbolResult.slice(66, 130);
-        const length = parseInt(lengthHex, 16);
-        const dataHex = symbolResult.slice(130, 130 + length * 2);
-        symbol = Buffer.from(dataHex, 'hex').toString('utf8').replace(/\0/g, '');
-      } else if (symbolResult.length === 66) {
-        // Might be bytes32 encoded (like some old tokens)
-        const hex = symbolResult.slice(2);
-        symbol = Buffer.from(hex, 'hex').toString('utf8').replace(/\0/g, '');
-      }
-    }
-  } catch (e) {
-    console.log(`Could not fetch symbol for ${tokenAddress}`);
-  }
-
-  try {
-    // Fetch decimals using eth_call with ERC20 decimals() signature (0x313ce567)
-    const decimalsResult = await fetchFromRPC(rpcUrl, 'eth_call', [
-      { to: tokenAddress, data: '0x313ce567' },
-      'latest'
-    ]) as string;
-    
-    if (decimalsResult && decimalsResult !== '0x' && decimalsResult.length > 2) {
-      decimals = parseInt(decimalsResult, 16);
-      if (isNaN(decimals) || decimals > 77) decimals = 18; // Sanity check
-    }
-  } catch (e) {
-    console.log(`Could not fetch decimals for ${tokenAddress}, defaulting to 18`);
-  }
-
-  const tokenInfo = { symbol, decimals };
-  tokenInfoCache.set(cacheKey, tokenInfo);
-  
-  return tokenInfo;
-}
-
 async function fetchFromRPC(rpcUrl: string, method: string, params: unknown[] = []): Promise<unknown> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -164,43 +86,6 @@ async function fetchFromRPC(rpcUrl: string, method: string, params: unknown[] = 
   }
 }
 
-function decodeERC20Input(input: string): { method: string; params: Record<string, string> } | null {
-  if (!input || input === '0x' || input.length < 10) {
-    return null;
-  }
-
-  const methodId = input.slice(0, 10).toLowerCase();
-  const sig = ERC20_SIGNATURES[methodId];
-
-  if (!sig) {
-    return null;
-  }
-
-  const params: Record<string, string> = {};
-  const data = input.slice(10);
-
-  try {
-    let offset = 0;
-    for (let i = 0; i < sig.inputs.length; i++) {
-      const inputType = sig.inputs[i];
-      const chunk = data.slice(offset, offset + 64);
-      
-      if (inputType === 'address') {
-        params[`param${i + 1}`] = '0x' + chunk.slice(24);
-      } else if (inputType === 'uint256') {
-        const value = BigInt('0x' + chunk);
-        params[`param${i + 1}`] = value.toString();
-      }
-      
-      offset += 64;
-    }
-  } catch {
-    return { method: sig.name, params: {} };
-  }
-
-  return { method: sig.name, params };
-}
-
 function formatHexToNumber(hex: string): string {
   return parseInt(hex, 16).toString();
 }
@@ -225,24 +110,6 @@ function hexToTimestamp(hex: string): string {
   return new Date(timestamp).toISOString();
 }
 
-// Decode ERC20 Transfer event log
-function decodeTransferLog(log: { topics: string[]; data: string }): { from: string; to: string; value: string } | null {
-  // Transfer event signature: Transfer(address,address,uint256)
-  const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
-  
-  if (log.topics[0]?.toLowerCase() !== TRANSFER_TOPIC.toLowerCase() || log.topics.length < 3) {
-    return null;
-  }
-
-  try {
-    const from = '0x' + log.topics[1].slice(26);
-    const to = '0x' + log.topics[2].slice(26);
-    const value = BigInt(log.data).toString();
-    return { from, to, value };
-  } catch {
-    return null;
-  }
-}
 
 export async function GET(
   request: Request,
@@ -302,55 +169,6 @@ export async function GET(
       // Block number fetch failed
     }
 
-    // Decode input data (only if we have full tx)
-    const decodedInput = tx?.input ? decodeERC20Input(tx.input) : null;
-
-    // Decode transfer events from receipt logs and fetch token info
-    const transfers: Array<{ from: string; to: string; value: string; formattedValue: string; tokenAddress: string; tokenSymbol: string; tokenDecimals: number }> = [];
-    if (receipt.logs) {
-      // First, collect all unique token addresses
-      const tokenAddresses = new Set<string>();
-      const rawTransfers: Array<{ from: string; to: string; value: string; tokenAddress: string }> = [];
-      
-      for (const log of receipt.logs) {
-        const transfer = decodeTransferLog(log);
-        if (transfer) {
-          tokenAddresses.add(log.address.toLowerCase());
-          rawTransfers.push({
-            ...transfer,
-            tokenAddress: log.address,
-          });
-        }
-      }
-
-      // Fetch token info for all unique addresses in parallel
-      const tokenInfoMap = new Map<string, TokenInfo>();
-      await Promise.all(
-        Array.from(tokenAddresses).map(async (addr) => {
-          const info = await fetchTokenInfo(rpcUrl, addr);
-          tokenInfoMap.set(addr, info);
-        })
-      );
-
-      // Build transfers with token info
-      for (const transfer of rawTransfers) {
-        const tokenInfo = tokenInfoMap.get(transfer.tokenAddress.toLowerCase()) || { symbol: 'UNKNOWN', decimals: 18 };
-        const rawValue = BigInt(transfer.value);
-        const divisor = BigInt(10 ** tokenInfo.decimals);
-        const intPart = rawValue / divisor;
-        const fracPart = rawValue % divisor;
-        const fracStr = fracPart.toString().padStart(tokenInfo.decimals, '0').slice(0, 6);
-        const formattedValue = `${intPart}.${fracStr}`;
-        
-        transfers.push({
-          ...transfer,
-          formattedValue,
-          tokenSymbol: tokenInfo.symbol,
-          tokenDecimals: tokenInfo.decimals,
-        });
-      }
-    }
-
     // Calculate transaction fee using receipt data
     const gasUsed = formatHexToNumber(receipt.gasUsed);
     // Prefer effectiveGasPrice from receipt (more accurate for EIP-1559), fallback to tx gasPrice
@@ -404,8 +222,6 @@ export async function GET(
       transactionIndex,
       // Input only from tx
       input: tx?.input || '0x',
-      decodedInput,
-      transfers,
       // Transaction type: parse hex string to number
       type: tx?.type ? (typeof tx.type === 'string' ? parseInt(tx.type, 16) : tx.type) : 0,
       // EIP-1559 fields only from tx

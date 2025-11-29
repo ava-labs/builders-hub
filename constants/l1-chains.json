@@ -305,6 +305,7 @@
         "link": "https://432204.snowtrace.io"
       }
     ],
+    "rpcUrl": "https://subnets.avax.network/dexalot/mainnet/rpc",
     "coingeckoId": "dexalot",
     "tokenSymbol": "ALOT"
   },
