@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState, FormEvent } from "react";
+import { ReactNode, useState, FormEvent, useMemo } from "react";
 import { ArrowUpRight, Twitter, Linkedin, ChevronRight, Search, BarChart3, Compass } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,6 +10,7 @@ import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
+import l1ChainsData from "@/constants/l1-chains.json";
 
 interface ExplorerLayoutProps {
   chainId: string;
@@ -52,6 +53,13 @@ export function ExplorerLayout({
 }: ExplorerLayoutProps) {
   const router = useRouter();
   const { glacierSupported, isTokenDataLoading } = useExplorer();
+  
+  // Get chains with RPC URLs (for overlapped logos display)
+  const chainsWithRpc = useMemo(() => {
+    return (l1ChainsData as any[])
+      .filter(chain => chain.rpcUrl && chain.chainLogoURI)
+      .slice(0, 8); // Limit to 8 chains for display
+  }, []);
   
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -237,6 +245,29 @@ export function ExplorerLayout({
                       <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
                         Avalanche Ecosystem
                       </p>
+                      {/* Overlapped chain logos */}
+                      {chainsWithRpc.length > 0 && (
+                        <div className="flex items-center ml-2">
+                          <div className="flex -space-x-2">
+                            {chainsWithRpc.map((chain, idx) => (
+                              <Link
+                                key={chain.chainId}
+                                href={`/stats/l1/${chain.slug}/explorer`}
+                                className="relative inline-block cursor-pointer transition-transform hover:scale-110 hover:z-10"
+                                style={{ zIndex: chainsWithRpc.length - idx }}
+                                title={chain.chainName}
+                              >
+                                <img
+                                  src={chain.chainLogoURI}
+                                  alt={chain.chainName}
+                                  className="w-6 h-6 rounded-full border-2 border-white dark:border-zinc-900 bg-white dark:bg-zinc-800 object-contain"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-3 sm:gap-4">
                       {chainLogoURI && (
