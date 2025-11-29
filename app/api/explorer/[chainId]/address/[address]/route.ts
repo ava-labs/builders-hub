@@ -190,7 +190,7 @@ async function getNativeBalance(address: string, chainId: string, tokenSymbol?: 
     return {
       balance,
       balanceFormatted,
-      symbol: tokenSymbol || 'AVAX',
+      symbol: tokenSymbol || '',
       price,
       valueUsd,
     };
@@ -199,7 +199,7 @@ async function getNativeBalance(address: string, chainId: string, tokenSymbol?: 
     return {
       balance: '0',
       balanceFormatted: '0',
-      symbol: tokenSymbol || 'AVAX',
+      symbol: tokenSymbol || '',
     };
   }
 }

@@ -122,11 +122,7 @@ function formatMarketCap(num: number): string {
 // Token symbol display component
 function TokenDisplay({ symbol }: { symbol?: string }) {
   if (!symbol) {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
-        NO_TOKEN_DATA
-      </span>
-    );
+    return <span className="text-zinc-500 dark:text-zinc-400">N/A</span>;
   }
   return <span>{symbol}</span>;
 }
@@ -240,8 +236,9 @@ export default function L1ExplorerPage({
   const previousDataRef = useRef<ExplorerData | null>(null);
   const ICM_MESSAGE_LIMIT = 100; // Maximum number of ICM messages to keep
 
-  // Get actual token symbol - prefer context (shared), fallback to API data or props
-  const tokenSymbol = contextTokenSymbol || data?.tokenSymbol || data?.price?.symbol || nativeToken || undefined;
+  // Get actual token symbol - prefer context (shared), fallback to API data
+  // Don't use nativeToken as placeholder - show N/A instead
+  const tokenSymbol = contextTokenSymbol || data?.tokenSymbol || data?.price?.symbol || undefined;
 
   const fetchData = useCallback(async () => {
     try {
@@ -697,8 +694,8 @@ export default function L1ExplorerPage({
                     <div className="flex items-center gap-1.5">
                       <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
                       <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Live</span>
-                    </div>
-                  </div>
+        </div>
+      </div>
                   <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
                     {icmMessages.map((tx, index) => (
                       <div 

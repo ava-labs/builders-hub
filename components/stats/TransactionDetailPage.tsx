@@ -367,11 +367,7 @@ function hexToNumber(hex: string): string {
 // Token symbol display component
 function TokenDisplay({ symbol }: { symbol?: string }) {
   if (!symbol) {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
-        NO_TOKEN_DATA
-      </span>
-    );
+    return <span className="text-zinc-500 dark:text-zinc-400">N/A</span>;
   }
   return <span>{symbol}</span>;
 }

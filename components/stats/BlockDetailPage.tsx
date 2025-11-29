@@ -110,11 +110,7 @@ function formatValue(value: string): string {
 // Token symbol display component
 function TokenDisplay({ symbol }: { symbol?: string }) {
   if (!symbol) {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
-        NO_TOKEN_DATA
-      </span>
-    );
+    return <span className="text-zinc-500 dark:text-zinc-400">N/A</span>;
   }
   return <span>{symbol}</span>;
 }
@@ -605,7 +601,7 @@ export default function BlockDetailPage({
                         </td>
                           <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                             <span className="px-2 py-1 text-xs font-mono rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700" title={decoded?.signature || methodName}>{truncatedMethod}</span>
-                          </td>
+                        </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
                             <Link

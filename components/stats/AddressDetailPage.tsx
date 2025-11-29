@@ -207,6 +207,11 @@ function formatUsd(value: number | undefined): string {
   return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+// Token symbol display helper - shows N/A when symbol is not available
+function displaySymbol(symbol?: string): string {
+  return symbol || 'N/A';
+}
+
 function formatBalance(balance: string, decimals: number = 18): string {
   if (!balance || balance === '0') return '0';
   const value = Number(balance) / Math.pow(10, decimals);
@@ -449,14 +454,14 @@ export default function AddressDetailPage({
             {/* Native Balance */}
             <div className="mb-4">
               <div className="text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mb-1">
-                {data?.nativeBalance.symbol} BALANCE
+                {displaySymbol(data?.nativeBalance.symbol)} BALANCE
               </div>
               <div className="flex items-center gap-2">
                 {chainLogoURI && (
                   <img src={chainLogoURI} alt="" className="w-4 h-4 rounded-full" />
                 )}
                 <span className="text-zinc-900 dark:text-white font-medium">
-                  {data?.nativeBalance.balanceFormatted} {data?.nativeBalance.symbol}
+                  {data?.nativeBalance.balanceFormatted} {displaySymbol(data?.nativeBalance.symbol)}
                 </span>
               </div>
             </div>
@@ -464,13 +469,13 @@ export default function AddressDetailPage({
             {/* Native Value */}
             <div className="mb-4">
               <div className="text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mb-1">
-                {data?.nativeBalance.symbol} VALUE
+                {displaySymbol(data?.nativeBalance.symbol)} VALUE
               </div>
               <div className="text-zinc-900 dark:text-white">
                 {formatUsd(data?.nativeBalance.valueUsd)}
                 {data?.nativeBalance.price && (
                   <span className="text-zinc-500 dark:text-zinc-400 text-sm ml-1">
-                    (@ ${data.nativeBalance.price.toFixed(2)}/{data?.nativeBalance.symbol})
+                    (@ ${data.nativeBalance.price.toFixed(2)}/{displaySymbol(data?.nativeBalance.symbol)})
                   </span>
                 )}
               </div>
@@ -894,7 +899,7 @@ export default function AddressDetailPage({
                               {tx.to ? (<><Link href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.to)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(tx.to)}</Link><CopyButton text={tx.to} /></>) : (<span className="text-neutral-400 text-sm">Contract Creation</span>)}
                             </div>
                           </td>
-                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right"><span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{formatValue(tx.value)} {data?.nativeBalance.symbol}</span></td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right"><span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{formatValue(tx.value)} {displaySymbol(data?.nativeBalance.symbol)}</span></td>
                           <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right"><span className="text-sm font-medium text-neutral-500 dark:text-neutral-400">{formatTxFee(tx.gasPrice, tx.gasUsed)}</span></td>
                           <td className="px-4 py-2 text-right text-sm text-neutral-500 dark:text-neutral-400">{formatTimestamp(tx.timestamp)}</td>
                         </tr>
@@ -1068,7 +1073,7 @@ export default function AddressDetailPage({
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right">
-                          <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{formatValue(itx.value)} {data?.nativeBalance.symbol}</span>
+                          <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{formatValue(itx.value)} {displaySymbol(data?.nativeBalance.symbol)}</span>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <span className="px-2 py-0.5 text-xs rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">{itx.txType}</span>

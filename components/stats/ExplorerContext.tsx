@@ -93,7 +93,7 @@ export function ExplorerProvider({
     socials,
   });
   
-  const [tokenSymbol, setTokenSymbol] = useState<string>(nativeToken || 'AVAX');
+  const [tokenSymbol, setTokenSymbol] = useState<string>('');
   const [tokenPrice, setTokenPrice] = useState<number | null>(null);
   const [priceData, setPriceData] = useState<PriceData | null>(null);
   const [glacierSupported, setGlacierSupported] = useState<boolean>(false);
@@ -120,7 +120,7 @@ export function ExplorerProvider({
       const response = await fetch(`/api/explorer/${chainId}`);
       if (response.ok) {
         const data = await response.json();
-        const symbol = data?.tokenSymbol || data?.price?.symbol || nativeToken || 'AVAX';
+        const symbol = data?.tokenSymbol || data?.price?.symbol || '';
         const price = data?.price || null;
         const isGlacierSupported = data?.glacierSupported ?? false;
         
