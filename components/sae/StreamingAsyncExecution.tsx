@@ -1083,7 +1083,7 @@ export function StreamingAsyncExecution({ colors }: { colors: Colors }) {
           </div>
         </div>
         <p className={`text-sm sm:text-xs md:text-[11px] text-red-500 mt-2 md:mt-4 font-mono uppercase tracking-wider`}>
-          Stream the execution of blocks in parallel, get confirmation instantly
+          Stream the execution of blocks, get receipts instantly
         </p>
       </div>
     </>
