@@ -1,13 +1,12 @@
 import { AuthOptions } from '@/lib/auth/authOptions';
+import { withAuth } from '@/lib/protectedRoute';
 import { del, put } from '@vercel/blob';
 import { getServerSession } from 'next-auth';
 import { NextResponse, NextRequest } from 'next/server';
-export async function POST(request: Request) {
-    // Add authentication check
-    const session = await getServerSession(AuthOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+import { canUserDeleteFile } from '@/server/services/fileValidation';
+
+
+export const POST = withAuth(async (request: Request, context: any, session: any) => {
   try {
     const formData = await request.formData();
     const file = formData.get('file');
@@ -33,20 +32,12 @@ export async function POST(request: Request) {
       { status: wrappedError.cause == 'ValidationError' ? 400 : 500 }
     );
   }
-}
+});
 
-export async function DELETE(request: NextRequest) {
-   // Add authentication check
-   const session = await getServerSession(AuthOptions);
-   if (!session) {
-     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-   }
+export const DELETE = withAuth(async (request: NextRequest, context: any, session: any) => {
   const { searchParams } = new URL(request.url);
   const fileName = searchParams.get('fileName');
   const url = searchParams.get('url');
-  if (url){
-    return NextResponse.json({message: 'URL delete is not supported'})
-  }
 
   if (!fileName && !url) {
     return NextResponse.json(
@@ -55,18 +46,60 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
+  // Use fileName if available, otherwise use url
+  const fileIdentifier = fileName || url!;
+
   try {
-    const blobExists = await fetch(`${process.env.BLOB_BASE_URL}/${fileName}`, {
+    // Validate permissions before deleting
+    const customAttributes = (session?.user?.custom_attributes as string[]) || [];
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID is required' },
+        { status: 401 }
+      );
+    }
+
+    const hasPermission = await canUserDeleteFile(
+      fileIdentifier,
+      userId,
+      customAttributes
+    );
+
+    if (!hasPermission) {
+      return NextResponse.json(
+        { error: 'You do not have permission to delete this file' },
+        { status: 403 }
+      );
+    }
+
+    // Extract the file name to verify existence and deletion
+    let actualFileName = fileIdentifier;
+    if (fileIdentifier.includes('/')) {
+      try {
+        const urlObj = new URL(fileIdentifier);
+        actualFileName = urlObj.pathname.split('/').pop() || fileIdentifier;
+      } catch {
+        // If it's not a valid URL, use the identifier as is
+        actualFileName = fileIdentifier.split('/').pop() || fileIdentifier;
+      }
+    }
+
+    // Check if the file exists
+    const blobExists = await fetch(`${process.env.BLOB_BASE_URL}/${actualFileName}`, {
       method: 'HEAD',
     }).then(res => res.ok).catch(() => false);
 
     if (!blobExists) {
       return NextResponse.json(
         { message: 'The file does not exist or has already been deleted' },
-        { status: 404 }
+        { status: 201 }
       );
     }
-    await del(fileName || url!, {
+
+    // Delete the file
+    await del(actualFileName, {
       token: process.env.BLOB_READ_WRITE_TOKEN,
     });
 
@@ -75,4 +108,4 @@ export async function DELETE(request: NextRequest) {
     console.error('Error deleting file:', error);
     return NextResponse.json({ error: 'Error deleting file' }, { status: 500 });
   }
-}
+});
