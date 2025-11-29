@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Avalanche } from "@avalanche-sdk/chainkit";
 import l1ChainsData from '@/constants/l1-chains.json';
-import { getCachedLabels, registerExecution } from '@/app/api/dune/cache';
 
 // Initialize Avalanche SDK
 const avalanche = new Avalanche({
@@ -112,8 +111,6 @@ interface AddressInfo {
   internalTransactions: InternalTransaction[];
   nextPageToken?: string;
   addressChains?: AddressChain[];
-  duneExecutionId?: string; // Execution ID for UI to poll status/results
-  duneLabels?: any[]; // Cached labels returned directly if available
 }
 
 // RPC helper
@@ -438,66 +435,6 @@ async function getTransactions(
   }
 }
 
-// Dune API constants
-const DUNE_QUERY_ID = '6275927';
-
-interface DuneExecutionResult {
-  executionId: string | null;
-  cachedLabels: any[] | null; // If cached, labels are returned directly
-}
-
-// Start Dune query execution and return execution ID (UI will poll for results)
-// If cached labels exist, return them directly without starting execution
-async function startDuneExecution(address: string): Promise<DuneExecutionResult> {
-  // Check cache first
-  const cached = getCachedLabels(address);
-  if (cached) {
-    return { executionId: null, cachedLabels: cached };
-  }
-  
-  const duneApiKey = process.env.DUNE_API_KEY;
-  if (!duneApiKey) {
-    console.warn('[Dune] API key not configured');
-    return { executionId: null, cachedLabels: null };
-  }
-
-  try {
-    const response = await fetch(
-      `https://api.dune.com/api/v1/query/${DUNE_QUERY_ID}/execute`,
-      {
-        method: 'POST',
-        headers: {
-          'X-Dune-API-Key': duneApiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query_parameters: { address: address },
-          performance: 'medium',
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      console.warn('[Dune] Execute failed:', response.status);
-      return { executionId: null, cachedLabels: null };
-    }
-
-    const data = await response.json();
-    const executionId = data.execution_id || null;
-    
-    if (executionId) {
-      // Register execution ID for cache lookup in results endpoint
-      registerExecution(executionId, address);
-      console.log(`[Dune] Started execution ${executionId} for address ${address}`);
-    }
-    
-    return { executionId, cachedLabels: null };
-  } catch (error) {
-    console.warn('[Dune] Failed to start execution:', error);
-    return { executionId: null, cachedLabels: null };
-  }
-}
-
 // Helper to track timing
 async function timed<T>(name: string, fn: () => Promise<T>): Promise<{ result: T; duration: number }> {
   const start = performance.now();
@@ -534,18 +471,17 @@ export async function GET(
 
     // Fetch all data in parallel with timing
     // Note: ERC20 balances are fetched separately via /erc20-balances endpoint
+    // Note: Dune labels are fetched separately via /api/dune/[address] endpoint
     const [
       isContractTimed,
       nativeBalanceTimed,
       txResultTimed,
       addressChainsTimed,
-      duneExecutionTimed,
     ] = await Promise.all([
       timed('isContract', () => isContract(rpcUrl, address)),
       timed('nativeBalance', () => getNativeBalance(address, chainId, chain.tokenSymbol)),
       timed('transactions', () => getTransactions(address, chainId, pageToken)),
       timed('addressChains', () => getAddressChains(address)),
-      timed('duneExecution', () => startDuneExecution(address)),
     ]);
 
     // Store timings
@@ -553,14 +489,12 @@ export async function GET(
     timings.nativeBalance = nativeBalanceTimed.duration;
     timings.transactions = txResultTimed.duration;
     timings.addressChains = addressChainsTimed.duration;
-    timings.duneExecution = duneExecutionTimed.duration;
 
     // Extract results
     const isContractResult = isContractTimed.result;
     const nativeBalance = nativeBalanceTimed.result;
     const txResult = txResultTimed.result;
     const addressChains = addressChainsTimed.result;
-    const duneResult = duneExecutionTimed.result;
 
     // Fetch contract metadata if it's a contract
     let contractMetadata: ContractMetadata | undefined;
@@ -576,15 +510,13 @@ export async function GET(
       contractMetadata,
       nativeBalance,
       // ERC20 balances fetched separately via /erc20-balances endpoint
+      // Dune labels fetched separately via /api/dune/[address] endpoint
       transactions: txResult.transactions,
       erc20Transfers: txResult.erc20Transfers,
       nftTransfers: txResult.nftTransfers,
       internalTransactions: txResult.internalTransactions,
       nextPageToken: txResult.nextPageToken,
       addressChains: addressChains.length > 0 ? addressChains : undefined,
-      // Dune labels: either cached labels or execution ID for polling
-      duneExecutionId: duneResult.executionId || undefined,
-      duneLabels: duneResult.cachedLabels || undefined,
     };
 
     const totalDuration = performance.now() - totalStart;
@@ -592,7 +524,7 @@ export async function GET(
     // Log timings
     console.log(`[Address API] ${address} on chain ${chainId} - Total: ${totalDuration.toFixed(0)}ms`);
     console.log(`  Parallel fetch: isContract=${timings.isContract.toFixed(0)}ms, nativeBalance=${timings.nativeBalance.toFixed(0)}ms`);
-    console.log(`  Parallel fetch: transactions=${timings.transactions.toFixed(0)}ms, addressChains=${timings.addressChains.toFixed(0)}ms, duneExecution=${timings.duneExecution.toFixed(0)}ms`);
+    console.log(`  Parallel fetch: transactions=${timings.transactions.toFixed(0)}ms, addressChains=${timings.addressChains.toFixed(0)}ms`);
     if (timings.contractMetadata) {
       console.log(`  Sequential: contractMetadata=${timings.contractMetadata.toFixed(0)}ms`);
     }

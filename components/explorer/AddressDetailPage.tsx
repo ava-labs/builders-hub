@@ -180,8 +180,7 @@ interface AddressData {
   internalTransactions: InternalTransaction[];
   nextPageToken?: string;
   addressChains?: AddressChain[];
-  duneExecutionId?: string; // Execution ID for polling Dune labels
-  duneLabels?: DuneLabel[]; // Cached labels returned directly if available
+  // Dune labels fetched separately via /api/dune/[address]
 }
 
 interface Erc20BalancesPageResponse {
@@ -588,76 +587,57 @@ export default function AddressDetailPage({
     };
   }, [chainId, address]);
 
-  // Handle Dune labels: either use cached labels or poll for results
+  // Fetch Dune labels - poll endpoint until results are ready
   useEffect(() => {
-    // If we have cached labels from the API response, use them directly
-    if (data?.duneLabels && data.duneLabels.length > 0) {
-      setDuneLabels(data.duneLabels);
-      setDuneLabelsLoading(false);
-      return;
-    }
-    
-    // If no execution ID, nothing to poll
-    if (!data?.duneExecutionId) {
-      setDuneLabelsLoading(false);
-      return;
-    }
-    
     let cancelled = false;
-    const pollInterval = 1000; // 1 second
+    const pollInterval = 1500; // 1.5 seconds
     const maxPollTime = 30000; // 30 seconds max
     const startTime = Date.now();
     
-    const pollDuneResults = async () => {
-      setDuneLabelsLoading(true);
+    const poll = async () => {
+      if (cancelled) return;
       
-      const poll = async () => {
-        if (cancelled || Date.now() - startTime > maxPollTime) {
+      try {
+        const response = await fetch(`/api/dune/${address}`);
+        if (!response.ok || cancelled) {
           setDuneLabelsLoading(false);
           return;
         }
         
-        try {
-          // Check status
-          const statusRes = await fetch(`/api/dune/status/${data.duneExecutionId}`);
-          if (!statusRes.ok) {
-            setDuneLabelsLoading(false);
-            return;
-          }
-          
-          const status = await statusRes.json();
-          
-          if (status.isFinished) {
-            if (status.state === 'QUERY_STATE_COMPLETED') {
-              // Fetch results
-              const resultsRes = await fetch(`/api/dune/results/${data.duneExecutionId}`);
-              if (resultsRes.ok) {
-                const results = await resultsRes.json();
-                if (!cancelled) {
-                  setDuneLabels(results.labels || []);
-                }
-              }
-            }
-            setDuneLabelsLoading(false);
-          } else {
-            // Continue polling
+        const result = await response.json();
+        
+        if (cancelled) return;
+        
+        if (result.status === 'cached' || result.status === 'completed') {
+          // Got results
+          setDuneLabels(result.labels || []);
+          setDuneLabelsLoading(false);
+        } else if (result.status === 'waiting') {
+          // Still waiting, poll again if not timed out
+          if (Date.now() - startTime < maxPollTime) {
             setTimeout(poll, pollInterval);
+          } else {
+            setDuneLabelsLoading(false);
           }
-        } catch (err) {
-          console.error('[Dune] Polling error:', err);
+        } else {
+          // Failed
           setDuneLabelsLoading(false);
         }
-      };
-      
-      poll();
+      } catch (err) {
+        console.error('[Dune] Fetch error:', err);
+        if (!cancelled) {
+          setDuneLabelsLoading(false);
+        }
+      }
     };
     
-    pollDuneResults();
+    setDuneLabelsLoading(true);
+    poll();
     
     return () => {
       cancelled = true;
     };
-  }, [data?.duneExecutionId, data?.duneLabels]);
+  }, [address]);
 
   const handleNextPage = () => {
     if (data?.nextPageToken) {

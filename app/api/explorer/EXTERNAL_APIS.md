@@ -46,14 +46,23 @@ Used for fetching address labels from Dune Analytics queries.
 
 | File | Endpoint | Purpose | Parameters |
 |------|----------|---------|------------|
-| `app/api/explorer/[chainId]/address/[address]/route.ts` | `api.dune.com/api/v1/query/${QUERY_ID}/execute` | Start Dune query execution for address labels | `query_parameters: { address }`, `performance: 'medium'` |
-| `app/api/dune/status/[executionId]/route.ts` | `api.dune.com/api/v1/execution/${executionId}/status` | Poll query execution status | `executionId` |
-| `app/api/dune/results/[executionId]/route.ts` | `api.dune.com/api/v1/execution/${executionId}/results` | Get query results (address labels) | `executionId` |
+| `app/api/dune/[address]/route.ts` | `api.dune.com/api/v1/query/${QUERY_ID}/execute` | Start Dune query execution | `query_parameters: { address }`, `performance: 'medium'` |
+| `app/api/dune/[address]/route.ts` | `api.dune.com/api/v1/execution/${executionId}/status` | Check execution status | `executionId` (from cache) |
+| `app/api/dune/[address]/route.ts` | `api.dune.com/api/v1/execution/${executionId}/results` | Get query results | `executionId` |
 
 **Base URL**: `https://api.dune.com/api/v1`  
 **Authentication**: `X-Dune-API-Key` header (from `DUNE_API_KEY` env var)  
 **Rate Limits**: Yes (depends on API plan)  
-**Query ID**: `6275927` (hardcoded)
+**Query ID**: `6275927` (hardcoded)  
+**Response statuses**: `cached`, `completed`, `waiting`, `failed`  
+**Flow** (non-blocking, UI polls):
+1. Check cache → return `status: 'cached'` if found
+2. Check pending execution → if exists, check status:
+   - Complete → fetch results, cache, return `status: 'completed'`
+   - Still running → return `status: 'waiting'`
+   - Failed → clear and continue to step 3
+3. Start new execution → store in cache → return `status: 'waiting'`
+4. UI polls every 1.5s until results or timeout (30s)
 
 ---
 

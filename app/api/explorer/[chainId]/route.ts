@@ -795,9 +795,9 @@ export async function GET(
 
     // Check cache only for non-initial loads (initial load needs fresh historical data)
     if (!initialLoad) {
-      const cached = cache.get(chainId);
-      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-        return NextResponse.json(cached.data);
+    const cached = cache.get(chainId);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return NextResponse.json(cached.data);
       }
     }
 
