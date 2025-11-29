@@ -1,6 +1,13 @@
+import { AuthOptions } from '@/lib/auth/authOptions';
 import { del, put } from '@vercel/blob';
+import { getServerSession } from 'next-auth';
 import { NextResponse, NextRequest } from 'next/server';
 export async function POST(request: Request) {
+    // Add authentication check
+    const session = await getServerSession(AuthOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
   try {
     const formData = await request.formData();
     const file = formData.get('file');
@@ -29,6 +36,11 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: NextRequest) {
+   // Add authentication check
+   const session = await getServerSession(AuthOptions);
+   if (!session) {
+     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+   }
   const { searchParams } = new URL(request.url);
   const fileName = searchParams.get('fileName');
   const url = searchParams.get('url');
@@ -54,7 +66,6 @@ export async function DELETE(request: NextRequest) {
         { status: 404 }
       );
     }
-
     await del(fileName || url!, {
       token: process.env.BLOB_READ_WRITE_TOKEN,
     });
