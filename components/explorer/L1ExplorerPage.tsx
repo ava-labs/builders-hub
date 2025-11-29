@@ -318,9 +318,9 @@ export default function L1ExplorerPage({
       }
       const url = `/api/explorer/${chainId}${params.toString() ? `?${params.toString()}` : ''}`;
       
-      // Create timeout promise
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout')), FETCH_TIMEOUT);
+      // Create timeout promise that resolves to null (silent timeout)
+      const timeoutPromise = new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), FETCH_TIMEOUT * 2);
       });
       
       // Race fetch against timeout
@@ -328,6 +328,13 @@ export default function L1ExplorerPage({
         fetch(url),
         timeoutPromise
       ]);
+      
+      // If timeout occurred, silently schedule next fetch
+      if (response === null) {
+        shouldScheduleNext = true;
+        nextIsRateLimited = true; // Use longer interval after timeout
+        return;
+      }
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -426,10 +433,9 @@ export default function L1ExplorerPage({
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An error occurred";
       const rateLimited = errorMessage.includes('429');
-      const isTimeout = errorMessage === 'Request timeout';
       
-      // Set rate limit flag for longer retry interval (also for timeouts)
-      if (rateLimited || isTimeout) {
+      // Set rate limit flag for longer retry interval
+      if (rateLimited) {
         setIsRateLimited(true);
         nextIsRateLimited = true;
       }
