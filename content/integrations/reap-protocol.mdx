@@ -1,0 +1,124 @@
+---
+title: Reap Protocol
+category: x402
+available: ["C-Chain"]
+description:  Reap Protocol gives AI Agent's the power to search real products, verify inventory, and purchase autonomously. Reap bridges Web2 shops with Web3 settlement so agents can operate in the real economy — safely, verifiably, and on-chain.
+logo: /images/reap-protocol.png
+developer: April Labs
+website: https://protocol.reap.deals/
+documentation: https://docs.reap.deals/
+---
+
+## Overview
+
+Reap Protocol gives AI Agents the power to search real products, verify inventory, and purchase autonomously. Reap bridges Web2 shops with Web3 settlement so agents can operate in the real economy — safely, verifiably, and on-chain.  We provide both Python and Typescript SDK's.
+
+## Features
+
+- **Product Search → On-Chain Inventory**: Agents can index any Web2 product with a single call.
+- **x402 Negotiation Engine**: Turns HTTP into a payment-capable negotiation loop.
+- **Agentic Cart**: Identity, stock, and settlement in a single atomic mission.
+- **Self-Custody by Design**: The agent controls its wallet; Reap handles the complexity.
+
+## Getting Started
+
+## Installation
+```bash
+npm install @reap-protocol/sdk ethers axios
+```
+
+This example demonstrates the full Agentic Commerce Loop: Identity -> Discovery -> Settlement.
+
+### 1. Setup
+
+If using TypeScript, ensure your tsconfig.json targets ES2020 or higher.
+
+### 2. The Agent Code (agent.ts)
+```typescript
+import { ReapClient } from "@reap-protocol/sdk";
+
+// Load your private key securely
+const PRIVATE_KEY = process.env.MY_WALLET_KEY || "";
+
+async function main() {
+  // 1. Initialize the Agent
+  // (Points to official middleware by default)
+  const client = new ReapClient(PRIVATE_KEY);
+  console.log("🤖 Agent Online");
+
+  try {
+    // 2. Identity (One-time setup)
+    // Registers your wallet as an authorized Agent on the Protocol
+    console.log("🆔 Checking Identity...");
+    await client.registerIdentity();
+
+    // 3. JIT Stocking (Discovery)
+    // Searches Web2 (Reap Deals), registers items on-chain, and returns inventory
+    console.log("📦 Stocking Shelf with 'Gaming Laptop'...");
+    const result = await client.stockShelf("Gaming Laptop");
+    
+    const inventory = result.items;
+    console.log(`   🔍 Found ${inventory.length} items on-chain.`);
+
+    if (inventory.length > 0) {
+        // 4. Decision Logic
+        // Example: Pick the first available item
+        const target = inventory[0];
+        console.log(`   🎯 Selected: ${target.name} ($${target.price})`);
+        console.log(`      ID: ${target.id}`);
+
+        // 5. Agentic Cart (Settlement)
+        // Automatically approves USDC and executes the atomic purchase
+        console.log("💸 Buying Item...");
+        const receipt = await client.buyProduct(target.id);
+        
+        if (receipt) {
+            console.log(`🎉 SUCCESS! Transaction Hash: ${receipt.hash}`);
+        }
+    } else {
+        console.log("❌ No items found.");
+    }
+
+  } catch (e: any) {
+    console.error("❌ Error:", e.message);
+  }
+}
+
+main();
+```
+
+### 3. Run It
+```bash
+# Install execution tools if you haven't already
+npm install --save-dev ts-node typescript @types/node
+
+# Run
+npx ts-node agent.ts
+```
+
+## Configuration
+
+You can override defaults for custom RPCs or self-hosted middleware.
+```typescript
+const client = new ReapClient(
+  "YOUR_PRIVATE_KEY",
+  "https://avax-fuji.g.alchemy.com/v2/YOUR_KEY", // Custom RPC
+  "https://avax.api.reap.deals"    // Middleware URL
+);
+```
+
+## Documentation
+
+For integration guides and API documentation, visit the [Reap Protocol Documentation](https://docs.reap.deals/).
+
+## Use Cases
+
+Reap Protocol serves various agentic commerce needs:
+
+- **Agentic Commerce**: Enable agents to conduct onchain commerce
+- **x402 payments**: Pay for x402 resources and goods
+- **On-chain shopping**: Create on-chain shopping flows
+
+## Conclusion
+
+Reap Protocol brings agentic commerce to Avalanche, giving AI Agents the power to search real products, verify inventory, and purchase autonomously.
