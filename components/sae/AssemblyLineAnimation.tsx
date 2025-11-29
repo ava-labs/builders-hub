@@ -290,29 +290,30 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
     if (allTxs.length === 0) return
     
     // Calculate interval to spread txs evenly across execution time (1500ms)
-    const executionDuration = 1400 // slightly less than 1500ms to finish before settling
+    const executionDuration = 1350 // finish emitting before 1500ms execution ends
     const emitInterval = Math.floor(executionDuration / allTxs.length)
     
+    let currentIndex = 0
+    
     const emitParticle = () => {
-      // Find unprocessed txs
-      const unprocessed = allTxs.filter(tx => !processedTxIndices.has(`${tx.blockId}-${tx.txIndex}`))
-      if (unprocessed.length === 0) return
+      if (currentIndex >= allTxs.length) return
       
-      // Pick the first unprocessed tx (sequential order)
-      const tx = unprocessed[0]
+      const tx = allTxs[currentIndex]
       const key = `${tx.blockId}-${tx.txIndex}`
       
-      // Mark as processed
+      // Mark as processed for the block animation
       setProcessedTxIndices(prev => new Set([...prev, key]))
       
       const id = smokeIdRef.current++
       const x = Math.random() * 16 - 8
       setSmokeParticles(prev => [...prev, { id, color: tx.color, x }])
       
-      // Remove particle after animation
+      // Remove particle after animation (matches 1.5s duration)
       setTimeout(() => {
         setSmokeParticles(prev => prev.filter(p => p.id !== id))
-      }, 1200)
+      }, 1600)
+      
+      currentIndex++
     }
     
     // Emit particles at calculated intervals to fill execution time
@@ -320,7 +321,7 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
     const interval = setInterval(emitParticle, emitInterval)
     
     return () => clearInterval(interval)
-  }, [isProcessing, executingBlocks, processedTxIndices])
+  }, [isProcessing, executingBlocks])
 
   useEffect(() => {
     if (isProcessing) return
@@ -555,13 +556,13 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
                   }}
                   initial={{ y: 0, opacity: 0.9, scale: 1 }}
                   animate={{ 
-                    y: -35, 
+                    y: -30, 
                     opacity: 0, 
-                    x: particle.x * 1.5,
+                    x: particle.x * 1.2,
                   }}
                   exit={{ opacity: 0 }}
                   transition={{ 
-                    duration: 1, 
+                    duration: 1.5, 
                     ease: "easeOut",
                   }}
                 >

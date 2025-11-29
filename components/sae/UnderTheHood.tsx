@@ -166,7 +166,7 @@ export function BlockRelationship({ colors }: { colors: Colors }) {
           </div>
         </div>
 
-        <div className="relative mx-auto" style={{ width: "600px", height: "260px" }}>
+        <div className="relative mx-auto" style={{ width: "600px", height: "290px" }}>
           {/* SVG Layer */}
           <svg className="absolute inset-0 w-full h-full overflow-visible">
             <defs>
@@ -176,7 +176,14 @@ export function BlockRelationship({ colors }: { colors: Colors }) {
               <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
                 <path d="M0,0 L0,6 L9,3 z" fill="#ef4444" />
               </marker>
+              <marker id="arrow-time" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L9,3 z" fill={colors.stroke} fillOpacity="0.4" />
+              </marker>
             </defs>
+            
+            {/* Time Arrow */}
+            <line x1="20" y1="270" x2="560" y2="270" stroke={colors.stroke} strokeWidth="1.5" strokeOpacity="0.4" markerEnd="url(#arrow-time)" />
+            <text x="290" y="285" textAnchor="middle" fill={colors.stroke} fillOpacity="0.5" fontSize="10" fontFamily="monospace" letterSpacing="0.2em">TIME</text>
 
             {/* Connections */}
             {/* C0 (64) -> E1 start (88) */}

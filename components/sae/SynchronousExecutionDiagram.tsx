@@ -122,15 +122,16 @@ export function SynchronousExecutionDiagram({ colors }: { colors: Colors }) {
                                 markerEnd="url(#time-arrow)"
                             />
                             <text
-                                x="690"
-                                y="169"
+                                x="340"
+                                y="180"
                                 fill={colors.stroke}
                                 fillOpacity="0.5"
-                                fontSize="12"
-                                fontFamily="ui-monospace, monospace"
-                                textAnchor="start"
+                                fontSize="10"
+                                fontFamily="monospace"
+                                textAnchor="middle"
+                                letterSpacing="0.2em"
                             >
-                                time
+                                TIME
                             </text>
                         </g>
                     </svg>
