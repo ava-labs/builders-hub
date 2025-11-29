@@ -351,12 +351,19 @@ export default function L1ExplorerPage({
     setIcmMessages([]); // Clear ICM messages when switching chains
   }, [chainId]);
 
+  // Initial data fetch
   useEffect(() => {
     fetchData();
-    // Auto-refresh every 2.5 seconds
+  }, [fetchData]);
+
+  // Start auto-refresh only after first load completes
+  useEffect(() => {
+    // Don't start interval until first load is complete
+    if (loading && !data) return;
+    
     const interval = setInterval(fetchData, 2500);
     return () => clearInterval(interval);
-  }, [fetchData]);
+  }, [fetchData, loading, data]);
 
   // Generate transaction history if not available
   const transactionHistory = useMemo(() => {
