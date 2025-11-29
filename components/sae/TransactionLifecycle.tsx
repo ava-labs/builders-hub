@@ -155,7 +155,7 @@ export function TransactionLifecycle() {
           </div>
 
           {/* All SAE lanes scaled for mobile - negative margin compensates for transform scale dead space */}
-          <div className="overflow-hidden md:overflow-visible -mb-[200px] sm:-mb-[80px] md:mb-0">
+          <div className="overflow-visible -mb-[200px] sm:-mb-[80px] md:mb-0">
             <div className="md:transform-none origin-top-left transform scale-[0.55] sm:scale-[0.75] md:scale-100 w-[182%] sm:w-[133%] md:w-full">
               <StreamingAsyncExecution colors={colors} />
                 </div>

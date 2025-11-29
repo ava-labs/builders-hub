@@ -4,22 +4,133 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Colors, Block, Transaction, SYNC_CONFIG, getRandomTxColor } from "./types"
 import { FlowArrow } from "./shared"
 
+const MAX_TX = 16
+
+// Block display that shows check/x animation during execution
+function SyncExecutingBlock({ 
+  block, 
+  colors,
+  onComplete 
+}: { 
+  block: Block; 
+  colors: Colors;
+  onComplete?: () => void;
+}) {
+  const [executedCount, setExecutedCount] = useState(0)
+  const failedTxs = useRef<Set<number>>(new Set())
+  const blockTxCount = Math.min(block.txCount, MAX_TX)
+  
+  // Determine which txs fail (10% chance each)
+  useEffect(() => {
+    failedTxs.current = new Set()
+    for (let i = 0; i < blockTxCount; i++) {
+      if (Math.random() < 0.1) failedTxs.current.add(i)
+    }
+  }, [block.uid, blockTxCount])
+  
+  useEffect(() => {
+    setExecutedCount(0)
+    
+    // Each tx takes ~150ms
+    const txTime = 150
+    const timers: NodeJS.Timeout[] = []
+    
+    for (let i = 0; i < blockTxCount; i++) {
+      const timer = setTimeout(() => {
+        setExecutedCount(i + 1)
+      }, (i + 1) * txTime)
+      timers.push(timer)
+    }
+    
+    // Signal completion after last tx animation finishes
+    const completeTimer = setTimeout(() => {
+      onComplete?.()
+    }, blockTxCount * txTime + 300)
+    timers.push(completeTimer)
+    
+    return () => {
+      timers.forEach(t => clearTimeout(t))
+    }
+  }, [block.uid, blockTxCount, onComplete])
+  
+  return (
+    <div
+      className="border grid gap-0.5 p-1 relative overflow-hidden"
+      style={{
+        gridTemplateColumns: "repeat(4, 1fr)",
+        width: 48,
+        height: 48,
+        backgroundColor: `${colors.stroke}05`,
+        borderColor: `${colors.stroke}30`,
+      }}
+    >
+      {Array.from({ length: MAX_TX }).map((_, i) => {
+        const isTransaction = i < block.txCount
+        const isExecuted = i < executedCount
+        const isFailed = failedTxs.current.has(i)
+        const txColor = block.txColors[i] || `${colors.stroke}40`
+        
+        return (
+          <div key={i} className="relative" style={{ aspectRatio: "1" }}>
+            <div
+              className="absolute inset-0"
+              style={{ backgroundColor: `${colors.stroke}10` }}
+            />
+            {isTransaction && (
+              <motion.div
+                className="absolute inset-0"
+                style={{ backgroundColor: txColor }}
+                initial={{ scale: 1, opacity: 1 }}
+                animate={isExecuted ? {
+                  scale: [1, 1.2, 0],
+                  opacity: [1, 1, 0],
+                } : { scale: 1, opacity: 1 }}
+                transition={isExecuted ? { duration: 0.1, ease: "easeOut" } : {}}
+              />
+            )}
+            {isTransaction && isExecuted && (
+              <motion.div
+                className="absolute inset-0 flex items-center justify-center"
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 0.9 }}
+                transition={{ duration: 0.08 }}
+              >
+                {isFailed ? (
+                  <svg width="6" height="6" viewBox="0 0 24 24" fill="none">
+                    <path d="M6 6l12 12M18 6l-12 12" stroke="#ef4444" strokeWidth="4" strokeLinecap="round" />
+                  </svg>
+                ) : (
+                  <svg width="6" height="6" viewBox="0 0 24 24" fill="none">
+                    <path d="M5 13l4 4L19 7" stroke="#22c55e" strokeWidth="4" strokeLinecap="round" />
+                  </svg>
+                )}
+              </motion.div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function SyncBlockDisplay({
   block,
   colors,
   label,
   showCheckmark = false,
   isDotted = false,
-  showSpinner = false,
+  isExecuting = false,
   isProposing = false,
+  onExecutionComplete,
 }: {
   block: Block | null
   colors: Colors
   label: string
   showCheckmark?: boolean
   isDotted?: boolean
-  showSpinner?: boolean
+  isExecuting?: boolean
   isProposing?: boolean
+  onExecutionComplete?: () => void
 }) {
   const executionColor = "#ef4444" // red
   const [filledCells, setFilledCells] = useState(0)
@@ -73,14 +184,6 @@ function SyncBlockDisplay({
     }
   }, [isProposing, block])
 
-  // Determine border style based on proposing phase
-  const getBorderStyle = () => {
-    if (showSpinner && block) {
-      return { border: `2px solid ${executionColor}`, boxShadow: `0 0 8px ${executionColor}50` }
-    }
-    return { border: `1px solid ${colors.stroke}20` }
-  }
-
   const showProposingPulse = isProposing && block && (proposingPhase === 'executing' || proposingPhase === 'consensus')
   const showAcceptedPulse = showCheckmark && block
 
@@ -91,10 +194,10 @@ function SyncBlockDisplay({
         style={{
           width: 64,
           height: 64,
-          ...getBorderStyle(),
+          border: `1px solid ${colors.stroke}20`,
         }}
       >
-        {/* Grey loading border for accepted state - fills around the box */}
+        {/* Grey loading border for accepted state - fills around the box then turns green */}
         {showAcceptedPulse && (
           <svg
             className="absolute -inset-[2px] pointer-events-none z-20"
@@ -107,12 +210,14 @@ function SyncBlockDisplay({
               width="64"
               height="64"
               fill="none"
-              stroke="#9ca3af"
               strokeWidth="2"
               strokeDasharray="256"
-              initial={{ strokeDashoffset: 256 }}
-              animate={{ strokeDashoffset: 0 }}
-              transition={{ duration: 1.2, ease: "linear" }}
+              initial={{ strokeDashoffset: 256, stroke: "#9ca3af" }}
+              animate={{ strokeDashoffset: 0, stroke: "#22c55e" }}
+              transition={{ 
+                strokeDashoffset: { duration: 1.2, ease: "linear" },
+                stroke: { duration: 0.3, delay: 1.2, ease: "easeOut" }
+              }}
             />
           </svg>
         )}
@@ -135,6 +240,22 @@ function SyncBlockDisplay({
               initial={{ strokeDashoffset: 0 }}
               animate={{ strokeDashoffset: -256 }}
               transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatType: "loop" }}
+            />
+          </svg>
+        )}
+        {/* Red traveling border for executing */}
+        {isExecuting && block && (
+          <svg className="absolute -inset-[2px] pointer-events-none z-20" style={{ width: 68, height: 68 }} viewBox="0 0 68 68">
+            <motion.rect
+              x="2" y="2"
+              width="64"
+              height="64"
+              fill="none"
+              stroke="#ef4444"
+              strokeWidth="2"
+              strokeDasharray="40 216"
+              animate={{ strokeDashoffset: [0, -256] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
             />
           </svg>
         )}
@@ -162,71 +283,41 @@ function SyncBlockDisplay({
               transition={{ type: "spring", stiffness: 400, damping: 25 }}
               className="relative"
             >
-              <div
-                className="border grid gap-0.5 p-1"
-                style={{
-                  gridTemplateColumns: "repeat(4, 1fr)",
-                  width: 40,
-                  height: 40,
-                  backgroundColor: `${colors.stroke}05`,
-                  borderColor: checkmarkVisible ? "#22c55e" : `${colors.stroke}30`,
-                }}
-              >
-                {Array.from({ length: 16 }).map((_, i) => {
-                  const shouldShow = isProposing ? i < filledCells : i < block.txCount
-                  return (
-                    <motion.div
-                      key={i}
-                      initial={isProposing && i < block.txCount ? { scale: 0, opacity: 0 } : false}
-                      animate={shouldShow ? { scale: 1, opacity: 1 } : { scale: 1, opacity: 1 }}
-                      transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                      style={{
-                        aspectRatio: "1",
-                        backgroundColor: shouldShow && i < block.txCount
-                          ? (block.txColors[i] || `${colors.stroke}40`)
-                          : `${colors.stroke}10`,
-                      }}
-                    />
-                  )
-                })}
-              </div>
-              {showCheckmark && (
-                <motion.div
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 1.2, duration: 0.2 }}
-                  className={`absolute -top-1 -right-1 w-3.5 h-3.5 border ${colors.borderStrong} flex items-center justify-center z-10`}
-                  style={{ backgroundColor: `${colors.stroke}10` }}
+              {isExecuting ? (
+                <SyncExecutingBlock 
+                  block={block} 
+                  colors={colors} 
+                  onComplete={onExecutionComplete}
+                />
+              ) : (
+                <div
+                  className="border grid gap-0.5 p-1"
+                  style={{
+                    gridTemplateColumns: "repeat(4, 1fr)",
+                    width: 48,
+                    height: 48,
+                    backgroundColor: `${colors.stroke}05`,
+                    borderColor: checkmarkVisible ? "#22c55e" : `${colors.stroke}30`,
+                  }}
                 >
-                  <svg width="6" height="6" viewBox="0 0 24 24" fill="none">
-                    <path d="M5 13l4 4L19 7" stroke={colors.stroke} strokeOpacity="0.8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </motion.div>
-              )}
-              {showSpinner && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className={`absolute -top-1.5 -right-1.5 w-4 h-4 border ${colors.borderStrong} flex items-center justify-center z-10`}
-                  style={{ backgroundColor: `${colors.stroke}15` }}
-                >
-                  <motion.svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  >
-                    <path
-                      d="M12 2v4m0 12v4m10-10h-4M6 12H2m15.07-7.07l-2.83 2.83M9.76 14.24l-2.83 2.83m11.31 0l-2.83-2.83M9.76 9.76L6.93 6.93"
-                      stroke={colors.stroke}
-                      strokeOpacity="0.7"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </motion.svg>
-                </motion.div>
+                  {Array.from({ length: 16 }).map((_, i) => {
+                    const shouldShow = isProposing ? i < filledCells : i < block.txCount
+                    return (
+                      <motion.div
+                        key={i}
+                        initial={isProposing && i < block.txCount ? { scale: 0, opacity: 0 } : false}
+                        animate={shouldShow ? { scale: 1, opacity: 1 } : { scale: 1, opacity: 1 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                        style={{
+                          aspectRatio: "1",
+                          backgroundColor: shouldShow && i < block.txCount
+                            ? (block.txColors[i] || `${colors.stroke}40`)
+                            : `${colors.stroke}10`,
+                        }}
+                      />
+                    )
+                  })}
+                </div>
               )}
             </motion.div>
           ) : (
@@ -266,12 +357,13 @@ function SyncSettledDisplay({ blocks, colors }: { blocks: Block[]; colors: Color
                 animate={{ x: 0, opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.5 }}
                 transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                className={`border ${colors.borderStrong} grid gap-px p-0.5 relative`}
+                className="grid gap-px p-0.5 relative"
                 style={{
                   gridTemplateColumns: "repeat(4, 1fr)",
                   width: 18,
                   height: 18,
-                  backgroundColor: `${colors.stroke}05`,
+                  backgroundColor: `rgba(34, 197, 94, 0.15)`,
+                  border: `1px solid #22c55e`,
                 }}
               >
                 {Array.from({ length: 16 }).map((_, i) => (
@@ -285,21 +377,6 @@ function SyncSettledDisplay({ blocks, colors }: { blocks: Block[]; colors: Color
                     }}
                   />
                 ))}
-                {/* Pulsing secure border */}
-                <motion.div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{ border: `1.5px solid #22c55e` }}
-                  initial={{ opacity: 0 }}
-                  animate={{
-                    opacity: [0.4, 0.8, 0.4],
-                    boxShadow: [
-                      '0 0 0px rgba(34, 197, 94, 0)',
-                      '0 0 4px rgba(34, 197, 94, 0.5)',
-                      '0 0 0px rgba(34, 197, 94, 0)',
-                    ]
-                  }}
-                  transition={{ delay: 0.2, duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                />
               </motion.div>
             ))}
           </AnimatePresence>
@@ -512,26 +589,69 @@ export function SynchronousExecution({ colors }: { colors: Colors }) {
               className={`relative border ${colors.border} overflow-hidden`}
               style={{ width: 80, height: 50 }}
             >
+              {/* Grid container */}
               <div
                 className="absolute inset-1.5 grid gap-1"
                 style={{ gridTemplateColumns: "repeat(6, 1fr)", gridTemplateRows: "repeat(2, 1fr)" }}
               >
                 {Array.from({ length: 12 }).map((_, i) => {
-                  const tx = mempoolTxs[i]
+                  const tx = mempoolTxs.find(t => t.slot === i)
                   return (
-                    <div
-                      key={i}
-                      className="transition-all duration-100"
-                      style={{
-                        width: 8,
-                        height: 8,
-                        backgroundColor: tx ? tx.color : `${colors.stroke}15`,
-                        opacity: tx ? 1 : 0.3,
-                      }}
-                    />
+                    <div key={`slot-${i}`} className="relative" style={{ width: 8, height: 8 }}>
+                      {/* Empty slot indicator */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          backgroundColor: `${colors.stroke}10`,
+                          opacity: 0.4,
+                        }}
+                      />
+                      {/* Transaction dot with smooth entry */}
+                      <AnimatePresence mode="popLayout">
+                        {tx && (
+                          <motion.div
+                            key={tx.id}
+                            className="absolute inset-0"
+                            style={{ backgroundColor: tx.color }}
+                            initial={{ scale: 0, opacity: 0, rotate: -90 }}
+                            animate={{ 
+                              scale: 1, 
+                              opacity: 1, 
+                              rotate: 0,
+                            }}
+                            exit={{ 
+                              scale: 0.3,
+                              opacity: 0,
+                              x: 50,
+                              transition: { duration: 0.35, ease: "easeOut" }
+                            }}
+                            transition={{ 
+                              type: "spring", 
+                              stiffness: 500, 
+                              damping: 25,
+                            }}
+                          />
+                        )}
+                      </AnimatePresence>
+                    </div>
                   )
                 })}
               </div>
+
+              {/* Pulsing border */}
+              <motion.div
+                className="absolute inset-0 pointer-events-none border"
+                style={{ borderColor: `${colors.stroke}20` }}
+                animate={{
+                  borderColor: [`${colors.stroke}15`, `${colors.stroke}30`, `${colors.stroke}15`],
+                }}
+                transition={{
+                  duration: 2.5,
+                  repeat: Number.POSITIVE_INFINITY,
+                  ease: "easeInOut",
+                }}
+              />
             </div>
             <span className={`text-xs uppercase tracking-[0.2em] ${colors.textMuted}`}>Mempool</span>
             {renderTooltip('mempool')}
@@ -567,7 +687,7 @@ export function SynchronousExecution({ colors }: { colors: Colors }) {
               block={currentStage === 'executing' ? currentBlock : null}
               colors={colors}
               label="Executing"
-              showSpinner
+              isExecuting
             />
             {renderTooltip('executing')}
           </div>

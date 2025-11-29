@@ -45,14 +45,15 @@ export function BlockchainBlock({
   showHash?: boolean
 }) {
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex flex-col items-center gap-0.5">
       <div
-        className={`border ${colors.borderStrong} grid gap-1 p-1.5`}
+        className="border grid gap-0.5 p-1"
         style={{
           gridTemplateColumns: "repeat(4, 1fr)",
           width: 48,
           height: 48,
           backgroundColor: `${colors.stroke}05`,
+          borderColor: `${colors.stroke}30`,
         }}
       >
           {[...Array(16)].map((_, i) => (
@@ -70,7 +71,7 @@ export function BlockchainBlock({
 
       {/* Block hash preview */}
       {showHash && id && (
-        <span className={`text-[8px] font-mono ${colors.textFaint}`}>#{id.toString().padStart(3, "0")}</span>
+        <span className={`text-[7px] font-mono ${colors.textFaint}`}>#{id.toString().padStart(3, "0")}</span>
       )}
     </div>
   )
@@ -80,11 +81,12 @@ export function QueueBlock({ colors, id, txCount = 16, txColors = [] }: { colors
   return (
     <div className="flex flex-col items-center gap-0.5">
     <div
-      className={`border ${colors.borderStrong} flex items-center justify-center`}
+      className="border flex items-center justify-center"
       style={{
         width: 32,
         height: 32,
         backgroundColor: `${colors.stroke}08`,
+        borderColor: `${colors.stroke}30`,
       }}
     >
       <div className="grid grid-cols-4 gap-0.5" style={{ padding: 3 }}>

@@ -155,18 +155,18 @@ export function BlockRelationship({ colors }: { colors: Colors }) {
         <div className="flex items-center gap-4 mb-4 md:gap-6 md:mb-8">
           <div className="flex items-center gap-2">
             <div
-              className="w-4 h-4"
-              style={{ backgroundColor: `${colors.stroke}25`, border: `1px solid ${colors.stroke}40` }}
+              className="w-4 h-4 rounded-sm"
+              style={{ backgroundColor: `${colors.stroke}20`, border: `1.5px solid ${colors.stroke}40` }}
             />
             <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Consensus Stream</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4" style={{ backgroundColor: "#ef4444", border: `1px solid #ef4444` }} />
+            <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: "#ef4444" }} />
             <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Execution Stream</span>
           </div>
         </div>
 
-        <div className="relative mx-auto" style={{ width: "600px", height: "290px" }}>
+        <div className="relative mx-auto" style={{ width: "600px", height: "270px" }}>
           {/* SVG Layer */}
           <svg className="absolute inset-0 w-full h-full overflow-visible">
             <defs>
@@ -182,39 +182,39 @@ export function BlockRelationship({ colors }: { colors: Colors }) {
             </defs>
             
             {/* Time Arrow */}
-            <line x1="20" y1="270" x2="560" y2="270" stroke={colors.stroke} strokeWidth="1.5" strokeOpacity="0.4" markerEnd="url(#arrow-time)" />
-            <text x="290" y="285" textAnchor="middle" fill={colors.stroke} fillOpacity="0.5" fontSize="10" fontFamily="monospace" letterSpacing="0.2em">TIME</text>
+            <line x1="20" y1="250" x2="560" y2="250" stroke={colors.stroke} strokeWidth="1.5" strokeOpacity="0.4" markerEnd="url(#arrow-time)" />
+            <text x="290" y="265" textAnchor="middle" fill={colors.stroke} fillOpacity="0.5" fontSize="10" fontFamily="monospace" letterSpacing="0.2em">TIME</text>
 
             {/* Connections */}
             {/* C0 (64) -> E1 start (88) */}
-            <line x1="64" y1="64" x2="88" y2="120" stroke={colors.stroke} strokeWidth="1.5" strokeOpacity="0.6" markerEnd="url(#arrow-white)" />
+            <line x1="64" y1="84" x2="88" y2="130" stroke={colors.stroke} strokeWidth="1.5" strokeOpacity="0.6" markerEnd="url(#arrow-white)" />
             {/* E1 end (152) -> C2 (176) */}
-            <line x1="152" y1="120" x2="176" y2="64" stroke="#ef4444" strokeWidth="1.5" markerEnd="url(#arrow-red)" />
+            <line x1="152" y1="130" x2="176" y2="84" stroke="#ef4444" strokeWidth="1.5" markerEnd="url(#arrow-red)" />
             
             {/* C1 (152) -> E2 start (176) */}
-            <line x1="152" y1="64" x2="176" y2="120" stroke={colors.stroke} strokeWidth="1.5" strokeOpacity="0.6" markerEnd="url(#arrow-white)" />
-            {/* C2 (240) -> E2 mid (264) */}
-            <line x1="240" y1="64" x2="264" y2="120" stroke={colors.stroke} strokeWidth="1.5" strokeOpacity="0.6" markerEnd="url(#arrow-white)" />
-            {/* C3 (328) -> E2 mid (352) */}
-            <line x1="328" y1="64" x2="352" y2="120" stroke={colors.stroke} strokeWidth="1.5" strokeOpacity="0.6" markerEnd="url(#arrow-white)" />
-            {/* E2 1st divider (264) -> C4 (352) */}
-            <line x1="264" y1="120" x2="352" y2="64" stroke="#ef4444" strokeWidth="1.5" markerEnd="url(#arrow-red)" />
+            <line x1="152" y1="84" x2="176" y2="130" stroke={colors.stroke} strokeWidth="1.5" strokeOpacity="0.6" markerEnd="url(#arrow-white)" />
+            {/* C2 (240) -> E2 mid (296) */}
+            <line x1="240" y1="84" x2="296" y2="130" stroke={colors.stroke} strokeWidth="1.5" strokeOpacity="0.6" markerEnd="url(#arrow-white)" />
+            {/* C3 (328) -> E2 mid (392) */}
+            <line x1="328" y1="84" x2="392" y2="130" stroke={colors.stroke} strokeWidth="1.5" strokeOpacity="0.6" markerEnd="url(#arrow-white)" />
+            {/* E2 1st divider (296) -> C4 (352) */}
+            <line x1="296" y1="130" x2="352" y2="84" stroke="#ef4444" strokeWidth="1.5" markerEnd="url(#arrow-red)" />
 
             {/* C5 (416) -> E3 start (464) */}
-            <line x1="416" y1="64" x2="464" y2="120" stroke={colors.stroke} strokeWidth="1.5" strokeOpacity="0.6" markerEnd="url(#arrow-white)" />
+            <line x1="416" y1="84" x2="464" y2="130" stroke={colors.stroke} strokeWidth="1.5" strokeOpacity="0.6" markerEnd="url(#arrow-white)" />
             {/* C6 (504) -> E3 divider (536) */}
-            <line x1="504" y1="64" x2="536" y2="120" stroke={colors.stroke} strokeWidth="1.5" strokeOpacity="0.6" markerEnd="url(#arrow-white)" />
+            <line x1="504" y1="84" x2="536" y2="130" stroke={colors.stroke} strokeWidth="1.5" strokeOpacity="0.6" markerEnd="url(#arrow-white)" />
 
-            {/* Curly Bracket under E2 (From first divider to end: 264-416) */}
+            {/* Curly Bracket under E2 (From first divider to end: 296-416) */}
             <path 
-              d="M 264 210 q 0 12 12 12 h 52 q 12 0 12 13 q 0 -13 12 -13 h 52 q 12 0 12 -12"
+              d="M 296 200 q 0 12 12 12 h 36 q 12 0 12 13 q 0 -13 12 -13 h 36 q 12 0 12 -12"
               fill="none" 
               stroke="#ef4444" 
               strokeWidth="1.5" 
             />
             {/* Line from bracket to C5 bottom-left with rounded corner */}
             <path 
-              d="M 340 235 L 418 235 Q 428 235 428 225 L 428 80 L 440 64" 
+              d="M 356 225 L 418 225 Q 428 225 428 215 L 428 100 L 440 84" 
               fill="none" 
               stroke="#ef4444" 
               strokeWidth="1.5" 
@@ -227,12 +227,12 @@ export function BlockRelationship({ colors }: { colors: Colors }) {
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <div
               key={i}
-              className="absolute w-16 h-16 border"
+              className="absolute w-16 h-16 rounded"
               style={{
                 left: `${i * 88}px`,
-                top: 0,
-                backgroundColor: `${colors.stroke}10`,
-                borderColor: `${colors.stroke}30`,
+                top: "20px",
+                backgroundColor: `${colors.stroke}20`,
+                border: `1.5px solid ${colors.stroke}40`,
               }}
             />
           ))}
@@ -240,27 +240,27 @@ export function BlockRelationship({ colors }: { colors: Colors }) {
           {/* Bottom Row: Execution (3 blocks) */}
           {/* E1: Matches C1 (88) */}
           <div
-            className="absolute h-20 bg-red-500 border border-red-400"
-            style={{ left: "88px", top: "120px", width: "64px" }}
+            className="absolute h-16 bg-red-500 rounded"
+            style={{ left: "88px", top: "130px", width: "64px" }}
           >
              <div className="absolute right-0 top-0 bottom-0 w-px bg-white opacity-20" />
           </div>
           
           {/* E2: Matches C2+C3+C4 (176) */}
           <div
-            className="absolute h-20 bg-red-500 border border-red-400"
-            style={{ left: "176px", top: "120px", width: "240px" }}
+            className="absolute h-16 bg-red-500 rounded"
+            style={{ left: "176px", top: "130px", width: "240px" }}
           >
-             {/* Dividers at 88px and 176px */}
-             <div className="absolute left-[88px] top-0 bottom-0 w-px bg-white opacity-40" />
-             <div className="absolute left-[176px] top-0 bottom-0 w-px bg-white opacity-40" />
+             {/* Dividers at 120px and 216px */}
+             <div className="absolute left-[120px] top-0 bottom-0 w-px bg-white opacity-40" />
+             <div className="absolute left-[216px] top-0 bottom-0 w-px bg-white opacity-40" />
              <div className="absolute right-0 top-0 bottom-0 w-px bg-white opacity-20" />
           </div>
           
           {/* E3: Starts at 464, Wider (112px) */}
           <div
-            className="absolute h-20 bg-red-500 border border-red-400"
-            style={{ left: "464px", top: "120px", width: "112px" }}
+            className="absolute h-16 bg-red-500 rounded"
+            style={{ left: "464px", top: "130px", width: "112px" }}
           >
              {/* Divider towards end */}
              <div className="absolute left-[72px] top-0 bottom-0 w-px bg-white opacity-40" />
