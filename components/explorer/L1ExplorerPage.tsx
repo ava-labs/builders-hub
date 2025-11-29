@@ -266,12 +266,15 @@ export default function L1ExplorerPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRateLimited, setIsRateLimited] = useState(false); // Track if we hit rate limit
   const [newBlockNumbers, setNewBlockNumbers] = useState<Set<string>>(new Set());
   const [newTxHashes, setNewTxHashes] = useState<Set<string>>(new Set());
   const [icmMessages, setIcmMessages] = useState<Transaction[]>([]);
   const previousDataRef = useRef<ExplorerData | null>(null);
   const isFirstLoadRef = useRef(true); // Track if this is the first load
   const ICM_MESSAGE_LIMIT = 100; // Maximum number of ICM messages to keep
+  const NORMAL_INTERVAL = 2500; // Normal refresh interval (ms)
+  const RATE_LIMITED_INTERVAL = NORMAL_INTERVAL * 2; // Rate limited interval (2x normal)
 
   // Get actual token symbol - prefer context (shared), fallback to API data
   // Don't use nativeToken as placeholder - show N/A instead
@@ -332,18 +335,31 @@ export default function L1ExplorerPage({
       previousDataRef.current = result;
       setData(result);
       setError(null);
+      setIsRateLimited(false); // Reset rate limit on success
       
       // Mark first load as complete
       if (isFirstLoadRef.current) {
         isFirstLoadRef.current = false;
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      const errorMessage = err instanceof Error ? err.message : "An error occurred";
+      const rateLimited = errorMessage.includes('429');
+      
+      // Set rate limit flag for longer retry interval
+      if (rateLimited) {
+        setIsRateLimited(true);
+      }
+      
+      // Only show error if we don't have existing data to display
+      if (!data) {
+        setError(errorMessage);
+      }
+      // If we have data, silently fail and retry on next interval
     } finally {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [chainId]);
+  }, [chainId, data]);
 
   // Reset first load flag when chain changes
   useEffect(() => {
@@ -361,9 +377,11 @@ export default function L1ExplorerPage({
     // Don't start interval until first load is complete
     if (loading && !data) return;
     
-    const interval = setInterval(fetchData, 2500);
+    // Use longer interval when rate limited (2x normal)
+    const intervalTime = isRateLimited ? RATE_LIMITED_INTERVAL : NORMAL_INTERVAL;
+    const interval = setInterval(fetchData, intervalTime);
     return () => clearInterval(interval);
-  }, [fetchData, loading, data]);
+  }, [fetchData, loading, data, isRateLimited]);
 
   // Generate transaction history if not available
   const transactionHistory = useMemo(() => {
