@@ -145,10 +145,8 @@ interface ChainConfig {
   blockchainId?: string;
 }
 
-// Cache for explorer data
-const cache = new Map<string, { data: ExplorerData; timestamp: number }>();
+// Cache for price data (to avoid hitting CoinGecko rate limits)
 const priceCache = new Map<string, { data: PriceData; timestamp: number }>();
-const CACHE_TTL = 10000; // 10 seconds
 const PRICE_CACHE_TTL = 60000; // 60 seconds
 
 async function fetchFromRPC(rpcUrl: string, method: string, params: any[] = []): Promise<any> {
@@ -793,14 +791,6 @@ export async function GET(
       return NextResponse.json({ error: "RPC URL not configured" }, { status: 400 });
     }
 
-    // Check cache only for non-initial loads (initial load needs fresh historical data)
-    if (!initialLoad) {
-    const cached = cache.get(chainId);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      return NextResponse.json(cached.data);
-      }
-    }
-
     // Fetch fresh data and check Glacier support in parallel
     const [data, glacierSupported] = await Promise.all([
       fetchExplorerData(chainId, chainId, rpcUrl, chain.coingeckoId, chain.tokenSymbol, chain.blockchainId, initialLoad),
@@ -809,9 +799,6 @@ export async function GET(
 
     // Add glacierSupported to the response
     const responseData = { ...data, glacierSupported };
-
-    // Update cache
-    cache.set(chainId, { data: responseData, timestamp: Date.now() });
 
     return NextResponse.json(responseData);
   } catch (error) {
