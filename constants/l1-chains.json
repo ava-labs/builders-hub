@@ -350,6 +350,7 @@
         "link": "https://53935.snowtrace.io"
       }
     ],
+    "rpcUrl": "https://subnets.avax.network/defi-kingdoms/mainnet/rpc",
     "coingeckoId": "defi-kingdoms",
     "tokenSymbol": "JEWEL"
   },
@@ -547,6 +548,7 @@
         "link": "https://68414.snowtrace.io"
       }
     ],
+    "rpcUrl": "https://henesys-rpc.msu.io",
     "coingeckoId": "nexpace"
   },
   {

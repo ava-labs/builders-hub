@@ -240,7 +240,9 @@ export default function L1ExplorerPage({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [newBlockNumbers, setNewBlockNumbers] = useState<Set<string>>(new Set());
   const [newTxHashes, setNewTxHashes] = useState<Set<string>>(new Set());
+  const [icmMessages, setIcmMessages] = useState<Transaction[]>([]);
   const previousDataRef = useRef<ExplorerData | null>(null);
+  const ICM_MESSAGE_LIMIT = 100; // Maximum number of ICM messages to keep
 
   // Get actual token symbol - prefer context (shared), fallback to API data or props
   const tokenSymbol = contextTokenSymbol || data?.tokenSymbol || data?.price?.symbol || nativeToken || undefined;
@@ -272,6 +274,20 @@ export default function L1ExplorerPage({
           setTimeout(() => setNewTxHashes(new Set()), 1000);
         }
       }
+      
+      // Accumulate ICM messages
+      setIcmMessages((prevIcmMessages) => {
+        const existingHashes = new Set(prevIcmMessages.map(tx => tx.hash));
+        const newIcmTransactions = result.transactions.filter((tx: Transaction) => 
+          tx.isCrossChain && !existingHashes.has(tx.hash)
+        );
+        
+        // Add new ICM messages to the beginning (most recent first)
+        const updatedIcmMessages = [...newIcmTransactions, ...prevIcmMessages];
+        
+        // Apply limit - keep only the most recent messages
+        return updatedIcmMessages.slice(0, ICM_MESSAGE_LIMIT);
+      });
       
       previousDataRef.current = result;
       setData(result);
@@ -538,8 +554,7 @@ export default function L1ExplorerPage({
 
       {/* Blocks, Transactions, and ICM Messages Tables */}
       {(() => {
-        const icmTransactions = data?.transactions.filter(tx => tx.isCrossChain) || [];
-        const hasIcmMessages = icmTransactions.length > 0;
+        const hasIcmMessages = icmMessages.length > 0;
         
         return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
@@ -684,13 +699,12 @@ export default function L1ExplorerPage({
                       ICM Messages
                     </h2>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400 font-medium">
-                        {icmTransactions.length}
-                      </span>
-        </div>
-      </div>
+                      <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Live</span>
+                    </div>
+                  </div>
                   <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
-                    {icmTransactions.map((tx, index) => (
+                    {icmMessages.map((tx, index) => (
                       <div 
                         key={`icm-${tx.hash}-${index}`}
                         onClick={() => router.push(buildTxUrl(`/stats/l1/${chainSlug}/explorer`, tx.hash))}
