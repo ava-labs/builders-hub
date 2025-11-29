@@ -61,14 +61,15 @@ interface RpcTransactionReceipt {
   logs: RpcLog[];
 }
 
-// TeleporterMessenger cross-chain event topic hashes (from generated signatures)
+// Cross-chain event topic hashes (from generated signatures)
 const CROSS_CHAIN_TOPICS = {
   // TeleporterMessenger events
   SendCrossChainMessage: '0x2a211ad4a59ab9d003852404f9c57c690704ee755f3c79d2c2812ad32da99df8',
   ReceiveCrossChainMessage: '0x292ee90bbaf70b5d4936025e09d56ba08f3e421156b6a568cf3c2840d9343e34',
   MessageExecuted: '0x34795cc6b122b9a0ae684946319f1e14a577b4e8f9b3dda9ac94c21a54d3188c',
   ReceiptReceived: '0xd13a7935f29af029349bed0a2097455b91fd06190a30478c575db3f31e00bf57',
-  // Token transfer events (from ERC20TokenHome, NativeTokenHome, etc.)
+  // Token transfer events from ERC20TokenHome, NativeTokenHome, ERC20TokenRemote, NativeTokenRemote
+  // These events share the same signature across all four contracts
   TokensSent: '0x93f19bf1ec58a15dc643b37e7e18a1c13e85e06cd11929e283154691ace9fb52',
   TokensAndCallSent: '0x5d76dff81bf773b908b050fa113d39f7d8135bb4175398f313ea19cd3a1a0b16',
 };

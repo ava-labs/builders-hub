@@ -542,138 +542,138 @@ export default function L1ExplorerPage({
         const hasIcmMessages = icmTransactions.length > 0;
         
         return (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
             <div className={`grid grid-cols-1 gap-6 ${hasIcmMessages ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
-              {/* Latest Blocks */}
-              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800">
-                  <h2 className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
-                    <Box className="w-4 h-4" style={{ color: themeColor }} />
-                    Latest Blocks
-                  </h2>
-                  <div className="flex items-center gap-1.5">
-                    <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
-                    <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Live</span>
-                  </div>
-                </div>
-                <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
-                  {data?.blocks.map((block) => (
-                    <Link 
-                      key={block.number}
-                      href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, block.number)}
-                      className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
-                        newBlockNumbers.has(block.number) ? 'new-item' : ''
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div 
-                            className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                            style={{ backgroundColor: `${themeColor}15` }}
-                          >
-                            <Box className="w-4 h-4" style={{ color: themeColor }} />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-sm hover:underline" style={{ color: themeColor }}>
-                                {block.number}
-                              </span>
-                              <span className="text-xs text-zinc-400">
-                                {formatTimeAgo(block.timestamp)}
-                              </span>
-                            </div>
-                            <div className="text-xs text-zinc-500 mt-0.5">
-                              <span style={{ color: themeColor }}>{block.transactionCount} txns</span>
-                              <span className="text-zinc-400"> • {block.gasUsed} gas</span>
-                            </div>
-                          </div>
-                        </div>
-                        {block.gasFee && parseFloat(block.gasFee) > 0 && (
-                          <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex-shrink-0">
-                            {chainId === "43114" && <span className="mr-1">🔥</span>}
-                            {formatTokenValue(block.gasFee)} <TokenDisplay symbol={tokenSymbol} />
-                          </div>
-                        )}
-                      </div>
-                    </Link>
-                  ))}
-                </div>
+          {/* Latest Blocks */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800">
+              <h2 className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
+                <Box className="w-4 h-4" style={{ color: themeColor }} />
+                Latest Blocks
+              </h2>
+              <div className="flex items-center gap-1.5">
+                <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Live</span>
               </div>
-
-              {/* Latest Transactions */}
-              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800">
-                  <h2 className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
-                    <ArrowRightLeft className="w-4 h-4" style={{ color: themeColor }} />
-                    Latest Transactions
-                  </h2>
-                  <div className="flex items-center gap-1.5">
-                    <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
-                    <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Live</span>
-                  </div>
-                </div>
-                <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
-                  {data?.transactions.map((tx, index) => (
-                    <div 
-                      key={`${tx.hash}-${index}`}
-                      onClick={() => router.push(buildTxUrl(`/stats/l1/${chainSlug}/explorer`, tx.hash))}
-                      className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
-                        newTxHashes.has(tx.hash) ? 'new-item' : ''
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div 
-                            className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                            style={{ backgroundColor: `${themeColor}15` }}
-                          >
-                            <ArrowRightLeft className="w-4 h-4" style={{ color: themeColor }} />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-mono text-xs hover:underline" style={{ color: themeColor }}>
-                                {tx.hash.slice(0, 16)}...
-                              </span>
-                              <span className="text-xs text-zinc-400">
-                                {formatTimeAgo(tx.timestamp)}
-                              </span>
-                            </div>
-                            <div className="text-xs text-zinc-500 mt-0.5">
-                              <span className="text-zinc-400">From </span>
-                              <Link 
-                                href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.from)} 
-                                className="font-mono hover:underline cursor-pointer" 
-                                style={{ color: themeColor }}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {shortenAddress(tx.from)}
-                              </Link>
-                            </div>
-                            <div className="text-xs text-zinc-500">
-                              <span className="text-zinc-400">To </span>
-                              {tx.to ? (
-                                <Link 
-                                  href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.to)} 
-                                  className="font-mono hover:underline cursor-pointer" 
-                                  style={{ color: themeColor }}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {shortenAddress(tx.to)}
-                                </Link>
-                              ) : (
-                                <span className="font-mono text-zinc-400">Contract Creation</span>
-                              )}
-                            </div>
-                          </div>
+            </div>
+            <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
+              {data?.blocks.map((block) => (
+                <Link 
+                  key={block.number}
+                  href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, block.number)}
+                  className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
+                    newBlockNumbers.has(block.number) ? 'new-item' : ''
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div 
+                        className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: `${themeColor}15` }}
+                      >
+                        <Box className="w-4 h-4" style={{ color: themeColor }} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm hover:underline" style={{ color: themeColor }}>
+                            {block.number}
+                          </span>
+                          <span className="text-xs text-zinc-400">
+                            {formatTimeAgo(block.timestamp)}
+                          </span>
                         </div>
-                        <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 flex-shrink-0">
-                          {formatTokenValue(tx.value)} <TokenDisplay symbol={tokenSymbol} />
+                        <div className="text-xs text-zinc-500 mt-0.5">
+                          <span style={{ color: themeColor }}>{block.transactionCount} txns</span>
+                          <span className="text-zinc-400"> • {block.gasUsed} gas</span>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
+                    {block.gasFee && parseFloat(block.gasFee) > 0 && (
+                      <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex-shrink-0">
+                        {chainId === "43114" && <span className="mr-1">🔥</span>}
+                            {formatTokenValue(block.gasFee)} <TokenDisplay symbol={tokenSymbol} />
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Latest Transactions */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800">
+              <h2 className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
+                <ArrowRightLeft className="w-4 h-4" style={{ color: themeColor }} />
+                Latest Transactions
+              </h2>
+              <div className="flex items-center gap-1.5">
+                <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Live</span>
               </div>
+            </div>
+            <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
+              {data?.transactions.map((tx, index) => (
+                <div 
+                  key={`${tx.hash}-${index}`}
+                  onClick={() => router.push(buildTxUrl(`/stats/l1/${chainSlug}/explorer`, tx.hash))}
+                  className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
+                    newTxHashes.has(tx.hash) ? 'new-item' : ''
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div 
+                        className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: `${themeColor}15` }}
+                      >
+                        <ArrowRightLeft className="w-4 h-4" style={{ color: themeColor }} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-xs hover:underline" style={{ color: themeColor }}>
+                            {tx.hash.slice(0, 16)}...
+                          </span>
+                          <span className="text-xs text-zinc-400">
+                            {formatTimeAgo(tx.timestamp)}
+                          </span>
+                        </div>
+                        <div className="text-xs text-zinc-500 mt-0.5">
+                          <span className="text-zinc-400">From </span>
+                          <Link 
+                            href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.from)} 
+                                className="font-mono hover:underline cursor-pointer" 
+                            style={{ color: themeColor }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {shortenAddress(tx.from)}
+                          </Link>
+                        </div>
+                        <div className="text-xs text-zinc-500">
+                          <span className="text-zinc-400">To </span>
+                          {tx.to ? (
+                            <Link 
+                              href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.to)} 
+                                  className="font-mono hover:underline cursor-pointer" 
+                              style={{ color: themeColor }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {shortenAddress(tx.to)}
+                            </Link>
+                          ) : (
+                            <span className="font-mono text-zinc-400">Contract Creation</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 flex-shrink-0">
+                          {formatTokenValue(tx.value)} <TokenDisplay symbol={tokenSymbol} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
               {/* ICM Messages - Only show if there are cross-chain transactions */}
               {hasIcmMessages && (
@@ -687,8 +687,8 @@ export default function L1ExplorerPage({
                       <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400 font-medium">
                         {icmTransactions.length}
                       </span>
-                    </div>
-                  </div>
+        </div>
+      </div>
                   <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
                     {icmTransactions.map((tx, index) => (
                       <div 
@@ -748,7 +748,7 @@ export default function L1ExplorerPage({
                 </div>
               )}
             </div>
-          </div>
+    </div>
         );
       })()}
     </>

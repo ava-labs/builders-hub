@@ -134,8 +134,8 @@ function getChainFromBlockchainId(hexBlockchainId: string): ChainLookupResult | 
   );
   
   if (!chain) return null;
-  
-  return {
+    
+    return {
     chainName: chain.chainName,
     chainLogoURI: chain.chainLogoURI || '',
     slug: chain.slug,
@@ -200,7 +200,7 @@ function extractERC20Transfers(logs: Array<{ topics: string[]; data: string; add
           tokenAddress: log.address,
         });
       }
-    } catch {
+  } catch {
       // Skip logs that can't be decoded
       continue;
     }
@@ -527,28 +527,28 @@ export default function TransactionDetailPage({
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6">
-          <div className="space-y-6">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div key={i} className="flex items-start gap-4">
-                <div className="h-5 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-                <div className="h-5 w-64 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-              </div>
-            ))}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6">
+            <div className="space-y-6">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <div key={i} className="flex items-start gap-4">
+                  <div className="h-5 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                  <div className="h-5 w-64 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">{error}</p>
-          <Button onClick={fetchTransaction}>Retry</Button>
-        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+          <div className="text-center">
+            <p className="text-red-500 mb-4">{error}</p>
+            <Button onClick={fetchTransaction}>Retry</Button>
+          </div>
       </div>
     );
   }
@@ -717,16 +717,16 @@ export default function TransactionDetailPage({
               const decoded = tx?.input ? decodeFunctionInput(tx.input) : null;
               if (!decoded) return null;
               return (
-                <DetailRow
-                  icon={<FileText className="w-4 h-4" />}
-                  label="Method"
-                  themeColor={themeColor}
-                  value={
-                    <span className="inline-flex items-center px-3 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-sm font-mono">
+              <DetailRow
+                icon={<FileText className="w-4 h-4" />}
+                label="Method"
+                themeColor={themeColor}
+                value={
+                  <span className="inline-flex items-center px-3 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-sm font-mono">
                       {decoded.name}
-                    </span>
-                  }
-                />
+                  </span>
+                }
+              />
               );
             })()}
 
@@ -1001,11 +1001,11 @@ export default function TransactionDetailPage({
                 {(() => {
                   const decodedInput = tx?.input ? decodeFunctionInput(tx.input) : null;
                   return (
-                    <DetailRow
-                      icon={<FileText className="w-4 h-4" />}
-                      label="Input Data"
-                      themeColor={themeColor}
-                      value={
+                <DetailRow
+                  icon={<FileText className="w-4 h-4" />}
+                  label="Input Data"
+                  themeColor={themeColor}
+                  value={
                         <div className="w-full space-y-3">
                           {/* Toggle between decoded and raw */}
                           {decodedInput && (
@@ -1124,15 +1124,15 @@ export default function TransactionDetailPage({
                             </div>
                           ) : (
                             /* Raw View */
-                            <div className="w-full">
+                    <div className="w-full">
                               <pre className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 p-3 rounded-lg overflow-x-auto max-h-64 text-zinc-700 dark:text-zinc-300">
-                                {tx?.input || '0x'}
-                              </pre>
+                        {tx?.input || '0x'}
+                      </pre>
                             </div>
                           )}
-                        </div>
-                      }
-                    />
+                    </div>
+                  }
+                />
                   );
                 })()}
               </>
@@ -1243,22 +1243,22 @@ export default function TransactionDetailPage({
                                     const paramForTopic = topicIdx > 0 ? indexedParams[topicIdx - 1] : null;
                                     
                                     return (
-                                      <div key={topicIdx} className="flex items-start gap-2">
-                                        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 w-6 flex-shrink-0">
-                                          {topicIdx}:
-                                        </span>
+                                    <div key={topicIdx} className="flex items-start gap-2">
+                                      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 w-6 flex-shrink-0">
+                                        {topicIdx}:
+                                      </span>
                                         <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
-                                          <span className="font-mono text-xs break-all text-zinc-600 dark:text-zinc-400">
-                                            {topic}
-                                          </span>
-                                          <CopyButton text={topic} />
+                                        <span className="font-mono text-xs break-all text-zinc-600 dark:text-zinc-400">
+                                          {topic}
+                                        </span>
+                                        <CopyButton text={topic} />
                                           {paramForTopic && (
                                             <span className="text-xs px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
                                               {paramForTopic.name}: {paramForTopic.type === 'address' ? formatAddress(paramForTopic.value) : paramForTopic.value}
-                                            </span>
-                                          )}
-                                        </div>
+                                          </span>
+                                        )}
                                       </div>
+                                    </div>
                                     );
                                   })}
                                 </div>
@@ -1281,22 +1281,22 @@ export default function TransactionDetailPage({
                                         <div key={paramIdx} className="flex items-center gap-2">
                                           <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
                                             {param.name || `param${paramIdx}`}:
-                                          </span>
+                                      </span>
                                           <span className="text-sm font-medium text-zinc-900 dark:text-white font-mono">
                                             {param.type === 'address' ? formatAddress(param.value) : param.value}
-                                          </span>
+                                      </span>
                                           <CopyButton text={param.value} />
                                         </div>
                                       ))}
                                     {decodedEvent.params.filter(p => !p.indexed).length === 0 && (
                                       <div className="flex items-center gap-2">
-                                        <span className="font-mono text-xs break-all text-zinc-600 dark:text-zinc-400">
-                                          {log.data}
-                                        </span>
-                                        <CopyButton text={log.data} />
+                                      <span className="font-mono text-xs break-all text-zinc-600 dark:text-zinc-400">
+                                        {log.data}
+                                      </span>
+                                      <CopyButton text={log.data} />
                                       </div>
-                                    )}
-                                  </div>
+                                  )}
+                                </div>
                                 ) : (
                                   <div className="flex items-center gap-2">
                                     <span className="font-mono text-xs break-all text-zinc-600 dark:text-zinc-400">

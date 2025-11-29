@@ -252,9 +252,9 @@ export default function BlockDetailPage({
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">{error}</p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+          <div className="text-center">
+            <p className="text-red-500 mb-4">{error}</p>
           <Button onClick={fetchBlock} className="cursor-pointer">Retry</Button>
         </div>
       </div>
@@ -586,69 +586,69 @@ export default function BlockDetailPage({
                       const methodName = decoded?.name || (tx.input === '0x' || !tx.input ? 'Transfer' : tx.input.slice(0, 10));
                       const truncatedMethod = methodName.length > 12 ? methodName.slice(0, 12) + '...' : methodName;
                       return (
-                        <tr
-                          key={tx.hash || index}
-                          className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
-                        >
-                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                            <div className="flex items-center gap-1.5">
-                              <Link
-                                href={buildTxUrl(`/stats/l1/${chainSlug}/explorer`, tx.hash)}
-                                className="font-mono text-sm hover:underline cursor-pointer"
-                                style={{ color: themeColor }}
-                              >
-                                {formatAddress(tx.hash)}
-                              </Link>
-                              <CopyButton text={tx.hash} />
-                            </div>
-                          </td>
+                      <tr
+                        key={tx.hash || index}
+                        className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
+                      >
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <div className="flex items-center gap-1.5">
+                            <Link
+                              href={buildTxUrl(`/stats/l1/${chainSlug}/explorer`, tx.hash)}
+                              className="font-mono text-sm hover:underline cursor-pointer"
+                              style={{ color: themeColor }}
+                            >
+                              {formatAddress(tx.hash)}
+                            </Link>
+                            <CopyButton text={tx.hash} />
+                          </div>
+                        </td>
                           <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                             <span className="px-2 py-1 text-xs font-mono rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700" title={decoded?.signature || methodName}>{truncatedMethod}</span>
                           </td>
-                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                            <div className="flex items-center gap-1.5">
-                              <Link
-                                href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.from)}
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <div className="flex items-center gap-1.5">
+                            <Link
+                              href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.from)}
                                 className="font-mono text-sm hover:underline cursor-pointer"
+                              style={{ color: themeColor }}
+                            >
+                              {formatAddress(tx.from)}
+                            </Link>
+                            <CopyButton text={tx.from} />
+                          </div>
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-center">
+                          <ArrowRightLeft className="w-4 h-4 text-neutral-400 dark:text-neutral-500 inline-block" />
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <div className="flex items-center gap-1.5">
+                            {tx.to ? (
+                              <Link
+                                href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.to)}
+                                  className="font-mono text-sm hover:underline cursor-pointer"
                                 style={{ color: themeColor }}
                               >
-                                {formatAddress(tx.from)}
+                                {formatAddress(tx.to)}
                               </Link>
-                              <CopyButton text={tx.from} />
-                            </div>
-                          </td>
-                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-center">
-                            <ArrowRightLeft className="w-4 h-4 text-neutral-400 dark:text-neutral-500 inline-block" />
-                          </td>
-                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                            <div className="flex items-center gap-1.5">
-                              {tx.to ? (
-                                <Link
-                                  href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.to)}
-                                  className="font-mono text-sm hover:underline cursor-pointer"
-                                  style={{ color: themeColor }}
-                                >
-                                  {formatAddress(tx.to)}
-                                </Link>
-                              ) : (
-                                <span className="font-mono text-sm text-neutral-400">Contract Creation</span>
-                              )}
-                              {tx.to && <CopyButton text={tx.to} />}
-                            </div>
-                          </td>
-                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right">
-                            <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                              {formatValue(tx.value)} <TokenDisplay symbol={tokenSymbol} />
-                            </span>
-                          </td>
-                          <td className="px-4 py-2 text-right">
-                            <span className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                              {formatValue(
-                                (BigInt(tx.gasPrice || '0') * BigInt(tx.gas || '0')).toString()
-                              )} <TokenDisplay symbol={tokenSymbol} />
-                            </span>
-                          </td>
-                        </tr>
+                            ) : (
+                              <span className="font-mono text-sm text-neutral-400">Contract Creation</span>
+                            )}
+                            {tx.to && <CopyButton text={tx.to} />}
+                          </div>
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right">
+                          <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                            {formatValue(tx.value)} <TokenDisplay symbol={tokenSymbol} />
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-right">
+                          <span className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
+                            {formatValue(
+                              (BigInt(tx.gasPrice || '0') * BigInt(tx.gas || '0')).toString()
+                            )} <TokenDisplay symbol={tokenSymbol} />
+                          </span>
+                        </td>
+                      </tr>
                       );
                     })}
                   </tbody>

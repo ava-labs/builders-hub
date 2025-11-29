@@ -121,7 +121,7 @@ export default async function L1Page({
       return (
         <ExplorerProvider {...explorerProps}>
           <ExplorerLayout {...explorerProps} breadcrumbItems={[{ label: shortAddress }]}>
-            <AddressDetailPage {...explorerProps} address={address} />
+          <AddressDetailPage {...explorerProps} address={address} />
           </ExplorerLayout>
         </ExplorerProvider>
       );
@@ -133,7 +133,7 @@ export default async function L1Page({
       return (
         <ExplorerProvider {...explorerProps}>
           <ExplorerLayout {...explorerProps} breadcrumbItems={[{ label: shortHash }]}>
-            <TransactionDetailPage {...explorerProps} txHash={txHash} />
+          <TransactionDetailPage {...explorerProps} txHash={txHash} />
           </ExplorerLayout>
         </ExplorerProvider>
       );
@@ -144,7 +144,7 @@ export default async function L1Page({
       return (
         <ExplorerProvider {...explorerProps}>
           <ExplorerLayout {...explorerProps} breadcrumbItems={[{ label: `Block #${blockNumber}` }]}>
-            <BlockDetailPage {...explorerProps} blockNumber={blockNumber} />
+          <BlockDetailPage {...explorerProps} blockNumber={blockNumber} />
           </ExplorerLayout>
         </ExplorerProvider>
       );
@@ -154,7 +154,7 @@ export default async function L1Page({
     return (
       <ExplorerProvider {...explorerProps}>
         <ExplorerLayout {...explorerProps} showSearch>
-          <L1ExplorerPage {...explorerProps} />
+        <L1ExplorerPage {...explorerProps} />
         </ExplorerLayout>
       </ExplorerProvider>
     );

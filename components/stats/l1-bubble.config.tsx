@@ -23,6 +23,7 @@ export function L1BubbleNav({ chainSlug, themeColor = "#E57373", rpcUrl }: L1Bub
     ],
     activeColor: "bg-zinc-900 dark:bg-white",
     darkActiveColor: "",
+    darkTextColor: "dark:text-zinc-900",
     focusRingColor: "focus:ring-zinc-500",
     pulseColor: "bg-zinc-200/40",
     darkPulseColor: "dark:bg-zinc-400/40",

@@ -393,23 +393,23 @@ export default function AddressDetailPage({
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 h-48 animate-pulse" />
-          ))}
-        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 h-48 animate-pulse" />
+            ))}
+          </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">{error}</p>
-          <Button onClick={() => fetchAddressData()}>Retry</Button>
-        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+          <div className="text-center">
+            <p className="text-red-500 mb-4">{error}</p>
+            <Button onClick={() => fetchAddressData()}>Retry</Button>
+          </div>
       </div>
     );
   }
@@ -767,18 +767,18 @@ export default function AddressDetailPage({
                         <span>{chain.chainName}</span>
                       </Link>
                     ) : (
-                      <div 
-                        key={chain.chainId}
+                    <div 
+                      key={chain.chainId}
                         className="inline-flex items-center gap-1.5 px-3 py-1 text-sm rounded-md font-medium"
                         style={{ backgroundColor: `${chainColor}20`, color: chainColor }}
-                      >
+                    >
                         {chainLogoUri ? (
                           <img src={chainLogoUri} alt="" className="w-4 h-4 rounded-full" />
-                        ) : (
+                      ) : (
                           <div className="w-4 h-4 rounded-full bg-zinc-300 dark:bg-zinc-600" />
-                        )}
+                      )}
                         <span>{chain.chainName}</span>
-                      </div>
+                    </div>
                     );
                   })}
                 </div>
