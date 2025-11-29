@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import ChainMetricsPage from "@/components/stats/ChainMetricsPage";
-import L1ExplorerPage from "@/components/stats/L1ExplorerPage";
-import BlockDetailPage from "@/components/stats/BlockDetailPage";
-import TransactionDetailPage from "@/components/stats/TransactionDetailPage";
-import AddressDetailPage from "@/components/stats/AddressDetailPage";
-import { ExplorerProvider } from "@/components/stats/ExplorerContext";
-import { ExplorerLayout } from "@/components/stats/ExplorerLayout";
+import L1ExplorerPage from "@/components/explorer/L1ExplorerPage";
+import BlockDetailPage from "@/components/explorer/BlockDetailPage";
+import TransactionDetailPage from "@/components/explorer/TransactionDetailPage";
+import AddressDetailPage from "@/components/explorer/AddressDetailPage";
+import { ExplorerProvider } from "@/components/explorer/ExplorerContext";
+import { ExplorerLayout } from "@/components/explorer/ExplorerLayout";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { Metadata } from "next";
 import { L1Chain } from "@/types/stats";
@@ -121,7 +121,7 @@ export default async function L1Page({
       return (
         <ExplorerProvider {...explorerProps}>
           <ExplorerLayout {...explorerProps} breadcrumbItems={[{ label: shortAddress }]}>
-          <AddressDetailPage {...explorerProps} address={address} />
+          <AddressDetailPage {...explorerProps} address={address} sourcifySupport={(currentChain as any).sourcifySupport} />
           </ExplorerLayout>
         </ExplorerProvider>
       );

@@ -91,6 +91,7 @@
     "hast-util-to-jsx-runtime": "^2.3.6",
     "idb": "^8.0.3",
     "input-otp": "^1.4.2",
+    "jszip": "^3.10.1",
     "katex": "^0.16.22",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.553.0",

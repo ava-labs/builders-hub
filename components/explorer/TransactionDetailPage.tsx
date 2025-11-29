@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Hash, Clock, Box, Fuel, DollarSign, FileText, ChevronUp, ChevronDown, CheckCircle, XCircle, AlertCircle, ArrowRightLeft } from "lucide-react";
+import { Hash, Clock, Box, Fuel, DollarSign, FileText, ChevronUp, ChevronDown, CheckCircle, XCircle, AlertCircle, ArrowRightLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DetailRow, CopyButton } from "@/components/stats/DetailRow";
+import { DetailRow, CopyButton } from "@/components/explorer/DetailRow";
 import Link from "next/link";
 import Image from "next/image";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
-import { useExplorer } from "@/components/stats/ExplorerContext";
+import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { decodeEventLog, getEventByTopic, decodeFunctionInput } from "@/abi/event-signatures.generated";
 import { formatTokenValue, formatUsdValue } from "@/utils/formatTokenValue";
 import { formatPrice } from "@/utils/formatPrice";
@@ -166,8 +166,8 @@ interface CrossChainTransfer {
 }
 
 // ERC20 Transfer event topic hash
-const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
-
+  const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+  
 interface ERC20Transfer {
   from: string;
   to: string;
@@ -213,47 +213,77 @@ function extractERC20Transfers(logs: Array<{ topics: string[]; data: string; add
 interface TokenInfo {
   symbol: string;
   decimals: number;
+  logoUri?: string;
+}
+
+// Fetch token metadata from Glacier API
+async function fetchTokenMetadata(chainId: string, tokenAddress: string): Promise<{ logoUri?: string; symbol?: string }> {
+  try {
+    const response = await fetch(`/api/explorer/${chainId}/token/${tokenAddress}/metadata`);
+    if (response.ok) {
+      const data = await response.json();
+    return {
+        logoUri: data.logoUri,
+        symbol: data.symbol,
+    };
+    }
+  } catch {
+    // Ignore errors
+  }
+  return {};
 }
 
 // Fetch token info from RPC
-async function fetchTokenInfo(rpcUrl: string, tokenAddress: string): Promise<TokenInfo> {
+async function fetchTokenInfo(rpcUrl: string, tokenAddress: string, chainId: string): Promise<TokenInfo> {
   let symbol = 'UNKNOWN';
   let decimals = 18;
+  let logoUri: string | undefined;
 
-  try {
-    // Fetch symbol using eth_call with ERC20 symbol() signature (0x95d89b41)
-    const symbolResponse = await fetch(rpcUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'eth_call',
-        params: [{ to: tokenAddress, data: '0x95d89b41' }, 'latest'],
-      }),
-    });
+  // First try to get metadata from Glacier (for logo)
+  const metadata = await fetchTokenMetadata(chainId, tokenAddress);
+  console.log('metadata', metadata);
+  logoUri = metadata.logoUri;
+  if (metadata.symbol) {
+    symbol = metadata.symbol;
+  }
 
-    if (symbolResponse.ok) {
-      const symbolData = await symbolResponse.json();
-      const symbolResult = symbolData.result as string;
-      
-      if (symbolResult && symbolResult !== '0x' && symbolResult.length > 2) {
-        // Decode string return value
-        if (symbolResult.length > 130) {
-          const lengthHex = symbolResult.slice(66, 130);
-          const length = parseInt(lengthHex, 16);
-          const dataHex = symbolResult.slice(130, 130 + length * 2);
-          // Convert hex to string
-          symbol = dataHex.match(/.{1,2}/g)?.map(byte => String.fromCharCode(parseInt(byte, 16))).join('').replace(/\0/g, '') || 'UNKNOWN';
-        } else if (symbolResult.length === 66) {
-          // Might be bytes32 encoded (like some old tokens)
-          const hex = symbolResult.slice(2);
-          symbol = hex.match(/.{1,2}/g)?.map(byte => String.fromCharCode(parseInt(byte, 16))).join('').replace(/\0/g, '') || 'UNKNOWN';
+  // If no symbol from Glacier, fetch from RPC
+  if (symbol === 'UNKNOWN') {
+    try {
+      // Fetch symbol using eth_call with ERC20 symbol() signature (0x95d89b41)
+      const symbolResponse = await fetch(rpcUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'eth_call',
+          params: [{ to: tokenAddress, data: '0x95d89b41' }, 'latest'],
+        }),
+      });
+
+      if (symbolResponse.ok) {
+        const symbolData = await symbolResponse.json();
+        const symbolResult = symbolData.result as string;
+        
+        if (symbolResult && symbolResult !== '0x' && symbolResult.length > 2) {
+          // Decode string return value
+          if (symbolResult.length > 130) {
+            const lengthHex = symbolResult.slice(66, 130);
+            const length = parseInt(lengthHex, 16);
+            const dataHex = symbolResult.slice(130, 130 + length * 2);
+            // Convert hex to string
+            symbol = dataHex.match(/.{1,2}/g)?.map(byte => String.fromCharCode(parseInt(byte, 16))).join('').replace(/\0/g, '') || 'UNKNOWN';
+          } else if (symbolResult.length === 66) {
+            // Might be bytes32 encoded (like some old tokens)
+            const hex = symbolResult.slice(2);
+            symbol = hex.match(/.{1,2}/g)?.map(byte => String.fromCharCode(parseInt(byte, 16))).join('').replace(/\0/g, '') || 'UNKNOWN';
+          }
         }
       }
+    } catch (e) {
+      console.log(`Could not fetch symbol for ${tokenAddress}`);
     }
-  } catch (e) {
-    console.log(`Could not fetch symbol for ${tokenAddress}`);
   }
 
   try {
@@ -282,7 +312,7 @@ async function fetchTokenInfo(rpcUrl: string, tokenAddress: string): Promise<Tok
     console.log(`Could not fetch decimals for ${tokenAddress}, defaulting to 18`);
   }
 
-  return { symbol, decimals };
+  return { symbol, decimals, logoUri };
 }
 
 // Extract cross-chain transfers from logs
@@ -418,7 +448,30 @@ export default function TransactionDetailPage({
   const [error, setError] = useState<string | null>(null);
   const [showMore, setShowMore] = useState(false);
   const [showRawInput, setShowRawInput] = useState(false);
-  const [erc20Transfers, setErc20Transfers] = useState<Array<ERC20Transfer & { symbol: string; decimals: number }>>([]);
+  const [erc20Transfers, setErc20Transfers] = useState<Array<ERC20Transfer & { symbol: string; decimals: number; logoUri?: string }>>([]);
+  const [verifiedAddresses, setVerifiedAddresses] = useState<Set<string>>(new Set());
+  
+  // Check Sourcify verification for to/contract addresses
+  useEffect(() => {
+    const addressesToCheck = [tx?.to, tx?.contractAddress].filter(Boolean) as string[];
+    if (addressesToCheck.length === 0) return;
+    
+    const checkVerification = async (address: string) => {
+      try {
+        const response = await fetch(`https://sourcify.dev/server/v2/contract/${chainId}/${address}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.match === 'match') {
+            setVerifiedAddresses(prev => new Set(prev).add(address.toLowerCase()));
+          }
+        }
+      } catch {
+        // Ignore errors
+      }
+    };
+    
+    addressesToCheck.forEach(addr => checkVerification(addr));
+  }, [tx?.to, tx?.contractAddress, chainId]);
   
   // Extract ERC20 transfers and fetch token info
   useEffect(() => {
@@ -429,6 +482,7 @@ export default function TransactionDetailPage({
 
     const extractAndFetch = async () => {
       const transfers = extractERC20Transfers(tx.logs);
+      console.log('transfers', transfers);
       
       if (transfers.length === 0) {
         setErc20Transfers([]);
@@ -442,7 +496,7 @@ export default function TransactionDetailPage({
       const tokenInfoMap = new Map<string, TokenInfo>();
       await Promise.all(
         uniqueTokenAddresses.map(async (addr) => {
-          const info = await fetchTokenInfo(rpcUrl, addr);
+          const info = await fetchTokenInfo(rpcUrl, addr, chainId);
           tokenInfoMap.set(addr, info);
         })
       );
@@ -454,6 +508,7 @@ export default function TransactionDetailPage({
           ...transfer,
           symbol: tokenInfo.symbol,
           decimals: tokenInfo.decimals,
+          logoUri: tokenInfo.logoUri,
         };
       });
 
@@ -461,7 +516,7 @@ export default function TransactionDetailPage({
     };
 
     extractAndFetch();
-  }, [tx?.logs, rpcUrl]);
+  }, [tx?.logs, rpcUrl, chainId]);
   
   // Read initial tab from URL hash
   const getInitialTab = (): 'overview' | 'logs' => {
@@ -684,13 +739,23 @@ export default function TransactionDetailPage({
               themeColor={themeColor}
               value={
                 tx?.to ? (
+                  <div className="flex items-center gap-2">
                   <Link
                     href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.to)}
-                    className="text-sm font-mono break-all hover:underline cursor-pointer"
+                      className="text-sm font-mono break-all hover:underline cursor-pointer"
                     style={{ color: themeColor }}
                   >
                     {tx.to}
                   </Link>
+                    {verifiedAddresses.has(tx.to.toLowerCase()) && (
+                      <span 
+                        className="flex items-center justify-center w-4 h-4 rounded-full bg-green-500"
+                        title="Verified on Sourcify"
+                      >
+                        <Check className="w-3 h-3 text-white" />
+                      </span>
+                    )}
+                  </div>
                 ) : tx?.contractAddress ? (
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-zinc-500">[Contract Created]</span>
@@ -701,6 +766,14 @@ export default function TransactionDetailPage({
                     >
                       {tx.contractAddress}
                     </Link>
+                    {verifiedAddresses.has(tx.contractAddress.toLowerCase()) && (
+                      <span 
+                        className="flex items-center justify-center w-4 h-4 rounded-full bg-green-500"
+                        title="Verified on Sourcify"
+                      >
+                        <Check className="w-3 h-3 text-white" />
+                      </span>
+                    )}
                   </div>
                 ) : (
                   <span className="text-sm text-zinc-500">-</span>
@@ -763,9 +836,18 @@ export default function TransactionDetailPage({
                           </span>
                           <Link 
                             href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.tokenAddress)}
-                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:underline cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium hover:underline cursor-pointer"
                             style={{ backgroundColor: `${themeColor}20`, color: themeColor }}
                           >
+                            {transfer.logoUri && (
+                              <Image
+                                src={transfer.logoUri}
+                                alt={transfer.symbol}
+                                width={14}
+                                height={14}
+                                className="rounded-full"
+                              />
+                            )}
                             {transfer.symbol}
                           </Link>
                         </div>

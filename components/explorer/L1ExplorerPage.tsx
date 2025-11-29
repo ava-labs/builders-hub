@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Line, LineChart, ResponsiveContainer, Tooltip, YAxis } from "recharts";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
-import { useExplorer } from "@/components/stats/ExplorerContext";
+import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { formatTokenValue } from "@/utils/formatTokenValue";
 import { formatPrice, formatAvaxPrice } from "@/utils/formatPrice";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -270,6 +270,7 @@ export default function L1ExplorerPage({
   const [newTxHashes, setNewTxHashes] = useState<Set<string>>(new Set());
   const [icmMessages, setIcmMessages] = useState<Transaction[]>([]);
   const previousDataRef = useRef<ExplorerData | null>(null);
+  const isFirstLoadRef = useRef(true); // Track if this is the first load
   const ICM_MESSAGE_LIMIT = 100; // Maximum number of ICM messages to keep
 
   // Get actual token symbol - prefer context (shared), fallback to API data
@@ -279,7 +280,11 @@ export default function L1ExplorerPage({
   const fetchData = useCallback(async () => {
     try {
       setIsRefreshing(true);
-      const response = await fetch(`/api/explorer/${chainId}`);
+      // On first load, request historical ICM messages
+      const url = isFirstLoadRef.current 
+        ? `/api/explorer/${chainId}?initialLoad=true`
+        : `/api/explorer/${chainId}`;
+      const response = await fetch(url);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to fetch data");
@@ -327,6 +332,11 @@ export default function L1ExplorerPage({
       previousDataRef.current = result;
       setData(result);
       setError(null);
+      
+      // Mark first load as complete
+      if (isFirstLoadRef.current) {
+        isFirstLoadRef.current = false;
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -335,9 +345,15 @@ export default function L1ExplorerPage({
     }
   }, [chainId]);
 
+  // Reset first load flag when chain changes
+  useEffect(() => {
+    isFirstLoadRef.current = true;
+    setIcmMessages([]); // Clear ICM messages when switching chains
+  }, [chainId]);
+
   useEffect(() => {
     fetchData();
-    // Auto-refresh every 10 seconds
+    // Auto-refresh every 2.5 seconds
     const interval = setInterval(fetchData, 2500);
     return () => clearInterval(interval);
   }, [fetchData]);
@@ -736,8 +752,8 @@ export default function L1ExplorerPage({
                     <div className="flex items-center gap-1.5">
                       <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
                       <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Live</span>
-                    </div>
-                  </div>
+        </div>
+      </div>
                   <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
                     {icmMessages.map((tx, index) => (
                       <div 
@@ -828,7 +844,7 @@ export default function L1ExplorerPage({
                                         Unknown
                                       </span>
                                     )}
-                                  </div>
+    </div>
                                 );
                               })()}
                             </div>

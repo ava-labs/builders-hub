@@ -7,7 +7,6 @@ import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Co
 import Link from "next/link";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
-import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import l1ChainsData from "@/constants/l1-chains.json";

@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { Box, Clock, Fuel, Hash, ArrowLeft, ArrowRight, ChevronUp, ChevronDown, Layers, FileText, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DetailRow, CopyButton } from "@/components/stats/DetailRow";
+import { DetailRow, CopyButton } from "@/components/explorer/DetailRow";
 import Link from "next/link";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
-import { useExplorer } from "@/components/stats/ExplorerContext";
+import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { decodeFunctionInput } from "@/abi/event-signatures.generated";
 import { formatTokenValue, formatUsdValue } from "@/utils/formatTokenValue";
 import { formatPrice } from "@/utils/formatPrice";

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
-import { useExplorer } from "@/components/stats/ExplorerContext";
+import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 
 interface ExplorerLayoutProps {

@@ -78,7 +78,9 @@
     ],
     "rpcUrl": "https://api.avax.network/ext/bc/C/rpc",
     "coingeckoId": "avalanche-2",
-    "tokenSymbol": "AVAX"
+    "duneId": "avalanche_c",
+    "tokenSymbol": "AVAX",
+    "sourcifySupport": true
   },
   {
     "chainId": "40404",
