@@ -381,15 +381,17 @@ export default function BlockDetailPage({
                   label="Block Gas Fee"
                   themeColor={themeColor}
                   value={
+                    <div className="flex flex-col gap-1">
                     <span className="text-sm text-zinc-900 dark:text-white">
                       {chainId === "43114" && <span className="mr-1">🔥</span>}
                       {formatTokenValue(block.gasFee)} <TokenDisplay symbol={tokenSymbol} />
+                      </span>
                       {tokenPrice && (
-                        <span className="text-zinc-500 dark:text-zinc-400">
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400">
                           ({formatPrice(parseFloat(block.gasFee) * tokenPrice)} USD)
                         </span>
                       )}
-                    </span>
+                    </div>
                   }
                 />
               )}
