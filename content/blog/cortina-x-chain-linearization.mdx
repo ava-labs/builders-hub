@@ -43,6 +43,8 @@ Cortina modifies how these delegation fees are distributed for all validators th
 
 ## Increased C-Chain Gas Limit
 
+Warning: The original coreth repoistory has been deprecated and it's code has been moved into [avalanche go](https://github.com/ava-labs/avalanchego/tree/master/graft/coreth) and Apricot does no longer apply
+
 Since Apricot Phase 1, the C-Chain block gas limit has been [set to 8M gas](https://github.com/ava-labs/coreth/blob/b1223203dbca7708142b8884f46a4deec678d80e/params/avalanche_params.go#L21). Blocks on the C-Chain are produced every ~2s, so this setting limits the max amount of gas that can be consumed every 10s to ~40M gas. The gas target for every rolling 10s window, however, is set to [15M gas](https://github.com/ava-labs/coreth/blob/b1223203dbca7708142b8884f46a4deec678d80e/params/avalanche_params.go#L32). This means that when more than 15M gas is used in a 10s window, the gas price will go up (and go down when less than 15M is used). You can read more about how dynamic fees work on the C-Chain [here](https://medium.com/avalancheavax/apricot-phase-three-c-chain-dynamic-fees-432d32d67b60).
 
 Outside of limiting the amount of gas that can be consumed in some window at any gas price, the block gas limit also limits the complexity of transactions that can be issued in a single block. As different developers on Avalanche began to deploy more complex dApps, they've expressed that 8M gas per block isn't enough for their use case. Cortina increases the C-Chain block gas limit to 15M gas. To avoid increasing the amount of resources required to validate the Primary Network, the gas target will remain unchanged at 15M gas per 10s.

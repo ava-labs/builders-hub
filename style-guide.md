@@ -18,7 +18,7 @@ with the following exceptions:
 
 ### Virtual Machines  r
 
-- Coreth for [https://github.com/ava-labs/coreth]
+- Coreth for [https://github.com/ava-labs/avalanchego/tree/master/graft/coreth]
 - Subnet-EVM for [https://github.com/ava-labs/subnet-evm]
 - TimestampVM for [https://github.com/ava-labs/timestampvm]
 - XSVM for [https://github.com/ava-labs/xsvm]
