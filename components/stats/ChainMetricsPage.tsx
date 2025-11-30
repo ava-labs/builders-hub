@@ -308,6 +308,61 @@ export default function ChainMetricsPage({
     }
   };
 
+  // Helper function to get the current value from raw data based on period
+  const getCurrentValueFromData = (
+    rawData: { day: string; value: number }[],
+    period: "D" | "W" | "M" | "Q" | "Y",
+    metricKey: string
+  ): number | string => {
+    if (!rawData || rawData.length === 0) return "N/A";
+
+    // For activeAddresses with W/M periods, data is already aggregated from API
+    if (metricKey === "activeAddresses" && (period === "W" || period === "M")) {
+      return rawData[rawData.length - 1].value;
+    }
+
+    // For daily period, just return the latest value
+    if (period === "D") {
+      return rawData[rawData.length - 1].value;
+    }
+
+    // For other periods, aggregate the data to get the latest period's value
+    const grouped = new Map<string, { sum: number; count: number; date: string }>();
+    
+    rawData.forEach((point) => {
+      const date = new Date(point.day);
+      let key: string;
+
+      if (period === "W") {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
+      } else if (period === "M") {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      } else if (period === "Q") {
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
+      } else {
+        // Y
+        key = String(date.getFullYear());
+      }
+
+      if (!grouped.has(key)) {
+        grouped.set(key, { sum: 0, count: 0, date: key });
+      }
+
+      const group = grouped.get(key)!;
+      group.sum += point.value;
+      group.count += 1;
+    });
+
+    // Get the latest aggregated value
+    const aggregated = Array.from(grouped.values())
+      .sort((a, b) => a.date.localeCompare(b.date));
+    
+    return aggregated.length > 0 ? aggregated[aggregated.length - 1].sum : "N/A";
+  };
+
   const getCurrentValue = (
     metricKey: keyof Omit<CChainMetrics, "last_updated">,
     period?: "D" | "W" | "M" | "Q" | "Y"
@@ -880,7 +935,8 @@ export default function ChainMetricsPage({
                 const rawData = config.metricKey === "icmMessages" ? getICMChartData() : getChartData(config.metricKey, period);
                 if (rawData.length === 0) return null;
                 
-                const currentValue = getCurrentValue(config.metricKey, period);
+                // Get current value from aggregated data based on selected period
+                const currentValue = getCurrentValueFromData(rawData, period, config.metricKey);
                 let cumulativeData = null;
                 if (config.metricKey === "txCount") cumulativeData = getChartData("cumulativeTxCount");
                 else if (config.metricKey === "activeAddresses") cumulativeData = getChartData("cumulativeAddresses");
@@ -934,7 +990,8 @@ export default function ChainMetricsPage({
                 const period = chartPeriods[config.metricKey];
                 const rawData = getChartData(config.metricKey as keyof Omit<CChainMetrics, "last_updated" | "icmMessages">, period);
                 if (rawData.length === 0) return null;
-                const currentValue = getCurrentValue(config.metricKey as keyof Omit<CChainMetrics, "last_updated">, period);
+                // Get current value from aggregated data based on selected period
+                const currentValue = getCurrentValueFromData(rawData, period, config.metricKey);
                 let cumulativeData = null;
                 if (config.metricKey === "contracts") cumulativeData = getChartData("cumulativeContracts");
                 else if (config.metricKey === "deployers") cumulativeData = getChartData("cumulativeDeployers");
@@ -978,7 +1035,8 @@ export default function ChainMetricsPage({
                 const period = chartPeriods[config.metricKey];
                 const rawData = getChartData(config.metricKey as keyof Omit<CChainMetrics, "last_updated" | "icmMessages">, period);
                 if (rawData.length === 0) return null;
-                const currentValue = getCurrentValue(config.metricKey as keyof Omit<CChainMetrics, "last_updated">, period);
+                // Get current value from aggregated data based on selected period
+                const currentValue = getCurrentValueFromData(rawData, period, config.metricKey);
                 let secondaryData = null;
                 let secondaryCurrentValue = null;
                 if (config.chartType === "dual" && config.secondaryMetricKey) {
@@ -1029,7 +1087,8 @@ export default function ChainMetricsPage({
                 const period = chartPeriods[config.metricKey];
                 const rawData = getChartData(config.metricKey as keyof Omit<CChainMetrics, "last_updated" | "icmMessages">, period);
                 if (rawData.length === 0) return null;
-                const currentValue = getCurrentValue(config.metricKey as keyof Omit<CChainMetrics, "last_updated">, period);
+                // Get current value from aggregated data based on selected period
+                const currentValue = getCurrentValueFromData(rawData, period, config.metricKey);
 
                 // All periods allowed for fees
                 const allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = ["D", "W", "M", "Q", "Y"];
