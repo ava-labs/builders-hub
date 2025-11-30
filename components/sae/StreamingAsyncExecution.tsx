@@ -537,16 +537,19 @@ function ExecutingBlock({ block, colors, onComplete }: {
   const [executedCount, setExecutedCount] = useState(0)
   const blockTxCount = block.txCount
   
-  // Determine which transactions will fail (about 15% chance, stored per block)
-  const failedTxs = useRef<Set<number>>(new Set())
+  // Determine which transactions will fail (about 15% chance, stored on block)
+  // Generate once and store on block so Executed stage can use same data
   useEffect(() => {
-    failedTxs.current = new Set()
-    for (let i = 0; i < block.txCount; i++) {
-      if (Math.random() < 0.15) {
-        failedTxs.current.add(i)
+    if (!block.failedTxs) {
+      const failed = new Set<number>()
+      for (let i = 0; i < block.txCount; i++) {
+        if (Math.random() < 0.15) {
+          failed.add(i)
+        }
       }
+      block.failedTxs = failed
     }
-  }, [block.uid, block.txCount])
+  }, [block, block.txCount])
   
   useEffect(() => {
     setExecutedCount(0)
@@ -588,7 +591,7 @@ function ExecutingBlock({ block, colors, onComplete }: {
         {Array.from({ length: MAX_TX }).map((_, i) => {
           const isTransaction = i < block.txCount
           const isExecuted = i < executedCount
-          const isFailed = failedTxs.current.has(i)
+          const isFailed = block.failedTxs?.has(i) ?? false
           const txColor = block.txColors[i] || `${colors.stroke}40`
           
           return (
@@ -721,10 +724,10 @@ function ExecutingStage({ block, colors, onBlockComplete }: {
                 Block Execution
               </div>
               <div className={`text-[9px] font-mono leading-relaxed space-y-2`} style={{ color: `${colors.stroke}90` }}>
-                <p>As soon as a block is available, the executor starts processing it on top of the last executed state.</p>
-                <p>The executor provides deterministic timestamps based on block header and gas usage.</p>
+                <p>As soon as a block is available, the execution stream starts processing it on top of the last executed state.</p>
+                <p>The execution stream provides deterministic timestamps based on block header and gas usage.</p>
                 <p style={{ color: `${colors.stroke}70` }}>• Execution timestamps are sub-second granular</p>
-                <p style={{ color: `${colors.stroke}70` }}>• Gas usage advances the executor&apos;s timestamp</p>
+                <p style={{ color: `${colors.stroke}70` }}>• Gas usage advances the execution stream&apos;s timestamp</p>
               </div>
             </div>
             <div 
@@ -741,17 +744,16 @@ function ExecutingStage({ block, colors, onBlockComplete }: {
     </div>
   )
 }
-
 // Blocks that finished executing, waiting for settlement
 function ExecutedStage({ blocks, colors, isSettling }: { blocks: Block[]; colors: Colors; isSettling?: boolean }) {
   const [showTooltip, setShowTooltip] = useState(false)
-  const visibleBlocks = blocks.slice(-9) // Show up to 9 blocks (3x3 grid)
+  const visibleBlocks = blocks.slice(-9) // Show up to 9 blocks in 3x3 grid
   
   return (
     <div className="flex flex-col items-center gap-2 relative">
       <div
-        className={`relative border ${colors.border} ${colors.blockBg} flex items-center justify-center p-2 overflow-hidden cursor-help`}
-        style={{ width: 140, height: 110 }}
+        className={`relative border ${colors.border} ${colors.blockBg} flex items-center justify-center overflow-hidden cursor-help`}
+        style={{ width: 120, height: 110, padding: 4 }}
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
@@ -776,10 +778,10 @@ function ExecutedStage({ blocks, colors, isSettling }: { blocks: Block[]; colors
             />
           )}
         </AnimatePresence>
-        {/* Amber waiting indicator */}
+        {/* Red waiting indicator - execution complete, awaiting settlement */}
         <motion.div
           className="absolute inset-0 pointer-events-none"
-          style={{ border: `2px solid #f59e0b` }}
+          style={{ border: `2px solid #ef4444` }}
           animate={{ 
             opacity: [0.3, 0.6, 0.3],
           }}
@@ -787,44 +789,61 @@ function ExecutedStage({ blocks, colors, isSettling }: { blocks: Block[]; colors
         />
         <AnimatePresence mode="popLayout">
           {visibleBlocks.length > 0 ? (
-            <div className="grid grid-cols-3 gap-1.5 p-1">
-              {visibleBlocks.map((block) => (
-                <motion.div
-                  key={block.uid}
-                  layout
-                  initial={{ scale: 0.8, x: -20, opacity: 0 }}
-                  animate={{ scale: 1, x: 0, opacity: 1 }}
-                  exit={{ scale: 0.8, x: 20, opacity: 0 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                  className="flex flex-col items-center gap-0.5"
-                >
-                  <div
-                    className="border grid gap-px p-0.5"
-                    style={{
-                      gridTemplateColumns: "repeat(4, 1fr)",
-                      width: 28,
-                      height: 28,
-                      backgroundColor: `${colors.stroke}05`,
-                      borderColor: '#f59e0b50',
-                    }}
+            <div 
+              className="grid"
+              style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}
+            >
+              {visibleBlocks.map((block) => {
+                return (
+                  <motion.div
+                    key={block.uid}
+                    layout
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.5, opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    className="flex flex-col items-center"
                   >
-                    {Array.from({ length: MAX_TX }).map((_, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          aspectRatio: "1",
-                          backgroundColor: i < block.txCount 
-                            ? (block.txColors[i] || `${colors.stroke}40`)
-                            : `${colors.stroke}10`,
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <span className={`text-[6px] font-mono ${colors.textFaint}`}>
-                    #{block.id.toString().padStart(3, "0")}
-                  </span>
-                </motion.div>
-              ))}
+                    <div
+                      className="border grid"
+                      style={{
+                        gridTemplateColumns: 'repeat(4, 5px)',
+                        gridTemplateRows: 'repeat(4, 5px)',
+                        gap: 0,
+                        backgroundColor: `${colors.stroke}05`,
+                        borderColor: '#ef444450',
+                      }}
+                    >
+                      {Array.from({ length: MAX_TX }).map((_, i) => {
+                        const isTransaction = i < block.txCount
+                        const isFailed = block.failedTxs?.has(i) ?? false
+                        return (
+                          <div
+                            key={i}
+                            className="flex items-center justify-center"
+                            style={{ backgroundColor: `${colors.stroke}08` }}
+                          >
+                            {isTransaction && (
+                              isFailed ? (
+                                <svg width="3" height="3" viewBox="0 0 24 24" fill="none">
+                                  <path d="M6 6l12 12M18 6l-12 12" stroke="#ef4444" strokeWidth="6" strokeLinecap="round" />
+                                </svg>
+                              ) : (
+                                <svg width="3" height="3" viewBox="0 0 24 24" fill="none">
+                                  <path d="M5 13l4 4L19 7" stroke="#22c55e" strokeWidth="6" strokeLinecap="round" />
+                                </svg>
+                              )
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <span className={`text-[5px] font-mono ${colors.textFaint} leading-none mt-0.5`}>
+                      #{block.id}
+                    </span>
+                  </motion.div>
+                )
+              })}
             </div>
           ) : (
             <motion.span
@@ -1177,7 +1196,7 @@ export function StreamingAsyncExecution({ colors }: { colors: Colors }) {
     }
   }, [executingBlock])
   
-  // Settlement triggered after 5s delay when next accepted block arrives
+  // Settlement triggered after τ delay when next accepted block arrives
   // Per spec: τ = 5s delay between execution and settlement
   useEffect(() => {
     if (acceptedBlock && 
@@ -1219,14 +1238,15 @@ export function StreamingAsyncExecution({ colors }: { colors: Colors }) {
 
   return (
     <>
+      {/* Title */}
+      <div className="flex items-center gap-2 mb-4 md:mb-6 px-1">
+        <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-[0.15em] ${colors.text} font-semibold`}>
+          Transaction Lifecycle
+        </span>
+      </div>
+
       {/* Consensus Lane */}
       <div className="mb-1 md:mb-2">
-        <div className="flex items-center gap-2 mb-2 md:mb-3 px-1">
-          <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-[0.15em] ${colors.text} font-semibold`}>
-            <span style={{ color: `${colors.stroke}60` }}>Consensus</span> Stream (<a href="/docs/primary-network/avalanche-consensus" className="hover:underline cursor-pointer text-blue-500 hover:text-blue-400">Snowman</a>)
-          </span>
-        </div>
-
         <div className={`border ${colors.border} p-2 sm:p-6 ${colors.blockBg}`}>
           <div className="flex items-center gap-0">
             <div className="flex-1 flex justify-center">
@@ -1242,8 +1262,8 @@ export function StreamingAsyncExecution({ colors }: { colors: Colors }) {
             </div>
           </div>
         </div>
-        <p className={`text-sm sm:text-xs md:text-[11px] ${colors.text} mt-2 md:mt-4 font-mono uppercase tracking-wider`}>
-          Orders transactions and validates they can pay for <span style={{ color: '#ef4444' }}>execution</span> — without running the VM
+        <p className={`text-sm sm:text-xs md:text-[11px] ${colors.textMuted} mt-2 md:mt-4 font-mono tracking-wider`}>
+          <span className="font-semibold uppercase" style={{ color: `${colors.stroke}60` }}>Consensus</span> (<a href="/docs/primary-network/avalanche-consensus" className="font-semibold hover:underline" style={{ color: `${colors.stroke}60` }}>Snowman</a>) orders transactions and validates gas payment — without running the VM
         </p>
       </div>
 
@@ -1274,15 +1294,11 @@ export function StreamingAsyncExecution({ colors }: { colors: Colors }) {
 
       {/* Queue */}
       <div className="mb-1 md:mb-2">
-        <div className="flex items-center gap-2 mb-2 md:mb-3 px-1">
-          <span className={`text-sm sm:text-xs md:text-[11px] ${colors.text} uppercase tracking-widest font-semibold`}>FIFO Queue</span>
-        </div>
-
         <div className={`border ${colors.border} p-2 md:p-4 ${colors.blockBg}`}>
           <QueueStage blocks={queuedBlocks} colors={colors} />
         </div>
-        <p className={`text-sm sm:text-xs md:text-[11px] ${colors.text} mt-2 md:mt-4 font-mono uppercase tracking-wider`}>
-          Accepted blocks wait here — <span style={{ color: `${colors.stroke}60` }}>consensus</span> runs ahead while the executor drains the queue
+        <p className={`text-sm sm:text-xs md:text-[11px] ${colors.textMuted} mt-2 md:mt-4 font-mono tracking-wider`}>
+          <span className="font-semibold uppercase" style={{ color: '#3b82f6' }}>Queue</span> buffers accepted blocks — <span style={{ color: `${colors.stroke}60` }}>consensus</span> continues while <span style={{ color: '#ef4444' }}>execution</span> drains
         </p>
       </div>
 
@@ -1313,11 +1329,6 @@ export function StreamingAsyncExecution({ colors }: { colors: Colors }) {
 
       {/* Execution Lane */}
       <div className="mt-0 md:mt-1 overflow-visible">
-        <div className="flex items-center gap-2 mb-2 md:mb-3 px-1">
-          <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-[0.15em] ${colors.text} font-semibold`}>
-            <span style={{ color: '#ef4444' }}>Execution</span> Stream
-          </span>
-        </div>
         <div className={`border ${colors.border} ${colors.blockBg} p-2 sm:p-4 overflow-visible`}>
           <div className="flex items-center justify-center gap-3 sm:gap-4 overflow-visible">
             <ExecutingStage 
@@ -1331,8 +1342,8 @@ export function StreamingAsyncExecution({ colors }: { colors: Colors }) {
               <SettledStage blocks={settledBlocks} colors={colors} />
           </div>
         </div>
-        <p className={`text-sm sm:text-xs md:text-[11px] ${colors.text} mt-2 md:mt-4 font-mono uppercase tracking-wider`}>
-          Runs transactions and computes state — results stream immediately, settlement follows after τ = 5s
+        <p className={`text-sm sm:text-xs md:text-[11px] ${colors.textMuted} mt-2 md:mt-4 font-mono tracking-wider`}>
+          <span className="font-semibold uppercase" style={{ color: '#ef4444' }}>Execution</span> runs transactions and computes state — streams results, settles after <span style={{ color: '#f59e0b' }}>τ</span>
         </p>
       </div>
     </>

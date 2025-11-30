@@ -152,17 +152,31 @@ export function BlockRelationship({ colors }: { colors: Colors }) {
 
       <div className={`border ${colors.border} p-3 sm:p-8 ${colors.blockBg} overflow-x-auto`}>
         {/* Legend */}
-        <div className="flex items-center gap-4 mb-4 md:gap-6 md:mb-8">
+        <div className="flex flex-wrap items-center gap-4 mb-4 md:gap-6 md:mb-8">
           <div className="flex items-center gap-2">
             <div
               className="w-4 h-4 rounded-sm"
               style={{ backgroundColor: `${colors.stroke}20`, border: `1.5px solid ${colors.stroke}40` }}
             />
-            <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Consensus Stream</span>
+            <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Consensus</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: "#ef4444" }} />
-            <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Execution Stream</span>
+            <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Execution</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <svg width="12" height="20" viewBox="0 0 12 20">
+              <line x1="6" y1="0" x2="6" y2="14" stroke={colors.stroke} strokeWidth="1.5" strokeOpacity="0.6" />
+              <path d="M2,11 L6,18 L10,11" fill="none" stroke={colors.stroke} strokeWidth="1.5" strokeOpacity="0.6" />
+            </svg>
+            <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Block</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <svg width="12" height="20" viewBox="0 0 12 20">
+              <line x1="6" y1="6" x2="6" y2="20" stroke="#ef4444" strokeWidth="1.5" />
+              <path d="M2,9 L6,2 L10,9" fill="none" stroke="#ef4444" strokeWidth="1.5" />
+            </svg>
+            <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Settlement</span>
           </div>
         </div>
 
@@ -270,15 +284,12 @@ export function BlockRelationship({ colors }: { colors: Colors }) {
 
       </div>
       <div className="mt-2 md:mt-4">
-        <p className={`text-sm sm:text-xs md:text-[11px] font-mono uppercase tracking-wider ${colors.text}`}>
-          <span style={{ color: '#ef4444' }}>Execution</span> blocks can span multiple <span style={{ color: `${colors.stroke}60` }}>consensus</span> blocks
-        </p>
         <p className={`text-sm sm:text-xs md:text-[11px] font-mono uppercase tracking-wider ${colors.text} mt-1`}>
           <span style={{ color: `${colors.stroke}60` }}>consensus</span> guarantees <span style={{ color: '#ef4444' }}>execution</span>, <span className="italic normal-case">eventually</span>
         </p>
         <div className={`text-base sm:text-sm ${colors.textMuted} leading-relaxed space-y-4 sm:space-y-3 mt-6 md:mt-10`}>
           <p>
-            <strong className={colors.text}>Decoupled streams.</strong> Consensus orders and accepts transactions into a FIFO queue without waiting for execution. The executor processes blocks independently, running transactions and computing state changes. Both streams operate simultaneously — no context switching, no blocking.
+            <strong className={colors.text}>Decoupled streams.</strong> Consensus orders and accepts transactions into a FIFO queue without waiting for execution. The execution stream processes blocks independently, running transactions and computing state changes. Both streams operate simultaneously — no context switching, no blocking.
           </p>
           <p>
             <strong className={colors.text}>Guaranteed execution.</strong> Every accepted transaction is guaranteed to eventually execute. Consensus validates worst-case gas bounds at acceptance time, ensuring senders can always pay. Order is fixed at acceptance, execution is deterministic.

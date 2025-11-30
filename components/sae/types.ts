@@ -7,6 +7,7 @@ export interface Block {
   txColors: string[] // Colors of transactions in this block
   createdAt: number
   spanCount?: number // Number of consensus blocks this execution block spans
+  failedTxs?: Set<number> // Indices of transactions that failed during execution
 }
 
 export interface Transaction {

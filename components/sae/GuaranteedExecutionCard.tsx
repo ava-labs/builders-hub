@@ -104,13 +104,13 @@ export function GuaranteedExecutionCard({ colors }: { colors: Colors }) {
         </motion.div>
         
         {/* Balance check */}
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex items-center justify-center gap-2">
           <motion.div 
-            className="text-center"
+            className="text-center w-[80px]"
             animate={{ opacity: phase === 'checking' || phase === 'accepted' ? 1 : 0.3 }}
           >
-            <div className={`text-[9px] ${colors.textMuted} font-mono mb-1`}>Your Balance</div>
-            <div className={`text-sm font-mono ${colors.text}`}>{balance} AVAX</div>
+            <div className={`text-[9px] ${colors.textMuted} font-mono mb-1`}>Balance</div>
+            <div className={`text-sm font-mono ${colors.text}`}>{balance}</div>
           </motion.div>
           
           <motion.div
@@ -120,19 +120,19 @@ export function GuaranteedExecutionCard({ colors }: { colors: Colors }) {
             }}
             transition={{ duration: 0.3 }}
           >
-            <span className={`text-lg ${colors.textMuted}`}>≥</span>
+            <span className={`text-base ${colors.textMuted}`}>≥</span>
           </motion.div>
           
           <motion.div 
-            className="text-center"
+            className="text-center w-[80px]"
             animate={{ opacity: phase === 'checking' || phase === 'accepted' ? 1 : 0.3 }}
           >
             <div className={`text-[9px] ${colors.textMuted} font-mono mb-1`}>Worst Case</div>
-            <div className="text-sm font-mono" style={{ color: '#ef4444' }}>{worstCaseCost} AVAX</div>
+            <div className="text-sm font-mono" style={{ color: '#ef4444' }}>{worstCaseCost}</div>
           </motion.div>
           
           {/* Fixed width container to prevent layout shift */}
-          <div className="w-8 h-8 flex items-center justify-center">
+          <div className="w-6 h-6 flex items-center justify-center">
             <AnimatePresence mode="wait">
               {phase === 'accepted' && (
                 <motion.div
@@ -140,10 +140,10 @@ export function GuaranteedExecutionCard({ colors }: { colors: Colors }) {
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0, opacity: 0 }}
                   transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                  className="w-8 h-8 rounded-full flex items-center justify-center"
+                  className="w-6 h-6 rounded-full flex items-center justify-center"
                   style={{ backgroundColor: '#22c55e' }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
                     <path d="M5 13l4 4L19 7" />
                   </svg>
                 </motion.div>
