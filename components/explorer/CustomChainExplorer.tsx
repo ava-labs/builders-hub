@@ -51,6 +51,25 @@ export default function CustomChainExplorer({
     setLoading(false);
   }, [slug]);
 
+  // Update document title when chain or page type changes
+  useEffect(() => {
+    if (!chain) return;
+    
+    let title = `${chain.chainName} Explorer | Avalanche L1`;
+    
+    if (pageType === "address" && address) {
+      const shortAddress = `${address.slice(0, 10)}...${address.slice(-8)}`;
+      title = `Address ${shortAddress} | ${chain.chainName} Explorer`;
+    } else if (pageType === "tx" && txHash) {
+      const shortHash = `${txHash.slice(0, 10)}...${txHash.slice(-8)}`;
+      title = `Transaction ${shortHash} | ${chain.chainName} Explorer`;
+    } else if (pageType === "block" && blockNumber) {
+      title = `Block #${blockNumber} | ${chain.chainName} Explorer`;
+    }
+    
+    document.title = title;
+  }, [chain, pageType, address, txHash, blockNumber]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">

@@ -31,11 +31,12 @@ export async function generateMetadata({
   const currentChain = l1ChainsData.find((c) => c.slug === chainSlug) as L1Chain;
 
   // For custom chains (not in static data), return generic metadata
-  // The actual chain data will be resolved client-side from localStorage
+  // The actual chain name will be resolved client-side from localStorage
+  // Server-side metadata can't access localStorage, so we use a generic title
   if (!currentChain) {
     return {
-      title: `${chainSlug} Explorer | Avalanche L1`,
-      description: `Explore blockchain data for ${chainSlug} on Avalanche.`,
+      title: `Custom Chain Explorer | Avalanche L1`,
+      description: `Explore blockchain data on Avalanche.`,
     };
   }
 

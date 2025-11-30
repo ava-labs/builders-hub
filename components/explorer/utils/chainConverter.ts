@@ -5,8 +5,9 @@ import { L1ListItem } from "@/components/toolbox/stores/l1ListStore";
  * Converts an L1ListItem (from localStorage/console) to L1Chain format (for explorer)
  */
 export function convertL1ListItemToL1Chain(item: L1ListItem): L1Chain {
-  // Generate a URL-safe slug from the chain name or use evmChainId as fallback
-  const slug = generateSlug(item.name) || `custom-${item.evmChainId}`;
+  // Use blockchain ID (item.id) as slug for custom chains - it's unique
+  // This ensures custom chains have stable, unique URLs
+  const slug = item.id;
   
   return {
     chainId: String(item.evmChainId),
