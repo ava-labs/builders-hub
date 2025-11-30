@@ -129,7 +129,7 @@ export default function BlockDetailPage({
   rpcUrl,
 }: BlockDetailPageProps) {
   // Get token data from shared context
-  const { tokenSymbol, tokenPrice, glacierSupported } = useExplorer();
+  const { tokenSymbol, tokenPrice, glacierSupported, buildApiUrl } = useExplorer();
   
   const [block, setBlock] = useState<BlockDetail | null>(null);
   const [transactions, setTransactions] = useState<TransactionDetail[]>([]);
@@ -177,7 +177,8 @@ export default function BlockDetailPage({
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`/api/explorer/${chainId}/block/${blockNumber}`);
+      const url = buildApiUrl(`/api/explorer/${chainId}/block/${blockNumber}`);
+      const response = await fetch(url);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to fetch block");
@@ -189,14 +190,15 @@ export default function BlockDetailPage({
     } finally {
       setLoading(false);
     }
-  }, [chainId, blockNumber]);
+  }, [chainId, blockNumber, buildApiUrl]);
 
   const fetchTransactions = useCallback(async () => {
     if (!block?.transactions || block.transactions.length === 0) return;
     
     try {
       setTxLoading(true);
-      const response = await fetch(`/api/explorer/${chainId}/block/${blockNumber}/transactions`);
+      const url = buildApiUrl(`/api/explorer/${chainId}/block/${blockNumber}/transactions`);
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         setTransactions(data.transactions || []);
@@ -206,7 +208,7 @@ export default function BlockDetailPage({
     } finally {
       setTxLoading(false);
     }
-  }, [chainId, blockNumber, block?.transactions]);
+  }, [chainId, blockNumber, block?.transactions, buildApiUrl]);
 
   useEffect(() => {
     fetchBlock();

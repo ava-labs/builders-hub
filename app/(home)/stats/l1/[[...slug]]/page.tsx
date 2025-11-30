@@ -6,6 +6,7 @@ import TransactionDetailPage from "@/components/explorer/TransactionDetailPage";
 import AddressDetailPage from "@/components/explorer/AddressDetailPage";
 import { ExplorerProvider } from "@/components/explorer/ExplorerContext";
 import { ExplorerLayout } from "@/components/explorer/ExplorerLayout";
+import CustomChainExplorer from "@/components/explorer/CustomChainExplorer";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { Metadata } from "next";
 import { L1Chain } from "@/types/stats";
@@ -29,7 +30,14 @@ export async function generateMetadata({
   
   const currentChain = l1ChainsData.find((c) => c.slug === chainSlug) as L1Chain;
 
-  if (!currentChain) { return notFound(); }
+  // For custom chains (not in static data), return generic metadata
+  // The actual chain data will be resolved client-side from localStorage
+  if (!currentChain) {
+    return {
+      title: `${chainSlug} Explorer | Avalanche L1`,
+      description: `Explore blockchain data for ${chainSlug} on Avalanche.`,
+    };
+  }
 
   let title = `${currentChain.chainName} L1 Metrics`;
   let description = `Track ${currentChain.chainName} L1 activity with real-time metrics including active addresses, transactions, gas usage, fees, and network performance data.`;
@@ -100,12 +108,31 @@ export default async function L1Page({
 
   const currentChain = l1ChainsData.find((c) => c.slug === chainSlug) as L1Chain;
 
-  if (!currentChain) { notFound(); }
-
-  // Redirect /stats/l1/{chainSlug} to /stats/l1/{chainSlug}/stats
+  // Redirect /stats/l1/{chainSlug} to /stats/l1/{chainSlug}/explorer for better UX
   if (slugArray.length === 1) {
-    redirect(`/stats/l1/${chainSlug}/stats`);
+    redirect(`/stats/l1/${chainSlug}/explorer`);
   }
+
+  // For explorer pages, if chain not found in static data, try custom chains from localStorage
+  if (!currentChain && isExplorer) {
+    let pageType: "explorer" | "block" | "tx" | "address" = "explorer";
+    if (isBlock) pageType = "block";
+    else if (isTx) pageType = "tx";
+    else if (isAddress) pageType = "address";
+
+    return (
+      <CustomChainExplorer
+        slug={chainSlug}
+        pageType={pageType}
+        blockNumber={blockNumber}
+        txHash={txHash}
+        address={address}
+      />
+    );
+  }
+
+  // For stats pages or if chain not found at all, return 404
+  if (!currentChain) { notFound(); }
 
   // All explorer pages wrapped with ExplorerProvider and ExplorerLayout
   if (isExplorer) {

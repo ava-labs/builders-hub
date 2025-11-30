@@ -308,8 +308,8 @@ export default function AddressDetailPage({
   rpcUrl,
   sourcifySupport = false,
 }: AddressDetailPageProps) {
-  // Get Glacier support status from context
-  const { glacierSupported } = useExplorer();
+  // Get Glacier support status and API helper from context
+  const { glacierSupported, buildApiUrl } = useExplorer();
   
   const [data, setData] = useState<AddressData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -508,9 +508,11 @@ export default function AddressDetailPage({
         setLoading(true);
       }
       setError(null);
-      const url = pageToken 
-        ? `/api/explorer/${chainId}/address/${address}?pageToken=${encodeURIComponent(pageToken)}`
-        : `/api/explorer/${chainId}/address/${address}`;
+      const additionalParams: Record<string, string> = {};
+      if (pageToken) {
+        additionalParams.pageToken = pageToken;
+      }
+      const url = buildApiUrl(`/api/explorer/${chainId}/address/${address}`, additionalParams);
       const response = await fetch(url);
       if (!response.ok) {
         const errorData = await response.json();
@@ -524,7 +526,7 @@ export default function AddressDetailPage({
       setLoading(false);
       setTxLoading(false);
     }
-  }, [chainId, address]);
+  }, [chainId, address, buildApiUrl]);
 
   useEffect(() => {
     fetchAddressData();
@@ -547,9 +549,11 @@ export default function AddressDetailPage({
       
       try {
         do {
-          const url = pageToken 
-            ? `/api/explorer/${chainId}/address/${address}/erc20-balances?pageToken=${encodeURIComponent(pageToken)}`
-            : `/api/explorer/${chainId}/address/${address}/erc20-balances`;
+          const additionalParams: Record<string, string> = {};
+          if (pageToken) {
+            additionalParams.pageToken = pageToken;
+          }
+          const url = buildApiUrl(`/api/explorer/${chainId}/address/${address}/erc20-balances`, additionalParams);
           
           const response = await fetch(url);
           if (!response.ok || cancelled) break;
@@ -585,7 +589,7 @@ export default function AddressDetailPage({
     return () => {
       cancelled = true;
     };
-  }, [chainId, address]);
+  }, [chainId, address, buildApiUrl]);
 
   // Fetch Dune labels - poll endpoint until results are ready
   useEffect(() => {

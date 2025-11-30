@@ -59,14 +59,19 @@ export async function GET(
   { params }: { params: Promise<{ chainId: string; blockNumber: string }> }
 ) {
   const { chainId, blockNumber } = await params;
+  
+  // Get query params for custom chains
+  const { searchParams } = new URL(request.url);
+  const customRpcUrl = searchParams.get('rpcUrl');
 
   const chain = l1ChainsData.find(c => c.chainId === chainId);
-  if (!chain || !chain.rpcUrl) {
-    return NextResponse.json({ error: 'Chain not found or RPC URL missing' }, { status: 404 });
+  const rpcUrl = chain?.rpcUrl || customRpcUrl;
+  
+  if (!rpcUrl) {
+    return NextResponse.json({ error: 'Chain not found or RPC URL missing. Provide rpcUrl query parameter for custom chains.' }, { status: 404 });
   }
 
   try {
-    const rpcUrl = chain.rpcUrl;
 
     // Determine if blockNumber is a number or hash
     let blockParam: string;

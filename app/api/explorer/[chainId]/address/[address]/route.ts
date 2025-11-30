@@ -161,30 +161,21 @@ async function isContract(rpcUrl: string, address: string): Promise<boolean> {
   }
 }
 
-// Get native balance using Glacier
-async function getNativeBalance(address: string, chainId: string, tokenSymbol?: string): Promise<AddressInfo['nativeBalance']> {
+// Get native balance from RPC using eth_getBalance
+async function getNativeBalance(rpcUrl: string, address: string, tokenSymbol?: string): Promise<AddressInfo['nativeBalance']> {
   try {
-    const result = await avalanche.data.evm.address.balances.getNative({
-      address: address,
-      chainId: chainId,
-      currency: 'usd',
-    });
-
-    const balance = result.nativeTokenBalance?.balance || '0';
+    const balanceHex = await fetchFromRPC(rpcUrl, 'eth_getBalance', [address, 'latest']) as string;
+    const balanceWei = BigInt(balanceHex);
     const decimals = 18; // Native tokens typically have 18 decimals
-    const balanceFormatted = (Number(balance) / Math.pow(10, decimals)).toFixed(6);
-    const price = result.nativeTokenBalance?.price?.value || undefined;
-    const valueUsd = price ? parseFloat(balanceFormatted) * price : undefined;
+    const balanceFormatted = (Number(balanceWei) / Math.pow(10, decimals)).toFixed(6);
 
     return {
-      balance,
+      balance: balanceWei.toString(),
       balanceFormatted,
       symbol: tokenSymbol || '',
-      price,
-      valueUsd,
     };
   } catch (error) {
-    console.warn('Failed to fetch native balance from Glacier:', error);
+    console.warn('Failed to fetch native balance from RPC:', error);
     return {
       balance: '0',
       balanceFormatted: '0',
@@ -450,9 +441,11 @@ export async function GET(
   const totalStart = performance.now();
   const { chainId, address: rawAddress } = await params;
   
-  // Get pageToken from query params
+  // Get query params
   const { searchParams } = new URL(request.url);
   const pageToken = searchParams.get('pageToken') || undefined;
+  const customRpcUrl = searchParams.get('rpcUrl');
+  const customTokenSymbol = searchParams.get('tokenSymbol');
 
   // Validate and normalize address
   const address = rawAddress.toLowerCase();
@@ -461,12 +454,14 @@ export async function GET(
   }
 
   const chain = l1ChainsData.find(c => c.chainId === chainId);
-  if (!chain || !chain.rpcUrl) {
-    return NextResponse.json({ error: 'Chain not found or RPC URL missing' }, { status: 404 });
+  const rpcUrl = chain?.rpcUrl || customRpcUrl;
+  const tokenSymbol = chain?.tokenSymbol || customTokenSymbol || undefined;
+  
+  if (!rpcUrl) {
+    return NextResponse.json({ error: 'Chain not found or RPC URL missing. Provide rpcUrl query parameter for custom chains.' }, { status: 404 });
   }
 
   try {
-    const rpcUrl = chain.rpcUrl;
     const timings: Record<string, number> = {};
 
     // Fetch all data in parallel with timing
@@ -479,7 +474,7 @@ export async function GET(
       addressChainsTimed,
     ] = await Promise.all([
       timed('isContract', () => isContract(rpcUrl, address)),
-      timed('nativeBalance', () => getNativeBalance(address, chainId, chain.tokenSymbol)),
+      timed('nativeBalance', () => getNativeBalance(rpcUrl, address, tokenSymbol)),
       timed('transactions', () => getTransactions(address, chainId, pageToken)),
       timed('addressChains', () => getAddressChains(address)),
     ]);

@@ -441,7 +441,7 @@ export default function TransactionDetailPage({
   rpcUrl,
 }: TransactionDetailPageProps) {
   // Get token data from shared context
-  const { tokenSymbol, tokenPrice, glacierSupported } = useExplorer();
+  const { tokenSymbol, tokenPrice, glacierSupported, buildApiUrl } = useExplorer();
   
   const [tx, setTx] = useState<TransactionDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -557,7 +557,8 @@ export default function TransactionDetailPage({
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`/api/explorer/${chainId}/tx/${txHash}`);
+      const url = buildApiUrl(`/api/explorer/${chainId}/tx/${txHash}`);
+      const response = await fetch(url);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to fetch transaction");
@@ -569,7 +570,7 @@ export default function TransactionDetailPage({
     } finally {
       setLoading(false);
     }
-  }, [chainId, txHash]);
+  }, [chainId, txHash, buildApiUrl]);
 
   useEffect(() => {
     fetchTransaction();

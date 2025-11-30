@@ -848,18 +848,31 @@ export async function GET(
     const priceOnly = searchParams.get('priceOnly') === 'true';
     const lastFetchedBlockParam = searchParams.get('lastFetchedBlock');
     const lastFetchedBlock = lastFetchedBlockParam ? parseInt(lastFetchedBlockParam, 10) : undefined;
+    
+    // Support custom chains by accepting rpcUrl as query parameter
+    const customRpcUrl = searchParams.get('rpcUrl');
+    const customTokenSymbol = searchParams.get('tokenSymbol');
+    const customBlockchainId = searchParams.get('blockchainId');
 
-    // Find chain config
+    // Find chain config from static data
     const chain = l1ChainsData.find(c => c.chainId === chainId) as ChainConfig | undefined;
-    if (!chain) {
-      return NextResponse.json({ error: "Chain not found" }, { status: 404 });
+    
+    // Determine effective RPC URL - prefer static config, fallback to query param
+    const rpcUrl = chain?.rpcUrl || customRpcUrl;
+    const tokenSymbol = chain?.tokenSymbol || customTokenSymbol || undefined;
+    const blockchainId = chain?.blockchainId || customBlockchainId || undefined;
+    const coingeckoId = chain?.coingeckoId;
+    
+    // If no chain found and no custom rpcUrl provided, return 404
+    if (!chain && !customRpcUrl) {
+      return NextResponse.json({ error: "Chain not found. Provide rpcUrl query parameter for custom chains." }, { status: 404 });
     }
 
     // If priceOnly, just fetch price and glacier support (for ExplorerContext)
     if (priceOnly) {
       const priceOnlyStart = Date.now();
       const [price, glacierSupported] = await Promise.all([
-        chain.coingeckoId ? fetchPrice(chain.coingeckoId) : Promise.resolve(undefined),
+        coingeckoId ? fetchPrice(coingeckoId) : Promise.resolve(undefined),
         checkGlacierSupport(chainId),
       ]);
       requestTiming.priceOnly = Date.now() - priceOnlyStart;
@@ -867,20 +880,19 @@ export async function GET(
 
       return NextResponse.json({
         price,
-        tokenSymbol: chain.tokenSymbol,
+        tokenSymbol,
         glacierSupported,
       });
     }
 
-    const rpcUrl = chain.rpcUrl;
     if (!rpcUrl) {
-      return NextResponse.json({ error: "RPC URL not configured" }, { status: 400 });
+      return NextResponse.json({ error: "RPC URL not configured. Provide rpcUrl query parameter for custom chains." }, { status: 400 });
     }
 
     // Fetch fresh data and check Glacier support in parallel
     const dataFetchStart = Date.now();
     const [data, glacierSupported] = await Promise.all([
-      fetchExplorerData(chainId, chainId, rpcUrl, chain.coingeckoId, chain.tokenSymbol, chain.blockchainId, initialLoad, lastFetchedBlock),
+      fetchExplorerData(chainId, chainId, rpcUrl, coingeckoId, tokenSymbol, blockchainId, initialLoad, lastFetchedBlock),
       checkGlacierSupport(chainId),
     ]);
     requestTiming.dataFetch = Date.now() - dataFetchStart;

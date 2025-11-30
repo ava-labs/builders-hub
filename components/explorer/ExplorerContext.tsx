@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
+import l1ChainsData from "@/constants/l1-chains.json";
 
 interface PriceData {
   price: number;
@@ -21,6 +22,7 @@ interface ChainInfo {
   nativeToken?: string;
   description?: string;
   website?: string;
+  rpcUrl?: string;
   socials?: {
     twitter?: string;
     linkedin?: string;
@@ -45,6 +47,9 @@ interface ExplorerContextValue {
   
   // Refresh function
   refreshTokenData: () => Promise<void>;
+  
+  // Helper to build API URL with rpcUrl for custom chains
+  buildApiUrl: (endpoint: string, additionalParams?: Record<string, string>) => string;
 }
 
 const ExplorerContext = createContext<ExplorerContextValue | null>(null);
@@ -63,6 +68,7 @@ interface ExplorerProviderProps {
   nativeToken?: string;
   description?: string;
   website?: string;
+  rpcUrl?: string;
   socials?: {
     twitter?: string;
     linkedin?: string;
@@ -79,6 +85,7 @@ export function ExplorerProvider({
   nativeToken,
   description,
   website,
+  rpcUrl,
   socials,
 }: ExplorerProviderProps) {
   const [chainInfo, setChainInfo] = useState<ChainInfo>({
@@ -90,6 +97,7 @@ export function ExplorerProvider({
     nativeToken,
     description,
     website,
+    rpcUrl,
     socials,
   });
   
@@ -100,9 +108,40 @@ export function ExplorerProvider({
   // Start with true to prevent showing banner before data is fetched
   const [isTokenDataLoading, setIsTokenDataLoading] = useState(true);
   
+  // Check if this chain exists in static l1-chains.json (custom chains won't be there)
+  const isCustomChain = useMemo(() => {
+    return !l1ChainsData.some((c: { chainId: string }) => c.chainId === chainId);
+  }, [chainId]);
+  
+  // Helper to build API URLs with rpcUrl for custom chains only
+  const buildApiUrl = useCallback((endpoint: string, additionalParams?: Record<string, string>): string => {
+    const params = new URLSearchParams();
+    
+    // Only add rpcUrl and tokenSymbol for custom chains (not in l1-chains.json)
+    if (isCustomChain) {
+      if (rpcUrl) {
+        params.set('rpcUrl', rpcUrl);
+      }
+      if (nativeToken) {
+        params.set('tokenSymbol', nativeToken);
+      }
+    }
+    
+    // Add any additional params
+    if (additionalParams) {
+      for (const [key, value] of Object.entries(additionalParams)) {
+        params.set(key, value);
+      }
+    }
+    
+    const queryString = params.toString();
+    return queryString ? `${endpoint}?${queryString}` : endpoint;
+  }, [isCustomChain, rpcUrl, nativeToken]);
+  
   const fetchTokenData = useCallback(async (forceRefresh = false) => {
     // Check cache first
-    const cached = tokenDataCache.get(chainId);
+    const cacheKey = `${chainId}-${rpcUrl || ''}`;
+    const cached = tokenDataCache.get(cacheKey);
     const now = Date.now();
     
     if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
@@ -118,10 +157,11 @@ export function ExplorerProvider({
     
     try {
       // Only fetch price and glacier support (not full explorer data)
-      const response = await fetch(`/api/explorer/${chainId}?priceOnly=true`);
+      const url = buildApiUrl(`/api/explorer/${chainId}`, { priceOnly: 'true' });
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
-        const symbol = data?.tokenSymbol || data?.price?.symbol || '';
+        const symbol = data?.tokenSymbol || data?.price?.symbol || nativeToken || '';
         const price = data?.price || null;
         const isGlacierSupported = data?.glacierSupported ?? false;
         
@@ -132,7 +172,7 @@ export function ExplorerProvider({
         setGlacierSupported(isGlacierSupported);
         
         // Update cache
-        tokenDataCache.set(chainId, {
+        tokenDataCache.set(cacheKey, {
           data: price,
           symbol,
           glacierSupported: isGlacierSupported,
@@ -141,10 +181,14 @@ export function ExplorerProvider({
       }
     } catch (err) {
       console.error("Error fetching token data:", err);
+      // For custom chains without price data, still set the native token symbol
+      if (nativeToken) {
+        setTokenSymbol(nativeToken);
+      }
     } finally {
       setIsTokenDataLoading(false);
     }
-  }, [chainId, nativeToken]);
+  }, [chainId, nativeToken, rpcUrl, buildApiUrl]);
   
   // Initial fetch
   useEffect(() => {
@@ -162,9 +206,10 @@ export function ExplorerProvider({
       nativeToken,
       description,
       website,
+      rpcUrl,
       socials,
     });
-  }, [chainId, chainName, chainSlug, themeColor, chainLogoURI, nativeToken, description, website, socials]);
+  }, [chainId, chainName, chainSlug, themeColor, chainLogoURI, nativeToken, description, website, rpcUrl, socials]);
   
   const refreshTokenData = useCallback(async () => {
     await fetchTokenData(true);
@@ -179,6 +224,7 @@ export function ExplorerProvider({
     glacierSupported,
     isTokenDataLoading,
     refreshTokenData,
+    buildApiUrl,
   };
   
   return (

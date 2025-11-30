@@ -260,7 +260,7 @@ export default function L1ExplorerPage({
 }: L1ExplorerPageProps) {
   const router = useRouter();
   // Get token data from shared context (avoids duplicate fetches across explorer pages)
-  const { tokenSymbol: contextTokenSymbol, priceData: contextPriceData, glacierSupported } = useExplorer();
+  const { tokenSymbol: contextTokenSymbol, priceData: contextPriceData, glacierSupported, buildApiUrl } = useExplorer();
   
   const [data, setData] = useState<ExplorerData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -309,15 +309,15 @@ export default function L1ExplorerPage({
     try {
       setIsRefreshing(true);
       
-      // Build URL with query parameters
-      const params = new URLSearchParams();
+      // Build URL with query parameters using context helper (includes rpcUrl for custom chains)
+      const additionalParams: Record<string, string> = {};
       if (isFirstLoadRef.current) {
-        params.set('initialLoad', 'true');
+        additionalParams.initialLoad = 'true';
       } else if (lastFetchedBlockRef.current) {
         // Send last fetched block for incremental updates
-        params.set('lastFetchedBlock', lastFetchedBlockRef.current);
+        additionalParams.lastFetchedBlock = lastFetchedBlockRef.current;
       }
-      const url = `/api/explorer/${chainId}${params.toString() ? `?${params.toString()}` : ''}`;
+      const url = buildApiUrl(`/api/explorer/${chainId}`, additionalParams);
       
       // Create timeout promise that resolves to null (silent timeout)
       const timeoutPromise = new Promise<null>((resolve) => {
@@ -523,13 +523,13 @@ export default function L1ExplorerPage({
     };
   }, [chainId, fetchData]);
 
-  // Generate transaction history if not available
+  // Get transaction history or show empty placeholder
   const transactionHistory = useMemo(() => {
     if (data?.transactionHistory && data.transactionHistory.length > 0) {
       return data.transactionHistory;
     }
     
-    // Generate sample data
+    // Return zeros as placeholder when no indexed data
     const history: TransactionHistoryPoint[] = [];
     const now = new Date();
     for (let i = 13; i >= 0; i--) {
@@ -537,10 +537,16 @@ export default function L1ExplorerPage({
       date.setDate(date.getDate() - i);
       history.push({
         date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        transactions: Math.floor(Math.random() * 50000) + 10000,
+        transactions: 0,
       });
     }
     return history;
+  }, [data?.transactionHistory]);
+
+  // Check if we have real indexed transaction history data
+  const hasIndexedTransactionHistory = useMemo(() => {
+    return data?.transactionHistory && data.transactionHistory.length > 0 && 
+           data.transactionHistory.some(point => point.transactions > 0);
   }, [data?.transactionHistory]);
 
   // Calculate TPS from accumulated blocks
@@ -765,35 +771,47 @@ export default function L1ExplorerPage({
                   Transaction History (14 Days)
                 </span>
               </div>
-              <div className="h-14">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={transactionHistory}>
-                    <YAxis hide domain={['dataMin', 'dataMax']} />
-                    <RechartsTooltip
-                      content={({ active, payload }) => {
-                        if (!active || !payload?.[0]) return null;
-                        return (
-                          <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1 shadow-lg">
-                            <p className="text-[10px] text-zinc-500">{payload[0].payload.date}</p>
-                            <p className="text-xs font-semibold" style={{ color: themeColor }}>
-                              {payload[0].value?.toLocaleString()} txns
-                            </p>
-                          </div>
-                        );
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="transactions"
-                      stroke={themeColor}
-                      strokeWidth={1.5}
-                      dot={false}
-                      activeDot={{ r: 3, fill: themeColor }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+              <div className="relative">
+                <div className={`h-14 ${!hasIndexedTransactionHistory ? 'blur-[2px] opacity-50' : ''}`}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={transactionHistory}>
+                      <YAxis hide domain={hasIndexedTransactionHistory ? ['dataMin', 'dataMax'] : [0, 100]} />
+                      {hasIndexedTransactionHistory && (
+                        <RechartsTooltip
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.[0]) return null;
+                            return (
+                              <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1 shadow-lg">
+                                <p className="text-[10px] text-zinc-500">{payload[0].payload.date}</p>
+                                <p className="text-xs font-semibold" style={{ color: themeColor }}>
+                                  {payload[0].value?.toLocaleString()} txns
+                                </p>
+                              </div>
+                            );
+                          }}
+                        />
+                      )}
+                      <Line
+                        type="monotone"
+                        dataKey="transactions"
+                        stroke={hasIndexedTransactionHistory ? themeColor : '#9CA3AF'}
+                        strokeWidth={1.5}
+                        dot={false}
+                        activeDot={hasIndexedTransactionHistory ? { r: 3, fill: themeColor } : false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                {/* Overlay for non-indexed chains */}
+                {!hasIndexedTransactionHistory && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400 bg-white/80 dark:bg-zinc-900/80 px-2 py-1 rounded">
+                      No indexed data
+                    </span>
+                  </div>
+                )}
               </div>
-              <div className="flex justify-between text-[11px] text-zinc-400 mt-1.5">
+              <div className={`flex justify-between text-[11px] text-zinc-400 mt-1.5 ${!hasIndexedTransactionHistory ? 'opacity-50' : ''}`}>
                 <span>{transactionHistory[0]?.date}</span>
                 <span>{transactionHistory[transactionHistory.length - 1]?.date}</span>
               </div>
