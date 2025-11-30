@@ -522,43 +522,47 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
   const blockResults = await Promise.all(blockPromises);
   const validBlocks = blockResults.filter(block => block !== null);
 
-  // Collect all transaction hashes from all blocks for receipt fetching
-  const allTxHashes: { blockIndex: number; txHash: string }[] = [];
-  for (let blockIndex = 0; blockIndex < validBlocks.length; blockIndex++) {
-    const block = validBlocks[blockIndex];
-    if (block?.transactions) {
-      for (const tx of block.transactions) {
-        allTxHashes.push({ blockIndex, txHash: tx.hash });
+  // Skip receipt fetching if initialLoad is true
+  const receiptMap = new Map<string, RpcTransactionReceipt>();
+  const blockGasFees = new Map<number, bigint>();
+  
+  if (!initialLoad) {
+    // Collect all transaction hashes from all blocks for receipt fetching
+    const allTxHashes: { blockIndex: number; txHash: string }[] = [];
+    for (let blockIndex = 0; blockIndex < validBlocks.length; blockIndex++) {
+      const block = validBlocks[blockIndex];
+      if (block?.transactions) {
+        for (const tx of block.transactions) {
+          allTxHashes.push({ blockIndex, txHash: tx.hash });
+        }
       }
     }
-  }
 
-  // Fetch all transaction receipts in parallel
-  const receiptPromises = allTxHashes.map(({ txHash }) =>
-    fetchFromRPC(rpcUrl, "eth_getTransactionReceipt", [txHash]).catch(() => null) as Promise<RpcTransactionReceipt | null>
-  );
-  const receipts = await Promise.all(receiptPromises);
+    // Fetch all transaction receipts in parallel
+    const receiptPromises = allTxHashes.map(({ txHash }) =>
+      fetchFromRPC(rpcUrl, "eth_getTransactionReceipt", [txHash]).catch(() => null) as Promise<RpcTransactionReceipt | null>
+    );
+    const receipts = await Promise.all(receiptPromises);
 
-  // Create a map of txHash -> receipt for quick lookup
-  const receiptMap = new Map<string, RpcTransactionReceipt>();
-  for (let i = 0; i < allTxHashes.length; i++) {
-    const receipt = receipts[i];
-    if (receipt) {
-      receiptMap.set(allTxHashes[i].txHash, receipt);
+    // Create a map of txHash -> receipt for quick lookup
+    for (let i = 0; i < allTxHashes.length; i++) {
+      const receipt = receipts[i];
+      if (receipt) {
+        receiptMap.set(allTxHashes[i].txHash, receipt);
+      }
     }
-  }
 
-  // Calculate gas fees per block by summing transaction fees
-  const blockGasFees = new Map<number, bigint>();
-  for (let i = 0; i < allTxHashes.length; i++) {
-    const { blockIndex, txHash } = allTxHashes[i];
-    const receipt = receiptMap.get(txHash);
-    if (receipt && receipt.gasUsed && receipt.effectiveGasPrice) {
-      const gasUsed = BigInt(receipt.gasUsed);
-      const effectiveGasPrice = BigInt(receipt.effectiveGasPrice);
-      const txFee = gasUsed * effectiveGasPrice;
-      const currentFee = blockGasFees.get(blockIndex) || BigInt(0);
-      blockGasFees.set(blockIndex, currentFee + txFee);
+    // Calculate gas fees per block by summing transaction fees
+    for (let i = 0; i < allTxHashes.length; i++) {
+      const { blockIndex, txHash } = allTxHashes[i];
+      const receipt = receiptMap.get(txHash);
+      if (receipt && receipt.gasUsed && receipt.effectiveGasPrice) {
+        const gasUsed = BigInt(receipt.gasUsed);
+        const effectiveGasPrice = BigInt(receipt.effectiveGasPrice);
+        const txFee = gasUsed * effectiveGasPrice;
+        const currentFee = blockGasFees.get(blockIndex) || BigInt(0);
+        blockGasFees.set(blockIndex, currentFee + txFee);
+      }
     }
   }
 
