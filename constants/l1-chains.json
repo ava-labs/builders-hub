@@ -355,7 +355,6 @@
         "link": "https://53935.snowtrace.io"
       }
     ],
-    "rpcUrl": "https://subnets.avax.network/defi-kingdoms/mainnet/rpc",
     "coingeckoId": "defi-kingdoms",
     "tokenSymbol": "JEWEL"
   },
