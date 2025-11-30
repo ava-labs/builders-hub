@@ -64,7 +64,7 @@ const l1ListInitialStateFuji = {
         {
             id: "98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp",
             name: "Echo",
-            description: "Echo is a Testnet L1 for testing dApps utilizing ICM",
+            description: "Echo is a Testnet Subnet for testing dApps utilizing ICM",
             rpcUrl: "https://subnets.avax.network/echo/testnet/rpc",
             evmChainId: 173750,
             coinName: "ECH",
@@ -89,7 +89,7 @@ const l1ListInitialStateFuji = {
         {
             id: "2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY",
             name: "Dispatch",
-            description: "Dispatch is a Testnet L1 for testing dApps utilizing ICM",
+            description: "Dispatch is a Testnet Proof of Authority L1 for testing dApps utilizing ICM",
             rpcUrl: "https://subnets.avax.network/dispatch/testnet/rpc",
             evmChainId: 779672,
             coinName: "DIS",
@@ -109,6 +109,32 @@ const l1ListInitialStateFuji = {
             features: [
                 "EVM-compatible L1 chain",
                 "Deploy dApps & test interoperability with Dispatch"
+            ]
+        },
+        {
+            id: "dg2nLr4zu9AiCNouZkkX4PUHvY9pjqSUKREZ64wyV5NMUB7iT",
+            name: "Signal",
+            description: "Signal is a Testnet L1 for testing dApps utilizing ICM",
+            rpcUrl: "https://63.180.243.229.sslip.io/ext/bc/dg2nLr4zu9AiCNouZkkX4PUHvY9pjqSUKREZ64wyV5NMUB7iT/rpc",
+            evmChainId: 23995,
+            coinName: "SIG",
+            isTestnet: true,
+            subnetId: "2K5MnaHsWFG7EPi3a9ag686UganTu1e8xKQYQ6GgGTGzp8QHGu",
+            wrappedTokenAddress: "",
+            validatorManagerAddress: "",
+            logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/60XrKdf99PqQKrHiuYdwTE/908622f5204311dbb11be9c6008ead44/Dispatch_Subnet_Logo.png",
+            wellKnownTeleporterRegistryAddress: "",
+            hasBuilderHubFaucet: false,
+            externalFaucetUrl: "",
+            explorerUrl: "",
+            faucetThresholds: {
+                threshold: 0,
+                dripAmount: 0
+            },
+            features: [
+                "EVM-compatible L1 chain",
+                "Deploy dApps & test interoperability with Dispatch",
+                "Stake and Delegate to an Avalanche L1"
             ]
         },
         {
