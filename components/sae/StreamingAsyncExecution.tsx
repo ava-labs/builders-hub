@@ -753,7 +753,7 @@ function ExecutedStage({ blocks, colors, isSettling }: { blocks: Block[]; colors
     <div className="flex flex-col items-center gap-2 relative">
       <div
         className={`relative border ${colors.border} ${colors.blockBg} flex items-center justify-center overflow-hidden cursor-help`}
-        style={{ width: 120, height: 110, padding: 4 }}
+        style={{ width: 140, height: 130, padding: 6 }}
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
@@ -791,7 +791,7 @@ function ExecutedStage({ blocks, colors, isSettling }: { blocks: Block[]; colors
           {visibleBlocks.length > 0 ? (
             <div 
               className="grid"
-              style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}
+              style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}
             >
               {visibleBlocks.map((block) => {
                 return (
@@ -807,8 +807,8 @@ function ExecutedStage({ blocks, colors, isSettling }: { blocks: Block[]; colors
                     <div
                       className="border grid"
                       style={{
-                        gridTemplateColumns: 'repeat(4, 5px)',
-                        gridTemplateRows: 'repeat(4, 5px)',
+                        gridTemplateColumns: 'repeat(4, 7px)',
+                        gridTemplateRows: 'repeat(4, 7px)',
                         gap: 0,
                         backgroundColor: `${colors.stroke}05`,
                         borderColor: '#ef444450',
@@ -825,11 +825,11 @@ function ExecutedStage({ blocks, colors, isSettling }: { blocks: Block[]; colors
                           >
                             {isTransaction && (
                               isFailed ? (
-                                <svg width="3" height="3" viewBox="0 0 24 24" fill="none">
+                                <svg width="5" height="5" viewBox="0 0 24 24" fill="none">
                                   <path d="M6 6l12 12M18 6l-12 12" stroke="#ef4444" strokeWidth="6" strokeLinecap="round" />
                                 </svg>
                               ) : (
-                                <svg width="3" height="3" viewBox="0 0 24 24" fill="none">
+                                <svg width="5" height="5" viewBox="0 0 24 24" fill="none">
                                   <path d="M5 13l4 4L19 7" stroke="#22c55e" strokeWidth="6" strokeLinecap="round" />
                                 </svg>
                               )
@@ -838,7 +838,7 @@ function ExecutedStage({ blocks, colors, isSettling }: { blocks: Block[]; colors
                         )
                       })}
                     </div>
-                    <span className={`text-[5px] font-mono ${colors.textFaint} leading-none mt-0.5`}>
+                    <span className={`text-[6px] font-mono ${colors.textFaint} leading-none mt-0.5`}>
                       #{block.id}
                     </span>
                   </motion.div>
