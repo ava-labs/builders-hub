@@ -7,7 +7,8 @@ import { AssemblyLineCard } from "./AssemblyLineAnimation"
 import { Colors } from "./types"
 import { SynchronousExecution } from "./SynchronousExecution"
 import { StreamingAsyncExecution } from "./StreamingAsyncExecution"
-import { UnderTheHood, BlockRelationship } from "./UnderTheHood"
+import { BlockRelationship } from "./UnderTheHood"
+import { KeyFeatures } from "./KeyFeatures"
 import { Payoff } from "./Payoff"
 import { SynchronousExecutionDiagram } from "./SynchronousExecutionDiagram"
 
@@ -178,20 +179,20 @@ export function TransactionLifecycle() {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════════ */}
-        {/* SECTION 3: TECHNICAL DEEP DIVE - Block Relationship */}
+        {/* SECTION 3: KEY FEATURES */}
         {/* ═══════════════════════════════════════════════════════════════════ */}
         <div className="pt-10 md:pt-0 md:mb-24">
           <div className="flex items-center gap-4 mb-3 md:mb-6">
             <span className={`text-[10px] uppercase tracking-[0.3em] ${colors.textFaint} font-mono`}>03</span>
             <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
-            <span className={`text-sm uppercase tracking-[0.2em] ${colors.text} font-medium`}>Under the Hood</span>
+            <span className={`text-sm uppercase tracking-[0.2em] ${colors.text} font-medium`}>Key Features</span>
             <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
           </div>
           
-          {/* Scale down on mobile - use explicit height to avoid dead space from transform */}
-          <div className="overflow-hidden md:overflow-visible h-[1600px] sm:h-[1900px] md:h-auto">
-            <div className="md:transform-none origin-top-left transform scale-[0.45] sm:scale-[0.65] md:scale-100 w-[222%] sm:w-[154%] md:w-full">
-              <UnderTheHood colors={colors} />
+          {/* Scale down on mobile */}
+          <div className="overflow-hidden md:overflow-visible -mb-[100px] sm:-mb-[50px] md:mb-0">
+            <div className="md:transform-none origin-top-left transform scale-[0.55] sm:scale-[0.75] md:scale-100 w-[182%] sm:w-[133%] md:w-full">
+              <KeyFeatures colors={colors} />
             </div>
           </div>
         </div>

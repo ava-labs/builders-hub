@@ -748,13 +748,13 @@ function ExecutingStage({ block, colors, onBlockComplete }: {
 // Blocks that finished executing, waiting for settlement
 function ExecutedStage({ blocks, colors, isSettling }: { blocks: Block[]; colors: Colors; isSettling?: boolean }) {
   const [showTooltip, setShowTooltip] = useState(false)
-  const visibleBlocks = blocks.slice(-6)
+  const visibleBlocks = blocks.slice(-9) // Show up to 9 blocks (3x3 grid)
   
   return (
     <div className="flex flex-col items-center gap-2 relative">
       <div
-        className={`relative border ${colors.border} ${colors.blockBg} flex items-center justify-center gap-1 p-2 overflow-hidden cursor-help`}
-        style={{ width: 120, height: 100 }}
+        className={`relative border ${colors.border} ${colors.blockBg} flex items-center justify-center p-2 overflow-hidden cursor-help`}
+        style={{ width: 140, height: 110 }}
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
@@ -790,7 +790,7 @@ function ExecutedStage({ blocks, colors, isSettling }: { blocks: Block[]; colors
         />
         <AnimatePresence mode="popLayout">
           {visibleBlocks.length > 0 ? (
-            <div className="grid grid-cols-3 gap-1">
+            <div className="grid grid-cols-3 gap-1.5 p-1">
               {visibleBlocks.map((block) => (
                 <motion.div
                   key={block.uid}
@@ -885,14 +885,14 @@ function ExecutedStage({ blocks, colors, isSettling }: { blocks: Block[]; colors
 }
 
 function SettledStage({ blocks, colors }: { blocks: Block[]; colors: Colors }) {
-  const visibleBlocks = blocks.slice(-16)
+  const visibleBlocks = blocks.slice(-12) // 4x3 grid
   const [showTooltip, setShowTooltip] = useState(false)
 
   return (
     <div className="flex flex-col items-center gap-2 relative">
       <div
-        className={`border ${colors.border} ${colors.blockBg} p-1.5 overflow-hidden relative cursor-help`}
-        style={{ width: 130, height: 110 }}
+        className={`border ${colors.border} ${colors.blockBg} p-2 overflow-hidden relative cursor-help flex items-center justify-center`}
+        style={{ width: 150, height: 110 }}
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
@@ -906,7 +906,7 @@ function SettledStage({ blocks, colors }: { blocks: Block[]; colors: Colors }) {
           }}
           transition={{ duration: 4, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
         />
-        <div className="grid grid-cols-4 gap-1 h-full relative z-10">
+        <div className="grid grid-cols-4 gap-1.5 relative z-10">
           <AnimatePresence mode="popLayout">
             {visibleBlocks.map((block, index) => (
               <motion.div
@@ -921,11 +921,11 @@ function SettledStage({ blocks, colors }: { blocks: Block[]; colors: Colors }) {
                   damping: 25,
                   delay: index >= visibleBlocks.length - 4 ? (index - (visibleBlocks.length - 4)) * 0.05 : 0,
                 }}
-                className="grid gap-px p-0.5 relative"
+                className="grid gap-px p-0.5"
                 style={{
                   gridTemplateColumns: "repeat(4, 1fr)",
-                  width: 24,
-                  height: 24,
+                  width: 28,
+                  height: 28,
                   backgroundColor: `rgba(34, 197, 94, 0.15)`,
                   border: `1px solid #22c55e`,
                 }}
@@ -1160,53 +1160,63 @@ export function StreamingAsyncExecution({ colors }: { colors: Colors }) {
     }
   }, [queuedBlocks, executingBlock])
 
+  // Track when first block entered executed queue (for 5s delay)
+  const executedQueueStartTimeRef = useRef<number | null>(null)
+  const lastSettlementBlockIdRef = useRef<number | null>(null)
+  
   // Handler for when a block finishes execution - move to executed (awaiting settlement)
   const handleBlockExecutionComplete = useCallback(() => {
     if (executingBlock) {
       setExecutedBlocks((prev) => {
         // Prevent duplicates
         if (prev.some(b => b.uid === executingBlock.uid)) return prev
+        // Track when first block enters the executed queue
+        if (prev.length === 0) {
+          executedQueueStartTimeRef.current = Date.now()
+        }
         return [...prev, executingBlock]
       })
       setExecutingBlock(null)
     }
   }, [executingBlock])
-
-  // Track settlement threshold - randomly 1, 2, or 3 blocks
-  const settlementThresholdRef = useRef(Math.floor(Math.random() * 3) + 1)
-  const lastSettlementBlockIdRef = useRef<number | null>(null)
   
-  // Settlement triggered in sync with accepted block animation
-  // Per spec: "Already-executed blocks are settled once a following block that includes the results is accepted"
+  // Settlement triggered after 5s delay when next accepted block arrives
+  // Per spec: τ = 5s delay between execution and settlement
   useEffect(() => {
     if (acceptedBlock && 
         acceptedBlock.id !== lastSettlementBlockIdRef.current && 
-        executedBlocks.length >= settlementThresholdRef.current) {
+        executedBlocks.length > 0 &&
+        executedQueueStartTimeRef.current !== null) {
       
-      lastSettlementBlockIdRef.current = acceptedBlock.id
+      const timeInQueue = Date.now() - executedQueueStartTimeRef.current
       
-      // Settle in middle of accepted animation (same timing as proposed -> accepted: 0.3 * interval)
-      const timer = setTimeout(() => {
-        // Flash the accepted block green to show it includes results
-        setIsSettling(true)
-        setTimeout(() => setIsSettling(false), 800)
+      // Only settle if 5 seconds have passed since first block entered executed queue
+      if (timeInQueue >= 5000) {
+        lastSettlementBlockIdRef.current = acceptedBlock.id
         
-        setExecutedBlocks(prev => {
-          if (prev.length === 0) return prev
-          const blocksToSettle = [...prev]
-          setSettledBlocks(settled => {
-            const existingUids = new Set(settled.map(b => b.uid))
-            const newBlocks = blocksToSettle.filter(b => !existingUids.has(b.uid))
-            if (newBlocks.length === 0) return settled
-            return [...settled.slice(-(16 - newBlocks.length)), ...newBlocks]
+        // Settle in middle of accepted animation
+        const timer = setTimeout(() => {
+          // Flash the accepted block green to show it includes results
+          setIsSettling(true)
+          setTimeout(() => setIsSettling(false), 800)
+          
+          setExecutedBlocks(prev => {
+            if (prev.length === 0) return prev
+            const blocksToSettle = [...prev]
+            setSettledBlocks(settled => {
+              const existingUids = new Set(settled.map(b => b.uid))
+              const newBlocks = blocksToSettle.filter(b => !existingUids.has(b.uid))
+              if (newBlocks.length === 0) return settled
+              return [...settled.slice(-(16 - newBlocks.length)), ...newBlocks]
+            })
+            // Reset the queue start time
+            executedQueueStartTimeRef.current = null
+            return []
           })
-          return []
-        })
-        // Pick a new random threshold for next time (1-3)
-        settlementThresholdRef.current = Math.floor(Math.random() * 3) + 1
-      }, SAE_CONFIG.consensusInterval * 0.3) // Sync with accepted animation timing
-      
-      return () => clearTimeout(timer)
+        }, SAE_CONFIG.consensusInterval * 0.3)
+        
+        return () => clearTimeout(timer)
+      }
     }
   }, [acceptedBlock, executedBlocks])
 

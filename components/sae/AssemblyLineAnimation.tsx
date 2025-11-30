@@ -463,13 +463,16 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
             minWidth: 100,
             border: incomingBlock?.phase === "accepted" ? "1.5px solid #22c55e" : `1px solid ${colors.stroke}30`,
           }}
-          animate={incomingBlock && incomingBlock.phase !== "accepted" ? {
-            x: [0, -1.5, 1.5, -1, 1, 0],
-            y: [0, 1, -1, 0.5, -0.5, 0],
-          } : { x: 0, y: 0 }}
+          animate={incomingBlock?.phase === "accepted" 
+            ? { x: 0, y: 0, rotate: 0 }
+            : {
+                x: [0, -1, 1, -0.5, 0.5, 0],
+                y: [0, 0.5, -0.5, 0.3, -0.3, 0],
+              }
+          }
           transition={{
-            duration: 0.3,
-            repeat: incomingBlock && incomingBlock.phase !== "accepted" ? Infinity : 0,
+            duration: 0.25,
+            repeat: incomingBlock?.phase === "accepted" ? 0 : Infinity,
             repeatType: "loop",
             ease: "easeInOut",
           }}
