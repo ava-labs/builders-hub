@@ -101,9 +101,29 @@ async function getTimeSeriesData(
 }
 
 // Separate active addresses fetching with proper time intervals (optimize other metrics as needed)
-async function getActiveAddressesData(chainId: string, timeRange: string, interval: 'day' | 'week' | 'month', pageSize: number = 365, fetchAllPages: boolean = false): Promise<TimeSeriesDataPoint[]> {
+async function getActiveAddressesData(
+  chainId: string,
+  timeRange: string,
+  interval: 'day' | 'week' | 'month',
+  startTimestamp?: number,
+  endTimestamp?: number,
+  pageSize: number = 365,
+  fetchAllPages: boolean = false
+): Promise<TimeSeriesDataPoint[]> {
   try {
-    const { startTimestamp, endTimestamp } = getTimestampsFromTimeRange(timeRange);
+    // Use provided timestamps if available, otherwise use timeRange
+    let finalStartTimestamp: number;
+    let finalEndTimestamp: number;
+    
+    if (startTimestamp !== undefined && endTimestamp !== undefined) {
+      finalStartTimestamp = startTimestamp;
+      finalEndTimestamp = endTimestamp;
+    } else {
+      const timestamps = getTimestampsFromTimeRange(timeRange);
+      finalStartTimestamp = timestamps.startTimestamp;
+      finalEndTimestamp = timestamps.endTimestamp;
+    }
+    
     let allResults: any[] = [];
     
     const avalanche = new Avalanche({
@@ -114,8 +134,8 @@ async function getActiveAddressesData(chainId: string, timeRange: string, interv
     const params: any = {
       chainId: chainId,
       metric: 'activeAddresses',
-      startTimestamp,
-      endTimestamp,
+      startTimestamp: finalStartTimestamp,
+      endTimestamp: finalEndTimestamp,
       timeInterval: interval,
       pageSize,
     };
@@ -323,9 +343,9 @@ export async function GET(
       feesPaidData,
       icmData,
     ] = await Promise.all([
-      getActiveAddressesData(chainId, timeRange, 'day', pageSize, fetchAllPages),
-      getActiveAddressesData(chainId, timeRange, 'week', pageSize, fetchAllPages),
-      getActiveAddressesData(chainId, timeRange, 'month', pageSize, fetchAllPages),
+      getActiveAddressesData(chainId, timeRange, 'day', startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getActiveAddressesData(chainId, timeRange, 'week', startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      getActiveAddressesData(chainId, timeRange, 'month', startTimestamp, endTimestamp, pageSize, fetchAllPages),
       getTimeSeriesData('activeSenders', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
       getTimeSeriesData('cumulativeAddresses', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),
       getTimeSeriesData('cumulativeDeployers', chainId, timeRange, startTimestamp, endTimestamp, pageSize, fetchAllPages),

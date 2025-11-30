@@ -196,24 +196,37 @@ export default function ChainMetricsPage({
   };
 
   const getChartData = (
-    metricKey: keyof Omit<CChainMetrics, "last_updated" | "icmMessages" | "activeAddresses"> | "activeAddresses"
+    metricKey: keyof Omit<CChainMetrics, "last_updated" | "icmMessages" | "activeAddresses"> | "activeAddresses",
+    period?: "D" | "W" | "M" | "Q" | "Y"
   ) => {
     if (!metrics) return [];
 
-    // Handle activeAddresses specially since it has nested structure
+    // Handle activeAddresses specially based on period
     if (metricKey === "activeAddresses") {
-      if (!metrics.activeAddresses?.daily?.data) return [];
-      return metrics.activeAddresses.daily.data
+      if (!metrics.activeAddresses) return [];
+
+      let data;
+      if (period === "D" || !period) {
+        data = metrics.activeAddresses.daily?.data;
+      } else if (period === "W") {
+        data = metrics.activeAddresses.weekly?.data;
+      } else if (period === "M") {
+        data = metrics.activeAddresses.monthly?.data;
+      } else {
+        // For Q and Y, we'll return N/A
+        data = null;
+      }
+
+      if (!data) return [];
+      return data
         .map((point: TimeSeriesDataPoint) => ({
           day: point.date,
-          value:
-            typeof point.value === "string"
-              ? Number.parseFloat(point.value)
-              : point.value,
+          value: typeof point.value === "string" ? Number.parseFloat(point.value) : point.value,
         }))
         .reverse();
     }
 
+    // Handle other metrics normally
     const metric = metrics[metricKey as keyof Omit<CChainMetrics, "last_updated" | "icmMessages" | "activeAddresses">];
     if (!metric?.data) return [];
 
@@ -296,15 +309,25 @@ export default function ChainMetricsPage({
   };
 
   const getCurrentValue = (
-    metricKey: keyof Omit<CChainMetrics, "last_updated">
+    metricKey: keyof Omit<CChainMetrics, "last_updated">,
+    period?: "D" | "W" | "M" | "Q" | "Y"
   ): number | string => {
     if (!metrics) return "N/A";
-    
-    // Handle activeAddresses specially since it has nested structure
+
+    // Handle activeAddresses specially based on period
     if (metricKey === "activeAddresses") {
-      return metrics.activeAddresses?.daily?.current_value ?? "N/A";
+      if (!metrics.activeAddresses) return "N/A";
+
+      if (period === "W") {
+        return metrics.activeAddresses.weekly?.current_value ?? "N/A";
+      } else if (period === "M" || period === "Q" || period === "Y") {
+        return metrics.activeAddresses.monthly?.current_value ?? "N/A";
+      } else {
+        // Default to daily
+        return metrics.activeAddresses.daily?.current_value ?? "N/A";
+      }
     }
-    
+
     const metric = metrics[metricKey as keyof Omit<CChainMetrics, "last_updated" | "activeAddresses">];
     if (!metric) return "N/A";
     return metric.current_value;
@@ -339,7 +362,7 @@ export default function ChainMetricsPage({
       title: "Total Addresses",
       icon: Hash,
       metricKey: "cumulativeAddresses" as const,
-      description: "Cumulative unique addresses since genesis",
+      description: "Total unique addresses since genesis",
       color: themeColor,
       chartType: "area" as const,
     },
@@ -347,7 +370,7 @@ export default function ChainMetricsPage({
       title: "Total Transactions",
       icon: Hash,
       metricKey: "cumulativeTxCount" as const,
-      description: "Cumulative transaction count since genesis",
+      description: "Total transaction count since genesis",
       color: themeColor,
       chartType: "area" as const,
     },
@@ -430,7 +453,7 @@ export default function ChainMetricsPage({
   // Chart categories for navigation
   const chartCategories = [
     { id: "overview", label: "Overview" },
-    { id: "activity", label: "Activity", metricKeys: ["activeAddresses", "activeSenders", "txCount", "cumulativeAddresses", "cumulativeTxCount"] },
+    { id: "activity", label: "Activity", metricKeys: ["activeAddresses", "activeSenders", "txCount"] },
     { id: "contracts", label: "Contracts", metricKeys: ["contracts", "deployers"] },
     { id: "performance", label: "Performance", metricKeys: ["gasUsed", "avgGps", "avgTps", "avgGasPrice"] },
     { id: "fees", label: "Fees", metricKeys: ["feesPaid"] },
@@ -810,7 +833,8 @@ export default function ChainMetricsPage({
               },
             ].map((item) => {
               const currentValue = getCurrentValue(
-                item.key as keyof Omit<CChainMetrics, "last_updated">
+                item.key as keyof Omit<CChainMetrics, "last_updated">,
+                "D" // Always use daily for overview cards
               );
               const Icon = item.icon;
 
@@ -849,12 +873,14 @@ export default function ChainMetricsPage({
             </p>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {getChartsByCategory(["activeAddresses", "activeSenders", "txCount", "cumulativeAddresses", "cumulativeTxCount"])
+            {getChartsByCategory(["activeAddresses", "activeSenders", "txCount"])
               .map((config) => {
-                const rawData = config.metricKey === "icmMessages" ? getICMChartData() : getChartData(config.metricKey);
-                if (rawData.length === 0) return null;
                 const period = chartPeriods[config.metricKey];
-                const currentValue = getCurrentValue(config.metricKey);
+                
+                const rawData = config.metricKey === "icmMessages" ? getICMChartData() : getChartData(config.metricKey, period);
+                if (rawData.length === 0) return null;
+                
+                const currentValue = getCurrentValue(config.metricKey, period);
                 let cumulativeData = null;
                 if (config.metricKey === "txCount") cumulativeData = getChartData("cumulativeTxCount");
                 else if (config.metricKey === "activeAddresses") cumulativeData = getChartData("cumulativeAddresses");
@@ -864,6 +890,14 @@ export default function ChainMetricsPage({
                   secondaryData = getChartData(config.secondaryMetricKey);
                   secondaryCurrentValue = getCurrentValue(config.secondaryMetricKey);
                 }
+
+                // Determine allowed periods based on metric type
+                let allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = ["D", "W", "M", "Q", "Y"];
+                // Active addresses only supports D, W, M (data fetched from API with those intervals)
+                if (config.metricKey === "activeAddresses") {
+                  allowedPeriods = ["D", "W", "M"];
+                }
+                
                 return (
                   <ChartCard
                     key={config.metricKey}
@@ -877,6 +911,7 @@ export default function ChainMetricsPage({
                     onPeriodChange={(newPeriod) => setChartPeriods((prev) => ({ ...prev, [config.metricKey]: newPeriod }))}
                     formatTooltipValue={(value) => formatTooltipValue(value, config.metricKey)}
                     formatYAxisValue={formatNumber}
+                    allowedPeriods={allowedPeriods}
                   />
                 );
               })}
@@ -896,13 +931,17 @@ export default function ChainMetricsPage({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {getChartsByCategory(["contracts", "deployers"])
               .map((config) => {
-                const rawData = getChartData(config.metricKey as keyof Omit<CChainMetrics, "last_updated" | "icmMessages">);
-                if (rawData.length === 0) return null;
                 const period = chartPeriods[config.metricKey];
-                const currentValue = getCurrentValue(config.metricKey as keyof Omit<CChainMetrics, "last_updated">);
+                const rawData = getChartData(config.metricKey as keyof Omit<CChainMetrics, "last_updated" | "icmMessages">, period);
+                if (rawData.length === 0) return null;
+                const currentValue = getCurrentValue(config.metricKey as keyof Omit<CChainMetrics, "last_updated">, period);
                 let cumulativeData = null;
                 if (config.metricKey === "contracts") cumulativeData = getChartData("cumulativeContracts");
                 else if (config.metricKey === "deployers") cumulativeData = getChartData("cumulativeDeployers");
+
+                // All periods allowed for contracts and deployers
+                const allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = ["D", "W", "M", "Q", "Y"];
+                
                 return (
                   <ChartCard
                     key={config.metricKey}
@@ -916,6 +955,7 @@ export default function ChainMetricsPage({
                     onPeriodChange={(newPeriod) => setChartPeriods((prev) => ({ ...prev, [config.metricKey]: newPeriod }))}
                     formatTooltipValue={(value) => formatTooltipValue(value, config.metricKey)}
                     formatYAxisValue={formatNumber}
+                    allowedPeriods={allowedPeriods}
                   />
                 );
               })}
@@ -935,16 +975,24 @@ export default function ChainMetricsPage({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {getChartsByCategory(["gasUsed", "avgGps", "avgTps", "avgGasPrice"])
               .map((config) => {
-                const rawData = getChartData(config.metricKey as keyof Omit<CChainMetrics, "last_updated" | "icmMessages">);
-                if (rawData.length === 0) return null;
                 const period = chartPeriods[config.metricKey];
-                const currentValue = getCurrentValue(config.metricKey as keyof Omit<CChainMetrics, "last_updated">);
+                const rawData = getChartData(config.metricKey as keyof Omit<CChainMetrics, "last_updated" | "icmMessages">, period);
+                if (rawData.length === 0) return null;
+                const currentValue = getCurrentValue(config.metricKey as keyof Omit<CChainMetrics, "last_updated">, period);
                 let secondaryData = null;
                 let secondaryCurrentValue = null;
                 if (config.chartType === "dual" && config.secondaryMetricKey) {
                   secondaryData = getChartData(config.secondaryMetricKey);
                   secondaryCurrentValue = getCurrentValue(config.secondaryMetricKey);
                 }
+
+                // Determine allowed periods based on metric type
+                let allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = ["D", "W", "M", "Q", "Y"];
+                // GPS, TPS, and Gas Price are only available on Daily
+                if (["avgGps", "maxGps", "avgTps", "maxTps", "avgGasPrice", "maxGasPrice"].includes(config.metricKey)) {
+                  allowedPeriods = ["D"];
+                }
+                
                 return (
                   <ChartCard
                     key={config.metricKey}
@@ -958,6 +1006,7 @@ export default function ChainMetricsPage({
                     onPeriodChange={(newPeriod) => setChartPeriods((prev) => ({ ...prev, [config.metricKey]: newPeriod }))}
                     formatTooltipValue={(value) => formatTooltipValue(value, config.metricKey)}
                     formatYAxisValue={formatNumber}
+                    allowedPeriods={allowedPeriods}
                   />
                 );
               })}
@@ -977,10 +1026,14 @@ export default function ChainMetricsPage({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {getChartsByCategory(["feesPaid"])
               .map((config) => {
-                const rawData = getChartData(config.metricKey as keyof Omit<CChainMetrics, "last_updated" | "icmMessages">);
-                if (rawData.length === 0) return null;
                 const period = chartPeriods[config.metricKey];
-                const currentValue = getCurrentValue(config.metricKey as keyof Omit<CChainMetrics, "last_updated">);
+                const rawData = getChartData(config.metricKey as keyof Omit<CChainMetrics, "last_updated" | "icmMessages">, period);
+                if (rawData.length === 0) return null;
+                const currentValue = getCurrentValue(config.metricKey as keyof Omit<CChainMetrics, "last_updated">, period);
+
+                // All periods allowed for fees
+                const allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = ["D", "W", "M", "Q", "Y"];
+                
                 return (
                   <ChartCard
                     key={config.metricKey}
@@ -994,6 +1047,7 @@ export default function ChainMetricsPage({
                     onPeriodChange={(newPeriod) => setChartPeriods((prev) => ({ ...prev, [config.metricKey]: newPeriod }))}
                     formatTooltipValue={(value) => formatTooltipValue(value, config.metricKey)}
                     formatYAxisValue={formatNumber}
+                    allowedPeriods={allowedPeriods}
                   />
                 );
               })}
@@ -1054,6 +1108,7 @@ function ChartCard({
   onPeriodChange,
   formatTooltipValue,
   formatYAxisValue,
+  allowedPeriods = ["D", "W", "M", "Q", "Y"],
 }: {
   config: any;
   rawData: any[];
@@ -1065,6 +1120,7 @@ function ChartCard({
   onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
   formatTooltipValue: (value: number) => string;
   formatYAxisValue: (value: number) => string;
+  allowedPeriods?: ("D" | "W" | "M" | "Q" | "Y")[];
 }) {
   const [brushIndexes, setBrushIndexes] = useState<{
     startIndex: number;
@@ -1074,6 +1130,14 @@ function ChartCard({
   // Aggregate data based on selected period
   const aggregatedData = useMemo(() => {
     if (period === "D") return rawData;
+
+    // For active addresses, don't aggregate since data is already fetched with proper interval
+    if (
+      config.metricKey === "activeAddresses" &&
+      (period === "W" || period === "M")
+    ) {
+      return rawData;
+    }
 
     const grouped = new Map<
       string,
@@ -1116,7 +1180,7 @@ function ChartCard({
         value: group.sum,
       }))
       .sort((a, b) => a.day.localeCompare(b.day));
-  }, [rawData, period]);
+  }, [rawData, period, config.metricKey]);
 
   // Aggregate cumulative data - take the last (max) value in each period
   const aggregatedCumulativeData = useMemo(() => {
@@ -1389,24 +1453,26 @@ function ChartCard({
             </div>
           </div>
           <div className="flex gap-0.5 sm:gap-1">
-            {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => onPeriodChange(p)}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm  rounded-md transition-colors ${
-                  period === p
-                    ? "text-white dark:text-white"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
-                style={
-                  period === p
-                    ? { backgroundColor: `${config.color}`, opacity: 0.9 }
-                    : {}
-                }
-              >
-                {p}
-              </button>
-            ))}
+            {(["D", "W", "M", "Q", "Y"] as const)
+              .filter((p) => allowedPeriods.includes(p))
+              .map((p) => (
+                <button
+                  key={p}
+                  onClick={() => onPeriodChange(p)}
+                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm  rounded-md transition-colors ${
+                    period === p
+                      ? "text-white dark:text-white"
+                      : "text-muted-foreground hover:bg-muted"
+                  }`}
+                  style={
+                    period === p
+                      ? { backgroundColor: `${config.color}`, opacity: 0.9 }
+                      : {}
+                  }
+                >
+                  {p}
+                </button>
+              ))}
           </div>
         </div>
 
@@ -1548,7 +1614,7 @@ function ChartCard({
                             </div>
                             {payload[0].payload.cumulative && (
                               <div className="text-xs text-muted-foreground">
-                                Cumulative:{" "}
+                                Total:{" "}
                                 {formatYAxisValue(
                                   payload[0].payload.cumulative
                                 )}
