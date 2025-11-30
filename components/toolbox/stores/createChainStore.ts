@@ -9,7 +9,7 @@ const createChainInitialState = {
     chainName: "",
     managerAddress: "0xfacade0000000000000000000000000000000000",
     genesisData: "",
-    targetBlockRate: 2,
+    targetBlockRate: 1,
     gasLimit: 12000000,
     evmChainId: Math.floor(Math.random() * (999999 - 100000 + 1)) + 100000,
     convertToL1TxId: "",
