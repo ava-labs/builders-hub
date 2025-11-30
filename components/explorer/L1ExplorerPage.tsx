@@ -277,6 +277,7 @@ export default function L1ExplorerPage({
   const isFetchingRef = useRef(false); // Prevent overlapping fetches
   const lastFetchedBlockRef = useRef<string | null>(null); // Track last fetched block
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Track refresh timeout
+  const isMountedRef = useRef(true); // Track if component is mounted
   const BLOCK_LIMIT = 100; // Maximum number of blocks to keep
   const TRANSACTION_LIMIT = 100; // Maximum number of transactions to keep
   const ICM_MESSAGE_LIMIT = 100; // Maximum number of ICM messages to keep
@@ -290,8 +291,8 @@ export default function L1ExplorerPage({
 
   // Fetch data and schedule next fetch after completion
   const fetchData = useCallback(async () => {
-    // Prevent overlapping fetches - wait for previous to complete
-    if (isFetchingRef.current) {
+    // Prevent overlapping fetches or fetches after unmount
+    if (isFetchingRef.current || !isMountedRef.current) {
       return;
     }
     
@@ -452,42 +453,58 @@ export default function L1ExplorerPage({
       setIsRefreshing(false);
       
       // Schedule next fetch AFTER this one completes (wait full interval after response)
-      if (shouldScheduleNext) {
+      if (shouldScheduleNext && isMountedRef.current) {
         const intervalTime = nextIsRateLimited ? RATE_LIMITED_INTERVAL : NORMAL_INTERVAL;
         refreshTimeoutRef.current = setTimeout(() => {
-          fetchData();
+          if (isMountedRef.current) {
+            fetchData();
+          }
         }, intervalTime);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chainId]);
 
-  // Reset state when chain changes
+  // Track mount state
   useEffect(() => {
-    // Clear any pending timeout when chain changes
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Reset state and fetch data when chain changes
+  useEffect(() => {
+    // Clear any pending timeout
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current);
       refreshTimeoutRef.current = null;
     }
+    
+    // Reset refs for new chain
     isFirstLoadRef.current = true;
     lastFetchedBlockRef.current = null;
-    setAccumulatedBlocks([]); // Clear accumulated blocks when switching chains
-    setAccumulatedTransactions([]); // Clear accumulated transactions when switching chains
-    setIcmMessages([]); // Clear ICM messages when switching chains
-  }, [chainId]);
-
-  // Initial data fetch - fetchData will self-schedule subsequent fetches
-  useEffect(() => {
+    isFetchingRef.current = false;
+    
+    // Clear accumulated data
+    setAccumulatedBlocks([]);
+    setAccumulatedTransactions([]);
+    setIcmMessages([]);
+    setData(null);
+    setLoading(true);
+    
+    // Start fetching for this chain
     fetchData();
     
-    // Cleanup: clear timeout when component unmounts
+    // Cleanup: clear timeout when chain changes
     return () => {
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
         refreshTimeoutRef.current = null;
       }
+      isFetchingRef.current = false;
     };
-  }, [fetchData]);
+  }, [chainId, fetchData]);
 
   // Generate transaction history if not available
   const transactionHistory = useMemo(() => {

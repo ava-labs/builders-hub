@@ -117,7 +117,8 @@ export function ExplorerProvider({
     setIsTokenDataLoading(true);
     
     try {
-      const response = await fetch(`/api/explorer/${chainId}`);
+      // Only fetch price and glacier support (not full explorer data)
+      const response = await fetch(`/api/explorer/${chainId}?priceOnly=true`);
       if (response.ok) {
         const data = await response.json();
         const symbol = data?.tokenSymbol || data?.price?.symbol || '';
