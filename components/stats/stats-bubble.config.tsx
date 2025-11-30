@@ -1,7 +1,7 @@
 "use client";
 
-import BubbleNavigation from '@/components/navigation/BubbleNavigation';
-import type { BubbleNavigationConfig } from '@/components/navigation/bubble-navigation.types';
+import BubbleNavigation from "@/components/navigation/BubbleNavigation";
+import type { BubbleNavigationConfig } from "@/components/navigation/bubble-navigation.types";
 
 export const statsBubbleConfig: BubbleNavigationConfig = {
     items: [
@@ -29,5 +29,10 @@ export function StatsBubbleNav() {
         return "overview";
     };
 
-    return <BubbleNavigation config={statsBubbleConfig} getActiveItem={getActiveItem} />;
+  return (
+    <BubbleNavigation
+      config={statsBubbleConfig}
+      getActiveItem={getActiveItem}
+    />
+  );
 }
