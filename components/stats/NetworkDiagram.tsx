@@ -1591,12 +1591,12 @@ export default function NetworkDiagram({
                 <div className="mt-3 pt-3 border-t border-white/10">
                   <button
                     onClick={() => {
-                      window.location.href = `/stats/l1/${chainSlug}`;
+                      window.location.href = `/stats/l1/${chainSlug}/stats`;
                     }}
                     onTouchEnd={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      window.location.href = `/stats/l1/${chainSlug}`;
+                      window.location.href = `/stats/l1/${chainSlug}/stats`;
                     }}
                     className="w-full py-2 text-sm text-cyan-400 hover:text-cyan-300 active:text-cyan-200 transition-colors text-center underline decoration-dotted underline-offset-2 cursor-pointer touch-manipulation"
                   >

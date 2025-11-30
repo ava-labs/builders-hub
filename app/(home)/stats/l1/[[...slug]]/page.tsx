@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import ChainMetricsPage from "@/components/stats/ChainMetricsPage";
 import L1ExplorerPage from "@/components/explorer/L1ExplorerPage";
 import BlockDetailPage from "@/components/explorer/BlockDetailPage";
@@ -18,6 +18,7 @@ export async function generateMetadata({
   const resolvedParams = await params;
   const slugArray = resolvedParams.slug || [];
   const chainSlug = slugArray[0];
+  const isStats = slugArray[1] === "stats";
   const isExplorer = slugArray[1] === "explorer";
   const isBlock = slugArray[2] === "block";
   const isTx = slugArray[2] === "tx";
@@ -32,7 +33,7 @@ export async function generateMetadata({
 
   let title = `${currentChain.chainName} L1 Metrics`;
   let description = `Track ${currentChain.chainName} L1 activity with real-time metrics including active addresses, transactions, gas usage, fees, and network performance data.`;
-  let url = `/stats/l1/${chainSlug}`;
+  let url = `/stats/l1/${chainSlug}/stats`;
 
   if (isExplorer && isAddress && address) {
     const shortAddress = `${address.slice(0, 10)}...${address.slice(-8)}`;
@@ -86,6 +87,7 @@ export default async function L1Page({
   const resolvedParams = await params;
   const slugArray = resolvedParams.slug || [];
   const chainSlug = slugArray[0];
+  const isStats = slugArray[1] === "stats";
   const isExplorer = slugArray[1] === "explorer";
   const isBlock = slugArray[2] === "block";
   const isTx = slugArray[2] === "tx";
@@ -99,6 +101,11 @@ export default async function L1Page({
   const currentChain = l1ChainsData.find((c) => c.slug === chainSlug) as L1Chain;
 
   if (!currentChain) { notFound(); }
+
+  // Redirect /stats/l1/{chainSlug} to /stats/l1/{chainSlug}/stats
+  if (slugArray.length === 1) {
+    redirect(`/stats/l1/${chainSlug}/stats`);
+  }
 
   // All explorer pages wrapped with ExplorerProvider and ExplorerLayout
   if (isExplorer) {
@@ -160,21 +167,26 @@ export default async function L1Page({
     );
   }
 
-  // L1 Metrics page: /stats/l1/{chainSlug}
-  return (
-    <ChainMetricsPage
-      chainId={currentChain.chainId}
-      chainName={currentChain.chainName}
-      chainSlug={currentChain.slug}
-      description={
-        currentChain.description ||
-        `Real-time insights into ${currentChain.chainName} L1 activity and network usage`
-      }
-      themeColor={currentChain.color || "#E57373"}
-      chainLogoURI={currentChain.chainLogoURI}
-      website={currentChain.website}
-      socials={currentChain.socials}
-      rpcUrl={currentChain.rpcUrl}
-    />
-  );
+  // L1 Metrics page: /stats/l1/{chainSlug}/stats
+  if (isStats) {
+    return (
+      <ChainMetricsPage
+        chainId={currentChain.chainId}
+        chainName={currentChain.chainName}
+        chainSlug={currentChain.slug}
+        description={
+          currentChain.description ||
+          `Real-time insights into ${currentChain.chainName} L1 activity and network usage`
+        }
+        themeColor={currentChain.color || "#E57373"}
+        chainLogoURI={currentChain.chainLogoURI}
+        website={currentChain.website}
+        socials={currentChain.socials}
+        rpcUrl={currentChain.rpcUrl}
+      />
+    );
+  }
+
+  // If we reach here, the route doesn't match any known pattern
+  notFound();
 }

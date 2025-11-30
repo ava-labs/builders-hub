@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useState, FormEvent, useMemo } from "react";
-import { ArrowUpRight, Twitter, Linkedin, ChevronRight, Search, BarChart3, Compass } from "lucide-react";
+import { ArrowUpRight, Twitter, Linkedin, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 
 interface ExplorerLayoutProps {
   chainId: string;
@@ -122,26 +123,6 @@ export function ExplorerLayout({
   };
 
   return (
-    <>
-      <style dangerouslySetInnerHTML={{__html: `
-        nav.explorer-breadcrumb a,
-        nav.explorer-breadcrumb a:hover,
-        nav.explorer-breadcrumb a:focus,
-        nav.explorer-breadcrumb a:active,
-        nav.explorer-breadcrumb a[data-active="true"],
-        nav.explorer-breadcrumb a[aria-current="page"] {
-          padding: 0 !important;
-          padding-left: 0 !important;
-          padding-right: 0 !important;
-          padding-top: 0 !important;
-          padding-bottom: 0 !important;
-          border-radius: 0 !important;
-          background-color: transparent !important;
-          background: transparent !important;
-          box-shadow: none !important;
-          transform: none !important;
-        }
-      `}} />
     <div className="min-h-screen bg-white dark:bg-zinc-950">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
@@ -178,64 +159,14 @@ export function ExplorerLayout({
           ) : (
             <>
               {/* Breadcrumb */}
-              <nav className="explorer-breadcrumb flex items-center gap-1.5 text-xs sm:text-sm mb-4 overflow-x-auto scrollbar-hide pb-1">
-                <Link 
-                  href="/stats/overview" 
-                  className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
-                >
-                  <BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                  <span>Stats</span>
-                </Link>
-                <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
-                <Link 
-                  href={`/stats/l1/${chainSlug}`} 
-                  className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
-                >
-                  {chainLogoURI && (
-                    <img 
-                      src={chainLogoURI} 
-                      alt="" 
-                      className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-sm object-contain"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  )}
-                  <span className="max-w-[80px] sm:max-w-none truncate">{chainName}</span>
-                </Link>
-                <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
-                {breadcrumbItems.length === 0 ? (
-                  <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap flex-shrink-0">
-                    <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5" style={{ color: themeColor }} />
-                    <span>Explorer</span>
-                  </span>
-                ) : (
-                  <>
-                    <Link 
-                      href={`/stats/l1/${chainSlug}/explorer`} 
-                      className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
-                    >
-                      <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                      <span>Explorer</span>
-                    </Link>
-                    {breadcrumbItems.map((item, idx) => (
-                      <span key={idx} className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-                        <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600" />
-                        {item.href ? (
-                          <Link 
-                            href={item.href}
-                            className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap max-w-[100px] sm:max-w-none truncate"
-                          >
-                            {item.label}
-                          </Link>
-                        ) : (
-                          <span className="font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap max-w-[100px] sm:max-w-none truncate">
-                            {item.label}
-                          </span>
-                        )}
-                      </span>
-                    ))}
-                  </>
-                )}
-              </nav>
+              <StatsBreadcrumb
+                chainSlug={chainSlug}
+                chainName={chainName}
+                chainLogoURI={chainLogoURI}
+                showExplorer={true}
+                breadcrumbItems={breadcrumbItems}
+                themeColor={themeColor}
+              />
 
               <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
                 <div className="space-y-4 sm:space-y-6 flex-1">
@@ -412,7 +343,6 @@ export function ExplorerLayout({
       {/* Bottom Navigation */}
       <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} />
     </div>
-    </>
   );
 }
 

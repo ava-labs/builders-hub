@@ -3,12 +3,13 @@ import { useState, useEffect, useMemo } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, ChevronRight, BarChart3 } from "lucide-react";
+import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin } from "lucide-react";
 import Link from "next/link";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 
@@ -648,27 +649,15 @@ export default function ChainMetricsPage({
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
           {/* Breadcrumb */}
-          <nav className="explorer-breadcrumb flex items-center gap-1.5 text-sm mb-3">
-            <Link 
-              href="/stats/overview" 
-              className="inline-flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
-            >
-              <BarChart3 className="w-3.5 h-3.5" />
-              <span>Stats</span>
-            </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-600" />
-            <span className="inline-flex items-center gap-1.5 font-medium text-zinc-900 dark:text-zinc-100">
-              {chainLogoURI && (
-                <img 
-                  src={chainLogoURI} 
-                  alt="" 
-                  className="w-3.5 h-3.5 rounded-sm object-contain"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                />
-              )}
-              <span>{chainName}</span>
-            </span>
-          </nav>
+          {chainSlug && (
+            <StatsBreadcrumb
+              chainSlug={chainSlug}
+              chainName={chainName}
+              chainLogoURI={chainLogoURI}
+              showStats={true}
+              themeColor={themeColor}
+            />
+          )}
 
           <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
             <div className="space-y-4 sm:space-y-6 flex-1">

@@ -18,7 +18,7 @@ export function L1BubbleNav({ chainSlug, themeColor = "#E57373", rpcUrl }: L1Bub
 
   const l1BubbleConfig: BubbleNavigationConfig = {
     items: [
-      { id: "overview", label: "Overview", href: `/stats/l1/${chainSlug}` },
+      { id: "stats", label: "Stats", href: `/stats/l1/${chainSlug}/stats` },
       { id: "explorer", label: "Explorer", href: `/stats/l1/${chainSlug}/explorer` },
     ],
     activeColor: "bg-zinc-900 dark:bg-white",
@@ -34,7 +34,11 @@ export function L1BubbleNav({ chainSlug, themeColor = "#E57373", rpcUrl }: L1Bub
     if (pathname.includes('/explorer')) {
       return "explorer";
     }
-    return "overview";
+    // Match /stats page
+    if (pathname.includes('/stats')) {
+      return "stats";
+    }
+    return "stats";
   };
 
   return <BubbleNavigation config={l1BubbleConfig} getActiveItem={getActiveItem} />;
