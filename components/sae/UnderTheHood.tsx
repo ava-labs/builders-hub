@@ -270,15 +270,26 @@ export function BlockRelationship({ colors }: { colors: Colors }) {
 
       </div>
       <div className="mt-2 md:mt-4 space-y-2">
-        <p className={`text-sm sm:text-xs md:text-[11px] text-red-500 font-mono uppercase tracking-wider`}>
-        Execution blocks can span multiple consensus blocks
-      </p>
-      <p className={`text-sm sm:text-xs md:text-[11px] ${colors.textMuted} font-mono uppercase tracking-wider`}>
-        consensus guarantees execution, <span className="italic normal-case">eventually</span>
-      </p>
-        <p className={`text-sm ${colors.textMuted} leading-relaxed`}>
-          Accepted blocks enter a FIFO queue guaranteed to execute. Order is fixed at acceptance, execution is deterministic, duration is measured in gas. Concurrent streams eliminate context switching — consensus no longer waits on execution. Bursty demand is absorbed by eagerly accepting transactions while execution processes the queue and reports state roots for later consensus rounds to record.
+        <p className={`text-sm sm:text-xs md:text-[11px] font-mono uppercase tracking-wider ${colors.text}`}>
+          <span style={{ color: '#ef4444' }}>Execution</span> blocks can span multiple <span style={{ color: `${colors.stroke}60` }}>consensus</span> blocks
         </p>
+        <p className={`text-sm sm:text-xs md:text-[11px] font-mono uppercase tracking-wider ${colors.text}`}>
+          <span style={{ color: `${colors.stroke}60` }}>consensus</span> guarantees <span style={{ color: '#ef4444' }}>execution</span>, <span className="italic normal-case">eventually</span>
+        </p>
+        <div className={`text-sm ${colors.textMuted} leading-relaxed space-y-3`}>
+          <p>
+            <strong className={colors.text}>Decoupled streams.</strong> Consensus orders and accepts transactions into a FIFO queue without waiting for execution. The executor processes blocks independently, running transactions and computing state changes. Both streams operate simultaneously — no context switching, no blocking.
+          </p>
+          <p>
+            <strong className={colors.text}>Guaranteed execution.</strong> Every accepted transaction is guaranteed to eventually execute. Consensus validates worst-case gas bounds at acceptance time, ensuring senders can always pay. Order is fixed at acceptance, execution is deterministic.
+          </p>
+          <p>
+            <strong className={colors.text}>Gas is time.</strong> Execution duration is measured in gas, not wall time. The gas rate R = 30M gas/sec provides deterministic, sub-second granular timestamps that advance predictably as transactions consume gas.
+          </p>
+          <p>
+            <strong className={colors.text}>Deferred settlement.</strong> Results stream immediately to clients as execution completes. Settlement is recorded τ = 5s later when a following accepted block includes the state root — multiple blocks can settle together, amortizing overhead.
+          </p>
+        </div>
       </div>
     </div>
   )

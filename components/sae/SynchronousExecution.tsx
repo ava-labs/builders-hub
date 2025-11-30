@@ -507,23 +507,23 @@ export function SynchronousExecution({ colors }: { colors: Colors }) {
   const tooltipContent: Record<string, { title: string; content: string }> = {
     mempool: {
       title: "Transaction Pool",
-      content: "Transactions arrive via RPC and wait in the mempool. A validator selects transactions to include in the next block."
+      content: "Transactions arrive via RPC and wait here. Users have no visibility into when their transaction will be included or executed — they must wait for the entire pipeline to complete."
     },
     proposing: {
-      title: "Block Proposing",
-      content: "The proposer must execute transactions (red) before proposing, then wait for consensus (grey). This execution happens before the block is even shared with other validators."
+      title: "Block Proposing — The First Bottleneck",
+      content: "The proposer must execute every transaction BEFORE proposing. This pre-execution runs the full VM, computing state changes. Other validators sit idle waiting for this single node to finish."
     },
     executing: {
-      title: "Executing Transactions",
-      content: "Each transaction is executed sequentially, computing state changes. The entire network must wait for execution to complete before the block can be accepted."
+      title: "Network-Wide Execution — The Second Bottleneck",
+      content: "Every validator must independently re-execute the same transactions to verify correctness. The network is blocked — no new blocks can be proposed until all validators complete execution."
     },
     accepted: {
-      title: "Consensus Reached",
-      content: "After execution completes, validators vote on the block. Once enough validators agree, the block is accepted by consensus."
+      title: "Consensus Voting",
+      content: "Only after execution completes can validators vote. The block waits in limbo while votes are collected. Any slow validator delays the entire network."
     },
     settled: {
-      title: "Block Finalized",
-      content: "State changes are committed and transaction receipts become available. Only now can the next block be proposed."
+      title: "Finally Settled",
+      content: "State is committed, receipts available. The user finally learns if their transaction succeeded — potentially seconds after submission. Only NOW can the next block begin."
     }
   }
 
@@ -573,7 +573,7 @@ export function SynchronousExecution({ colors }: { colors: Colors }) {
           Transaction Lifecycle
         </span>
         <span className={`text-[10px] ${colors.textFaint} font-mono`}>
-          *simplified for illustrative purposes
+          *all animations are simplified for illustrative purposes
         </span>
       </div>
       <div className={`border ${colors.border} p-2 sm:p-6 ${colors.blockBg}`}>
@@ -724,13 +724,21 @@ export function SynchronousExecution({ colors }: { colors: Colors }) {
       </div>
 
       {/* Note - outside container */}
-      <div className="mt-2 md:mt-4 space-y-2">
-        <p className={`text-sm sm:text-xs md:text-[11px] ${colors.textMuted} font-mono uppercase tracking-wider`}>
-          Each block must fully execute before the next can be proposed
+      <div className="mt-2 md:mt-4 space-y-3">
+        <p className={`text-sm sm:text-xs md:text-[11px] font-mono uppercase tracking-wider ${colors.text}`}>
+          <span style={{ color: '#ef4444' }}>Execution</span> blocks everything — <span style={{ color: `${colors.stroke}60` }}>consensus</span> cannot proceed until the VM finishes
         </p>
-        <p className={`text-sm ${colors.textMuted} leading-relaxed`}>
-          Consensus waits for execution. Execution waits for consensus. Total block execution time gates throughput, forcing the system to accommodate worst-case blocks. Users must wait for the entire block to be published before learning if their transaction succeeded.
-        </p>
+        <div className={`text-sm ${colors.textMuted} leading-relaxed space-y-2`}>
+          <p>
+            <strong className={colors.text}>The symmetrical bottleneck.</strong> Consensus waits for execution. Execution waits for consensus. Each block must fully complete before the next can even begin — the proposer executes, broadcasts, waits for other validators to execute, waits for votes, then finally settles.
+          </p>
+          <p>
+            <strong className={colors.text}>Worst-case determines throughput.</strong> A single complex transaction can stall the entire network. Gas limits exist to bound this, but the fundamental constraint remains: total block execution time gates how fast the chain can move.
+          </p>
+          <p>
+            <strong className={colors.text}>Users wait in the dark.</strong> After submitting a transaction, users have no visibility. They wait for the proposer to execute, the network to verify, consensus to finalize — only then do they learn if their transaction succeeded or failed when the block settles.
+          </p>
+        </div>
       </div>
     </div>
   )

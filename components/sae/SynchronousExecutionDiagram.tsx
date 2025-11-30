@@ -146,14 +146,21 @@ export function SynchronousExecutionDiagram({ colors }: { colors: Colors }) {
             </div>
 
             {/* Annotations at the bottom */}
-            <div className="mt-2 md:mt-4 space-y-2">
-                <p className="text-sm sm:text-xs md:text-[11px] font-mono uppercase tracking-wider" style={{ color: executionColor }}>
-                    Execution blocks the pipeline <br />
-                    <span className={colors.textMuted}>consensus cannot proceed until execution completes</span>
+            <div className="mt-2 md:mt-4 space-y-3">
+                <p className={`text-sm sm:text-xs md:text-[11px] font-mono uppercase tracking-wider ${colors.text}`}>
+                    <span style={{ color: '#ef4444' }}>Execution</span> fragments <span style={{ color: `${colors.stroke}60` }}>consensus</span> — validators constantly context switch
                 </p>
-                <p className={`text-sm ${colors.textMuted} leading-relaxed`}>
-                    Each red bar represents execution. The block proposer executes before proposing, then <em>every other validator must also execute</em> during consensus to verify. This creates a symmetrical bottleneck: consensus waits on execution, execution waits on consensus. Validators constantly context switch between the two — wasted cycles that could be spent on useful work.
-                </p>
+                <div className={`text-sm ${colors.textMuted} leading-relaxed space-y-2`}>
+                    <p>
+                        <strong className={colors.text}>Double execution per block.</strong> The proposer runs the VM before proposing (left red bar). Then every validator must re-execute to verify (middle red bar). Execution happens twice, yet only one result matters.
+                    </p>
+                    <p>
+                        <strong className={colors.text}>Context switching overhead.</strong> The dashed lines represent context switches — validators stop consensus work to run the VM, then stop the VM to resume consensus. Each switch has latency cost. Multiply by thousands of validators and millions of blocks.
+                    </p>
+                    <p>
+                        <strong className={colors.text}>Sequential dependency chain.</strong> Block N+1 cannot begin until Block N fully settles. The VM is the bottleneck: gas consumed per second determines maximum throughput. Faster consensus doesn&apos;t help if execution can&apos;t keep up.
+                    </p>
+                </div>
             </div>
         </div>
     )

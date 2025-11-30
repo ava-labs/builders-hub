@@ -103,9 +103,11 @@ function MempoolStage({ txs, colors }: { txs: Transaction[]; colors: Colors }) {
               <div className={`text-[10px] font-mono uppercase tracking-wider ${colors.text} mb-2`}>
                 Transaction Pool
               </div>
-              <div className={`text-[9px] font-mono leading-relaxed`} style={{ color: `${colors.stroke}90` }}>
-                <p>Incoming transactions arrive via RPC and are collected in the mempool.</p>
-                <p className="mt-2">Block builders select transactions to propose blocks, applying worst-case bounds on execution.</p>
+              <div className={`text-[9px] font-mono leading-relaxed space-y-2`} style={{ color: `${colors.stroke}90` }}>
+                <p>Incoming transactions arrive via RPC and collect here before being included in blocks.</p>
+                <p>Block builders validate transactions can pay for worst-case gas costs — ensuring every accepted transaction will eventually settle.</p>
+                <p style={{ color: `${colors.stroke}70` }}>• Signatures and nonces verified</p>
+                <p style={{ color: `${colors.stroke}70` }}>• No execution or state computation yet</p>
               </div>
             </div>
             {/* Arrow pointing up */}
@@ -281,11 +283,12 @@ function ProposedStage({ block, colors }: { block: Block | null; colors: Colors 
                 Block Proposal
               </div>
               <div className={`text-[9px] font-mono leading-relaxed space-y-2`} style={{ color: `${colors.stroke}90` }}>
-                <p>Block builders no longer execute transactions during block building.</p>
-                <p>They build on the most recently settled state and apply worst-case bounds on ancestor blocks.</p>
-                <p style={{ color: `${colors.stroke}70` }}>• Minimum sender balances enforced</p>
-                <p style={{ color: `${colors.stroke}70` }}>• Maximum base fee verified</p>
-                <p className="mt-1">Validators verify these bounds before adding block to consensus.</p>
+                <p>Consensus validates that transactions <em>can</em> be executed — not executing them yet.</p>
+                <p>Lightweight validation only:</p>
+                <p style={{ color: `${colors.stroke}70` }}>• Verify signatures and nonces</p>
+                <p style={{ color: `${colors.stroke}70` }}>• Enforce worst-case gas bounds</p>
+                <p style={{ color: `${colors.stroke}70` }}>• Confirm senders can pay max possible cost</p>
+                <p className="mt-1">No state changes computed — validators aren&apos;t bottlenecked by VM time.</p>
               </div>
             </div>
             {/* Arrow pointing up */}
@@ -412,8 +415,12 @@ function AcceptedStage({ block, colors, isSettling }: { block: Block | null; col
                 Consensus Accepted
               </div>
               <div className={`text-[9px] font-mono leading-relaxed space-y-2`} style={{ color: `${colors.stroke}90` }}>
-                <p>Once a block is marked as accepted by consensus, it is placed in a FIFO execution queue.</p>
-                <p style={{ color: '#22c55e' }}>When this block includes execution results, it triggers settlement of executed blocks.</p>
+                <p>Block is accepted into the canonical chain — transaction order is now final.</p>
+                <p>Consensus responsibilities complete:</p>
+                <p style={{ color: `${colors.stroke}70` }}>• Block added to FIFO execution queue</p>
+                <p style={{ color: `${colors.stroke}70` }}>• Queue size limits enforced (DoS protection)</p>
+                <p style={{ color: '#22c55e' }}>• May include settlement data for previously executed blocks</p>
+                <p className="mt-1">Consensus continues accepting new blocks without waiting for execution.</p>
               </div>
             </div>
             {/* Arrow pointing up */}
@@ -444,20 +451,6 @@ function QueueStage({ blocks, colors }: { blocks: Block[]; colors: Colors }) {
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
-        {/* Subtle pulsing amber border - indicates waiting/buffered state */}
-        <motion.div
-          className="absolute inset-0 pointer-events-none z-10"
-          style={{ border: '1.5px solid #f59e0b' }}
-          animate={{ 
-            opacity: [0.4, 0.7, 0.4],
-            boxShadow: [
-              '0 0 0px rgba(245, 158, 11, 0)',
-              '0 0 8px rgba(245, 158, 11, 0.3)',
-              '0 0 0px rgba(245, 158, 11, 0)',
-            ]
-          }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        />
         <AnimatePresence mode="popLayout">
           {blocks.length === 0 && (
             <span
@@ -508,11 +501,15 @@ function QueueStage({ blocks, colors }: { blocks: Block[]; colors: Colors }) {
               }}
             >
               <div className={`text-[11px] font-mono uppercase tracking-wider ${colors.text} font-semibold mb-2`}>
-                FIFO Queue
+                FIFO Execution Queue
               </div>
-              <div className={`text-[9px] font-mono leading-relaxed`} style={{ color: `${colors.stroke}90` }}>
-                <p>Once a block is accepted by consensus, it is placed in this FIFO execution queue.</p>
-                <p className="mt-2">This decouples consensus from execution, allowing both to operate independently.</p>
+              <div className={`text-[9px] font-mono leading-relaxed space-y-2`} style={{ color: `${colors.stroke}90` }}>
+                <p>The bridge between consensus and execution — blocks wait here after acceptance.</p>
+                <p>Key properties:</p>
+                <p style={{ color: `${colors.stroke}70` }}>• First-in, first-out ordering preserved</p>
+                <p style={{ color: `${colors.stroke}70` }}>• Queue size bounded to prevent DoS</p>
+                <p style={{ color: `${colors.stroke}70` }}>• Consensus runs ahead while queue drains</p>
+                <p className="mt-1">This decoupling eliminates context switching — consensus and execution run simultaneously.</p>
               </div>
             </div>
             {/* Arrow pointing up */}
@@ -1226,7 +1223,7 @@ export function StreamingAsyncExecution({ colors }: { colors: Colors }) {
       <div className="mb-1 md:mb-2">
         <div className="flex items-center gap-2 mb-2 md:mb-3 px-1">
           <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-[0.15em] ${colors.text} font-semibold`}>
-            Consensus Stream (<a href="/docs/primary-network/avalanche-consensus" className="hover:underline cursor-pointer text-blue-500 hover:text-blue-400">Snowman</a>)
+            <span style={{ color: `${colors.stroke}60` }}>Consensus</span> Stream (<a href="/docs/primary-network/avalanche-consensus" className="hover:underline cursor-pointer text-blue-500 hover:text-blue-400">Snowman</a>)
           </span>
         </div>
 
@@ -1245,8 +1242,8 @@ export function StreamingAsyncExecution({ colors }: { colors: Colors }) {
             </div>
           </div>
         </div>
-        <p className={`text-sm sm:text-xs md:text-[11px] ${colors.textMuted} mt-2 md:mt-4 font-mono uppercase tracking-wider`}>
-          Consensus stream rapidly orders and accepts blocks with lightweight consensus validation
+        <p className={`text-sm sm:text-xs md:text-[11px] ${colors.text} mt-2 md:mt-4 font-mono uppercase tracking-wider`}>
+          Orders transactions and validates they can pay for <span style={{ color: '#ef4444' }}>execution</span> — without running the VM
         </p>
       </div>
 
@@ -1284,8 +1281,8 @@ export function StreamingAsyncExecution({ colors }: { colors: Colors }) {
         <div className={`border ${colors.border} p-2 md:p-4 ${colors.blockBg}`}>
           <QueueStage blocks={queuedBlocks} colors={colors} />
         </div>
-        <p className={`text-sm sm:text-xs md:text-[11px] ${colors.textMuted} mt-2 md:mt-4 font-mono uppercase tracking-wider`}>
-         Blocks buffer in a FIFO queue, decoupling consensus and execution while guaranteeing execution order
+        <p className={`text-sm sm:text-xs md:text-[11px] ${colors.text} mt-2 md:mt-4 font-mono uppercase tracking-wider`}>
+          Accepted blocks wait here — <span style={{ color: `${colors.stroke}60` }}>consensus</span> runs ahead while the executor drains the queue
         </p>
       </div>
 
@@ -1318,7 +1315,7 @@ export function StreamingAsyncExecution({ colors }: { colors: Colors }) {
       <div className="mt-0 md:mt-1 overflow-visible">
         <div className="flex items-center gap-2 mb-2 md:mb-3 px-1">
           <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-[0.15em] ${colors.text} font-semibold`}>
-            Execution Stream
+            <span style={{ color: '#ef4444' }}>Execution</span> Stream
           </span>
         </div>
         <div className={`border ${colors.border} ${colors.blockBg} p-2 sm:p-4 overflow-visible`}>
@@ -1334,8 +1331,8 @@ export function StreamingAsyncExecution({ colors }: { colors: Colors }) {
               <SettledStage blocks={settledBlocks} colors={colors} />
           </div>
         </div>
-        <p className={`text-sm sm:text-xs md:text-[11px] text-red-500 mt-2 md:mt-4 font-mono uppercase tracking-wider`}>
-          Execution stream executes blocks sequentially and triggers settlement when a following accepted block includes the results
+        <p className={`text-sm sm:text-xs md:text-[11px] ${colors.text} mt-2 md:mt-4 font-mono uppercase tracking-wider`}>
+          Runs transactions and computes state — results stream immediately, settlement follows after τ = 5s
         </p>
       </div>
     </>

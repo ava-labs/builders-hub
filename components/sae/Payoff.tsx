@@ -141,36 +141,29 @@ function VRFCard({ colors }: { colors: Colors }) {
   )
 }
 
+const TX_ACTIONS = ['send', 'swap', 'mint', 'vote', 'stake', 'claim', 'bridge', 'buy']
+
+function getRandomAction() {
+  return TX_ACTIONS[Math.floor(Math.random() * TX_ACTIONS.length)]
+}
+
 function EncryptedMempoolCard({ colors }: { colors: Colors }) {
-  const [transactions, setTransactions] = useState<{ id: number; encrypted: boolean; revealed: boolean }[]>([
-    { id: 1, encrypted: true, revealed: true },
-    { id: 2, encrypted: true, revealed: true },
-    { id: 3, encrypted: true, revealed: false },
+  const [transactions, setTransactions] = useState<{ id: number; action: string }[]>([
+    { id: 1, action: 'swap' },
+    { id: 2, action: 'send' },
+    { id: 3, action: 'mint' },
+    { id: 4, action: 'vote' },
   ])
-  const idRef = useRef(3)
+  const idRef = useRef(4)
   
   useEffect(() => {
-    // Add new encrypted tx
-    const addInterval = setInterval(() => {
+    // Add new tx and remove oldest
+    const interval = setInterval(() => {
       idRef.current++
-      setTransactions(prev => [...prev.slice(-4), { id: idRef.current, encrypted: true, revealed: false }])
-    }, 1200)
-    
-    // Reveal oldest unrevealed tx
-    const revealInterval = setInterval(() => {
-      setTransactions(prev => {
-        const first = prev.find(t => !t.revealed)
-        if (first) {
-          return prev.map(t => t.id === first.id ? { ...t, revealed: true } : t)
-        }
-        return prev
-      })
+      setTransactions(prev => [...prev.slice(1), { id: idRef.current, action: getRandomAction() }])
     }, 1500)
     
-    return () => {
-      clearInterval(addInterval)
-      clearInterval(revealInterval)
-    }
+    return () => clearInterval(interval)
   }, [])
   
   return (
@@ -196,46 +189,45 @@ function EncryptedMempoolCard({ colors }: { colors: Colors }) {
             style={{ backgroundColor: `${colors.stroke}08`, border: `1px solid ${colors.stroke}15` }}
           >
             <AnimatePresence mode="popLayout">
-              {transactions.map((tx) => (
-                <motion.div
-                  key={tx.id}
-                  layout
-                  initial={{ scale: 0, x: 30 }}
-                  animate={{ scale: 1, x: 0 }}
-                  exit={{ scale: 0.8, x: -20, opacity: 0 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  className="w-12 h-12 flex flex-col items-center justify-center flex-shrink-0 relative overflow-hidden"
-                  style={{ 
-                    backgroundColor: tx.revealed ? '#22c55e15' : '#f59e0b15',
-                    border: `1px solid ${tx.revealed ? '#22c55e40' : '#f59e0b40'}`,
-                  }}
-                >
-                  {!tx.revealed && (
-                    <motion.div
-                      className="absolute inset-0 flex items-center justify-center"
-                      initial={{ opacity: 1 }}
-                      animate={{ opacity: 1 }}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
+              {transactions.map((tx, idx) => {
+                const isRevealed = idx === 0 // Leftmost is always revealed
+                return (
+                  <motion.div
+                    key={tx.id}
+                    layout
+                    initial={{ scale: 0, x: 30 }}
+                    animate={{ scale: 1, x: 0 }}
+                    exit={{ scale: 0.8, x: -20, opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    className="w-12 h-12 flex flex-col items-center justify-center flex-shrink-0 relative overflow-hidden"
+                    style={{ 
+                      backgroundColor: isRevealed ? '#ef444415' : `${colors.stroke}15`,
+                      border: `1px solid ${isRevealed ? '#ef444440' : `${colors.stroke}40`}`,
+                    }}
+                  >
+                    {!isRevealed && (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.stroke} strokeOpacity={0.6} strokeWidth="2">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                         <path d="M7 11V7a5 5 0 0110 0v4" />
                       </svg>
-                    </motion.div>
-                  )}
-                  {tx.revealed && (
-                    <motion.div
-                      className="absolute inset-0 flex flex-col items-center justify-center"
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                    >
-                      <span className={`text-[8px] font-mono ${colors.textMuted}`}>Tx</span>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3">
-                        <path d="M5 13l4 4L19 7" />
-                      </svg>
-                    </motion.div>
-                  )}
-                </motion.div>
-              ))}
+                    )}
+                    {isRevealed && (
+                      <motion.div
+                        className="flex flex-col items-center justify-center"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <span className={`text-[7px] font-mono uppercase`} style={{ color: '#ef4444' }}>{tx.action}</span>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2">
+                          <circle cx="12" cy="12" r="9" />
+                          <path d="M12 8v4M12 16h.01" />
+                        </svg>
+                      </motion.div>
+                    )}
+                  </motion.div>
+                )
+              })}
             </AnimatePresence>
           </div>
         </div>
@@ -243,12 +235,12 @@ function EncryptedMempoolCard({ colors }: { colors: Colors }) {
         {/* Protection indicators */}
         <div className="flex items-center justify-center gap-4">
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2" style={{ backgroundColor: '#f59e0b' }} />
+            <div className="w-2 h-2" style={{ backgroundColor: colors.stroke, opacity: 0.6 }} />
             <span className={`text-[9px] font-mono ${colors.textMuted}`}>encrypted</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2" style={{ backgroundColor: '#22c55e' }} />
-            <span className={`text-[9px] font-mono ${colors.textMuted}`}>revealed</span>
+            <div className="w-2 h-2" style={{ backgroundColor: '#ef4444' }} />
+            <span className={`text-[9px] font-mono ${colors.textMuted}`}>executed</span>
           </div>
         </div>
         
@@ -256,9 +248,9 @@ function EncryptedMempoolCard({ colors }: { colors: Colors }) {
         <div className="flex justify-center">
           <div 
             className="px-3 py-1.5 text-[10px] font-mono"
-            style={{ backgroundColor: '#ef444410', border: '1px solid #ef444430' }}
+            style={{ backgroundColor: '#22c55e15', border: '1px solid #22c55e40' }}
           >
-            <span style={{ color: '#ef4444' }}>✗ front-running blocked</span>
+            <span style={{ color: '#22c55e' }}>✓ front-running blocked</span>
           </div>
         </div>
       </div>

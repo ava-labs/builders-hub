@@ -258,10 +258,18 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
     let isMounted = true
     
     const scheduleNextBlock = () => {
-      // Sporadic intervals: minimum must be > animation duration to prevent overwrites
-      const randomInterval = Math.random() < 0.3 
-        ? 900 + Math.random() * 300   // 30% chance: fast (900-1200ms)
-        : 1400 + Math.random() * 1000 // 70% chance: slower (1400-2400ms)
+      // Sporadic intervals: more varied and faster overall
+      const rand = Math.random()
+      let randomInterval: number
+      if (rand < 0.4) {
+        randomInterval = 700 + Math.random() * 200   // 40% chance: fast (700-900ms)
+      } else if (rand < 0.7) {
+        randomInterval = 900 + Math.random() * 400   // 30% chance: medium (900-1300ms)
+      } else if (rand < 0.9) {
+        randomInterval = 1300 + Math.random() * 500  // 20% chance: slower (1300-1800ms)
+      } else {
+        randomInterval = 1800 + Math.random() * 700  // 10% chance: pause (1800-2500ms)
+      }
       
       const outerTimeout = setTimeout(() => {
         if (!isMounted) return
@@ -314,6 +322,19 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
   const processingBlocksRef = useRef<Set<number>>(new Set())
   const activeIntervalsRef = useRef<NodeJS.Timeout[]>([])
   const currentProcessingBlockRef = useRef<number | null>(null)
+  
+  // Refs to access current state in settlement timer without resetting it
+  const executingBlocksRef = useRef(executingBlocks)
+  const processedTxIndicesRef = useRef(processedTxIndices)
+  
+  // Keep refs in sync with state
+  useEffect(() => {
+    executingBlocksRef.current = executingBlocks
+  }, [executingBlocks])
+  
+  useEffect(() => {
+    processedTxIndicesRef.current = processedTxIndices
+  }, [processedTxIndices])
   
   // Emit smoke particles - process txs ONE BLOCK AT A TIME (wait for previous to finish)
   useEffect(() => {
@@ -407,48 +428,79 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
     }
   }, [beltBlocks, isProcessing])
   
-  // Check if all txs are processed, then spit out all blocks together
+  // Settlement timer - fires every 5 seconds (τ = 5s)
+  // Settles all fully-processed blocks, keeps partially-processed ones
+  // Uses refs to access current state so the timer doesn't reset
   useEffect(() => {
-    if (!isProcessing || executingBlocks.length === 0) return
-    
-    // Count total txs and processed txs
-    const totalTxs = executingBlocks.reduce((sum, b) => sum + b.txColors.length, 0)
-    let processedCount = 0
-    executingBlocks.forEach(block => {
-      block.txColors.forEach((_, idx) => {
-        if (processedTxIndices.has(`${block.id}-${idx}`)) {
-          processedCount++
+    const settlementInterval = setInterval(() => {
+      const currentExecutingBlocks = executingBlocksRef.current
+      const currentProcessedIndices = processedTxIndicesRef.current
+      
+      if (currentExecutingBlocks.length === 0) return
+      
+      // Find blocks that are fully processed (all txs done)
+      const fullyProcessedBlocks: typeof currentExecutingBlocks = []
+      const stillProcessingBlocks: typeof currentExecutingBlocks = []
+      
+      currentExecutingBlocks.forEach(block => {
+        const allTxsProcessed = block.txColors.every((_, idx) => 
+          currentProcessedIndices.has(`${block.id}-${idx}`)
+        )
+        if (allTxsProcessed) {
+          fullyProcessedBlocks.push(block)
+        } else {
+          stillProcessingBlocks.push(block)
         }
       })
-    })
-    
-    // All txs processed - spit out all blocks
-    if (processedCount >= totalTxs) {
-      // Small delay for visual effect
-      const timeout = setTimeout(() => {
-        // Move all executing blocks to settled as one batch
+      
+      // If we have fully processed blocks, settle them
+      if (fullyProcessedBlocks.length > 0) {
+        // Move fully processed blocks to settled as one batch
         setSettledBatches(prevBatches => {
           const newBatch = {
             id: batchIdRef.current++,
-            blocks: executingBlocks.map(b => ({ id: b.id, txCount: b.txCount, txColors: b.txColors })),
+            blocks: fullyProcessedBlocks.map(b => ({ id: b.id, txCount: b.txCount, txColors: b.txColors })),
             progress: 0,
             addedAt: Date.now(),
           }
           return [...prevBatches, newBatch]
         })
         
-        setExecutingBlocks([])
-        setProcessedTxIndices(new Set())
-        processingBlocksRef.current = new Set()
-        // Clear any remaining intervals
-        activeIntervalsRef.current.forEach(i => clearInterval(i))
-        activeIntervalsRef.current = []
-        setIsProcessing(false)
-      }, 200)
-      
-      return () => clearTimeout(timeout)
-    }
-  }, [isProcessing, executingBlocks, processedTxIndices])
+        // Keep only the still-processing blocks
+        setExecutingBlocks(stillProcessingBlocks)
+        
+        // Clean up processed indices for settled blocks
+        const settledBlockIds = new Set(fullyProcessedBlocks.map(b => b.id))
+        setProcessedTxIndices(prev => {
+          const newSet = new Set<string>()
+          prev.forEach(key => {
+            const blockId = parseInt(key.split('-')[0])
+            if (!settledBlockIds.has(blockId)) {
+              newSet.add(key)
+            }
+          })
+          return newSet
+        })
+        
+        // Clean up processing refs for settled blocks
+        settledBlockIds.forEach(id => processingBlocksRef.current.delete(id))
+        
+        // Clear currentProcessingBlockRef if that block was settled
+        if (currentProcessingBlockRef.current !== null && settledBlockIds.has(currentProcessingBlockRef.current)) {
+          currentProcessingBlockRef.current = null
+        }
+        
+        // If no blocks left, stop processing
+        if (stillProcessingBlocks.length === 0) {
+          activeIntervalsRef.current.forEach(i => clearInterval(i))
+          activeIntervalsRef.current = []
+          setIsProcessing(false)
+        }
+      }
+    }, 5000) // τ = 5 seconds
+    
+    return () => clearInterval(settlementInterval)
+  }, []) // Empty deps - timer runs once and never resets
 
   return (
     <div className={`w-full py-2 md:py-8 ${colors.bg}`}>
@@ -456,12 +508,13 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
       <div className="flex items-center justify-center gap-1" style={{ minWidth: 900 }}>
         {/* Consensus Box */}
         <motion.div
-          className={`relative ${colors.blockBg} flex items-center justify-center`}
+          className="relative flex items-center justify-center"
           style={{ 
             width: 100, 
             height: 90, 
             minWidth: 100,
-            border: incomingBlock?.phase === "accepted" ? "1.5px solid #22c55e" : `1px solid ${colors.stroke}30`,
+            backgroundColor: `${colors.stroke}25`,
+            border: incomingBlock?.phase === "accepted" ? "1.5px solid #22c55e" : `1px solid ${colors.stroke}40`,
           }}
           animate={incomingBlock?.phase === "accepted" 
             ? { x: 0, y: 0, rotate: 0 }
@@ -678,8 +731,14 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
 
         {/* Execution Box */}
         <div
-          className={`relative border ${colors.border} ${colors.blockBg} flex items-center justify-center`}
-          style={{ width: 150, height: 90, minWidth: 150 }}
+          className="relative flex items-center justify-center"
+          style={{ 
+            width: 150, 
+            height: 90, 
+            minWidth: 150,
+            backgroundColor: '#ef444415',
+            border: '1px solid #ef444440',
+          }}
         >
           {/* Simple input arrow */}
           <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10">
@@ -689,7 +748,8 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
           </div>
 
           <div
-            className={`absolute top-1 left-0 right-0 text-center text-[8px] uppercase tracking-[0.15em] ${colors.textFaint} font-mono`}
+            className="absolute top-1 left-0 right-0 text-center text-[8px] uppercase tracking-[0.15em] font-mono"
+            style={{ color: '#ef4444' }}
           >
             Execution
           </div>
