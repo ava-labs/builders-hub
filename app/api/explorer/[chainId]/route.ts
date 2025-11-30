@@ -106,7 +106,6 @@ interface ExplorerStats {
   totalTransactions: number;
   avgBlockTime: number;
   gasPrice: string;
-  tps: number;
   lastFinalizedBlock?: number;
   totalGasFeesInBlocks?: string; // Total gas fees for latest blocks in native token
 }
@@ -293,12 +292,12 @@ async function fetchDailyTxsByChain(): Promise<Map<string, TransactionHistoryPoi
     for (const chain of chains) {
       const chainId = chain.evmChainId.toString();
       const last14Values = chain.values.slice(last14DatesStart);
-      
+
       const history: TransactionHistoryPoint[] = last14Dates.map((dateStr, index) => {
         // Parse date string (format: "2024-11-27") and format to "Nov 27"
         const d = new Date(dateStr);
         const formattedDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        
+
         return {
           date: formattedDate,
           transactions: last14Values[index] || 0,
@@ -370,11 +369,11 @@ async function fetchPrice(coingeckoId: string): Promise<PriceData | undefined> {
 
     const data = await response.json();
     const priceUsd = data.market_data?.current_price?.usd || 0;
-    
+
     // Fetch AVAX price to calculate token price in AVAX
     const avaxPrice = await fetchAvaxPrice();
     const priceInAvax = avaxPrice > 0 ? priceUsd / avaxPrice : undefined;
-    
+
     const priceData: PriceData = {
       price: priceUsd,
       priceInAvax,
@@ -396,15 +395,15 @@ async function fetchPrice(coingeckoId: string): Promise<PriceData | undefined> {
 
 // Fetch historical ICM messages from the last N blocks using eth_getLogs
 async function fetchHistoricalIcmMessages(
-  rpcUrl: string, 
-  latestBlockNumber: number, 
+  rpcUrl: string,
+  latestBlockNumber: number,
   currentBlockchainId?: string,
   blockRange: number = 512
 ): Promise<Transaction[]> {
   try {
     const fromBlock = Math.max(0, latestBlockNumber - blockRange);
     const toBlock = latestBlockNumber;
-    
+
     // Query for cross-chain message events
     const logs: RpcLog[] = await fetchFromRPC(rpcUrl, "eth_getLogs", [{
       fromBlock: `0x${fromBlock.toString(16)}`,
@@ -412,9 +411,9 @@ async function fetchHistoricalIcmMessages(
       topics: [[CROSS_CHAIN_TOPICS.SendCrossChainMessage, CROSS_CHAIN_TOPICS.ReceiveCrossChainMessage]],
       limit: 10,
     }]);
-    
+
     if (!logs || logs.length === 0) return [];
-    
+
     // Get last 10 unique tx hashes (logs are in block order, take from end)
     const seenHashes = new Set<string>();
     const recentLogs: RpcLog[] = [];
@@ -425,28 +424,28 @@ async function fetchHistoricalIcmMessages(
         recentLogs.push(log);
       }
     }
-    
+
     // Collect all transaction hashes and block numbers first
     const txHashes: string[] = [];
     const blockNumbers: string[] = [];
     const logMap = new Map<string, RpcLog>(); // Map txHash -> log for later processing
-    
+
     for (const log of recentLogs) {
       txHashes.push(log.transactionHash);
       blockNumbers.push(log.blockNumber);
       logMap.set(log.transactionHash, log);
     }
-    
+
     // Fetch all transactions and blocks in parallel
     const [txResults, blockResults] = await Promise.all([
-      Promise.all(txHashes.map((txHash, index) => 
+      Promise.all(txHashes.map((txHash, index) =>
         fetchFromRPC(rpcUrl, "eth_getTransactionByHash", [txHash])
           .catch((error) => {
             console.error(`[Explorer API] Failed to fetch transaction ${txHash} (index ${index}):`, error);
             return null;
           }) as Promise<RpcTransaction | null>
       )),
-      Promise.all(blockNumbers.map((blockNumber, index) => 
+      Promise.all(blockNumbers.map((blockNumber, index) =>
         fetchFromRPC(rpcUrl, "eth_getBlockByNumber", [blockNumber, false])
           .catch((error) => {
             console.error(`[Explorer API] Failed to fetch block ${blockNumber} (index ${index}):`, error);
@@ -454,21 +453,21 @@ async function fetchHistoricalIcmMessages(
           }) as Promise<{ timestamp: string } | null>
       ))
     ]);
-    
+
     // Process results and build transactions array
     const transactions: Transaction[] = [];
     for (let i = 0; i < txHashes.length; i++) {
       const tx = txResults[i];
       const block = blockResults[i];
       const log = logMap.get(txHashes[i]);
-      
+
       if (!tx || !log) continue;
-      
+
       // Extract chain info from log
       const topic0 = log.topics?.[0]?.toLowerCase();
       let sourceBlockchainId: string | undefined;
       let destinationBlockchainId: string | undefined;
-      
+
       if (topic0 === CROSS_CHAIN_TOPICS.SendCrossChainMessage.toLowerCase()) {
         sourceBlockchainId = currentBlockchainId;
         destinationBlockchainId = log.topics[2];
@@ -476,7 +475,7 @@ async function fetchHistoricalIcmMessages(
         destinationBlockchainId = currentBlockchainId;
         sourceBlockchainId = log.topics[2];
       }
-      
+
       transactions.push({
         hash: tx.hash,
         from: tx.from,
@@ -491,7 +490,7 @@ async function fetchHistoricalIcmMessages(
         destinationBlockchainId,
       });
     }
-    
+
     return transactions;
   } catch (error) {
     console.error('[Explorer API] Failed to fetch historical ICM messages:', error);
@@ -502,7 +501,7 @@ async function fetchHistoricalIcmMessages(
 async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: string, coingeckoId?: string, tokenSymbol?: string, currentBlockchainId?: string, initialLoad?: boolean, lastFetchedBlock?: number): Promise<ExplorerData> {
   const startTime = Date.now();
   const timing: Record<string, number> = {};
-  
+
   // Get latest block number
   const blockNumberStart = Date.now();
   const latestBlockHex = await fetchFromRPC(rpcUrl, "eth_blockNumber");
@@ -511,7 +510,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
 
   // If lastFetchedBlock equals latest block, return empty data (nothing new)
   const noNewBlocks = lastFetchedBlock !== undefined && lastFetchedBlock >= latestBlockNumber;
-  
+
   if (noNewBlocks) {
     // Return minimal response - nothing new to fetch
     // transactionHistory is undefined to signal UI not to update it
@@ -520,7 +519,6 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
         latestBlock: latestBlockNumber,
         totalTransactions: 0,
         avgBlockTime: 0,
-        tps: 0,
         gasPrice: "0",
       },
       blocks: [],
@@ -565,7 +563,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
   // Skip receipt fetching if initialLoad is true
   const receiptMap = new Map<string, RpcTransactionReceipt>();
   const blockGasFees = new Map<number, bigint>();
-  
+
   if (!initialLoad) {
     const receiptsStart = Date.now();
     // Collect all transaction hashes from all blocks for receipt fetching
@@ -620,7 +618,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
   const blocks: Block[] = validBlocks.map((block, blockIndex) => {
     const gasFeeWei = blockGasFees.get(blockIndex) || BigInt(0);
     const gasFee = gasFeeWei > 0 ? (Number(gasFeeWei) / 1e18).toFixed(6) : undefined;
-    
+
     return {
       number: hexToNumber(block.number).toString(),
       hash: block.hash,
@@ -648,9 +646,9 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
   function isCrossChainTx(txHash: string): boolean {
     const receipt = receiptMap.get(txHash);
     if (!receipt?.logs) return false;
-    
+
     const crossChainTopics = Object.values(CROSS_CHAIN_TOPICS).map(t => t.toLowerCase());
-    return receipt.logs.some(log => 
+    return receipt.logs.some(log =>
       log.topics?.[0] && crossChainTopics.includes(log.topics[0].toLowerCase())
     );
   }
@@ -728,7 +726,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     const historicalIcm = await fetchHistoricalIcmMessages(rpcUrl, latestBlockNumber, currentBlockchainId);
     timing.historicalIcm = Date.now() - historicalIcmStart;
     timing.historicalIcmCount = historicalIcm.length;
-    
+
     // Merge with recent ICM messages, deduplicate by txHash
     const seenHashes = new Set(icmMessages.map(tx => tx.hash));
     for (const tx of historicalIcm) {
@@ -737,14 +735,14 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
         seenHashes.add(tx.hash);
       }
     }
-    
+
     // Sort by block number descending (most recent first)
     icmMessages.sort((a, b) => parseInt(b.blockNumber) - parseInt(a.blockNumber));
   } else {
     timing.historicalIcm = 0;
     timing.historicalIcmCount = 0;
   }
-  
+
   // Get latest 10 non-cross-chain transactions
   const transactions = allMappedTransactions
     .slice(0, 10);
@@ -772,14 +770,6 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     avgBlockTime = timeDiffs.reduce((a, b) => a + b, 0) / timeDiffs.length;
   }
 
-  // Calculate TPS from recent blocks
-  let tps = 0;
-  if (blocks.length >= 2 && avgBlockTime > 0) {
-    const totalTxs = blocks.reduce((sum, b) => sum + b.transactionCount, 0);
-    const totalTime = blocks.length * avgBlockTime;
-    tps = totalTxs / totalTime;
-  }
-
   // Fetch real cumulative transactions from API
   const cumulativeTxsStart = Date.now();
   const totalTransactions = await fetchCumulativeTxs(evmChainId);
@@ -799,7 +789,6 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     avgBlockTime: Math.round(avgBlockTime * 100) / 100,
     totalGasFeesInBlocks,
     gasPrice: `${gasPrice} Gwei`,
-    tps: Math.round(tps * 100) / 100,
     lastFinalizedBlock: latestBlockNumber - 2, // Approximate finalized block
   };
 
@@ -821,12 +810,12 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
 
   timing.total = Date.now() - startTime;
 
-  return { 
-    stats, 
-    blocks, 
-    transactions, 
+  return {
+    stats,
+    blocks,
+    transactions,
     icmMessages,
-    transactionHistory, 
+    transactionHistory,
     price,
     tokenSymbol: price?.symbol || tokenSymbol
   };
@@ -859,7 +848,7 @@ export async function GET(
     const priceOnly = searchParams.get('priceOnly') === 'true';
     const lastFetchedBlockParam = searchParams.get('lastFetchedBlock');
     const lastFetchedBlock = lastFetchedBlockParam ? parseInt(lastFetchedBlockParam, 10) : undefined;
-    
+
     // Find chain config
     const chain = l1ChainsData.find(c => c.chainId === chainId) as ChainConfig | undefined;
     if (!chain) {
@@ -875,7 +864,7 @@ export async function GET(
       ]);
       requestTiming.priceOnly = Date.now() - priceOnlyStart;
       requestTiming.total = Date.now() - requestStart;
-      
+
       return NextResponse.json({
         price,
         tokenSymbol: chain.tokenSymbol,

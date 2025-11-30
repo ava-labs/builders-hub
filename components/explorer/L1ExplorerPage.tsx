@@ -6,7 +6,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Line, LineChart, ResponsiveContainer, Tooltip, YAxis } from "recharts";
+import { Line, LineChart, ResponsiveContainer, Tooltip as RechartsTooltip, YAxis } from "recharts";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { formatTokenValue } from "@/utils/formatTokenValue";
@@ -75,7 +76,6 @@ interface ExplorerStats {
   totalTransactions: number;
   avgBlockTime: number;
   gasPrice: string;
-  tps: number;
   lastFinalizedBlock?: number;
   totalGasFeesInBlocks?: string;
 }
@@ -401,6 +401,23 @@ export default function L1ExplorerPage({
           !existingHashes.has(tx.hash)
         );
         
+        // Detect new ICM messages for animation
+        if (newIcmTransactions.length > 0) {
+          const newIcmHashes = new Set<string>(newIcmTransactions.map((tx: Transaction) => tx.hash));
+          setNewTxHashes((prev) => {
+            const combined = new Set<string>(prev);
+            newIcmHashes.forEach((hash: string) => combined.add(hash));
+            return combined;
+          });
+          setTimeout(() => {
+            setNewTxHashes((prev) => {
+              const updated = new Set<string>(prev);
+              newIcmHashes.forEach((hash: string) => updated.delete(hash));
+              return updated;
+            });
+          }, 1000);
+        }
+        
         // Add new ICM messages to the beginning (most recent first)
         const updatedIcmMessages = [...newIcmTransactions, ...prevIcmMessages];
         
@@ -525,6 +542,31 @@ export default function L1ExplorerPage({
     }
     return history;
   }, [data?.transactionHistory]);
+
+  // Calculate TPS from accumulated blocks
+  const calculatedTps = useMemo(() => {
+    if (accumulatedBlocks.length < 2) {
+      return 0;
+    }
+
+    // Get timestamps (blocks are sorted by block number descending - newest first)
+    const timestamps = accumulatedBlocks.map(b => new Date(b.timestamp).getTime() / 1000);
+    const firstBlockTime = timestamps[0]; // Newest block
+    const lastBlockTime = timestamps[timestamps.length - 1]; // Oldest block
+    
+    // Calculate total time as difference between first and last block
+    const totalTime = firstBlockTime - lastBlockTime;
+    
+    if (totalTime <= 0) {
+      return 0;
+    }
+
+    // Sum total transactions from accumulated blocks
+    const totalTxs = accumulatedBlocks.reduce((sum, b) => sum + b.transactionCount, 0);
+    const tps = totalTxs / totalTime;
+
+    return Math.round(tps * 100) / 100;
+  }, [accumulatedBlocks]);
 
   if (loading) {
     return (
@@ -663,9 +705,18 @@ export default function L1ExplorerPage({
                     <span className="text-base font-bold text-zinc-900 dark:text-white">
                       {formatNumber(data?.stats.totalTransactions || 0)}
                     </span>
-                    <span className="text-[11px] text-zinc-500">
-                      ({data?.stats.tps} TPS)
-                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span 
+                          className="text-[11px] text-zinc-500 cursor-help border-b border-dashed border-zinc-400 dark:border-zinc-500"
+                        >
+                          ({calculatedTps} TPS)
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Calculated from last {accumulatedBlocks.length} block{accumulatedBlocks.length !== 1 ? 's' : ''}</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
               </div>
@@ -718,7 +769,7 @@ export default function L1ExplorerPage({
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={transactionHistory}>
                     <YAxis hide domain={['dataMin', 'dataMax']} />
-                    <Tooltip
+                    <RechartsTooltip
                       content={({ active, payload }) => {
                         if (!active || !payload?.[0]) return null;
                         return (
