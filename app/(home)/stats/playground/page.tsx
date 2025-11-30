@@ -41,7 +41,7 @@ function PlaygroundContent() {
   const [savedLink, setSavedLink] = useState<string | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(!!playgroundId); // Show skeleton immediately if playgroundId is provided
   const [error, setError] = useState<string | null>(null);
   const [currentPlaygroundId, setCurrentPlaygroundId] = useState<string | null>(playgroundId);
   const [isOwner, setIsOwner] = useState(true);
@@ -428,9 +428,11 @@ function PlaygroundContent() {
     loadPlayground();
   }, [playgroundId, status]);
 
-  // Reset hasLoadedRef when playgroundId changes
+  // Reset hasLoadedRef and loading state when playgroundId changes
   useEffect(() => {
     hasLoadedRef.current = false;
+    // Show skeleton immediately if playgroundId is provided
+    setIsLoading(!!playgroundId);
   }, [playgroundId]);
 
   // Reset all state when navigating to blank playground (no ID)
@@ -462,6 +464,7 @@ function PlaygroundContent() {
       setCharts(resetCharts);
       setSavedCharts(resetCharts.map(chart => ({ ...chart })));
       setError(null);
+      setIsLoading(false);
     }
   }, [playgroundId]);
 
