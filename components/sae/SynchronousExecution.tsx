@@ -724,11 +724,11 @@ export function SynchronousExecution({ colors }: { colors: Colors }) {
       </div>
 
       {/* Note - outside container */}
-      <div className="mt-2 md:mt-4 space-y-3">
+      <div className="mt-2 md:mt-4">
         <p className={`text-sm sm:text-xs md:text-[11px] font-mono uppercase tracking-wider ${colors.text}`}>
           <span style={{ color: '#ef4444' }}>Execution</span> blocks everything — <span style={{ color: `${colors.stroke}60` }}>consensus</span> cannot proceed until the VM finishes
         </p>
-        <div className={`text-sm ${colors.textMuted} leading-relaxed space-y-2`}>
+        <div className={`text-base sm:text-sm ${colors.textMuted} leading-relaxed space-y-3 sm:space-y-2 mt-6 md:mt-10`}>
           <p>
             <strong className={colors.text}>The symmetrical bottleneck.</strong> Consensus waits for execution. Execution waits for consensus. Each block must fully complete before the next can even begin — the proposer executes, broadcasts, waits for other validators to execute, waits for votes, then finally settles.
           </p>

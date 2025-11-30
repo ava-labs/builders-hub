@@ -42,7 +42,7 @@ export function GuaranteedExecutionCard({ colors }: { colors: Colors }) {
         <h3 className={`text-lg font-bold ${colors.text} mb-2`}>
           Pay for worst case, always execute.
         </h3>
-        <p className={`text-sm ${colors.textMuted} leading-relaxed`}>
+        <p className={`text-base sm:text-sm ${colors.textMuted} leading-relaxed`}>
           If you can afford the maximum possible cost, your transaction is guaranteed to run.
         </p>
       </div>

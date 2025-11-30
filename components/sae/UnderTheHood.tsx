@@ -78,7 +78,7 @@ function GasClock({ colors }: { colors: Colors }) {
 
       {/* Explanation text */}
       <div className="mt-4 md:mt-6">
-        <p className={`text-sm ${colors.textMuted} leading-relaxed`}>
+        <p className={`text-base sm:text-sm ${colors.textMuted} leading-relaxed`}>
           <a href="/docs/acps/176-dynamic-evm-gas-limit-and-price-discovery-updates" className="font-semibold text-red-400 hover:underline">ACP-176</a> gave us <span className="italic font-mono text-red-400">R</span> — how much gas the network can process per second. If you know the gas consumed, you know how much time passed. SAE builds on this: <span className="italic font-mono text-red-400">R</span> shows up in the equations for block size limits, queue bounds, and when blocks settle.
         </p>
       </div>
@@ -269,14 +269,14 @@ export function BlockRelationship({ colors }: { colors: Colors }) {
         </div>
 
       </div>
-      <div className="mt-2 md:mt-4 space-y-2">
+      <div className="mt-2 md:mt-4">
         <p className={`text-sm sm:text-xs md:text-[11px] font-mono uppercase tracking-wider ${colors.text}`}>
           <span style={{ color: '#ef4444' }}>Execution</span> blocks can span multiple <span style={{ color: `${colors.stroke}60` }}>consensus</span> blocks
         </p>
-        <p className={`text-sm sm:text-xs md:text-[11px] font-mono uppercase tracking-wider ${colors.text}`}>
+        <p className={`text-sm sm:text-xs md:text-[11px] font-mono uppercase tracking-wider ${colors.text} mt-1`}>
           <span style={{ color: `${colors.stroke}60` }}>consensus</span> guarantees <span style={{ color: '#ef4444' }}>execution</span>, <span className="italic normal-case">eventually</span>
         </p>
-        <div className={`text-sm ${colors.textMuted} leading-relaxed space-y-3`}>
+        <div className={`text-base sm:text-sm ${colors.textMuted} leading-relaxed space-y-4 sm:space-y-3 mt-6 md:mt-10`}>
           <p>
             <strong className={colors.text}>Decoupled streams.</strong> Consensus orders and accepts transactions into a FIFO queue without waiting for execution. The executor processes blocks independently, running transactions and computing state changes. Both streams operate simultaneously — no context switching, no blocking.
           </p>

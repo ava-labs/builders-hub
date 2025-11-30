@@ -31,7 +31,7 @@ export function GasClockCard({ colors }: { colors: Colors }) {
         <h3 className={`text-lg font-bold ${colors.text} mb-2`}>
           Gas is the clock.
         </h3>
-        <p className={`text-sm ${colors.textMuted} leading-relaxed`}>
+        <p className={`text-base sm:text-sm ${colors.textMuted} leading-relaxed`}>
           <Link 
             href="/docs/acps/176-dynamic-evm-gas-limit-and-price-discovery-updates" 
             className="underline hover:opacity-80"

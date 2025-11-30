@@ -140,7 +140,7 @@ export function ParallelStreamsCard({ colors }: { colors: Colors }) {
         <h3 className={`text-lg font-bold ${colors.text} mb-2`}>
           Two engines, full speed.
         </h3>
-        <p className={`text-sm ${colors.textMuted} leading-relaxed`}>
+        <p className={`text-base sm:text-sm ${colors.textMuted} leading-relaxed`}>
           Consensus and execution run in parallel. No more waiting for one to finish before starting the other.
         </p>
       </div>

@@ -35,7 +35,7 @@ export function ImmediateConfirmationCard({ colors }: { colors: Colors }) {
         <h3 className={`text-lg font-bold ${colors.text} mb-2`}>
           See results instantly.
         </h3>
-        <p className={`text-sm ${colors.textMuted} leading-relaxed`}>
+        <p className={`text-base sm:text-sm ${colors.textMuted} leading-relaxed`}>
           Get transaction results the moment they execute — no waiting for settlement.
         </p>
       </div>

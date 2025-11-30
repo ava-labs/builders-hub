@@ -146,11 +146,11 @@ export function SynchronousExecutionDiagram({ colors }: { colors: Colors }) {
             </div>
 
             {/* Annotations at the bottom */}
-            <div className="mt-2 md:mt-4 space-y-3">
+            <div className="mt-2 md:mt-4">
                 <p className={`text-sm sm:text-xs md:text-[11px] font-mono uppercase tracking-wider ${colors.text}`}>
                     <span style={{ color: '#ef4444' }}>Execution</span> fragments <span style={{ color: `${colors.stroke}60` }}>consensus</span> — validators constantly context switch
                 </p>
-                <div className={`text-sm ${colors.textMuted} leading-relaxed space-y-2`}>
+                <div className={`text-base sm:text-sm ${colors.textMuted} leading-relaxed space-y-3 sm:space-y-2 mt-6 md:mt-10`}>
                     <p>
                         <strong className={colors.text}>Double execution per block.</strong> The proposer runs the VM before proposing (left red bar). Then every validator must re-execute to verify (middle red bar). Execution happens twice, yet only one result matters.
                     </p>

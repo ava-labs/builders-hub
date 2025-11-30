@@ -57,7 +57,7 @@ export function DeferredSettlementCard({ colors }: { colors: Colors }) {
         <h3 className={`text-lg font-bold ${colors.text} mb-2`}>
           Execute now, settle later.
         </h3>
-        <p className={`text-sm ${colors.textMuted} leading-relaxed`}>
+        <p className={`text-base sm:text-sm ${colors.textMuted} leading-relaxed`}>
           Transactions run immediately. The final proof is recorded a few seconds later.
         </p>
       </div>

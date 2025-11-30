@@ -40,7 +40,7 @@ function VRFCard({ colors }: { colors: Colors }) {
         <h3 className={`text-lg font-bold ${colors.text} mb-2`}>
           Real-time VRF
         </h3>
-        <p className={`text-sm ${colors.textMuted} leading-relaxed`}>
+        <p className={`text-base sm:text-sm ${colors.textMuted} leading-relaxed`}>
           Consensus artifacts become available during execution. Expose a verifiable random function for provably fair on-chain randomness.
         </p>
       </div>
@@ -172,7 +172,7 @@ function EncryptedMempoolCard({ colors }: { colors: Colors }) {
         <h3 className={`text-lg font-bold ${colors.text} mb-2`}>
           Encrypted mempool
         </h3>
-        <p className={`text-sm ${colors.textMuted} leading-relaxed`}>
+        <p className={`text-base sm:text-sm ${colors.textMuted} leading-relaxed`}>
           Sequence transactions before revealing contents. Front-running and MEV extraction become significantly harder.
         </p>
       </div>
