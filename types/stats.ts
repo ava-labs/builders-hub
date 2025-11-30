@@ -71,6 +71,10 @@ export interface L1Chain {
     linkedin?: string;
   };
   explorers?: BlockExplorer[];
+  rpcUrl?: string;
+  coingeckoId?: string;
+  tokenSymbol?: string;
+  sourcifySupport?: boolean;
 }
 
 export type TimeRange = "30d" | "90d" | "1y" | "all";

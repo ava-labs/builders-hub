@@ -1176,3 +1176,39 @@ body[data-hide-sidebar-dropdown] #nd-sidebar-mobile button:has(> div > p.text-sm
   opacity: 0.5;
 }
 
+/* Override global nav styles for explorer breadcrumb - no backgrounds or padding */
+nav.explorer-breadcrumb a,
+nav.explorer-breadcrumb a:hover,
+nav.explorer-breadcrumb a:focus,
+nav.explorer-breadcrumb a:active,
+nav.explorer-breadcrumb a[data-active="true"],
+nav.explorer-breadcrumb a[aria-current="page"],
+.explorer-breadcrumb a,
+.explorer-breadcrumb a:hover,
+.explorer-breadcrumb a:focus,
+.explorer-breadcrumb a:active,
+.explorer-breadcrumb a[data-active="true"],
+.explorer-breadcrumb a[aria-current="page"] {
+  padding: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+  scale: 1 !important;
+  cursor: pointer !important;
+}
+
+nav.explorer-breadcrumb li > a,
+nav.explorer-breadcrumb li > a:hover,
+.explorer-breadcrumb li > a,
+.explorer-breadcrumb li > a:hover {
+  padding: 0 !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+

@@ -179,7 +179,12 @@ export default function BubbleNavigation({
                   "transition-all duration-300 ease-out",
                   "transform-gpu",
                   isActive
-                    ? cn(config.activeColor, config.darkActiveColor, "text-white shadow-lg")
+                    ? cn(
+                        config.activeColor, 
+                        config.darkActiveColor, 
+                        config.darkTextColor ? "text-white " + config.darkTextColor : "text-white dark:text-white",
+                        "shadow-lg"
+                      )
                     : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100",
                   isHovered && !isActive ? "scale-105 shadow-md" : "",
                   "hover:shadow-xl",
