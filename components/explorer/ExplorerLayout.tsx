@@ -12,6 +12,7 @@ import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
+import { L1Chain } from "@/types/stats";
 
 interface ExplorerLayoutProps {
   chainId: string;
@@ -54,6 +55,11 @@ export function ExplorerLayout({
 }: ExplorerLayoutProps) {
   const router = useRouter();
   const { glacierSupported, isTokenDataLoading } = useExplorer();
+  
+  // Find the current chain to get category
+  const currentChain = useMemo(() => {
+    return l1ChainsData.find((chain) => chain.slug === chainSlug) as L1Chain | undefined;
+  }, [chainSlug]);
   
   // Get chains with RPC URLs (for overlapped logos display)
   const chainsWithRpc = useMemo(() => {
@@ -220,6 +226,19 @@ export function ExplorerLayout({
                         <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
                           {description}
                         </p>
+                      </div>
+                    )}
+                    {currentChain?.category && (
+                      <div className="mt-3">
+                        <span 
+                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
+                          style={{
+                            backgroundColor: `${themeColor}15`,
+                            color: themeColor,
+                          }}
+                        >
+                          {currentChain.category}
+                        </span>
                       </div>
                     )}
                     
