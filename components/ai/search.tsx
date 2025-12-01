@@ -579,7 +579,7 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
           <img 
             src="/avax-gpt.png" 
             alt="AI" 
-            className="size-6 object-contain"
+            className="size-6 object-contain dark:invert"
           />
           <DialogTitle className="text-sm font-semibold">AI Assistant</DialogTitle>
         </div>
@@ -613,7 +613,7 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
                   <img 
                     src="/avax-gpt.png" 
                     alt="AI" 
-                    className="mx-auto size-12 object-contain mb-4"
+                    className="mx-auto size-12 object-contain mb-4 dark:invert"
                   />
                   <h3 className="text-sm font-medium">How can I help?</h3>
                   <p className="text-xs text-fd-muted-foreground">
@@ -644,7 +644,7 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
                     <img 
                       src="/avax-gpt.png" 
                       alt="AI" 
-                      className="size-7 object-contain"
+                      className="size-7 object-contain dark:invert"
                     />
                     <p className="text-xs font-medium text-muted-foreground">AI Assistant</p>
                   </div>
@@ -716,7 +716,7 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
           <img 
             src="/avax-gpt.png" 
             alt="AI" 
-            className="size-7 object-contain"
+            className="size-7 object-contain dark:invert"
           />
           <DialogTitle className="text-lg font-semibold">AI Assistant</DialogTitle>
         </div>
@@ -753,7 +753,7 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
                 <img 
                   src="/avax-gpt.png" 
                   alt="AI" 
-                  className="mx-auto size-16 object-contain mb-6"
+                  className="mx-auto size-16 object-contain mb-6 dark:invert"
                 />
                 <h3 className="text-lg font-medium">How can I help you today?</h3>
                 <p className="text-sm text-fd-muted-foreground">
@@ -799,7 +799,7 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
                     <img 
                       src="/avax-gpt.png" 
                       alt="AI" 
-                      className="size-7 object-contain"
+                      className="size-7 object-contain dark:invert"
                     />
                     <p className="text-xs font-medium text-muted-foreground">AI Assistant</p>
                   </div>
