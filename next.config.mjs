@@ -62,6 +62,11 @@ const config = {
   async redirects() {
     return [
       {
+        source: 'docs/dapps/end-to-end/launch-ethereum-dapp',
+        destination: '/academy/blockchain/solidity-foundry',
+        permanent: true,
+      },
+      {
         source: '/docs/dapps/toolchains/foundry',
         destination: '/academy/blockchain/solidity-foundry/03-smart-contracts/03-foundry-quickstart',
         permanent: true,
