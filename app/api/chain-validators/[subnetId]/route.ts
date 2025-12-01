@@ -82,7 +82,6 @@ async function fetchAllValidators(subnetId: string, versionMap: Map<string, stri
   
   try {
     const isPrimaryNetwork = subnetId === "11111111111111111111111111111111LpoYY";
-    console.log(`Fetching validators for subnet: ${subnetId}, isPrimaryNetwork: ${isPrimaryNetwork}`);
     
     let result;
     if (isPrimaryNetwork) {
@@ -109,9 +108,6 @@ async function fetchAllValidators(subnetId: string, versionMap: Map<string, stri
     for await (const page of result) {
       pageCount++;
       
-      // Debug: Log the entire page structure
-      console.log(`Page ${pageCount} structure:`, JSON.stringify(page, null, 2).substring(0, 500));
-      
       // Handle different response structures
       // Both Primary Network and L1 validators use page.result.validators
       let pageData: any[] = page.result?.validators || [];
@@ -120,9 +116,6 @@ async function fetchAllValidators(subnetId: string, versionMap: Map<string, stri
       if (!isPrimaryNetwork) {
         pageData = pageData.filter((v: any) => v.remainingBalance > 0);
       }
-      
-      console.log(`Page ${pageCount}: Found ${pageData.length} validators (isPrimary: ${isPrimaryNetwork})`);
-      console.log(`Page ${pageCount}: pageData is array: ${Array.isArray(pageData)}`);
       
       if (!Array.isArray(pageData)) { 
         console.warn(`Page ${pageCount}: pageData is not an array`, typeof pageData);
@@ -170,7 +163,6 @@ async function fetchAllValidators(subnetId: string, versionMap: Map<string, stri
       if (pageValidators.length < PAGE_SIZE) { break; }
     }
     
-    console.log(`Total validators fetched for ${subnetId}: ${validators.length}`);
     return validators;
   } catch (error: any) {
     console.error('Error fetching validators for subnet:', subnetId, error);
