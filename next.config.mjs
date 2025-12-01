@@ -620,12 +620,7 @@ const config = {
       },
       {
         source: "/docs/quick-start/networks/fuji-testnet",
-        destination: "/docs/primary-network",
-        permanent: true,
-      },
-      {
-        source: "/docs/quick-start/Networks/fuji-testnet",
-        destination: "/docs/primary-network",
+        destination: "/docs/primary-network#c-chain-contract-chain",
         permanent: true,
       },
       {
