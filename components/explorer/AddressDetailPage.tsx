@@ -616,16 +616,17 @@ export default function AddressDetailPage({
           // Got results
           setDuneLabels(result.labels || []);
           setDuneLabelsLoading(false);
-        } else if (result.status === 'waiting') {
-          // Still waiting, poll again if not timed out
+        } else if (result.status === 'failed') {
+          // Execution failed, stop polling
+          setDuneLabelsLoading(false);
+        } else {
+          // Still waiting/executing, poll again if not timed out
+          // This handles 'waiting', 'executing', and any other pending status
           if (Date.now() - startTime < maxPollTime) {
             setTimeout(poll, pollInterval);
           } else {
             setDuneLabelsLoading(false);
           }
-        } else {
-          // Failed
-          setDuneLabelsLoading(false);
         }
       } catch (err) {
         console.error('[Dune] Fetch error:', err);
