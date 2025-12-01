@@ -24,7 +24,7 @@ export function L1BubbleNav({ chainSlug, themeColor = "#E57373", rpcUrl, isCusto
 
   // Build items list
   const items = [
-    { id: "stats", label: "Stats", href: `/stats/l1/${chainSlug}/stats` },
+    { id: "stats", label: "Stats", href: `/stats/l1/${chainSlug}` },
     { id: "explorer", label: "Explorer", href: `/explorer/${chainSlug}` },
     { id: "validators", label: "Validators", href: `/stats/validators/${chainSlug === "c-chain" ? "primary-network" : chainSlug}` },
   ];

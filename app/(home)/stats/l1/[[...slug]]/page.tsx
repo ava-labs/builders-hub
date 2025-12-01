@@ -18,7 +18,6 @@ export async function generateMetadata({
   const resolvedParams = await params;
   const slugArray = resolvedParams.slug || [];
   const chainSlug = slugArray[0];
-  const isStats = slugArray[1] === "stats";
   
   const currentChain = l1ChainsData.find((c) => c.slug === chainSlug) as L1Chain;
 
@@ -31,7 +30,7 @@ export async function generateMetadata({
 
   let title = `${currentChain.chainName} Metrics`;
   let description = `Track ${currentChain.chainName} L1 activity with real-time metrics including active addresses, transactions, gas usage, fees, and network performance data.`;
-  let url = `/stats/l1/${chainSlug}/stats`;
+  let url = `/stats/l1/${chainSlug}`;
 
   const imageParams = new URLSearchParams();
   imageParams.set("title", title);
@@ -65,8 +64,8 @@ export default async function L1Page({
   const resolvedParams = await params;
   const slugArray = resolvedParams.slug || [];
   const chainSlug = slugArray[0];
-  const isStats = slugArray[1] === "stats";
-  const isExplorer = slugArray[1] === "explorer";
+  const secondSegment = slugArray[1];
+  const isExplorer = secondSegment === "explorer";
   const isBlock = slugArray[2] === "block";
   const isTx = slugArray[2] === "tx";
   const isAddress = slugArray[2] === "address";
@@ -89,17 +88,12 @@ export default async function L1Page({
     }
   }
 
-  // Redirect /stats/l1/{chainSlug} to /stats/l1/{chainSlug}/stats for better UX
-  if (slugArray.length === 1) {
-    redirect(`/stats/l1/${chainSlug}/stats`);
-  }
-
   const currentChain = l1ChainsData.find((c) => c.slug === chainSlug) as L1Chain;
 
   if (!currentChain) { notFound(); }
 
-  // L1 Metrics page: /stats/l1/{chainSlug}/stats
-  if (isStats) {
+  // L1 Metrics page: /stats/l1/{chainSlug} (also handle legacy /stats/l1/{chainSlug}/stats)
+  if (slugArray.length === 1 || secondSegment === "stats") {
     return (
       <ChainMetricsPage
         chainId={currentChain.chainId}

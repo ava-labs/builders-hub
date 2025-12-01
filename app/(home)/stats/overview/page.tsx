@@ -816,7 +816,7 @@ export default function AvalancheMetrics() {
                       className={`border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50 ${
                         chainSlug ? "cursor-pointer" : ""
                       }`}
-                      onClick={() => chainSlug && (window.location.href = `/stats/l1/${chainSlug}/stats`)}
+                      onClick={() => chainSlug && (window.location.href = `/stats/l1/${chainSlug}`)}
                     >
                       {/* Chain Name - left aligned */}
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-2 sm:px-3 md:px-4 py-2 text-left">

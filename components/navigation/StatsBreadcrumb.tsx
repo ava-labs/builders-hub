@@ -237,7 +237,7 @@ export function StatsBreadcrumb({
     if (showExplorer) {
       router.push(`/explorer/${selectedSlug}`);
     } else if (showStats) {
-      router.push(`/stats/l1/${selectedSlug}/stats`);
+      router.push(`/stats/l1/${selectedSlug}`);
     } else if (showValidators) {
       router.push(`/stats/validators/${selectedSlug}`);
     }
