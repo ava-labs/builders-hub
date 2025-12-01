@@ -1,22 +1,36 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BarChart3, ChevronRight, Compass, Globe, ChevronDown } from "lucide-react";
+import { BarChart3, ChevronRight, Compass, Globe, ChevronDown, Plus } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
+import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
+import { useModalTrigger } from "@/components/toolbox/hooks/useModal";
+import type { AddChainResult } from "@/types/wallet";
 
 interface BreadcrumbItem {
   label: string;
   href?: string;
   icon?: React.ReactNode;
+}
+
+// Extended chain type for custom chains with testnet info
+interface CustomChainForDropdown {
+  chainId: string;
+  chainName: string;
+  chainLogoURI?: string;
+  slug: string;
+  isTestnet: boolean;
+  isCustom: true;
 }
 
 interface StatsBreadcrumbProps {
@@ -36,6 +50,59 @@ interface StatsBreadcrumbProps {
   className?: string;
 }
 
+// Generate initial from chain name (e.g., "My Custom Chain" -> "M")
+function getChainInitials(name: string): string {
+  const words = name.trim().split(/\s+/);
+  // Always use first letter of first word
+  return words[0]?.[0]?.toUpperCase() || '?';
+}
+
+// Chain logo component with fallback to initial
+function ChainLogo({ 
+  src, 
+  name, 
+  size = "sm" 
+}: { 
+  src?: string; 
+  name: string; 
+  size?: "sm" | "md";
+}) {
+  const imgSizeClasses = size === "sm" 
+    ? "w-4 h-4" 
+    : "w-3 h-3 sm:w-3.5 sm:h-3.5";
+  const textSizeClasses = size === "sm" 
+    ? "text-xs" 
+    : "text-[10px]";
+  const containerClasses = `${imgSizeClasses} ${textSizeClasses} rounded-sm bg-zinc-200 dark:bg-zinc-700 flex-shrink-0 flex items-center justify-center font-medium text-zinc-600 dark:text-zinc-300`;
+  
+  if (src) {
+    return (
+      <img 
+        src={src} 
+        alt="" 
+        className={`${imgSizeClasses} rounded-sm object-contain flex-shrink-0`}
+        onError={(e) => { 
+          // On error, replace with initial
+          const target = e.target as HTMLImageElement;
+          const parent = target.parentElement;
+          if (parent) {
+            const initialDiv = document.createElement('div');
+            initialDiv.className = containerClasses;
+            initialDiv.textContent = getChainInitials(name);
+            parent.replaceChild(initialDiv, target);
+          }
+        }}
+      />
+    );
+  }
+  
+  return (
+    <div className={containerClasses}>
+      {getChainInitials(name)}
+    </div>
+  );
+}
+
 export function StatsBreadcrumb({
   chainSlug,
   chainName,
@@ -47,6 +114,108 @@ export function StatsBreadcrumb({
   className = "",
 }: StatsBreadcrumbProps) {
   const router = useRouter();
+  const { openModal } = useModalTrigger<AddChainResult>();
+  const [customChains, setCustomChains] = useState<CustomChainForDropdown[]>([]);
+  
+  const handleAddCustomChain = async () => {
+    try {
+      const result = await openModal();
+      if (result?.success && result?.chainData) {
+        // Chain was added successfully, the dropdown will update automatically via the store subscription
+        // Optionally navigate to the new chain's explorer
+        router.push(`/stats/l1/${result.chainData.id}/explorer`);
+      }
+    } catch (error) {
+      // Modal was closed or cancelled, do nothing
+    }
+  };
+  
+  // Load custom chains from localStorage on mount
+  useEffect(() => {
+    const testnetStore = getL1ListStore(true);
+    const mainnetStore = getL1ListStore(false);
+    
+    const testnetChains: L1ListItem[] = testnetStore.getState().l1List;
+    const mainnetChains: L1ListItem[] = mainnetStore.getState().l1List;
+    
+    // Get all static chain identifiers for conflict checking
+    const staticChainIds = new Set((l1ChainsData as L1Chain[]).map(c => c.chainId));
+    const staticSlugs = new Set((l1ChainsData as L1Chain[]).map(c => c.slug));
+    
+    // Convert and filter custom chains (exclude those that conflict with static chains)
+    const allCustomChains = [...testnetChains, ...mainnetChains];
+    const filteredCustomChains: CustomChainForDropdown[] = allCustomChains
+      .filter(item => {
+        // Check for conflicts with static chains by chainId or slug
+        const hasChainIdConflict = staticChainIds.has(String(item.evmChainId));
+        const hasSlugConflict = staticSlugs.has(item.id);
+        
+        // Exclude if there's any conflict (chain exists in static data)
+        return !hasChainIdConflict && !hasSlugConflict;
+      })
+      .map(item => ({
+        chainId: String(item.evmChainId),
+        chainName: item.name,
+        chainLogoURI: item.logoUrl,
+        slug: item.id, // Use blockchain ID as slug
+        isTestnet: item.isTestnet,
+        isCustom: true as const,
+      }));
+    
+    setCustomChains(filteredCustomChains);
+    
+    // Subscribe to store changes
+    const unsubTestnet = testnetStore.subscribe(() => {
+      const chains = testnetStore.getState().l1List;
+      const filtered = chains
+        .filter((item: L1ListItem) => {
+          const hasChainIdConflict = staticChainIds.has(String(item.evmChainId));
+          const hasSlugConflict = staticSlugs.has(item.id);
+          return !hasChainIdConflict && !hasSlugConflict;
+        })
+        .map((item: L1ListItem) => ({
+          chainId: String(item.evmChainId),
+          chainName: item.name,
+          chainLogoURI: item.logoUrl,
+          slug: item.id,
+          isTestnet: item.isTestnet,
+          isCustom: true as const,
+        }));
+      
+      setCustomChains(prev => {
+        const mainnetOnly = prev.filter(c => !c.isTestnet);
+        return [...filtered, ...mainnetOnly];
+      });
+    });
+    
+    const unsubMainnet = mainnetStore.subscribe(() => {
+      const chains = mainnetStore.getState().l1List;
+      const filtered = chains
+        .filter((item: L1ListItem) => {
+          const hasChainIdConflict = staticChainIds.has(String(item.evmChainId));
+          const hasSlugConflict = staticSlugs.has(item.id);
+          return !hasChainIdConflict && !hasSlugConflict;
+        })
+        .map((item: L1ListItem) => ({
+          chainId: String(item.evmChainId),
+          chainName: item.name,
+          chainLogoURI: item.logoUrl,
+          slug: item.id,
+          isTestnet: item.isTestnet,
+          isCustom: true as const,
+        }));
+      
+      setCustomChains(prev => {
+        const testnetOnly = prev.filter(c => c.isTestnet);
+        return [...testnetOnly, ...filtered];
+      });
+    });
+    
+    return () => {
+      unsubTestnet();
+      unsubMainnet();
+    };
+  }, []);
   
   // Filter chains based on context
   const availableChains = useMemo(() => {
@@ -123,19 +292,34 @@ export function StatsBreadcrumb({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0">
-                    {chainLogoURI && (
-                      <img 
-                        src={chainLogoURI} 
-                        alt="" 
-                        className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-sm object-contain"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                      />
+                    {chainSlug === 'all-chains' ? (
+                      <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500 flex-shrink-0" />
+                    ) : (
+                      <ChainLogo src={chainLogoURI} name={chainName} size="md" />
                     )}
                     <span className="max-w-[80px] sm:max-w-none truncate">{chainName}</span>
                     <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 opacity-50" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="max-h-[400px] overflow-y-auto">
+                <DropdownMenuContent align="start" className="max-h-[500px] overflow-y-auto">
+                  {/* All Chains option - only show on explorer page */}
+                  {showExplorer && (
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => router.push('/stats/explorer')}
+                        className="cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2 w-full">
+                          <Globe className="w-4 h-4 text-red-500" />
+                          <span className={chainSlug === 'all-chains' ? "font-medium" : ""}>
+                            All Chains
+                          </span>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+                  
                   {availableChains.map((chain) => (
                     <DropdownMenuItem
                       key={chain.chainId}
@@ -143,20 +327,58 @@ export function StatsBreadcrumb({
                       className="cursor-pointer"
                     >
                       <div className="flex items-center gap-2 w-full">
-                        {chain.chainLogoURI && (
-                          <img 
-                            src={chain.chainLogoURI} 
-                            alt="" 
-                            className="w-4 h-4 rounded-sm object-contain flex-shrink-0"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          />
-                        )}
+                        <ChainLogo src={chain.chainLogoURI} name={chain.chainName} />
                         <span className={chainSlug === chain.slug ? "font-medium" : ""}>
                           {chain.chainName}
                         </span>
                       </div>
                     </DropdownMenuItem>
                   ))}
+                  
+                  {/* Custom chains section - only show on explorer page */}
+                  {showExplorer && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <div className="px-2 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                        Custom Chains
+                      </div>
+                      {customChains.length > 0 ? (
+                        customChains.map((chain) => (
+                          <DropdownMenuItem
+                            key={`custom-${chain.slug}`}
+                            onClick={() => handleChainSelect(chain.slug)}
+                            className="cursor-pointer"
+                          >
+                            <div className="flex items-center gap-2 w-full">
+                              <ChainLogo src={chain.chainLogoURI} name={chain.chainName} />
+                              <span className={chainSlug === chain.slug ? "font-medium" : ""}>
+                                {chain.chainName}
+                              </span>
+                              {chain.isTestnet && (
+                                <span className="ml-auto px-1.5 py-0.5 text-[10px] font-medium rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                                  Testnet
+                                </span>
+                              )}
+                            </div>
+                          </DropdownMenuItem>
+                        ))
+                      ) : (
+                        <div className="px-2 py-1.5 text-xs text-zinc-400 dark:text-zinc-500">
+                          No custom chains yet
+                        </div>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={handleAddCustomChain}
+                        className="cursor-pointer text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                      >
+                        <div className="flex items-center gap-2 w-full">
+                          <Plus className="w-4 h-4" />
+                          <span className="font-medium">Add Custom Chain</span>
+                        </div>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
@@ -164,14 +386,7 @@ export function StatsBreadcrumb({
                 href={showExplorer ? `/stats/l1/${chainSlug}/explorer` : `/stats/l1/${chainSlug}/stats`} 
                 className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
               >
-                {chainLogoURI && (
-                  <img 
-                    src={chainLogoURI} 
-                    alt="" 
-                    className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-sm object-contain"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                  />
-                )}
+                <ChainLogo src={chainLogoURI} name={chainName} size="md" />
                 <span className="max-w-[80px] sm:max-w-none truncate">{chainName}</span>
               </Link>
             )}

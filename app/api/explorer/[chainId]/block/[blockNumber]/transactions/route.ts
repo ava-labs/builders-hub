@@ -59,7 +59,7 @@ export async function GET(
   { params }: { params: Promise<{ chainId: string; blockNumber: string }> }
 ) {
   const { chainId, blockNumber } = await params;
-  
+
   // Get query params for custom chains
   const { searchParams } = new URL(request.url);
   const customRpcUrl = searchParams.get('rpcUrl');

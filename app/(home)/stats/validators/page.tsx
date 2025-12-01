@@ -31,7 +31,7 @@ export default function ValidatorStatsPage() {
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [data, setData] = useState<SubnetStats[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Start with loading true since we fetch on mount
   const [error, setError] = useState<string | null>(null);
   const [network, setNetwork] = useState<Network>("mainnet");
   const [minVersion, setMinVersion] = useState<string>("");
@@ -813,7 +813,7 @@ export default function ValidatorStatsPage() {
                           onClick={(e) => {
                             e.stopPropagation();
                             if (subnet.id === "11111111111111111111111111111111LpoYY") {
-                              router.push("/stats/primary-network/validators");
+                              router.push("/stats/validators/primary-network");
                             }
                           }}
                           className="disabled:opacity-50 disabled:cursor-not-allowed"

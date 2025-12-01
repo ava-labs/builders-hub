@@ -773,35 +773,35 @@ export default function L1ExplorerPage({
               </div>
               <div className="relative">
                 <div className={`h-14 ${!hasIndexedTransactionHistory ? 'blur-[2px] opacity-50' : ''}`}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={transactionHistory}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={transactionHistory}>
                       <YAxis hide domain={hasIndexedTransactionHistory ? ['dataMin', 'dataMax'] : [0, 100]} />
                       {hasIndexedTransactionHistory && (
-                        <RechartsTooltip
-                          content={({ active, payload }) => {
-                            if (!active || !payload?.[0]) return null;
-                            return (
-                              <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1 shadow-lg">
-                                <p className="text-[10px] text-zinc-500">{payload[0].payload.date}</p>
-                                <p className="text-xs font-semibold" style={{ color: themeColor }}>
-                                  {payload[0].value?.toLocaleString()} txns
-                                </p>
-                              </div>
-                            );
-                          }}
-                        />
+                    <RechartsTooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.[0]) return null;
+                        return (
+                          <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1 shadow-lg">
+                            <p className="text-[10px] text-zinc-500">{payload[0].payload.date}</p>
+                            <p className="text-xs font-semibold" style={{ color: themeColor }}>
+                              {payload[0].value?.toLocaleString()} txns
+                            </p>
+                          </div>
+                        );
+                      }}
+                    />
                       )}
-                      <Line
-                        type="monotone"
-                        dataKey="transactions"
+                    <Line
+                      type="monotone"
+                      dataKey="transactions"
                         stroke={hasIndexedTransactionHistory ? themeColor : '#9CA3AF'}
-                        strokeWidth={1.5}
-                        dot={false}
+                      strokeWidth={1.5}
+                      dot={false}
                         activeDot={hasIndexedTransactionHistory ? { r: 3, fill: themeColor } : false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
                 {/* Overlay for non-indexed chains */}
                 {!hasIndexedTransactionHistory && (
                   <div className="absolute inset-0 flex items-center justify-center">

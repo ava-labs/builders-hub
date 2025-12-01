@@ -848,7 +848,7 @@ export async function GET(
     const priceOnly = searchParams.get('priceOnly') === 'true';
     const lastFetchedBlockParam = searchParams.get('lastFetchedBlock');
     const lastFetchedBlock = lastFetchedBlockParam ? parseInt(lastFetchedBlockParam, 10) : undefined;
-    
+
     // Support custom chains by accepting rpcUrl as query parameter
     const customRpcUrl = searchParams.get('rpcUrl');
     const customTokenSymbol = searchParams.get('tokenSymbol');

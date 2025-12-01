@@ -466,8 +466,44 @@ export default function PrimaryNetworkValidatorMetrics() {
             ))}
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-          <ChartSkeletonLoader />
+        {/* Content Skeleton */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
+          {/* Section header skeleton */}
+          <div className="space-y-2 animate-pulse">
+            <div className="h-6 w-48 bg-zinc-200 dark:bg-zinc-800 rounded" />
+            <div className="h-4 w-72 bg-zinc-200 dark:bg-zinc-800 rounded" />
+          </div>
+          {/* Chart grid skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950">
+                {/* Chart header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-zinc-700 animate-pulse">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                    <div className="space-y-2">
+                      <div className="h-5 w-32 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                      <div className="h-3 w-40 bg-zinc-200 dark:bg-zinc-800 rounded hidden sm:block" />
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map(j => (
+                      <div key={j} className="w-8 h-7 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                    ))}
+                  </div>
+                </div>
+                {/* Chart body */}
+                <div className="p-5 animate-pulse">
+                  <div className="flex items-center gap-4 mb-4 pl-4">
+                    <div className="h-6 w-32 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                    <div className="h-5 w-16 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                  </div>
+                  <div className="h-[350px] bg-zinc-100 dark:bg-zinc-900 rounded-lg" />
+                  <div className="mt-4 h-20 bg-zinc-100 dark:bg-zinc-900 rounded-lg" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
         <StatsBubbleNav />
       </div>
@@ -1274,7 +1310,12 @@ export default function PrimaryNetworkValidatorMetrics() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {versionsError ? (
+              {loading ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Shield className="h-12 w-12 mx-auto mb-4 opacity-50 animate-pulse" />
+                  <p>Loading validator versions...</p>
+                </div>
+              ) : versionsError ? (
                 <div className="text-center py-8">
                   <p className="text-destructive mb-4">
                     Error: {versionsError}
@@ -1349,14 +1390,8 @@ export default function PrimaryNetworkValidatorMetrics() {
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No validator versions data available</p>
-                  <button
-                    onClick={fetchData}
-                    className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-                  >
-                    Reload Data
-                  </button>
+                  <Shield className="h-12 w-12 mx-auto mb-4 opacity-50 animate-pulse" />
+                  <p>Loading validator versions...</p>
                 </div>
               )}
             </CardContent>
@@ -1807,3 +1842,4 @@ function ValidatorChartCard({
     </Card>
   );
 }
+

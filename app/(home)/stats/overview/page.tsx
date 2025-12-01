@@ -16,6 +16,9 @@ import {
   ExternalLink,
   X,
   ChevronDown,
+  Globe,
+  ChevronRight,
+  BarChart3,
 } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -615,6 +618,23 @@ export default function AvalancheMetrics() {
       {/* Hero - Clean typographic approach */}
       <div className="border-b border-zinc-200 dark:border-zinc-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-1.5 text-xs sm:text-sm mb-3 sm:mb-4 overflow-x-auto scrollbar-hide pb-1">
+            <span className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 whitespace-nowrap flex-shrink-0">
+              <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <span>Ecosystem</span>
+            </span>
+            <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
+            <span className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 whitespace-nowrap flex-shrink-0">
+              <span>All Chains</span>
+            </span>
+            <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
+            <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap flex-shrink-0">
+              <BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500" />
+              <span>Overview</span>
+            </span>
+          </nav>
+
           <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
             <div className="space-y-4 sm:space-y-6 flex-1">
               <div>
