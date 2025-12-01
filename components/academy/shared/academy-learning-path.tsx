@@ -11,23 +11,9 @@ export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
         <div id="learning-path-section" className="mb-20 scroll-mt-20">
             <div className="text-center mb-6">
                 <h2 className="text-3xl sm:text-4xl font-bold text-zinc-900 dark:text-white mb-3">
-                    Learning Path for{" "}
-                    {pathType === 'avalanche' ? (
-                        <>
-                            <span className="text-red-600">Avalanche L1</span>
-                            {" "}Developer
-                        </>
-                    ) : pathType === 'blockchain' ? (
-                        <>
-                            <span className="text-red-600">Blockchain</span>
-                            {" "}Developer
-                        </>
-                    ) : (
-                        <>
-                            <span className="text-red-600">Entrepreneur </span>
-                            Academy
-                        </>
-                    )}
+                    Explore our <span className="text-red-600">
+                        {pathType === 'avalanche' ? 'Avalanche L1' : pathType === 'blockchain' ? 'Blockchain' : 'Entrepreneur'}
+                    </span> Courses
                 </h2>
 
                 {/* Visual hint - more compact */}
