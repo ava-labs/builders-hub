@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { Suspense } from "react";
 import ChainMetricsPage from "@/components/stats/ChainMetricsPage";
 
 export const metadata: Metadata = {
@@ -13,13 +14,14 @@ export const metadata: Metadata = {
 
 export default function AllChainsStatsPage() {
   return (
-    <ChainMetricsPage
-      chainId="all"
-      chainName="All Chains"
-      chainSlug="all"
-      description="Aggregated metrics and analytics across all Avalanche L1 chains"
-      themeColor="#E84142"
-    />
+    <Suspense fallback={<div className="min-h-screen" />}>
+      <ChainMetricsPage
+        chainId="all"
+        chainName="All Chains"
+        chainSlug="all"
+        description="Aggregated metrics and analytics across all Avalanche L1 chains"
+        themeColor="#E84142"
+      />
+    </Suspense>
   );
 }
-
