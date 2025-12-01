@@ -56,6 +56,12 @@
   {
     "chainId": "43114",
     "chainName": "Avalanche C-Chain",
+    "description": "The Avalanche C-Chain is the EVM chain of the Primary L1. It is the liquidity hub of the Avalanche ecosystem and is validated by a large permissionless validator set.",
+    "website": "https://avax.network/",
+    "socials": {
+      "twitter": "avax",
+      "linkedin": "avalancheavax"
+    },
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
     "blockchainId": "0x0427d4b22a2a78bcddd456742caf91b56badbff985ee19aef14573e7343fd652",
     "subnetId": "11111111111111111111111111111111LpoYY",
@@ -140,6 +146,7 @@
     "description": "The Binary Holdings is a Web3 infrastructure firm powers loyalty programs for telcos in South East Asia, has officially deployed its native Avalanche L1, giving TBH the foundation to accelerate user adoption through its unique telco-powered distribution network.",
     "website": "https://www.thebinaryholdings.com/",
     "socials": {
+      "twitter": "thebinaryhldgs",
       "linkedin": "the-binary-holdings"
     },
     "explorers": [

@@ -74,6 +74,11 @@ interface ChainMetricsPageProps {
     linkedin?: string;
   };
   rpcUrl?: string;
+  category?: string;
+  explorers?: Array<{
+    name: string;
+    link: string;
+  }>;
 }
 
 export default function ChainMetricsPage({
@@ -86,15 +91,19 @@ export default function ChainMetricsPage({
   website,
   socials,
   rpcUrl,
+  category: categoryProp,
+  explorers: explorersProp,
 }: ChainMetricsPageProps) {
   const [metrics, setMetrics] = useState<CChainMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Find the current chain to get explorers
-  const currentChain = useMemo(() => {
-    return l1ChainsData.find((chain) => chain.chainId === chainId) as L1Chain | undefined;
-  }, [chainId]);
+  
+  // Look up chain data to get category and explorers if not provided
+  const chainData = chainSlug 
+    ? (l1ChainsData as L1Chain[]).find(c => c.slug === chainSlug) 
+    : null;
+  const category = categoryProp || chainData?.category;
+  const explorers = explorersProp || chainData?.explorers;
 
   const fetchData = async () => {
     try {
@@ -768,7 +777,7 @@ export default function ChainMetricsPage({
                     {description}
                   </p>
                 </div>
-                {currentChain?.category && (
+                {category && (
                   <div className="mt-3">
                     <span 
                       className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
@@ -777,83 +786,81 @@ export default function ChainMetricsPage({
                         color: themeColor,
                       }}
                     >
-                      {currentChain.category}
+                      {category}
                     </span>
                   </div>
                 )}
               </div>
             </div>
 
-            {!chainName.includes("C-Chain") && (
-              <div className="flex flex-col sm:flex-row items-end gap-2">
-                {/* Main action buttons */}
-                <div className="flex items-center gap-2">
-                  {website && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                      className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
-                    >
-                      <a href={website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                        Website
-                        <ArrowUpRight className="h-4 w-4" />
-                      </a>
-                    </Button>
-                  )}
-                  
-                  {/* Social buttons */}
-                  {currentChain?.socials && (currentChain.socials.twitter || currentChain.socials.linkedin) && (
-                    <>
-                      {currentChain.socials.twitter && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                          className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                        >
-                          <a 
-                            href={`https://x.com/${currentChain.socials.twitter}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            aria-label="Twitter"
-                          >
-                            <Twitter className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      )}
-                      {currentChain.socials.linkedin && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                          className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                        >
-                          <a 
-                            href={`https://linkedin.com/company/${currentChain.socials.linkedin}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            aria-label="LinkedIn"
-                          >
-                            <Linkedin className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      )}
-                    </>
-                  )}
-                  
-                  {currentChain?.explorers && (
-                    <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
-                      <ExplorerDropdown
-                        explorers={currentChain.explorers}
+            <div className="flex flex-col sm:flex-row items-end gap-2">
+              {/* Main action buttons */}
+              <div className="flex items-center gap-2">
+                {website && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
+                  >
+                    <a href={website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                      Website
+                      <ArrowUpRight className="h-4 w-4" />
+                    </a>
+                  </Button>
+                )}
+                
+                {/* Social buttons */}
+                {socials && (socials.twitter || socials.linkedin) && (
+                  <>
+                    {socials.twitter && (
+                      <Button
                         variant="outline"
                         size="sm"
-                      />
-                    </div>
-                  )}
-                </div>
+                        asChild
+                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
+                      >
+                        <a 
+                          href={`https://x.com/${socials.twitter}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          aria-label="Twitter"
+                        >
+                          <Twitter className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    )}
+                    {socials.linkedin && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
+                      >
+                        <a 
+                          href={`https://linkedin.com/company/${socials.linkedin}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          aria-label="LinkedIn"
+                        >
+                          <Linkedin className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    )}
+                  </>
+                )}
+                
+                {explorers && (
+                  <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
+                    <ExplorerDropdown
+                      explorers={explorers}
+                      variant="outline"
+                      size="sm"
+                    />
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>

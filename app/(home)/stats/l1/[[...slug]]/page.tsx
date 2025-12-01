@@ -11,6 +11,12 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import { Metadata } from "next";
 import { L1Chain } from "@/types/stats";
 
+// Helper function to find chain by slug
+function findChainBySlug(slug?: string): L1Chain | null {
+  if (!slug) return null;
+  return l1ChainsData.find((c) => c.slug === slug) as L1Chain || null;
+}
+
 export async function generateMetadata({
   params,
 }: {
