@@ -730,21 +730,16 @@ export default function AllChainsExplorerPage() {
                   </div>
                   <div className="flex items-baseline gap-1">
                     {blocksPerSecond !== null ? (
-                      <>
-                        <span className="text-base font-bold text-zinc-900 dark:text-white">
-                          {blocksPerSecond}
-                        </span>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="text-[11px] text-zinc-500 cursor-help border-b border-dashed border-zinc-400">
-                              ({Math.min(accumulatedBlocks.length, BLOCKS_FOR_CALCULATION)} blocks)
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Calculated from last {Math.min(accumulatedBlocks.length, BLOCKS_FOR_CALCULATION)} blocks</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-base font-bold text-zinc-900 dark:text-white cursor-help border-b border-dashed border-zinc-400 dark:border-zinc-500">
+                            {blocksPerSecond}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Calculated from last {Math.min(accumulatedBlocks.length, BLOCKS_FOR_CALCULATION)} blocks</p>
+                        </TooltipContent>
+                      </Tooltip>
                     ) : (
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -774,13 +769,10 @@ export default function AllChainsExplorerPage() {
                     ICM/sec
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-base font-bold text-zinc-900 dark:text-white">
-                      {icmPerSecond}
-                    </span>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span className="text-[11px] text-zinc-500 cursor-help border-b border-dashed border-zinc-400">
-                          ({icmMessages.length} msgs)
+                        <span className="text-base font-bold text-zinc-900 dark:text-white cursor-help border-b border-dashed border-zinc-400 dark:border-zinc-500">
+                          {icmPerSecond}
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>
