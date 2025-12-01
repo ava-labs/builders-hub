@@ -285,14 +285,17 @@ export default function AllChainsExplorerPage() {
       }
       
       const result = await response.json();
-      
+
+      // Get tokenSymbol from API response (which may come from CoinGecko) or fall back to static data
+      const tokenSymbol = result.tokenSymbol || chain.tokenSymbol || '';
+
       const chainInfo: ChainInfo = {
         chainId: chain.chainId,
         chainName: chain.chainName,
         chainSlug: chain.slug,
         chainLogoURI: chain.chainLogoURI || '',
         color: chain.color || '#6B7280',
-        tokenSymbol: chain.tokenSymbol || '',
+        tokenSymbol: tokenSymbol,
       };
       
       // Update last fetched block
