@@ -320,13 +320,14 @@ export default function PrimaryNetworkValidatorMetrics() {
   const getPieChartData = () => {
     if (!validatorVersions.length) return [];
 
+    // Use Avalanche red color palette
     return validatorVersions.map((version, index) => ({
       version: version.version,
       count: version.count,
       percentage: version.percentage,
       amountStaked: version.amountStaked,
       stakingPercentage: version.stakingPercentage,
-      fill: `hsl(${195 + index * 15}, 100%, ${65 - index * 8}%)`,
+      fill: `hsl(${0 + index * 8}, ${85 - index * 5}%, ${55 + index * 5}%)`,
     }));
   };
 
@@ -337,10 +338,11 @@ export default function PrimaryNetworkValidatorMetrics() {
       },
     };
 
+    // Use Avalanche red color palette
     validatorVersions.forEach((version, index) => {
       config[version.version] = {
         label: version.version,
-        color: `hsl(${195 + index * 15}, 100%, ${65 - index * 8}%)`,
+        color: `hsl(${0 + index * 8}, ${85 - index * 5}%, ${55 + index * 5}%)`,
       };
     });
 
@@ -350,13 +352,20 @@ export default function PrimaryNetworkValidatorMetrics() {
   const pieChartData = getPieChartData();
   const versionsChartConfig = getVersionsChartConfig();
 
+  // Primary Network config
+  const chainConfig = {
+    chainLogoURI: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
+    color: "#E57373",
+    category: "Primary Network",
+  };
+
   const chartConfigs = [
     {
       title: "Validator Count",
       icon: Monitor,
       metricKey: "validator_count" as const,
       description: "Number of active validators",
-      color: "#40c9ff",
+      color: chainConfig.color,
       chartType: "bar" as const,
     },
     {
@@ -364,7 +373,7 @@ export default function PrimaryNetworkValidatorMetrics() {
       icon: Landmark,
       metricKey: "validator_weight" as const,
       description: "Total validator weight",
-      color: "#40c9ff",
+      color: chainConfig.color,
       chartType: "area" as const,
     },
     {
@@ -372,7 +381,7 @@ export default function PrimaryNetworkValidatorMetrics() {
       icon: HandCoins,
       metricKey: "delegator_count" as const,
       description: "Number of active delegators",
-      color: "#8b5cf6",
+      color: "#E84142",
       chartType: "bar" as const,
     },
     {
@@ -380,7 +389,7 @@ export default function PrimaryNetworkValidatorMetrics() {
       icon: Landmark,
       metricKey: "delegator_weight" as const,
       description: "Total delegator weight",
-      color: "#a855f7",
+      color: "#E84142",
       chartType: "area" as const,
     },
   ];
@@ -468,7 +477,7 @@ export default function PrimaryNetworkValidatorMetrics() {
           </div>
         </div>
         {/* Navbar Skeleton */}
-        <div className="sticky top-14 z-40 w-full bg-zinc-50/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b border-t border-zinc-200 dark:border-zinc-800">
+        <div className="sticky top-14 z-30 w-full bg-zinc-50/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b border-t border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center gap-2 py-3 px-4 sm:px-6 max-w-7xl mx-auto">
             {[1, 2, 3, 4].map(i => (
               <div key={i} className="h-8 w-24 sm:w-32 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
@@ -536,13 +545,6 @@ export default function PrimaryNetworkValidatorMetrics() {
       </div>
     );
   }
-
-  // C-Chain config from l1-chains.json
-  const chainConfig = {
-    chainLogoURI: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
-    color: "#E57373",
-    category: "Primary Network",
-  };
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -627,7 +629,7 @@ export default function PrimaryNetworkValidatorMetrics() {
       </div>
 
       {/* Sticky Navigation Bar */}
-      <div className="sticky top-14 z-40 w-full bg-zinc-50/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b border-t border-zinc-200 dark:border-zinc-800">
+      <div className="sticky top-14 z-30 w-full bg-zinc-50/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b border-t border-zinc-200 dark:border-zinc-800">
         <div className="w-full">
           <div 
             className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-3 px-4 sm:px-6 max-w-7xl mx-auto"
@@ -721,9 +723,9 @@ export default function PrimaryNetworkValidatorMetrics() {
                     <div className="flex items-center gap-2 sm:gap-3">
                       <div
                         className="rounded-full p-2 sm:p-3 flex items-center justify-center"
-                        style={{ backgroundColor: "#40c9ff20" }}
+                        style={{ backgroundColor: `${chainConfig.color}20` }}
                       >
-                        <Landmark className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: "#40c9ff" }}/>
+                        <Landmark className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: chainConfig.color }}/>
                       </div>
                       <div>
                         <h3 className="text-base sm:text-lg font-normal">Current Validator Weight Distribution</h3>
@@ -736,11 +738,11 @@ export default function PrimaryNetworkValidatorMetrics() {
                   <div className="px-4 sm:px-5 py-4 sm:py-5">
                     <div className="flex items-center justify-start gap-6 mb-4 text-sm">
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-[#ef4444]" />
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#E84142' }} />
                         <span>Cumulative Validator Weight Percentage by Rank</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-[#40c9ff]" />
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chainConfig.color }} />
                         <span>Validator Weight</span>
                       </div>
                     </div>
@@ -819,12 +821,12 @@ export default function PrimaryNetworkValidatorMetrics() {
                             );
                           }}
                         />
-                        <Bar yAxisId="right" dataKey="weight" fill="#40c9ff" />
+                        <Bar yAxisId="right" dataKey="weight" fill={chainConfig.color} />
                         <Line
                           yAxisId="left"
                           type="monotone"
                           dataKey="cumulativePercentage"
-                          stroke="#ef4444"
+                          stroke="#E84142"
                           strokeWidth={2}
                           dot={false}
                           name="Cumulative %"
@@ -845,9 +847,9 @@ export default function PrimaryNetworkValidatorMetrics() {
                     <div className="flex items-center gap-2 sm:gap-3">
                       <div
                         className="rounded-full p-2 sm:p-3 flex items-center justify-center"
-                        style={{ backgroundColor: "#40c9ff20" }}
+                        style={{ backgroundColor: `${chainConfig.color}20` }}
                       >
-                        <Landmark className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: "#40c9ff" }}/>
+                        <Landmark className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: chainConfig.color }}/>
                       </div>
                       <div>
                         <h3 className="text-base sm:text-lg font-normal">Validator Stake Distribution</h3>
@@ -860,11 +862,11 @@ export default function PrimaryNetworkValidatorMetrics() {
                   <div className="px-4 sm:px-5 py-4 sm:py-5">
                     <div className="flex items-center justify-start gap-6 mb-4 text-sm">
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-[#ef4444]" />
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#E84142' }} />
                         <span>Cumulative Stake Percentage by Rank</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-[#40c9ff]" />
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chainConfig.color }} />
                         <span>Validator Stake</span>
                       </div>
                     </div>
@@ -943,12 +945,12 @@ export default function PrimaryNetworkValidatorMetrics() {
                             );
                           }}
                         />
-                        <Bar yAxisId="right" dataKey="weight" fill="#40c9ff" />
+                        <Bar yAxisId="right" dataKey="weight" fill={chainConfig.color} />
                         <Line
                           yAxisId="left"
                           type="monotone"
                           dataKey="cumulativePercentage"
-                          stroke="#ef4444"
+                          stroke="#E84142"
                           strokeWidth={2}
                           dot={false}
                           name="Cumulative %"
@@ -971,9 +973,9 @@ export default function PrimaryNetworkValidatorMetrics() {
                     <div className="flex items-center gap-2 sm:gap-3">
                       <div
                         className="rounded-full p-2 sm:p-3 flex items-center justify-center"
-                        style={{ backgroundColor: "#a855f720" }}
+                        style={{ backgroundColor: "#E8414220" }}
                       >
-                        <Users className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: "#a855f7" }}/>
+                        <Users className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: "#E84142" }}/>
                       </div>
                       <div>
                         <h3 className="text-base sm:text-lg font-normal">Delegator Stake Distribution</h3>
@@ -986,13 +988,13 @@ export default function PrimaryNetworkValidatorMetrics() {
                   <div className="px-4 sm:px-5 py-4 sm:py-5">
                     <div className="flex items-center justify-start gap-6 mb-4 text-sm">
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-[#ef4444]" />
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#E84142' }} />
                         <span>Cumulative Delegator Stake Percentage by Rank</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div
                           className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: "rgba(139, 92, 246, 0.6)" }}
+                          style={{ backgroundColor: chainConfig.color }}
                         />
                         <span>Delegator Stake</span>
                       </div>
@@ -1075,13 +1077,13 @@ export default function PrimaryNetworkValidatorMetrics() {
                         <Bar
                           yAxisId="right"
                           dataKey="weight"
-                          fill="rgba(139, 92, 246, 0.6)"
+                          fill={chainConfig.color}
                         />
                         <Line
                           yAxisId="left"
                           type="monotone"
                           dataKey="cumulativePercentage"
-                          stroke="#ef4444"
+                          stroke="#E84142"
                           strokeWidth={2}
                           dot={false}
                           name="Cumulative %"
@@ -1102,9 +1104,9 @@ export default function PrimaryNetworkValidatorMetrics() {
                     <div className="flex items-center gap-2 sm:gap-3">
                       <div
                         className="rounded-full p-2 sm:p-3 flex items-center justify-center"
-                        style={{ backgroundColor: "#e8414220" }}
+                        style={{ backgroundColor: "#E8414220" }}
                       >
-                        <Percent className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: "#e84142" }}/>
+                        <Percent className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: "#E84142" }}/>
                       </div>
                       <div>
                         <h3 className="text-base sm:text-lg font-normal">Delegation Fee Distribution</h3>
@@ -1219,7 +1221,7 @@ export default function PrimaryNetworkValidatorMetrics() {
                 <ChartStyle id="pie-count" config={versionsChartConfig} />
                 <CardHeader className="items-center pb-0">
                   <CardTitle className="flex items-center gap-2 font-medium">
-                    <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
+                    <Shield className="h-5 w-5" style={{ color: chainConfig.color }} />
                     By Validator Count
                   </CardTitle>
                   <CardDescription>
@@ -1276,7 +1278,7 @@ export default function PrimaryNetworkValidatorMetrics() {
                 <ChartStyle id="pie-stake" config={versionsChartConfig} />
                 <CardHeader className="items-center pb-0">
                   <CardTitle className="flex items-center gap-2 font-medium">
-                    <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
+                    <Shield className="h-5 w-5" style={{ color: chainConfig.color }} />
                     By Stake Weight
                   </CardTitle>
                   <CardDescription>
@@ -1338,7 +1340,7 @@ export default function PrimaryNetworkValidatorMetrics() {
           <Card>
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2 font-medium">
-                <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
+                <Shield className="h-5 w-5" style={{ color: chainConfig.color }} />
                 Detailed Version Breakdown
               </CardTitle>
               <CardDescription>
@@ -1407,7 +1409,7 @@ export default function PrimaryNetworkValidatorMetrics() {
                               className="h-2 rounded-full"
                               style={{
                                 width: `${versionInfo.stakingPercentage}%`,
-                                backgroundColor: "#40c9ff",
+                                backgroundColor: chainConfig.color,
                                 opacity:
                                   0.7 + (index === 0 ? 0.3 : -index * 0.1),
                               }}
