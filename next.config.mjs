@@ -62,6 +62,11 @@ const config = {
   async redirects() {
     return [
       {
+        source: '/docs/nodes/validate/how-to-stake',
+        destination: '/docs/primary-network/validate/how-to-stake',
+        permanent: true,
+      },
+      {
         source: '/docs/api-reference/p-chain/txn-format',
         destination: '/docs/rpcs/p-chain/txn-format',
         permanent: true,
