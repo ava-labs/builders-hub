@@ -1,6 +1,6 @@
 # Explorer External API Calls Documentation
 
-This document lists all external API calls made within the explorer scope, including Glacier (Avalanche SDK), CoinGecko, Dune Analytics, Sourcify, Subnet Stats, and direct RPC calls.
+This document lists all external API calls made within the explorer scope, including Glacier (Avalanche SDK), CoinGecko, Dune Analytics, Sourcify, Solokhin, and direct RPC calls.
 
 ---
 
@@ -11,10 +11,9 @@ All Glacier API calls use the `@avalanche-sdk/chainkit` SDK and authenticate aut
 | File | Method | Purpose | Parameters |
 |------|--------|---------|------------|
 | `app/api/explorer/[chainId]/route.ts` | `avalanche.data.evm.chains.get()` | Check if chain is supported by Glacier | `chainId` |
-| `app/api/explorer/[chainId]/address/[address]/route.ts` | `avalanche.data.evm.address.balances.getNative()` | Get native token balance for address | `address`, `chainId`, `currency: 'usd'` |
 | `app/api/explorer/[chainId]/address/[address]/route.ts` | `avalanche.data.evm.contracts.getMetadata()` | Get contract metadata (name, symbol, logo, etc.) | `address`, `chainId` |
 | `app/api/explorer/[chainId]/address/[address]/route.ts` | `avalanche.data.evm.address.chains.list()` | Get multichain address info (all chains where address exists) | `address` |
-| `app/api/explorer/[chainId]/address/[address]/route.ts` | `avalanche.data.evm.address.transactions.list()` | Get address transactions with pagination | `address`, `chainId`, `pageToken`, `pageSize: 50` |
+| `app/api/explorer/[chainId]/address/[address]/route.ts` | `avalanche.data.evm.address.transactions.list()` | Get address transactions with pagination (includes ERC-20, ERC-721, ERC-1155, internal txns) | `address`, `chainId`, `sortOrder: 'desc'`, `pageSize: 25`, `pageToken` |
 | `app/api/explorer/[chainId]/address/[address]/erc20-balances/route.ts` | `avalanche.data.evm.address.balances.listErc20()` | Get ERC-20 token balances (paginated) | `address`, `chainId`, `currency: 'usd'`, `filterSpamTokens: true`, `pageSize: 200`, `pageToken` |
 | `app/api/explorer/[chainId]/token/[tokenAddress]/metadata/route.ts` | `avalanche.data.evm.contracts.getMetadata()` | Get token metadata (logo URI, name, symbol) | `address`, `chainId` |
 
@@ -31,12 +30,12 @@ Used for fetching token prices and AVAX price data.
 | File | Endpoint | Purpose | Parameters |
 |------|----------|---------|------------|
 | `app/api/explorer/[chainId]/route.ts` | `api.coingecko.com/api/v3/simple/price?ids=avalanche-2&vs_currencies=usd` | Get AVAX price in USD | None |
-| `app/api/explorer/[chainId]/route.ts` | `api.coingecko.com/api/v3/coins/${coingeckoId}` | Get token price data (USD, market cap, etc.) | `coingeckoId` (from chain config) |
+| `app/api/explorer/[chainId]/route.ts` | `api.coingecko.com/api/v3/coins/${coingeckoId}?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false` | Get token price data (USD, market cap, 24h change, etc.) | `coingeckoId` (from chain config) |
 
 **Base URL**: `https://api.coingecko.com/api/v3`  
 **Authentication**: None (public API)  
 **Rate Limits**: Yes (free tier: 10-50 calls/minute)  
-**Cache**: 60 seconds (`revalidate: 60`)
+**Cache**: 60 seconds (in-memory `priceCache`)
 
 ---
 
@@ -55,6 +54,10 @@ Used for fetching address labels from Dune Analytics queries.
 **Rate Limits**: Yes (depends on API plan)  
 **Query ID**: `6275927` (hardcoded)  
 **Response statuses**: `cached`, `completed`, `waiting`, `failed`  
+**Cache**: 
+- Labels: 1 hour (in-memory via `app/api/dune/cache.ts`)
+- Pending executions: 5 minutes (in-memory)
+
 **Flow** (non-blocking, UI polls):
 1. Check cache → return `status: 'cached'` if found
 2. Check pending execution → if exists, check status:
@@ -70,16 +73,22 @@ Used for fetching address labels from Dune Analytics queries.
 
 Used for contract verification and source code retrieval.
 
+### Server-side / API Routes
+
+No server-side Sourcify calls (verification is done client-side).
+
+### Client-side (Components)
+
 | File | Endpoint | Purpose | Parameters |
 |------|----------|---------|------------|
 | `components/explorer/AddressDetailPage.tsx` | `sourcify.dev/server/v2/contract/${chainId}/${address}` | Check if contract is verified | `chainId`, `address` |
-| `components/explorer/AddressDetailPage.tsx` | `sourcify.dev/server/v2/contract/${chainId}/${address}?fields=all` | Get full verified contract details (ABI, source code, etc.) | `chainId`, `address`, `fields=all` |
+| `components/explorer/AddressDetailPage.tsx` | `sourcify.dev/server/v2/contract/${chainId}/${address}?fields=all` | Get full verified contract details (ABI, source code, compilation info) | `chainId`, `address`, `fields=all` |
 | `components/explorer/AddressDetailPage.tsx` | `sourcify.dev/server/v2/contract/${chainId}/${implAddress}?fields=all` | Get proxy implementation ABI | `chainId`, `implAddress`, `fields=all` |
-| `components/explorer/TransactionDetailPage.tsx` | `sourcify.dev/server/v2/contract/${chainId}/${address}` | Check if "To" contract is verified | `chainId`, `address` |
+| `components/explorer/TransactionDetailPage.tsx` | `sourcify.dev/server/v2/contract/${chainId}/${address}` | Check if "To" contract is verified (for badge display) | `chainId`, `address` |
 
 **Base URL**: `https://sourcify.dev/server/v2`  
 **Authentication**: None (public API)  
-**Rate Limits**: No (public service)  
+**Rate Limits**: None (public service)  
 **Note**: Only called when `sourcifySupport: true` in chain config
 
 ---
@@ -90,64 +99,101 @@ Used for fetching transaction statistics and history.
 
 | File | Endpoint | Purpose | Parameters |
 |------|----------|---------|------------|
-| `app/api/explorer/[chainId]/route.ts` | `idx6.solokhin.com/api/global/overview/dailyTxsByChainCompact` | Get daily transaction counts for all chains | None |
+| `app/api/explorer/[chainId]/route.ts` | `idx6.solokhin.com/api/global/overview/dailyTxsByChainCompact` | Get daily transaction counts for all chains (last 14 days) | None |
 | `app/api/explorer/[chainId]/route.ts` | `idx6.solokhin.com/api/${evmChainId}/stats/cumulative-txs` | Get cumulative transaction count for a chain | `evmChainId` (path param) |
 
 **Base URL**: `https://idx6.solokhin.com/api`  
 **Authentication**: None (public API)  
 **Rate Limits**: Unknown  
 **Cache**: 
-- Daily Txs: 5 minutes (in-memory)
-- Cumulative Txs: 30 seconds (in-memory)
+- Daily Txs: 5 minutes (in-memory `dailyTxsCache`)
+- Cumulative Txs: 30 seconds (in-memory `cumulativeTxsCache`)
 
 ---
 
 ## 6. Direct RPC Calls
 
-Direct JSON-RPC calls to chain RPC endpoints (from `l1-chains.json`).
+Direct JSON-RPC calls to chain RPC endpoints (from `l1-chains.json` or query parameter).
 
-### Main Explorer Route (`app/api/explorer/[chainId]/route.ts`)
+### API Routes
+
+#### Main Explorer Route (`app/api/explorer/[chainId]/route.ts`)
 
 | RPC Method | Purpose | Parameters |
 |------------|---------|------------|
 | `eth_blockNumber` | Get latest block number | None |
-| `eth_getBlockByNumber` | Get block details with transactions | `blockNumber` (hex), `true` (full txs) |
+| `eth_getBlockByNumber` | Get block details with full transactions | `blockNumber` (hex), `true` (full txs) |
 | `eth_getTransactionReceipt` | Get transaction receipt (for gas fees, logs) | `transactionHash` |
 | `eth_gasPrice` | Get current gas price | None |
-| `eth_getLogs` | Get historical logs (for ICM messages) | `fromBlock`, `toBlock`, `topics` |
-| `eth_getTransactionByHash` | Get transaction details | `transactionHash` |
+| `eth_getLogs` | Get historical logs (for ICM messages) | `fromBlock`, `toBlock`, `topics` (SendCrossChainMessage, ReceiveCrossChainMessage) |
+| `eth_getTransactionByHash` | Get transaction details (for ICM processing) | `transactionHash` |
 
-### Address Route (`app/api/explorer/[chainId]/address/[address]/route.ts`)
-
-| RPC Method | Purpose | Parameters |
-|------------|---------|------------|
-| `eth_getCode` | Check if address is a contract | `address`, `latest` |
-
-### Transaction Route (`app/api/explorer/[chainId]/tx/[txHash]/route.ts`)
+#### Address Route (`app/api/explorer/[chainId]/address/[address]/route.ts`)
 
 | RPC Method | Purpose | Parameters |
 |------------|---------|------------|
-| `eth_getTransactionByHash` | Get transaction details | `transactionHash` |
+| `eth_getCode` | Check if address is a contract | `address`, `'latest'` |
+| `eth_getBalance` | Get native token balance | `address`, `'latest'` |
+
+#### Block Route (`app/api/explorer/[chainId]/block/[blockNumber]/route.ts`)
+
+| RPC Method | Purpose | Parameters |
+|------------|---------|------------|
+| `eth_getBlockByNumber` | Get block details with full transactions | `blockNumber` (hex), `true` (full txs) |
+| `eth_getTransactionReceipt` | Get transaction receipts for gas fee calculation | `transactionHash` (for each tx in block) |
+
+#### Block Transactions Route (`app/api/explorer/[chainId]/block/[blockNumber]/transactions/route.ts`)
+
+| RPC Method | Purpose | Parameters |
+|------------|---------|------------|
+| `eth_getBlockByNumber` | Get block with full transaction objects | `blockNumber` (hex), `true` (full txs) |
+
+#### Transaction Route (`app/api/explorer/[chainId]/tx/[txHash]/route.ts`)
+
+| RPC Method | Purpose | Parameters |
+|------------|---------|------------|
 | `eth_getTransactionReceipt` | Get transaction receipt with logs | `transactionHash` |
+| `eth_getTransactionByHash` | Get transaction details | `transactionHash` |
+| `eth_getBlockByNumber` | Get block for timestamp | `blockNumber` (hex), `false` |
+| `eth_blockNumber` | Get latest block for confirmations | None |
 
-### Block Routes (`app/api/explorer/[chainId]/block/[blockNumber]/route.ts`)
+### Client-side (Components)
+
+#### Transaction Detail Page (`components/explorer/TransactionDetailPage.tsx`)
 
 | RPC Method | Purpose | Parameters |
 |------------|---------|------------|
-| `eth_getBlockByNumber` | Get block details | `blockNumber` (hex), `false` (tx hashes only) or `true` (full txs) |
+| `eth_call` | Get token symbol (`symbol()` - 0x95d89b41) | `to: tokenAddress`, `data: '0x95d89b41'` |
+| `eth_call` | Get token decimals (`decimals()` - 0x313ce567) | `to: tokenAddress`, `data: '0x313ce567'` |
 
-### UI Components (Client-side RPC calls)
+#### Contract Read Section (`components/explorer/ContractReadSection.tsx`)
 
-| File | RPC Method | Purpose | Parameters |
-|------|------------|---------|------------|
-| `components/explorer/TransactionDetailPage.tsx` | `eth_call` | Get token symbol | `to: tokenAddress`, `data: symbol()` |
-| `components/explorer/TransactionDetailPage.tsx` | `eth_call` | Get token decimals | `to: tokenAddress`, `data: decimals()` |
-| `components/explorer/ContractReadSection.tsx` | `eth_call` | Read contract function | `to: contractAddress`, `data: encodedFunctionCall` |
+| RPC Method | Purpose | Parameters |
+|------------|---------|------------|
+| `eth_call` | Read contract function | `to: contractAddress`, `data: encodedFunctionCall` |
 
-**RPC URL**: From `l1-chains.json` (`chain.rpcUrl`)  
+**RPC URL**: From `l1-chains.json` (`chain.rpcUrl`) or `rpcUrl` query parameter  
 **Protocol**: JSON-RPC 2.0  
 **Rate Limits**: Depends on RPC provider  
-**Timeout**: 15 seconds per call
+**Timeout**: 
+- API routes: 10-15 seconds per call
+- Client-side: Browser default
+
+---
+
+## 7. Internal API Routes
+
+These are internal API endpoints called by frontend components (not external APIs).
+
+| Component | Internal API | Purpose |
+|-----------|-------------|---------|
+| `AddressDetailPage.tsx` | `/api/explorer/${chainId}/address/${address}` | Fetch address data |
+| `AddressDetailPage.tsx` | `/api/explorer/${chainId}/address/${address}/erc20-balances` | Fetch ERC-20 balances (paginated) |
+| `AddressDetailPage.tsx` | `/api/dune/${address}` | Fetch Dune labels (polling) |
+| `TransactionDetailPage.tsx` | `/api/explorer/${chainId}/tx/${txHash}` | Fetch transaction details |
+| `TransactionDetailPage.tsx` | `/api/explorer/${chainId}/token/${tokenAddress}/metadata` | Fetch token metadata for ERC-20 transfers |
+| `L1ExplorerPage.tsx` | `/api/explorer/${chainId}` | Fetch chain explorer data (initial + incremental) |
+| `AllChainsExplorerPage.tsx` | `/api/explorer/${chainId}` | Fetch data for all supported chains |
 
 ---
 
@@ -155,12 +201,13 @@ Direct JSON-RPC calls to chain RPC endpoints (from `l1-chains.json`).
 
 | Service | Total Calls | Rate Limited? | Cached? |
 |---------|-------------|---------------|---------|
-| **Glacier (Avalanche SDK)** | 7 | No | No (but SDK may cache) |
-| **CoinGecko** | 2 | Yes | Yes (60s) |
-| **Dune Analytics** | 3 | Yes | Yes (1 hour, in-memory) |
-| **Sourcify** | 4 | No | No |
+| **Glacier (Avalanche SDK)** | 6 | No | No (but SDK may cache) |
+| **CoinGecko** | 2 | Yes | Yes (60s in-memory) |
+| **Dune Analytics** | 3 | Yes | Yes (1 hour labels / 5 min pending) |
+| **Sourcify** | 4 (client-side) | No | No (client fetches per page load) |
 | **Solokhin API** | 2 | Unknown | Yes (5 min / 30s) |
-| **Direct RPC** | ~12+ | Depends on provider | No |
+| **Direct RPC** | ~15+ | Depends on provider | No |
+| **Internal APIs** | 7+ | No | Varies by route |
 
 ---
 
@@ -172,22 +219,32 @@ Direct JSON-RPC calls to chain RPC endpoints (from `l1-chains.json`).
 
 ## Notes
 
-1. **Glacier API**: All calls are authenticated via the SDK. No manual API key needed.
-2. **Dune Analytics**: Uses a 3-step process (execute → poll → results) with caching to avoid duplicate queries.
-3. **RPC Calls**: Timeout set to 15 seconds. Some chains may have rate limits.
-4. **Caching**: 
-   - CoinGecko: Next.js `revalidate: 60`
-   - Subnet Stats: In-memory cache (5 min)
-   - Dune: In-memory cache (1 hour)
-   - Explorer data: In-memory cache (30 seconds)
-5. **Error Handling**: All external calls have try-catch blocks and fallback to empty/default values.
+1. **Glacier API**: All calls are authenticated via the SDK. No manual API key needed. Used for address info, contract metadata, and ERC-20 balances.
+
+2. **Dune Analytics**: Uses a 3-step process (execute → poll → results) with caching to avoid duplicate queries. Labels are cached for 1 hour.
+
+3. **RPC Calls**: Timeout set to 10-15 seconds. Some chains may have rate limits depending on RPC provider.
+
+4. **Sourcify**: All calls are made client-side from `AddressDetailPage.tsx` and `TransactionDetailPage.tsx`. Only fetched when viewing a contract address with `sourcifySupport: true`.
+
+5. **Caching Summary**:
+   - CoinGecko: 60 seconds (in-memory)
+   - Solokhin Daily Txs: 5 minutes (in-memory)
+   - Solokhin Cumulative Txs: 30 seconds (in-memory)
+   - Dune Labels: 1 hour (in-memory)
+   - Dune Pending Executions: 5 minutes (in-memory)
+
+6. **Error Handling**: All external calls have try-catch blocks and fallback to empty/default values.
+
+7. **Cross-Chain (ICM) Events**: Detected via `eth_getLogs` with TeleporterMessenger event topics (SendCrossChainMessage, ReceiveCrossChainMessage).
 
 ---
 
 ## Future Considerations
 
-- Consider adding retry logic for rate-limited APIs
+- Consider adding retry logic for rate-limited APIs (especially CoinGecko)
 - Add request logging/metrics for external calls
 - Implement exponential backoff for failed requests
 - Consider using a rate limiting library for CoinGecko calls
+- Consider server-side caching for Sourcify data to reduce client-side requests
 
