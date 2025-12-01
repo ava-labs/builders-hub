@@ -3,11 +3,15 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Activity, Search, X, ArrowUpRight, Twitter, Linkedin } from "lucide-react";
+import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Activity } from "lucide-react";
-import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
+import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
+import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import l1ChainsData from "@/constants/l1-chains.json";
 import Image from "next/image";
+import Link from "next/link";
 
 interface ValidatorData {
   nodeId: string;
@@ -45,6 +49,13 @@ interface ChainData {
   slug: string;
   color: string;
   category: string;
+  description?: string;
+  rpcUrl?: string;
+  website?: string;
+  socials?: {
+    twitter?: string;
+    linkedin?: string;
+  };
 }
 
 export default function ChainValidatorsPage() {
@@ -61,6 +72,18 @@ export default function ChainValidatorsPage() {
     useState<VersionBreakdown | null>(null);
   const [availableVersions, setAvailableVersions] = useState<string[]>([]);
   const [minVersion, setMinVersion] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyToClipboard = async (text: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 1500);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
 
   useEffect(() => {
     // Find chain info by slug
@@ -269,6 +292,17 @@ export default function ChainValidatorsPage() {
   const stats = calculateStats();
   const versionStats = calculateVersionStats();
 
+  // Filter validators based on search term
+  const filteredValidators = validators.filter((validator) => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      validator.nodeId.toLowerCase().includes(searchLower) ||
+      (validator.validationId && validator.validationId.toLowerCase().includes(searchLower)) ||
+      (validator.version && validator.version.toLowerCase().includes(searchLower))
+    );
+  });
+
   const getHealthColor = (percent: number): string => {
     if (percent === 0) return "text-red-600 dark:text-red-400";
     if (percent < 80) return "text-orange-600 dark:text-orange-400";
@@ -301,7 +335,7 @@ export default function ChainValidatorsPage() {
         <div className="border-b border-zinc-200 dark:border-zinc-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
             <div className="animate-pulse space-y-6">
-              <div className="h-10 w-40 bg-zinc-200 dark:bg-zinc-800 rounded" />
+              <div className="h-6 w-64 bg-zinc-200 dark:bg-zinc-800 rounded" />
               <div className="flex items-center gap-6">
                 <div className="w-16 h-16 bg-zinc-200 dark:bg-zinc-800 rounded-full" />
                 <div className="space-y-3 flex-1">
@@ -433,7 +467,7 @@ export default function ChainValidatorsPage() {
             </div>
           </Card>
         </div>
-        <StatsBubbleNav />
+        <L1BubbleNav chainSlug={slug} themeColor={chainInfo?.color} rpcUrl={chainInfo?.rpcUrl} />
       </div>
     );
   }
@@ -443,14 +477,11 @@ export default function ChainValidatorsPage() {
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
         <div className="border-b border-zinc-200 dark:border-zinc-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
-            <Button
-              variant="ghost"
-              onClick={() => router.push("/stats/validators")}
-              className="mb-4 -ml-2"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to All Validators
-            </Button>
+            <StatsBreadcrumb
+              showValidators
+              chainSlug={slug}
+              chainName="Unknown"
+            />
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
@@ -463,52 +494,133 @@ export default function ChainValidatorsPage() {
             </div>
           </div>
         </div>
-        <StatsBubbleNav />
+        <L1BubbleNav chainSlug={slug} themeColor={chainInfo?.color} rpcUrl={chainInfo?.rpcUrl} />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      {/* Hero - Clean typographic approach */}
-      <div className="border-b border-zinc-200 dark:border-zinc-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
-          <div className="space-y-6">
-            <Button
-              variant="ghost"
-              onClick={() => router.push("/stats/validators")}
-              className="mb-2 -ml-2"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to All Validators
-            </Button>
+      {/* Hero - with gradient decoration */}
+      <div className="relative overflow-hidden border-b border-zinc-200 dark:border-zinc-800">
+        {/* Gradient decoration */}
+        <div 
+          className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
+          style={{
+            background: `linear-gradient(to left, ${chainInfo.color}35 0%, ${chainInfo.color}20 40%, ${chainInfo.color}08 70%, transparent 100%)`,
+          }}
+        />
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
+            <div className="space-y-6 flex-1">
+              <StatsBreadcrumb
+                showValidators
+                chainSlug={chainInfo.slug}
+                chainName={chainInfo.chainName}
+                chainLogoURI={chainInfo.chainLogoURI}
+                themeColor={chainInfo.color}
+              />
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
-              {chainInfo.chainLogoURI && (
-                <Image
-                  src={chainInfo.chainLogoURI}
-                  alt={chainInfo.chainName}
-                  width={64}
-                  height={64}
-                  className="rounded-full"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
-              )}
-              <div className="space-y-2">
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                  {chainInfo.chainName} Validators
-                </h1>
-                <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
-                  Active validators and delegation metrics for{" "}
-                  {chainInfo.chainName}
-                </p>
+              <div>
+                <div className="flex items-center gap-2 sm:gap-3 mb-3">
+                  <AvalancheLogo className="w-4 h-4 sm:w-5 sm:h-5" fill="#E84142" />
+                  <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
+                    Avalanche Ecosystem
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 sm:gap-4">
+                  {chainInfo.chainLogoURI && (
+                    <Image
+                      src={chainInfo.chainLogoURI}
+                      alt={chainInfo.chainName}
+                      width={56}
+                      height={56}
+                      className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain rounded-xl"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  )}
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                    {chainInfo.chainName} Validators
+                  </h1>
+                </div>
+                {(chainInfo.description || chainInfo.chainName) && (
+                  <div className="flex items-center gap-3 mt-3">
+                    <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
+                      {chainInfo.description || `Active validators and delegation metrics for ${chainInfo.chainName}`}
+                    </p>
+                  </div>
+                )}
+                {chainInfo.category && (
+                  <div className="mt-3">
+                    <span 
+                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
+                      style={{
+                        backgroundColor: `${chainInfo.color}15`,
+                        color: chainInfo.color,
+                      }}
+                    >
+                      {chainInfo.category}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Key metrics - inline */}
-            <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-3 sm:gap-6 md:gap-12 pt-4">
+            {/* Social Links */}
+            {(chainInfo.website || chainInfo.socials) && (
+              <div className="flex flex-col sm:flex-row items-end gap-2">
+                <div className="flex items-center gap-2">
+                  {chainInfo.website && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 cursor-pointer"
+                    >
+                      <a href={chainInfo.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 cursor-pointer">
+                        Website
+                        <ArrowUpRight className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  )}
+                  {chainInfo.socials && (chainInfo.socials.twitter || chainInfo.socials.linkedin) && (
+                    <>
+                      {chainInfo.socials.twitter && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2 cursor-pointer"
+                        >
+                          <a href={`https://x.com/${chainInfo.socials.twitter}`} target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="cursor-pointer">
+                            <Twitter className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      )}
+                      {chainInfo.socials.linkedin && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2 cursor-pointer"
+                        >
+                          <a href={`https://linkedin.com/company/${chainInfo.socials.linkedin}`} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="cursor-pointer">
+                            <Linkedin className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Key metrics - inline */}
+          <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-3 sm:gap-6 md:gap-12 pt-6 mt-6 border-t border-zinc-200 dark:border-zinc-800">
               <div>
                 <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
                   {stats.totalValidators}
@@ -561,7 +673,6 @@ export default function ChainValidatorsPage() {
                 </div>
               )}
             </div>
-          </div>
         </div>
       </div>
 
@@ -670,6 +781,32 @@ export default function ChainValidatorsPage() {
           </Card>
         )}
 
+        {/* Search Input */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="relative w-full sm:w-auto sm:flex-shrink-0 sm:max-w-sm">
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 pointer-events-none z-10" />
+            <Input
+              placeholder="Search validators..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-10 rounded-lg border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-sm sm:text-base text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full z-20 transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+            {filteredValidators.length} of {validators.length} validators
+          </span>
+        </div>
+
         {/* Validators Table */}
         <Card className="overflow-hidden py-0 border-0 shadow-none rounded-lg">
           <div className="overflow-x-auto">
@@ -746,17 +883,17 @@ export default function ChainValidatorsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-neutral-950">
-                {validators.length === 0 ? (
+                {filteredValidators.length === 0 ? (
                   <tr>
                     <td
                       colSpan={isL1 ? 8 : 7}
                       className="text-center py-8 text-neutral-600 dark:text-neutral-400"
                     >
-                      No validators found for this chain
+                      {searchTerm ? "No validators match your search" : "No validators found for this chain"}
                     </td>
                   </tr>
                 ) : isL1 ? (
-                  validators.map((validator, index) => (
+                  filteredValidators.map((validator, index) => (
                     <tr
                       key={validator.validationId || validator.nodeId}
                       className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
@@ -767,9 +904,14 @@ export default function ChainValidatorsPage() {
                         </span>
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 font-mono text-xs">
-                        <span title={validator.nodeId}>
-                          {validator.nodeId.slice(0, 12)}...
-                          {validator.nodeId.slice(-8)}
+                        <span
+                          title={copiedId === `node-${validator.nodeId}` ? "Copied!" : `Click to copy: ${validator.nodeId}`}
+                          onClick={() => copyToClipboard(validator.nodeId, `node-${validator.nodeId}`)}
+                          className={`cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
+                            copiedId === `node-${validator.nodeId}` ? "text-green-600 dark:text-green-400" : ""
+                          }`}
+                        >
+                          {copiedId === `node-${validator.nodeId}` ? "Copied!" : `${validator.nodeId.slice(0, 12)}...${validator.nodeId.slice(-8)}`}
                         </span>
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 font-mono text-xs">
@@ -786,9 +928,14 @@ export default function ChainValidatorsPage() {
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 font-mono text-xs">
                         {validator.validationId ? (
-                          <span title={validator.validationId}>
-                            {validator.validationId.slice(0, 12)}...
-                            {validator.validationId.slice(-8)}
+                          <span
+                            title={copiedId === `val-${validator.validationId}` ? "Copied!" : `Click to copy: ${validator.validationId}`}
+                            onClick={() => copyToClipboard(validator.validationId!, `val-${validator.validationId}`)}
+                            className={`cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
+                              copiedId === `val-${validator.validationId}` ? "text-green-600 dark:text-green-400" : ""
+                            }`}
+                          >
+                            {copiedId === `val-${validator.validationId}` ? "Copied!" : `${validator.validationId.slice(0, 12)}...${validator.validationId.slice(-8)}`}
                           </span>
                         ) : (
                           "N/A"
@@ -807,10 +954,14 @@ export default function ChainValidatorsPage() {
                       <td className="px-4 py-2 font-mono text-xs">
                         {validator.remainingBalanceOwner?.addresses?.[0] ? (
                           <div>
-                            <div>
-                              {formatAddress(
-                                validator.remainingBalanceOwner.addresses[0]
-                              )}
+                            <div
+                              title={copiedId === `owner-${validator.nodeId}` ? "Copied!" : `Click to copy: ${validator.remainingBalanceOwner.addresses[0]}`}
+                              onClick={() => copyToClipboard(validator.remainingBalanceOwner!.addresses[0], `owner-${validator.nodeId}`)}
+                              className={`cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
+                                copiedId === `owner-${validator.nodeId}` ? "text-green-600 dark:text-green-400" : ""
+                              }`}
+                            >
+                              {copiedId === `owner-${validator.nodeId}` ? "Copied!" : formatAddress(validator.remainingBalanceOwner.addresses[0])}
                             </div>
                             {validator.remainingBalanceOwner.addresses.length >
                               1 && (
@@ -833,7 +984,7 @@ export default function ChainValidatorsPage() {
                     </tr>
                   ))
                 ) : (
-                  validators.map((validator, index) => (
+                  filteredValidators.map((validator, index) => (
                     <tr
                       key={validator.nodeId}
                       className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
@@ -844,9 +995,14 @@ export default function ChainValidatorsPage() {
                         </span>
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 font-mono text-xs">
-                        <span title={validator.nodeId}>
-                          {validator.nodeId.slice(0, 12)}...
-                          {validator.nodeId.slice(-8)}
+                        <span
+                          title={copiedId === `node-${validator.nodeId}` ? "Copied!" : `Click to copy: ${validator.nodeId}`}
+                          onClick={() => copyToClipboard(validator.nodeId, `node-${validator.nodeId}`)}
+                          className={`cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
+                            copiedId === `node-${validator.nodeId}` ? "text-green-600 dark:text-green-400" : ""
+                          }`}
+                        >
+                          {copiedId === `node-${validator.nodeId}` ? "Copied!" : `${validator.nodeId.slice(0, 12)}...${validator.nodeId.slice(-8)}`}
                         </span>
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 font-mono text-xs">
@@ -882,7 +1038,7 @@ export default function ChainValidatorsPage() {
         </Card>
       </main>
 
-      <StatsBubbleNav />
+      <L1BubbleNav chainSlug={slug} themeColor={chainInfo?.color} rpcUrl={chainInfo?.rpcUrl} />
     </div>
   );
 }

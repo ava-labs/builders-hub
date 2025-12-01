@@ -625,10 +625,6 @@ export default function AvalancheMetrics() {
               <span>Ecosystem</span>
             </span>
             <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
-            <span className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 whitespace-nowrap flex-shrink-0">
-              <span>All Chains</span>
-            </span>
-            <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
             <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap flex-shrink-0">
               <BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500" />
               <span>Overview</span>

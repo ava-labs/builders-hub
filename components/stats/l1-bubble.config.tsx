@@ -20,6 +20,7 @@ export function L1BubbleNav({ chainSlug, themeColor = "#E57373", rpcUrl }: L1Bub
     items: [
       { id: "stats", label: "Stats", href: `/stats/l1/${chainSlug}/stats` },
       { id: "explorer", label: "Explorer", href: `/stats/l1/${chainSlug}/explorer` },
+      { id: "validators", label: "Validators", href: `/stats/validators/${chainSlug === "c-chain" ? "primary-network" : chainSlug}` },
     ],
     activeColor: "bg-zinc-900 dark:bg-white",
     darkActiveColor: "",
@@ -33,6 +34,10 @@ export function L1BubbleNav({ chainSlug, themeColor = "#E57373", rpcUrl }: L1Bub
     // Match /explorer and all sub-pages like /explorer/block/123, /explorer/tx/0x...
     if (pathname.includes('/explorer')) {
       return "explorer";
+    }
+    // Match /validators page
+    if (pathname.includes('/validators')) {
+      return "validators";
     }
     // Match /stats page
     if (pathname.includes('/stats')) {

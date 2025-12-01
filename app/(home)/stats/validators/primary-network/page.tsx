@@ -1,11 +1,12 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Line, LineChart, Brush, ResponsiveContainer, Tooltip, ComposedChart } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { type ChartConfig, ChartLegendContent, ChartStyle, ChartContainer, ChartTooltip, ChartLegend } from "@/components/ui/chart";
-import { Landmark, Shield, TrendingUp, Monitor, HandCoins, Users, Percent } from "lucide-react";
+import { Landmark, Shield, TrendingUp, Monitor, HandCoins, Users, Percent, Globe, ChevronRight } from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
-import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
+import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { TimeSeriesDataPoint, ChartDataPoint, PrimaryNetworkMetrics, VersionCount } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
@@ -445,6 +446,14 @@ export default function PrimaryNetworkValidatorMetrics() {
           />
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
             <div className="animate-pulse space-y-4">
+              {/* Breadcrumb skeleton */}
+              <div className="flex items-center gap-1.5">
+                <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                <div className="h-3 w-3 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                <div className="h-3 w-3 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                <div className="h-4 w-28 bg-zinc-200 dark:bg-zinc-800 rounded" />
+              </div>
               <div className="flex items-center gap-3">
                 <div className="h-4 w-4 sm:h-5 sm:w-5 bg-zinc-200 dark:bg-zinc-800 rounded" />
                 <div className="h-4 w-32 bg-zinc-200 dark:bg-zinc-800 rounded" />
@@ -505,7 +514,7 @@ export default function PrimaryNetworkValidatorMetrics() {
             ))}
           </div>
         </div>
-        <StatsBubbleNav />
+        <L1BubbleNav chainSlug="c-chain" themeColor="#E57373" rpcUrl="https://api.avax.network/ext/bc/C/rpc" />
       </div>
     );
   }
@@ -523,7 +532,7 @@ export default function PrimaryNetworkValidatorMetrics() {
             Retry
           </button>
         </div>
-        <StatsBubbleNav />
+        <L1BubbleNav chainSlug="c-chain" themeColor="#E57373" rpcUrl="https://api.avax.network/ext/bc/C/rpc" />
       </div>
     );
   }
@@ -550,6 +559,34 @@ export default function PrimaryNetworkValidatorMetrics() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
           <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
             <div className="space-y-4 sm:space-y-6 flex-1">
+              {/* Breadcrumb */}
+              <div className="flex items-center gap-1.5 text-xs sm:text-sm">
+                <Link
+                  href="/stats/overview"
+                  className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                >
+                  <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <span>Ecosystem</span>
+                </Link>
+                <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
+                <Link
+                  href="/stats/validators"
+                  className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                >
+                  <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <span>Validators</span>
+                </Link>
+                <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
+                <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap flex-shrink-0">
+                  <img
+                    src={chainConfig.chainLogoURI}
+                    alt=""
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-sm object-contain"
+                  />
+                  <span>Primary Network</span>
+                </span>
+              </div>
+
               <div>
                 <div className="flex items-center gap-2 sm:gap-3 mb-3">
                   <AvalancheLogo className="w-4 h-4 sm:w-5 sm:h-5" fill="#E84142" />
@@ -1405,7 +1442,7 @@ export default function PrimaryNetworkValidatorMetrics() {
       </main>
 
       {/* Bubble Navigation */}
-      <StatsBubbleNav />
+      <L1BubbleNav chainSlug="c-chain" themeColor="#E57373" rpcUrl="https://api.avax.network/ext/bc/C/rpc" />
     </div>
   );
 }

@@ -61,12 +61,6 @@ export function ExplorerLayout({
     return l1ChainsData.find((chain) => chain.slug === chainSlug) as L1Chain | undefined;
   }, [chainSlug]);
   
-  // Get chains with RPC URLs (for overlapped logos display)
-  const chainsWithRpc = useMemo(() => {
-    return (l1ChainsData as any[])
-      .filter(chain => chain.rpcUrl && chain.chainLogoURI)
-      .slice(0, 8); // Limit to 8 chains for display
-  }, []);
   
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -182,29 +176,6 @@ export function ExplorerLayout({
                       <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
                         Avalanche Ecosystem
                       </p>
-                      {/* Overlapped chain logos */}
-                      {chainsWithRpc.length > 0 && (
-                        <div className="flex items-center ml-2">
-                          <div className="flex -space-x-2">
-                            {chainsWithRpc.map((chain, idx) => (
-                              <Link
-                                key={chain.chainId}
-                                href={`/stats/l1/${chain.slug}/explorer`}
-                                className="relative inline-block cursor-pointer transition-transform hover:scale-110 hover:z-10"
-                                style={{ zIndex: chainsWithRpc.length - idx }}
-                                title={chain.chainName}
-                              >
-                                <img
-                                  src={chain.chainLogoURI}
-                                  alt={chain.chainName}
-                                  className="w-6 h-6 rounded-full border-2 border-white dark:border-zinc-900 bg-white dark:bg-zinc-800 object-contain"
-                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                />
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                     <div className="flex items-center gap-3 sm:gap-4">
                       {chainLogoURI && (
@@ -218,7 +189,7 @@ export function ExplorerLayout({
                         />
                       )}
                       <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                        {chainName}
+                        {chainName} Explorer
                       </h1>
                     </div>
                     {description && (

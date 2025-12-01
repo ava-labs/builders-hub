@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BarChart3, ChevronRight, Compass, Globe, ChevronDown, Plus } from "lucide-react";
+import { BarChart3, ChevronRight, Compass, Globe, ChevronDown, Plus, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,6 +42,8 @@ interface StatsBreadcrumbProps {
   showExplorer?: boolean;
   // Optional: Show stats link as current page (for stats page)
   showStats?: boolean;
+  // Optional: Show validators link (for validators page)
+  showValidators?: boolean;
   // Optional: Custom breadcrumb items to append after Explorer
   breadcrumbItems?: BreadcrumbItem[];
   // Optional: Theme color for active item icon
@@ -109,6 +111,7 @@ export function StatsBreadcrumb({
   chainLogoURI,
   showExplorer = false,
   showStats = false,
+  showValidators = false,
   breadcrumbItems = [],
   themeColor,
   className = "",
@@ -222,18 +225,20 @@ export function StatsBreadcrumb({
     if (showExplorer) {
       // On explorer page, only show chains with rpcUrl
       return (l1ChainsData as L1Chain[]).filter((chain) => chain.rpcUrl);
-    } else if (showStats) {
-      // On stats page, show all chains
+    } else if (showStats || showValidators) {
+      // On stats/validators page, show all chains
       return l1ChainsData as L1Chain[];
     }
     return [];
-  }, [showExplorer, showStats]);
+  }, [showExplorer, showStats, showValidators]);
 
   const handleChainSelect = (selectedSlug: string) => {
     if (showExplorer) {
       router.push(`/stats/l1/${selectedSlug}/explorer`);
     } else if (showStats) {
       router.push(`/stats/l1/${selectedSlug}/stats`);
+    } else if (showValidators) {
+      router.push(`/stats/validators/${selectedSlug}`);
     }
   };
 
@@ -285,41 +290,28 @@ export function StatsBreadcrumb({
           <span>Ecosystem</span>
         </Link>
         
-        {chainSlug && chainName ? (
+        {/* Stats page: Ecosystem → Stats → Chain (with dropdown) */}
+        {showStats && chainSlug && chainName && (
           <>
+            <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
+            {/* Stats - not clickable */}
+            <span className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 whitespace-nowrap flex-shrink-0">
+              <BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <span>Stats</span>
+            </span>
+            
+            {/* Chain dropdown - current page */}
             <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
             {availableChains.length > 0 ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0">
-                    {chainSlug === 'all-chains' ? (
-                      <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500 flex-shrink-0" />
-                    ) : (
-                      <ChainLogo src={chainLogoURI} name={chainName} size="md" />
-                    )}
+                    <ChainLogo src={chainLogoURI} name={chainName} size="md" />
                     <span className="max-w-[80px] sm:max-w-none truncate">{chainName}</span>
                     <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 opacity-50" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="max-h-[500px] overflow-y-auto">
-                  {/* All Chains option - only show on explorer page */}
-                  {showExplorer && (
-                    <>
-                      <DropdownMenuItem
-                        onClick={() => router.push('/stats/explorer')}
-                        className="cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2 w-full">
-                          <Globe className="w-4 h-4 text-red-500" />
-                          <span className={chainSlug === 'all-chains' ? "font-medium" : ""}>
-                            All Chains
-                          </span>
-                        </div>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
-                  
                   {availableChains.map((chain) => (
                     <DropdownMenuItem
                       key={chain.chainId}
@@ -334,10 +326,123 @@ export function StatsBreadcrumb({
                       </div>
                     </DropdownMenuItem>
                   ))}
-                  
-                  {/* Custom chains section - only show on explorer page */}
-                  {showExplorer && (
-                    <>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap flex-shrink-0">
+                <ChainLogo src={chainLogoURI} name={chainName} size="md" />
+                <span className="max-w-[80px] sm:max-w-none truncate">{chainName}</span>
+              </span>
+            )}
+          </>
+        )}
+        
+        {/* Validators page: Ecosystem → Validators → Chain (with dropdown) */}
+        {showValidators && chainSlug && chainName && (
+          <>
+            <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
+            {/* Validators - clickable link back to validators list */}
+            <Link 
+              href="/stats/validators" 
+              className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+            >
+              <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <span>Validators</span>
+            </Link>
+            
+            {/* Chain dropdown - current page */}
+            <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
+            {availableChains.length > 0 ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0">
+                    <ChainLogo src={chainLogoURI} name={chainName} size="md" />
+                    <span className="max-w-[80px] sm:max-w-none truncate">{chainName}</span>
+                    <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 opacity-50" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="max-h-[500px] overflow-y-auto">
+                  {availableChains.map((chain) => (
+                    <DropdownMenuItem
+                      key={chain.chainId}
+                      onClick={() => handleChainSelect(chain.slug)}
+                      className="cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        <ChainLogo src={chain.chainLogoURI} name={chain.chainName} />
+                        <span className={chainSlug === chain.slug ? "font-medium" : ""}>
+                          {chain.chainName}
+                        </span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap flex-shrink-0">
+                <ChainLogo src={chainLogoURI} name={chainName} size="md" />
+                <span className="max-w-[80px] sm:max-w-none truncate">{chainName}</span>
+              </span>
+            )}
+          </>
+        )}
+        
+        {/* Explorer page: Ecosystem → Explorer → Chain (with dropdown) */}
+        {showExplorer && chainSlug && chainName && (
+          <>
+            <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
+            {/* Explorer - not clickable */}
+            <span className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 whitespace-nowrap flex-shrink-0">
+              <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <span>Explorer</span>
+            </span>
+            
+            {/* Chain dropdown - always shown after Explorer */}
+            <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
+            {availableChains.length > 0 && breadcrumbItems.length === 0 ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0">
+                        {chainSlug === 'all-chains' ? (
+                          <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500 flex-shrink-0" />
+                        ) : (
+                          <ChainLogo src={chainLogoURI} name={chainName} size="md" />
+                        )}
+                        <span className="max-w-[80px] sm:max-w-none truncate">{chainName}</span>
+                        <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 opacity-50" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="max-h-[500px] overflow-y-auto">
+                      {/* All Chains option */}
+                      <DropdownMenuItem
+                        onClick={() => router.push('/stats/explorer')}
+                        className="cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2 w-full">
+                          <Globe className="w-4 h-4 text-red-500" />
+                          <span className={chainSlug === 'all-chains' ? "font-medium" : ""}>
+                            All Chains
+                          </span>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      
+                      {availableChains.map((chain) => (
+                        <DropdownMenuItem
+                          key={chain.chainId}
+                          onClick={() => handleChainSelect(chain.slug)}
+                          className="cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2 w-full">
+                            <ChainLogo src={chain.chainLogoURI} name={chain.chainName} />
+                            <span className={chainSlug === chain.slug ? "font-medium" : ""}>
+                              {chain.chainName}
+                            </span>
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                      
+                      {/* Custom chains section */}
                       <DropdownMenuSeparator />
                       <div className="px-2 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
                         Custom Chains
@@ -377,72 +482,45 @@ export function StatsBreadcrumb({
                           <span className="font-medium">Add Custom Chain</span>
                         </div>
                       </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Link 
-                href={showExplorer ? `/stats/l1/${chainSlug}/explorer` : `/stats/l1/${chainSlug}/stats`} 
-                className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
-              >
-                <ChainLogo src={chainLogoURI} name={chainName} size="md" />
-                <span className="max-w-[80px] sm:max-w-none truncate">{chainName}</span>
-              </Link>
-            )}
-            
-            {showStats && (
-              <>
-                <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
-                <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap flex-shrink-0">
-                  <BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5" style={{ color: themeColor }} />
-                  <span>Stats</span>
-                </span>
-              </>
-            )}
-            
-            {showExplorer && (
-              <>
-                <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
-                {breadcrumbItems.length === 0 ? (
-                  <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap flex-shrink-0">
-                    <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5" style={{ color: themeColor }} />
-                    <span>Explorer</span>
-                  </span>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : breadcrumbItems.length > 0 ? (
+                  <Link 
+                    href={`/stats/l1/${chainSlug}/explorer`} 
+                    className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                  >
+                    <ChainLogo src={chainLogoURI} name={chainName} size="md" />
+                    <span className="max-w-[80px] sm:max-w-none truncate">{chainName}</span>
+                  </Link>
                 ) : (
-                  <>
-                    <Link 
-                      href={`/stats/l1/${chainSlug}/explorer`} 
-                      className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
-                    >
-                      <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                      <span>Explorer</span>
-                    </Link>
-                    {breadcrumbItems.map((item, idx) => (
-                      <span key={idx} className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-                        <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600" />
-                        {item.href ? (
-                          <Link 
-                            href={item.href}
-                            className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap max-w-[100px] sm:max-w-none truncate"
-                          >
-                            {item.icon && <span className="inline-flex items-center">{item.icon}</span>}
-                            {item.label}
-                          </Link>
-                        ) : (
-                          <span className="font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap max-w-[100px] sm:max-w-none truncate cursor-default">
-                            {item.icon && <span className="inline-flex items-center">{item.icon}</span>}
-                            {item.label}
-                          </span>
-                        )}
-                      </span>
-                    ))}
-                  </>
+                  <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap flex-shrink-0">
+                    <ChainLogo src={chainLogoURI} name={chainName} size="md" />
+                    <span className="max-w-[80px] sm:max-w-none truncate">{chainName}</span>
+                  </span>
                 )}
-              </>
-            )}
+            
+            {/* Additional breadcrumb items (block, tx, address pages) */}
+            {breadcrumbItems.map((item, idx) => (
+              <span key={idx} className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+                <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600" />
+                {item.href ? (
+                  <Link 
+                    href={item.href}
+                    className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap max-w-[100px] sm:max-w-none truncate"
+                  >
+                    {item.icon && <span className="inline-flex items-center">{item.icon}</span>}
+                    {item.label}
+                  </Link>
+                ) : (
+                  <span className="font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap max-w-[100px] sm:max-w-none truncate cursor-default">
+                    {item.icon && <span className="inline-flex items-center">{item.icon}</span>}
+                    {item.label}
+                  </span>
+                )}
+              </span>
+            ))}
           </>
-        ) : null}
+        )}
       </nav>
     </>
   );

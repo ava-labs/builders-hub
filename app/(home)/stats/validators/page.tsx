@@ -2,6 +2,7 @@
 import type React from "react";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
@@ -16,6 +17,9 @@ import {
   Search,
   AlertTriangle,
   X,
+  Globe,
+  ChevronRight,
+  Users,
 } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { type SubnetStats } from "@/types/validator-stats";
@@ -361,6 +365,12 @@ export default function ValidatorStatsPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
             <div className="animate-pulse space-y-8 sm:space-y-12">
               <div className="space-y-4">
+                {/* Breadcrumb skeleton */}
+                <div className="flex items-center gap-1.5">
+                  <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                  <div className="h-3 w-3 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                  <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                </div>
                 <div className="flex items-center gap-3">
                   <div className="h-5 w-5 sm:h-6 sm:w-6 bg-zinc-200 dark:bg-zinc-800 rounded" />
                   <div className="h-4 w-32 bg-zinc-200 dark:bg-zinc-800 rounded" />
@@ -511,6 +521,22 @@ export default function ValidatorStatsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
           <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
             <div className="space-y-4 sm:space-y-6 flex-1">
+              {/* Breadcrumb */}
+              <div className="flex items-center gap-1.5 text-xs sm:text-sm">
+                <Link
+                  href="/stats/overview"
+                  className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                >
+                  <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <span>Ecosystem</span>
+                </Link>
+                <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
+                <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap flex-shrink-0">
+                  <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500" />
+                  <span>Validators</span>
+                </span>
+              </div>
+
               <div>
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
                   <AvalancheLogo

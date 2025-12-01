@@ -287,7 +287,7 @@ export default function AllChainsExplorerPage() {
       const result = await response.json();
 
       // Get tokenSymbol from API response (which may come from CoinGecko) or fall back to static data
-      const tokenSymbol = result.tokenSymbol || chain.tokenSymbol || '';
+      const tokenSymbol = result.tokenSymbol || chain.tokenSymbol || 'N/A';
 
       const chainInfo: ChainInfo = {
         chainId: chain.chainId,
