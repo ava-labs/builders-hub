@@ -62,6 +62,11 @@ const config = {
   async redirects() {
     return [
       {
+        source: '/docs/dapps/smart-contract-dev/get-test-funds',
+        destination: '/console/primary-network/faucet',
+        permanent: true,
+      },
+      {
         source: '/integrations/trader-joe',
         destination: '/integrations/lfj',
         permanent: true,
