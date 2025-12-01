@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Activity } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
-import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import l1ChainsData from "@/constants/l1-chains.json";
 import Image from "next/image";
 
@@ -321,8 +320,118 @@ export default function ChainValidatorsPage() {
             </div>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-          <ChartSkeletonLoader />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
+          {/* Version Breakdown Skeleton */}
+          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 py-0">
+            <div className="p-6 animate-pulse">
+              <div className="flex items-center justify-between mb-6">
+                <div className="space-y-2">
+                  <div className="h-6 w-40 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                  <div className="h-4 w-64 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                </div>
+                <div className="h-8 w-32 bg-zinc-200 dark:bg-zinc-800 rounded" />
+              </div>
+              <div className="space-y-4">
+                <div className="h-8 w-full bg-zinc-200 dark:bg-zinc-800 rounded" />
+                <div className="flex flex-wrap gap-4">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded"
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Table Skeleton */}
+          <Card className="overflow-hidden py-0 border-0 shadow-none rounded-lg">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
+                  <tr>
+                    <th className="px-4 py-2 text-left">
+                      <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                        #
+                      </span>
+                    </th>
+                    <th className="px-4 py-2 text-left">
+                      <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                        Node ID
+                      </span>
+                    </th>
+                    <th className="px-4 py-2 text-left">
+                      <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                        Version
+                      </span>
+                    </th>
+                    <th className="px-4 py-2 text-left">
+                      <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                        Validation ID
+                      </span>
+                    </th>
+                    <th className="px-4 py-2 text-right">
+                      <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                        Weight
+                      </span>
+                    </th>
+                    <th className="px-4 py-2 text-right">
+                      <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                        Remaining Balance
+                      </span>
+                    </th>
+                    <th className="px-4 py-2 text-right">
+                      <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                        Creation Time
+                      </span>
+                    </th>
+                    <th className="px-4 py-2 text-left">
+                      <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                        Balance Owner
+                      </span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-neutral-950">
+                  {[...Array(10)].map((_, rowIndex) => (
+                    <tr
+                      key={rowIndex}
+                      className="border-b border-slate-100 dark:border-neutral-800 animate-pulse"
+                    >
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
+                        <div className="h-4 w-8 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                      </td>
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
+                        <div className="h-4 w-40 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                      </td>
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
+                        <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                      </td>
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
+                        <div className="h-4 w-40 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                      </td>
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
+                        <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" />
+                      </td>
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
+                        <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" />
+                      </td>
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
+                        <div className="h-4 w-32 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="space-y-1">
+                          <div className="h-3 w-28 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                          <div className="h-3 w-20 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         </div>
         <StatsBubbleNav />
       </div>
