@@ -593,6 +593,36 @@ const config = {
         destination: "/academy/avalanche-l1/erc20-bridge/04-tokens-on-multiple-chains/:path*",
         permanent: true,
       },
+      {
+        source: "/docs/dapps/smart-contract-dev/deploy-with-remix-ide",
+        destination: "/docs/avalanche-l1s/add-utility/deploy-smart-contract",
+        permanent: true,
+      },
+      {
+        source: "/docs/quick-start/networks/fuji-testnet",
+        destination: "/docs/primary-network",
+        permanent: true,
+      },
+      {
+        source: "/docs/quick-start/Networks/fuji-testnet",
+        destination: "/docs/primary-network",
+        permanent: true,
+      },
+      {
+        source: "/docs/quick-start/validator-manager",
+        destination: "/docs/avalanche-l1s/validator-manager/contract",
+        permanent: true,
+      },
+      {
+        source: "/docs/quick-start/avalanche-consensus",
+        destination: "/docs/primary-network/avalanche-consensus",
+        permanent: true,
+      },
+      {
+        source: "/docs/quick-start/:path*",
+        destination: "/docs/primary-network",
+        permanent: true,
+      },
     ];
   },
 };
