@@ -22,7 +22,14 @@ import { type SubnetStats } from "@/types/validator-stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import l1ChainsData from "@/constants/l1-chains.json";
 
-type SortColumn = "name" | "id" | "nodeCount" | "nodes" | "stake" | "isL1" | "totalStake";
+type SortColumn =
+  | "name"
+  | "id"
+  | "nodeCount"
+  | "nodes"
+  | "stake"
+  | "isL1"
+  | "totalStake";
 type SortDirection = "asc" | "desc";
 type Network = "mainnet" | "fuji";
 
@@ -107,19 +114,7 @@ export default function ValidatorStatsPage() {
   const compareVersions = (v1: string, v2: string): number => {
     if (v1 === "Unknown") return -1;
     if (v2 === "Unknown") return 1;
-
-    const extractNumbers = (v: string) => {
-      const match = v.match(/(\d+)\.(\d+)\.(\d+)/);
-      if (!match) return [0, 0, 0];
-      return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])];
-    };
-
-    const [major1, minor1, patch1] = extractNumbers(v1);
-    const [major2, minor2, patch2] = extractNumbers(v2);
-
-    if (major1 !== major2) return major1 - major2;
-    if (minor1 !== minor2) return minor1 - minor2;
-    return patch1 - patch2;
+    return v1.localeCompare(v2, undefined, { numeric: true });
   };
 
   const calculateStats = (subnet: SubnetStats) => {
