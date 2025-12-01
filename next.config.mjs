@@ -62,6 +62,11 @@ const config = {
   async redirects() {
     return [
       {
+        source: '/docs/dapps/toolchains/foundry',
+        destination: '/academy/blockchain/solidity-foundry/03-smart-contracts/03-foundry-quickstart',
+        permanent: true,
+      },
+      {
         source: '/docs/nodes/validate/how-to-stake',
         destination: '/docs/primary-network/validate/how-to-stake',
         permanent: true,
