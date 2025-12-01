@@ -530,28 +530,28 @@ export default function ChainValidatorsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3 sm:gap-4">
-                  {chainInfo.chainLogoURI && (
-                    <Image
-                      src={chainInfo.chainLogoURI}
-                      alt={chainInfo.chainName}
+              {chainInfo.chainLogoURI && (
+                <Image
+                  src={chainInfo.chainLogoURI}
+                  alt={chainInfo.chainName}
                       width={56}
                       height={56}
                       className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain rounded-xl"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                      }}
-                    />
-                  )}
-                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                    {chainInfo.chainName} Validators
-                  </h1>
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
+              )}
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                  {chainInfo.chainName} Validators
+                </h1>
                 </div>
                 {(chainInfo.description || chainInfo.chainName) && (
                   <div className="flex items-center gap-3 mt-3">
-                    <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
+                <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
                       {chainInfo.description || `Active validators and delegation metrics for ${chainInfo.chainName}`}
-                    </p>
-                  </div>
+                </p>
+              </div>
                 )}
                 {chainInfo.category && (
                   <div className="mt-3">
@@ -617,9 +617,9 @@ export default function ChainValidatorsPage() {
                 </div>
               </div>
             )}
-          </div>
+            </div>
 
-          {/* Key metrics - inline */}
+            {/* Key metrics - inline */}
           <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-3 sm:gap-6 md:gap-12 pt-6 mt-6 border-t border-zinc-200 dark:border-zinc-800">
               <div>
                 <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
@@ -672,7 +672,7 @@ export default function ChainValidatorsPage() {
                   </span>
                 </div>
               )}
-            </div>
+          </div>
         </div>
       </div>
 

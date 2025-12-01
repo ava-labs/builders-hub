@@ -1010,64 +1010,63 @@ export default function AllChainsExplorerPage() {
                 </div>
               </div>
               <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
-                {icmMessages.slice(0, 10).map((tx, index) => (
-                  <div 
-                    key={`icm-${tx.hash}-${index}`}
-                    onClick={() => router.push(buildTxUrl(`/stats/l1/${tx.chain?.chainSlug}/explorer`, tx.hash))}
-                    className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
-                      newTxHashes.has(tx.hash) ? 'new-item' : ''
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div 
-                          className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                          style={{ backgroundColor: `${themeColor}15` }}
-                        >
-                          <Link2 className="w-4 h-4" style={{ color: themeColor }} />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-mono text-xs hover:underline" style={{ color: themeColor }}>
-                              {tx.hash.slice(0, 14)}...
-                            </span>
-                            <span className="text-xs text-zinc-400">
-                              {formatTimeAgo(tx.timestamp)}
-                            </span>
+                {icmMessages.slice(0, 10).map((tx, index) => {
+                  const sourceChain = tx.sourceBlockchainId ? getChainFromBlockchainId(tx.sourceBlockchainId) : null;
+                  const destChain = tx.destinationBlockchainId ? getChainFromBlockchainId(tx.destinationBlockchainId) : null;
+                  const iconColor = sourceChain?.color || tx.chain?.color || themeColor;
+                  
+                  return (
+                    <div 
+                      key={`icm-${tx.hash}-${index}`}
+                      onClick={() => router.push(buildTxUrl(`/stats/l1/${tx.chain?.chainSlug}/explorer`, tx.hash))}
+                      className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
+                        newTxHashes.has(tx.hash) ? 'new-item' : ''
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{ backgroundColor: `${iconColor}15` }}
+                          >
+                            <Link2 className="w-4 h-4" style={{ color: iconColor }} />
                           </div>
-                          {/* Cross-chain chips */}
-                          {(() => {
-                            const sourceChain = tx.sourceBlockchainId ? getChainFromBlockchainId(tx.sourceBlockchainId) : null;
-                            const destChain = tx.destinationBlockchainId ? getChainFromBlockchainId(tx.destinationBlockchainId) : null;
-                            
-                            return (
-                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                {sourceChain ? (
-                                  <ChainChip chain={sourceChain} size="xs" onClick={() => router.push(`/stats/l1/${sourceChain.chainSlug}/explorer`)} />
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500">
-                                    Unknown
-                                  </span>
-                                )}
-                                <span className="text-zinc-400">→</span>
-                                {destChain ? (
-                                  <ChainChip chain={destChain} size="xs" onClick={() => router.push(`/stats/l1/${destChain.chainSlug}/explorer`)} />
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500">
-                                    Unknown
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })()}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-mono text-xs hover:underline" style={{ color: iconColor }}>
+                                {tx.hash.slice(0, 14)}...
+                              </span>
+                              <span className="text-xs text-zinc-400">
+                                {formatTimeAgo(tx.timestamp)}
+                              </span>
+                            </div>
+                            {/* Cross-chain chips */}
+                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                              {sourceChain ? (
+                                <ChainChip chain={sourceChain} size="xs" onClick={() => router.push(`/stats/l1/${sourceChain.chainSlug}/explorer`)} />
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500">
+                                  Unknown
+                                </span>
+                              )}
+                              <span className="text-zinc-400">→</span>
+                              {destChain ? (
+                                <ChainChip chain={destChain} size="xs" onClick={() => router.push(`/stats/l1/${destChain.chainSlug}/explorer`)} />
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500">
+                                  Unknown
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 flex-shrink-0">
-                        {formatTokenValue(tx.value)} {tx.chain?.tokenSymbol || ''}
+                        <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 flex-shrink-0">
+                          {formatTokenValue(tx.value)} {tx.chain?.tokenSymbol || ''}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

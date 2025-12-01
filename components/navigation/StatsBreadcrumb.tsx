@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BarChart3, ChevronRight, Compass, Globe, ChevronDown, Plus, Users } from "lucide-react";
+import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -306,12 +307,29 @@ export function StatsBreadcrumb({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0">
-                    <ChainLogo src={chainLogoURI} name={chainName} size="md" />
+                    {chainSlug === 'all' || chainSlug === 'all-chains' ? (
+                      <AvalancheLogo className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" fill="#E84142" />
+                    ) : (
+                      <ChainLogo src={chainLogoURI} name={chainName} size="md" />
+                    )}
                     <span className="max-w-[80px] sm:max-w-none truncate">{chainName}</span>
                     <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 opacity-50" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="max-h-[500px] overflow-y-auto">
+                  {/* All Chains option */}
+                  <DropdownMenuItem
+                    onClick={() => router.push('/stats/all')}
+                    className="cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <AvalancheLogo className="w-4 h-4" fill="#E84142" />
+                      <span className={chainSlug === 'all' || chainSlug === 'all-chains' ? "font-medium" : ""}>
+                        All Chains
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   {availableChains.map((chain) => (
                     <DropdownMenuItem
                       key={chain.chainId}
@@ -330,7 +348,11 @@ export function StatsBreadcrumb({
               </DropdownMenu>
             ) : (
               <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap flex-shrink-0">
-                <ChainLogo src={chainLogoURI} name={chainName} size="md" />
+                {chainSlug === 'all' || chainSlug === 'all-chains' ? (
+                  <AvalancheLogo className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" fill="#E84142" />
+                ) : (
+                  <ChainLogo src={chainLogoURI} name={chainName} size="md" />
+                )}
                 <span className="max-w-[80px] sm:max-w-none truncate">{chainName}</span>
               </span>
             )}

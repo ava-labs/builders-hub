@@ -6,6 +6,7 @@ import type { BubbleNavigationConfig } from '@/components/navigation/bubble-navi
 export const statsBubbleConfig: BubbleNavigationConfig = {
     items: [
         { id: "overview", label: "Overview", href: "/stats/overview" },
+        { id: "stats", label: "Stats", href: "/stats/all" },
         { id: "explorer", label: "Explorer", href: "/stats/explorer" },
         { id: "playground", label: "Playground", href: "/stats/playground" },
         { id: "validators", label: "Validators", href: "/stats/validators" },
@@ -22,6 +23,8 @@ export function StatsBubbleNav() {
         const currentItem = items.find((item) => pathname === item.href);
         if (currentItem) {
             return currentItem.id;
+        } else if (pathname.startsWith("/stats/all")) {
+            return "stats"; // All chains stats page
         } else if (pathname.startsWith("/stats/l1/")) {
             return "explorer"; // L1 chain pages are part of Explorer
         } else if (pathname.startsWith("/stats/explorer")) {
