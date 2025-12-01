@@ -216,7 +216,7 @@ export default function ChainMetricsPage({
   const [loading, setLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Cache for "all chains" data - fetched once and reused for filtering
   const [cachedAllData, setCachedAllData] = useState<CChainMetrics | null>(null);
   
@@ -241,13 +241,15 @@ export default function ChainMetricsPage({
   const [selectedChainIds, setSelectedChainIds] = useState<Set<string>>(getInitialSelectedChainIds);
   const [showFilters, setShowFilters] = useState(false);
   
-  // Update URL when selection changes (only for all chains view)
-  const updateUrlParams = useCallback((newSelectedIds: Set<string>) => {
-    // Only update URL params if we're on the "all" page
-    if (!isAllChainsView) return;
+  // Track if this is user-initiated change (not from URL sync)
+  const [urlSyncNeeded, setUrlSyncNeeded] = useState(false);
+  
+  // Update URL when selection changes (only for all chains view) - via useEffect to avoid setState during render
+  useEffect(() => {
+    if (!isAllChainsView || !urlSyncNeeded) return;
     
     const excludedIds = allChains
-      .filter(c => !newSelectedIds.has(c.chainId))
+      .filter(c => !selectedChainIds.has(c.chainId))
       .map(c => c.chainId);
     
     const params = new URLSearchParams(searchParams.toString());
@@ -261,15 +263,17 @@ export default function ChainMetricsPage({
     
     const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
     router.replace(newUrl, { scroll: false });
-  }, [isAllChainsView, pathname, router, searchParams]);
+    setUrlSyncNeeded(false);
+  }, [isAllChainsView, pathname, router, searchParams, selectedChainIds, urlSyncNeeded]);
   
-  // Sync URL params on initial load and when URL changes externally (only for all chains view)
+  // Sync state from URL params on initial load and when URL changes externally (only for all chains view)
   useEffect(() => {
     if (isAllChainsView) {
       const initialSelected = getInitialSelectedChainIds();
       setSelectedChainIds(initialSelected);
     }
-  }, [searchParams, isAllChainsView, getInitialSelectedChainIds]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, isAllChainsView]);
   
   // Get chains grouped by category
   const chainsByCategory = useMemo(() => {
@@ -302,10 +306,10 @@ export default function ChainMetricsPage({
       } else {
         next.add(chainIdToToggle);
       }
-      updateUrlParams(next);
       return next;
     });
-  }, [updateUrlParams]);
+    setUrlSyncNeeded(true);
+  }, []);
   
   // Toggle all chains in a category
   const toggleCategory = useCallback((category: string) => {
@@ -321,23 +325,21 @@ export default function ChainMetricsPage({
         // Select all chains in this category
         chainsInCategory.forEach(c => next.add(c.chainId));
       }
-      updateUrlParams(next);
       return next;
     });
-  }, [chainsByCategory, getCategorySelectionState, updateUrlParams]);
+    setUrlSyncNeeded(true);
+  }, [chainsByCategory, getCategorySelectionState]);
   
   // Select all / deselect all
   const selectAll = useCallback(() => {
-    const allSelected = new Set(allChains.map(c => c.chainId));
-    setSelectedChainIds(allSelected);
-    updateUrlParams(allSelected);
-  }, [updateUrlParams]);
+    setSelectedChainIds(new Set(allChains.map(c => c.chainId)));
+    setUrlSyncNeeded(true);
+  }, []);
   
   const deselectAll = useCallback(() => {
-    const noneSelected = new Set<string>();
-    setSelectedChainIds(noneSelected);
-    updateUrlParams(noneSelected);
-  }, [updateUrlParams]);
+    setSelectedChainIds(new Set<string>());
+    setUrlSyncNeeded(true);
+  }, []);
   
   // Look up chain data to get category and explorers if not provided
   const chainData = chainSlug 
@@ -446,13 +448,13 @@ export default function ChainMetricsPage({
   const fetchData = async () => {
     // If not all chains view, use regular single chain fetch
     if (!isAllChainsView) {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await fetch(`/api/chain-stats/${chainId}?timeRange=all`);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch(`/api/chain-stats/${chainId}?timeRange=all`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
         const data = await response.json();
         setMetrics(data);
         setIsInitialLoad(false);
