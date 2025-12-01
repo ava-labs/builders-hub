@@ -62,7 +62,12 @@ const config = {
   async redirects() {
     return [
       {
-        source: 'docs/dapps/end-to-end/launch-ethereum-dapp',
+        source: '/integrations/trader-joe',
+        destination: '/integrations/lfj',
+        permanent: true,
+      },
+      {
+        source: '/docs/dapps/end-to-end/launch-ethereum-dapp',
         destination: '/academy/blockchain/solidity-foundry',
         permanent: true,
       },
