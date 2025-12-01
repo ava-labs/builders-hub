@@ -684,7 +684,7 @@ export default function TransactionDetailPage({
                 tx?.blockNumber ? (
                   <div className="flex items-center gap-2">
                     <Link
-                      href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, tx.blockNumber)}
+                      href={buildBlockUrl(`/explorer/${chainSlug}`, tx.blockNumber)}
                       className="text-sm font-medium hover:underline cursor-pointer"
                       style={{ color: themeColor }}
                     >
@@ -720,7 +720,7 @@ export default function TransactionDetailPage({
               value={
                 tx?.from ? (
                   <Link
-                    href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.from)}
+                    href={buildAddressUrl(`/explorer/${chainSlug}`, tx.from)}
                     className="text-sm font-mono break-all hover:underline cursor-pointer"
                     style={{ color: themeColor }}
                   >
@@ -742,7 +742,7 @@ export default function TransactionDetailPage({
                 tx?.to ? (
                   <div className="flex items-center gap-2">
                   <Link
-                    href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.to)}
+                    href={buildAddressUrl(`/explorer/${chainSlug}`, tx.to)}
                       className="text-sm font-mono break-all hover:underline cursor-pointer"
                     style={{ color: themeColor }}
                   >
@@ -761,7 +761,7 @@ export default function TransactionDetailPage({
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-zinc-500">[Contract Created]</span>
                     <Link
-                      href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.contractAddress)}
+                      href={buildAddressUrl(`/explorer/${chainSlug}`, tx.contractAddress)}
                       className="text-sm font-mono hover:underline cursor-pointer"
                       style={{ color: themeColor }}
                     >
@@ -814,7 +814,7 @@ export default function TransactionDetailPage({
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-zinc-500">From</span>
                           <Link 
-                            href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.from)}
+                            href={buildAddressUrl(`/explorer/${chainSlug}`, transfer.from)}
                             className="font-mono text-xs hover:underline cursor-pointer" 
                             style={{ color: themeColor }}
                           >
@@ -823,7 +823,7 @@ export default function TransactionDetailPage({
                           <span className="text-zinc-400">→</span>
                           <span className="text-zinc-500">To</span>
                           <Link 
-                            href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.to)}
+                            href={buildAddressUrl(`/explorer/${chainSlug}`, transfer.to)}
                             className="font-mono text-xs hover:underline cursor-pointer" 
                             style={{ color: themeColor }}
                           >
@@ -836,7 +836,7 @@ export default function TransactionDetailPage({
                             {formatTokenAmountFromWei(transfer.value, transfer.decimals)}
                           </span>
                           <Link 
-                            href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.tokenAddress)}
+                            href={buildAddressUrl(`/explorer/${chainSlug}`, transfer.tokenAddress)}
                             className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium hover:underline cursor-pointer"
                             style={{ backgroundColor: `${themeColor}20`, color: themeColor }}
                           >
@@ -889,7 +889,7 @@ export default function TransactionDetailPage({
                             <div className="flex items-center gap-2 flex-wrap">
                               {/* Source Chain */}
                               <Link 
-                                href={`/stats/l1/${chainSlug}/explorer`}
+                                href={`/explorer/${chainSlug}`}
                                 className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium hover:underline cursor-pointer"
                                 style={{ backgroundColor: `${themeColor}20`, color: themeColor }}
                               >
@@ -910,7 +910,7 @@ export default function TransactionDetailPage({
                               {/* Destination Chain */}
                               {destChain ? (
                                 <Link 
-                                  href={`/stats/l1/${destChain.slug}/explorer`}
+                                  href={`/explorer/${destChain.slug}`}
                                   className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium hover:underline cursor-pointer"
                                   style={{ backgroundColor: `${destChain.color}20`, color: destChain.color }}
                                 >
@@ -937,7 +937,7 @@ export default function TransactionDetailPage({
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-zinc-500">From</span>
                               <Link 
-                                href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.sender)}
+                                href={buildAddressUrl(`/explorer/${chainSlug}`, transfer.sender)}
                                 className="font-mono text-xs hover:underline cursor-pointer" 
                                 style={{ color: themeColor }}
                               >
@@ -947,7 +947,7 @@ export default function TransactionDetailPage({
                               <span className="text-zinc-500">To</span>
                               {destChain ? (
                                 <Link 
-                                  href={buildAddressUrl(`/stats/l1/${destChain.slug}/explorer`, transfer.recipient)}
+                                  href={buildAddressUrl(`/explorer/${destChain.slug}`, transfer.recipient)}
                                   className="font-mono text-xs hover:underline cursor-pointer" 
                                   style={{ color: destChain.color }}
                                 >
@@ -963,7 +963,7 @@ export default function TransactionDetailPage({
                                 {formattedAmount}
                               </span>
                               <Link 
-                                href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.contractAddress)}
+                                href={buildAddressUrl(`/explorer/${chainSlug}`, transfer.contractAddress)}
                                 className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:underline cursor-pointer"
                                 style={{ backgroundColor: `${themeColor}20`, color: themeColor }}
                               >
@@ -1148,7 +1148,7 @@ export default function TransactionDetailPage({
                                           <div className="flex-1 min-w-0">
                                             {isAddress ? (
                                               <Link
-                                                href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, param.value)}
+                                                href={buildAddressUrl(`/explorer/${chainSlug}`, param.value)}
                                                 className="font-mono text-xs hover:underline cursor-pointer break-all"
                                                 style={{ color: themeColor }}
                                               >
@@ -1170,7 +1170,7 @@ export default function TransactionDetailPage({
                                                       </span>
                                                       {compIsAddress ? (
                                                         <Link
-                                                          href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, comp.value)}
+                                                          href={buildAddressUrl(`/explorer/${chainSlug}`, comp.value)}
                                                           className="font-mono hover:underline cursor-pointer break-all"
                                                           style={{ color: themeColor }}
                                                         >
@@ -1256,7 +1256,7 @@ export default function TransactionDetailPage({
                                 </span>
                                 <CopyButton text={log.address} />
                                 <Link
-                                  href={`/stats/l1/${chainSlug}/explorer`}
+                                  href={`/explorer/${chainSlug}`}
                                   className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 cursor-pointer"
                                   title="View contract"
                                 >

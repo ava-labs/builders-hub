@@ -7,21 +7,35 @@ export interface L1BubbleNavProps {
   chainSlug: string;
   themeColor?: string;
   rpcUrl?: string;
+  isCustomChain?: boolean;
 }
 
-export function L1BubbleNav({ chainSlug, themeColor = "#E57373", rpcUrl }: L1BubbleNavProps) {
+export function L1BubbleNav({ chainSlug, themeColor = "#E57373", rpcUrl, isCustomChain = false }: L1BubbleNavProps) {
   // Don't render the bubble navigation if there's no RPC URL
   // (only Overview page would be available, no need for navigation)
   if (!rpcUrl) {
     return null;
   }
 
+  // Don't render bubble navigation for custom chains
+  if (isCustomChain) {
+    return null;
+  }
+
+  // Build items list
+  const items = [
+    { id: "stats", label: "Stats", href: `/stats/l1/${chainSlug}/stats` },
+    { id: "explorer", label: "Explorer", href: `/explorer/${chainSlug}` },
+    { id: "validators", label: "Validators", href: `/stats/validators/${chainSlug === "c-chain" ? "primary-network" : chainSlug}` },
+  ];
+
+  // Don't render if only 1 item is left
+  if (items.length <= 1) {
+    return null;
+  }
+
   const l1BubbleConfig: BubbleNavigationConfig = {
-    items: [
-      { id: "stats", label: "Stats", href: `/stats/l1/${chainSlug}/stats` },
-      { id: "explorer", label: "Explorer", href: `/stats/l1/${chainSlug}/explorer` },
-      { id: "validators", label: "Validators", href: `/stats/validators/${chainSlug === "c-chain" ? "primary-network" : chainSlug}` },
-    ],
+    items,
     activeColor: "bg-zinc-900 dark:bg-white",
     darkActiveColor: "",
     darkTextColor: "dark:text-zinc-900",

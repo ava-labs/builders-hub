@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, notFound } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Activity, Search, X, ArrowUpRight, Twitter, Linkedin } from "lucide-react";
@@ -12,6 +12,12 @@ import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import l1ChainsData from "@/constants/l1-chains.json";
 import Image from "next/image";
 import Link from "next/link";
+import { 
+  compareVersions, 
+  calculateVersionStats, 
+  VersionBreakdownCard,
+  type VersionBreakdownData,
+} from "@/components/stats/VersionBreakdown";
 
 interface ValidatorData {
   nodeId: string;
@@ -36,10 +42,6 @@ interface ValidatorData {
   version?: string;
 }
 
-interface VersionBreakdown {
-  byClientVersion: Record<string, { nodes: number; stakeString: string }>;
-  totalStakeString: string;
-}
 
 interface ChainData {
   chainId: string;
@@ -69,7 +71,7 @@ export default function ChainValidatorsPage() {
   const [chainInfo, setChainInfo] = useState<ChainData | null>(null);
   const [isL1, setIsL1] = useState(false);
   const [versionBreakdown, setVersionBreakdown] =
-    useState<VersionBreakdown | null>(null);
+    useState<VersionBreakdownData | null>(null);
   const [availableVersions, setAvailableVersions] = useState<string[]>([]);
   const [minVersion, setMinVersion] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -85,24 +87,22 @@ export default function ChainValidatorsPage() {
     }
   };
 
-  useEffect(() => {
-    // Find chain info by slug
-    const chain = (l1ChainsData as ChainData[]).find((c) => c.slug === slug);
+  // Find chain info by slug - must be done before any hooks that depend on it
+  const chainFromData = (l1ChainsData as ChainData[]).find((c) => c.slug === slug);
 
-    if (!chain) {
-      setError("Chain not found");
-      setLoading(false);
+  useEffect(() => {
+    if (!chainFromData) {
       return;
     }
 
-    setChainInfo(chain);
+    setChainInfo(chainFromData);
 
     async function fetchValidators() {
-      if (!chain) return;
+      if (!chainFromData) return;
 
       try {
         setLoading(true);
-        const response = await fetch(`/api/chain-validators/${chain.subnetId}`);
+        const response = await fetch(`/api/chain-validators/${chainFromData.subnetId}`);
 
         if (!response.ok) {
           throw new Error(`Failed to fetch validators: ${response.status}`);
@@ -142,7 +142,7 @@ export default function ChainValidatorsPage() {
     }
 
     fetchValidators();
-  }, [slug]);
+  }, [slug, chainFromData]);
 
   const formatNumber = (num: number | string): string => {
     if (typeof num === "string") {
@@ -182,67 +182,6 @@ export default function ChainValidatorsPage() {
     return `${address.slice(0, 8)}...${address.slice(-6)}`;
   };
 
-  const compareVersions = (v1: string, v2: string): number => {
-    if (v1 === "Unknown") return -1;
-    if (v2 === "Unknown") return 1;
-
-    const extractNumbers = (v: string) => {
-      const match = v.match(/(\d+)\.(\d+)\.(\d+)/);
-      if (!match) return [0, 0, 0];
-      return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])];
-    };
-
-    const [major1, minor1, patch1] = extractNumbers(v1);
-    const [major2, minor2, patch2] = extractNumbers(v2);
-
-    if (major1 !== major2) return major1 - major2;
-    if (minor1 !== minor2) return minor1 - minor2;
-    return patch1 - patch2;
-  };
-
-  const calculateVersionStats = () => {
-    if (!versionBreakdown || !minVersion) {
-      return {
-        nodesPercentAbove: 0,
-        stakePercentAbove: 0,
-        aboveTargetNodes: 0,
-        belowTargetNodes: 0,
-      };
-    }
-
-    const totalStake = BigInt(versionBreakdown.totalStakeString);
-    let aboveTargetNodes = 0;
-    let belowTargetNodes = 0;
-    let aboveTargetStake = 0n;
-
-    Object.entries(versionBreakdown.byClientVersion).forEach(
-      ([version, data]) => {
-        const isAboveTarget = compareVersions(version, minVersion) >= 0;
-        if (isAboveTarget) {
-          aboveTargetNodes += data.nodes;
-          aboveTargetStake += BigInt(data.stakeString);
-        } else {
-          belowTargetNodes += data.nodes;
-        }
-      }
-    );
-
-    const totalNodes = aboveTargetNodes + belowTargetNodes;
-    const nodesPercentAbove =
-      totalNodes > 0 ? (aboveTargetNodes / totalNodes) * 100 : 0;
-    const stakePercentAbove =
-      totalStake > 0n
-        ? Number((aboveTargetStake * 10000n) / totalStake) / 100
-        : 0;
-
-    return {
-      totalNodes,
-      aboveTargetNodes,
-      belowTargetNodes,
-      nodesPercentAbove,
-      stakePercentAbove,
-    };
-  };
 
   const calculateStats = () => {
     if (validators.length === 0) {
@@ -290,7 +229,7 @@ export default function ChainValidatorsPage() {
   };
 
   const stats = calculateStats();
-  const versionStats = calculateVersionStats();
+  const versionStats = calculateVersionStats(versionBreakdown, minVersion);
 
   // Filter validators based on search term
   const filteredValidators = validators.filter((validator) => {
@@ -309,25 +248,6 @@ export default function ChainValidatorsPage() {
     return "text-green-600 dark:text-green-400";
   };
 
-  // Color palette for version breakdown
-  const versionColors = [
-    "bg-blue-500 dark:bg-blue-600",
-    "bg-purple-500 dark:bg-purple-600",
-    "bg-pink-500 dark:bg-pink-600",
-    "bg-indigo-500 dark:bg-indigo-600",
-    "bg-cyan-500 dark:bg-cyan-600",
-    "bg-teal-500 dark:bg-teal-600",
-    "bg-emerald-500 dark:bg-emerald-600",
-    "bg-lime-500 dark:bg-lime-600",
-    "bg-yellow-500 dark:bg-yellow-600",
-    "bg-amber-500 dark:bg-amber-600",
-    "bg-orange-500 dark:bg-orange-600",
-    "bg-red-500 dark:bg-red-600",
-  ];
-
-  const getVersionColor = (index: number): string => {
-    return versionColors[index % versionColors.length];
-  };
 
   if (loading) {
     return (
@@ -472,6 +392,11 @@ export default function ChainValidatorsPage() {
     );
   }
 
+  // If chain is not found in static data, return 404
+  if (!chainFromData) {
+    notFound();
+  }
+
   if (error || !chainInfo) {
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -489,7 +414,7 @@ export default function ChainValidatorsPage() {
             <div className="text-center space-y-4">
               <Activity className="h-12 w-12 text-red-500 mx-auto" />
               <p className="text-red-600 dark:text-red-400">
-                {error || "Chain not found"}
+                {error || "Failed to load validators"}
               </p>
             </div>
           </div>
@@ -679,106 +604,13 @@ export default function ChainValidatorsPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
         {/* Version Breakdown Card */}
         {versionBreakdown && availableVersions.length > 0 && (
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 py-0">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-black dark:text-white">
-                    Version Breakdown
-                  </h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-                    Distribution of validator versions
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <label
-                    htmlFor="version-select"
-                    className="text-sm text-neutral-600 dark:text-neutral-400 whitespace-nowrap"
-                  >
-                    Target Version:
-                  </label>
-                  <select
-                    id="version-select"
-                    value={minVersion}
-                    onChange={(e) => setMinVersion(e.target.value)}
-                    className="px-3 py-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-colors"
-                  >
-                    {availableVersions.map((version) => (
-                      <option key={version} value={version}>
-                        {version}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="space-y-4">
-                {/* Horizontal Bar Chart */}
-                <div className="flex h-8 w-full rounded overflow-hidden bg-neutral-100 dark:bg-neutral-800">
-                  {Object.entries(versionBreakdown.byClientVersion)
-                    .sort(([v1], [v2]) => compareVersions(v2, v1))
-                    .map(([version, data], index) => {
-                      const percentage =
-                        stats.totalValidators > 0
-                          ? (data.nodes / stats.totalValidators) * 100
-                          : 0;
-                      const isAboveTarget =
-                        compareVersions(version, minVersion) >= 0;
-                      return (
-                        <div
-                          key={version}
-                          className={`h-full transition-all ${
-                            isAboveTarget
-                              ? "bg-green-700 dark:bg-green-800"
-                              : "bg-gray-300 dark:bg-gray-500"
-                          }`}
-                          style={{ width: `${percentage}%` }}
-                          title={`${version}: ${
-                            data.nodes
-                          } nodes (${percentage.toFixed(1)}%)`}
-                        />
-                      );
-                    })}
-                </div>
-
-                {/* Version Labels */}
-                <div className="flex flex-wrap gap-4">
-                  {Object.entries(versionBreakdown.byClientVersion)
-                    .sort(([v1], [v2]) => compareVersions(v2, v1))
-                    .map(([version, data], index) => {
-                      const isAboveTarget =
-                        compareVersions(version, minVersion) >= 0;
-                      const percentage =
-                        stats.totalValidators > 0
-                          ? (data.nodes / stats.totalValidators) * 100
-                          : 0;
-                      return (
-                        <div key={version} className="flex items-center gap-2">
-                          <div
-                            className={`h-3 w-3 rounded-full flex-shrink-0 ${
-                              isAboveTarget
-                                ? "bg-green-700 dark:bg-green-800"
-                                : "bg-gray-300 dark:bg-gray-500"
-                            }`}
-                          />
-                          <span
-                            className={`font-mono text-sm ${
-                              isAboveTarget
-                                ? "text-black dark:text-white"
-                                : "text-neutral-500 dark:text-neutral-500"
-                            }`}
-                          >
-                            {version}
-                          </span>
-                          <span className="text-sm text-neutral-500 dark:text-neutral-500">
-                            ({data.nodes} - {percentage.toFixed(1)}%)
-                          </span>
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-            </div>
-          </Card>
+          <VersionBreakdownCard
+            versionBreakdown={versionBreakdown}
+            availableVersions={availableVersions}
+            minVersion={minVersion}
+            onVersionChange={setMinVersion}
+            totalValidators={stats.totalValidators}
+          />
         )}
 
         {/* Search Input */}

@@ -982,7 +982,7 @@ export default function AddressDetailPage({
                 </div>
                 <div className="flex items-center gap-2 text-sm flex-wrap">
                   <Link 
-                    href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, data.contractMetadata.deploymentDetails.deployerAddress)}
+                    href={buildAddressUrl(`/explorer/${chainSlug}`, data.contractMetadata.deploymentDetails.deployerAddress)}
                     className="hover:underline cursor-pointer"
                     style={{ color: themeColor }}
                   >
@@ -993,7 +993,7 @@ export default function AddressDetailPage({
                     <>
                       <span className="text-zinc-400">at txn</span>
                       <Link 
-                        href={buildTxUrl(`/stats/l1/${chainSlug}/explorer`, data.contractMetadata.deploymentDetails.txHash)}
+                        href={buildTxUrl(`/explorer/${chainSlug}`, data.contractMetadata.deploymentDetails.txHash)}
                         className="hover:underline font-mono cursor-pointer"
                         style={{ color: themeColor }}
                       >
@@ -1109,7 +1109,7 @@ export default function AddressDetailPage({
                     
                     // Construct explorer URL if rpcUrl is provided (indicates explorer support)
                     const explorerUrl = chainInfo?.rpcUrl && chainSlug
-                      ? `/stats/l1/${chainSlug}/explorer/address/${address}`
+                      ? `/explorer/${chainSlug}/address/${address}`
                       : undefined;
                     
                     return explorerUrl ? (
@@ -1238,7 +1238,7 @@ export default function AddressDetailPage({
                         <tr key={tx.hash || index} className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50">
                           <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                             <div className="flex items-center gap-1.5">
-                              <Link href={buildTxUrl(`/stats/l1/${chainSlug}/explorer`, tx.hash)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(tx.hash)}</Link>
+                              <Link href={buildTxUrl(`/explorer/${chainSlug}`, tx.hash)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(tx.hash)}</Link>
                               <CopyButton text={tx.hash} />
                             </div>
                           </td>
@@ -1246,12 +1246,12 @@ export default function AddressDetailPage({
                             <span className="px-2 py-1 text-xs font-mono rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700" title={tooltipText}>{truncatedMethod}</span>
                           </td>
                           <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                            <Link href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, tx.blockNumber)} className="text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{tx.blockNumber}</Link>
+                            <Link href={buildBlockUrl(`/explorer/${chainSlug}`, tx.blockNumber)} className="text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{tx.blockNumber}</Link>
                           </td>
                           <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                             <div className="flex items-center gap-1.5">
                               <Link 
-                                href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.from)} 
+                                href={buildAddressUrl(`/explorer/${chainSlug}`, tx.from)} 
                                 className={`font-mono text-sm hover:underline cursor-pointer px-1 py-0.5 rounded transition-all ${
                                   hoveredAddress && hoveredAddress.toLowerCase() === tx.from.toLowerCase() 
                                     ? 'border border-dashed' 
@@ -1274,7 +1274,7 @@ export default function AddressDetailPage({
                               {tx.to ? (
                                 <>
                                   <Link 
-                                    href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.to)} 
+                                    href={buildAddressUrl(`/explorer/${chainSlug}`, tx.to)} 
                                     className={`font-mono text-sm hover:underline cursor-pointer px-1 py-0.5 rounded transition-all ${
                                       hoveredAddress && hoveredAddress.toLowerCase() === tx.to.toLowerCase() 
                                         ? 'border border-dashed' 
@@ -1330,22 +1330,22 @@ export default function AddressDetailPage({
                       <tr key={`${transfer.txHash}-${transfer.logIndex}`} className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50">
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildTxUrl(`/stats/l1/${chainSlug}/explorer`, transfer.txHash)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(transfer.txHash)}</Link>
+                            <Link href={buildTxUrl(`/explorer/${chainSlug}`, transfer.txHash)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(transfer.txHash)}</Link>
                             <CopyButton text={transfer.txHash} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                          <Link href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, transfer.blockNumber)} className="text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{transfer.blockNumber}</Link>
+                          <Link href={buildBlockUrl(`/explorer/${chainSlug}`, transfer.blockNumber)} className="text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{transfer.blockNumber}</Link>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.from)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(transfer.from)}</Link>
+                            <Link href={buildAddressUrl(`/explorer/${chainSlug}`, transfer.from)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(transfer.from)}</Link>
                             <CopyButton text={transfer.from} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.to)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(transfer.to)}</Link>
+                            <Link href={buildAddressUrl(`/explorer/${chainSlug}`, transfer.to)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(transfer.to)}</Link>
                             <CopyButton text={transfer.to} />
                           </div>
                         </td>
@@ -1355,7 +1355,7 @@ export default function AddressDetailPage({
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-2">
                             {transfer.tokenLogo && <img src={transfer.tokenLogo} alt="" className="w-4 h-4 rounded-full" />}
-                            <Link href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.tokenAddress)} className="text-sm hover:underline cursor-pointer text-neutral-900 dark:text-neutral-100">{transfer.tokenSymbol}</Link>
+                            <Link href={buildAddressUrl(`/explorer/${chainSlug}`, transfer.tokenAddress)} className="text-sm hover:underline cursor-pointer text-neutral-900 dark:text-neutral-100">{transfer.tokenSymbol}</Link>
                           </div>
                         </td>
                         <td className="px-4 py-2 text-right text-sm text-neutral-500 dark:text-neutral-400">{formatTimestamp(transfer.timestamp)}</td>
@@ -1390,27 +1390,27 @@ export default function AddressDetailPage({
                       <tr key={`${transfer.txHash}-${transfer.logIndex}`} className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50">
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildTxUrl(`/stats/l1/${chainSlug}/explorer`, transfer.txHash)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(transfer.txHash)}</Link>
+                            <Link href={buildTxUrl(`/explorer/${chainSlug}`, transfer.txHash)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(transfer.txHash)}</Link>
                             <CopyButton text={transfer.txHash} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                          <Link href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, transfer.blockNumber)} className="text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{transfer.blockNumber}</Link>
+                          <Link href={buildBlockUrl(`/explorer/${chainSlug}`, transfer.blockNumber)} className="text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{transfer.blockNumber}</Link>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.from)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(transfer.from)}</Link>
+                            <Link href={buildAddressUrl(`/explorer/${chainSlug}`, transfer.from)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(transfer.from)}</Link>
                             <CopyButton text={transfer.from} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.to)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(transfer.to)}</Link>
+                            <Link href={buildAddressUrl(`/explorer/${chainSlug}`, transfer.to)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(transfer.to)}</Link>
                             <CopyButton text={transfer.to} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                          <Link href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, transfer.tokenAddress)} className="text-sm hover:underline cursor-pointer text-neutral-900 dark:text-neutral-100">{transfer.tokenName || transfer.tokenSymbol || 'Unknown'}</Link>
+                          <Link href={buildAddressUrl(`/explorer/${chainSlug}`, transfer.tokenAddress)} className="text-sm hover:underline cursor-pointer text-neutral-900 dark:text-neutral-100">{transfer.tokenName || transfer.tokenSymbol || 'Unknown'}</Link>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <span className="text-sm font-mono text-neutral-600 dark:text-neutral-400">#{transfer.tokenId.length > 10 ? transfer.tokenId.slice(0, 10) + '...' : transfer.tokenId}</span>
@@ -1450,22 +1450,22 @@ export default function AddressDetailPage({
                       <tr key={`${itx.txHash}-${index}`} className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50">
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildTxUrl(`/stats/l1/${chainSlug}/explorer`, itx.txHash)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(itx.txHash)}</Link>
+                            <Link href={buildTxUrl(`/explorer/${chainSlug}`, itx.txHash)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(itx.txHash)}</Link>
                             <CopyButton text={itx.txHash} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                          <Link href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, itx.blockNumber)} className="text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{itx.blockNumber}</Link>
+                          <Link href={buildBlockUrl(`/explorer/${chainSlug}`, itx.blockNumber)} className="text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{itx.blockNumber}</Link>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, itx.from)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(itx.from)}</Link>
+                            <Link href={buildAddressUrl(`/explorer/${chainSlug}`, itx.from)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(itx.from)}</Link>
                             <CopyButton text={itx.from} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, itx.to)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(itx.to)}</Link>
+                            <Link href={buildAddressUrl(`/explorer/${chainSlug}`, itx.to)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(itx.to)}</Link>
                             <CopyButton text={itx.to} />
                           </div>
                         </td>
@@ -1668,7 +1668,7 @@ export default function AddressDetailPage({
                               <div className="flex-1">
                                 {impl.name && <div className="text-sm font-medium text-zinc-900 dark:text-white">{impl.name}</div>}
                                 <Link 
-                                  href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, impl.address)} 
+                                  href={buildAddressUrl(`/explorer/${chainSlug}`, impl.address)} 
                                   className="text-sm font-mono hover:underline cursor-pointer" 
                                   style={{ color: themeColor }}
                                 >
@@ -1736,7 +1736,7 @@ export default function AddressDetailPage({
                                 <span className="block mt-1">
                                   Implementation: 
                                   <Link
-                                    href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, sourcifyData.proxyResolution.implementations[0].address)}
+                                    href={buildAddressUrl(`/explorer/${chainSlug}`, sourcifyData.proxyResolution.implementations[0].address)}
                                     className="font-mono ml-1 hover:underline cursor-pointer"
                                     style={{ color: themeColor }}
                                   >
@@ -1773,7 +1773,7 @@ export default function AddressDetailPage({
                                 {sourcifyData.proxyResolution.implementations?.map((impl, idx) => (
                                   <Link
                                     key={idx}
-                                    href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, impl.address)}
+                                    href={buildAddressUrl(`/explorer/${chainSlug}`, impl.address)}
                                     className="inline-flex items-center gap-1 text-sm font-mono mt-2 hover:underline cursor-pointer"
                                     style={{ color: themeColor }}
                                   >

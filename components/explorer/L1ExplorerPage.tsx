@@ -13,18 +13,10 @@ import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { formatTokenValue } from "@/utils/formatTokenValue";
 import { formatPrice, formatAvaxPrice } from "@/utils/formatPrice";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { ChainChip, ChainInfo } from "@/components/stats/ChainChip";
 
 // Get chain info from hex blockchain ID
-interface ChainLookupResult {
-  chainName: string;
-  chainLogoURI: string;
-  slug: string;
-  color: string;
-  chainId: string;
-  tokenSymbol: string;
-}
-
-function getChainFromBlockchainId(hexBlockchainId: string): ChainLookupResult | null {
+function getChainFromBlockchainId(hexBlockchainId: string): ChainInfo | null {
   const normalizedHex = hexBlockchainId.toLowerCase();
   
   // Find by blockchainId field (hex format)
@@ -35,11 +27,11 @@ function getChainFromBlockchainId(hexBlockchainId: string): ChainLookupResult | 
   if (!chain) return null;
     
   return {
-    chainName: chain.chainName,
-    chainLogoURI: chain.chainLogoURI || '',
-    slug: chain.slug,
-    color: chain.color || '#6B7280',
     chainId: chain.chainId,
+    chainName: chain.chainName,
+    chainSlug: chain.slug,
+    chainLogoURI: chain.chainLogoURI || '',
+    color: chain.color || '#6B7280',
     tokenSymbol: chain.tokenSymbol || '',
   };
 }
@@ -843,7 +835,7 @@ export default function L1ExplorerPage({
               {accumulatedBlocks.slice(0, 10).map((block) => (
                 <Link 
                   key={block.number}
-                  href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, block.number)}
+                  href={buildBlockUrl(`/explorer/${chainSlug}`, block.number)}
                   className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
                     newBlockNumbers.has(block.number) ? 'new-item' : ''
                   }`}
@@ -899,7 +891,7 @@ export default function L1ExplorerPage({
               {accumulatedTransactions.slice(0, 10).map((tx, index) => (
                 <div 
                   key={`${tx.hash}-${index}`}
-                  onClick={() => router.push(buildTxUrl(`/stats/l1/${chainSlug}/explorer`, tx.hash))}
+                  onClick={() => router.push(buildTxUrl(`/explorer/${chainSlug}`, tx.hash))}
                   className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
                     newTxHashes.has(tx.hash) ? 'new-item' : ''
                   }`}
@@ -924,7 +916,7 @@ export default function L1ExplorerPage({
                         <div className="text-xs text-zinc-500 mt-0.5">
                           <span className="text-zinc-400">From </span>
                           <Link 
-                            href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.from)} 
+                            href={buildAddressUrl(`/explorer/${chainSlug}`, tx.from)} 
                                 className="font-mono hover:underline cursor-pointer" 
                             style={{ color: themeColor }}
                             onClick={(e) => e.stopPropagation()}
@@ -936,7 +928,7 @@ export default function L1ExplorerPage({
                           <span className="text-zinc-400">To </span>
                           {tx.to ? (
                             <Link 
-                              href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.to)} 
+                              href={buildAddressUrl(`/explorer/${chainSlug}`, tx.to)} 
                                   className="font-mono hover:underline cursor-pointer" 
                               style={{ color: themeColor }}
                               onClick={(e) => e.stopPropagation()}
@@ -975,7 +967,7 @@ export default function L1ExplorerPage({
                     {icmMessages.map((tx, index) => (
                       <div 
                         key={`icm-${tx.hash}-${index}`}
-                        onClick={() => router.push(buildTxUrl(`/stats/l1/${chainSlug}/explorer`, tx.hash))}
+                        onClick={() => router.push(buildTxUrl(`/explorer/${chainSlug}`, tx.hash))}
                         className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
                           newTxHashes.has(tx.hash) ? 'new-item' : ''
                         }`}
@@ -1006,25 +998,11 @@ export default function L1ExplorerPage({
                                   <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                     {/* Source Chain Chip */}
                                     {sourceChain ? (
-                                      <Link 
-                                        href={`/stats/l1/${sourceChain.slug}/explorer`}
-                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium hover:opacity-80 cursor-pointer"
-                                        style={{ backgroundColor: `${sourceChain.color}20`, color: sourceChain.color }}
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        {sourceChain.chainLogoURI ? (
-                                          <Image
-                                            src={sourceChain.chainLogoURI}
-                                            alt={sourceChain.chainName}
-                                            width={12}
-                                            height={12}
-                                            className="rounded-full"
-                                          />
-                                        ) : (
-                                          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: sourceChain.color }} />
-                                        )}
-                                        {sourceChain.chainName}
-                                      </Link>
+                                      <ChainChip 
+                                        chain={sourceChain} 
+                                        size="xs" 
+                                        onClick={() => router.push(`/explorer/${sourceChain.chainSlug}`)} 
+                                      />
                                     ) : (
                                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500 dark:text-zinc-400">
                                         <span className="w-3 h-3 rounded-full bg-zinc-300 dark:bg-zinc-600" />
@@ -1036,32 +1014,18 @@ export default function L1ExplorerPage({
                                     
                                     {/* Destination Chain Chip */}
                                     {destChain ? (
-                                      <Link 
-                                        href={`/stats/l1/${destChain.slug}/explorer`}
-                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium hover:opacity-80 cursor-pointer"
-                                        style={{ backgroundColor: `${destChain.color}20`, color: destChain.color }}
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        {destChain.chainLogoURI ? (
-                                          <Image
-                                            src={destChain.chainLogoURI}
-                                            alt={destChain.chainName}
-                                            width={12}
-                                            height={12}
-                                            className="rounded-full"
-                                          />
-                                        ) : (
-                                          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: destChain.color }} />
-                                        )}
-                                        {destChain.chainName}
-                                      </Link>
+                                      <ChainChip 
+                                        chain={destChain} 
+                                        size="xs" 
+                                        onClick={() => router.push(`/explorer/${destChain.chainSlug}`)} 
+                                      />
                                     ) : (
                                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500 dark:text-zinc-400">
                                         <span className="w-3 h-3 rounded-full bg-zinc-300 dark:bg-zinc-600" />
                                         Unknown
                                       </span>
                                     )}
-    </div>
+                                  </div>
                                 );
                               })()}
                             </div>

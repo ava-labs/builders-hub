@@ -96,7 +96,7 @@ export function AllChainsExplorerLayout({ children }: AllChainsExplorerLayoutPro
       
       if (result.found && result.chain) {
         // Redirect to the chain's transaction page
-        router.push(buildTxUrl(`/stats/l1/${result.chain.slug}/explorer`, query));
+        router.push(buildTxUrl(`/explorer/${result.chain.slug}`, query));
       } else {
         setSearchError("Transaction not found on any supported chain.");
       }
@@ -143,7 +143,7 @@ export function AllChainsExplorerLayout({ children }: AllChainsExplorerLayoutPro
                         {chainsWithRpc.map((chain, idx) => (
                           <Link
                             key={chain.chainId}
-                            href={`/stats/l1/${chain.slug}/explorer`}
+                            href={`/explorer/${chain.slug}`}
                             className="relative inline-block cursor-pointer transition-transform hover:scale-110 hover:z-10"
                             style={{ zIndex: chainsWithRpc.length - idx }}
                             title={chain.chainName}

@@ -11,17 +11,7 @@ import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { formatTokenValue } from "@/utils/formatTokenValue";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
-import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
-
-// Extended types with chain info
-interface ChainInfo {
-  chainId: string;
-  chainName: string;
-  chainSlug: string;
-  chainLogoURI: string;
-  color: string;
-  tokenSymbol: string;
-}
+import { ChainChip, ChainInfo } from "@/components/stats/ChainChip";
 
 interface Block {
   number: string;
@@ -107,36 +97,6 @@ function formatNumber(num: number): string {
   if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
   if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
   return num.toLocaleString();
-}
-
-// Chain logo chip component - uses span to avoid nested <a> tags
-function ChainChip({ chain, size = "sm", onClick }: { chain: ChainInfo; size?: "sm" | "xs"; onClick?: () => void }) {
-  const sizeClasses = size === "sm" ? "w-4 h-4" : "w-3 h-3";
-  
-  return (
-    <span
-      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium hover:opacity-80 cursor-pointer"
-      style={{ backgroundColor: `${chain.color}20`, color: chain.color }}
-      onClick={(e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        onClick?.();
-      }}
-    >
-      {chain.chainLogoURI ? (
-        <Image
-          src={chain.chainLogoURI}
-          alt={chain.chainName}
-          width={size === "sm" ? 14 : 12}
-          height={size === "sm" ? 14 : 12}
-          className="rounded-full"
-        />
-      ) : (
-        <span className={`${sizeClasses} rounded-full`} style={{ backgroundColor: chain.color }} />
-      )}
-      {chain.chainName}
-    </span>
-  );
 }
 
 // Animation styles for new items and loading dots
@@ -858,7 +818,7 @@ export default function AllChainsExplorerPage() {
               {accumulatedBlocks.slice(0, 10).map((block) => (
                 <Link 
                   key={`${block.chain?.chainId}-${block.number}`}
-                  href={buildBlockUrl(`/stats/l1/${block.chain?.chainSlug}/explorer`, block.number)}
+                  href={buildBlockUrl(`/explorer/${block.chain?.chainSlug}`, block.number)}
                   className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
                     newBlockIds.has(`${block.chain?.chainId}-${block.number}`) ? 'new-item' : ''
                   }`}
@@ -891,7 +851,7 @@ export default function AllChainsExplorerPage() {
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          {block.chain && <ChainChip chain={block.chain} size="xs" onClick={() => router.push(`/stats/l1/${block.chain?.chainSlug}/explorer`)} />}
+                          {block.chain && <ChainChip chain={block.chain} size="xs" onClick={() => router.push(`/explorer/${block.chain?.chainSlug}`)} />}
                           <span className="text-xs text-zinc-500">
                             <span style={{ color: block.chain?.color || themeColor }}>{block.transactionCount} txns</span>
                           </span>
@@ -926,7 +886,7 @@ export default function AllChainsExplorerPage() {
               {accumulatedTransactions.slice(0, 10).map((tx, index) => (
                 <div 
                   key={`${tx.hash}-${index}`}
-                  onClick={() => router.push(buildTxUrl(`/stats/l1/${tx.chain?.chainSlug}/explorer`, tx.hash))}
+                  onClick={() => router.push(buildTxUrl(`/explorer/${tx.chain?.chainSlug}`, tx.hash))}
                   className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
                     newTxHashes.has(tx.hash) ? 'new-item' : ''
                   }`}
@@ -959,12 +919,12 @@ export default function AllChainsExplorerPage() {
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          {tx.chain && <ChainChip chain={tx.chain} size="xs" onClick={() => router.push(`/stats/l1/${tx.chain?.chainSlug}/explorer`)} />}
+                          {tx.chain && <ChainChip chain={tx.chain} size="xs" onClick={() => router.push(`/explorer/${tx.chain?.chainSlug}`)} />}
                         </div>
                         <div className="text-xs text-zinc-500 mt-0.5">
                           <span className="text-zinc-400">From </span>
                           <Link 
-                            href={buildAddressUrl(`/stats/l1/${tx.chain?.chainSlug}/explorer`, tx.from)} 
+                            href={buildAddressUrl(`/explorer/${tx.chain?.chainSlug}`, tx.from)} 
                             className="font-mono hover:underline cursor-pointer" 
                             style={{ color: tx.chain?.color || themeColor }}
                             onClick={(e) => e.stopPropagation()}
@@ -974,7 +934,7 @@ export default function AllChainsExplorerPage() {
                           <span className="text-zinc-400"> → </span>
                           {tx.to ? (
                             <Link 
-                              href={buildAddressUrl(`/stats/l1/${tx.chain?.chainSlug}/explorer`, tx.to)} 
+                              href={buildAddressUrl(`/explorer/${tx.chain?.chainSlug}`, tx.to)} 
                               className="font-mono hover:underline cursor-pointer" 
                               style={{ color: tx.chain?.color || themeColor }}
                               onClick={(e) => e.stopPropagation()}
@@ -1018,7 +978,7 @@ export default function AllChainsExplorerPage() {
                   return (
                     <div 
                       key={`icm-${tx.hash}-${index}`}
-                      onClick={() => router.push(buildTxUrl(`/stats/l1/${tx.chain?.chainSlug}/explorer`, tx.hash))}
+                      onClick={() => router.push(buildTxUrl(`/explorer/${tx.chain?.chainSlug}`, tx.hash))}
                       className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
                         newTxHashes.has(tx.hash) ? 'new-item' : ''
                       }`}
@@ -1043,7 +1003,7 @@ export default function AllChainsExplorerPage() {
                             {/* Cross-chain chips */}
                             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                               {sourceChain ? (
-                                <ChainChip chain={sourceChain} size="xs" onClick={() => router.push(`/stats/l1/${sourceChain.chainSlug}/explorer`)} />
+                                <ChainChip chain={sourceChain} size="xs" onClick={() => router.push(`/explorer/${sourceChain.chainSlug}`)} />
                               ) : (
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500">
                                   Unknown
@@ -1051,7 +1011,7 @@ export default function AllChainsExplorerPage() {
                               )}
                               <span className="text-zinc-400">→</span>
                               {destChain ? (
-                                <ChainChip chain={destChain} size="xs" onClick={() => router.push(`/stats/l1/${destChain.chainSlug}/explorer`)} />
+                                <ChainChip chain={destChain} size="xs" onClick={() => router.push(`/explorer/${destChain.chainSlug}`)} />
                               ) : (
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500">
                                   Unknown
@@ -1072,8 +1032,6 @@ export default function AllChainsExplorerPage() {
           )}
         </div>
       </div>
-
-      <StatsBubbleNav />
     </>
   );
 }

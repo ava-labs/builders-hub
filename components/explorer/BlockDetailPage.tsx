@@ -320,13 +320,13 @@ export default function BlockDetailPage({
                     </span>
                     <div className="flex items-center gap-1">
                       <Link
-                        href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, prevBlock)}
+                        href={buildBlockUrl(`/explorer/${chainSlug}`, prevBlock)}
                         className="p-1 rounded bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                       >
                         <ArrowLeft className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
                       </Link>
                       <Link
-                        href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, nextBlock)}
+                        href={buildBlockUrl(`/explorer/${chainSlug}`, nextBlock)}
                         className="p-1 rounded bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                       >
                         <ArrowRight className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
@@ -456,7 +456,7 @@ export default function BlockDetailPage({
                     themeColor={themeColor}
                     value={
                       <Link
-                        href={buildBlockUrl(`/stats/l1/${chainSlug}/explorer`, prevBlock)}
+                        href={buildBlockUrl(`/explorer/${chainSlug}`, prevBlock)}
                         className="text-sm font-mono break-all hover:underline cursor-pointer"
                         style={{ color: themeColor }}
                       >
@@ -474,7 +474,7 @@ export default function BlockDetailPage({
                     value={
                       block?.miner ? (
                         <Link
-                          href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, block.miner)}
+                          href={buildAddressUrl(`/explorer/${chainSlug}`, block.miner)}
                           className="text-sm font-mono break-all hover:underline cursor-pointer"
                           style={{ color: themeColor }}
                         >
@@ -594,7 +594,7 @@ export default function BlockDetailPage({
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
                             <Link
-                              href={buildTxUrl(`/stats/l1/${chainSlug}/explorer`, tx.hash)}
+                              href={buildTxUrl(`/explorer/${chainSlug}`, tx.hash)}
                               className="font-mono text-sm hover:underline cursor-pointer"
                               style={{ color: themeColor }}
                             >
@@ -609,7 +609,7 @@ export default function BlockDetailPage({
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
                             <Link
-                              href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.from)}
+                              href={buildAddressUrl(`/explorer/${chainSlug}`, tx.from)}
                                 className="font-mono text-sm hover:underline cursor-pointer"
                               style={{ color: themeColor }}
                             >
@@ -625,7 +625,7 @@ export default function BlockDetailPage({
                           <div className="flex items-center gap-1.5">
                             {tx.to ? (
                               <Link
-                                href={buildAddressUrl(`/stats/l1/${chainSlug}/explorer`, tx.to)}
+                                href={buildAddressUrl(`/explorer/${chainSlug}`, tx.to)}
                                   className="font-mono text-sm hover:underline cursor-pointer"
                                 style={{ color: themeColor }}
                               >

@@ -25,6 +25,14 @@ import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { type SubnetStats } from "@/types/validator-stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { 
+  compareVersions, 
+  calculateVersionStats, 
+  VersionBarChart, 
+  VersionLabels,
+  VersionBreakdownInline,
+  type VersionBreakdownData,
+} from "@/components/stats/VersionBreakdown";
 
 type SortColumn =
   | "name"
@@ -114,12 +122,6 @@ export default function ValidatorStatsPage() {
 
     fetchData();
   }, [network]);
-
-  const compareVersions = (v1: string, v2: string): number => {
-    if (v1 === "Unknown") return -1;
-    if (v2 === "Unknown") return 1;
-    return v1.localeCompare(v2, undefined, { numeric: true });
-  };
 
   const calculateStats = (subnet: SubnetStats) => {
     const totalStake = BigInt(subnet.totalStakeString);
@@ -308,25 +310,6 @@ export default function ValidatorStatsPage() {
       ? (upToDateValidators / aggregatedStats.totalNodes) * 100
       : 0;
 
-  // Color palette for version breakdown in card
-  const versionColors = [
-    "bg-blue-500 dark:bg-blue-600",
-    "bg-purple-500 dark:bg-purple-600",
-    "bg-pink-500 dark:bg-pink-600",
-    "bg-indigo-500 dark:bg-indigo-600",
-    "bg-cyan-500 dark:bg-cyan-600",
-    "bg-teal-500 dark:bg-teal-600",
-    "bg-emerald-500 dark:bg-emerald-600",
-    "bg-lime-500 dark:bg-lime-600",
-    "bg-yellow-500 dark:bg-yellow-600",
-    "bg-amber-500 dark:bg-amber-600",
-    "bg-orange-500 dark:bg-orange-600",
-    "bg-red-500 dark:bg-red-600",
-  ];
-
-  const getVersionColor = (index: number): string => {
-    return versionColors[index % versionColors.length];
-  };
 
   const SortButton = ({
     column,
@@ -591,30 +574,12 @@ export default function ValidatorStatsPage() {
           </div>
 
           {/* Secondary stats row - version breakdown */}
-          <div className="flex flex-wrap items-center gap-4 sm:gap-6 md:gap-8 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-zinc-200 dark:border-zinc-800">
-            <div className="flex items-center gap-2">
-              <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-                Version Breakdown:
-              </span>
-            </div>
-            {Object.entries(totalVersionBreakdown)
-              .sort(([v1], [v2]) => compareVersions(v2, v1))
-              .slice(0, 5)
-              .map(([version, data], index) => (
-                <div key={version} className="flex items-center gap-1.5">
-                  <div
-                    className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${getVersionColor(
-                      index
-                    )}`}
-                  />
-                  <span className="text-xs sm:text-sm font-mono text-zinc-700 dark:text-zinc-300">
-                    {version}
-                  </span>
-                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-                    ({data.nodes})
-                  </span>
-                </div>
-              ))}
+          <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-zinc-200 dark:border-zinc-800">
+            <VersionBreakdownInline
+              versions={totalVersionBreakdown}
+              minVersion={minVersion}
+              limit={5}
+            />
           </div>
         </div>
       </div>
@@ -820,68 +785,18 @@ export default function ValidatorStatsPage() {
                       </td>
                       <td className="px-4 py-2">
                         <div className="space-y-1.5">
-                          {/* Horizontal Bar Chart */}
-                          <div className="flex h-6 w-full rounded overflow-hidden bg-neutral-100 dark:bg-neutral-800">
-                            {Object.entries(subnet.byClientVersion)
-                              .sort(([v1], [v2]) => compareVersions(v2, v1))
-                              .map(([version, data]) => {
-                                const percentage =
-                                  stats.totalNodes > 0
-                                    ? (data.nodes / stats.totalNodes) * 100
-                                    : 0;
-                                const isAboveTarget =
-                                  compareVersions(version, minVersion) >= 0;
-                                return (
-                                  <div
-                                    key={version}
-                                    className={`h-full transition-all ${
-                                      isAboveTarget
-                                        ? "bg-green-700 dark:bg-green-800"
-                                        : "bg-gray-200 dark:bg-gray-500"
-                                    }`}
-                                    style={{ width: `${percentage}%` }}
-                                    title={`${version}: ${
-                                      data.nodes
-                                    } nodes (${percentage.toFixed(1)}%)`}
-                                  />
-                                );
-                              })}
-                          </div>
-                          {/* Version Labels */}
-                          <div className="flex flex-wrap gap-x-2 gap-y-1 text-xs">
-                            {Object.entries(subnet.byClientVersion)
-                              .sort(([v1], [v2]) => compareVersions(v2, v1))
-                              .map(([version, data]) => {
-                                const isAboveTarget =
-                                  compareVersions(version, minVersion) >= 0;
-                                return (
-                                  <div
-                                    key={version}
-                                    className="flex items-center gap-1"
-                                  >
-                                    <div
-                                      className={`h-2 w-2 rounded-full flex-shrink-0 ${
-                                        isAboveTarget
-                                          ? "bg-green-700 dark:bg-green-800"
-                                          : "bg-gray-200 dark:bg-gray-500"
-                                      }`}
-                                    />
-                                    <span
-                                      className={`font-mono ${
-                                        isAboveTarget
-                                          ? "text-black dark:text-white"
-                                          : "text-neutral-500 dark:text-neutral-500"
-                                      }`}
-                                    >
-                                      {version}
-                                    </span>
-                                    <span className="text-neutral-500 dark:text-neutral-500">
-                                      ({data.nodes})
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                          </div>
+                          <VersionBarChart
+                            versionBreakdown={{ byClientVersion: subnet.byClientVersion }}
+                            minVersion={minVersion}
+                            totalNodes={stats.totalNodes}
+                          />
+                          <VersionLabels
+                            versionBreakdown={{ byClientVersion: subnet.byClientVersion }}
+                            minVersion={minVersion}
+                            totalNodes={stats.totalNodes}
+                            showPercentage={false}
+                            size="sm"
+                          />
                         </div>
                       </td>
                       <td className="px-4 py-2 text-center">

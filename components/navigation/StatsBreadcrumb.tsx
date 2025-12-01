@@ -127,7 +127,7 @@ export function StatsBreadcrumb({
       if (result?.success && result?.chainData) {
         // Chain was added successfully, the dropdown will update automatically via the store subscription
         // Optionally navigate to the new chain's explorer
-        router.push(`/stats/l1/${result.chainData.id}/explorer`);
+        router.push(`/explorer/${result.chainData.id}`);
       }
     } catch (error) {
       // Modal was closed or cancelled, do nothing
@@ -235,7 +235,7 @@ export function StatsBreadcrumb({
 
   const handleChainSelect = (selectedSlug: string) => {
     if (showExplorer) {
-      router.push(`/stats/l1/${selectedSlug}/explorer`);
+      router.push(`/explorer/${selectedSlug}`);
     } else if (showStats) {
       router.push(`/stats/l1/${selectedSlug}/stats`);
     } else if (showValidators) {
@@ -421,10 +421,10 @@ export function StatsBreadcrumb({
             
             {/* Chain dropdown - always shown after Explorer */}
             <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
-            {availableChains.length > 0 && breadcrumbItems.length === 0 ? (
+            {availableChains.length > 0 ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0">
+                      <button className={`inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 rounded-md ${breadcrumbItems.length > 0 ? 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'} hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0`}>
                         {chainSlug === 'all-chains' ? (
                           <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500 flex-shrink-0" />
                         ) : (
@@ -437,7 +437,7 @@ export function StatsBreadcrumb({
                     <DropdownMenuContent align="start" className="max-h-[500px] overflow-y-auto">
                       {/* All Chains option */}
                       <DropdownMenuItem
-                        onClick={() => router.push('/stats/explorer')}
+                        onClick={() => router.push('/explorer')}
                         className="cursor-pointer"
                       >
                         <div className="flex items-center gap-2 w-full">
@@ -506,14 +506,6 @@ export function StatsBreadcrumb({
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                ) : breadcrumbItems.length > 0 ? (
-                  <Link 
-                    href={`/stats/l1/${chainSlug}/explorer`} 
-                    className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
-                  >
-                    <ChainLogo src={chainLogoURI} name={chainName} size="md" />
-                    <span className="max-w-[80px] sm:max-w-none truncate">{chainName}</span>
-                  </Link>
                 ) : (
                   <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap flex-shrink-0">
                     <ChainLogo src={chainLogoURI} name={chainName} size="md" />
