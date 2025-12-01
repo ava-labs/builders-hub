@@ -908,6 +908,7 @@ export default function AllChainsExplorerPage() {
                     </div>
                     {block.gasFee && parseFloat(block.gasFee) > 0 && (
                       <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex-shrink-0">
+                        {block.chain?.chainId === "43114" && <span className="mr-1">🔥</span>}
                         {formatTokenValue(block.gasFee)} {block.chain?.tokenSymbol || ''}
                       </div>
                     )}
