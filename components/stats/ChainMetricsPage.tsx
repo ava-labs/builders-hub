@@ -1166,7 +1166,7 @@ export default function ChainMetricsPage({
                   <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
                     {chainName.includes("C-Chain")
                       ? "C-Chain Metrics"
-                      : `${chainName} L1 Metrics`}
+                      : `${chainName} Metrics`}
                   </h1>
                 </div>
                 <div className="flex items-center gap-3 mt-3">

@@ -46,7 +46,7 @@ export async function generateMetadata({
     };
   }
 
-  let title = `${currentChain.chainName} L1 Metrics`;
+  let title = `${currentChain.chainName} Metrics`;
   let description = `Track ${currentChain.chainName} L1 activity with real-time metrics including active addresses, transactions, gas usage, fees, and network performance data.`;
   let url = `/stats/l1/${chainSlug}/stats`;
 
