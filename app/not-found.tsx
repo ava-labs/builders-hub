@@ -23,20 +23,43 @@ ${path ? `I was trying to access: ${path}` : 'Please enter the URL you were tryi
   });
 }
 
+function findNearestAvailablePath(pathname: string): string | null {
+  // Known sections that have landing pages
+  const sections = ["/console", "/docs", "/academy"];
+
+  for (const section of sections) {
+    if (pathname.startsWith(section)) {
+      const slug = pathname.replace(`${section}/`, "").split("/").filter(Boolean);
+      if (slug.length > 1) {
+        // Suggest the first-level section (e.g., /docs/tooling, /console/layer-1)
+        return `${section}/${slug[0]}`;
+      }
+      return section;
+    }
+  }
+
+  return null;
+}
+
 export default function NotFound() {
   const [currentPath, setCurrentPath] = useState<string | null>(null);
+  const [suggestedPath, setSuggestedPath] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
       const referrer = document.referrer;
       setCurrentPath(path);
-      
+
+      const nearest = findNearestAvailablePath(path);
+      setSuggestedPath(nearest);
+
       // Track 404 page view in PostHog
       posthog.capture('404_page_not_found', {
         path: path,
         referrer: referrer || 'direct',
         url: window.location.href,
+        suggested_path: nearest,
       });
     }
   }, []);
@@ -70,6 +93,16 @@ export default function NotFound() {
                 </p>
               </div>
             </div>
+            {suggestedPath && suggestedPath !== currentPath && (
+              <div className="mb-6 p-4 rounded-lg border bg-muted/50">
+                <p className="text-sm text-muted-foreground mb-3">Did you mean?</p>
+                <Link href={suggestedPath}>
+                  <Button variant="secondary" size="lg">
+                    Go to {suggestedPath}
+                  </Button>
+                </Link>
+              </div>
+            )}
             <div className="flex flex-wrap gap-4">
               <Link href="https://x.com/AvalancheIntern" target="_blank">
                 <Button

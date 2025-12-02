@@ -7,7 +7,7 @@ import {
 } from "fumadocs-ui/page";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import defaultComponents from "fumadocs-ui/mdx";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { academy } from "@/lib/source";
 import { createMetadata } from "@/utils/metadata";
 import IndexedDBComponent from "@/components/tracker";
@@ -56,23 +56,6 @@ import CreateManagedTestnetNode from "@/components/toolbox/console/testnet-infra
 
 export const dynamicParams = true;
 
-/**
- * Finds the nearest available parent path for a given slug.
- * If the exact page doesn't exist, it tries parent paths until it finds one that exists.
- */
-function findNearestAvailablePath(slug: string[]): string | null {
-  // Try progressively shorter paths (parent paths)
-  for (let i = slug.length - 1; i >= 0; i--) {
-    const parentSlug = slug.slice(0, i);
-    const parentPage = academy.getPage(parentSlug);
-    if (parentPage) {
-      return `/academy/${parentSlug.join("/")}`;
-    }
-  }
-  // If no parent found, redirect to academy root
-  return "/academy";
-}
-
 const toolboxComponents = {
   ToolboxMdxWrapper,
   CrossChainTransfer,
@@ -98,16 +81,7 @@ export default async function Page(props: {
   const params = await props.params;
   const page = academy.getPage(params.slug);
 
-  if (!page) {
-    // If page not found, try to redirect to nearest available parent path
-    if (params.slug && params.slug.length > 0) {
-      const nearestPath = findNearestAvailablePath(params.slug);
-      if (nearestPath) {
-        redirect(nearestPath);
-      }
-    }
-    notFound();
-  }
+  if (!page) notFound();
 
   const path = `content/academy${page.url.replace('/academy/', '/')}.mdx`;
   const editUrl = `https://github.com/ava-labs/builders-hub/edit/master/${path}`;
@@ -220,13 +194,7 @@ export async function generateMetadata(props: {
   const params = await props.params;
   const page = academy.getPage(params.slug);
 
-  if (!page) {
-    // Return basic metadata for non-existent pages (redirect will happen in page component)
-    return createMetadata({
-      title: "Avalanche Academy",
-      description: "Learn how to build on Avalanche blockchain with Academy",
-    });
-  }
+  if (!page) notFound();
 
   const description =
     page.data.description ??
