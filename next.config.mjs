@@ -62,6 +62,31 @@ const config = {
   async redirects() {
     return [
       {
+        source: '/docs/dapps/smart-contract-dev/get-test-funds',
+        destination: '/console/primary-network/faucet',
+        permanent: true,
+      },
+      {
+        source: '/integrations/trader-joe',
+        destination: '/integrations/lfj',
+        permanent: true,
+      },
+      {
+        source: '/docs/dapps/end-to-end/launch-ethereum-dapp',
+        destination: '/academy/blockchain/solidity-foundry',
+        permanent: true,
+      },
+      {
+        source: '/docs/dapps/toolchains/foundry',
+        destination: '/academy/blockchain/solidity-foundry/03-smart-contracts/03-foundry-quickstart',
+        permanent: true,
+      },
+      {
+        source: '/docs/nodes/validate/how-to-stake',
+        destination: '/docs/primary-network/validate/how-to-stake',
+        permanent: true,
+      },
+      {
         source: '/docs/api-reference/p-chain/txn-format',
         destination: '/docs/rpcs/p-chain/txn-format',
         permanent: true,
@@ -600,12 +625,7 @@ const config = {
       },
       {
         source: "/docs/quick-start/networks/fuji-testnet",
-        destination: "/docs/primary-network",
-        permanent: true,
-      },
-      {
-        source: "/docs/quick-start/Networks/fuji-testnet",
-        destination: "/docs/primary-network",
+        destination: "/docs/primary-network#c-chain-contract-chain",
         permanent: true,
       },
       {
