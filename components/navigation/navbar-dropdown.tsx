@@ -48,7 +48,7 @@ export function NavbarDropdown() {
     },
     {
       title: 'Documentation',
-      href: '/docs',
+      href: '/docs/primary-network',
       items: [
         { text: 'Primary Network', href: '/docs/primary-network' },
         { text: 'Avalanche L1s', href: '/docs/avalanche-l1s' },
