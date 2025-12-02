@@ -6,6 +6,7 @@ import { baseOptions } from "@/app/layout.config";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from 'react';
 import newGithubIssueUrl from "new-github-issue-url";
+import posthog from 'posthog-js';
 
 function createGitHubIssueURL(path: string | null) {
   return newGithubIssueUrl({
@@ -28,7 +29,15 @@ export default function NotFound() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
+      const referrer = document.referrer;
       setCurrentPath(path);
+      
+      // Track 404 page view in PostHog
+      posthog.capture('404_page_not_found', {
+        path: path,
+        referrer: referrer || 'direct',
+        url: window.location.href,
+      });
     }
   }, []);
 

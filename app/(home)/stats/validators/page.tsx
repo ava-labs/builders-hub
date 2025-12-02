@@ -19,10 +19,17 @@ import {
 } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { type SubnetStats } from "@/types/validator-stats";
-import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import l1ChainsData from "@/constants/l1-chains.json";
 
-type SortColumn = "name" | "id" | "nodeCount" | "nodes" | "stake" | "isL1" | "totalStake";
+type SortColumn =
+  | "name"
+  | "id"
+  | "nodeCount"
+  | "nodes"
+  | "stake"
+  | "isL1"
+  | "totalStake";
 type SortDirection = "asc" | "desc";
 type Network = "mainnet" | "fuji";
 
@@ -56,17 +63,23 @@ export default function ValidatorStatsPage() {
     }
   };
 
+  // Helper function to find the slug for a subnet ID
+  const getSlugForSubnetId = (subnetId: string): string | null => {
+    const chain = (l1ChainsData as any[]).find((c) => c.subnetId === subnetId);
+    return chain?.slug || null;
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const response = await fetch(
-          `/api/validator-stats?network=${network}`
-        );
+        const response = await fetch(`/api/validator-stats?network=${network}`);
         if (!response.ok) {
-          throw new Error(`Failed to fetch validator stats: ${response.status}`);
+          throw new Error(
+            `Failed to fetch validator stats: ${response.status}`
+          );
         }
 
         const stats: SubnetStats[] = await response.json();
@@ -101,23 +114,7 @@ export default function ValidatorStatsPage() {
   const compareVersions = (v1: string, v2: string): number => {
     if (v1 === "Unknown") return -1;
     if (v2 === "Unknown") return 1;
-
-    const extractNumbers = (v: string) => {
-      const match = v.match(/(\d+)\.(\d+)\.(\d+)/);
-      if (!match) return [0, 0, 0];
-      return [
-        parseInt(match[1]),
-        parseInt(match[2]),
-        parseInt(match[3]),
-      ];
-    };
-
-    const [major1, minor1, patch1] = extractNumbers(v1);
-    const [major2, minor2, patch2] = extractNumbers(v2);
-
-    if (major1 !== major2) return major1 - major2;
-    if (minor1 !== minor2) return minor1 - minor2;
-    return patch1 - patch2;
+    return v1.localeCompare(v2, undefined, { numeric: true });
   };
 
   const calculateStats = (subnet: SubnetStats) => {
@@ -272,12 +269,13 @@ export default function ValidatorStatsPage() {
     healthySubnets: data.filter(
       (subnet) => calculateStats(subnet).isStakeHealthy
     ).length,
-    avgStakePercent: data.length > 0
-      ? data.reduce(
-          (sum, subnet) => sum + calculateStats(subnet).stakePercentAbove,
-          0
-        ) / data.length
-      : 0,
+    avgStakePercent:
+      data.length > 0
+        ? data.reduce(
+            (sum, subnet) => sum + calculateStats(subnet).stakePercentAbove,
+            0
+          ) / data.length
+        : 0,
   };
 
   // Calculate total version breakdown across all subnets
@@ -370,7 +368,7 @@ export default function ValidatorStatsPage() {
                 <div className="h-10 sm:h-12 w-48 sm:w-64 bg-zinc-200 dark:bg-zinc-800 rounded" />
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8">
-                {[1, 2, 3, 4].map(i => (
+                {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="space-y-2">
                     <div className="h-8 sm:h-10 w-16 sm:w-24 bg-zinc-200 dark:bg-zinc-800 rounded" />
                     <div className="h-3 sm:h-4 w-12 sm:w-16 bg-zinc-200 dark:bg-zinc-800 rounded" />
@@ -379,8 +377,11 @@ export default function ValidatorStatsPage() {
               </div>
               <div className="pt-4 sm:pt-6 border-t border-zinc-200 dark:border-zinc-800">
                 <div className="flex flex-wrap gap-4">
-                  {[1, 2, 3, 4, 5].map(i => (
-                    <div key={i} className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div
+                      key={i}
+                      className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded"
+                    />
                   ))}
                 </div>
               </div>
@@ -404,16 +405,39 @@ export default function ValidatorStatsPage() {
               <table className="w-full border-collapse">
                 <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
                   <tr>
-                    {["Chain Name", "Validators", "By Nodes %", "By Stake %", "Version Breakdown", "Actions"].map((header, i) => (
-                      <th key={i} className={`px-4 py-2 ${i === 0 ? 'text-left' : i === 5 ? 'text-center' : 'text-right'}`}>
-                        <div className={`h-4 bg-zinc-300 dark:bg-zinc-700 rounded w-24 animate-pulse ${i === 0 ? '' : i === 5 ? 'mx-auto' : 'ml-auto'}`} />
+                    {[
+                      "Chain Name",
+                      "Validators",
+                      "By Nodes %",
+                      "By Stake %",
+                      "Version Breakdown",
+                      "Actions",
+                    ].map((header, i) => (
+                      <th
+                        key={i}
+                        className={`px-4 py-2 ${
+                          i === 0
+                            ? "text-left"
+                            : i === 5
+                            ? "text-center"
+                            : "text-right"
+                        }`}
+                      >
+                        <div
+                          className={`h-4 bg-zinc-300 dark:bg-zinc-700 rounded w-24 animate-pulse ${
+                            i === 0 ? "" : i === 5 ? "mx-auto" : "ml-auto"
+                          }`}
+                        />
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-neutral-950">
                   {[...Array(10)].map((_, rowIndex) => (
-                    <tr key={rowIndex} className="border-b border-slate-100 dark:border-neutral-800">
+                    <tr
+                      key={rowIndex}
+                      className="border-b border-slate-100 dark:border-neutral-800"
+                    >
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 rounded-full bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
@@ -489,7 +513,10 @@ export default function ValidatorStatsPage() {
             <div className="space-y-4 sm:space-y-6 flex-1">
               <div>
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <AvalancheLogo className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" />
+                  <AvalancheLogo
+                    className="w-5 h-5 sm:w-6 sm:h-6"
+                    fill="currentColor"
+                  />
                   <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
                     Avalanche Ecosystem
                   </p>
@@ -505,25 +532,33 @@ export default function ValidatorStatsPage() {
                   <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
                     {aggregatedStats.totalSubnets}
                   </span>
-                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">chains</span>
+                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                    chains
+                  </span>
                 </div>
                 <div>
                   <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
                     {formatNumber(aggregatedStats.totalNodes)}
                   </span>
-                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">validators</span>
+                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                    validators
+                  </span>
                 </div>
                 <div>
                   <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
                     {upToDatePercentage.toFixed(1)}%
                   </span>
-                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">up to date</span>
+                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                    up to date
+                  </span>
                 </div>
                 <div>
                   <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
                     {aggregatedStats.l1Count}
                   </span>
-                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">L1s</span>
+                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                    L1s
+                  </span>
                 </div>
               </div>
             </div>
@@ -532,16 +567,26 @@ export default function ValidatorStatsPage() {
           {/* Secondary stats row - version breakdown */}
           <div className="flex flex-wrap items-center gap-4 sm:gap-6 md:gap-8 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center gap-2">
-              <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">Version Breakdown:</span>
+              <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+                Version Breakdown:
+              </span>
             </div>
             {Object.entries(totalVersionBreakdown)
               .sort(([v1], [v2]) => compareVersions(v2, v1))
               .slice(0, 5)
               .map(([version, data], index) => (
                 <div key={version} className="flex items-center gap-1.5">
-                  <div className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${getVersionColor(index)}`} />
-                  <span className="text-xs sm:text-sm font-mono text-zinc-700 dark:text-zinc-300">{version}</span>
-                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">({data.nodes})</span>
+                  <div
+                    className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${getVersionColor(
+                      index
+                    )}`}
+                  />
+                  <span className="text-xs sm:text-sm font-mono text-zinc-700 dark:text-zinc-300">
+                    {version}
+                  </span>
+                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+                    ({data.nodes})
+                  </span>
                 </div>
               ))}
           </div>
@@ -549,14 +594,17 @@ export default function ValidatorStatsPage() {
       </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
-
         {/* Table header */}
         <div className="mb-4">
           <div className="flex items-baseline gap-2 sm:gap-3 mb-4">
-            <h2 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-white">All Chains</h2>
-            <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">{sortedData.length} tracked</span>
+            <h2 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-white">
+              All Chains
+            </h2>
+            <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+              {sortedData.length} tracked
+            </span>
           </div>
-          
+
           {/* Search and version filter */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
             <div className="relative w-full sm:w-auto sm:flex-shrink-0 sm:max-w-sm">
@@ -581,7 +629,7 @@ export default function ValidatorStatsPage() {
                 </button>
               )}
             </div>
-            
+
             {/* Version Selector */}
             {availableVersions.length > 0 && (
               <div className="flex items-center gap-2">
@@ -694,14 +742,16 @@ export default function ValidatorStatsPage() {
                               </span>
                               <span
                                 className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${
-                                  subnet.id === "11111111111111111111111111111111LpoYY"
+                                  subnet.id ===
+                                  "11111111111111111111111111111111LpoYY"
                                     ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
                                     : subnet.isL1
                                     ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
                                     : "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
                                 }`}
                               >
-                                {subnet.id === "11111111111111111111111111111111LpoYY"
+                                {subnet.id ===
+                                "11111111111111111111111111111111LpoYY"
                                   ? "Primary Network"
                                   : subnet.isL1
                                   ? "L1"
@@ -749,9 +799,10 @@ export default function ValidatorStatsPage() {
                             {Object.entries(subnet.byClientVersion)
                               .sort(([v1], [v2]) => compareVersions(v2, v1))
                               .map(([version, data]) => {
-                                const percentage = stats.totalNodes > 0 
-                                  ? (data.nodes / stats.totalNodes) * 100 
-                                  : 0;
+                                const percentage =
+                                  stats.totalNodes > 0
+                                    ? (data.nodes / stats.totalNodes) * 100
+                                    : 0;
                                 const isAboveTarget =
                                   compareVersions(version, minVersion) >= 0;
                                 return (
@@ -763,7 +814,9 @@ export default function ValidatorStatsPage() {
                                         : "bg-gray-200 dark:bg-gray-500"
                                     }`}
                                     style={{ width: `${percentage}%` }}
-                                    title={`${version}: ${data.nodes} nodes (${percentage.toFixed(1)}%)`}
+                                    title={`${version}: ${
+                                      data.nodes
+                                    } nodes (${percentage.toFixed(1)}%)`}
                                   />
                                 );
                               })}
@@ -809,11 +862,23 @@ export default function ValidatorStatsPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          disabled={subnet.id !== "11111111111111111111111111111111LpoYY"}
+                          disabled={
+                            subnet.id !==
+                              "11111111111111111111111111111111LpoYY" &&
+                            (!subnet.isL1 || !getSlugForSubnetId(subnet.id))
+                          }
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (subnet.id === "11111111111111111111111111111111LpoYY") {
+                            if (
+                              subnet.id ===
+                              "11111111111111111111111111111111LpoYY"
+                            ) {
                               router.push("/stats/primary-network/validators");
+                            } else {
+                              const slug = getSlugForSubnetId(subnet.id);
+                              if (slug) {
+                                router.push(`/stats/validators/${slug}`);
+                              }
                             }
                           }}
                           className="disabled:opacity-50 disabled:cursor-not-allowed"
@@ -838,8 +903,8 @@ export default function ValidatorStatsPage() {
               className="px-4 sm:px-8 py-2 sm:py-3 text-sm sm:text-base border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-900 text-black dark:text-white transition-colors hover:border-black dark:hover:border-white hover:bg-[#fcfcfd] dark:hover:bg-neutral-900"
             >
               <span className="hidden sm:inline">Load More Chains </span>
-              <span className="sm:hidden">Load More </span>
-              ({sortedData.length - visibleCount} remaining)
+              <span className="sm:hidden">Load More </span>(
+              {sortedData.length - visibleCount} remaining)
             </Button>
           </div>
         )}
@@ -849,4 +914,3 @@ export default function ValidatorStatsPage() {
     </div>
   );
 }
-
