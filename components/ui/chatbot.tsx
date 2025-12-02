@@ -1,9 +1,7 @@
 "use client";
 import React from 'react';
 import { AISearchTrigger } from '@/components/ai';
-import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import { buttonVariants } from '@/components/ui/button';
 
 interface ChatbotProps {
   variant?: 'fixed' | 'static';
@@ -11,35 +9,26 @@ interface ChatbotProps {
 }
 
 const Chatbot: React.FC<ChatbotProps> = ({ variant = 'fixed', className }) => {
-  const isStatic = variant === 'static';
-  
   return (
     <AISearchTrigger
       className={cn(
-        buttonVariants({ variant: 'outline', size: 'icon' }),
+        "group relative transition-transform duration-300 hover:scale-110 focus:outline-none cursor-pointer",
         variant === 'fixed' 
-          ? 'fixed bottom-4 right-4 z-40' 
-          : 'relative',
-        'h-14 rounded-full shadow-lg transition-all duration-300 ease-in-out',
-        'hover:shadow-xl group overflow-hidden',
-        isStatic ? 'min-w-[160px] px-4' : 'min-w-[3.5rem] hover:min-w-[160px]',
+          ? 'fixed bottom-6 right-6 z-50' 
+          : 'relative inline-flex items-center justify-center',
         className
       )}
       aria-label="Open AI Assistant"
     >
-      <div className={cn(
-        "flex items-center justify-center w-full h-full",
-        isStatic ? "gap-2" : "group-hover:gap-2"
-      )}>
-        <Sparkles className="h-5 w-5 text-red-600 flex-shrink-0" />
-        <span className={cn(
-          "whitespace-nowrap transition-all duration-300 ease-in-out",
-          isStatic 
-            ? "opacity-100" 
-            : "overflow-hidden max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100"
-        )}>
-          AI Assistant
-        </span>
+      <div className="relative">
+        <img 
+          src="/avax-gpt.png" 
+          alt="AI Assistant" 
+          className={cn(
+            "relative object-contain drop-shadow-lg dark:invert",
+            variant === 'fixed' ? "h-16 w-16" : "h-12 w-12"
+          )}
+        />
       </div>
     </AISearchTrigger>
   );

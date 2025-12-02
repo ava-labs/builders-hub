@@ -19,9 +19,17 @@ import {
 } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { type SubnetStats } from "@/types/validator-stats";
-import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
+import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import l1ChainsData from "@/constants/l1-chains.json";
 
-type SortColumn = "name" | "id" | "nodeCount" | "nodes" | "stake" | "isL1" | "totalStake";
+type SortColumn =
+  | "name"
+  | "id"
+  | "nodeCount"
+  | "nodes"
+  | "stake"
+  | "isL1"
+  | "totalStake";
 type SortDirection = "asc" | "desc";
 type Network = "mainnet" | "fuji";
 
@@ -55,17 +63,23 @@ export default function ValidatorStatsPage() {
     }
   };
 
+  // Helper function to find the slug for a subnet ID
+  const getSlugForSubnetId = (subnetId: string): string | null => {
+    const chain = (l1ChainsData as any[]).find((c) => c.subnetId === subnetId);
+    return chain?.slug || null;
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const response = await fetch(
-          `/api/validator-stats?network=${network}`
-        );
+        const response = await fetch(`/api/validator-stats?network=${network}`);
         if (!response.ok) {
-          throw new Error(`Failed to fetch validator stats: ${response.status}`);
+          throw new Error(
+            `Failed to fetch validator stats: ${response.status}`
+          );
         }
 
         const stats: SubnetStats[] = await response.json();
@@ -100,23 +114,7 @@ export default function ValidatorStatsPage() {
   const compareVersions = (v1: string, v2: string): number => {
     if (v1 === "Unknown") return -1;
     if (v2 === "Unknown") return 1;
-
-    const extractNumbers = (v: string) => {
-      const match = v.match(/(\d+)\.(\d+)\.(\d+)/);
-      if (!match) return [0, 0, 0];
-      return [
-        parseInt(match[1]),
-        parseInt(match[2]),
-        parseInt(match[3]),
-      ];
-    };
-
-    const [major1, minor1, patch1] = extractNumbers(v1);
-    const [major2, minor2, patch2] = extractNumbers(v2);
-
-    if (major1 !== major2) return major1 - major2;
-    if (minor1 !== minor2) return minor1 - minor2;
-    return patch1 - patch2;
+    return v1.localeCompare(v2, undefined, { numeric: true });
   };
 
   const calculateStats = (subnet: SubnetStats) => {
@@ -271,12 +269,13 @@ export default function ValidatorStatsPage() {
     healthySubnets: data.filter(
       (subnet) => calculateStats(subnet).isStakeHealthy
     ).length,
-    avgStakePercent: data.length > 0
-      ? data.reduce(
-          (sum, subnet) => sum + calculateStats(subnet).stakePercentAbove,
-          0
-        ) / data.length
-      : 0,
+    avgStakePercent:
+      data.length > 0
+        ? data.reduce(
+            (sum, subnet) => sum + calculateStats(subnet).stakePercentAbove,
+            0
+          ) / data.length
+        : 0,
   };
 
   // Calculate total version breakdown across all subnets
@@ -357,19 +356,124 @@ export default function ValidatorStatsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
-        <div className="container mx-auto px-6 py-10 pb-24 space-y-12">
-          <div className="space-y-3">
-            <div>
-              <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-black dark:text-white">
-                Validator Stats
-              </h1>
-              <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
-                Loading validator statistics for {network}...
-              </p>
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+        <div className="border-b border-zinc-200 dark:border-zinc-800">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
+            <div className="animate-pulse space-y-8 sm:space-y-12">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-5 w-5 sm:h-6 sm:w-6 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                  <div className="h-4 w-32 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                </div>
+                <div className="h-10 sm:h-12 w-48 sm:w-64 bg-zinc-200 dark:bg-zinc-800 rounded" />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="h-8 sm:h-10 w-16 sm:w-24 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                    <div className="h-3 sm:h-4 w-12 sm:w-16 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                  </div>
+                ))}
+              </div>
+              <div className="pt-4 sm:pt-6 border-t border-zinc-200 dark:border-zinc-800">
+                <div className="flex flex-wrap gap-4">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div
+                      key={i}
+                      className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded"
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
-          <ChartSkeletonLoader />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
+          {/* Search & Filter Bar Skeleton */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 justify-between">
+            <div className="h-10 w-full sm:w-64 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              <div className="h-10 w-40 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
+            </div>
+          </div>
+
+          {/* Table Skeleton */}
+          <Card className="overflow-hidden py-0 border-0 shadow-none rounded-lg">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
+                  <tr>
+                    {[
+                      "Chain Name",
+                      "Validators",
+                      "By Nodes %",
+                      "By Stake %",
+                      "Version Breakdown",
+                      "Actions",
+                    ].map((header, i) => (
+                      <th
+                        key={i}
+                        className={`px-4 py-2 ${
+                          i === 0
+                            ? "text-left"
+                            : i === 5
+                            ? "text-center"
+                            : "text-right"
+                        }`}
+                      >
+                        <div
+                          className={`h-4 bg-zinc-300 dark:bg-zinc-700 rounded w-24 animate-pulse ${
+                            i === 0 ? "" : i === 5 ? "mx-auto" : "ml-auto"
+                          }`}
+                        />
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-neutral-950">
+                  {[...Array(10)].map((_, rowIndex) => (
+                    <tr
+                      key={rowIndex}
+                      className="border-b border-slate-100 dark:border-neutral-800"
+                    >
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
+                          <div className="flex flex-col gap-1">
+                            <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-32 animate-pulse" />
+                            <div className="h-3 bg-zinc-200 dark:bg-zinc-800 rounded w-20 animate-pulse" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3 text-right">
+                        <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-12 ml-auto animate-pulse" />
+                      </td>
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3 text-right">
+                        <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-16 ml-auto animate-pulse" />
+                      </td>
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3 text-right">
+                        <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-16 ml-auto animate-pulse" />
+                      </td>
+                      <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
+                        <div className="space-y-2">
+                          <div className="h-6 bg-zinc-200 dark:bg-zinc-800 rounded-full animate-pulse" />
+                          <div className="flex gap-2">
+                            <div className="h-3 bg-zinc-200 dark:bg-zinc-800 rounded w-16 animate-pulse" />
+                            <div className="h-3 bg-zinc-200 dark:bg-zinc-800 rounded w-16 animate-pulse" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="h-8 w-16 bg-zinc-200 dark:bg-zinc-800 rounded-md mx-auto animate-pulse" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         </div>
         <StatsBubbleNav />
       </div>
@@ -378,22 +482,11 @@ export default function ValidatorStatsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
-        <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <Card className="max-w-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-              <div className="p-6 text-center">
-                <div className="w-12 h-12 bg-red-50 dark:bg-red-950 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Activity className="h-6 w-6 text-red-600 dark:text-red-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
-                  Failed to Load Data
-                </h3>
-                <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
-              </div>
-            </Card>
-          </div>
-        </main>
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Activity className="h-12 w-12 text-red-500 mx-auto" />
+          <p className="text-red-600 dark:text-red-400">{error}</p>
+        </div>
         <StatsBubbleNav />
       </div>
     );
@@ -401,161 +494,148 @@ export default function ValidatorStatsPage() {
 
   if (!data || data.length === 0) {
     return (
-      <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
-        <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <Card className="max-w-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-              <div className="p-6 text-center">
-                <div className="w-12 h-12 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <BarChart3 className="h-6 w-6 text-neutral-500 dark:text-neutral-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
-                  No Data Available
-                </h3>
-                <p className="text-neutral-600 dark:text-neutral-400 text-sm">
-                  No subnet validator statistics found.
-                </p>
-              </div>
-            </Card>
-          </div>
-        </main>
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <BarChart3 className="h-12 w-12 text-zinc-400 mx-auto" />
+          <p className="text-zinc-500">No validator data available</p>
+        </div>
         <StatsBubbleNav />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
-      <main className="container mx-auto px-6 py-10 pb-24 space-y-8">
-        <div className="mb-10">
-          <div className="flex items-start justify-between gap-4 mb-3">
-            <div>
-              <h1 className="text-4xl sm:text-4xl font-semibold tracking-tight text-black dark:text-white">
-                Validator Stats
-              </h1>
-              <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed mt-2">
-                Validator statistics and version tracking across Avalanche networks
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Aggregated Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0 h-full flex flex-col lg:col-span-3">
-            <div className="p-6 text-center flex flex-col justify-center flex-1">
-              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                Total Chains
-              </p>
-              <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
-                {aggregatedStats.totalSubnets}
-              </p>
-              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                {aggregatedStats.l1Count} L1s / {aggregatedStats.subnetCount} Subnets
-              </p>
-            </div>
-          </Card>
-
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0 h-full flex flex-col lg:col-span-3">
-            <div className="p-6 text-center flex flex-col justify-center flex-1">
-              <p className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                Total Validators
-              </p>
-              <p className="text-4xl font-semibold tracking-tight text-black dark:text-white">
-                {formatNumber(aggregatedStats.totalNodes)}
-              </p>
-              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                {upToDatePercentage.toFixed(1)}% up to date
-              </p>
-            </div>
-          </Card>
-
-          <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 transition-all hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-sm py-0 h-full flex flex-col lg:col-span-6">
-            <div className="p-6 text-center flex flex-col justify-center flex-1">
-              <p className="mb-4 text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                Total Version Breakdown
-              </p>
-              <div className="space-y-2">
-                {/* Horizontal Bar Chart */}
-                <div className="flex h-6 w-full rounded overflow-hidden bg-neutral-100 dark:bg-neutral-800">
-                  {Object.entries(totalVersionBreakdown)
-                    .sort(([v1], [v2]) => compareVersions(v2, v1))
-                    .map(([version, data], index) => {
-                      const percentage = aggregatedStats.totalNodes > 0 
-                        ? (data.nodes / aggregatedStats.totalNodes) * 100 
-                        : 0;
-                      return (
-                        <div
-                          key={version}
-                          className={`h-full transition-all ${getVersionColor(index)}`}
-                          style={{ width: `${percentage}%` }}
-                          title={`${version}: ${data.nodes} nodes (${percentage.toFixed(1)}%)`}
-                        />
-                      );
-                    })}
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      {/* Hero - Clean typographic approach */}
+      <div className="border-b border-zinc-200 dark:border-zinc-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
+            <div className="space-y-4 sm:space-y-6 flex-1">
+              <div>
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                  <AvalancheLogo
+                    className="w-5 h-5 sm:w-6 sm:h-6"
+                    fill="currentColor"
+                  />
+                  <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
+                    Avalanche Ecosystem
+                  </p>
                 </div>
-                {/* Version Labels */}
-                <div className="flex flex-wrap gap-x-2 gap-y-1 text-xs justify-center">
-                  {Object.entries(totalVersionBreakdown)
-                    .sort(([v1], [v2]) => compareVersions(v2, v1))
-                    .slice(0, 5) // Show top 5 versions
-                    .map(([version, data], index) => {
-                      return (
-                        <div
-                          key={version}
-                          className="flex items-center gap-1"
-                        >
-                          <div
-                            className={`h-2 w-2 rounded-full flex-shrink-0 ${getVersionColor(index)}`}
-                          />
-                          <span className="font-mono text-black dark:text-white">
-                            {version}
-                          </span>
-                          <span className="text-neutral-500 dark:text-neutral-500">
-                            ({data.nodes})
-                          </span>
-                        </div>
-                      );
-                    })}
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                  Validator Stats
+                </h1>
+              </div>
+
+              {/* Key metrics - inline */}
+              <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-3 sm:gap-6 md:gap-12 pt-4">
+                <div>
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    {aggregatedStats.totalSubnets}
+                  </span>
+                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                    chains
+                  </span>
+                </div>
+                <div>
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    {formatNumber(aggregatedStats.totalNodes)}
+                  </span>
+                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                    validators
+                  </span>
+                </div>
+                <div>
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    {upToDatePercentage.toFixed(1)}%
+                  </span>
+                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                    up to date
+                  </span>
+                </div>
+                <div>
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    {aggregatedStats.l1Count}
+                  </span>
+                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                    L1s
+                  </span>
                 </div>
               </div>
             </div>
-          </Card>
-        </div>
-
-        <div className="border-t border-neutral-200 dark:border-neutral-800 my-8"></div>
-
-        {/* Search */}
-        <div className="flex items-center gap-4 justify-between">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 pointer-events-none z-10" />
-            <Input
-              placeholder="Search chains..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-10 rounded-lg border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchTerm("");
-                  setVisibleCount(25);
-                }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full z-20 transition-colors"
-                aria-label="Clear search"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
           </div>
-          <div className="flex items-center gap-2">
+
+          {/* Secondary stats row - version breakdown */}
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6 md:gap-8 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-zinc-200 dark:border-zinc-800">
+            <div className="flex items-center gap-2">
+              <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+                Version Breakdown:
+              </span>
+            </div>
+            {Object.entries(totalVersionBreakdown)
+              .sort(([v1], [v2]) => compareVersions(v2, v1))
+              .slice(0, 5)
+              .map(([version, data], index) => (
+                <div key={version} className="flex items-center gap-1.5">
+                  <div
+                    className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${getVersionColor(
+                      index
+                    )}`}
+                  />
+                  <span className="text-xs sm:text-sm font-mono text-zinc-700 dark:text-zinc-300">
+                    {version}
+                  </span>
+                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+                    ({data.nodes})
+                  </span>
+                </div>
+              ))}
+          </div>
+        </div>
+      </div>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
+        {/* Table header */}
+        <div className="mb-4">
+          <div className="flex items-baseline gap-2 sm:gap-3 mb-4">
+            <h2 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-white">
+              All Chains
+            </h2>
+            <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+              {sortedData.length} tracked
+            </span>
+          </div>
+
+          {/* Search and version filter */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="relative w-full sm:w-auto sm:flex-shrink-0 sm:max-w-sm">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 pointer-events-none z-10" />
+              <Input
+                placeholder="Search chains..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-10 rounded-lg border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-sm sm:text-base text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setVisibleCount(25);
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full z-20 transition-colors"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
             {/* Version Selector */}
             {availableVersions.length > 0 && (
               <div className="flex items-center gap-2">
                 <label
                   htmlFor="version-select"
-                  className="text-sm text-neutral-600 dark:text-neutral-400 whitespace-nowrap"
+                  className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 whitespace-nowrap"
                 >
                   Target Version:
                 </label>
@@ -563,7 +643,7 @@ export default function ValidatorStatsPage() {
                   id="version-select"
                   value={minVersion}
                   onChange={(e) => setMinVersion(e.target.value)}
-                  className="px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-colors"
+                  className="px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs sm:text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-colors"
                 >
                   {availableVersions.map((version) => (
                     <option key={version} value={version}>
@@ -628,14 +708,7 @@ export default function ValidatorStatsPage() {
                   return (
                     <tr
                       key={subnet.id}
-                      className={`border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50 ${
-                        subnet.id === "11111111111111111111111111111111LpoYY" ? "cursor-pointer" : ""
-                      }`}
-                      onClick={() => {
-                        if (subnet.id === "11111111111111111111111111111111LpoYY") {
-                          router.push("/stats/primary-network/validators");
-                        }
-                      }}
+                      className={`border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50`}
                     >
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                         <div className="flex items-center gap-3">
@@ -669,14 +742,16 @@ export default function ValidatorStatsPage() {
                               </span>
                               <span
                                 className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${
-                                  subnet.id === "11111111111111111111111111111111LpoYY"
+                                  subnet.id ===
+                                  "11111111111111111111111111111111LpoYY"
                                     ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
                                     : subnet.isL1
                                     ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
                                     : "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
                                 }`}
                               >
-                                {subnet.id === "11111111111111111111111111111111LpoYY"
+                                {subnet.id ===
+                                "11111111111111111111111111111111LpoYY"
                                   ? "Primary Network"
                                   : subnet.isL1
                                   ? "L1"
@@ -724,9 +799,10 @@ export default function ValidatorStatsPage() {
                             {Object.entries(subnet.byClientVersion)
                               .sort(([v1], [v2]) => compareVersions(v2, v1))
                               .map(([version, data]) => {
-                                const percentage = stats.totalNodes > 0 
-                                  ? (data.nodes / stats.totalNodes) * 100 
-                                  : 0;
+                                const percentage =
+                                  stats.totalNodes > 0
+                                    ? (data.nodes / stats.totalNodes) * 100
+                                    : 0;
                                 const isAboveTarget =
                                   compareVersions(version, minVersion) >= 0;
                                 return (
@@ -738,7 +814,9 @@ export default function ValidatorStatsPage() {
                                         : "bg-gray-200 dark:bg-gray-500"
                                     }`}
                                     style={{ width: `${percentage}%` }}
-                                    title={`${version}: ${data.nodes} nodes (${percentage.toFixed(1)}%)`}
+                                    title={`${version}: ${
+                                      data.nodes
+                                    } nodes (${percentage.toFixed(1)}%)`}
                                   />
                                 );
                               })}
@@ -784,11 +862,23 @@ export default function ValidatorStatsPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          disabled={subnet.id !== "11111111111111111111111111111111LpoYY"}
+                          disabled={
+                            subnet.id !==
+                              "11111111111111111111111111111111LpoYY" &&
+                            (!subnet.isL1 || !getSlugForSubnetId(subnet.id))
+                          }
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (subnet.id === "11111111111111111111111111111111LpoYY") {
+                            if (
+                              subnet.id ===
+                              "11111111111111111111111111111111LpoYY"
+                            ) {
                               router.push("/stats/primary-network/validators");
+                            } else {
+                              const slug = getSlugForSubnetId(subnet.id);
+                              if (slug) {
+                                router.push(`/stats/validators/${slug}`);
+                              }
                             }
                           }}
                           className="disabled:opacity-50 disabled:cursor-not-allowed"
@@ -805,14 +895,16 @@ export default function ValidatorStatsPage() {
         </Card>
 
         {hasMoreData && (
-          <div className="flex justify-center">
+          <div className="flex justify-center mt-4 sm:mt-6">
             <Button
               onClick={handleLoadMore}
               variant="outline"
               size="lg"
-              className="px-8 py-3 border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-900 text-black dark:text-white transition-colors hover:border-black dark:hover:border-white hover:bg-[#fcfcfd] dark:hover:bg-neutral-900"
+              className="px-4 sm:px-8 py-2 sm:py-3 text-sm sm:text-base border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-900 text-black dark:text-white transition-colors hover:border-black dark:hover:border-white hover:bg-[#fcfcfd] dark:hover:bg-neutral-900"
             >
-              Load More Chains ({sortedData.length - visibleCount} remaining)
+              <span className="hidden sm:inline">Load More Chains </span>
+              <span className="sm:hidden">Load More </span>(
+              {sortedData.length - visibleCount} remaining)
             </Button>
           </div>
         )}
@@ -822,4 +914,3 @@ export default function ValidatorStatsPage() {
     </div>
   );
 }
-

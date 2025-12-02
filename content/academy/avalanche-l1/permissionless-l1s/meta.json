@@ -1,0 +1,19 @@
+{
+    "title": "Permissionless L1s",
+    "icon": "UserPen",
+    "root": true,
+    "pages": [
+        "index",
+        "---Review---",
+        "...01-review",
+        "---Proof of Stake---",
+        "...02-proof-of-stake",
+        "---Transformation Requirements---",
+        "...03-transformation-requirements",
+        "04-speedrun-base-l1",
+        "---Staking Manager Setup---",
+        "...05-staking-manager-setup",
+        "---Staking Manager Operations---",
+        "---More coming soon...---"
+    ]
+}

@@ -21,6 +21,7 @@ import {
 import Link from "next/link";
 import { HeroBackground } from "@/components/landing/hero";
 import UniversitySlideshow from "@/components/university/UniversitySlideshow";
+import StudentCallout from '@/components/landing/student-callout';
 
 interface ProgramCardProps {
   title: string;
@@ -180,10 +181,10 @@ export default function Page() {
               href="/academy"
             />
             <ProgramCard
-              title="Codebase Entrepreneur Academy"
+              title="Entrepreneur Academy"
               description="Learn how to build, launch, and scale your blockchain startup with guidance from industry experts and get certified for free."
               icon={<GraduationCap className="w-6 h-6 text-foreground" />}
-              href="/codebase-entrepreneur-academy"
+              href="/academy/entrepreneur"
             />
             <ProgramCard
               title="Faculty Development Program"
@@ -299,6 +300,7 @@ export default function Page() {
           </div>
         </section>
 
+        <StudentCallout />
         {/* CTA Section */}
         <section className="mt-24">
           <div className="px-6 py-16 text-center space-y-6 rounded-lg border border-border bg-card">

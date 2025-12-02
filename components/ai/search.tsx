@@ -13,7 +13,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Loader2, RefreshCw, Send, X, User, Bot, Sparkles, StopCircle, HelpCircle, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
+import { Loader2, RefreshCw, Send, X, User, Bot, Sparkles, StopCircle, HelpCircle, ChevronRight, Maximize2, Minimize2, ArrowRight } from 'lucide-react';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { cn } from '../../lib/cn';
 import { buttonVariants } from '../ui/button';
@@ -100,15 +100,16 @@ function SearchAIInput(props: FormHTMLAttributes<HTMLFormElement>) {
     <form
       {...props}
       className={cn(
-        'flex items-center gap-3 px-4 pb-4 pt-3 border-t border-fd-border/50',
+        'w-full flex items-center gap-3 px-6 pb-6 pt-4 border-t border-border/20',
         props.className,
       )}
       onSubmit={onStart}
     >
-      <div className="flex-1 relative flex items-end bg-fd-muted/50 rounded-xl border border-fd-border/50 focus-within:border-fd-ring transition-all">
+      <div className="flex-1 relative flex items-end bg-transparent border-0 group w-full">
         <Input
           value={input}
-          placeholder="Message AI Assistant..."
+          placeholder="Ask anything..."
+          className="w-full px-4 py-4 text-lg bg-transparent border-b border-border/20 focus:border-blue-500/50 rounded-none transition-all min-h-[50px] placeholder:text-muted-foreground/30 resize-none"
           disabled={status === 'streaming' || status === 'submitted'}
           onChange={(e) => {
             setInput(e.target.value);
@@ -123,20 +124,20 @@ function SearchAIInput(props: FormHTMLAttributes<HTMLFormElement>) {
         <button
           type={isLoading ? 'button' : 'submit'}
           className={cn(
-            'mb-[7px] mr-2 p-1.5 rounded-lg transition-all shrink-0',
+            'absolute right-2 bottom-3 p-2 rounded-full transition-all shrink-0',
             isLoading
-              ? 'bg-fd-background hover:bg-fd-muted text-fd-foreground border border-fd-border'
+              ? 'bg-transparent text-muted-foreground'
               : input.length > 0
-                ? 'bg-red-600 hover:bg-red-700 text-white'
-                : 'text-fd-muted-foreground cursor-not-allowed hover:text-fd-muted-foreground/70',
+                ? 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-110 shadow-lg shadow-blue-500/20'
+                : 'text-muted-foreground/30 cursor-not-allowed',
           )}
           disabled={!isLoading && input.length === 0}
           onClick={isLoading ? stop : undefined}
         >
           {isLoading ? (
-            <StopCircle className="size-4" />
+            <StopCircle className="size-5" />
           ) : (
-            <Send className="size-4" />
+            <Send className="size-5" />
           )}
         </button>
       </div>
@@ -216,16 +217,6 @@ function Input(props: TextareaHTMLAttributes<HTMLTextAreaElement> & { className?
 let processor: Processor | undefined;
 const map = new Map<string, ReactNode>();
 
-const roleName: Record<string, string> = {
-  user: 'You',
-  assistant: 'AI Assistant',
-};
-
-const roleIcon: Record<string, ReactElement> = {
-  user: <User className="size-5" />,
-  assistant: <Sparkles className="size-5 text-red-600" />,
-};
-
 function parseFollowUpQuestions(content: string): string[] {
   if (!content) return [];
 
@@ -261,30 +252,23 @@ function SuggestedFollowUps({ questions, onQuestionClick }: {
   if (questions.length === 0) return null;
 
   return (
-    <div className="px-4 py-3 border-t border-fd-border/30">
-      <p className="text-xs font-medium text-fd-muted-foreground mb-3">
-        Related topics you might find helpful:
+    <div className="px-6 py-3 space-y-3 animate-in fade-in duration-300 slide-in-from-bottom-2">
+      <p className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-widest">
+        Suggested
       </p>
-      <div className="grid grid-cols-1 gap-2">
+      <div className="flex flex-wrap gap-2">
         {questions.map((question, index) => (
           <button
             key={index}
             onClick={() => onQuestionClick(question)}
             className={cn(
-              "group relative p-3 rounded-lg border border-fd-border/30 bg-fd-card/50",
-              "hover:border-red-600/30 hover:bg-red-50 dark:hover:bg-red-950/30 hover:shadow-sm",
-              "transition-all duration-200 ease-out",
-              "text-left text-xs"
+              "px-4 py-2 text-xs font-medium rounded-full",
+              "bg-slate-100 dark:bg-zinc-900 text-muted-foreground",
+              "hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400",
+              "transition-all duration-200 border border-transparent hover:border-blue-200 dark:hover:border-blue-800"
             )}
           >
-            <div className="flex items-start gap-2">
-              <div className="mt-0.5 p-1 rounded-md bg-fd-muted/50 transition-all duration-200">
-                <HelpCircle className="size-3 text-red-600" />
-              </div>
-              <span className="flex-1 text-fd-foreground/70 group-hover:text-fd-foreground leading-relaxed transition-colors duration-200">
-                {question}
-              </span>
-            </div>
+            {question}
           </button>
         ))}
       </div>
@@ -310,57 +294,67 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
   const [detectedTools, setDetectedTools] = useState<string[]>([]);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
 
-  return (
-    <div className={cn(
-      'group relative',
-      !isUser && 'bg-fd-muted/30',
-    )}>
-      <div className="flex gap-4 px-4 py-6">
-        <div className={cn(
-          'flex size-8 shrink-0 items-center justify-center',
-          isUser ? 'rounded-full bg-fd-muted text-fd-foreground' : '',
-        )}>
-          {roleIcon[message.role] ?? <User className="size-5" />}
-        </div>
-        <div className="flex-1 space-y-2 overflow-hidden">
-          <p className="text-xs font-medium text-fd-muted-foreground">
-            {roleName[message.role] ?? 'Unknown'}
-          </p>
-          <div className="prose prose-sm max-w-none dark:prose-invert [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden [&_.katex]:text-sm [&_.katex-display]:my-4">
-            <Markdown text={cleanContent} onToolClick={isMobile ? undefined : onToolReference} />
+  if (isUser) {
+    // User message - right aligned
+    return (
+      <div className="flex justify-end px-6 py-4">
+        <div className="max-w-[80%] space-y-2">
+          <div className="bg-blue-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 shadow-sm">
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{cleanContent}</p>
           </div>
-
-          {/* Show all tools referenced */}
-          {!isUser && detectedTools.length > 0 && !isMobile && onToolReference && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              <p className="text-xs text-fd-muted-foreground w-full mb-1">Tools referenced:</p>
-              {detectedTools.map((toolId) => (
-                <button
-                  key={toolId}
-                  onClick={() => onToolReference(toolId)}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs",
-                    "bg-fd-muted hover:bg-fd-muted/80 rounded-md",
-                    "border border-fd-border hover:border-red-600/30",
-                    "transition-all duration-200"
-                  )}
-                >
-                  <ChevronRight className="size-3" />
-                  {toolId}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       </div>
+    );
+  }
 
-      {/* Show follow-up suggestions only for the last assistant message and not while streaming */}
-      {!isUser && isLast && !isStreaming && followUpQuestions.length > 0 && (
-        <SuggestedFollowUps
-          questions={followUpQuestions}
-          onQuestionClick={onFollowUpClick}
-        />
-      )}
+  // AI message - left aligned
+  return (
+    <div className="px-6 py-4">
+      <div className="max-w-[95%] space-y-4">
+        <div className="flex items-start gap-4">
+          {/* <img 
+            src="/avax-gpt.png" 
+            alt="AI" 
+            className="size-8 object-contain mt-1 shrink-0"
+          /> */}
+          <div className="flex-1 min-w-0">
+            {/* <p className="text-sm font-semibold text-foreground mb-2">AI Assistant</p> */}
+            <div className="prose prose-sm max-w-none dark:prose-invert [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden [&_.katex]:text-sm [&_.katex-display]:my-4">
+              <Markdown text={cleanContent} onToolClick={isMobile ? undefined : onToolReference} />
+            </div>
+
+            {/* Show all tools referenced */}
+            {detectedTools.length > 0 && !isMobile && onToolReference && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <p className="text-xs text-muted-foreground w-full mb-1">Tools referenced:</p>
+                {detectedTools.map((toolId) => (
+                  <button
+                    key={toolId}
+                    onClick={() => onToolReference(toolId)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs",
+                      "bg-slate-100 dark:bg-zinc-900 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-md",
+                      "border border-border/40 hover:border-blue-500/30",
+                      "transition-all duration-200"
+                    )}
+                  >
+                    <ChevronRight className="size-3" />
+                    {toolId}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Show follow-up suggestions only for the last assistant message and not while streaming */}
+        {isLast && !isStreaming && followUpQuestions.length > 0 && (
+          <SuggestedFollowUps
+            questions={followUpQuestions}
+            onQuestionClick={onFollowUpClick}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -515,7 +509,7 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
                 "transition-all duration-300"
               )}
             >
-              <div className="flex h-full bg-fd-background/95 backdrop-blur-sm rounded-xl border border-fd-border shadow-2xl overflow-hidden flex-col">
+              <div className="flex h-full bg-slate-50/80 dark:bg-zinc-950/80 backdrop-blur-xl rounded-2xl border border-border/40 shadow-2xl overflow-hidden flex-col">
                 <SmallViewContent
                   onExpand={() => setViewMode('big')}
                 />
@@ -534,11 +528,11 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
               aria-describedby={undefined}
               className={cn(
                 "fixed inset-4 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 z-50",
-                selectedTool && !isMobile ? "md:max-w-[1400px] md:w-[95vw]" : "md:max-w-2xl md:w-[90vw]",
+                selectedTool && !isMobile ? "md:max-w-[1600px] md:w-[95vw]" : "md:max-w-5xl md:w-[90vw]",
                 "md:h-[85vh] max-h-[90vh] focus-visible:outline-none data-[state=closed]:animate-fd-fade-out data-[state=open]:animate-fd-fade-in transition-all duration-300"
               )}
             >
-              <div className="flex h-full bg-fd-background/90 backdrop-blur-md rounded-xl border border-fd-border shadow-2xl overflow-hidden">
+              <div className="flex h-full bg-slate-50/80 dark:bg-zinc-950/80 backdrop-blur-xl rounded-2xl border border-border/40 shadow-2xl overflow-hidden">
                 {/* Desktop view - side by side */}
                 <div className={cn(
                   "hidden md:flex md:flex-col",
@@ -581,8 +575,12 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
   return (
     <ChatContext value={chat}>
       <div className="flex items-center justify-between border-b border-fd-border px-4 py-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="size-4 text-red-600" />
+        <div className="flex items-center gap-3">
+          <img 
+            src="/avax-gpt.png" 
+            alt="AI" 
+            className="size-6 object-contain dark:invert"
+          />
           <DialogTitle className="text-sm font-semibold">AI Assistant</DialogTitle>
         </div>
         <div className="flex items-center gap-1">
@@ -610,19 +608,21 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
 
       <List className="flex-1">
         {messages.length === 0 ? (
-          <div className="flex h-full items-center justify-center p-6">
-            <div className="text-center space-y-4">
-              <div className="mx-auto size-10 rounded-full bg-fd-muted/50 flex items-center justify-center">
-                <Sparkles className="size-5 text-red-600" />
+              <div className="flex h-full items-center justify-center p-6">
+                <div className="text-center space-y-4">
+                  <img 
+                    src="/avax-gpt.png" 
+                    alt="AI" 
+                    className="mx-auto size-12 object-contain mb-4 dark:invert"
+                  />
+                  <h3 className="text-sm font-medium">How can I help?</h3>
+                  <p className="text-xs text-fd-muted-foreground">
+                    Ask me anything about Avalanche
+                  </p>
+                </div>
               </div>
-              <h3 className="text-sm font-medium">How can I help?</h3>
-              <p className="text-xs text-fd-muted-foreground">
-                Ask me anything about Avalanche
-              </p>
-            </div>
-          </div>
         ) : (
-          <div className="divide-y divide-fd-border">
+          <div className="space-y-2">
             {messages.map((item, index) => (
               <Message
                 key={item.id}
@@ -638,15 +638,24 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
               />
             ))}
             {status === 'streaming' && messages[messages.length - 1]?.role === 'user' && (
-              <div className="flex gap-3 px-4 py-4 bg-fd-muted/30">
-                <div className="flex size-6 shrink-0 items-center justify-center">
-                  <Sparkles className="size-4 text-red-600" />
-                </div>
-                <div className="flex items-center gap-2 text-xs text-fd-muted-foreground">
-                  <div className="flex gap-1">
-                    <span className="size-1.5 rounded-full bg-fd-muted-foreground/50 animate-bounce [animation-delay:-0.3s]"></span>
-                    <span className="size-1.5 rounded-full bg-fd-muted-foreground/50 animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="size-1.5 rounded-full bg-fd-muted-foreground/50 animate-bounce"></span>
+              <div className="flex px-6 py-4">
+                <div className="max-w-[85%] space-y-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <img 
+                      src="/avax-gpt.png" 
+                      alt="AI" 
+                      className="size-7 object-contain dark:invert"
+                    />
+                    <p className="text-xs font-medium text-muted-foreground">AI Assistant</p>
+                  </div>
+                  <div className="bg-slate-100 dark:bg-zinc-900 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="flex gap-1">
+                        <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.3s]"></span>
+                        <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.15s]"></span>
+                        <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce"></span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -703,8 +712,12 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
   return (
     <ChatContext value={chat}>
       <div className="flex items-center justify-between border-b border-fd-border px-4 py-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="size-5 text-red-600" />
+        <div className="flex items-center gap-3">
+          <img 
+            src="/avax-gpt.png" 
+            alt="AI" 
+            className="size-7 object-contain dark:invert"
+          />
           <DialogTitle className="text-lg font-semibold">AI Assistant</DialogTitle>
         </div>
         <div className="flex items-center gap-1">
@@ -737,43 +750,38 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
           <div className="flex h-full items-center justify-center p-8">
             <div className="text-center space-y-6 max-w-2xl">
               <div className="space-y-4">
-                <div className="mx-auto size-12 rounded-full bg-fd-muted/50 flex items-center justify-center">
-                  <Sparkles className="size-6 text-red-600" />
-                </div>
+                <img 
+                  src="/avax-gpt.png" 
+                  alt="AI" 
+                  className="mx-auto size-16 object-contain mb-6 dark:invert"
+                />
                 <h3 className="text-lg font-medium">How can I help you today?</h3>
                 <p className="text-sm text-fd-muted-foreground">
                   Ask me anything about the documentation or get help with your code.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-12 max-w-3xl mx-auto">
                 {suggestedQuestions.map((question, index) => (
                   <button
                     key={index}
                     onClick={() => handleSuggestionClick(question)}
                     className={cn(
-                      "group relative p-4 rounded-xl border border-fd-border/50 bg-fd-card",
-                      "hover:border-red-600/50 hover:bg-red-50 dark:hover:bg-red-950/50 hover:shadow-md",
-                      "transition-all duration-200 ease-out transform hover:scale-[1.02]",
-                      "text-left text-sm overflow-hidden"
+                      "group flex items-center justify-between w-full px-4 py-3 rounded-xl",
+                      "bg-transparent hover:bg-slate-100/50 dark:hover:bg-zinc-900/50",
+                      "transition-all duration-300 ease-out",
+                      "text-left text-sm text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-red-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="relative flex items-start gap-3">
-                      <div className="mt-0.5 p-2 rounded-lg bg-fd-muted/50 transition-all duration-200">
-                        <HelpCircle className="size-4 text-red-600 transition-colors duration-200" />
-                      </div>
-                      <span className="flex-1 text-fd-foreground/80 group-hover:text-fd-foreground leading-relaxed transition-colors duration-200">
-                        {question}
-                      </span>
-                    </div>
+                    <span className="font-medium">{question}</span>
+                    <ArrowRight className="size-4 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-blue-500" />
                   </button>
                 ))}
               </div>
             </div>
           </div>
         ) : (
-          <div className="divide-y divide-fd-border">
+          <div className="space-y-2">
             {messages.map((item, index) => (
               <Message
                 key={item.id}
@@ -785,15 +793,24 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
               />
             ))}
             {isLoading && messages[messages.length - 1]?.role === 'user' && (
-              <div className="flex gap-4 px-4 py-6 bg-fd-muted/30">
-                <div className="flex size-8 shrink-0 items-center justify-center">
-                  <Sparkles className="size-5 text-red-600" />
-                </div>
-                <div className="flex items-center gap-2 text-sm text-fd-muted-foreground">
-                  <div className="flex gap-1">
-                    <span className="size-2 rounded-full bg-fd-muted-foreground/50 animate-bounce [animation-delay:-0.3s]"></span>
-                    <span className="size-2 rounded-full bg-fd-muted-foreground/50 animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="size-2 rounded-full bg-fd-muted-foreground/50 animate-bounce"></span>
+              <div className="flex px-6 py-4">
+                <div className="max-w-[85%] space-y-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <img 
+                      src="/avax-gpt.png" 
+                      alt="AI" 
+                      className="size-7 object-contain dark:invert"
+                    />
+                    <p className="text-xs font-medium text-muted-foreground">AI Assistant</p>
+                  </div>
+                  <div className="bg-slate-100 dark:bg-zinc-900 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="flex gap-1">
+                        <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.3s]"></span>
+                        <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.15s]"></span>
+                        <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce"></span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -52,12 +52,6 @@ body[data-layout="academy"] [data-sidebar="sidebar"] {
   background: transparent !important;
   border-right: none !important;
 }
-/* When banner exists, adjust academy sidebar position */
-body:has([data-granite-banner])[data-layout="academy"] #nd-sidebar,
-body:has([data-granite-banner])[data-layout="academy"] [data-sidebar="sidebar"] {
-  top: 7.5rem !important; /* Banner (3rem) + navbar (3.5rem) */
-  height: calc(100vh - 3rem - 3.5rem) !important; /* Full height minus banner and navbar */
-}
 
 /* Remove padding-top from sidebar first child - prevents spacing issues on refresh */
 /* This ensures no extra spacing appears when elements hydrate */
@@ -343,17 +337,19 @@ body[data-layout="academy"] #nd-sidebar-mobile button > img:first-child {
   }
 }
 
-body[data-layout="academy"]:has([data-granite-banner]) #nd-docs-layout {
-  padding-top: var(--fd-banner-height) !important;
-}
-
 /* Remove padding-top from layout when banner is visible on academy routes */
 body[data-layout="academy"] #nd-docs-layout {
   padding-top: 0px !important;
+  background: hsl(var(--background)) !important;
 }
 
 /* Set custom padding-top for table of contents on academy routes */
 body[data-layout="academy"] #nd-toc {
   padding-top: calc(var(--spacing) * 12) !important;
+}
+
+/* Ensure body has proper background color for academy */
+body[data-layout="academy"] {
+  background: hsl(var(--background)) !important;
 }
 

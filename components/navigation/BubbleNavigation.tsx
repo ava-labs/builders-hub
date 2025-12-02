@@ -7,30 +7,40 @@ import type { BubbleNavigationConfig } from "./bubble-navigation.types";
 interface BubbleNavigationProps {
   config: BubbleNavigationConfig;
   getActiveItem?: (pathname: string, items: BubbleNavigationConfig['items']) => string;
+  activeItem?: string;
+  onSelect?: (item: BubbleNavigationConfig['items'][number]) => void;
 }
 
 export default function BubbleNavigation({
   config,
-  getActiveItem
+  getActiveItem,
+  activeItem: controlledActiveItem,
+  onSelect,
 }: BubbleNavigationProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [activeItem, setActiveItem] = useState("");
+  const isControlled = typeof controlledActiveItem === "string";
+  const [uncontrolledActiveItem, setUncontrolledActiveItem] = useState("");
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [bottomOffset, setBottomOffset] = useState(32);
   const navRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Use custom logic if provided, otherwise default to exact path matching
+    if (isControlled) return;
+
     if (getActiveItem) {
-      setActiveItem(getActiveItem(pathname, config.items));
-    } else {
-      const currentItem = config.items.find((item) => pathname === item.href);
-      if (currentItem) {
-        setActiveItem(currentItem.id);
-      }
+      setUncontrolledActiveItem(getActiveItem(pathname, config.items));
+      return;
     }
-  }, [pathname, config.items, getActiveItem]);
+
+    const currentItem = config.items.find(
+      (item) => item.href && pathname === item.href
+    );
+      if (currentItem) {
+      setUncontrolledActiveItem(currentItem.id);
+    }
+  }, [pathname, config.items, getActiveItem, isControlled]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -68,9 +78,76 @@ export default function BubbleNavigation({
     };
   }, []);
 
+  const resolvedActiveItem = isControlled
+    ? controlledActiveItem!
+    : uncontrolledActiveItem;
+
   const handleItemClick = (item: BubbleNavigationConfig['items'][0]) => {
-    setActiveItem(item.id);
+    if (onSelect) {
+      // Start scroll animation immediately BEFORE state update to prevent blocking
+      const learningPathSection = document.getElementById('learning-path-section');
+      if (learningPathSection) {
+        // Get the section's position and scroll with offset to show the heading
+        const yOffset = -125;
+        const targetY = learningPathSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        const startY = window.pageYOffset;
+        const distance = targetY - startY;
+        const duration = 800; // Reduced to 0.8s for faster response
+        let startTime: number | null = null;
+        let animationFrameId: number;
+
+        // Easing function: easeOutExpo - starts extremely fast
+        const easeOutExpo = (t: number): number => {
+          return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+        };
+
+        // Cleanup function to stop animation
+        const cancelAnimation = () => {
+          if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+          }
+          window.removeEventListener('wheel', cancelAnimation);
+          window.removeEventListener('touchmove', cancelAnimation);
+          window.removeEventListener('keydown', cancelAnimation);
+          window.removeEventListener('mousedown', cancelAnimation);
+        };
+
+        const animation = (currentTime: number) => {
+          if (startTime === null) startTime = currentTime;
+          const timeElapsed = currentTime - startTime;
+          const progress = Math.min(timeElapsed / duration, 1);
+          const ease = easeOutExpo(progress);
+          
+          window.scrollTo(0, startY + distance * ease);
+          
+          if (progress < 1) {
+            animationFrameId = requestAnimationFrame(animation);
+          } else {
+            cancelAnimation(); // Cleanup listeners when done
+          }
+        };
+
+        // Add listeners to cancel animation on user interaction
+        window.addEventListener('wheel', cancelAnimation, { passive: true });
+        window.addEventListener('touchmove', cancelAnimation, { passive: true });
+        window.addEventListener('keydown', cancelAnimation, { passive: true });
+        window.addEventListener('mousedown', cancelAnimation, { passive: true });
+
+        // Start animation loop
+        animationFrameId = requestAnimationFrame(animation);
+      }
+
+      // Defer state update slightly to ensure animation frame has priority
+      setTimeout(() => {
+        onSelect(item);
+      }, 0);
+      return;
+    }
+
+    if (item.href) {
+      setUncontrolledActiveItem(item.id);
     router.push(item.href);
+    }
   };
 
   return (
@@ -87,7 +164,7 @@ export default function BubbleNavigation({
       )}>
         <div className={cn("flex items-center justify-center", config.buttonSpacing || "space-x-2")}>
           {config.items.map((item) => {
-            const isActive = activeItem === item.id;
+            const isActive = resolvedActiveItem === item.id;
             const isHovered = hoveredItem === item.id;
 
             return (
@@ -97,6 +174,7 @@ export default function BubbleNavigation({
                 onMouseEnter={() => setHoveredItem(item.id)}
                 onMouseLeave={() => setHoveredItem(null)}
                 className={cn(
+                  "cursor-pointer",
                   "relative flex items-center justify-center",
                   "transition-all duration-300 ease-out",
                   "transform-gpu",

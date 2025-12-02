@@ -1,0 +1,124 @@
+---
+title: Data Structures
+description: More about Solidity
+updated: 2024-06-28
+authors: [Andrea Vargas, Ash, martineckardt]
+icon: BookOpen
+---
+Like with all programming languages, Solidity offers us a way to store multiple values in one location via built-in data structures. In this section, we will look at the following:
+- Mappings
+- Static Arrays
+- Dynamic Arrays
+
+Let's get started!
+
+## Mappings
+
+Mappings in Solidity are similar to data structures like dictionaries found in other programming languages (e.g. Python). At its most basic level, mappings allow us to store key-value pairs. Unlike the types we explored earlier in this course, mappings can only be instantiated as state variables (i.e. we cannot create a new mapping data structure within the body of a function). Furthermore, declaring a mapping and defining key-values of a pair must be done separately. Below is the general syntax for a mapping:
+```solidity
+mapping(<key-type> => (value-type)) <optional-visibility> <mapping-name>;
+```
+
+Below shows an example of how to define a key-value pair within a mapping:
+
+```solidity
+mapping(address => uint) map;
+​
+map[0xc0ffee254729296a45a3885639AC7E10F9d54979] = 5;
+```
+## Nested Mappings
+
+Below are some restrictions regarding mappings:
+- Keys can be any simple type (i.e. types associated with a singular value)
+- Values can be any type
+Since keys can be any type, and mappings are types by definition, this implies that we can map keys to mappings! Therefore, the following is legal syntax:
+
+```solidity
+mapping(uint => mapping(uint => address)) mapTwo;
+```
+
+To work with inner mappings, the following code snippet gives an idea as to how to access such values:
+
+```solidity
+address addr = mapTwo[5][6];
+```
+
+## Structs
+The next type of data structure that we will examine are structs. For those who have worked with C++ or any other similar programming languages, structs in Solidity are the same concept. Structs, or structures, are data structures which allow us to group multiple values. We can think of structs as very basic classes, except that they lack any sort of behavior and are solely used to store information. Like mappings, we first must define the layout of a struct within the body of a smart contract; below is an example of how we would do so:
+
+```solidity
+struct Person {
+    uint256 age;
+    string name;
+}
+```
+To create an instance of a struct as a state variable, we can use the following syntax:
+
+```solidity
+Person person = Person(5, "Rodrigo");
+```
+
+> If you try using the syntax above in the body of a function, you will get an error regarding the location of the person variable. Since structs are a grouping of values, we must explictly state where these values are stored (either in memory or in storage). Therefore, we would want to use the following:
+
+```solidity
+Person memory person = Person(5, "Rodrigo")
+```
+
+## Static Arrays
+The majority of programming languages provide some built-in data structures similar to lists. Solidity is no different in that it provides two types of list-like data structures:
+
+- Static arrays
+- Dynamic Arrays
+Focusing first on static arrays, these are lists whose length is fixed at the time of initialization. This means that once a static array has been initialized, its length will never change. Below is the syntax to declare a static array:
+
+```solidity
+<array-type>[<array-size>] <array-name>;
+```
+Below is an example of declaring a static array:
+```solidity
+uint[5] arr;
+```
+With regards to declaring the value of a static array, we have two options:
+### Static Arrays in Memory
+For a static array in memory, we first must declare it using the memory keyword:
+```solidity
+<array-type>[<array-size>] memory <array-name>;
+```
+Assuming this has been handled, we can declare individual values via indexing; an example of this can be found below:
+```solidity
+function test() public {
+        uint[] memory arr;
+        arr[7] = 4;
+    }
+```
+If we want to both declare and define a static array in memory, we can use the following:
+
+```solidity
+uint8[5] memory arr = [1, 2, 3, 4, 5];
+```
+
+### Static Arrays in Storage
+
+If we want to declare the value of a value in storage, we can again use array indexing. Likewise, as with static arrays declared in memory, we can also declare and define at the same time a static array in storage.
+
+## Dynamic Arrays
+
+Dynamic arrays differ from static arrays in that their size is not fixed. That is, once initialized, a dynamic array can vary in length throughout its lifetime. Due to the complexity of the underlying implementation of dynamic arrays, dynamic arrays can only be assigned to state variables. Below is an example of how we would declare a dynamic array in storage:
+
+```solidity
+<array-type>[] <array-name>;
+```
+
+By default, a dynamic array will be empty (in contrast with static arrays, which will be filled with the default value of the array type). Therefore, we can use the following associated methods to manipulate the state of a dynamic array:
+- push: pushes an element to the end of the dynamic array
+- pop: removes the last element of a dynamic array
+
+Below is an example of the methods above in action:
+```solidity
+uint[] arr;
+​
+function test() public {
+    arr.push(1);
+    arr.pop();
+}
+```

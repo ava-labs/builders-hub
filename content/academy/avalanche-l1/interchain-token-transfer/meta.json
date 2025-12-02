@@ -1,0 +1,21 @@
+{
+  "title": "Interchain Token Transfer",
+  "icon": "ArrowLeftRight",
+  "root": true,
+  "pages": [
+    "---Interchain Token Transfer---",
+    "index",
+    "...02-getting-started",
+    "---Native to ERC-20 Token Bridge---",
+    "...08-native-to-erc-20-bridge",
+    "---Send and Call---",
+    "...12-send-and-call",
+    "---Cross-Chain Token Swaps---",
+    "...13-cross-chain-token-swaps",
+    "---Scaling Token Decimals---",
+    "...14-scaling-decimals",
+    "---Conclusion---",
+    "certificate"
+  ]
+}
+

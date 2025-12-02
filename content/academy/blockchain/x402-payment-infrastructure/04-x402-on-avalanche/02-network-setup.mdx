@@ -1,0 +1,95 @@
+---
+title: Network Setup
+description: Setting up x402 on Avalanche C-Chain Mainnet and Fuji Testnet.
+updated: 2025-11-03
+authors: [Federico Nardelli]
+icon: Settings
+---
+
+## Avalanche Networks Overview
+
+Avalanche provides two networks for x402 development:
+
+| Network | Purpose | Chain ID | RPC URL |
+|---------|---------|----------|---------|
+| **Mainnet** | Production | 43114 | https://api.avax.network/ext/bc/C/rpc |
+| **Fuji Testnet** | Development | 43113 | https://api.avax-test.network/ext/bc/C/rpc |
+
+## Fuji Testnet Setup
+
+### Step 1: Configure Network in Wallet
+
+Add Fuji testnet to MetaMask or Core wallet:
+
+```javascript
+// Network configuration
+{
+  networkName: "Avalanche Fuji Testnet",
+  rpcUrl: "https://api.avax-test.network/ext/bc/C/rpc",
+  chainId: 43113,
+  symbol: "AVAX",
+  explorerUrl: "https://testnet.snowtrace.io/"
+}
+```
+
+Add Fuji to your wallet using the configuration above. Core Wallet has Fuji pre-configured.
+
+### Step 2: Get Test AVAX
+
+Get free test AVAX for gas fees:
+1. Navigate to the [Console Faucet](/console/primary-network/faucet)
+2. Connect your wallet
+3. Request test AVAX
+
+### Step 3: Get Test USDC
+
+Get free test USDC from Circle's official faucet:
+1. Visit [https://faucet.circle.com/](https://faucet.circle.com/)
+2. Select "Avalanche Fuji"
+3. Enter your wallet address
+4. Receive test USDC
+
+## Contract Addresses
+
+### Mainnet Addresses
+
+```javascript
+const AVALANCHE_MAINNET = {
+  chainId: 43114,
+  rpc: "https://api.avax.network/ext/bc/C/rpc",
+  usdc: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+  usdt: "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+  wavax: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7"
+};
+```
+
+### Fuji Testnet Addresses
+
+```javascript
+const AVALANCHE_FUJI = {
+  chainId: 43113,
+  rpc: "https://api.avax-test.network/ext/bc/C/rpc",
+  usdc: "0x5425890298aed601595a70AB815c96711a31Bc65",
+};
+```
+
+## Environment Configuration
+
+For x402 development, configure your environment variables:
+
+```bash
+# .env file
+AVALANCHE_RPC_FUJI=https://api.avax-test.network/ext/bc/C/rpc
+USDC_FUJI=0x5425890298aed601595a70AB815c96711a31Bc65
+PRIVATE_KEY=your_private_key_here
+```
+
+For mainnet deployment, use:
+```bash
+AVALANCHE_RPC_MAINNET=https://api.avax.network/ext/bc/C/rpc
+USDC_MAINNET=0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E
+```
+
+## Summary
+
+Setting up x402 on Avalanche Fuji testnet requires three steps: configure your wallet with Fuji network, get free test AVAX from Core Wallet console, and get free test USDC from Circle's faucet. With these resources, you're ready to integrate x402 facilitators and start building payment-enabled applications.

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
+import { useEffect, useState, useRef } from "react";
+import createGlobe from "cobe";
 import {
   Card,
   CardContent,
@@ -9,29 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Loader2, MapPin, Globe } from "lucide-react";
-
-const MapContainer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.MapContainer),
-  { ssr: false }
-);
-const TileLayer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.TileLayer),
-  { ssr: false }
-);
-const CircleMarker = dynamic(
-  () => import("react-leaflet").then((mod) => mod.CircleMarker),
-  { ssr: false }
-);
-const Popup = dynamic(() => import("react-leaflet").then((mod) => mod.Popup), {
-  ssr: false,
-});
-const Tooltip = dynamic(
-  () => import("react-leaflet").then((mod) => mod.Tooltip),
-  {
-    ssr: false,
-  }
-);
+import { Loader2, MapPin, Globe as GlobeIcon } from "lucide-react";
 
 interface CountryData {
   country: string;
@@ -45,13 +23,139 @@ interface CountryData {
 
 type VisualizationMode = "validators" | "stake" | "heatmap";
 
+interface Marker {
+  location: [number, number];
+  size: number;
+}
+
+interface GlobeProps {
+  className?: string;
+  markers?: Marker[];
+  autoRotate?: boolean;
+}
+
+function Globe({ className, markers = [], autoRotate = true }: GlobeProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const pointerInteracting = useRef<number | null>(null);
+  const pointerInteractionMovement = useRef(0);
+  const [rotation, setRotation] = useState(0);
+
+  useEffect(() => {
+    let phi = rotation;
+    let width = 0;
+
+    if (!canvasRef.current) return;
+
+    const onResize = () => {
+      if (canvasRef.current) {
+        width = canvasRef.current.offsetWidth;
+      }
+    };
+    window.addEventListener("resize", onResize);
+    onResize();
+
+    const globe = createGlobe(canvasRef.current, {
+      devicePixelRatio: 2,
+      width: 600 * 2,
+      height: 600 * 2,
+      phi: 0,
+      theta: 0.3,
+      dark: 1,
+      diffuse: 1.2,
+      mapSamples: 16000,
+      mapBrightness: 6,
+      baseColor: [0.3, 0.3, 0.3],
+      markerColor: [0.91, 0.26, 0.26],
+      glowColor: [1, 1, 1],
+      markers: markers,
+      onRender: (state) => {
+        if (!pointerInteracting.current) {
+          if (autoRotate) {
+            phi += 0.001;
+          }
+        }
+        state.phi = phi + pointerInteractionMovement.current;
+        setRotation(phi);
+      },
+    });
+
+    setTimeout(() => {
+      if (canvasRef.current) {
+        canvasRef.current.style.opacity = "1";
+      }
+    });
+
+    return () => {
+      globe.destroy();
+      window.removeEventListener("resize", onResize);
+    };
+  }, [markers, autoRotate]);
+
+  return (
+    <div
+      className={className}
+      style={{
+        width: "100%",
+        maxWidth: 600,
+        aspectRatio: 1,
+        margin: "auto",
+        position: "relative",
+        cursor: "grab",
+      }}
+    >
+      <canvas
+        ref={canvasRef}
+        onPointerDown={(e) => {
+          pointerInteracting.current =
+            e.clientX - pointerInteractionMovement.current;
+          if (canvasRef.current) {
+            canvasRef.current.style.cursor = "grabbing";
+          }
+        }}
+        onPointerUp={() => {
+          pointerInteracting.current = null;
+          if (canvasRef.current) {
+            canvasRef.current.style.cursor = "grab";
+          }
+        }}
+        onPointerOut={() => {
+          pointerInteracting.current = null;
+          if (canvasRef.current) {
+            canvasRef.current.style.cursor = "grab";
+          }
+        }}
+        onMouseMove={(e) => {
+          if (pointerInteracting.current !== null) {
+            const delta = e.clientX - pointerInteracting.current;
+            pointerInteractionMovement.current = delta * 0.005; // Slow down manual rotation
+          }
+        }}
+        onTouchMove={(e) => {
+          if (pointerInteracting.current !== null && e.touches[0]) {
+            const delta = e.touches[0].clientX - pointerInteracting.current;
+            pointerInteractionMovement.current = delta * 0.005; // Slow down manual rotation
+          }
+        }}
+        style={{
+          width: "100%",
+          height: "100%",
+          contain: "layout paint size",
+          opacity: 0,
+          transition: "opacity 1s ease",
+          cursor: "grab",
+        }}
+        onContextMenu={(e) => e.preventDefault()}
+      />
+    </div>
+  );
+}
+
 export function ValidatorWorldMap() {
   const [geoData, setGeoData] = useState<CountryData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [visualMode, setVisualMode] = useState<VisualizationMode>("validators");
-  const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -85,13 +189,12 @@ export function ValidatorWorldMap() {
   };
 
   const getMarkerSize = (country: CountryData, maxValue: number) => {
-    const minSize = 6;
-    const maxSize = 30;
+    const minSize = 0.02;
+    const maxSize = 0.15;
     let value: number;
 
     switch (visualMode) {
       case "stake":
-        // Convert to AVAX by dividing by 10^9
         value = parseFloat(country.totalStaked) / 1e9;
         break;
       case "heatmap":
@@ -105,48 +208,9 @@ export function ValidatorWorldMap() {
     return minSize + (maxSize - minSize) * ratio;
   };
 
-  const getMarkerColor = (
-    country: CountryData,
-    maxValue: number,
-    isHovered: boolean = false
-  ) => {
-    let value: number;
-
-    switch (visualMode) {
-      case "stake":
-        // Convert to AVAX by dividing by 10^9
-        value = parseFloat(country.totalStaked) / 1e9;
-        break;
-      case "heatmap":
-        value = country.percentage;
-        break;
-      default:
-        value = country.validators;
-    }
-
-    const ratio = value / maxValue;
-    let baseColor: string;
-
-    if (visualMode === "heatmap") {
-      if (ratio > 0.8) baseColor = "#dc2626";
-      else if (ratio > 0.6) baseColor = "#ea580c";
-      else if (ratio > 0.4) baseColor = "#d97706";
-      else if (ratio > 0.2) baseColor = "#65a30d";
-      else baseColor = "#0284c7";
-    } else {
-      if (ratio > 0.7) baseColor = "#ef4444";
-      else if (ratio > 0.4) baseColor = "#f97316";
-      else if (ratio > 0.2) baseColor = "#eab308";
-      else baseColor = "#22c55e";
-    }
-
-    return isHovered ? baseColor : baseColor;
-  };
-
   const getMaxValue = () => {
     switch (visualMode) {
       case "stake":
-        // Convert to AVAX by dividing by 10^9
         return Math.max(...geoData.map((d) => parseFloat(d.totalStaked) / 1e9));
       case "heatmap":
         return Math.max(...geoData.map((d) => d.percentage));
@@ -155,15 +219,23 @@ export function ValidatorWorldMap() {
     }
   };
 
+  const getMarkers = () => {
+    const maxValue = getMaxValue();
+    return geoData.map((country) => ({
+      location: [country.latitude, country.longitude] as [number, number],
+      size: getMarkerSize(country, maxValue),
+    }));
+  };
+
   if (!isClient) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5" style={{ color: "#40c9ff" }} />
+          <CardTitle className="text-xl flex items-center gap-2 font-medium">
+            <GlobeIcon className="h-5 w-5" style={{ color: "#40c9ff" }} />
             Global Validator Distribution
           </CardTitle>
-          <CardDescription className="pt-2">
+          <CardDescription>
             Geographic distribution of Avalanche Primary Network validators
             worldwide
           </CardDescription>
@@ -179,11 +251,11 @@ export function ValidatorWorldMap() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5" style={{ color: "#40c9ff" }} />
+          <CardTitle className="text-xl flex items-center gap-2 font-medium">
+            <GlobeIcon className="h-5 w-5" style={{ color: "#40c9ff" }} />
             Global Validator Distribution
           </CardTitle>
-          <CardDescription className="pt-2">
+          <CardDescription>
             Geographic distribution of Avalanche Primary Network validators
             worldwide
           </CardDescription>
@@ -204,8 +276,8 @@ export function ValidatorWorldMap() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5" style={{ color: "#40c9ff" }} />
+          <CardTitle className="text-xl flex items-center gap-2 font-medium">
+            <GlobeIcon className="h-5 w-5" style={{ color: "#40c9ff" }} />
             Global Validator Distribution
           </CardTitle>
         </CardHeader>
@@ -225,52 +297,61 @@ export function ValidatorWorldMap() {
     );
   }
 
-  const maxValue = getMaxValue();
+  const markers = getMarkers();
+
+  // Sort countries by the selected visualization metric
+  const sortedCountries = [...geoData].sort((a, b) => {
+    switch (visualMode) {
+      case "stake":
+        return parseFloat(b.totalStaked) - parseFloat(a.totalStaked);
+      case "heatmap":
+        return b.percentage - a.percentage;
+      default:
+        return b.validators - a.validators;
+    }
+  });
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-          <div className="min-w-0">
-            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-              <Globe
-                className="h-4 w-4 sm:h-5 sm:w-5"
-                style={{ color: "#40c9ff" }}
-              />
-              <span className="truncate">Global Validator Distribution</span>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="space-y-1.5">
+            <CardTitle className="text-xl flex items-center gap-2 font-medium">
+              <GlobeIcon className="h-5 w-5" style={{ color: "#40c9ff" }} />
+              Global Validator Distribution
             </CardTitle>
-            <CardDescription className="pt-1 sm:pt-2 text-xs sm:text-sm">
+            <CardDescription>
               Geographic distribution of Avalanche Primary Network validators
               worldwide
             </CardDescription>
           </div>
-          <div className="flex gap-1 sm:gap-2 shrink-0">
+          <div className="flex gap-2 shrink-0">
             <button
               onClick={() => setVisualMode("validators")}
-              className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors ${
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors font-medium ${
                 visualMode === "validators"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  ? "bg-[#40c9ff] text-white"
+                  : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700"
               }`}
             >
               Validators
             </button>
             <button
               onClick={() => setVisualMode("stake")}
-              className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors ${
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors font-medium ${
                 visualMode === "stake"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  ? "bg-[#40c9ff] text-white"
+                  : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700"
               }`}
             >
               Stake
             </button>
             <button
               onClick={() => setVisualMode("heatmap")}
-              className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors ${
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors font-medium ${
                 visualMode === "heatmap"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  ? "bg-[#40c9ff] text-white"
+                  : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700"
               }`}
             >
               Heatmap
@@ -278,111 +359,66 @@ export function ValidatorWorldMap() {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-4 px-0 pb-0">
-        <div className="h-[300px] sm:h-[500px] w-full">
-          <MapContainer
-            center={[20, 0]}
-            zoom={2}
-            style={{ height: "100%", width: "100%" }}
-            scrollWheelZoom={false}
-            zoomControl={false}
-            dragging={true}
-            touchZoom={false}
-            doubleClickZoom={false}
-            boxZoom={false}
-            keyboard={false}
-          >
-            <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            />
-            {geoData.map((country, index) => {
-              const isHovered = hoveredCountry === country.countryCode;
-              return (
-                <CircleMarker
+      <CardContent>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+          {/* Globe on the left */}
+          <div className="w-full flex items-center justify-center">
+            <Globe markers={markers} autoRotate={true} />
+          </div>
+
+          {/* Country list on the right */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-4">
+              Top Countries by{" "}
+              {visualMode === "validators"
+                ? "Validator Count"
+                : visualMode === "stake"
+                ? "Total Stake"
+                : "Network Share"}
+            </h3>
+            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
+              {sortedCountries.map((country, index) => (
+                <div
                   key={`${country.countryCode}-${index}`}
-                  center={[country.latitude, country.longitude]}
-                  radius={getMarkerSize(country, maxValue)}
-                  fillColor={getMarkerColor(country, maxValue, isHovered)}
-                  color={isHovered ? "#000000" : "#ffffff"}
-                  weight={isHovered ? 3 : 2}
-                  opacity={isHovered ? 1 : 0.9}
-                  fillOpacity={isHovered ? 0.9 : 0.7}
-                  eventHandlers={{
-                    mouseover: () => setHoveredCountry(country.countryCode),
-                    mouseout: () => setHoveredCountry(null),
-                  }}
+                  className="flex items-center justify-between p-3 rounded-lg bg-neutral-50 dark:bg-neutral-900 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
                 >
-                  <Tooltip
-                    permanent={false}
-                    direction="top"
-                    offset={[0, -10]}
-                    className="bg-black/80 text-white text-sm rounded px-2 py-1"
-                  >
-                    <div className="text-center">
-                      <div className="font-semibold">{country.country}</div>
-                      <div className="text-xs">
-                        {visualMode === "validators" &&
-                          `${country.validators} validators`}
-                        {visualMode === "stake" &&
-                          `${formatStaked(country.totalStaked)} AVAX`}
-                        {visualMode === "heatmap" &&
-                          `${country.percentage.toFixed(1)}% share`}
-                      </div>
-                    </div>
-                  </Tooltip>
-                  <Popup>
-                    <div className="min-w-[200px] p-2">
-                      <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                        <span
-                          className="text-2xl"
-                          role="img"
-                          aria-label={country.country}
-                        >
-                          {country.countryCode && (
-                            <img
-                              src={`https://flagcdn.com/16x12/${country.countryCode.toLowerCase()}.png`}
-                              alt={`${country.country} flag`}
-                              width="20"
-                              height="15"
-                              className="inline"
-                            />
-                          )}
-                        </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-neutral-500 dark:text-neutral-400 w-6">
+                      {index + 1}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {country.countryCode && (
+                        <img
+                          src={`https://flagcdn.com/16x12/${country.countryCode.toLowerCase()}.png`}
+                          alt={`${country.country} flag`}
+                          width="24"
+                          height="18"
+                          className="rounded-sm"
+                        />
+                      )}
+                      <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                         {country.country}
-                      </h3>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Validators:
-                          </span>
-                          <span className="font-medium">
-                            {country.validators.toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Total Staked:
-                          </span>
-                          <span className="font-medium">
-                            {formatStaked(country.totalStaked)} AVAX
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Network Share:
-                          </span>
-                          <span className="font-medium">
-                            {country.percentage.toFixed(1)}%
-                          </span>
-                        </div>
-                      </div>
+                      </span>
                     </div>
-                  </Popup>
-                </CircleMarker>
-              );
-            })}
-          </MapContainer>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                      {visualMode === "validators" &&
+                        `${country.validators.toLocaleString()}`}
+                      {visualMode === "stake" &&
+                        `${formatStaked(country.totalStaked)} AVAX`}
+                      {visualMode === "heatmap" &&
+                        `${country.percentage.toFixed(1)}%`}
+                    </div>
+                    <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                      {visualMode !== "heatmap" &&
+                        `${country.percentage.toFixed(1)}% share`}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

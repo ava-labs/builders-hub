@@ -9,7 +9,7 @@ comments: true
 
 ## Introducing Avalanche Granite
 
-The Mainnet [release](https://github.com/ava-labs/avalanchego/releases/tag/v1.14.0) for the latest upgrade to the Avalanche Network, dubbed "Avalanche Granite", has been published. The Mainnet activation is scheduled for **November 19th, 2025 at 11 AM ET (4 PM UTC)**.
+**UPDATED**: The Mainnet [release](https://github.com/ava-labs/avalanchego/releases/tag/v1.14.0) for the latest upgrade to the Avalanche Network, dubbed "Avalanche Granite", activated on Mainnet **November 19th, 2025 at 11 AM ET (4 PM UTC)**.
 
 **_Action Required_: All Mainnet node operators must upgrade their nodes to v1.14 before the scheduled activation time or risk operational failure.** For instructions on upgrading your node, see [this guide](https://build.avax.network/blog/granite-installer).
 
@@ -142,6 +142,19 @@ Two new headers have been introduced as part of ACP-226 for dynamic block time m
 
 See the [full changelog](https://github.com/ava-labs/coreth/blob/master/RELEASES.md#pending-release) for implementation details.
 
+#### For L1s
+
+For Subnet-EVM's [Fee Manager Precompile](https://build.avax.network/docs/avalanche-l1s/precompiles/fee-manager) these fields are deprecated by ACP-226 and no longer effective:
+
+- `targetBlockRate`
+- `minBlockGasCost`
+- `maxBlockGasCost`
+- `blockGasCostStep`
+
+For existing L1s, there is no action required. These fields will be ignored by the fee manager precompile.
+
+For new L1s, these fields should continue to be populated with their defaults. These fields will be removed in a future upgrade.
+
 ### New Data Structures (ACP-181)
 
 A new struct has been added as part of ACP-181 to support epoched P-Chain views:
@@ -185,6 +198,8 @@ Add the `--min-delay-target` parameter to your [C-Chain config](https://build.av
   "min-delay-target": <uint64_value>
 }
 ```
+
+_Note_: If the `--min-delay-target` parameter is not set, the validator abstains from voting on the target minimum block time.
 
 ---
 
