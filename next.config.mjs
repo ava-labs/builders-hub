@@ -92,6 +92,16 @@ const config = {
         permanent: true,
       },
       {
+        source: '/docs/avalanche-l1s/evm-configuration/tokenomics',
+        destination: '/docs/avalanche-l1s/precompiles/native-minter',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/guides/issuing-api-calls',
+        destination: '/docs/rpcs/other/guides/issuing-api-calls',
+        permanent: true,
+      },
+      {
         source: '/docs/dapps/end-to-end/fuji-workflow',
         destination: '/blog/what-is-fuji-testnet',
         permanent: true,
