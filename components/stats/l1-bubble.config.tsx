@@ -26,7 +26,7 @@ export function L1BubbleNav({ chainSlug, themeColor = "#E57373", rpcUrl, isCusto
   const items = [
     { id: "stats", label: "Stats", href: `/stats/l1/${chainSlug}` },
     { id: "explorer", label: "Explorer", href: `/explorer/${chainSlug}` },
-    { id: "validators", label: "Validators", href: `/stats/validators/${chainSlug === "c-chain" ? "primary-network" : chainSlug}` },
+    { id: "validators", label: "Validators", href: `/stats/validators/${chainSlug}` },
   ];
 
   // Don't render if only 1 item is left

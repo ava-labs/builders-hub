@@ -1,15 +1,65 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import Link from "next/link";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Line, LineChart, Brush, ResponsiveContainer, Tooltip, ComposedChart } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { type ChartConfig, ChartLegendContent, ChartStyle, ChartContainer, ChartTooltip, ChartLegend } from "@/components/ui/chart";
-import { Landmark, Shield, TrendingUp, Monitor, HandCoins, Users, Percent, Globe, ChevronRight } from "lucide-react";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Pie,
+  PieChart,
+  Line,
+  LineChart,
+  Brush,
+  ResponsiveContainer,
+  Tooltip,
+  ComposedChart,
+} from "recharts";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  type ChartConfig,
+  ChartLegendContent,
+  ChartStyle,
+  ChartContainer,
+  ChartTooltip,
+  ChartLegend,
+} from "@/components/ui/chart";
+import {
+  Landmark,
+  Shield,
+  TrendingUp,
+  Monitor,
+  HandCoins,
+  Users,
+  Percent,
+  Search,
+  X,
+} from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
-import { TimeSeriesDataPoint, ChartDataPoint, PrimaryNetworkMetrics, VersionCount } from "@/types/stats";
+import {
+  TimeSeriesDataPoint,
+  ChartDataPoint,
+  PrimaryNetworkMetrics,
+  VersionCount,
+} from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
+import {
+  VersionBreakdownCard,
+  calculateVersionStats,
+  type VersionBreakdownData,
+} from "@/components/stats/VersionBreakdown";
 
 interface ValidatorData {
   nodeId: string;
@@ -18,30 +68,40 @@ interface ValidatorData {
   validationStatus: string;
   delegatorCount: number;
   amountDelegated: string;
+  version?: string;
 }
 
-export default function PrimaryNetworkValidatorMetrics() {
+export default function CChainValidatorMetrics() {
   const [metrics, setMetrics] = useState<PrimaryNetworkMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [validatorVersions, setValidatorVersions] = useState<VersionCount[]>(
     []
   );
-  const [versionsError, setVersionsError] = useState<string | null>(null);
   const [validators, setValidators] = useState<ValidatorData[]>([]);
-  const [validatorsLoading, setValidatorsLoading] = useState(true);
+  const [versionBreakdown, setVersionBreakdown] =
+    useState<VersionBreakdownData | null>(null);
+  const [availableVersions, setAvailableVersions] = useState<string[]>([]);
+  const [minVersion, setMinVersion] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/primary-network-stats?timeRange=all`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Fetch both APIs in parallel
+      const [statsResponse, validatorsResponse] = await Promise.all([
+        fetch(`/api/primary-network-stats?timeRange=all`),
+        fetch("/api/primary-network-validators"),
+      ]);
+
+      if (!statsResponse.ok) {
+        throw new Error(`HTTP error! status: ${statsResponse.status}`);
       }
 
-      const primaryNetworkData = await response.json();
+      const primaryNetworkData = await statsResponse.json();
 
       if (!primaryNetworkData) {
         throw new Error("Primary Network data not found");
@@ -49,6 +109,7 @@ export default function PrimaryNetworkValidatorMetrics() {
 
       setMetrics(primaryNetworkData);
 
+      // Process validator versions from stats API
       if (primaryNetworkData.validator_versions) {
         try {
           const versionsData = JSON.parse(
@@ -65,18 +126,60 @@ export default function PrimaryNetworkValidatorMetrics() {
             }))
             .sort((a, b) => b.count - a.count);
 
-          const totalValidators = versionArray.reduce((sum, item) => sum + item.count, 0);
-          const totalStaked = versionArray.reduce((sum, item) => sum + item.amountStaked, 0);
+          const totalValidators = versionArray.reduce(
+            (sum, item) => sum + item.count,
+            0
+          );
+          const totalStaked = versionArray.reduce(
+            (sum, item) => sum + item.amountStaked,
+            0
+          );
 
           versionArray.forEach((item) => {
-            item.percentage = totalValidators > 0 ? (item.count / totalValidators) * 100 : 0;
-            item.stakingPercentage = totalStaked > 0 ? (item.amountStaked / totalStaked) * 100 : 0;
+            item.percentage =
+              totalValidators > 0 ? (item.count / totalValidators) * 100 : 0;
+            item.stakingPercentage =
+              totalStaked > 0 ? (item.amountStaked / totalStaked) * 100 : 0;
           });
 
           setValidatorVersions(versionArray);
+
+          // Create version breakdown for VersionBreakdownCard
+          const byClientVersion: Record<
+            string,
+            { nodes: number; stakeString?: string }
+          > = {};
+          versionArray.forEach((v) => {
+            byClientVersion[v.version] = {
+              nodes: v.count,
+              stakeString: Math.round(v.amountStaked * 1e9).toString(),
+            };
+          });
+          setVersionBreakdown({
+            byClientVersion,
+            totalStakeString: Math.round(totalStaked * 1e9).toString(),
+          });
+
+          // Extract available versions for dropdown
+          const versions = versionArray
+            .map((v) => v.version)
+            .filter((v) => v !== "Unknown")
+            .sort()
+            .reverse();
+          setAvailableVersions(versions);
+          if (versions.length > 0) {
+            setMinVersion(versions[0]);
+          }
         } catch (err) {
-          setVersionsError(`Failed to parse validator versions data`);
+          console.error("Failed to parse validator versions data", err);
         }
+      }
+
+      // Process validators data
+      if (validatorsResponse.ok) {
+        const validatorsData = await validatorsResponse.json();
+        const validatorsList = validatorsData.validators || [];
+        setValidators(validatorsList);
       }
     } catch (err) {
       setError(`An error occurred while fetching data`);
@@ -87,23 +190,6 @@ export default function PrimaryNetworkValidatorMetrics() {
 
   useEffect(() => {
     fetchData();
-  }, []);
-
-  useEffect(() => {
-    async function fetchValidators() {
-      try {
-        setValidatorsLoading(true);
-        const response = await fetch("/api/primary-network-validators");
-        if (response.ok) {
-          const data = await response.json();
-          setValidators(data.validators || []);
-        }
-      } catch (err) {
-      } finally {
-        setValidatorsLoading(false);
-      }
-    }
-    fetchValidators();
   }, []);
 
   const formatNumber = (num: number | string): string => {
@@ -261,7 +347,15 @@ export default function PrimaryNetworkValidatorMetrics() {
     return actualData.sort((a, b) => a.fee - b.fee);
   }, [validators]);
 
-  const getChartData = (metricKey: keyof Pick<PrimaryNetworkMetrics, "validator_count" | "validator_weight" | "delegator_count" | "delegator_weight">): ChartDataPoint[] => {
+  const getChartData = (
+    metricKey: keyof Pick<
+      PrimaryNetworkMetrics,
+      | "validator_count"
+      | "validator_weight"
+      | "delegator_count"
+      | "delegator_weight"
+    >
+  ): ChartDataPoint[] => {
     if (!metrics || !metrics[metricKey]?.data) return [];
     const today = new Date().toISOString().split("T")[0];
     const finalizedData = metrics[metricKey].data.filter(
@@ -351,10 +445,33 @@ export default function PrimaryNetworkValidatorMetrics() {
 
   const pieChartData = getPieChartData();
   const versionsChartConfig = getVersionsChartConfig();
+  const versionStats = calculateVersionStats(versionBreakdown, minVersion);
 
-  // Primary Network config
+  const getHealthColor = (percent: number): string => {
+    if (percent === 0) return "text-red-600 dark:text-red-400";
+    if (percent < 80) return "text-orange-600 dark:text-orange-400";
+    return "text-green-600 dark:text-green-400";
+  };
+
+  // Format large numbers with B/M/K suffix
+  const formatLargeNumber = (num: number): string => {
+    if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
+    if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
+    if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
+    return num.toFixed(0);
+  };
+
+  // Get total validator weight from metrics
+  const getTotalWeight = (): string => {
+    if (!metrics?.validator_weight?.current_value) return "0";
+    const weightInAvax = Number(metrics.validator_weight.current_value) / 1e9;
+    return formatLargeNumber(weightInAvax);
+  };
+
+  // C-Chain config
   const chainConfig = {
-    chainLogoURI: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
+    chainLogoURI:
+      "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
     color: "#E57373",
     category: "Primary Network",
   };
@@ -407,12 +524,46 @@ export default function PrimaryNetworkValidatorMetrics() {
     { id: "distribution", label: "Stake Distribution" },
     { id: "versions", label: "Software Versions" },
     { id: "map", label: "Global Map" },
+    { id: "validators", label: "All Validators" },
   ];
+
+  // Copy to clipboard helper
+  const copyToClipboard = async (text: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 1500);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
+  // Format stake for validators table
+  const formatValidatorStake = (stake: string): string => {
+    const stakeNum = parseFloat(stake);
+    const avaxValue = stakeNum / 1e9;
+    if (avaxValue >= 1e6) return `${(avaxValue / 1e6).toFixed(2)}M`;
+    if (avaxValue >= 1e3) return `${(avaxValue / 1e3).toFixed(2)}K`;
+    return avaxValue.toFixed(2);
+  };
+
+  // Filter validators based on search term
+  const filteredValidators = validators.filter((validator) => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      validator.nodeId.toLowerCase().includes(searchLower) ||
+      (validator.version &&
+        validator.version.toLowerCase().includes(searchLower))
+    );
+  });
 
   // Track active section on scroll
   useEffect(() => {
     const handleScroll = () => {
-      const sections = navCategories.map(cat => document.getElementById(cat.id));
+      const sections = navCategories.map((cat) =>
+        document.getElementById(cat.id)
+      );
       const scrollPosition = window.scrollY + 180; // Account for navbar height
 
       for (let i = sections.length - 1; i >= 0; i--) {
@@ -424,9 +575,9 @@ export default function PrimaryNetworkValidatorMetrics() {
       }
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll(); // Set initial state
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   // Smooth scroll to section
@@ -434,10 +585,11 @@ export default function PrimaryNetworkValidatorMetrics() {
     const element = document.getElementById(sectionId);
     if (element) {
       const offset = 180; // Account for both navbars
-      const elementPosition = element.getBoundingClientRect().top + window.scrollY;
+      const elementPosition =
+        element.getBoundingClientRect().top + window.scrollY;
       window.scrollTo({
         top: elementPosition - offset,
-        behavior: 'smooth'
+        behavior: "smooth",
       });
     }
   };
@@ -447,7 +599,7 @@ export default function PrimaryNetworkValidatorMetrics() {
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
         {/* Header Skeleton with gradient */}
         <div className="relative overflow-hidden border-b border-zinc-200 dark:border-zinc-800">
-          <div 
+          <div
             className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
             style={{
               background: `linear-gradient(to left, rgba(229, 115, 115, 0.21) 0%, rgba(229, 115, 115, 0.12) 40%, rgba(229, 115, 115, 0.03) 70%, transparent 100%)`,
@@ -479,8 +631,11 @@ export default function PrimaryNetworkValidatorMetrics() {
         {/* Navbar Skeleton */}
         <div className="sticky top-14 z-30 w-full bg-zinc-50/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b border-t border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center gap-2 py-3 px-4 sm:px-6 max-w-7xl mx-auto">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-8 w-24 sm:w-32 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="h-8 w-24 sm:w-32 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse"
+              />
             ))}
           </div>
         </div>
@@ -493,8 +648,11 @@ export default function PrimaryNetworkValidatorMetrics() {
           </div>
           {/* Chart grid skeleton */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950"
+              >
                 {/* Chart header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-zinc-700 animate-pulse">
                   <div className="flex items-center gap-3">
@@ -505,8 +663,11 @@ export default function PrimaryNetworkValidatorMetrics() {
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map(j => (
-                      <div key={j} className="w-8 h-7 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                    {[1, 2, 3, 4, 5].map((j) => (
+                      <div
+                        key={j}
+                        className="w-8 h-7 bg-zinc-200 dark:bg-zinc-800 rounded"
+                      />
                     ))}
                   </div>
                 </div>
@@ -523,7 +684,11 @@ export default function PrimaryNetworkValidatorMetrics() {
             ))}
           </div>
         </div>
-        <L1BubbleNav chainSlug="c-chain" themeColor="#E57373" rpcUrl="https://api.avax.network/ext/bc/C/rpc" />
+        <L1BubbleNav
+          chainSlug="c-chain"
+          themeColor="#E57373"
+          rpcUrl="https://api.avax.network/ext/bc/C/rpc"
+        />
       </div>
     );
   }
@@ -541,7 +706,11 @@ export default function PrimaryNetworkValidatorMetrics() {
             Retry
           </button>
         </div>
-        <L1BubbleNav chainSlug="c-chain" themeColor="#E57373" rpcUrl="https://api.avax.network/ext/bc/C/rpc" />
+        <L1BubbleNav
+          chainSlug="c-chain"
+          themeColor="#E57373"
+          rpcUrl="https://api.avax.network/ext/bc/C/rpc"
+        />
       </div>
     );
   }
@@ -551,47 +720,31 @@ export default function PrimaryNetworkValidatorMetrics() {
       {/* Hero - with gradient decoration */}
       <div className="relative overflow-hidden border-zinc-200 dark:border-zinc-800">
         {/* Gradient decoration on the right */}
-        <div 
+        <div
           className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
           style={{
             background: `linear-gradient(to left, ${chainConfig.color}35 0%, ${chainConfig.color}20 40%, ${chainConfig.color}08 70%, transparent 100%)`,
           }}
         />
-        
+
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
           <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
             <div className="space-y-4 sm:space-y-6 flex-1">
-              {/* Breadcrumb */}
-              <div className="flex items-center gap-1.5 text-xs sm:text-sm">
-                <Link
-                  href="/stats/overview"
-                  className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
-                >
-                  <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                  <span>Ecosystem</span>
-                </Link>
-                <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
-                <Link
-                  href="/stats/validators"
-                  className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
-                >
-                  <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                  <span>Validators</span>
-                </Link>
-                <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
-                <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap flex-shrink-0">
-                  <img
-                    src={chainConfig.chainLogoURI}
-                    alt=""
-                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-sm object-contain"
-                  />
-                  <span>Primary Network</span>
-                </span>
-              </div>
+              {/* Breadcrumb with chain dropdown */}
+              <StatsBreadcrumb
+                showValidators
+                chainSlug="c-chain"
+                chainName="Avalanche C-Chain"
+                chainLogoURI={chainConfig.chainLogoURI}
+                themeColor={chainConfig.color}
+              />
 
               <div>
                 <div className="flex items-center gap-2 sm:gap-3 mb-3">
-                  <AvalancheLogo className="w-4 h-4 sm:w-5 sm:h-5" fill="#E84142" />
+                  <AvalancheLogo
+                    className="w-4 h-4 sm:w-5 sm:h-5"
+                    fill="#E84142"
+                  />
                   <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
                     Avalanche Ecosystem
                   </p>
@@ -599,20 +752,21 @@ export default function PrimaryNetworkValidatorMetrics() {
                 <div className="flex items-center gap-3 sm:gap-4">
                   <img
                     src={chainConfig.chainLogoURI}
-                    alt="Primary Network logo"
+                    alt="C-Chain logo"
                     className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain rounded-xl"
                   />
                   <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                    Primary Network Validators
+                    C-Chain Validators
                   </h1>
                 </div>
                 <div className="flex items-center gap-3 mt-3">
                   <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
-                    Real-time insights into the Avalanche Primary Network performance and validator distribution
+                    Real-time insights into the Avalanche C-Chain performance
+                    and validator distribution
                   </p>
                 </div>
                 <div className="mt-3">
-                  <span 
+                  <span
                     className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
                     style={{
                       backgroundColor: `${chainConfig.color}15`,
@@ -621,6 +775,50 @@ export default function PrimaryNetworkValidatorMetrics() {
                   >
                     {chainConfig.category}
                   </span>
+                </div>
+
+                {/* Key metrics - inline */}
+                <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-3 sm:gap-6 md:gap-12 pt-6 mt-6 border-t border-zinc-200 dark:border-zinc-800">
+                  <div>
+                    <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                      {validatorVersions.reduce((sum, v) => sum + v.count, 0)}
+                    </span>
+                    <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                      validators
+                    </span>
+                  </div>
+                  <div>
+                    <span
+                      className={`text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums ${getHealthColor(
+                        versionStats.nodesPercentAbove
+                      )}`}
+                    >
+                      {versionStats.nodesPercentAbove.toFixed(1)}%
+                    </span>
+                    <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                      by nodes
+                    </span>
+                  </div>
+                  <div>
+                    <span
+                      className={`text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums ${getHealthColor(
+                        versionStats.stakePercentAbove
+                      )}`}
+                    >
+                      {versionStats.stakePercentAbove.toFixed(1)}%
+                    </span>
+                    <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                      by stake
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                      {getTotalWeight()}
+                    </span>
+                    <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                      total weight
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -631,12 +829,12 @@ export default function PrimaryNetworkValidatorMetrics() {
       {/* Sticky Navigation Bar */}
       <div className="sticky top-14 z-30 w-full bg-zinc-50/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b border-t border-zinc-200 dark:border-zinc-800">
         <div className="w-full">
-          <div 
+          <div
             className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-3 px-4 sm:px-6 max-w-7xl mx-auto"
-            style={{ 
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-              WebkitOverflowScrolling: 'touch',
+            style={{
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+              WebkitOverflowScrolling: "touch",
             }}
           >
             {navCategories.map((category) => (
@@ -657,7 +855,6 @@ export default function PrimaryNetworkValidatorMetrics() {
       </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8 sm:space-y-12">
-
         <section id="trends" className="space-y-4 sm:space-y-6 scroll-mt-32">
           <div className="space-y-2">
             <h2 className="text-lg sm:text-2xl font-medium text-left">
@@ -703,18 +900,22 @@ export default function PrimaryNetworkValidatorMetrics() {
           </div>
         </section>
 
-        <section id="distribution" className="space-y-4 sm:space-y-6 scroll-mt-32">
+        <section
+          id="distribution"
+          className="space-y-4 sm:space-y-6 scroll-mt-32"
+        >
           <div className="space-y-2">
             <h2 className="text-lg sm:text-2xl font-medium text-left">
               Stake Distribution Analysis
             </h2>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
-              Analyze how stake is distributed across validators and delegation patterns
+              Analyze how stake is distributed across validators and delegation
+              patterns
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {validatorsLoading ? (
+            {loading ? (
               <ChartSkeletonLoader />
             ) : (
               <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
@@ -725,10 +926,15 @@ export default function PrimaryNetworkValidatorMetrics() {
                         className="rounded-full p-2 sm:p-3 flex items-center justify-center"
                         style={{ backgroundColor: `${chainConfig.color}20` }}
                       >
-                        <Landmark className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: chainConfig.color }}/>
+                        <Landmark
+                          className="h-5 w-5 sm:h-6 sm:w-6"
+                          style={{ color: chainConfig.color }}
+                        />
                       </div>
                       <div>
-                        <h3 className="text-base sm:text-lg font-normal">Current Validator Weight Distribution</h3>
+                        <h3 className="text-base sm:text-lg font-normal">
+                          Current Validator Weight Distribution
+                        </h3>
                         <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
                           Total weight (stake + delegations) by rank
                         </p>
@@ -738,11 +944,19 @@ export default function PrimaryNetworkValidatorMetrics() {
                   <div className="px-4 sm:px-5 py-4 sm:py-5">
                     <div className="flex items-center justify-start gap-6 mb-4 text-sm">
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#E84142' }} />
-                        <span>Cumulative Validator Weight Percentage by Rank</span>
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: "#E84142" }}
+                        />
+                        <span>
+                          Cumulative Validator Weight Percentage by Rank
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chainConfig.color }} />
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: chainConfig.color }}
+                        />
                         <span>Validator Weight</span>
                       </div>
                     </div>
@@ -821,7 +1035,11 @@ export default function PrimaryNetworkValidatorMetrics() {
                             );
                           }}
                         />
-                        <Bar yAxisId="right" dataKey="weight" fill={chainConfig.color} />
+                        <Bar
+                          yAxisId="right"
+                          dataKey="weight"
+                          fill={chainConfig.color}
+                        />
                         <Line
                           yAxisId="left"
                           type="monotone"
@@ -838,7 +1056,7 @@ export default function PrimaryNetworkValidatorMetrics() {
               </Card>
             )}
 
-            {validatorsLoading ? (
+            {loading ? (
               <ChartSkeletonLoader />
             ) : (
               <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
@@ -849,10 +1067,15 @@ export default function PrimaryNetworkValidatorMetrics() {
                         className="rounded-full p-2 sm:p-3 flex items-center justify-center"
                         style={{ backgroundColor: `${chainConfig.color}20` }}
                       >
-                        <Landmark className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: chainConfig.color }}/>
+                        <Landmark
+                          className="h-5 w-5 sm:h-6 sm:w-6"
+                          style={{ color: chainConfig.color }}
+                        />
                       </div>
                       <div>
-                        <h3 className="text-base sm:text-lg font-normal">Validator Stake Distribution</h3>
+                        <h3 className="text-base sm:text-lg font-normal">
+                          Validator Stake Distribution
+                        </h3>
                         <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
                           Own stake only (excluding delegations)
                         </p>
@@ -862,11 +1085,17 @@ export default function PrimaryNetworkValidatorMetrics() {
                   <div className="px-4 sm:px-5 py-4 sm:py-5">
                     <div className="flex items-center justify-start gap-6 mb-4 text-sm">
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#E84142' }} />
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: "#E84142" }}
+                        />
                         <span>Cumulative Stake Percentage by Rank</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chainConfig.color }} />
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: chainConfig.color }}
+                        />
                         <span>Validator Stake</span>
                       </div>
                     </div>
@@ -945,7 +1174,11 @@ export default function PrimaryNetworkValidatorMetrics() {
                             );
                           }}
                         />
-                        <Bar yAxisId="right" dataKey="weight" fill={chainConfig.color} />
+                        <Bar
+                          yAxisId="right"
+                          dataKey="weight"
+                          fill={chainConfig.color}
+                        />
                         <Line
                           yAxisId="left"
                           type="monotone"
@@ -964,7 +1197,7 @@ export default function PrimaryNetworkValidatorMetrics() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {validatorsLoading ? (
+            {loading ? (
               <ChartSkeletonLoader />
             ) : (
               <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
@@ -975,10 +1208,15 @@ export default function PrimaryNetworkValidatorMetrics() {
                         className="rounded-full p-2 sm:p-3 flex items-center justify-center"
                         style={{ backgroundColor: "#E8414220" }}
                       >
-                        <Users className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: "#E84142" }}/>
+                        <Users
+                          className="h-5 w-5 sm:h-6 sm:w-6"
+                          style={{ color: "#E84142" }}
+                        />
                       </div>
                       <div>
-                        <h3 className="text-base sm:text-lg font-normal">Delegator Stake Distribution</h3>
+                        <h3 className="text-base sm:text-lg font-normal">
+                          Delegator Stake Distribution
+                        </h3>
                         <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
                           Delegated stake across validator nodes
                         </p>
@@ -988,8 +1226,13 @@ export default function PrimaryNetworkValidatorMetrics() {
                   <div className="px-4 sm:px-5 py-4 sm:py-5">
                     <div className="flex items-center justify-start gap-6 mb-4 text-sm">
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#E84142' }} />
-                        <span>Cumulative Delegator Stake Percentage by Rank</span>
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: "#E84142" }}
+                        />
+                        <span>
+                          Cumulative Delegator Stake Percentage by Rank
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div
@@ -1095,7 +1338,7 @@ export default function PrimaryNetworkValidatorMetrics() {
               </Card>
             )}
 
-            {validatorsLoading ? (
+            {loading ? (
               <ChartSkeletonLoader />
             ) : (
               <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
@@ -1106,10 +1349,15 @@ export default function PrimaryNetworkValidatorMetrics() {
                         className="rounded-full p-2 sm:p-3 flex items-center justify-center"
                         style={{ backgroundColor: "#E8414220" }}
                       >
-                        <Percent className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: "#E84142" }}/>
+                        <Percent
+                          className="h-5 w-5 sm:h-6 sm:w-6"
+                          style={{ color: "#E84142" }}
+                        />
                       </div>
                       <div>
-                        <h3 className="text-base sm:text-lg font-normal">Delegation Fee Distribution</h3>
+                        <h3 className="text-base sm:text-lg font-normal">
+                          Delegation Fee Distribution
+                        </h3>
                         <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
                           Distribution of fees weighted by stake
                         </p>
@@ -1221,7 +1469,10 @@ export default function PrimaryNetworkValidatorMetrics() {
                 <ChartStyle id="pie-count" config={versionsChartConfig} />
                 <CardHeader className="items-center pb-0">
                   <CardTitle className="flex items-center gap-2 font-medium">
-                    <Shield className="h-5 w-5" style={{ color: chainConfig.color }} />
+                    <Shield
+                      className="h-5 w-5"
+                      style={{ color: chainConfig.color }}
+                    />
                     By Validator Count
                   </CardTitle>
                   <CardDescription>
@@ -1278,7 +1529,10 @@ export default function PrimaryNetworkValidatorMetrics() {
                 <ChartStyle id="pie-stake" config={versionsChartConfig} />
                 <CardHeader className="items-center pb-0">
                   <CardTitle className="flex items-center gap-2 font-medium">
-                    <Shield className="h-5 w-5" style={{ color: chainConfig.color }} />
+                    <Shield
+                      className="h-5 w-5"
+                      style={{ color: chainConfig.color }}
+                    />
                     By Stake Weight
                   </CardTitle>
                   <CardDescription>
@@ -1336,115 +1590,255 @@ export default function PrimaryNetworkValidatorMetrics() {
             </div>
           )}
 
-          {/* Detailed Version Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl flex items-center gap-2 font-medium">
-                <Shield className="h-5 w-5" style={{ color: chainConfig.color }} />
-                Detailed Version Breakdown
-              </CardTitle>
-              <CardDescription>
-                Complete overview of validator software versions and their
-                network impact
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Shield className="h-12 w-12 mx-auto mb-4 opacity-50 animate-pulse" />
-                  <p>Loading validator versions...</p>
-                </div>
-              ) : versionsError ? (
-                <div className="text-center py-8">
-                  <p className="text-destructive mb-4">
-                    Error: {versionsError}
-                  </p>
-                  <button
-                    onClick={fetchData}
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-                  >
-                    Retry
-                  </button>
-                </div>
-              ) : validatorVersions.length > 0 ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {validatorVersions.map((versionInfo, index) => (
-                      <div
-                        key={versionInfo.version}
-                        className="p-4 rounded-lg border bg-muted/30"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium text-sm">
-                            {versionInfo.version || "Unknown Version"}
-                          </h4>
-                          <span className="text-xs text-muted-foreground">
-                            #{index + 1}
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">
-                              Validators:
-                            </span>
-                            <span className="font-mono font-semibold">
-                              {versionInfo.count} (
-                              {versionInfo.percentage.toFixed(1)}%)
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">
-                              Staked:
-                            </span>
-                            <span className="font-mono font-semibold">
-                              {versionInfo.amountStaked.toLocaleString(
-                                undefined,
-                                { maximumFractionDigits: 0 }
-                              )}{" "}
-                              AVAX ({versionInfo.stakingPercentage.toFixed(1)}%)
-                            </span>
-                          </div>
-                          <div className="w-full bg-muted rounded-full h-2">
-                            <div
-                              className="h-2 rounded-full"
-                              style={{
-                                width: `${versionInfo.stakingPercentage}%`,
-                                backgroundColor: chainConfig.color,
-                                opacity:
-                                  0.7 + (index === 0 ? 0.3 : -index * 0.1),
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {validatorVersions.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>No version information available</p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Shield className="h-12 w-12 mx-auto mb-4 opacity-50 animate-pulse" />
-                  <p>Loading validator versions...</p>
-                </div>
+          {/* Version Breakdown Card - replaces the old Detailed Version Breakdown grid */}
+          {versionBreakdown && availableVersions.length > 0 && (
+            <VersionBreakdownCard
+              versionBreakdown={versionBreakdown}
+              availableVersions={availableVersions}
+              minVersion={minVersion}
+              onVersionChange={setMinVersion}
+              totalValidators={validatorVersions.reduce(
+                (sum, v) => sum + v.count,
+                0
               )}
-            </CardContent>
-          </Card>
+              title="Version Breakdown"
+              description="Distribution of validator software versions"
+            />
+          )}
         </section>
 
         {/* Global Validator Distribution Map */}
         <section id="map" className="space-y-4 sm:space-y-6 scroll-mt-32">
           <ValidatorWorldMap />
         </section>
+
+        {/* All Validators Table */}
+        <section
+          id="validators"
+          className="space-y-4 sm:space-y-6 scroll-mt-32"
+        >
+          <div className="space-y-2">
+            <h2 className="text-lg sm:text-2xl font-medium text-left">
+              All Validators
+            </h2>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
+              Complete list of all validators on the Primary Network
+            </p>
+          </div>
+
+          {/* Search Input */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="relative w-full sm:w-auto sm:flex-shrink-0 sm:max-w-sm">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 pointer-events-none z-10" />
+              <Input
+                placeholder="Search validators..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-10 rounded-lg border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-sm sm:text-base text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full z-20 transition-colors"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+              {filteredValidators.length} of {validators.length} validators
+            </span>
+          </div>
+
+          {/* Validators Table */}
+          {loading ? (
+            <Card className="overflow-hidden py-0 border-0 shadow-none rounded-lg">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
+                    <tr>
+                      <th className="px-4 py-2 text-left">
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                          #
+                        </span>
+                      </th>
+                      <th className="px-4 py-2 text-left">
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                          Node ID
+                        </span>
+                      </th>
+                      <th className="px-4 py-2 text-right">
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                          Amount Staked
+                        </span>
+                      </th>
+                      <th className="px-4 py-2 text-right">
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                          Delegation Fee
+                        </span>
+                      </th>
+                      <th className="px-4 py-2 text-right">
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                          Delegators
+                        </span>
+                      </th>
+                      <th className="px-4 py-2 text-right">
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                          Amount Delegated
+                        </span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-neutral-950">
+                    {[...Array(10)].map((_, rowIndex) => (
+                      <tr
+                        key={rowIndex}
+                        className="border-b border-slate-100 dark:border-neutral-800 animate-pulse"
+                      >
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
+                          <div className="h-4 w-8 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
+                          <div className="h-4 w-40 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
+                          <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" />
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
+                          <div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" />
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
+                          <div className="h-4 w-12 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          ) : (
+            <Card className="overflow-hidden py-0 border-0 shadow-none rounded-lg">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
+                    <tr>
+                      <th className="px-4 py-2 text-left">
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                          #
+                        </span>
+                      </th>
+                      <th className="px-4 py-2 text-left">
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                          Node ID
+                        </span>
+                      </th>
+                      <th className="px-4 py-2 text-right">
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                          Amount Staked
+                        </span>
+                      </th>
+                      <th className="px-4 py-2 text-right">
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                          Delegation Fee
+                        </span>
+                      </th>
+                      <th className="px-4 py-2 text-right">
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                          Delegators
+                        </span>
+                      </th>
+                      <th className="px-4 py-2 text-right">
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                          Amount Delegated
+                        </span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-neutral-950">
+                    {filteredValidators.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="text-center py-8 text-neutral-600 dark:text-neutral-400"
+                        >
+                          {searchTerm
+                            ? "No validators match your search"
+                            : "No validators found"}
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredValidators.map((validator, index) => (
+                        <tr
+                          key={validator.nodeId}
+                          className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
+                        >
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                              {index + 1}
+                            </span>
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 font-mono text-xs">
+                            <span
+                              title={
+                                copiedId === `node-${validator.nodeId}`
+                                  ? "Copied!"
+                                  : `Click to copy: ${validator.nodeId}`
+                              }
+                              onClick={() =>
+                                copyToClipboard(
+                                  validator.nodeId,
+                                  `node-${validator.nodeId}`
+                                )
+                              }
+                              className={`cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
+                                copiedId === `node-${validator.nodeId}`
+                                  ? "text-green-600 dark:text-green-400"
+                                  : ""
+                              }`}
+                            >
+                              {copiedId === `node-${validator.nodeId}`
+                                ? "Copied!"
+                                : `${validator.nodeId.slice(
+                                    0,
+                                    12
+                                  )}...${validator.nodeId.slice(-8)}`}
+                            </span>
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right font-mono text-sm">
+                            {formatValidatorStake(validator.amountStaked)} AVAX
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right text-sm">
+                            {parseFloat(validator.delegationFee).toFixed(1)}%
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right text-sm">
+                            {validator.delegatorCount}
+                          </td>
+                          <td className="px-4 py-2 text-right font-mono text-sm">
+                            {formatValidatorStake(validator.amountDelegated)}{" "}
+                            AVAX
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+        </section>
       </main>
 
       {/* Bubble Navigation */}
-      <L1BubbleNav chainSlug="c-chain" themeColor="#E57373" rpcUrl="https://api.avax.network/ext/bc/C/rpc" />
+      <L1BubbleNav
+        chainSlug="c-chain"
+        themeColor="#E57373"
+        rpcUrl="https://api.avax.network/ext/bc/C/rpc"
+      />
     </div>
   );
 }
@@ -1881,4 +2275,3 @@ function ValidatorChartCard({
     </Card>
   );
 }
-
