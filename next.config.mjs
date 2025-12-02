@@ -87,6 +87,56 @@ const config = {
         permanent: true,
       },
       {
+        source: '/docs/nodes/validate/validate-vs-delegate',
+        destination: '/docs/primary-network/validate/validate-vs-delegate',
+        permanent: true,
+      },
+      {
+        source: '/docs/dapps/end-to-end/fuji-workflow',
+        destination: '/academy/blockchain/solidity-foundry/04-hello-world-part-1/01-intro',
+        permanent: true,
+      },
+      {
+        source: '/console/primary-network',
+        destination: '/console/primary-network/faucet',
+        permanent: true,
+      },
+      {
+        source: '/docs/virtual-machines',
+        destination: '/docs/primary-network/virtual-machines',
+        permanent: true,
+      },
+      {
+        source: '/docs/nodes/using-install-script/installing-avalanche-go',
+        destination: '/docs/nodes/run-a-node/using-install-script/installing-avalanche-go',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling/maintain/troubleshooting',
+        destination: '/docs/tooling/avalanche-cli/maintain/troubleshooting',
+        permanent: true,
+      },
+      {
+        source: '/docs/api-reference/avalanche-sdk/client-sdk/getting-started',
+        destination: '/docs/tooling/avalanche-sdk/client/getting-started',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling/avalanche-postman/add-postman-collection',
+        destination: '/docs/tooling/avalanche-postman',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-l1s/validator-manager/add-validator',
+        destination: '/docs/tooling/avalanche-cli/maintain/add-validator-l1',
+        permanent: true,
+      },
+      {
+        source: '/docs/dapps/deploy-nft-collection/prep-nft-files',
+        destination: '/academy/blockchain/nft-deployment/02-prepare-nft-files',
+        permanent: true,
+      },
+      {
         source: '/docs/api-reference/p-chain/txn-format',
         destination: '/docs/rpcs/p-chain/txn-format',
         permanent: true,
@@ -594,6 +644,9 @@ const config = {
       {
         source: "/docs/cross-chain/teleporter/:path*",
         destination: "/docs/cross-chain/icm-contracts/:path*",
+        permanent: true,
+      },
+      {
         source: "/academy/avalanche-l1/interchain-token-transfer/03-tokens/:path*",
         destination: "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/:path*",
         permanent: true,
@@ -621,6 +674,16 @@ const config = {
       {
         source: "/docs/dapps/smart-contract-dev/deploy-with-remix-ide",
         destination: "/docs/avalanche-l1s/add-utility/deploy-smart-contract",
+        permanent: true,
+      },
+      {
+        source: "/docs/dapps/:path*",
+        destination: "/docs/primary-network",
+        permanent: true,
+      },
+      {
+        source: "/docs/dapps",
+        destination: "/docs/primary-network",
         permanent: true,
       },
       {

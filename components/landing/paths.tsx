@@ -15,34 +15,27 @@ import Link from "next/link";
 const paths = [
   {
     id: 1,
-    title: "Build an App",
-    description: "Bring your ideas to life",
-    icon: Code,
-    href: "/docs/dapps"
-  },
-  {
-    id: 2,
     title: "Launch an L1",
     description: "Launch your own L1",
     icon: Rocket,
     href: "/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1"
   },
   {
-    id: 3,
+    id: 2,
     title: "Interoperability",
     description: "Build cross-chain apps",
     icon: Network,
     href: "/academy/interchain-messaging"
   },
   {
-    id: 4,
+    id: 3,
     title: "Primary Network",
     description: "Run validators",
     icon: Server,
     href: "/docs/nodes"
   },
   {
-    id: 5,
+    id: 4,
     title: "Fund",
     description: "Grants Program",
     icon: DollarSign,
