@@ -25,6 +25,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   type ChartConfig,
   ChartLegendContent,
@@ -85,17 +86,21 @@ export default function CChainValidatorMetrics() {
   const [minVersion, setMinVersion] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [displayCount, setDisplayCount] = useState(50);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch both APIs in parallel
-      const [statsResponse, validatorsResponse] = await Promise.all([
-        fetch(`/api/primary-network-stats?timeRange=all`),
-        fetch("/api/primary-network-validators"),
-      ]);
+      // Fetch all APIs in parallel
+      // Use validator-stats API for version breakdown (same as landing page)
+      const [statsResponse, validatorsResponse, validatorStatsResponse] =
+        await Promise.all([
+          fetch(`/api/primary-network-stats?timeRange=all`),
+          fetch("/api/primary-network-validators"),
+          fetch("/api/validator-stats?network=mainnet"),
+        ]);
 
       if (!statsResponse.ok) {
         throw new Error(`HTTP error! status: ${statsResponse.status}`);
@@ -109,69 +114,66 @@ export default function CChainValidatorMetrics() {
 
       setMetrics(primaryNetworkData);
 
-      // Process validator versions from stats API
-      if (primaryNetworkData.validator_versions) {
+      // Get version breakdown from validator-stats API (same source as landing page)
+      // Primary Network has id: 11111111111111111111111111111111LpoYY
+      if (validatorStatsResponse.ok) {
         try {
-          const versionsData = JSON.parse(
-            primaryNetworkData.validator_versions
+          const allSubnets = await validatorStatsResponse.json();
+          const primaryNetwork = allSubnets.find(
+            (s: any) => s.id === "11111111111111111111111111111111LpoYY"
           );
 
-          const versionArray: VersionCount[] = Object.entries(versionsData)
-            .map(([version, data]: [string, any]) => ({
-              version,
-              count: data.validatorCount,
-              percentage: 0,
-              amountStaked: Number(data.amountStaked) / 1e9,
-              stakingPercentage: 0,
-            }))
-            .sort((a, b) => b.count - a.count);
+          if (primaryNetwork?.byClientVersion) {
+            // Use the same data structure as landing page
+            setVersionBreakdown({
+              byClientVersion: primaryNetwork.byClientVersion,
+              totalStakeString: primaryNetwork.totalStakeString,
+            });
 
-          const totalValidators = versionArray.reduce(
-            (sum, item) => sum + item.count,
-            0
-          );
-          const totalStaked = versionArray.reduce(
-            (sum, item) => sum + item.amountStaked,
-            0
-          );
+            // Build versionArray for pie charts
+            const versionArray: VersionCount[] = Object.entries(
+              primaryNetwork.byClientVersion
+            )
+              .map(([version, data]: [string, any]) => ({
+                version,
+                count: data.nodes,
+                percentage: 0,
+                amountStaked: Number(data.stakeString) / 1e9,
+                stakingPercentage: 0,
+              }))
+              .sort((a, b) => b.count - a.count);
 
-          versionArray.forEach((item) => {
-            item.percentage =
-              totalValidators > 0 ? (item.count / totalValidators) * 100 : 0;
-            item.stakingPercentage =
-              totalStaked > 0 ? (item.amountStaked / totalStaked) * 100 : 0;
-          });
+            const totalValidators = versionArray.reduce(
+              (sum, item) => sum + item.count,
+              0
+            );
+            const totalStaked = versionArray.reduce(
+              (sum, item) => sum + item.amountStaked,
+              0
+            );
 
-          setValidatorVersions(versionArray);
+            versionArray.forEach((item) => {
+              item.percentage =
+                totalValidators > 0 ? (item.count / totalValidators) * 100 : 0;
+              item.stakingPercentage =
+                totalStaked > 0 ? (item.amountStaked / totalStaked) * 100 : 0;
+            });
 
-          // Create version breakdown for VersionBreakdownCard
-          const byClientVersion: Record<
-            string,
-            { nodes: number; stakeString?: string }
-          > = {};
-          versionArray.forEach((v) => {
-            byClientVersion[v.version] = {
-              nodes: v.count,
-              stakeString: Math.round(v.amountStaked * 1e9).toString(),
-            };
-          });
-          setVersionBreakdown({
-            byClientVersion,
-            totalStakeString: Math.round(totalStaked * 1e9).toString(),
-          });
+            setValidatorVersions(versionArray);
 
-          // Extract available versions for dropdown
-          const versions = versionArray
-            .map((v) => v.version)
-            .filter((v) => v !== "Unknown")
-            .sort()
-            .reverse();
-          setAvailableVersions(versions);
-          if (versions.length > 0) {
-            setMinVersion(versions[0]);
+            // Extract available versions for dropdown
+            const versions = versionArray
+              .map((v) => v.version)
+              .filter((v) => v !== "Unknown")
+              .sort()
+              .reverse();
+            setAvailableVersions(versions);
+            if (versions.length > 0) {
+              setMinVersion(versions[0]);
+            }
           }
         } catch (err) {
-          console.error("Failed to parse validator versions data", err);
+          console.error("Failed to process validator stats data", err);
         }
       }
 
@@ -524,7 +526,7 @@ export default function CChainValidatorMetrics() {
     { id: "distribution", label: "Stake Distribution" },
     { id: "versions", label: "Software Versions" },
     { id: "map", label: "Global Map" },
-    { id: "validators", label: "All Validators" },
+    { id: "validators", label: "Validator List" },
   ];
 
   // Copy to clipboard helper
@@ -557,6 +559,20 @@ export default function CChainValidatorMetrics() {
         validator.version.toLowerCase().includes(searchLower))
     );
   });
+
+  // Paginated validators for display
+  const displayedValidators = filteredValidators.slice(0, displayCount);
+  const hasMoreValidators = filteredValidators.length > displayCount;
+
+  // Load more validators
+  const loadMoreValidators = () => {
+    setDisplayCount((prev) => prev + 50);
+  };
+
+  // Reset display count when search term changes
+  useEffect(() => {
+    setDisplayCount(50);
+  }, [searchTerm]);
 
   // Track active section on scroll
   useEffect(() => {
@@ -781,7 +797,7 @@ export default function CChainValidatorMetrics() {
                 <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-3 sm:gap-6 md:gap-12 pt-6 mt-6 border-t border-zinc-200 dark:border-zinc-800">
                   <div>
                     <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
-                      {validatorVersions.reduce((sum, v) => sum + v.count, 0)}
+                      {validators.length}
                     </span>
                     <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
                       validators
@@ -1619,7 +1635,7 @@ export default function CChainValidatorMetrics() {
         >
           <div className="space-y-2">
             <h2 className="text-lg sm:text-2xl font-medium text-left">
-              All Validators
+              Validator List
             </h2>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
               Complete list of all validators on the Primary Network
@@ -1648,7 +1664,8 @@ export default function CChainValidatorMetrics() {
               )}
             </div>
             <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-              {filteredValidators.length} of {validators.length} validators
+              {displayedValidators.length} of {filteredValidators.length}{" "}
+              validators
             </span>
           </div>
 
@@ -1722,113 +1739,129 @@ export default function CChainValidatorMetrics() {
               </div>
             </Card>
           ) : (
-            <Card className="overflow-hidden py-0 border-0 shadow-none rounded-lg">
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
-                    <tr>
-                      <th className="px-4 py-2 text-left">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
-                          #
-                        </span>
-                      </th>
-                      <th className="px-4 py-2 text-left">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
-                          Node ID
-                        </span>
-                      </th>
-                      <th className="px-4 py-2 text-right">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
-                          Amount Staked
-                        </span>
-                      </th>
-                      <th className="px-4 py-2 text-right">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
-                          Delegation Fee
-                        </span>
-                      </th>
-                      <th className="px-4 py-2 text-right">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
-                          Delegators
-                        </span>
-                      </th>
-                      <th className="px-4 py-2 text-right">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
-                          Amount Delegated
-                        </span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-neutral-950">
-                    {filteredValidators.length === 0 ? (
+            <>
+              <Card className="overflow-hidden py-0 border-0 shadow-none rounded-lg">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
                       <tr>
-                        <td
-                          colSpan={6}
-                          className="text-center py-8 text-neutral-600 dark:text-neutral-400"
-                        >
-                          {searchTerm
-                            ? "No validators match your search"
-                            : "No validators found"}
-                        </td>
+                        <th className="px-4 py-2 text-left">
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                            #
+                          </span>
+                        </th>
+                        <th className="px-4 py-2 text-left">
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                            Node ID
+                          </span>
+                        </th>
+                        <th className="px-4 py-2 text-right">
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                            Amount Staked
+                          </span>
+                        </th>
+                        <th className="px-4 py-2 text-right">
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                            Delegation Fee
+                          </span>
+                        </th>
+                        <th className="px-4 py-2 text-right">
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                            Delegators
+                          </span>
+                        </th>
+                        <th className="px-4 py-2 text-right">
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                            Amount Delegated
+                          </span>
+                        </th>
                       </tr>
-                    ) : (
-                      filteredValidators.map((validator, index) => (
-                        <tr
-                          key={validator.nodeId}
-                          className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
-                        >
-                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                            <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                              {index + 1}
-                            </span>
-                          </td>
-                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 font-mono text-xs">
-                            <span
-                              title={
-                                copiedId === `node-${validator.nodeId}`
-                                  ? "Copied!"
-                                  : `Click to copy: ${validator.nodeId}`
-                              }
-                              onClick={() =>
-                                copyToClipboard(
-                                  validator.nodeId,
-                                  `node-${validator.nodeId}`
-                                )
-                              }
-                              className={`cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
-                                copiedId === `node-${validator.nodeId}`
-                                  ? "text-green-600 dark:text-green-400"
-                                  : ""
-                              }`}
-                            >
-                              {copiedId === `node-${validator.nodeId}`
-                                ? "Copied!"
-                                : `${validator.nodeId.slice(
-                                    0,
-                                    12
-                                  )}...${validator.nodeId.slice(-8)}`}
-                            </span>
-                          </td>
-                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right font-mono text-sm">
-                            {formatValidatorStake(validator.amountStaked)} AVAX
-                          </td>
-                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right text-sm">
-                            {parseFloat(validator.delegationFee).toFixed(1)}%
-                          </td>
-                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right text-sm">
-                            {validator.delegatorCount}
-                          </td>
-                          <td className="px-4 py-2 text-right font-mono text-sm">
-                            {formatValidatorStake(validator.amountDelegated)}{" "}
-                            AVAX
+                    </thead>
+                    <tbody className="bg-white dark:bg-neutral-950">
+                      {displayedValidators.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={6}
+                            className="text-center py-8 text-neutral-600 dark:text-neutral-400"
+                          >
+                            {searchTerm
+                              ? "No validators match your search"
+                              : "No validators found"}
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
+                      ) : (
+                        displayedValidators.map((validator, index) => (
+                          <tr
+                            key={validator.nodeId}
+                            className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
+                          >
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                              <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                {index + 1}
+                              </span>
+                            </td>
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 font-mono text-xs">
+                              <span
+                                title={
+                                  copiedId === `node-${validator.nodeId}`
+                                    ? "Copied!"
+                                    : `Click to copy: ${validator.nodeId}`
+                                }
+                                onClick={() =>
+                                  copyToClipboard(
+                                    validator.nodeId,
+                                    `node-${validator.nodeId}`
+                                  )
+                                }
+                                className={`cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
+                                  copiedId === `node-${validator.nodeId}`
+                                    ? "text-green-600 dark:text-green-400"
+                                    : ""
+                                }`}
+                              >
+                                {copiedId === `node-${validator.nodeId}`
+                                  ? "Copied!"
+                                  : `${validator.nodeId.slice(
+                                      0,
+                                      12
+                                    )}...${validator.nodeId.slice(-8)}`}
+                              </span>
+                            </td>
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right font-mono text-sm">
+                              {formatValidatorStake(validator.amountStaked)}{" "}
+                              AVAX
+                            </td>
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right text-sm">
+                              {parseFloat(validator.delegationFee).toFixed(1)}%
+                            </td>
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right text-sm">
+                              {validator.delegatorCount}
+                            </td>
+                            <td className="px-4 py-2 text-right font-mono text-sm">
+                              {formatValidatorStake(validator.amountDelegated)}{" "}
+                              AVAX
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+
+              {/* Load More Button */}
+              {hasMoreValidators && (
+                <div className="flex justify-center pt-2 pb-16">
+                  <button
+                    onClick={loadMoreValidators}
+                    className="px-6 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors font-medium text-sm"
+                  >
+                    Load More ({filteredValidators.length - displayCount}{" "}
+                    remaining)
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </section>
       </main>
