@@ -1,10 +1,10 @@
 import { ReactNode } from "react";
 
-interface ExplorerLayoutProps {
+interface ExplorerRootLayoutProps {
   children: ReactNode;
 }
 
-export default function ExplorerRouteLayout({ children }: ExplorerLayoutProps) {
+export default function ExplorerRootLayout({ children }: ExplorerRootLayoutProps) {
   return (
     <div className="min-h-screen bg-white">
       {children}
