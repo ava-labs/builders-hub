@@ -13,6 +13,8 @@ import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { L1Chain } from "@/types/stats";
+import { ChainIdChips } from "@/components/ui/copyable-id-chip";
+import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 
 interface ExplorerLayoutProps {
   chainId: string;
@@ -192,6 +194,23 @@ export function ExplorerLayout({
                         {chainName} Explorer
                       </h1>
                     </div>
+                    {/* Blockchain ID and Subnet ID chips */}
+                    {(currentChain?.subnetId || (currentChain as any)?.blockchainId || rpcUrl) && (
+                      <div className="flex flex-wrap items-center gap-2 mt-3">
+                        <ChainIdChips 
+                          subnetId={currentChain?.subnetId} 
+                          blockchainId={(currentChain as any)?.blockchainId} 
+                        />
+                        {rpcUrl && (
+                          <AddToWalletButton 
+                            rpcUrl={rpcUrl}
+                            chainName={chainName}
+                            chainId={currentChain?.chainId ? parseInt(currentChain.chainId) : undefined}
+                            tokenSymbol={currentChain?.tokenSymbol}
+                          />
+                        )}
+                      </div>
+                    )}
                     {description && (
                       <div className="flex items-center gap-3 mt-3">
                         <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">

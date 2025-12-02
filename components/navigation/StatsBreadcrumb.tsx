@@ -307,7 +307,7 @@ export function StatsBreadcrumb({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0">
-                    {chainSlug === 'all' || chainSlug === 'all-chains' ? (
+                    {chainSlug === 'all' || chainSlug === 'all-chains' || chainSlug === 'network-metrics' ? (
                       <AvalancheLogo className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" fill="#E84142" />
                     ) : (
                       <ChainLogo src={chainLogoURI} name={chainName} size="md" />
@@ -319,12 +319,12 @@ export function StatsBreadcrumb({
                 <DropdownMenuContent align="start" className="max-h-[500px] overflow-y-auto">
                   {/* All Chains option */}
                   <DropdownMenuItem
-                    onClick={() => router.push('/stats/all')}
+                    onClick={() => router.push('/stats/network-metrics')}
                     className="cursor-pointer"
                   >
                     <div className="flex items-center gap-2 w-full">
                       <AvalancheLogo className="w-4 h-4" fill="#E84142" />
-                      <span className={chainSlug === 'all' || chainSlug === 'all-chains' ? "font-medium" : ""}>
+                      <span className={chainSlug === 'all' || chainSlug === 'all-chains' || chainSlug === 'network-metrics' ? "font-medium" : ""}>
                         All Chains
                       </span>
                     </div>
@@ -348,7 +348,7 @@ export function StatsBreadcrumb({
               </DropdownMenu>
             ) : (
               <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap flex-shrink-0">
-                {chainSlug === 'all' || chainSlug === 'all-chains' ? (
+                {chainSlug === 'all' || chainSlug === 'all-chains' || chainSlug === 'network-metrics' ? (
                   <AvalancheLogo className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" fill="#E84142" />
                 ) : (
                   <ChainLogo src={chainLogoURI} name={chainName} size="md" />
@@ -528,7 +528,7 @@ export function StatsBreadcrumb({
                   <span>Home</span>
                 </Link>
               </>
-            )}
+                )}
             
             {/* Additional breadcrumb items (block, tx, address pages) */}
             {breadcrumbItems.map((item, idx) => (

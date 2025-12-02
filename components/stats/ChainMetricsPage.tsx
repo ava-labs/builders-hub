@@ -5,6 +5,8 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin } from "lucide-react";
+import { ChainIdChips } from "@/components/ui/copyable-id-chip";
+import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import Link from "next/link";
 import Image from "next/image";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
@@ -82,6 +84,8 @@ interface ChainMetricsPageProps {
     name: string;
     link: string;
   }>;
+  blockchainId?: string;
+  subnetId?: string;
 }
 
 export default function ChainMetricsPage({
@@ -96,6 +100,8 @@ export default function ChainMetricsPage({
   rpcUrl,
   category: categoryProp,
   explorers: explorersProp,
+  blockchainId: blockchainIdProp,
+  subnetId: subnetIdProp,
 }: ChainMetricsPageProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -110,7 +116,7 @@ export default function ChainMetricsPage({
   const [cachedAllData, setCachedAllData] = useState<CChainMetrics | null>(null);
   
   // Filtering state (only for "all chains" view)
-  const isAllChainsView = chainSlug === 'all' || chainSlug === 'all-chains';
+  const isAllChainsView = chainSlug === 'all' || chainSlug === 'all-chains' || chainSlug === 'network-metrics';
   
   // Initialize selectedChainIds from URL params (only for all chains view)
   const getInitialSelectedChainIds = useCallback(() => {
@@ -169,12 +175,27 @@ export default function ChainMetricsPage({
     setUrlSyncNeeded(true);
   }, []);
   
-  // Look up chain data to get category and explorers if not provided
+  // Look up chain data to get category, explorers, blockchainId, subnetId if not provided
   const chainData = chainSlug 
     ? (l1ChainsData as L1Chain[]).find(c => c.slug === chainSlug) 
     : null;
   const category = categoryProp || chainData?.category;
-  const explorers = explorersProp || chainData?.explorers;
+  const blockchainId = blockchainIdProp || (chainData as any)?.blockchainId;
+  const subnetId = subnetIdProp || chainData?.subnetId;
+  
+  // Build explorers list - add BuilderHub explorer first if rpcUrl is provided
+  const baseExplorers = explorersProp || chainData?.explorers || [];
+  const explorers = useMemo(() => {
+    const effectiveRpcUrl = rpcUrl || chainData?.rpcUrl;
+    if (effectiveRpcUrl && chainSlug) {
+      // Prepend BuilderHub explorer if chain has RPC URL
+      return [
+        { name: "BuilderHub", link: `/explorer/${chainSlug}` },
+        ...baseExplorers.filter(e => e.name !== "BuilderHub"), // Avoid duplicates
+      ];
+    }
+    return baseExplorers;
+  }, [rpcUrl, chainData?.rpcUrl, chainSlug, baseExplorers]);
   
   // Determine which chainIds are EXCLUDED (not selected)
   const excludedChainIds = useMemo(() => {
@@ -906,7 +927,7 @@ export default function ChainMetricsPage({
             </div>
           </section>
         </div>
-        {chainSlug && chainSlug !== 'all' && chainSlug !== 'all-chains' ? (
+        {chainSlug && !isAllChainsView ? (
           <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} isCustomChain={!chainData} />
         ) : (
           <StatsBubbleNav />
@@ -928,7 +949,7 @@ export default function ChainMetricsPage({
             </div>
           </div>
         </div>
-        {chainSlug && chainSlug !== 'all' && chainSlug !== 'all-chains' ? (
+        {chainSlug && !isAllChainsView ? (
           <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} isCustomChain={!chainData} />
         ) : (
           <StatsBubbleNav />
@@ -997,6 +1018,20 @@ export default function ChainMetricsPage({
                       : `${chainName} Metrics`}
                   </h1>
                 </div>
+                {/* Blockchain ID and Subnet ID chips */}
+                {(subnetId || blockchainId || (rpcUrl || chainData?.rpcUrl)) && (
+                  <div className="flex flex-wrap items-center gap-2 mt-3">
+                    <ChainIdChips subnetId={subnetId} blockchainId={blockchainId} />
+                    {(rpcUrl || chainData?.rpcUrl) && !isAllChainsView && (
+                      <AddToWalletButton 
+                        rpcUrl={(rpcUrl || chainData?.rpcUrl)!}
+                        chainName={chainName}
+                        chainId={chainId ? parseInt(chainId) : undefined}
+                        tokenSymbol={chainData?.tokenSymbol}
+                      />
+                    )}
+                  </div>
+                )}
                 <div className="flex items-center gap-3 mt-3">
                   <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
                     {description}
@@ -1490,7 +1525,7 @@ export default function ChainMetricsPage({
       </div>
 
       {/* Bubble Navigation */}
-      {chainSlug && chainSlug !== 'all' && chainSlug !== 'all-chains' ? (
+      {chainSlug && !isAllChainsView ? (
         <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} isCustomChain={!chainData} />
       ) : (
         <StatsBubbleNav />

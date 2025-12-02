@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter, notFound } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Activity, Search, X, ArrowUpRight, Twitter, Linkedin } from "lucide-react";
+import { Activity, Search, X, ArrowUpRight, Twitter, Linkedin, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { ChainIdChips } from "@/components/ui/copyable-id-chip";
+import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { Button } from "@/components/ui/button";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
+import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import l1ChainsData from "@/constants/l1-chains.json";
 import Image from "next/image";
@@ -48,6 +51,7 @@ interface ChainData {
   chainName: string;
   chainLogoURI: string;
   subnetId: string;
+  blockchainId?: string;
   slug: string;
   color: string;
   category: string;
@@ -58,6 +62,10 @@ interface ChainData {
     twitter?: string;
     linkedin?: string;
   };
+  explorers?: Array<{
+    name: string;
+    link: string;
+  }>;
 }
 
 export default function ChainValidatorsPage() {
@@ -77,6 +85,8 @@ export default function ChainValidatorsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [displayCount, setDisplayCount] = useState(50);
+  const [sortColumn, setSortColumn] = useState<string>("weight");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   const copyToClipboard = async (text: string, id: string) => {
     try {
@@ -232,6 +242,28 @@ export default function ChainValidatorsPage() {
   const stats = calculateStats();
   const versionStats = calculateVersionStats(versionBreakdown, minVersion);
 
+  // Handle column sorting
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      // Toggle direction if same column
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // New column, default to descending
+      setSortColumn(column);
+      setSortDirection("desc");
+    }
+  };
+
+  // Sort icon component
+  const SortIcon = ({ column }: { column: string }) => {
+    if (sortColumn !== column) {
+      return <ChevronsUpDown className="w-3 h-3 ml-1 opacity-40" />;
+    }
+    return sortDirection === "asc" 
+      ? <ChevronUp className="w-3 h-3 ml-1" />
+      : <ChevronDown className="w-3 h-3 ml-1" />;
+  };
+
   // Filter validators based on search term
   const filteredValidators = validators.filter((validator) => {
     if (!searchTerm) return true;
@@ -243,9 +275,65 @@ export default function ChainValidatorsPage() {
     );
   });
 
+  // Sort validators
+  const sortedValidators = [...filteredValidators].sort((a, b) => {
+    
+    let aValue: number | string = 0;
+    let bValue: number | string = 0;
+    
+    switch (sortColumn) {
+      case "version":
+        aValue = a.version || "";
+        bValue = b.version || "";
+        // Use version comparison for versions
+        if (aValue && bValue) {
+          const result = compareVersions(aValue as string, bValue as string);
+          return sortDirection === "asc" ? result : -result;
+        }
+        return sortDirection === "asc" 
+          ? (aValue as string).localeCompare(bValue as string) 
+          : (bValue as string).localeCompare(aValue as string);
+      case "weight":
+        aValue = a.weight || 0;
+        bValue = b.weight || 0;
+        break;
+      case "remainingBalance":
+        aValue = a.remainingBalance || 0;
+        bValue = b.remainingBalance || 0;
+        break;
+      case "creationTimestamp":
+        aValue = a.creationTimestamp || 0;
+        bValue = b.creationTimestamp || 0;
+        break;
+      case "amountStaked":
+        aValue = parseFloat(a.amountStaked) || 0;
+        bValue = parseFloat(b.amountStaked) || 0;
+        break;
+      case "delegationFee":
+        aValue = parseFloat(a.delegationFee) || 0;
+        bValue = parseFloat(b.delegationFee) || 0;
+        break;
+      case "delegatorCount":
+        aValue = a.delegatorCount || 0;
+        bValue = b.delegatorCount || 0;
+        break;
+      case "amountDelegated":
+        aValue = parseFloat(a.amountDelegated) || 0;
+        bValue = parseFloat(b.amountDelegated) || 0;
+        break;
+      default:
+        return 0;
+    }
+    
+    if (sortDirection === "asc") {
+      return (aValue as number) - (bValue as number);
+    }
+    return (bValue as number) - (aValue as number);
+  });
+
   // Paginated validators for display
-  const displayedValidators = filteredValidators.slice(0, displayCount);
-  const hasMoreValidators = filteredValidators.length > displayCount;
+  const displayedValidators = sortedValidators.slice(0, displayCount);
+  const hasMoreValidators = sortedValidators.length > displayCount;
 
   // Load more validators
   const loadMoreValidators = () => {
@@ -447,16 +535,17 @@ export default function ChainValidatorsPage() {
         />
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
-            <div className="space-y-6 flex-1">
-              <StatsBreadcrumb
-                showValidators
-                chainSlug={chainInfo.slug}
-                chainName={chainInfo.chainName}
-                chainLogoURI={chainInfo.chainLogoURI}
-                themeColor={chainInfo.color}
-              />
+          {/* Breadcrumb - outside the flex container */}
+          <StatsBreadcrumb
+            showValidators
+            chainSlug={chainInfo.slug}
+            chainName={chainInfo.chainName}
+            chainLogoURI={chainInfo.chainLogoURI}
+            themeColor={chainInfo.color}
+          />
 
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
+            <div className="space-y-4 sm:space-y-6 flex-1">
               <div>
                 <div className="flex items-center gap-2 sm:gap-3 mb-3">
                   <AvalancheLogo className="w-4 h-4 sm:w-5 sm:h-5" fill="#E84142" />
@@ -465,28 +554,42 @@ export default function ChainValidatorsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3 sm:gap-4">
-              {chainInfo.chainLogoURI && (
-                <Image
-                  src={chainInfo.chainLogoURI}
-                  alt={chainInfo.chainName}
+                  {chainInfo.chainLogoURI && (
+                    <Image
+                      src={chainInfo.chainLogoURI}
+                      alt={chainInfo.chainName}
                       width={56}
                       height={56}
                       className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain rounded-xl"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
-              )}
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                  {chainInfo.chainName} Validators
-                </h1>
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  )}
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                    {chainInfo.chainName} Validators
+                  </h1>
                 </div>
+                {/* Blockchain ID and Subnet ID chips */}
+                {(chainInfo.subnetId || chainInfo.blockchainId || chainInfo.rpcUrl) && (
+                  <div className="flex flex-wrap items-center gap-2 mt-3">
+                    <ChainIdChips subnetId={chainInfo.subnetId} blockchainId={chainInfo.blockchainId} />
+                    {chainInfo.rpcUrl && (
+                      <AddToWalletButton 
+                        rpcUrl={chainInfo.rpcUrl}
+                        chainName={chainInfo.chainName}
+                        chainId={chainInfo.chainId ? parseInt(chainInfo.chainId) : undefined}
+                        tokenSymbol={(chainInfo as any).tokenSymbol}
+                      />
+                    )}
+                  </div>
+                )}
                 {(chainInfo.description || chainInfo.chainName) && (
                   <div className="flex items-center gap-3 mt-3">
-                <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
+                    <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
                       {chainInfo.description || `Active validators and delegation metrics for ${chainInfo.chainName}`}
-                </p>
-              </div>
+                    </p>
+                  </div>
                 )}
                 {chainInfo.category && (
                   <div className="mt-3">
@@ -504,55 +607,78 @@ export default function ChainValidatorsPage() {
               </div>
             </div>
 
-            {/* Social Links */}
-            {(chainInfo.website || chainInfo.socials) && (
-              <div className="flex flex-col sm:flex-row items-end gap-2">
-                <div className="flex items-center gap-2">
-                  {chainInfo.website && (
-                    <Button
+            <div className="flex flex-col sm:flex-row items-end gap-2">
+              {/* Main action buttons */}
+              <div className="flex items-center gap-2">
+                {chainInfo.website && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
+                  >
+                    <a href={chainInfo.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                      Website
+                      <ArrowUpRight className="h-4 w-4" />
+                    </a>
+                  </Button>
+                )}
+                
+                {/* Social buttons */}
+                {chainInfo.socials && (chainInfo.socials.twitter || chainInfo.socials.linkedin) && (
+                  <>
+                    {chainInfo.socials.twitter && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
+                      >
+                        <a 
+                          href={`https://x.com/${chainInfo.socials.twitter}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          aria-label="Twitter"
+                        >
+                          <Twitter className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    )}
+                    {chainInfo.socials.linkedin && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
+                      >
+                        <a 
+                          href={`https://linkedin.com/company/${chainInfo.socials.linkedin}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          aria-label="LinkedIn"
+                        >
+                          <Linkedin className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    )}
+                  </>
+                )}
+                
+                {chainInfo.rpcUrl && (
+                  <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
+                    <ExplorerDropdown
+                      explorers={[
+                        { name: "BuilderHub", link: `/explorer/${chainInfo.slug}` },
+                        ...(chainInfo.explorers || []).filter((e: { name: string }) => e.name !== "BuilderHub"),
+                      ]}
                       variant="outline"
                       size="sm"
-                      asChild
-                      className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 cursor-pointer"
-                    >
-                      <a href={chainInfo.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 cursor-pointer">
-                        Website
-                        <ArrowUpRight className="h-4 w-4" />
-                      </a>
-                    </Button>
-                  )}
-                  {chainInfo.socials && (chainInfo.socials.twitter || chainInfo.socials.linkedin) && (
-                    <>
-                      {chainInfo.socials.twitter && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                          className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2 cursor-pointer"
-                        >
-                          <a href={`https://x.com/${chainInfo.socials.twitter}`} target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="cursor-pointer">
-                            <Twitter className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      )}
-                      {chainInfo.socials.linkedin && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                          className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2 cursor-pointer"
-                        >
-                          <a href={`https://linkedin.com/company/${chainInfo.socials.linkedin}`} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="cursor-pointer">
-                            <Linkedin className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      )}
-                    </>
-                  )}
-                </div>
+                    />
+                  </div>
+                )}
               </div>
-            )}
             </div>
+          </div>
 
             {/* Key metrics - inline */}
           <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-3 sm:gap-6 md:gap-12 pt-6 mt-6 border-t border-zinc-200 dark:border-zinc-800">
@@ -645,7 +771,7 @@ export default function ChainValidatorsPage() {
             )}
           </div>
           <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-            {displayedValidators.length} of {filteredValidators.length} validators
+            {displayedValidators.length} of {sortedValidators.length} validators
           </span>
         </div>
 
@@ -665,9 +791,13 @@ export default function ChainValidatorsPage() {
                       Node ID
                     </span>
                   </th>
-                  <th className="px-4 py-2 text-left">
-                    <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                  <th 
+                    className="px-4 py-2 text-left cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                    onClick={() => handleSort("version")}
+                  >
+                    <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center">
                       Version
+                      <SortIcon column="version" />
                     </span>
                   </th>
                   {isL1 ? (
@@ -677,19 +807,31 @@ export default function ChainValidatorsPage() {
                           Validation ID
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                      <th 
+                        className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                        onClick={() => handleSort("weight")}
+                      >
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                           Weight
+                          <SortIcon column="weight" />
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                      <th 
+                        className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                        onClick={() => handleSort("remainingBalance")}
+                      >
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                           Remaining Balance
+                          <SortIcon column="remainingBalance" />
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                      <th 
+                        className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                        onClick={() => handleSort("creationTimestamp")}
+                      >
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                           Creation Time
+                          <SortIcon column="creationTimestamp" />
                         </span>
                       </th>
                       <th className="px-4 py-2 text-left">
@@ -700,24 +842,40 @@ export default function ChainValidatorsPage() {
                     </>
                   ) : (
                     <>
-                      <th className="px-4 py-2 text-right">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                      <th 
+                        className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                        onClick={() => handleSort("amountStaked")}
+                      >
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                           Amount Staked
+                          <SortIcon column="amountStaked" />
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                      <th 
+                        className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                        onClick={() => handleSort("delegationFee")}
+                      >
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                           Delegation Fee
+                          <SortIcon column="delegationFee" />
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                      <th 
+                        className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                        onClick={() => handleSort("delegatorCount")}
+                      >
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                           Delegators
+                          <SortIcon column="delegatorCount" />
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                      <th 
+                        className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                        onClick={() => handleSort("amountDelegated")}
+                      >
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                           Amount Delegated
+                          <SortIcon column="amountDelegated" />
                         </span>
                       </th>
                     </>
@@ -886,7 +1044,7 @@ export default function ChainValidatorsPage() {
               onClick={loadMoreValidators}
               className="px-6 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors font-medium text-sm"
             >
-              Load More ({filteredValidators.length - displayCount} remaining)
+              Load More ({sortedValidators.length - displayCount} remaining)
             </button>
           </div>
         )}

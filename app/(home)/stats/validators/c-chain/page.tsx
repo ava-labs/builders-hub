@@ -44,23 +44,34 @@ import {
   Percent,
   Search,
   X,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+  ArrowUpRight,
+  Twitter,
+  Linkedin,
 } from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
+import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import {
   TimeSeriesDataPoint,
   ChartDataPoint,
   PrimaryNetworkMetrics,
   VersionCount,
+  L1Chain,
 } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
+import { ChainIdChips } from "@/components/ui/copyable-id-chip";
+import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import {
   VersionBreakdownCard,
   calculateVersionStats,
   type VersionBreakdownData,
 } from "@/components/stats/VersionBreakdown";
+import l1ChainsData from "@/constants/l1-chains.json";
 
 interface ValidatorData {
   nodeId: string;
@@ -87,6 +98,8 @@ export default function CChainValidatorMetrics() {
   const [searchTerm, setSearchTerm] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [displayCount, setDisplayCount] = useState(50);
+  const [sortColumn, setSortColumn] = useState<string>("amountStaked");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   const fetchData = async () => {
     try {
@@ -470,12 +483,20 @@ export default function CChainValidatorMetrics() {
     return formatLargeNumber(weightInAvax);
   };
 
-  // C-Chain config
+  // C-Chain config from l1-chains.json
+  const cChainData = (l1ChainsData as L1Chain[]).find(c => c.slug === "c-chain");
   const chainConfig = {
-    chainLogoURI:
-      "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
-    color: "#E57373",
+    chainLogoURI: cChainData?.chainLogoURI || "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
+    color: cChainData?.color || "#E57373",
     category: "Primary Network",
+    description: cChainData?.description || "Real-time insights into the Avalanche C-Chain performance and validator distribution",
+    website: cChainData?.website,
+    socials: cChainData?.socials,
+    explorers: cChainData?.explorers || [],
+    rpcUrl: cChainData?.rpcUrl,
+    slug: "c-chain",
+    blockchainId: (cChainData as any)?.blockchainId,
+    subnetId: cChainData?.subnetId,
   };
 
   const chartConfigs = [
@@ -549,6 +570,28 @@ export default function CChainValidatorMetrics() {
     return avaxValue.toFixed(2);
   };
 
+  // Handle column sorting
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      // Toggle direction if same column
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // New column, default to descending
+      setSortColumn(column);
+      setSortDirection("desc");
+    }
+  };
+
+  // Sort icon component
+  const SortIcon = ({ column }: { column: string }) => {
+    if (sortColumn !== column) {
+      return <ChevronsUpDown className="w-3 h-3 ml-1 opacity-40" />;
+    }
+    return sortDirection === "asc" 
+      ? <ChevronUp className="w-3 h-3 ml-1" />
+      : <ChevronDown className="w-3 h-3 ml-1" />;
+  };
+
   // Filter validators based on search term
   const filteredValidators = validators.filter((validator) => {
     if (!searchTerm) return true;
@@ -560,9 +603,42 @@ export default function CChainValidatorMetrics() {
     );
   });
 
+  // Sort validators
+  const sortedValidators = [...filteredValidators].sort((a, b) => {
+    
+    let aValue: number = 0;
+    let bValue: number = 0;
+    
+    switch (sortColumn) {
+      case "amountStaked":
+        aValue = parseFloat(a.amountStaked) || 0;
+        bValue = parseFloat(b.amountStaked) || 0;
+        break;
+      case "delegationFee":
+        aValue = parseFloat(a.delegationFee) || 0;
+        bValue = parseFloat(b.delegationFee) || 0;
+        break;
+      case "delegatorCount":
+        aValue = a.delegatorCount || 0;
+        bValue = b.delegatorCount || 0;
+        break;
+      case "amountDelegated":
+        aValue = parseFloat(a.amountDelegated) || 0;
+        bValue = parseFloat(b.amountDelegated) || 0;
+        break;
+      default:
+        return 0;
+    }
+    
+    if (sortDirection === "asc") {
+      return aValue - bValue;
+    }
+    return bValue - aValue;
+  });
+
   // Paginated validators for display
-  const displayedValidators = filteredValidators.slice(0, displayCount);
-  const hasMoreValidators = filteredValidators.length > displayCount;
+  const displayedValidators = sortedValidators.slice(0, displayCount);
+  const hasMoreValidators = sortedValidators.length > displayCount;
 
   // Load more validators
   const loadMoreValidators = () => {
@@ -744,17 +820,17 @@ export default function CChainValidatorMetrics() {
         />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
+          {/* Breadcrumb - outside the flex container */}
+          <StatsBreadcrumb
+            showValidators
+            chainSlug="c-chain"
+            chainName="Avalanche C-Chain"
+            chainLogoURI={chainConfig.chainLogoURI}
+            themeColor={chainConfig.color}
+          />
+
           <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
             <div className="space-y-4 sm:space-y-6 flex-1">
-              {/* Breadcrumb with chain dropdown */}
-              <StatsBreadcrumb
-                showValidators
-                chainSlug="c-chain"
-                chainName="Avalanche C-Chain"
-                chainLogoURI={chainConfig.chainLogoURI}
-                themeColor={chainConfig.color}
-              />
-
               <div>
                 <div className="flex items-center gap-2 sm:gap-3 mb-3">
                   <AvalancheLogo
@@ -775,10 +851,23 @@ export default function CChainValidatorMetrics() {
                     C-Chain Validators
                   </h1>
                 </div>
+                {/* Blockchain ID and Subnet ID chips */}
+                {(chainConfig.subnetId || chainConfig.blockchainId || chainConfig.rpcUrl) && (
+                  <div className="flex flex-wrap items-center gap-2 mt-3">
+                    <ChainIdChips subnetId={chainConfig.subnetId} blockchainId={chainConfig.blockchainId} />
+                    {chainConfig.rpcUrl && (
+                      <AddToWalletButton 
+                        rpcUrl={chainConfig.rpcUrl}
+                        chainName="Avalanche C-Chain"
+                        chainId={43114}
+                        tokenSymbol="AVAX"
+                      />
+                    )}
+                  </div>
+                )}
                 <div className="flex items-center gap-3 mt-3">
                   <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
-                    Real-time insights into the Avalanche C-Chain performance
-                    and validator distribution
+                    {chainConfig.description}
                   </p>
                 </div>
                 <div className="mt-3">
@@ -836,6 +925,78 @@ export default function CChainValidatorMetrics() {
                     </span>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-end gap-2">
+              {/* Main action buttons */}
+              <div className="flex items-center gap-2">
+                {chainConfig.website && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
+                  >
+                    <a href={chainConfig.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                      Website
+                      <ArrowUpRight className="h-4 w-4" />
+                    </a>
+                  </Button>
+                )}
+                
+                {/* Social buttons */}
+                {chainConfig.socials && (chainConfig.socials.twitter || chainConfig.socials.linkedin) && (
+                  <>
+                    {chainConfig.socials.twitter && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
+                      >
+                        <a 
+                          href={`https://x.com/${chainConfig.socials.twitter}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          aria-label="Twitter"
+                        >
+                          <Twitter className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    )}
+                    {chainConfig.socials.linkedin && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
+                      >
+                        <a 
+                          href={`https://linkedin.com/company/${chainConfig.socials.linkedin}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          aria-label="LinkedIn"
+                        >
+                          <Linkedin className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    )}
+                  </>
+                )}
+                
+                {chainConfig.rpcUrl && (
+                  <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
+                    <ExplorerDropdown
+                      explorers={[
+                        { name: "BuilderHub", link: `/explorer/${chainConfig.slug}` },
+                        ...chainConfig.explorers.filter((e: { name: string }) => e.name !== "BuilderHub"),
+                      ]}
+                      variant="outline"
+                      size="sm"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1664,7 +1825,7 @@ export default function CChainValidatorMetrics() {
               )}
             </div>
             <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-              {displayedValidators.length} of {filteredValidators.length}{" "}
+              {displayedValidators.length} of {sortedValidators.length}{" "}
               validators
             </span>
           </div>
@@ -1755,24 +1916,40 @@ export default function CChainValidatorMetrics() {
                             Node ID
                           </span>
                         </th>
-                        <th className="px-4 py-2 text-right">
-                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                        <th 
+                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          onClick={() => handleSort("amountStaked")}
+                        >
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                             Amount Staked
+                            <SortIcon column="amountStaked" />
                           </span>
                         </th>
-                        <th className="px-4 py-2 text-right">
-                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                        <th 
+                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          onClick={() => handleSort("delegationFee")}
+                        >
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                             Delegation Fee
+                            <SortIcon column="delegationFee" />
                           </span>
                         </th>
-                        <th className="px-4 py-2 text-right">
-                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                        <th 
+                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          onClick={() => handleSort("delegatorCount")}
+                        >
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                             Delegators
+                            <SortIcon column="delegatorCount" />
                           </span>
                         </th>
-                        <th className="px-4 py-2 text-right">
-                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                        <th 
+                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          onClick={() => handleSort("amountDelegated")}
+                        >
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                             Amount Delegated
+                            <SortIcon column="amountDelegated" />
                           </span>
                         </th>
                       </tr>
@@ -1856,7 +2033,7 @@ export default function CChainValidatorMetrics() {
                     onClick={loadMoreValidators}
                     className="px-6 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors font-medium text-sm"
                   >
-                    Load More ({filteredValidators.length - displayCount}{" "}
+                    Load More ({sortedValidators.length - displayCount}{" "}
                     remaining)
                   </button>
                 </div>
