@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BarChart3, ChevronRight, Compass, Globe, ChevronDown, Plus, Users } from "lucide-react";
+import { BarChart3, ChevronRight, Compass, Globe, ChevronDown, Plus, Users, Home } from "lucide-react";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import {
   DropdownMenu,
@@ -413,11 +413,14 @@ export function StatsBreadcrumb({
         {showExplorer && chainSlug && chainName && (
           <>
             <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
-            {/* Explorer - not clickable */}
-            <span className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 whitespace-nowrap flex-shrink-0">
+            {/* Explorer - clickable link to All Chains Explorer */}
+            <Link 
+              href="/explorer" 
+              className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+            >
               <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               <span>Explorer</span>
-            </span>
+            </Link>
             
             {/* Chain dropdown - always shown after Explorer */}
             <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
@@ -512,6 +515,20 @@ export function StatsBreadcrumb({
                     <span className="max-w-[80px] sm:max-w-none truncate">{chainName}</span>
                   </span>
                 )}
+            
+            {/* Home link - shown when on inner pages (block, tx, address) */}
+            {breadcrumbItems.length > 0 && chainSlug !== 'all-chains' && (
+              <>
+                <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
+                <Link 
+                  href={`/explorer/${chainSlug}`}
+                  className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                >
+                  <Home className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <span>Home</span>
+                </Link>
+              </>
+            )}
             
             {/* Additional breadcrumb items (block, tx, address pages) */}
             {breadcrumbItems.map((item, idx) => (
