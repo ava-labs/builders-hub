@@ -76,6 +76,7 @@ export default function ChainValidatorsPage() {
   const [minVersion, setMinVersion] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [displayCount, setDisplayCount] = useState(50);
 
   const copyToClipboard = async (text: string, id: string) => {
     try {
@@ -241,6 +242,15 @@ export default function ChainValidatorsPage() {
       (validator.version && validator.version.toLowerCase().includes(searchLower))
     );
   });
+
+  // Paginated validators for display
+  const displayedValidators = filteredValidators.slice(0, displayCount);
+  const hasMoreValidators = filteredValidators.length > displayCount;
+
+  // Load more validators
+  const loadMoreValidators = () => {
+    setDisplayCount((prev) => prev + 50);
+  };
 
   const getHealthColor = (percent: number): string => {
     if (percent === 0) return "text-red-600 dark:text-red-400";
@@ -725,7 +735,7 @@ export default function ChainValidatorsPage() {
                     </td>
                   </tr>
                 ) : isL1 ? (
-                  filteredValidators.map((validator, index) => (
+                  displayedValidators.map((validator, index) => (
                     <tr
                       key={validator.validationId || validator.nodeId}
                       className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
@@ -816,7 +826,7 @@ export default function ChainValidatorsPage() {
                     </tr>
                   ))
                 ) : (
-                  filteredValidators.map((validator, index) => (
+                  displayedValidators.map((validator, index) => (
                     <tr
                       key={validator.nodeId}
                       className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
@@ -868,6 +878,18 @@ export default function ChainValidatorsPage() {
             </table>
           </div>
         </Card>
+
+        {/* Load More Button */}
+        {hasMoreValidators && (
+          <div className="flex justify-center pt-2 pb-16">
+            <button
+              onClick={loadMoreValidators}
+              className="px-6 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors font-medium text-sm"
+            >
+              Load More ({filteredValidators.length - displayCount} remaining)
+            </button>
+          </div>
+        )}
       </main>
 
       <L1BubbleNav chainSlug={slug} themeColor={chainInfo?.color} rpcUrl={chainInfo?.rpcUrl} />
