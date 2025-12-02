@@ -135,7 +135,9 @@ export function ParallelStreamsCard({ colors }: { colors: Colors }) {
   }, [])
   
   return (
-    <div className={`p-6 border ${colors.border} ${colors.blockBg} h-full flex flex-col col-span-1 md:col-span-2`}>
+    <div 
+      className={`p-6 h-full flex flex-col col-span-1 md:col-span-2 ${colors.blockBg}`}
+    >
       <div className="mb-5">
         <h3 className={`text-lg font-bold ${colors.text} mb-2`}>
           Two engines, full speed.
@@ -384,7 +386,6 @@ export function ParallelStreamsCard({ colors }: { colors: Colors }) {
           </motion.div>
         </div>
       </div>
-      
     </div>
   )
 }

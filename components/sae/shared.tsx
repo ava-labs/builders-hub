@@ -12,15 +12,15 @@ export function FlowArrow({ colors, dotted = false }: { colors: Colors; dotted?:
           x2={dotted ? "24" : "34"} 
           y2="8" 
           stroke={colors.stroke} 
-          strokeOpacity="0.35" 
-          strokeWidth="2" 
+          strokeOpacity="0.6" 
+          strokeWidth="1.5" 
           strokeDasharray={dotted ? "4 3" : undefined}
         />
         <path
           d="M26 3l8 5-8 5"
           stroke={colors.stroke}
-          strokeOpacity="0.4"
-          strokeWidth="2.5"
+          strokeOpacity="0.7"
+          strokeWidth="2"
           fill="none"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -71,7 +71,7 @@ export function BlockchainBlock({
 
       {/* Block hash preview */}
       {showHash && id && (
-        <span className={`text-[7px] font-mono ${colors.textFaint}`}>#{id.toString().padStart(3, "0")}</span>
+        <span className={`text-[7px] font-mono font-bold ${colors.textFaint}`}>#{id.toString().padStart(3, "0")}</span>
       )}
     </div>
   )
@@ -104,7 +104,7 @@ export function QueueBlock({ colors, id, txCount = 16, txColors = [] }: { colors
         ))}
       </div>
       </div>
-      <span className={`text-[7px] font-mono ${colors.textFaint}`}>#{id.toString().padStart(3, "0")}</span>
+      <span className={`text-[7px] font-mono font-bold ${colors.textFaint}`}>#{id.toString().padStart(3, "0")}</span>
     </div>
   )
 }

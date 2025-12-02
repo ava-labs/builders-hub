@@ -11,6 +11,7 @@ import { BlockRelationship } from "./UnderTheHood"
 import { KeyFeatures } from "./KeyFeatures"
 import { Payoff } from "./Payoff"
 import { SynchronousExecutionDiagram } from "./SynchronousExecutionDiagram"
+import { FAQ } from "./FAQ"
 
 export function TransactionLifecycle() {
   const { resolvedTheme } = useTheme()
@@ -123,23 +124,23 @@ export function TransactionLifecycle() {
         {/* ═══════════════════════════════════════════════════════════════════ */}
         <div className="mb-12 md:mb-24">
           <div className="flex items-center gap-4 mb-3 md:mb-6">
-            <span className={`text-[10px] uppercase tracking-[0.3em] ${colors.textFaint} font-mono`}>01</span>
+            <span className={`text-sm uppercase tracking-[0.3em] ${colors.text} font-mono font-bold`}>01</span>
             <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
-            <span className={`text-sm uppercase tracking-[0.2em] ${colors.text} font-medium`}>The Bottleneck</span>
+            <span className={`text-sm uppercase tracking-[0.2em] ${colors.text} font-bold`}>The Bottleneck</span>
             <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
           </div>
           
-          {/* Scale down on mobile to fit, keep desktop unchanged */}
+          {/* Synchronous Execution diagram */}
           <div className="overflow-hidden md:overflow-visible mb-4 md:mb-0">
             <div className="md:transform-none origin-top-left transform scale-[0.5] sm:scale-[0.7] md:scale-100 w-[200%] sm:w-[143%] md:w-full">
-              <SynchronousExecution colors={colors} />
+              <SynchronousExecutionDiagram colors={colors} />
             </div>
           </div>
 
-          {/* Interleaved Execution diagram */}
+          {/* Transaction Lifecycle */}
           <div className="overflow-hidden md:overflow-visible mt-8 md:mt-8 mb-0">
             <div className="md:transform-none origin-top-left transform scale-[0.5] sm:scale-[0.7] md:scale-100 w-[200%] sm:w-[143%] md:w-full">
-              <SynchronousExecutionDiagram colors={colors} />
+              <SynchronousExecution colors={colors} />
             </div>
           </div>
         </div>
@@ -149,9 +150,9 @@ export function TransactionLifecycle() {
         {/* ═══════════════════════════════════════════════════════════════════ */}
         <div className="mb-12 md:mb-24">
           <div className="flex items-center gap-4 mb-3 md:mb-6">
-            <span className={`text-[10px] uppercase tracking-[0.3em] ${colors.textFaint} font-mono`}>02</span>
+            <span className={`text-sm uppercase tracking-[0.3em] ${colors.text} font-mono font-bold`}>02</span>
             <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
-            <span className={`text-sm uppercase tracking-[0.2em] ${colors.text} font-medium`}>The Solution</span>
+            <span className={`text-sm uppercase tracking-[0.2em] ${colors.text} font-bold`}>The Solution</span>
             <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
           </div>
 
@@ -183,9 +184,9 @@ export function TransactionLifecycle() {
         {/* ═══════════════════════════════════════════════════════════════════ */}
         <div className="mb-12 md:mb-24">
           <div className="flex items-center gap-4 mb-3 md:mb-6">
-            <span className={`text-[10px] uppercase tracking-[0.3em] ${colors.textFaint} font-mono`}>03</span>
+            <span className={`text-sm uppercase tracking-[0.3em] ${colors.text} font-mono font-bold`}>03</span>
             <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
-            <span className={`text-sm uppercase tracking-[0.2em] ${colors.text} font-medium`}>Key Features</span>
+            <span className={`text-sm uppercase tracking-[0.2em] ${colors.text} font-bold`}>Key Features</span>
             <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
           </div>
           
@@ -202,9 +203,9 @@ export function TransactionLifecycle() {
         {/* ═══════════════════════════════════════════════════════════════════ */}
         <div className="mb-12 md:mb-16">
           <div className="flex items-center gap-4 mb-3 md:mb-6">
-            <span className={`text-[10px] uppercase tracking-[0.3em] ${colors.textFaint} font-mono`}>04</span>
+            <span className={`text-sm uppercase tracking-[0.3em] ${colors.text} font-mono font-bold`}>04</span>
             <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
-            <span className={`text-sm uppercase tracking-[0.2em] ${colors.text} font-medium`}>The Payoff</span>
+            <span className={`text-sm uppercase tracking-[0.2em] ${colors.text} font-bold`}>The Payoff</span>
             <div className={`flex-1 h-px ${colors.border.replace("border", "bg")}`} />
           </div>
           
@@ -215,6 +216,11 @@ export function TransactionLifecycle() {
             </div>
           </div>
         </div>
+
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {/* FAQ SECTION */}
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        <FAQ colors={colors} />
 
         {/* ═══════════════════════════════════════════════════════════════════ */}
         {/* LEARN MORE */}

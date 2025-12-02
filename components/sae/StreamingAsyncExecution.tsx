@@ -177,25 +177,15 @@ function ProposedStage({ block, colors }: { block: Block | null; colors: Colors 
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
-        {/* Grey traveling border animation - always runs continuously */}
-        <svg
-          className="absolute -inset-[2px] pointer-events-none z-20"
+        {/* Solid grey pulsing border */}
+        <motion.div
+          className="absolute -inset-[2px] pointer-events-none z-20 border-2"
           style={{ width: 84, height: 84 }}
-          viewBox="0 0 84 84"
-        >
-          <motion.rect
-            x="2"
-            y="2"
-            width="80"
-            height="80"
-            fill="none"
-            stroke="#9ca3af"
-            strokeWidth="2"
-            strokeDasharray="50 286"
-            animate={{ strokeDashoffset: [0, -336] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          />
-        </svg>
+          animate={{
+            borderColor: ["#9ca3af", "#9ca3af60", "#9ca3af"],
+          }}
+          transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+        />
         <AnimatePresence mode="wait">
           {block ? (
             <motion.div
@@ -241,7 +231,7 @@ function ProposedStage({ block, colors }: { block: Block | null; colors: Colors 
                 })}
               </div>
               {/* Block ID */}
-              <span className={`text-[7px] font-mono ${colors.textFaint}`}>
+              <span className={`text-[7px] font-mono font-bold ${colors.textFaint}`}>
                 #{block.id.toString().padStart(3, "0")}
               </span>
             </motion.div>
@@ -323,33 +313,23 @@ function AcceptedStage({ block, colors, isSettling }: { block: Block | null; col
           className="absolute inset-0 pointer-events-none z-10"
           style={{ border: `1px solid ${colors.stroke}20` }}
         />
-        {/* Grey loading border that fills around the box - turns green only when triggering settlement */}
+        {/* Solid grey pulsing border - turns green when triggering settlement */}
         <AnimatePresence>
         {block && (
-            <svg
-              className="absolute -inset-[2px] pointer-events-none z-20"
+            <motion.div
+              className="absolute -inset-[2px] pointer-events-none z-20 border-2"
               style={{ width: 84, height: 84 }}
-              viewBox="0 0 84 84"
-            >
-              <motion.rect
-                x="2"
-                y="2"
-                width="80"
-                height="80"
-                fill="none"
-                strokeWidth="2"
-                strokeDasharray="320"
-                initial={{ strokeDashoffset: 320, stroke: "#9ca3af" }}
-                animate={{ 
-                  strokeDashoffset: 0, 
-                  stroke: isSettling ? "#22c55e" : "#9ca3af" 
-                }}
-                transition={{ 
-                  strokeDashoffset: { duration: 0.6, ease: "linear" },
-                  stroke: { duration: 0.2, ease: "easeOut" }
-                }}
-              />
-            </svg>
+              initial={{ borderColor: "#9ca3af" }}
+              animate={{
+                borderColor: isSettling 
+                  ? "#22c55e" 
+                  : ["#9ca3af", "#9ca3af60", "#9ca3af"],
+              }}
+              transition={isSettling 
+                ? { duration: 0.2, ease: "easeOut" }
+                : { duration: 1, repeat: Infinity, ease: "easeInOut" }
+              }
+            />
           )}
         </AnimatePresence>
         {/* Green flash border - only when this block triggers settlement (executed -> settled) */}
@@ -634,7 +614,7 @@ function ExecutingBlock({ block, colors, onComplete }: {
           )
         })}
       </div>
-      <span className={`text-[7px] font-mono ${colors.textFaint}`}>
+      <span className={`text-[7px] font-mono font-bold ${colors.textFaint}`}>
         #{block.id.toString().padStart(3, "0")}
       </span>
     </div>
@@ -657,24 +637,14 @@ function ExecutingStage({ block, colors, onBlockComplete }: {
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
-        {/* Clockwise red border loading animation - same as FIFO queue but red */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none z-20">
-          <motion.rect
-            x="1"
-            y="1"
-            rx="0"
-            width="calc(100% - 2px)"
-            height="calc(100% - 2px)"
-            fill="none"
-            stroke="#ef4444"
-            strokeWidth="2"
-            pathLength="100"
-            strokeDasharray="15 85"
-            strokeLinecap="round"
-            animate={{ strokeDashoffset: [0, -100] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-          />
-        </svg>
+        {/* Solid red pulsing border */}
+        <motion.div
+          className="absolute inset-0 pointer-events-none z-20 border-2"
+          animate={{
+            borderColor: ["#ef4444", "#ef444460", "#ef4444"],
+          }}
+          transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+        />
         <AnimatePresence mode="popLayout">
           {block ? (
             <motion.div
@@ -838,7 +808,7 @@ function ExecutedStage({ blocks, colors, isSettling }: { blocks: Block[]; colors
                         )
                       })}
                     </div>
-                    <span className={`text-[6px] font-mono ${colors.textFaint} leading-none mt-0.5`}>
+                    <span className={`text-[6px] font-mono font-bold ${colors.textFaint} leading-none mt-0.5`}>
                       #{block.id}
                     </span>
                   </motion.div>
@@ -1237,116 +1207,163 @@ export function StreamingAsyncExecution({ colors }: { colors: Colors }) {
   }, [acceptedBlock, executedBlocks])
 
   return (
-    <>
+    <div>
       {/* Title */}
-      <div className="flex items-center gap-2 mb-4 md:mb-6 px-1">
+      <div className="flex items-center justify-between mb-3 px-1">
         <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-[0.15em] ${colors.text} font-semibold`}>
           Transaction Lifecycle
         </span>
+        <span className={`text-[10px] ${colors.textFaint} font-mono`}>
+          *all animations are simplified for illustrative purposes
+        </span>
       </div>
 
-      {/* Consensus Lane */}
-      <div className="mb-1 md:mb-2">
-        <div className={`border ${colors.border} p-2 sm:p-6 ${colors.blockBg}`}>
-          <div className="flex items-center gap-0">
-            <div className="flex-1 flex justify-center">
-              <MempoolStage txs={mempoolTxs} colors={colors} />
+      {/* Outer container */}
+      <div 
+        className={`border p-2 sm:p-3 relative`}
+        style={{
+          borderColor: 'rgba(156, 163, 175, 0.5)',
+          backgroundColor: 'rgba(156, 163, 175, 0.01)',
+        }}
+      >
+        {/* Legend */}
+        <div className="flex items-center gap-4 md:gap-6 flex-wrap px-1 mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2" style={{ backgroundColor: '#f59e0b' }} />
+            <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Transaction</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div 
+              className="w-4 h-4 grid grid-cols-2 gap-px p-0.5"
+              style={{ backgroundColor: `${colors.stroke}05`, border: `1px solid ${colors.stroke}30` }}
+            >
+              {[0,1,2,3].map(i => (
+                <div key={i} style={{ backgroundColor: i < 3 ? '#f59e0b' : `${colors.stroke}10` }} />
+              ))}
             </div>
-            <FlowArrow colors={colors} />
-            <div className="flex-1 flex justify-center">
-              <ProposedStage block={proposedBlock} colors={colors} />
-            </div>
-            <FlowArrow colors={colors} />
-            <div className="flex-1 flex justify-center">
-              <AcceptedStage block={acceptedBlock} colors={colors} isSettling={isSettling} />
+            <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Block</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4" style={{ backgroundColor: '#ef4444' }} />
+            <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Execution</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4" style={{ backgroundColor: `${colors.stroke}25`, border: `1px solid ${colors.stroke}40` }} />
+            <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Consensus</span>
+          </div>
+        </div>
+
+        {/* Middle layer */}
+        <div 
+          className={`p-2 sm:p-3 space-y-3 border ${colors.border} ${colors.blockBg}`}
+        >
+          {/* Consensus Lane Shelf */}
+          <div>
+            <p className={`text-sm sm:text-xs md:text-[11px] ${colors.textMuted} mb-2 font-mono tracking-wider`}>
+              <span className="font-semibold uppercase" style={{ color: `${colors.stroke}60` }}>Consensus Stream</span>
+            </p>
+            <div 
+              className="p-4 sm:p-6"
+              style={{
+                backgroundColor: 'rgba(156, 163, 175, 0.05)',
+                boxShadow: `
+                  inset 0 2px 8px 0 rgba(156, 163, 175, 0.25),
+                  inset 0 1px 2px 0 rgba(156, 163, 175, 0.2)
+                `,
+                border: '1px solid rgba(156, 163, 175, 0.3)',
+              }}
+            >
+            <div className="flex items-center gap-0">
+              <div className="flex-1 flex justify-center">
+                <MempoolStage txs={mempoolTxs} colors={colors} />
+              </div>
+              <FlowArrow colors={colors} />
+              <div className="flex-1 flex justify-center">
+                <ProposedStage block={proposedBlock} colors={colors} />
+              </div>
+              <FlowArrow colors={colors} />
+              <div className="flex-1 flex justify-center">
+                <AcceptedStage block={acceptedBlock} colors={colors} isSettling={isSettling} />
+              </div>
             </div>
           </div>
         </div>
-        <p className={`text-sm sm:text-xs md:text-[11px] ${colors.textMuted} mt-2 md:mt-4 font-mono tracking-wider`}>
-          <span className="font-semibold uppercase" style={{ color: `${colors.stroke}60` }}>Consensus</span> (<a href="/docs/primary-network/avalanche-consensus" className="font-semibold hover:underline" style={{ color: `${colors.stroke}60` }}>Snowman</a>) orders transactions and validates gas payment — without running the VM
-        </p>
-      </div>
 
-      {/* Connection */}
-      <div className="flex justify-end pr-24 py-0 md:py-1">
-        <svg width="24" height="36" viewBox="0 0 24 36">
-          <line
-            x1="12"
-            y1="0"
-            x2="12"
-            y2="28"
-            stroke={colors.stroke}
-            strokeOpacity="0.2"
-            strokeWidth="1"
-            strokeDasharray="4 4"
-          />
-          <path
-            d="M7 24l5 8 5-8"
-            stroke={colors.stroke}
-            strokeOpacity="0.3"
-            strokeWidth="1.5"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
+          {/* Connection to Queue */}
+          <div className="flex justify-end pr-24">
+            <svg width="24" height="24" viewBox="0 0 24 24">
+              <line x1="12" y1="0" x2="12" y2="16" stroke={colors.stroke} strokeOpacity="0.6" strokeWidth="1.5" />
+              <path d="M7 12l5 8 5-8" stroke={colors.stroke} strokeOpacity="0.7" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
 
-      {/* Queue */}
-      <div className="mb-1 md:mb-2">
-        <div className={`border ${colors.border} p-2 md:p-4 ${colors.blockBg}`}>
-          <QueueStage blocks={queuedBlocks} colors={colors} />
-        </div>
-        <p className={`text-sm sm:text-xs md:text-[11px] ${colors.textMuted} mt-2 md:mt-4 font-mono tracking-wider`}>
-          <span className="font-semibold uppercase" style={{ color: '#3b82f6' }}>Queue</span> buffers accepted blocks — <span style={{ color: `${colors.stroke}60` }}>consensus</span> continues while <span style={{ color: '#ef4444' }}>execution</span> drains
-        </p>
-      </div>
+          {/* Queue Shelf */}
+          <div>
+            <p className={`text-sm sm:text-xs md:text-[11px] ${colors.textMuted} mb-2 font-mono tracking-wider`}>
+              <span className="font-semibold uppercase" style={{ color: '#3b82f6' }}>FIFO Queue</span>
+            </p>
+            <div 
+              className="p-3 sm:p-4"
+              style={{
+                backgroundColor: 'rgba(156, 163, 175, 0.05)',
+                boxShadow: `
+                  inset 0 2px 8px 0 rgba(156, 163, 175, 0.25),
+                  inset 0 1px 2px 0 rgba(156, 163, 175, 0.2)
+                `,
+                border: '1px solid rgba(156, 163, 175, 0.3)',
+              }}
+            >
+              <QueueStage blocks={queuedBlocks} colors={colors} />
+            </div>
+          </div>
 
-      {/* Connection */}
-      <div className="flex justify-start pl-24 py-0 md:py-1">
-        <svg width="24" height="36" viewBox="0 0 24 36">
-          <line
-            x1="12"
-            y1="0"
-            x2="12"
-            y2="28"
-            stroke={colors.stroke}
-            strokeOpacity="0.2"
-            strokeWidth="1"
-            strokeDasharray="4 4"
-          />
-          <path
-            d="M7 24l5 8 5-8"
-            stroke={colors.stroke}
-            strokeOpacity="0.3"
-            strokeWidth="1.5"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
+          {/* Connection to Execution */}
+          <div className="flex justify-start pl-24">
+            <svg width="24" height="24" viewBox="0 0 24 24">
+              <line x1="12" y1="0" x2="12" y2="16" stroke={colors.stroke} strokeOpacity="0.6" strokeWidth="1.5" />
+              <path d="M7 12l5 8 5-8" stroke={colors.stroke} strokeOpacity="0.7" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
 
-      {/* Execution Lane */}
-      <div className="mt-0 md:mt-1 overflow-visible">
-        <div className={`border ${colors.border} ${colors.blockBg} p-2 sm:p-4 overflow-visible`}>
-          <div className="flex items-center justify-center gap-3 sm:gap-4 overflow-visible">
-            <ExecutingStage 
-              block={executingBlock} 
-              colors={colors} 
-              onBlockComplete={handleBlockExecutionComplete}
-            />
-            <FlowArrow colors={colors} />
-            <ExecutedStage blocks={executedBlocks} colors={colors} isSettling={isSettling} />
-            <FlowArrow colors={colors} />
-              <SettledStage blocks={settledBlocks} colors={colors} />
+          {/* Execution Lane Shelf */}
+          <div>
+            <p className={`text-sm sm:text-xs md:text-[11px] ${colors.textMuted} mb-2 font-mono tracking-wider`}>
+              <span className="font-semibold uppercase" style={{ color: '#ef4444' }}>Execution Stream</span>
+            </p>
+            <div 
+              className="p-4 sm:p-6 overflow-visible"
+              style={{
+                backgroundColor: 'rgba(156, 163, 175, 0.05)',
+                boxShadow: `
+                  inset 0 2px 8px 0 rgba(156, 163, 175, 0.25),
+                  inset 0 1px 2px 0 rgba(156, 163, 175, 0.2)
+                `,
+              border: '1px solid rgba(156, 163, 175, 0.3)',
+            }}
+          >
+              <div className="flex items-center justify-center gap-3 sm:gap-4 overflow-visible">
+                <ExecutingStage 
+                  block={executingBlock} 
+                  colors={colors} 
+                  onBlockComplete={handleBlockExecutionComplete}
+                />
+                <FlowArrow colors={colors} />
+                <ExecutedStage blocks={executedBlocks} colors={colors} isSettling={isSettling} />
+                <FlowArrow colors={colors} />
+                <SettledStage blocks={settledBlocks} colors={colors} />
+              </div>
+            </div>
           </div>
         </div>
-        <p className={`text-sm sm:text-xs md:text-[11px] ${colors.textMuted} mt-2 md:mt-4 font-mono tracking-wider`}>
-          <span className="font-semibold uppercase" style={{ color: '#ef4444' }}>Execution</span> runs transactions and computes state — streams results, settles after <span style={{ color: '#f59e0b' }}>τ</span>
+      </div>
+
+      {/* Explainer paragraph */}
+      <div className="mt-4 md:mt-6">
+        <p className={`text-base sm:text-base ${colors.text} leading-relaxed`}>
+          Consensus orders transactions and validates gas payment without running the VM. The queue buffers accepted blocks while execution drains them. Results stream to clients immediately. Settlement follows 5 seconds later.
         </p>
       </div>
-    </>
+    </div>
   )
 }
 

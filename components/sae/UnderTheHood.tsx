@@ -150,9 +150,16 @@ export function BlockRelationship({ colors }: { colors: Colors }) {
         </span>
       </div>
 
-      <div className={`border ${colors.border} p-3 sm:p-8 ${colors.blockBg} overflow-x-auto`}>
+      {/* Outer container */}
+      <div 
+        className="border p-2 sm:p-3"
+        style={{
+          borderColor: 'rgba(156, 163, 175, 0.5)',
+          backgroundColor: 'rgba(156, 163, 175, 0.01)',
+        }}
+      >
         {/* Legend */}
-        <div className="flex flex-wrap items-center gap-4 mb-4 md:gap-6 md:mb-8">
+        <div className="flex flex-wrap items-center gap-4 md:gap-6 px-1 mb-3">
           <div className="flex items-center gap-2">
             <div
               className="w-4 h-4 rounded-sm"
@@ -180,6 +187,22 @@ export function BlockRelationship({ colors }: { colors: Colors }) {
           </div>
         </div>
 
+        {/* Middle layer */}
+        <div 
+          className={`p-2 sm:p-3 border ${colors.border} ${colors.blockBg}`}
+        >
+          {/* Inner inset shelf */}
+          <div 
+            className="p-3 sm:p-8 overflow-x-auto"
+            style={{
+              backgroundColor: 'rgba(156, 163, 175, 0.05)',
+              boxShadow: `
+                inset 0 2px 8px 0 rgba(156, 163, 175, 0.25),
+                inset 0 1px 2px 0 rgba(156, 163, 175, 0.2)
+              `,
+              border: '1px solid rgba(156, 163, 175, 0.3)',
+            }}
+          >
         <div className="relative mx-auto" style={{ width: "600px", height: "270px" }}>
           {/* SVG Layer */}
           <svg className="absolute inset-0 w-full h-full overflow-visible">
@@ -282,25 +305,13 @@ export function BlockRelationship({ colors }: { colors: Colors }) {
           </div>
         </div>
 
-      </div>
-      <div className="mt-2 md:mt-4">
-        <p className={`text-sm sm:text-xs md:text-[11px] font-mono uppercase tracking-wider ${colors.text} mt-1`}>
-          <span style={{ color: `${colors.stroke}60` }}>consensus</span> guarantees <span style={{ color: '#ef4444' }}>execution</span>, <span className="italic normal-case">eventually</span>
-        </p>
-        <div className={`text-base sm:text-sm ${colors.textMuted} leading-relaxed space-y-4 sm:space-y-3 mt-6 md:mt-10`}>
-          <p>
-            <strong className={colors.text}>Decoupled streams.</strong> Consensus orders and accepts transactions into a FIFO queue without waiting for execution. The execution stream processes blocks independently, running transactions and computing state changes. Both streams operate simultaneously — no context switching, no blocking.
-          </p>
-          <p>
-            <strong className={colors.text}>Guaranteed execution.</strong> Every accepted transaction is guaranteed to eventually execute. Consensus validates worst-case gas bounds at acceptance time, ensuring senders can always pay. Order is fixed at acceptance, execution is deterministic.
-          </p>
-          <p>
-            <strong className={colors.text}>Gas is time.</strong> Execution duration is measured in gas, not wall time. The gas rate R = 30M gas/sec provides deterministic, sub-second granular timestamps that advance predictably as transactions consume gas.
-          </p>
-          <p>
-            <strong className={colors.text}>Deferred settlement.</strong> Results stream immediately to clients as execution completes. Settlement is recorded τ = 5s later when a following accepted block includes the state root — multiple blocks can settle together, amortizing overhead.
-          </p>
+          </div>
         </div>
+      </div>
+      <div className="mt-4 md:mt-6">
+        <p className={`text-base sm:text-base ${colors.text} leading-relaxed`}>
+          Two streams running in parallel. Consensus accepts transactions into a queue. Execution drains it. No waiting, no blocking. Every accepted transaction executes — gas bounds validated at acceptance. Results stream to clients immediately. Settlement follows 5 seconds later.
+        </p>
       </div>
     </div>
   )

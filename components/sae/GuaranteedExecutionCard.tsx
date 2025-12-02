@@ -37,7 +37,9 @@ export function GuaranteedExecutionCard({ colors }: { colors: Colors }) {
   }, [])
   
   return (
-    <div className={`p-6 border ${colors.border} ${colors.blockBg} h-full flex flex-col`}>
+    <div 
+      className={`p-6 h-full flex flex-col ${colors.blockBg}`}
+    >
       <div className="mb-4">
         <h3 className={`text-lg font-bold ${colors.text} mb-2`}>
           Pay for worst case, always execute.

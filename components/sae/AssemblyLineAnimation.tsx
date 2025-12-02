@@ -968,22 +968,24 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
 export function AssemblyLineCard({ colors }: { colors: Colors }) {
   return (
     <div className="py-2 md:py-12">
-      {/* Header - matching main title style */}
-      <div className="text-center mb-3 md:mb-6">
-        <h2 className={`text-lg font-bold ${colors.text} mb-2`}>
-          Assembly Lines, but for Blockchains!
-        </h2>
-        <p className={`text-sm sm:text-xs ${colors.textMuted} font-mono uppercase tracking-[0.1em]`}>
-          Blockchain go brrr!
-        </p>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3 px-1">
+        <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-[0.15em] ${colors.text} font-semibold`}>
+          Assembly Lines, but for Blockchains
+        </span>
+        <span className={`text-[10px] ${colors.textFaint} font-mono`}>
+          blockchain go brrr
+        </span>
       </div>
       
-      {/* Animation */}
-      <AssemblyLineAnimation colors={colors} />
+      {/* Animation - with left padding for particles */}
+      <div className="pl-16 sm:pl-20 overflow-visible">
+        <AssemblyLineAnimation colors={colors} />
+      </div>
       
       {/* Description underneath */}
-      <p className={`text-lg sm:text-xs md:text-[11px] ${colors.textMuted} mt-8 md:mt-10 font-mono uppercase tracking-wider text-center`}>
-        Faster block acceptance • Saturated execution • Instant receipts
+      <p className={`text-base sm:text-base ${colors.text} leading-relaxed mt-4 md:mt-6`}>
+        Faster block acceptance. Saturated execution. Instant receipts.
       </p>
     </div>
   )

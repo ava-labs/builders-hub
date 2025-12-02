@@ -133,7 +133,6 @@ function SyncBlockDisplay({
   onExecutionComplete?: () => void
 }) {
   const executionColor = "#ef4444" // red
-  const [filledCells, setFilledCells] = useState(0)
   const [proposingPhase, setProposingPhase] = useState<'executing' | 'consensus' | 'idle'>('idle')
   const [checkmarkVisible, setCheckmarkVisible] = useState(false)
 
@@ -152,34 +151,21 @@ function SyncBlockDisplay({
     }
   }, [showCheckmark, block])
 
-  // Animate cells filling when proposing
+  // Simple phase switching for proposing: red (executing) → grey (consensus)
   useEffect(() => {
     if (isProposing && block) {
-      setFilledCells(0)
       setProposingPhase('executing')
-      const totalCells = block.txCount
-      // Dynamic timing: total fill animation is ~2.2 seconds regardless of cell count
-      const totalFillTime = 2200
-      const fillInterval = Math.max(80, totalFillTime / totalCells)
-
-      let currentCell = 0
-      const interval = setInterval(() => {
-        currentCell++
-        setFilledCells(currentCell)
-        if (currentCell >= totalCells) {
-          clearInterval(interval)
-          // Switch to consensus phase after filling
-          setProposingPhase('consensus')
-        }
-      }, fillInterval)
+      
+      // Switch to consensus phase halfway through
+      const timer = setTimeout(() => {
+        setProposingPhase('consensus')
+      }, 1100)
 
       return () => {
-        clearInterval(interval)
+        clearTimeout(timer)
         setProposingPhase('idle')
       }
-    } else if (!isProposing) {
-      // When not proposing, show all cells immediately
-      setFilledCells(block?.txCount || 0)
+    } else {
       setProposingPhase('idle')
     }
   }, [isProposing, block])
@@ -221,43 +207,29 @@ function SyncBlockDisplay({
             />
           </svg>
         )}
-        {/* Traveling border - color changes from red to grey */}
+        {/* Solid pulsing border - red (executing) then grey (consensus) */}
         {showProposingPulse && (
-          <svg
-            className="absolute -inset-[2px] pointer-events-none z-20"
+          <motion.div
+            className="absolute -inset-[2px] pointer-events-none z-20 border-2"
             style={{ width: 68, height: 68 }}
-            viewBox="0 0 68 68"
-          >
-            <motion.rect
-              x="2"
-              y="2"
-              width="64"
-              height="64"
-              fill="none"
-              stroke={proposingPhase === 'executing' ? executionColor : "#9ca3af"}
-              strokeWidth="2"
-              strokeDasharray="40 216"
-              initial={{ strokeDashoffset: 0 }}
-              animate={{ strokeDashoffset: -256 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatType: "loop" }}
-            />
-          </svg>
+            animate={{
+              borderColor: proposingPhase === 'executing' 
+                ? [executionColor, `${executionColor}60`, executionColor]
+                : ["#9ca3af", "#9ca3af60", "#9ca3af"],
+            }}
+            transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+          />
         )}
-        {/* Red traveling border for executing */}
+        {/* Solid red pulsing border for executing */}
         {isExecuting && block && (
-          <svg className="absolute -inset-[2px] pointer-events-none z-20" style={{ width: 68, height: 68 }} viewBox="0 0 68 68">
-            <motion.rect
-              x="2" y="2"
-              width="64"
-              height="64"
-              fill="none"
-              stroke="#ef4444"
-              strokeWidth="2"
-              strokeDasharray="40 216"
-              animate={{ strokeDashoffset: [0, -256] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-            />
-          </svg>
+          <motion.div
+            className="absolute -inset-[2px] pointer-events-none z-20 border-2"
+            style={{ width: 68, height: 68 }}
+            animate={{
+              borderColor: ["#ef4444", "#ef444460", "#ef4444"],
+            }}
+            transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+          />
         )}
         {/* Pulsing glow during consensus phase */}
         {showProposingPulse && proposingPhase === 'consensus' && (
@@ -300,23 +272,17 @@ function SyncBlockDisplay({
                     borderColor: checkmarkVisible ? "#22c55e" : `${colors.stroke}30`,
                   }}
                 >
-                  {Array.from({ length: 16 }).map((_, i) => {
-                    const shouldShow = isProposing ? i < filledCells : i < block.txCount
-                    return (
-                      <motion.div
-                        key={i}
-                        initial={isProposing && i < block.txCount ? { scale: 0, opacity: 0 } : false}
-                        animate={shouldShow ? { scale: 1, opacity: 1 } : { scale: 1, opacity: 1 }}
-                        transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                        style={{
-                          aspectRatio: "1",
-                          backgroundColor: shouldShow && i < block.txCount
-                            ? (block.txColors[i] || `${colors.stroke}40`)
-                            : `${colors.stroke}10`,
-                        }}
-                      />
-                    )
-                  })}
+                  {Array.from({ length: 16 }).map((_, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        aspectRatio: "1",
+                        backgroundColor: i < block.txCount
+                          ? (block.txColors[i] || `${colors.stroke}40`)
+                          : `${colors.stroke}10`,
+                      }}
+                    />
+                  ))}
                 </div>
               )}
             </motion.div>
@@ -576,9 +542,65 @@ export function SynchronousExecution({ colors }: { colors: Colors }) {
           *all animations are simplified for illustrative purposes
         </span>
       </div>
-      <div className={`border ${colors.border} p-2 sm:p-6 ${colors.blockBg}`}>
-        {/* Single row flow - always horizontal, scaled via parent on mobile */}
-        <div className="flex items-center justify-center gap-2 md:gap-4">
+      {/* Outer container */}
+      <div 
+        className={`border p-2 sm:p-3 relative`}
+        style={{
+          borderColor: 'rgba(156, 163, 175, 0.5)',
+          backgroundColor: 'rgba(156, 163, 175, 0.01)',
+        }}
+      >
+        {/* Legend */}
+        <div className="flex items-center gap-4 md:gap-6 flex-wrap px-1 mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2" style={{ backgroundColor: '#f59e0b' }} />
+            <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Transaction</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div 
+              className="w-4 h-4 grid grid-cols-2 gap-px p-0.5"
+              style={{ backgroundColor: `${colors.stroke}05`, border: `1px solid ${colors.stroke}30` }}
+            >
+              {[0,1,2,3].map(i => (
+                <div key={i} style={{ backgroundColor: i < 3 ? '#f59e0b' : `${colors.stroke}10` }} />
+              ))}
+            </div>
+            <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Block</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4" style={{ backgroundColor: '#ef4444' }} />
+            <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Execution</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4" style={{ backgroundColor: `${colors.stroke}25`, border: `1px solid ${colors.stroke}40` }} />
+            <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Consensus</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <line x1="0" y1="8" x2="16" y2="8" stroke={colors.stroke} strokeWidth="2" strokeOpacity="0.6" strokeDasharray="6 4" />
+            </svg>
+            <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Context Switching</span>
+          </div>
+        </div>
+
+        {/* Middle layer */}
+        <div 
+          className={`p-2 sm:p-3 border ${colors.border} ${colors.blockBg}`}
+        >
+          {/* Inner inset container */}
+          <div 
+            className="p-3 sm:p-6"
+            style={{
+              backgroundColor: 'rgba(156, 163, 175, 0.05)',
+              boxShadow: `
+                inset 0 2px 8px 0 rgba(156, 163, 175, 0.25),
+                inset 0 1px 2px 0 rgba(156, 163, 175, 0.2)
+              `,
+              border: '1px solid rgba(156, 163, 175, 0.3)',
+            }}
+          >
+            {/* Single row flow - always horizontal, scaled via parent on mobile */}
+            <div className="flex items-center justify-center gap-2 md:gap-4">
           {/* Mempool */}
           <div
             className="flex flex-col items-center gap-2 relative cursor-help"
@@ -719,26 +741,17 @@ export function SynchronousExecution({ colors }: { colors: Colors }) {
           >
             <SyncSettledDisplay blocks={settledBlocks} colors={colors} />
             {renderTooltip('settled')}
+            </div>
           </div>
+        </div>
         </div>
       </div>
 
       {/* Note - outside container */}
-      <div className="mt-2 md:mt-4">
-        <p className={`text-sm sm:text-xs md:text-[11px] font-mono uppercase tracking-wider ${colors.text}`}>
-          <span style={{ color: '#ef4444' }}>Execution</span> blocks everything — <span style={{ color: `${colors.stroke}60` }}>consensus</span> cannot proceed until the VM finishes
+      <div className="mt-4 md:mt-6">
+        <p className={`text-base sm:text-base ${colors.text} leading-relaxed`}>
+          Execution blocks everything. The proposer executes before proposing. Every validator re-executes to verify. Consensus pauses for the VM, the VM pauses for consensus. Block N+1 cannot start until Block N fully settles.
         </p>
-        <div className={`text-base sm:text-sm ${colors.textMuted} leading-relaxed space-y-3 sm:space-y-2 mt-6 md:mt-10`}>
-          <p>
-            <strong className={colors.text}>The symmetrical bottleneck.</strong> Consensus waits for execution. Execution waits for consensus. Each block must fully complete before the next can even begin — the proposer executes, broadcasts, waits for other validators to execute, waits for votes, then finally settles.
-          </p>
-          <p>
-            <strong className={colors.text}>Worst-case determines throughput.</strong> A single complex transaction can stall the entire network. Gas limits exist to bound this, but the fundamental constraint remains: total block execution time gates how fast the chain can move.
-          </p>
-          <p>
-            <strong className={colors.text}>Users wait in the dark.</strong> After submitting a transaction, users have no visibility. They wait for the proposer to execute, the network to verify, consensus to finalize — only then do they learn if their transaction succeeded or failed when the block settles.
-          </p>
-        </div>
       </div>
     </div>
   )
