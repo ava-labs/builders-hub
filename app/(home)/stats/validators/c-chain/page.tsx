@@ -851,18 +851,24 @@ export default function CChainValidatorMetrics() {
                     C-Chain Validators
                   </h1>
                 </div>
-                {/* Blockchain ID and Subnet ID chips */}
+                {/* Blockchain ID and Subnet ID chips + Add to Wallet */}
                 {(chainConfig.subnetId || chainConfig.blockchainId || chainConfig.rpcUrl) && (
-                  <div className="flex flex-wrap items-center gap-2 mt-3">
-                    <ChainIdChips subnetId={chainConfig.subnetId} blockchainId={chainConfig.blockchainId} />
-                    {chainConfig.rpcUrl && (
-                      <AddToWalletButton 
-                        rpcUrl={chainConfig.rpcUrl}
-                        chainName="Avalanche C-Chain"
-                        chainId={43114}
-                        tokenSymbol="AVAX"
-                      />
-                    )}
+                  <div className="mt-3 -mx-4 px-4 sm:mx-0 sm:px-0">
+                    <div className="flex flex-row items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <ChainIdChips subnetId={chainConfig.subnetId} blockchainId={chainConfig.blockchainId} />
+                      </div>
+                      {chainConfig.rpcUrl && (
+                        <div className="flex-shrink-0">
+                          <AddToWalletButton 
+                            rpcUrl={chainConfig.rpcUrl}
+                            chainName="Avalanche C-Chain"
+                            chainId={43114}
+                            tokenSymbol="AVAX"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
                 <div className="flex items-center gap-3 mt-3">
@@ -870,6 +876,74 @@ export default function CChainValidatorMetrics() {
                     {chainConfig.description}
                   </p>
                 </div>
+                {/* Mobile Social Links - shown below description */}
+                {(chainConfig.website || chainConfig.socials || chainConfig.rpcUrl) && (
+                  <div className="flex sm:hidden items-center gap-2 mt-4">
+                    {chainConfig.website && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
+                      >
+                        <a href={chainConfig.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                          Website
+                          <ArrowUpRight className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    )}
+                    {chainConfig.socials && (chainConfig.socials.twitter || chainConfig.socials.linkedin) && (
+                      <>
+                        {chainConfig.socials.twitter && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
+                          >
+                            <a 
+                              href={`https://x.com/${chainConfig.socials.twitter}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              aria-label="Twitter"
+                            >
+                              <Twitter className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        )}
+                        {chainConfig.socials.linkedin && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
+                          >
+                            <a 
+                              href={`https://linkedin.com/company/${chainConfig.socials.linkedin}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              aria-label="LinkedIn"
+                            >
+                              <Linkedin className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        )}
+                      </>
+                    )}
+                    {chainConfig.rpcUrl && (
+                      <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
+                        <ExplorerDropdown
+                          explorers={[
+                            { name: "BuilderHub", link: `/explorer/${chainConfig.slug}` },
+                            ...(chainConfig.explorers || []).filter((e: { name: string }) => e.name !== "BuilderHub"),
+                          ]}
+                          variant="outline"
+                          size="sm"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="mt-3">
                   <span
                     className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
@@ -928,8 +1002,8 @@ export default function CChainValidatorMetrics() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-end gap-2">
-              {/* Main action buttons */}
+            {/* Desktop Social Links - hidden on mobile */}
+            <div className="hidden sm:flex flex-row items-end gap-2">
               <div className="flex items-center gap-2">
                 {chainConfig.website && (
                   <Button

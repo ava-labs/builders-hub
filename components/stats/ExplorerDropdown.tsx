@@ -84,17 +84,17 @@ export function ExplorerDropdown({
         {explorers.map((explorer, index) => {
           const isInternal = isInternalLink(explorer.link);
           return (
-            <DropdownMenuItem
-              key={index}
-              onClick={(e) => {
-                e.stopPropagation();
+          <DropdownMenuItem
+            key={index}
+            onClick={(e) => {
+              e.stopPropagation();
                 handleNavigate(explorer.link);
-              }}
-              className="cursor-pointer text-xs"
-            >
-              {explorer.name}
+            }}
+            className="cursor-pointer text-xs"
+          >
+            {explorer.name}
               {!isInternal && <ArrowUpRight className="h-3 w-3 ml-auto" />}
-            </DropdownMenuItem>
+          </DropdownMenuItem>
           );
         })}
       </DropdownMenuContent>

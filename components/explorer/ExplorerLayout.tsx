@@ -194,21 +194,27 @@ export function ExplorerLayout({
                         {chainName} Explorer
                       </h1>
                     </div>
-                    {/* Blockchain ID and Subnet ID chips */}
+                    {/* Blockchain ID and Subnet ID chips + Add to Wallet */}
                     {(currentChain?.subnetId || (currentChain as any)?.blockchainId || rpcUrl) && (
-                      <div className="flex flex-wrap items-center gap-2 mt-3">
-                        <ChainIdChips 
-                          subnetId={currentChain?.subnetId} 
-                          blockchainId={(currentChain as any)?.blockchainId} 
-                        />
-                        {rpcUrl && (
-                          <AddToWalletButton 
-                            rpcUrl={rpcUrl}
-                            chainName={chainName}
-                            chainId={currentChain?.chainId ? parseInt(currentChain.chainId) : undefined}
-                            tokenSymbol={currentChain?.tokenSymbol}
-                          />
-                        )}
+                      <div className="mt-3 -mx-4 px-4 sm:mx-0 sm:px-0">
+                        <div className="flex flex-row items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <ChainIdChips 
+                              subnetId={currentChain?.subnetId} 
+                              blockchainId={(currentChain as any)?.blockchainId} 
+                            />
+                          </div>
+                          {rpcUrl && (
+                            <div className="flex-shrink-0">
+                              <AddToWalletButton 
+                                rpcUrl={rpcUrl}
+                                chainName={chainName}
+                                chainId={currentChain?.chainId ? parseInt(currentChain.chainId) : undefined}
+                                tokenSymbol={currentChain?.tokenSymbol}
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                     {description && (
@@ -216,6 +222,52 @@ export function ExplorerLayout({
                         <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
                           {description}
                         </p>
+                      </div>
+                    )}
+                    {/* Mobile Social Links - shown below description */}
+                    {(website || socials) && (
+                      <div className="flex sm:hidden items-center gap-2 mt-4">
+                        {website && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 cursor-pointer"
+                          >
+                            <a href={website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 cursor-pointer">
+                              Website
+                              <ArrowUpRight className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        )}
+                        {socials && (socials.twitter || socials.linkedin) && (
+                          <>
+                            {socials.twitter && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                asChild
+                                className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2 cursor-pointer"
+                              >
+                                <a href={`https://x.com/${socials.twitter}`} target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="cursor-pointer">
+                                  <Twitter className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            )}
+                            {socials.linkedin && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                asChild
+                                className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2 cursor-pointer"
+                              >
+                                <a href={`https://linkedin.com/company/${socials.linkedin}`} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="cursor-pointer">
+                                  <Linkedin className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            )}
+                          </>
+                        )}
                       </div>
                     )}
                     {currentChain?.category && (
@@ -273,9 +325,9 @@ export function ExplorerLayout({
                   </div>
                 </div>
 
-                {/* Social Links */}
+                {/* Desktop Social Links - hidden on mobile */}
                 {(website || socials) && (
-                  <div className="flex flex-col sm:flex-row items-end gap-2">
+                  <div className="hidden sm:flex flex-row items-end gap-2">
                     <div className="flex items-center gap-2">
                       {website && (
                         <Button

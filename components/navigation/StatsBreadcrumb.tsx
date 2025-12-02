@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BarChart3, ChevronRight, Compass, Globe, ChevronDown, Plus, Users, Home } from "lucide-react";
@@ -120,6 +120,7 @@ export function StatsBreadcrumb({
   const router = useRouter();
   const { openModal } = useModalTrigger<AddChainResult>();
   const [customChains, setCustomChains] = useState<CustomChainForDropdown[]>([]);
+  const navRef = useRef<HTMLElement>(null);
   
   const handleAddCustomChain = async () => {
     try {
@@ -243,6 +244,28 @@ export function StatsBreadcrumb({
     }
   };
 
+  // Scroll to last breadcrumb item on mobile
+  useEffect(() => {
+    if (!navRef.current) return;
+
+    // Only scroll on mobile (screen width < 640px)
+    const isMobile = window.innerWidth < 640;
+    if (!isMobile) return;
+
+    // Use setTimeout to ensure DOM is fully rendered
+    const timeoutId = setTimeout(() => {
+      if (navRef.current) {
+        // Scroll to the end (right side) of the breadcrumb
+        navRef.current.scrollTo({
+          left: navRef.current.scrollWidth,
+          behavior: 'smooth',
+        });
+      }
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [chainSlug, chainName, breadcrumbItems, showExplorer, showStats, showValidators]);
+
   return (
     <>
       <style dangerouslySetInnerHTML={{__html: `
@@ -281,7 +304,7 @@ export function StatsBreadcrumb({
           background-color: rgb(63 63 70) !important;
         }
       `}} />
-      <nav className={`stats-breadcrumb flex items-center gap-1.5 text-xs sm:text-sm mb-3 sm:mb-4 overflow-x-auto scrollbar-hide pb-1 ${className}`}>
+      <nav ref={navRef} className={`stats-breadcrumb flex items-center gap-1.5 text-xs sm:text-sm mb-3 sm:mb-4 overflow-x-auto scrollbar-hide pb-1 ${className}`}>
         {/* Ecosystem - always shown as first item */}
         <Link 
           href="/stats/overview" 

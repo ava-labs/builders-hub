@@ -1018,18 +1018,24 @@ export default function ChainMetricsPage({
                       : `${chainName} Metrics`}
                   </h1>
                 </div>
-                {/* Blockchain ID and Subnet ID chips */}
+                {/* Blockchain ID and Subnet ID chips + Add to Wallet */}
                 {(subnetId || blockchainId || (rpcUrl || chainData?.rpcUrl)) && (
-                  <div className="flex flex-wrap items-center gap-2 mt-3">
-                    <ChainIdChips subnetId={subnetId} blockchainId={blockchainId} />
-                    {(rpcUrl || chainData?.rpcUrl) && !isAllChainsView && (
-                      <AddToWalletButton 
-                        rpcUrl={(rpcUrl || chainData?.rpcUrl)!}
-                        chainName={chainName}
-                        chainId={chainId ? parseInt(chainId) : undefined}
-                        tokenSymbol={chainData?.tokenSymbol}
-                      />
-                    )}
+                  <div className="mt-3 -mx-4 px-4 sm:mx-0 sm:px-0">
+                    <div className="flex flex-row items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <ChainIdChips subnetId={subnetId} blockchainId={blockchainId} />
+                      </div>
+                      {(rpcUrl || chainData?.rpcUrl) && !isAllChainsView && (
+                        <div className="flex-shrink-0">
+                          <AddToWalletButton 
+                            rpcUrl={(rpcUrl || chainData?.rpcUrl)!}
+                            chainName={chainName}
+                            chainId={chainId ? parseInt(chainId) : undefined}
+                            tokenSymbol={chainData?.tokenSymbol}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
                 <div className="flex items-center gap-3 mt-3">
@@ -1037,6 +1043,71 @@ export default function ChainMetricsPage({
                     {description}
                   </p>
                 </div>
+                {/* Mobile Social Links - shown below description */}
+                {(website || socials || explorers) && (
+                  <div className="flex sm:hidden items-center gap-2 mt-4">
+                    {website && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
+                      >
+                        <a href={website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                          Website
+                          <ArrowUpRight className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    )}
+                    {socials && (socials.twitter || socials.linkedin) && (
+                      <>
+                        {socials.twitter && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
+                          >
+                            <a 
+                              href={`https://x.com/${socials.twitter}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              aria-label="Twitter"
+                            >
+                              <Twitter className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        )}
+                        {socials.linkedin && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
+                          >
+                            <a 
+                              href={`https://linkedin.com/company/${socials.linkedin}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              aria-label="LinkedIn"
+                            >
+                              <Linkedin className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        )}
+                      </>
+                    )}
+                    {explorers && (
+                      <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
+                        <ExplorerDropdown
+                          explorers={explorers}
+                          variant="outline"
+                          size="sm"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
                 {category && (
                   <div className="mt-3">
                     <span 
@@ -1064,8 +1135,8 @@ export default function ChainMetricsPage({
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-end gap-2">
-              {/* Main action buttons */}
+            {/* Desktop Social Links - hidden on mobile */}
+            <div className="hidden sm:flex flex-row items-end gap-2">
               <div className="flex items-center gap-2">
                 {website && (
                   <Button

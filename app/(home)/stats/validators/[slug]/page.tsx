@@ -570,18 +570,24 @@ export default function ChainValidatorsPage() {
                     {chainInfo.chainName} Validators
                   </h1>
                 </div>
-                {/* Blockchain ID and Subnet ID chips */}
+                {/* Blockchain ID and Subnet ID chips + Add to Wallet */}
                 {(chainInfo.subnetId || chainInfo.blockchainId || chainInfo.rpcUrl) && (
-                  <div className="flex flex-wrap items-center gap-2 mt-3">
-                    <ChainIdChips subnetId={chainInfo.subnetId} blockchainId={chainInfo.blockchainId} />
-                    {chainInfo.rpcUrl && (
-                      <AddToWalletButton 
-                        rpcUrl={chainInfo.rpcUrl}
-                        chainName={chainInfo.chainName}
-                        chainId={chainInfo.chainId ? parseInt(chainInfo.chainId) : undefined}
-                        tokenSymbol={(chainInfo as any).tokenSymbol}
-                      />
-                    )}
+                  <div className="mt-3 -mx-4 px-4 sm:mx-0 sm:px-0">
+                    <div className="flex flex-row items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <ChainIdChips subnetId={chainInfo.subnetId} blockchainId={chainInfo.blockchainId} />
+                      </div>
+                      {chainInfo.rpcUrl && (
+                        <div className="flex-shrink-0">
+                          <AddToWalletButton 
+                            rpcUrl={chainInfo.rpcUrl}
+                            chainName={chainInfo.chainName}
+                            chainId={chainInfo.chainId ? parseInt(chainInfo.chainId) : undefined}
+                            tokenSymbol={(chainInfo as any).tokenSymbol}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
                 {(chainInfo.description || chainInfo.chainName) && (
@@ -589,6 +595,74 @@ export default function ChainValidatorsPage() {
                     <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
                       {chainInfo.description || `Active validators and delegation metrics for ${chainInfo.chainName}`}
                     </p>
+                  </div>
+                )}
+                {/* Mobile Social Links - shown below description */}
+                {(chainInfo.website || chainInfo.socials || chainInfo.rpcUrl) && (
+                  <div className="flex sm:hidden items-center gap-2 mt-4">
+                    {chainInfo.website && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
+                      >
+                        <a href={chainInfo.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                          Website
+                          <ArrowUpRight className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    )}
+                    {chainInfo.socials && (chainInfo.socials.twitter || chainInfo.socials.linkedin) && (
+                      <>
+                        {chainInfo.socials.twitter && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
+                          >
+                            <a 
+                              href={`https://x.com/${chainInfo.socials.twitter}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              aria-label="Twitter"
+                            >
+                              <Twitter className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        )}
+                        {chainInfo.socials.linkedin && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
+                          >
+                            <a 
+                              href={`https://linkedin.com/company/${chainInfo.socials.linkedin}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              aria-label="LinkedIn"
+                            >
+                              <Linkedin className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        )}
+                      </>
+                    )}
+                    {chainInfo.rpcUrl && (
+                      <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
+                        <ExplorerDropdown
+                          explorers={[
+                            { name: "BuilderHub", link: `/explorer/${chainInfo.slug}` },
+                            ...(chainInfo.explorers || []).filter((e: { name: string }) => e.name !== "BuilderHub"),
+                          ]}
+                          variant="outline"
+                          size="sm"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
                 {chainInfo.category && (
@@ -607,8 +681,8 @@ export default function ChainValidatorsPage() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-end gap-2">
-              {/* Main action buttons */}
+            {/* Desktop Social Links - hidden on mobile */}
+            <div className="hidden sm:flex flex-row items-end gap-2">
               <div className="flex items-center gap-2">
                 {chainInfo.website && (
                   <Button
