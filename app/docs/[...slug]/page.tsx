@@ -25,19 +25,46 @@ import {
 } from "fumadocs-ui/page";
 import type { MDXComponents } from "mdx/types";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import posthog from "posthog-js";
 import { type ComponentProps, type FC, type ReactElement, type ReactNode } from "react";
 
-export const dynamicParams = false;
+export const dynamicParams = true;
 export const revalidate = false;
+
+/**
+ * Finds the nearest available parent path for a given slug.
+ * If the exact page doesn't exist, it tries parent paths until it finds one that exists.
+ */
+function findNearestAvailablePath(slug: string[]): string | null {
+  // Try progressively shorter paths (parent paths)
+  for (let i = slug.length - 1; i >= 0; i--) {
+    const parentSlug = slug.slice(0, i);
+    const parentPage = documentation.getPage(parentSlug);
+    if (parentPage) {
+      return `/docs/${parentSlug.join("/")}`;
+    }
+  }
+  // If no parent found, redirect to docs root
+  return "/docs";
+}
 
 export default async function Page(props: {
   params: Promise<{ slug: string[] }>;
 }): Promise<ReactElement> {
   const params = await props.params;
   const page = documentation.getPage(params.slug);
-  if (!page) notFound();
+
+  if (!page) {
+    // If page not found, try to redirect to nearest available parent path
+    if (params.slug && params.slug.length > 0) {
+      const nearestPath = findNearestAvailablePath(params.slug);
+      if (nearestPath) {
+        redirect(nearestPath);
+      }
+    }
+    notFound();
+  }
 
   const { body: MDX, toc } = await page.data.load();
   const path = `content/docs${page.url.replace('/docs/', '/')}.mdx`;
@@ -170,7 +197,13 @@ export async function generateMetadata(props: {
   const params = await props.params;
   const page = documentation.getPage(params.slug);
 
-  if (!page) notFound();
+  if (!page) {
+    // Return basic metadata for non-existent pages (redirect will happen in page component)
+    return createMetadata({
+      title: "Avalanche Documentation",
+      description: "Developer documentation for everything related to the Avalanche ecosystem.",
+    });
+  }
 
   const description =
     page.data.description ??
