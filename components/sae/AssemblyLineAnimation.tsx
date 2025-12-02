@@ -970,7 +970,7 @@ export function AssemblyLineCard({ colors }: { colors: Colors }) {
     <div className="py-2 md:py-12">
       {/* Header - matching main title style */}
       <div className="text-center mb-3 md:mb-6">
-        <h2 className={`text-2xl sm:text-xl md:text-2xl font-medium ${colors.text} uppercase tracking-[0.1em] sm:tracking-[0.2em] mb-1 md:mb-3 font-mono`}>
+        <h2 className={`text-lg font-bold ${colors.text} mb-2`}>
           Assembly Lines, but for Blockchains!
         </h2>
         <p className={`text-sm sm:text-xs ${colors.textMuted} font-mono uppercase tracking-[0.1em]`}>
