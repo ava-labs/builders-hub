@@ -645,7 +645,7 @@ export default function ChainValidatorsPage() {
             )}
           </div>
           <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-            {filteredValidators.length} of {validators.length} validators
+            {displayedValidators.length} of {filteredValidators.length} validators
           </span>
         </div>
 

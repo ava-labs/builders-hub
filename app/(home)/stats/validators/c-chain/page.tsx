@@ -1664,10 +1664,8 @@ export default function CChainValidatorMetrics() {
               )}
             </div>
             <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-              Showing {displayedValidators.length} of{" "}
-              {filteredValidators.length} validators
-              {filteredValidators.length !== validators.length &&
-                ` (${validators.length} total)`}
+              {displayedValidators.length} of {filteredValidators.length}{" "}
+              validators
             </span>
           </div>
 
