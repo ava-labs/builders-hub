@@ -8,6 +8,7 @@ import { useEffect, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { LayoutWrapper } from "@/app/layout-wrapper.client";
 import { NavbarDropdownInjector } from "@/components/navigation/navbar-dropdown-injector";
+import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";
 
 export default function Layout({
   children,
@@ -20,10 +21,12 @@ export default function Layout({
         <RedirectIfNewUser />
       </Suspense>
       <NavbarDropdownInjector />
-      <LayoutWrapper baseOptions={baseOptions}>
-        {children}
-        <Footer />
-      </LayoutWrapper>
+      <WalletProvider>
+        <LayoutWrapper baseOptions={baseOptions}>
+          {children}
+          <Footer />
+        </LayoutWrapper>
+      </WalletProvider>
     </SessionProvider>
   );
 }
