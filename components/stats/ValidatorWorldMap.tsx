@@ -365,9 +365,7 @@ export function ValidatorWorldMap() {
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-4">
               Top Countries by{" "}
-              {visualMode === "validators"
-                ? "Validator Count"
-                : "Total Stake"}
+              {visualMode === "validators" ? "Validator Count" : "Total Stake"}
             </h3>
             <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
               {sortedCountries.map((country, index) => (
