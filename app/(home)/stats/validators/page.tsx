@@ -25,10 +25,10 @@ import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { type SubnetStats } from "@/types/validator-stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import l1ChainsData from "@/constants/l1-chains.json";
-import { 
-  compareVersions, 
-  calculateVersionStats, 
-  VersionBarChart, 
+import {
+  compareVersions,
+  calculateVersionStats,
+  VersionBarChart,
   VersionLabels,
   VersionBreakdownInline,
   type VersionBreakdownData,
@@ -309,7 +309,6 @@ export default function ValidatorStatsPage() {
     aggregatedStats.totalNodes > 0
       ? (upToDateValidators / aggregatedStats.totalNodes) * 100
       : 0;
-
 
   const SortButton = ({
     column,
@@ -786,12 +785,16 @@ export default function ValidatorStatsPage() {
                       <td className="px-4 py-2">
                         <div className="space-y-1.5">
                           <VersionBarChart
-                            versionBreakdown={{ byClientVersion: subnet.byClientVersion }}
+                            versionBreakdown={{
+                              byClientVersion: subnet.byClientVersion,
+                            }}
                             minVersion={minVersion}
                             totalNodes={stats.totalNodes}
                           />
                           <VersionLabels
-                            versionBreakdown={{ byClientVersion: subnet.byClientVersion }}
+                            versionBreakdown={{
+                              byClientVersion: subnet.byClientVersion,
+                            }}
                             minVersion={minVersion}
                             totalNodes={stats.totalNodes}
                             showPercentage={false}
@@ -814,7 +817,7 @@ export default function ValidatorStatsPage() {
                               subnet.id ===
                               "11111111111111111111111111111111LpoYY"
                             ) {
-                              router.push("/stats/validators/primary-network");
+                              router.push("/stats/validators/c-chain");
                             } else {
                               const slug = getSlugForSubnetId(subnet.id);
                               if (slug) {

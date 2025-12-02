@@ -27,7 +27,7 @@ export function StatsBubbleNav() {
         } else if (pathname.startsWith("/stats/playground")) {
             return "playground";
         } else if (pathname.startsWith("/stats/validators")) {
-            return "validators"; // All validator pages including primary-network
+            return "validators"; // All validator pages including c-chain and L1s
         }
         return "overview";
     };
