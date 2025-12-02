@@ -3,6 +3,70 @@ import { streamText } from 'ai';
 
 export const runtime = 'edge';
 
+// PostHog configuration for LLM analytics
+const POSTHOG_API_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com';
+
+// Capture LLM generation event to PostHog
+async function captureAIGeneration({
+  distinctId,
+  model,
+  input,
+  output,
+  inputTokens,
+  outputTokens,
+  latencyMs,
+  traceId,
+}: {
+  distinctId?: string;
+  model: string;
+  input: string;
+  output: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  latencyMs: number;
+  traceId?: string;
+}) {
+  if (!POSTHOG_API_KEY) return;
+
+  try {
+    // Estimate tokens if not provided (rough estimate: 1 token ≈ 4 chars)
+    const estimatedInputTokens = inputTokens ?? Math.ceil(input.length / 4);
+    const estimatedOutputTokens = outputTokens ?? Math.ceil(output.length / 4);
+
+    // GPT-4o-mini pricing: $0.15/1M input, $0.60/1M output
+    const inputCost = (estimatedInputTokens / 1000000) * 0.15;
+    const outputCost = (estimatedOutputTokens / 1000000) * 0.60;
+
+    await fetch(`${POSTHOG_HOST}/capture/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        api_key: POSTHOG_API_KEY,
+        event: '$ai_generation',
+        distinct_id: distinctId || 'anonymous',
+        properties: {
+          $ai_model: model,
+          $ai_provider: 'openai',
+          $ai_input: input,
+          $ai_output_choices: [{ message: { content: output } }],
+          $ai_input_tokens: estimatedInputTokens,
+          $ai_output_tokens: estimatedOutputTokens,
+          $ai_total_cost_usd: inputCost + outputCost,
+          $ai_latency: latencyMs / 1000, // Convert to seconds
+          $ai_trace_id: traceId,
+          $ai_http_status: 200,
+        },
+        timestamp: new Date().toISOString(),
+      }),
+    });
+  } catch (error) {
+    console.error('Failed to capture AI generation event:', error);
+  }
+}
+
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -134,7 +198,9 @@ function findRelevantSections(query: string, docs: string): string[] {
 }
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages, id: visitorId } = await req.json();
+  const startTime = Date.now();
+  const traceId = `trace_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
   // Get the last user message to search for relevant docs
   const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
@@ -165,9 +231,26 @@ export async function POST(req: Request) {
     ? `\n\n=== VALID DOCUMENTATION URLS ===\nThese are ALL the valid URLs on the site. ONLY use URLs from this list:\n${validUrls.map(url => `https://build.avax.network${url}`).join('\n')}\n=== END VALID URLS ===\n`
     : '';
 
+  // Build the full input for analytics
+  const userInput = lastUserMessage?.content || '';
+
   const result = streamText({
     model: openai('gpt-4o-mini'),
     messages: messages,
+    onFinish: async ({ text, usage }) => {
+      // Capture LLM generation event to PostHog
+      const latencyMs = Date.now() - startTime;
+      await captureAIGeneration({
+        distinctId: visitorId,
+        model: 'gpt-4o-mini',
+        input: userInput,
+        output: text,
+        inputTokens: usage?.promptTokens,
+        outputTokens: usage?.completionTokens,
+        latencyMs,
+        traceId,
+      });
+    },
     system: `You are an expert AI assistant for Avalanche Builders Hub, specializing in helping developers build on Avalanche.
 
 CRITICAL URL RULES - MUST FOLLOW TO PREVENT 404 ERRORS:
