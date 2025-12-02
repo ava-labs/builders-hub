@@ -1,8 +1,8 @@
 <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ef4444" stop-opacity="1" />
-      <stop offset="100%" stop-color="#ef4444" stop-opacity="0.8" />
+      <stop offset="0%" stop-color="#dc2626" stop-opacity="1" />
+      <stop offset="100%" stop-color="#dc2626" stop-opacity="0.8" />
     </linearGradient>
     <filter id="glow">
       <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
@@ -13,7 +13,7 @@
     </filter>
   </defs>
   
-  <!-- Main heartbeat/pulse line with animation -->
+  <!-- Main heartbeat/pulse line -->
   <path
     d="M 4 24 L 10 24 L 14 16 L 18 32 L 22 20 L 26 28 L 30 24 L 34 24 L 38 16 L 42 32 L 44 24"
     stroke="url(#iconGradient)"
@@ -22,67 +22,20 @@
     stroke-linejoin="round"
     fill="none"
     filter="url(#glow)"
-    stroke-dasharray="100"
-    stroke-dashoffset="0"
-  >
-    <animate
-      attributeName="stroke-dashoffset"
-      values="0;-100"
-      dur="2s"
-      repeatCount="indefinite"
-    />
-  </path>
+  />
   
-  <!-- Network nodes with animations -->
-  <circle cx="10" cy="24" r="2.5" fill="#ef4444">
-    <animate
-      attributeName="r"
-      values="2.5;3.5;2.5"
-      dur="2s"
-      repeatCount="indefinite"
-    />
-  </circle>
-  
-  <circle cx="14" cy="16" r="3" fill="#ef4444" opacity="0.9">
-    <animate
-      attributeName="opacity"
-      values="0.9;1;0.9"
-      dur="2s"
-      begin="0.2s"
-      repeatCount="indefinite"
-    />
-  </circle>
-  
-  <circle cx="18" cy="32" r="2.5" fill="#ef4444" opacity="0.8" />
-  
-  <circle cx="22" cy="20" r="2.5" fill="#ef4444" opacity="0.9" />
-  
-  <circle cx="26" cy="28" r="3.5" fill="#ef4444">
-    <animate
-      attributeName="r"
-      values="3.5;4.5;3.5"
-      dur="2s"
-      begin="0.4s"
-      repeatCount="indefinite"
-    />
-  </circle>
-  
-  <circle cx="34" cy="24" r="2.5" fill="#ef4444" />
-  
-  <circle cx="38" cy="16" r="3" fill="#ef4444" opacity="0.9">
-    <animate
-      attributeName="opacity"
-      values="0.9;1;0.9"
-      dur="2s"
-      begin="0.6s"
-      repeatCount="indefinite"
-    />
-  </circle>
-  
-  <circle cx="42" cy="32" r="2.5" fill="#ef4444" opacity="0.8" />
+  <!-- Network nodes -->
+  <circle cx="10" cy="24" r="2.5" fill="#dc2626" />
+  <circle cx="14" cy="16" r="3" fill="#dc2626" opacity="0.9" />
+  <circle cx="18" cy="32" r="2.5" fill="#dc2626" opacity="0.8" />
+  <circle cx="22" cy="20" r="2.5" fill="#dc2626" opacity="0.9" />
+  <circle cx="26" cy="28" r="3.5" fill="#dc2626" />
+  <circle cx="34" cy="24" r="2.5" fill="#dc2626" />
+  <circle cx="38" cy="16" r="3" fill="#dc2626" opacity="0.9" />
+  <circle cx="42" cy="32" r="2.5" fill="#dc2626" opacity="0.8" />
   
   <!-- Connecting lines -->
-  <path d="M 14 16 L 22 20" stroke="#ef4444" stroke-width="1" stroke-linecap="round" opacity="0.3" />
-  <path d="M 22 20 L 26 28" stroke="#ef4444" stroke-width="1" stroke-linecap="round" opacity="0.3" />
-  <path d="M 26 28 L 38 16" stroke="#ef4444" stroke-width="1" stroke-linecap="round" opacity="0.3" />
+  <path d="M 14 16 L 22 20" stroke="#dc2626" stroke-width="1" stroke-linecap="round" opacity="0.3" />
+  <path d="M 22 20 L 26 28" stroke="#dc2626" stroke-width="1" stroke-linecap="round" opacity="0.3" />
+  <path d="M 26 28 L 38 16" stroke="#dc2626" stroke-width="1" stroke-linecap="round" opacity="0.3" />
 </svg>
