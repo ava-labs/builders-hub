@@ -25,7 +25,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ variant = 'fixed', className }) => {
           src="/avax-gpt.png" 
           alt="AI Assistant" 
           className={cn(
-            "relative object-contain drop-shadow-lg",
+            "relative object-contain drop-shadow-lg dark:invert",
             variant === 'fixed' ? "h-16 w-16" : "h-12 w-12"
           )}
         />
