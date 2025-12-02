@@ -93,7 +93,7 @@ const config = {
       },
       {
         source: '/docs/dapps/end-to-end/fuji-workflow',
-        destination: '/blog/what-is-fuji-testnet',
+        destination: '/academy/blockchain/solidity-foundry/04-hello-world-part-1/01-intro',
         permanent: true,
       },
       {
