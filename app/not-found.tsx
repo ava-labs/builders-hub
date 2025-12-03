@@ -6,7 +6,6 @@ import { baseOptions } from "@/app/layout.config";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from 'react';
 import newGithubIssueUrl from "new-github-issue-url";
-import { usePostHog } from 'posthog-js/react';
 import { ArrowRight, Home, Search, BookOpen, Terminal, Github } from 'lucide-react';
 
 function createGitHubIssueURL(path: string | null) {
@@ -50,7 +49,6 @@ export default function NotFound() {
   const [currentPath, setCurrentPath] = useState<string | null>(null);
   const [suggestedPath, setSuggestedPath] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
-  const posthog = usePostHog();
 
   useEffect(() => {
     setMounted(true);
@@ -62,14 +60,26 @@ export default function NotFound() {
       const nearest = findNearestAvailablePath(path);
       setSuggestedPath(nearest);
 
-      posthog?.capture('404_page_not_found', {
-        path: path,
-        referrer: referrer || 'direct',
-        url: window.location.href,
-        suggested_path: nearest,
-      });
+      // Track 404 with PostHog if available
+      try {
+        import('posthog-js').then((posthogModule) => {
+          const posthog = posthogModule.default;
+          if (posthog && typeof posthog.capture === 'function') {
+            posthog.capture('404_page_not_found', {
+              path: path,
+              referrer: referrer || 'direct',
+              url: window.location.href,
+              suggested_path: nearest,
+            });
+          }
+        }).catch(() => {
+          // PostHog not available, silently ignore
+        });
+      } catch {
+        // PostHog not available, silently ignore
+      }
     }
-  }, [posthog]);
+  }, []);
 
   const issueURL = createGitHubIssueURL(currentPath);
 
