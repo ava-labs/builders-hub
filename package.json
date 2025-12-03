@@ -8,7 +8,8 @@
     "build:remote": "tsx ./utils/remote-content.mts && tsx ./scripts/generate-api-reference.mts",
     "start": "pnpm build:remote && next build && next start",
     "check-links": "tsx .github/linkChecker.ts",
-    "postinstall": "prisma generate && fumadocs-mdx && node ./scripts/update_docker_tags.mjs",
+    "generate:event-signatures": "tsx ./scripts/generate-event-signatures.mts",
+    "postinstall": "prisma generate && fumadocs-mdx && node ./scripts/update_docker_tags.mjs && tsx ./scripts/generate-event-signatures.mts",
     "postbuild": "tsx ./utils/update-index.ts"
   },
   "dependencies": {
@@ -90,6 +91,7 @@
     "hast-util-to-jsx-runtime": "^2.3.6",
     "idb": "^8.0.3",
     "input-otp": "^1.4.2",
+    "jszip": "^3.10.1",
     "katex": "^0.16.22",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.553.0",

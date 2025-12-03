@@ -7,8 +7,7 @@
     "slug": "aibmainnet",
     "color": "#3B82F6",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "8787",
@@ -52,8 +51,7 @@
     "slug": "as0314t1tp",
     "color": "#F59E0B",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "43114",
@@ -65,6 +63,7 @@
       "linkedin": "avalancheavax"
     },
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
+    "blockchainId": "0x0427d4b22a2a78bcddd456742caf91b56badbff985ee19aef14573e7343fd652",
     "subnetId": "11111111111111111111111111111111LpoYY",
     "slug": "c-chain",
     "color": "#E57373",
@@ -82,7 +81,12 @@
         "name": "SnowScan",
         "link": "https://snowscan.xyz/"
       }
-    ]
+    ],
+    "rpcUrl": "https://api.avax.network/ext/bc/C/rpc",
+    "coingeckoId": "avalanche-2",
+    "duneId": "avalanche_c",
+    "tokenSymbol": "AVAX",
+    "sourcifySupport": true
   },
   {
     "chainId": "40404",
@@ -92,8 +96,7 @@
     "slug": "bango",
     "color": "#EC4899",
     "category": "Gaming",
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "5506",
@@ -103,8 +106,7 @@
     "slug": "bangochain",
     "color": "#6366F1",
     "category": "Gaming",
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "4337",
@@ -128,7 +130,10 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/beam"
       }
-    ]
+    ],
+    "rpcUrl": "https://subnets.avax.network/beam/mainnet/rpc",
+    "coingeckoId": "beam-2",
+    "tokenSymbol": "BEAM"
   },
   {
     "chainId": "836",
@@ -208,8 +213,7 @@
     "slug": "cedomis",
     "color": "#84CC16",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "235235",
@@ -219,13 +223,13 @@
     "slug": "codenekt",
     "color": "#22C55E",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "42069",
     "chainName": "Coqnet",
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/1r0LuDAKrZv9jgKqaeEBN3/9a7efac3099b861366f9e776e6131617/Isotipo_coq.png",
+    "blockchainId": "0x898b8aa8353f2b79ee1de07c36474fcee339003d90fa06ea3a90d9e88b7d7c33",
     "subnetId": "5moznRzaAEhzWkNTQVdT1U4Kb9EU7dbsKZQNmHwtN5MGVQRyT",
     "slug": "coqnet",
     "color": "#D946EF",
@@ -235,12 +239,16 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/coqnet"
       }
-    ]
+    ],
+    "rpcUrl": "https://subnets.avax.network/coqnet/mainnet/rpc",
+    "coingeckoId": "coq-inu",
+    "tokenSymbol": "COQ"
   },
   {
     "chainId": "737373",
     "chainName": "CX",
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/3wVuWA4oz9iMadkIpywUMM/377249d5b8243e4dfa3a426a1af5eaa5/14.png",
+    "blockchainId": "0x8ef5dc1c38fc403fe671cdc1f2304d4a74b6bc5350d18a0fdb9d644d777e8b9c",
     "subnetId": "WChFQ1twkXBLxZGo4qojC9AgizFrRdMRnPCK9FZmisY7z6pUs",
     "slug": "cx",
     "color": "#F59E0B",
@@ -250,7 +258,8 @@
         "name": "Avalanche Explorer",
         "link": "https://subnets.avax.network/cx"
       }
-    ]
+    ],
+    "rpcUrl": "https://subnets.avax.network/cx/mainnet/rpc"
   },
   {
     "chainId": "326663",
@@ -260,8 +269,7 @@
     "slug": "dcomm",
     "color": "#10B981",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "96786",
@@ -286,16 +294,16 @@
     "slug": "deraalpha",
     "color": "#8B5CF6",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "432204",
     "chainName": "Dexalot",
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/6tKCXL3AqxfxSUzXLGfN6r/be31715b87bc30c0e4d3da01a3d24e9a/dexalot-subnet.png",
+    "blockchainId": "0x84bdd5b728daf315c23da60a4dc97e82da8027bfc64389f4b04ae1d3d91686b2",
     "subnetId": "wenKDikJWAYQs3f2v9JhV86fC6kHZwkFZsuUBftnmgZ4QXPnu",
     "slug": "dexalot",
-    "color": "#F59E0B",
+    "color": "#e51988",
     "category": "Finance",
     "description": "Operates as its own Avalanche L1, giving it the dedicated performance, custom fee structure, and deterministic finality of a centralized exchange—while still being fully decentralized and interoperable with the broader Avalanche ecosystem.",
     "website": "https://dexalot.com/en",
@@ -308,7 +316,10 @@
         "name": "Snowtrace",
         "link": "https://432204.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://subnets.avax.network/dexalot/mainnet/rpc",
+    "coingeckoId": "dexalot",
+    "tokenSymbol": "ALOT"
   },
   {
     "chainId": "202110",
@@ -350,7 +361,9 @@
         "name": "Snowtrace",
         "link": "https://53935.snowtrace.io"
       }
-    ]
+    ],
+    "coingeckoId": "defi-kingdoms",
+    "tokenSymbol": "JEWEL"
   },
   {
     "chainId": "7979",
@@ -467,8 +480,7 @@
     "slug": "goodcare",
     "color": "#F43F5E",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "7084",
@@ -478,8 +490,7 @@
     "slug": "growfitter",
     "color": "#22C55E",
     "category": "Fitness",
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "43419",
@@ -500,7 +511,9 @@
         "name": "Snowtrace",
         "link": "https://43419.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://rpc.gunzchain.io/ext/bc/2M47TxWHGnhNtq6pM5zPXdATBtuqubxn5EPFgFmEawCQr9WFML/rpc",
+    "coingeckoId": "gunz"
   },
   {
     "chainId": "7272",
@@ -527,6 +540,7 @@
     "chainId": "68414",
     "chainName": "Henesys",
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/Uu31h98BapTCwbhHGBtFu/6b72f8e30337e4387338c82fa0e1f246/MSU_symbol.png",
+    "blockchainId": "0xaf6a974f467006d94388f438014162dd12ec2d1475c48faf09ffe7222d59e478",
     "subnetId": "jmLmezoViv3F72XLzpdmSNk3qLEGb72g5EYkp3ij4wHXPF2KN",
     "slug": "henesys",
     "color": "#3B82F6",
@@ -545,7 +559,9 @@
         "name": "Snowtrace",
         "link": "https://68414.snowtrace.io"
       }
-    ]
+    ],
+    "rpcUrl": "https://henesys-rpc.msu.io",
+    "coingeckoId": "nexpace"
   },
   {
     "chainId": "10036",
@@ -574,8 +590,7 @@
     "slug": "intainmkt",
     "color": "#10B981",
     "category": "Finance",
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "1216",
@@ -742,8 +757,7 @@
     "slug": "marnisa",
     "color": "#EF4444",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "1888",
@@ -768,8 +782,7 @@
     "slug": "mugen",
     "color": "#0EA5E9",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "8021",
@@ -805,8 +818,8 @@
     },
     "explorers": [
       {
-          "name": "Avalanche Explorer",
-          "link": "https://subnets.avax.network/orange"
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/orange"
       }
     ]
   },
@@ -818,8 +831,7 @@
     "slug": "oumla",
     "color": "#10B981",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "7776",
@@ -829,8 +841,7 @@
     "slug": "pandasea",
     "color": "#3B82F6",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "3011",
@@ -851,7 +862,9 @@
         "name": "Snowtrace",
         "link": "https://3011.snowtrace.io"
       }
-    ]
+    ],
+    "coingeckoId": "playa3ull-games-2",
+    "tokenSymbol": "3ULL"
   },
   {
     "chainId": "16180",
@@ -875,7 +888,9 @@
         "name": "Snowtrace",
         "link": "https://16180.snowtrace.io"
       }
-    ]
+    ],
+    "coingeckoId": "plyr",
+    "tokenSymbol": "PLYR"
   },
   {
     "chainId": "77757",
@@ -970,7 +985,9 @@
         "name": "Snowtrace",
         "link": "https://1234.snowtrace.io"
       }
-    ]
+    ],
+    "coingeckoId": "step-app-fitfi",
+    "tokenSymbol": "FITFI"
   },
   {
     "chainId": "5566",
@@ -1127,8 +1144,7 @@
     "slug": "ulalo",
     "color": "#3B82F6",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "40875",
@@ -1138,8 +1154,7 @@
     "slug": "v1migrate",
     "color": "#10B981",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "299792",
@@ -1171,8 +1186,7 @@
     "socials": {
       "linkedin": "watrprotocol"
     },
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "98968",
@@ -1182,8 +1196,7 @@
     "slug": "wow",
     "color": "#F59E0B",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "8888",
@@ -1193,8 +1206,7 @@
     "slug": "xanachain",
     "color": "#E57373",
     "category": "General",
-    "explorers": [
-    ]
+    "explorers": []
   },
   {
     "chainId": "61360",

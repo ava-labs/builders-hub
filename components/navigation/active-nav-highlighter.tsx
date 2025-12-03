@@ -27,6 +27,8 @@ export function ActiveNavHighlighter() {
       activeSection = '/guides'; // Blog menu has url '/guides'
     } else if (pathname.startsWith('/integrations')) {
       activeSection = '/integrations';
+    } else if (pathname.startsWith('/explorer')) {
+      activeSection = '/explorer';
     } else if (pathname.startsWith('/stats')) {
       activeSection = '/stats';
     } else if (pathname.startsWith('/events') || pathname.startsWith('/hackathons')) {
@@ -52,6 +54,11 @@ export function ActiveNavHighlighter() {
             }
             // Handle stats which has url '/stats/overview'
             else if (activeSection === '/stats' && href.startsWith('/stats')) {
+              link.setAttribute('data-active', 'true');
+              link.setAttribute('aria-current', 'page');
+            }
+            // Handle explorer which has url '/explorer'
+            else if (activeSection === '/explorer' && href.startsWith('/explorer')) {
               link.setAttribute('data-active', 'true');
               link.setAttribute('aria-current', 'page');
             }

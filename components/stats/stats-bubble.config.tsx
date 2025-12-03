@@ -5,7 +5,8 @@ import type { BubbleNavigationConfig } from '@/components/navigation/bubble-navi
 
 export const statsBubbleConfig: BubbleNavigationConfig = {
     items: [
-        { id: "ecosytem", label: "Ecosystem", href: "/stats/overview" },
+        { id: "overview", label: "Overview", href: "/stats/overview" },
+        { id: "stats", label: "Stats", href: "/stats/network-metrics" },
         { id: "playground", label: "Playground", href: "/stats/playground" },
         { id: "validators", label: "Validators", href: "/stats/validators" },
     ],
@@ -21,10 +22,12 @@ export function StatsBubbleNav() {
         const currentItem = items.find((item) => pathname === item.href);
         if (currentItem) {
             return currentItem.id;
-        } else if (pathname.startsWith("/stats/l1/")) {
-            return "";
+        } else if (pathname.startsWith("/stats/network-metrics")) {
+            return "stats"; // All chains stats page
         } else if (pathname.startsWith("/stats/playground")) {
             return "playground";
+        } else if (pathname.startsWith("/stats/validators")) {
+            return "validators"; // All validator pages including c-chain and L1s
         }
         return "overview";
     };
