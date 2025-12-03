@@ -33,16 +33,17 @@ export const metadata: Metadata = createMetadata({
 });
 
 type PageProps = {
-  searchParams?: {
+  searchParams: Promise<{
     path?: string;
-  };
+  }>;
 };
 
 const isPathType = (value: string | undefined): value is AcademyPathType => {
   return value === "avalanche" || value === "blockchain" || value === "entrepreneur";
 };
 
-export default function AvalancheAcademyPage({ searchParams }: PageProps): React.ReactElement {
+export default async function AvalancheAcademyPage({ searchParams }: PageProps): Promise<React.ReactElement> {
+  const resolvedSearchParams = await searchParams;
   // Get all guides server-side
   const blogPages = [...blog.getPages()]
     .sort(
@@ -129,7 +130,7 @@ export default function AvalancheAcademyPage({ searchParams }: PageProps): React
     </div>
   ) : null;
 
-  const initialPathType = isPathType(searchParams?.path) ? searchParams?.path : undefined;
+  const initialPathType = isPathType(resolvedSearchParams?.path) ? resolvedSearchParams?.path : undefined;
 
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="text-zinc-600 dark:text-zinc-400">Loading...</div></div>}>

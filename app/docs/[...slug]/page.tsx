@@ -29,7 +29,7 @@ import { notFound } from "next/navigation";
 import posthog from "posthog-js";
 import { type ComponentProps, type FC, type ReactElement, type ReactNode } from "react";
 
-export const dynamicParams = false;
+export const dynamicParams = true;
 export const revalidate = false;
 
 export default async function Page(props: {
@@ -37,6 +37,7 @@ export default async function Page(props: {
 }): Promise<ReactElement> {
   const params = await props.params;
   const page = documentation.getPage(params.slug);
+
   if (!page) notFound();
 
   const { body: MDX, toc } = await page.data.load();
