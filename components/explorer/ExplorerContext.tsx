@@ -69,6 +69,7 @@ interface ExplorerProviderProps {
   description?: string;
   website?: string;
   rpcUrl?: string;
+  blockchainId?: string;
   socials?: {
     twitter?: string;
     linkedin?: string;
@@ -86,6 +87,7 @@ export function ExplorerProvider({
   description,
   website,
   rpcUrl,
+  blockchainId,
   socials,
 }: ExplorerProviderProps) {
   const [chainInfo, setChainInfo] = useState<ChainInfo>({
@@ -117,13 +119,16 @@ export function ExplorerProvider({
   const buildApiUrl = useCallback((endpoint: string, additionalParams?: Record<string, string>): string => {
     const params = new URLSearchParams();
     
-    // Only add rpcUrl and tokenSymbol for custom chains (not in l1-chains.json)
+    // Only add rpcUrl, tokenSymbol, and blockchainId for custom chains (not in l1-chains.json)
     if (isCustomChain) {
       if (rpcUrl) {
         params.set('rpcUrl', rpcUrl);
       }
       if (nativeToken) {
         params.set('tokenSymbol', nativeToken);
+      }
+      if (blockchainId) {
+        params.set('blockchainId', blockchainId);
       }
     }
     
@@ -136,7 +141,7 @@ export function ExplorerProvider({
     
     const queryString = params.toString();
     return queryString ? `${endpoint}?${queryString}` : endpoint;
-  }, [isCustomChain, rpcUrl, nativeToken]);
+  }, [isCustomChain, rpcUrl, nativeToken, blockchainId]);
   
   const fetchTokenData = useCallback(async (forceRefresh = false) => {
     // Check cache first

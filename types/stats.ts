@@ -60,6 +60,7 @@ export interface L1Chain {
   chainId: string;
   chainName: string;
   chainLogoURI: string;
+  blockchainId?: string;
   subnetId: string;
   slug: string;
   color?: string;
