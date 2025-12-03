@@ -10,7 +10,6 @@ import rehypeKatex from 'rehype-katex';
 import { z } from 'zod';
 import { rehypeCodeDefaultOptions } from 'fumadocs-core/mdx-plugins';
 import { transformerTwoslash } from 'fumadocs-twoslash';
-import { createFileSystemTypesCache } from 'fumadocs-twoslash/cache-fs';
 
 export const { docs, meta } = defineDocs({
   docs: {
@@ -97,9 +96,7 @@ export default defineConfig({
       },
       transformers: [
         ...(rehypeCodeDefaultOptions.transformers ?? []),
-        transformerTwoslash({
-          typesCache: createFileSystemTypesCache(),
-        }),
+        transformerTwoslash(),
         {
           name: 'transformers:remove-notation-escape',
           code(hast) {
