@@ -23,7 +23,6 @@ import {
   Twitter,
   Linkedin,
 } from "lucide-react";
-import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
@@ -612,7 +611,6 @@ export default function ChainListPage() {
         )}
       </div>
 
-      <StatsBubbleNav />
     </div>
   );
 }
