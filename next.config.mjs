@@ -11,6 +11,10 @@ const config = {
     'twoslash',
     'shiki',
   ],
+  // Include tsconfig.json in serverless function bundles for twoslash
+  outputFileTracingIncludes: {
+    '/*': ['./tsconfig.json'],
+  },
   env: {
     APIKEY: process.env.APIKEY,
   },
