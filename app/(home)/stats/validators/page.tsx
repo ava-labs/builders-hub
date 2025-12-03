@@ -2,6 +2,7 @@
 import type React from "react";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
@@ -16,11 +17,22 @@ import {
   Search,
   AlertTriangle,
   X,
+  Globe,
+  ChevronRight,
+  Users,
 } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { type SubnetStats } from "@/types/validator-stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import l1ChainsData from "@/constants/l1-chains.json";
+import {
+  compareVersions,
+  calculateVersionStats,
+  VersionBarChart,
+  VersionLabels,
+  VersionBreakdownInline,
+  type VersionBreakdownData,
+} from "@/components/stats/VersionBreakdown";
 
 type SortColumn =
   | "name"
@@ -38,7 +50,7 @@ export default function ValidatorStatsPage() {
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [data, setData] = useState<SubnetStats[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Start with loading true since we fetch on mount
   const [error, setError] = useState<string | null>(null);
   const [network, setNetwork] = useState<Network>("mainnet");
   const [minVersion, setMinVersion] = useState<string>("");
@@ -110,12 +122,6 @@ export default function ValidatorStatsPage() {
 
     fetchData();
   }, [network]);
-
-  const compareVersions = (v1: string, v2: string): number => {
-    if (v1 === "Unknown") return -1;
-    if (v2 === "Unknown") return 1;
-    return v1.localeCompare(v2, undefined, { numeric: true });
-  };
 
   const calculateStats = (subnet: SubnetStats) => {
     const totalStake = BigInt(subnet.totalStakeString);
@@ -304,26 +310,6 @@ export default function ValidatorStatsPage() {
       ? (upToDateValidators / aggregatedStats.totalNodes) * 100
       : 0;
 
-  // Color palette for version breakdown in card
-  const versionColors = [
-    "bg-blue-500 dark:bg-blue-600",
-    "bg-purple-500 dark:bg-purple-600",
-    "bg-pink-500 dark:bg-pink-600",
-    "bg-indigo-500 dark:bg-indigo-600",
-    "bg-cyan-500 dark:bg-cyan-600",
-    "bg-teal-500 dark:bg-teal-600",
-    "bg-emerald-500 dark:bg-emerald-600",
-    "bg-lime-500 dark:bg-lime-600",
-    "bg-yellow-500 dark:bg-yellow-600",
-    "bg-amber-500 dark:bg-amber-600",
-    "bg-orange-500 dark:bg-orange-600",
-    "bg-red-500 dark:bg-red-600",
-  ];
-
-  const getVersionColor = (index: number): string => {
-    return versionColors[index % versionColors.length];
-  };
-
   const SortButton = ({
     column,
     children,
@@ -361,6 +347,12 @@ export default function ValidatorStatsPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
             <div className="animate-pulse space-y-8 sm:space-y-12">
               <div className="space-y-4">
+                {/* Breadcrumb skeleton */}
+                <div className="flex items-center gap-1.5">
+                  <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                  <div className="h-3 w-3 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                  <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                </div>
                 <div className="flex items-center gap-3">
                   <div className="h-5 w-5 sm:h-6 sm:w-6 bg-zinc-200 dark:bg-zinc-800 rounded" />
                   <div className="h-4 w-32 bg-zinc-200 dark:bg-zinc-800 rounded" />
@@ -511,6 +503,22 @@ export default function ValidatorStatsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
           <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
             <div className="space-y-4 sm:space-y-6 flex-1">
+              {/* Breadcrumb */}
+              <div className="flex items-center gap-1.5 text-xs sm:text-sm">
+                <Link
+                  href="/stats/overview"
+                  className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                >
+                  <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <span>Ecosystem</span>
+                </Link>
+                <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
+                <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap flex-shrink-0">
+                  <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500" />
+                  <span>Validators</span>
+                </span>
+              </div>
+
               <div>
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
                   <AvalancheLogo
@@ -565,30 +573,12 @@ export default function ValidatorStatsPage() {
           </div>
 
           {/* Secondary stats row - version breakdown */}
-          <div className="flex flex-wrap items-center gap-4 sm:gap-6 md:gap-8 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-zinc-200 dark:border-zinc-800">
-            <div className="flex items-center gap-2">
-              <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-                Version Breakdown:
-              </span>
-            </div>
-            {Object.entries(totalVersionBreakdown)
-              .sort(([v1], [v2]) => compareVersions(v2, v1))
-              .slice(0, 5)
-              .map(([version, data], index) => (
-                <div key={version} className="flex items-center gap-1.5">
-                  <div
-                    className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${getVersionColor(
-                      index
-                    )}`}
-                  />
-                  <span className="text-xs sm:text-sm font-mono text-zinc-700 dark:text-zinc-300">
-                    {version}
-                  </span>
-                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-                    ({data.nodes})
-                  </span>
-                </div>
-              ))}
+          <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-zinc-200 dark:border-zinc-800">
+            <VersionBreakdownInline
+              versions={totalVersionBreakdown}
+              minVersion={minVersion}
+              limit={5}
+            />
           </div>
         </div>
       </div>
@@ -794,68 +784,22 @@ export default function ValidatorStatsPage() {
                       </td>
                       <td className="px-4 py-2">
                         <div className="space-y-1.5">
-                          {/* Horizontal Bar Chart */}
-                          <div className="flex h-6 w-full rounded overflow-hidden bg-neutral-100 dark:bg-neutral-800">
-                            {Object.entries(subnet.byClientVersion)
-                              .sort(([v1], [v2]) => compareVersions(v2, v1))
-                              .map(([version, data]) => {
-                                const percentage =
-                                  stats.totalNodes > 0
-                                    ? (data.nodes / stats.totalNodes) * 100
-                                    : 0;
-                                const isAboveTarget =
-                                  compareVersions(version, minVersion) >= 0;
-                                return (
-                                  <div
-                                    key={version}
-                                    className={`h-full transition-all ${
-                                      isAboveTarget
-                                        ? "bg-green-700 dark:bg-green-800"
-                                        : "bg-gray-200 dark:bg-gray-500"
-                                    }`}
-                                    style={{ width: `${percentage}%` }}
-                                    title={`${version}: ${
-                                      data.nodes
-                                    } nodes (${percentage.toFixed(1)}%)`}
-                                  />
-                                );
-                              })}
-                          </div>
-                          {/* Version Labels */}
-                          <div className="flex flex-wrap gap-x-2 gap-y-1 text-xs">
-                            {Object.entries(subnet.byClientVersion)
-                              .sort(([v1], [v2]) => compareVersions(v2, v1))
-                              .map(([version, data]) => {
-                                const isAboveTarget =
-                                  compareVersions(version, minVersion) >= 0;
-                                return (
-                                  <div
-                                    key={version}
-                                    className="flex items-center gap-1"
-                                  >
-                                    <div
-                                      className={`h-2 w-2 rounded-full flex-shrink-0 ${
-                                        isAboveTarget
-                                          ? "bg-green-700 dark:bg-green-800"
-                                          : "bg-gray-200 dark:bg-gray-500"
-                                      }`}
-                                    />
-                                    <span
-                                      className={`font-mono ${
-                                        isAboveTarget
-                                          ? "text-black dark:text-white"
-                                          : "text-neutral-500 dark:text-neutral-500"
-                                      }`}
-                                    >
-                                      {version}
-                                    </span>
-                                    <span className="text-neutral-500 dark:text-neutral-500">
-                                      ({data.nodes})
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                          </div>
+                          <VersionBarChart
+                            versionBreakdown={{
+                              byClientVersion: subnet.byClientVersion,
+                            }}
+                            minVersion={minVersion}
+                            totalNodes={stats.totalNodes}
+                          />
+                          <VersionLabels
+                            versionBreakdown={{
+                              byClientVersion: subnet.byClientVersion,
+                            }}
+                            minVersion={minVersion}
+                            totalNodes={stats.totalNodes}
+                            showPercentage={false}
+                            size="sm"
+                          />
                         </div>
                       </td>
                       <td className="px-4 py-2 text-center">
@@ -873,7 +817,7 @@ export default function ValidatorStatsPage() {
                               subnet.id ===
                               "11111111111111111111111111111111LpoYY"
                             ) {
-                              router.push("/stats/primary-network/validators");
+                              router.push("/stats/validators/c-chain");
                             } else {
                               const slug = getSlugForSubnetId(subnet.id);
                               if (slug) {
