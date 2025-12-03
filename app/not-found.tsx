@@ -24,7 +24,15 @@ ${path ? `I was trying to access: ${path}` : 'Please enter the URL you were tryi
 }
 
 function findNearestAvailablePath(pathname: string): string | null {
-  const sections = ["/console", "/docs", "/academy"];
+  // All main sections of the site
+  const sections = [
+    "/console",
+    "/docs", 
+    "/academy",
+    "/blog",
+    "/grants",
+    "/integrations",
+  ];
 
   for (const section of sections) {
     if (pathname.startsWith(section)) {
@@ -110,12 +118,6 @@ export default function NotFound() {
                   className="w-40 h-40 sm:w-48 sm:h-48 md:w-56 md:h-56 object-contain drop-shadow-xl dark:opacity-95"
                 />
               </div>
-            </div>
-
-            {/* Error Badge */}
-            <div className={`inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-full bg-muted/60 border border-border/60 backdrop-blur-sm transition-all duration-500 delay-100 ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-              <span className="w-2 h-2 rounded-full bg-avax-red animate-pulse" />
-              <span className="text-sm font-medium text-muted-foreground">Page not found</span>
             </div>
             
             {/* Heading */}
