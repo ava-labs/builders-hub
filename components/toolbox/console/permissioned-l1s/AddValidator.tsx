@@ -250,7 +250,7 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
             <Step>
               <h2 className="text-lg font-semibold">Initiate Validator Registration</h2>
               <p className="text-sm text-gray-500 mb-4">
-                Call the <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L308" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">initiateValidatorRegistration</a> function on the Validator Manager contract. This transaction will emit a <a href="https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/77-reinventing-subnets/README.md#registerl1validatormessage" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">RegisterL1ValidatorMessage</a> warp message.
+                Call the <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L308" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">initiateValidatorRegistration</a> function on the Validator Manager contract. This transaction will emit a <a href="/docs/acps/77-reinventing-subnets#registerl1validatormessage" className="text-blue-600 hover:text-blue-800 underline">RegisterL1ValidatorMessage</a> warp message.
               </p>
 
               <InitiateValidatorRegistration
@@ -274,7 +274,7 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
             <Step>
               <h2 className="text-lg font-semibold">Sign RegisterL1ValidatorMessage & Submit RegisterL1ValidatorTx to P-Chain</h2>
               <p className="text-sm text-gray-500 mb-4">
-                Sign the emitted <a href="https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/77-reinventing-subnets/README.md#registerl1validatormessage" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">RegisterL1ValidatorMessage</a> and submit a <a href="https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/77-reinventing-subnets/README.md#registerl1validatortx" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">RegisterL1ValidatorTx</a> to P-Chain. This transaction will emit a <a href="https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/77-reinventing-subnets/README.md#l1validatorregistrationmessage" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorRegistrationMessage</a> warp message.
+                Sign the emitted <a href="/docs/acps/77-reinventing-subnets#registerl1validatormessage" className="text-blue-600 hover:text-blue-800 underline">RegisterL1ValidatorMessage</a> and submit a <a href="/docs/acps/77-reinventing-subnets#registerl1validatortx" className="text-blue-600 hover:text-blue-800 underline">RegisterL1ValidatorTx</a> to P-Chain. This transaction will emit a <a href="/docs/acps/77-reinventing-subnets#l1validatorregistrationmessage" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorRegistrationMessage</a> warp message.
               </p>
               <SubmitPChainTxRegisterL1Validator
                 key={`submit-pchain-${resetKey}`}
@@ -295,7 +295,7 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
             <Step>
               <h2 className="text-lg font-semibold">Sign L1ValidatorRegistrationMessage & Submit completeValidatorRegistration on Validator Manager contract</h2>
               <p className="text-sm text-gray-500 mb-4">
-                Complete the validator registration by signing the P-Chain <a href="https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/77-reinventing-subnets/README.md#l1validatorregistrationmessage" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorRegistrationMessage</a> and calling the <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L425" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">completeValidatorRegistration</a> function on the Validator Manager contract.
+                Complete the validator registration by signing the P-Chain <a href="/docs/acps/77-reinventing-subnets#l1validatorregistrationmessage" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorRegistrationMessage</a> and calling the <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L425" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">completeValidatorRegistration</a> function on the Validator Manager contract.
               </p>
               <CompleteValidatorRegistration
                 key={`complete-registration-${resetKey}`}
