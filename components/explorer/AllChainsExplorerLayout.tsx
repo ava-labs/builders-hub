@@ -69,6 +69,7 @@ export function AllChainsExplorerLayout({ children }: AllChainsExplorerLayoutPro
   // Get chains with RPC URLs (for overlapped logos display)
   const chainsWithRpc = useMemo(() => {
     return (l1ChainsData as L1Chain[])
+      .filter(chain => chain.isTestnet !== true)
       .filter(chain => chain.rpcUrl && chain.chainLogoURI)
       .slice(0, 12); // Show more chains for the all-chains view
   }, []);
@@ -160,7 +161,7 @@ export function AllChainsExplorerLayout({ children }: AllChainsExplorerLayoutPro
                       </div>
                       {(l1ChainsData as L1Chain[]).filter(c => c.rpcUrl).length - chainsWithRpc.length > 0 && (
                         <span className="text-xs text-zinc-400">
-                          +{(l1ChainsData as L1Chain[]).filter(c => c.rpcUrl).length - chainsWithRpc.length} more
+                          +{(l1ChainsData as L1Chain[]).filter(c => c.rpcUrl && c.isTestnet !== true).length - chainsWithRpc.length} more
                         </span>
                       )}
                     </div>

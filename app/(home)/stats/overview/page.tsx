@@ -597,15 +597,15 @@ export default function AvalancheMetrics() {
                 <Network className="h-3.5 w-3.5" />
                 Chain List
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.open("https://github.com/ava-labs/builders-hub/blob/master/constants/l1-chains.json", "_blank")}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open("https://github.com/ava-labs/builders-hub/blob/master/constants/l1-chains.json", "_blank")}
                 className="w-full sm:w-auto gap-2 text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600"
-              >
-                Submit L1
-                <ExternalLink className="h-3.5 w-3.5" />
-              </Button>
+            >
+              Submit L1
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Button>
             </div>
           </div>
 

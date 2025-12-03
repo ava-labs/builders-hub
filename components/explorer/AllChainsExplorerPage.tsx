@@ -70,7 +70,7 @@ function getChainFromBlockchainId(hexBlockchainId: string): ChainInfo | null {
     chainSlug: chain.slug,
     chainLogoURI: chain.chainLogoURI || '',
     color: chain.color || '#6B7280',
-    tokenSymbol: chain.tokenSymbol || '',
+    tokenSymbol: chain.networkToken?.symbol || '',
   };
 }
 
@@ -160,7 +160,7 @@ function JumpingDots({ className = "" }: { className?: string }) {
 }
 
 // Get supported chains with RPC URLs
-const supportedChains = (l1ChainsData as L1Chain[]).filter(c => c.rpcUrl);
+const supportedChains = (l1ChainsData as L1Chain[]).filter(c => c.rpcUrl && c.isTestnet !== true);
 
 // Module-level constants - block limit based on active chains for accurate metrics
 const BLOCK_LIMIT = supportedChains.length * 10 * 2;
@@ -195,17 +195,28 @@ export default function AllChainsExplorerPage() {
   const lastFetchedBlocksRef = useRef<Map<string, string>>(new Map());
   const refreshTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const isFirstLoadRef = useRef<Map<string, boolean>>(new Map());
+  const retryCountRef = useRef<Map<string, number>>(new Map());
+  const passiveChainsRef = useRef<Set<string>>(new Set());
+  
+  // Track active chains count for UI
+  const [activeChainCount, setActiveChainCount] = useState(supportedChains.length);
 
   // Initialize first load tracking for each chain
   useEffect(() => {
     supportedChains.forEach(chain => {
       isFirstLoadRef.current.set(chain.chainId, true);
+      retryCountRef.current.set(chain.chainId, 0);
     });
   }, []);
 
   // Fetch data for a single chain
   const fetchChainData = useCallback(async (chain: L1Chain) => {
     const chainId = chain.chainId;
+    
+    // Skip passive chains (failed 3+ times on initial load)
+    if (passiveChainsRef.current.has(chainId)) {
+      return;
+    }
     
     // Prevent overlapping fetches for the same chain
     if (fetchingChainsRef.current.has(chainId) || !isMountedRef.current) {
@@ -247,7 +258,7 @@ export default function AllChainsExplorerPage() {
       const result = await response.json();
 
       // Get tokenSymbol from API response (which may come from CoinGecko) or fall back to static data
-      const tokenSymbol = result.tokenSymbol || chain.tokenSymbol || 'N/A';
+      const tokenSymbol = result.tokenSymbol || chain.networkToken?.symbol || 'N/A';
 
       const chainInfo: ChainInfo = {
         chainId: chain.chainId,
@@ -393,20 +404,40 @@ export default function AllChainsExplorerPage() {
         });
       }
       
-      // Mark first load complete
+      // Mark first load complete and reset retry count on success
       if (isFirstLoad) {
         isFirstLoadRef.current.set(chainId, false);
+        retryCountRef.current.set(chainId, 0);
       }
       
     } catch (error) {
       // Silently handle errors - other chains will continue to work
       console.warn(`Error fetching ${chain.chainName}:`, error);
+      
+      const isFirstLoad = isFirstLoadRef.current.get(chainId) ?? true;
+      
+      // Track retry count for initial load failures
+      if (isFirstLoad) {
+        const currentRetries = retryCountRef.current.get(chainId) || 0;
+        const newRetries = currentRetries + 1;
+        retryCountRef.current.set(chainId, newRetries);
+        
+        // After 3 failed attempts on initial load, mark chain as passive
+        if (newRetries >= 3) {
+          console.warn(`Marking ${chain.chainName} as passive after ${newRetries} failed attempts`);
+          passiveChainsRef.current.add(chainId);
+          setActiveChainCount(supportedChains.length - passiveChainsRef.current.size);
+          fetchingChainsRef.current.delete(chainId);
+          setLoading(false);
+          return; // Don't schedule retry for passive chains
+        }
+      }
     } finally {
       fetchingChainsRef.current.delete(chainId);
       setLoading(false);
       
-      // Schedule next fetch for this chain
-      if (isMountedRef.current) {
+      // Schedule next fetch for this chain (unless passive)
+      if (isMountedRef.current && !passiveChainsRef.current.has(chainId)) {
         const timeout = setTimeout(() => {
           if (isMountedRef.current) {
             fetchChainData(chain);
@@ -449,7 +480,7 @@ export default function AllChainsExplorerPage() {
     });
     
     // Total chains in l1-chains.json
-    const allChainsCount = (l1ChainsData as L1Chain[]).length;
+    const allChainsCount = (l1ChainsData as L1Chain[]).filter(chain => chain.isTestnet !== true).length;
     
     return {
       chainsWithRpc: supportedChains.length, // Chains with RPC URLs (supported)
@@ -502,18 +533,39 @@ export default function AllChainsExplorerPage() {
     return Math.round((blocksForCalc.length / totalTime) * 100) / 100;
   }, [accumulatedBlocks, hasEnoughBlocksForCalculation]);
 
-  // Calculate ICM messages per second
+  // Calculate ICM messages per second using a rolling 60-second window
   const icmPerSecond = useMemo(() => {
-    if (icmMessages.length < 2) return 0;
+    if (icmMessages.length < 2) return null;
     
-    const timestamps = icmMessages.map(m => new Date(m.timestamp).getTime() / 1000);
-    const firstTime = timestamps[0];
-    const lastTime = timestamps[timestamps.length - 1];
-    const totalTime = firstTime - lastTime;
+    const now = Date.now() / 1000;
+    const windowSeconds = 60; // 60 second window for rate calculation
     
-    if (totalTime <= 0) return 0;
+    // Count messages within the time window
+    const recentMessages = icmMessages.filter(m => {
+      const msgTime = new Date(m.timestamp).getTime() / 1000;
+      return (now - msgTime) <= windowSeconds;
+    });
     
-    return Math.round((icmMessages.length / totalTime) * 1000) / 1000; // 3 decimal places for ICM
+    if (recentMessages.length >= 2) {
+      // Calculate rate from messages within the window
+      return Math.round((recentMessages.length / windowSeconds) * 1000) / 1000;
+    }
+    
+    // Fall back to using the time span between messages if not enough recent ones
+    const timestamps = icmMessages.slice(0, Math.min(50, icmMessages.length))
+      .map(m => new Date(m.timestamp).getTime() / 1000);
+    
+    if (timestamps.length < 2) return null;
+    
+    const newestTime = timestamps[0];
+    const oldestTime = timestamps[timestamps.length - 1];
+    const timeSpan = newestTime - oldestTime;
+    
+    if (timeSpan <= 0) return null;
+    
+    // For N messages over time T, rate = (N-1)/T (intervals, not count)
+    // But for display, we use N/T as it's more intuitive
+    return Math.round((timestamps.length / timeSpan) * 1000) / 1000;
   }, [icmMessages]);
 
   // Aggregate transaction history from all chains (sum by date)
@@ -623,9 +675,19 @@ export default function AllChainsExplorerPage() {
                     Active Chains
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-base font-bold text-zinc-900 dark:text-white">
-                      {aggregatedStats.chainsWithRpc}
-                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-base font-bold text-zinc-900 dark:text-white cursor-help">
+                          {activeChainCount}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{activeChainCount} of {supportedChains.length} chains responding</p>
+                        {passiveChainsRef.current.size > 0 && (
+                          <p className="text-zinc-400">{passiveChainsRef.current.size} chains unavailable</p>
+                        )}
+                      </TooltipContent>
+                    </Tooltip>
                     <span className="text-xs text-zinc-500">
                       / {aggregatedStats.totalChains}
                     </span>
@@ -729,16 +791,29 @@ export default function AllChainsExplorerPage() {
                     ICM/sec
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="text-base font-bold text-zinc-900 dark:text-white cursor-help border-b border-dashed border-zinc-400 dark:border-zinc-500">
-                          {icmPerSecond}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Calculated from {icmMessages.length} cross-chain messages</p>
-                      </TooltipContent>
-                    </Tooltip>
+                    {icmPerSecond !== null ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-base font-bold text-zinc-900 dark:text-white cursor-help border-b border-dashed border-zinc-400 dark:border-zinc-500">
+                            {icmPerSecond}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Calculated from {icmMessages.length} cross-chain messages (60s window)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-base font-bold text-zinc-500 dark:text-zinc-400 cursor-help">
+                            <JumpingDots />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Waiting for ICM messages ({icmMessages.length} collected)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                   </div>
                 </div>
               </div>

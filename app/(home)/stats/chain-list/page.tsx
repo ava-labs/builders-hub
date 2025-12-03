@@ -26,11 +26,12 @@ import {
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
-import { CategoryChip, getCategoryColor } from "@/components/stats/CategoryChip";
+import { CategoryChip } from "@/components/stats/CategoryChip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
 import { convertL1ListItemToL1Chain } from "@/components/explorer/utils/chainConverter";
 import { toast } from "@/lib/toast";
+import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 
 interface ChainListItem extends L1Chain {
   isCustom?: boolean;
@@ -40,7 +41,7 @@ export default function ChainListPage() {
   const { resolvedTheme } = useTheme();
   const [isMounted, setIsMounted] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedNetwork, setSelectedNetwork] = useState<"all" | "mainnet" | "testnet">("all");
+  const [selectedNetwork, setSelectedNetwork] = useState<"mainnet" | "testnet" | "console">("mainnet");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -56,7 +57,7 @@ export default function ChainListPage() {
   useEffect(() => {
     setIsMounted(true);
     
-    // Load custom chains
+    // Load custom chains from console (filter out chains that already exist in static data)
     try {
       const testnetStore = getL1ListStore(true);
       const mainnetStore = getL1ListStore(false);
@@ -64,8 +65,22 @@ export default function ChainListPage() {
       const testnetChains: L1ListItem[] = testnetStore.getState().l1List;
       const mainnetChains: L1ListItem[] = mainnetStore.getState().l1List;
       
-      const allCustomChains = [...testnetChains, ...mainnetChains]
-        .map(convertL1ListItemToL1Chain)
+      // Get all static blockchainIds (hex format, lowercase) for deduplication
+      const staticBlockchainIds = new Set(
+        (l1ChainsData as L1Chain[])
+          .map(c => c.blockchainId?.toLowerCase())
+          .filter(Boolean)
+      );
+      
+      // Convert chains and set isTestnet based on which store they came from
+      const testnetConverted = testnetChains
+        .map(item => ({ ...convertL1ListItemToL1Chain(item), isTestnet: true }));
+      const mainnetConverted = mainnetChains
+        .map(item => ({ ...convertL1ListItemToL1Chain(item), isTestnet: false }));
+      
+      // Filter out chains that already exist in static data (by blockchainId)
+      const allCustomChains = [...testnetConverted, ...mainnetConverted]
+        .filter(chain => !staticBlockchainIds.has(chain.blockchainId?.toLowerCase()))
         .map(chain => ({ ...chain, isCustom: true }));
       
       setCustomChains(allCustomChains);
@@ -82,6 +97,28 @@ export default function ChainListPage() {
     }));
     return [...staticChains, ...customChains];
   }, [customChains]);
+
+  // Calculate chain counts for metrics
+  const chainCounts = useMemo(() => {
+    let mainnet = 0;
+    let testnet = 0;
+    let console = 0;
+
+    allChains.forEach((chain) => {
+      if (chain.isCustom) {
+        console++;
+      } else {
+        const isTestnet = chain.chainId === "43113" || chain.category === "Testnet" || chain.isTestnet;
+        if (isTestnet) {
+          testnet++;
+        } else {
+          mainnet++;
+        }
+      }
+    });
+
+    return { total: allChains.length, mainnet, testnet, console };
+  }, [allChains]);
 
   // Fetch Glacier support for all chains
   useEffect(() => {
@@ -129,6 +166,7 @@ export default function ChainListPage() {
       catCounts.set(category, (catCounts.get(category) || 0) + 1);
     });
     
+    // Sort by count
     const sorted = Array.from(catCounts.entries())
       .sort((a, b) => b[1] - a[1])
       .map(([cat]) => cat);
@@ -162,10 +200,11 @@ export default function ChainListPage() {
       const isTestnet = chain.chainId === "43113" || chain.chainId === "43114" 
         ? chain.chainId === "43113"
         : chain.category === "Testnet" || (chain as any).isTestnet;
+      const isConsoleChain = chain.isCustom === true;
       const matchesNetwork = 
-        selectedNetwork === "all" ||
-        (selectedNetwork === "testnet" && isTestnet) ||
-        (selectedNetwork === "mainnet" && !isTestnet);
+        (selectedNetwork === "console" && isConsoleChain) ||
+        (selectedNetwork === "testnet" && isTestnet && !isConsoleChain) ||
+        (selectedNetwork === "mainnet" && !isTestnet && !isConsoleChain);
 
       // Category filter
       const chainCategory = chain.category || "General";
@@ -175,7 +214,7 @@ export default function ChainListPage() {
       const matchesSearch = 
         chain.chainName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         chain.chainId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        chain.tokenSymbol?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        chain.networkToken?.symbol?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         chain.slug.toLowerCase().includes(searchTerm.toLowerCase());
 
       return matchesNetwork && matchesCategory && matchesSearch;
@@ -257,6 +296,43 @@ export default function ChainListPage() {
                 </p>
               </div>
 
+              {/* Key metrics - inline */}
+              <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-3 sm:gap-6 md:gap-12 pt-4">
+                <div>
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    {chainCounts.total}
+                  </span>
+                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                    chains
+                  </span>
+                </div>
+                <div>
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    {chainCounts.mainnet}
+                  </span>
+                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                    mainnet
+                  </span>
+                </div>
+                <div>
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    {chainCounts.testnet}
+                  </span>
+                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                    testnet
+                  </span>
+                </div>
+                {chainCounts.console > 0 && (
+                  <div>
+                    <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                      {chainCounts.console}
+                    </span>
+                    <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                      console
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
             <Button
@@ -288,11 +364,11 @@ export default function ChainListPage() {
             <Filter className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
             <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">Network:</span>
             <div className="flex items-center gap-2">
-              {(["all", "mainnet", "testnet"] as const).map((network) => (
+              {(["mainnet", "testnet", "console"] as const).map((network) => (
                 <button
                   key={network}
                   onClick={() => setSelectedNetwork(network)}
-                  className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full border transition-all ${
+                  className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full border transition-all cursor-pointer ${
                     selectedNetwork === network
                       ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent"
                       : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700"
@@ -444,9 +520,10 @@ export default function ChainListPage() {
                             {chain.chainName}
                           </h3>
                           <div className="flex items-center gap-2 mt-1">
-                            {chain.category && (
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getCategoryColor(chain.category)}`}>
-                                {chain.category}
+                            {/* Testnet chip */}
+                            {(chain.isTestnet || chain.chainId === "43113") && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400">
+                                Testnet
                               </span>
                             )}
                             {/* Social Links */}
@@ -493,11 +570,6 @@ export default function ChainListPage() {
                           </div>
                         </div>
                       </div>
-                      {chain.isCustom && (
-                        <span className="px-2 py-0.5 text-[10px] font-medium rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 flex-shrink-0">
-                          Custom
-                        </span>
-                      )}
                     </div>
 
                     {/* Description */}
@@ -551,7 +623,7 @@ export default function ChainListPage() {
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">Currency</span>
                         <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                          {chain.tokenSymbol || "N/A"}
+                          {chain.networkToken?.symbol || "N/A"}
                         </span>
                       </div>
                     </div>
@@ -559,15 +631,19 @@ export default function ChainListPage() {
                     {/* Action Buttons - pushed to bottom */}
                     <div className="space-y-2.5 mt-auto">
                       {/* Connect Wallet Button */}
-                      {chain.rpcUrl && (
+                      {chain.rpcUrl ? (
                         <AddToWalletButton
                           rpcUrl={chain.rpcUrl}
                           chainName={chain.chainName}
                           chainId={parseInt(chain.chainId)}
-                          tokenSymbol={chain.tokenSymbol}
+                          tokenSymbol={chain.networkToken?.symbol}
                           variant="default"
                           className="w-full h-10 text-sm font-semibold shadow-sm hover:shadow-md transition-all"
                         />
+                      ) : (
+                        <div className="w-full h-10 flex items-center justify-center text-xs text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded-md">
+                          No RPC URL available
+                        </div>
                       )}
 
                       {/* Stats and Explorer Buttons */}
@@ -611,6 +687,7 @@ export default function ChainListPage() {
         )}
       </div>
 
+      <StatsBubbleNav />
     </div>
   );
 }

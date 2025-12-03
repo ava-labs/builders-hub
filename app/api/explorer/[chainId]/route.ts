@@ -140,7 +140,7 @@ interface ChainConfig {
   chainName: string;
   rpcUrl?: string;
   coingeckoId?: string;
-  tokenSymbol?: string;
+  networkToken?: { symbol: string; name?: string; decimals?: number };
   blockchainId?: string;
 }
 
@@ -859,7 +859,7 @@ export async function GET(
     
     // Determine effective RPC URL - prefer static config, fallback to query param
     const rpcUrl = chain?.rpcUrl || customRpcUrl;
-    const tokenSymbol = chain?.tokenSymbol || customTokenSymbol || undefined;
+    const tokenSymbol = chain?.networkToken?.symbol || customTokenSymbol || undefined;
     const blockchainId = chain?.blockchainId || customBlockchainId || undefined;
     const coingeckoId = chain?.coingeckoId;
     

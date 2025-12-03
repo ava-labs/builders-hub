@@ -33,7 +33,7 @@ function getChainFromBlockchainId(hexBlockchainId: string): ChainInfo | null {
       chainSlug: staticChain.slug,
       chainLogoURI: staticChain.chainLogoURI || '',
       color: staticChain.color || '#6B7280',
-      tokenSymbol: staticChain.tokenSymbol || '',
+      tokenSymbol: staticChain.networkToken?.symbol || '',
     };
   }
   
@@ -57,7 +57,7 @@ function getChainFromBlockchainId(hexBlockchainId: string): ChainInfo | null {
           chainSlug: converted.slug,
           chainLogoURI: converted.chainLogoURI || '',
           color: converted.color || '#6B7280',
-          tokenSymbol: converted.tokenSymbol || '',
+          tokenSymbol: converted.networkToken?.symbol || '',
         };
       }
     }

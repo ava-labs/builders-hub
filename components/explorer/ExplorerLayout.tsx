@@ -240,7 +240,7 @@ export function ExplorerLayout({
                                 rpcUrl={rpcUrl}
                                 chainName={chainName}
                                 chainId={currentChain?.chainId ? parseInt(currentChain.chainId) : undefined}
-                                tokenSymbol={currentChain?.tokenSymbol}
+                                tokenSymbol={currentChain?.networkToken?.symbol}
                               />
                             </div>
                           )}
