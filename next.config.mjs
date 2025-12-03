@@ -518,32 +518,32 @@ const config = {
       },
       {
         source: '/docs/virtual-machines/default-precompiles/deployerallowlist',
-        destination: '/docs/avalanche-l1s/evm-configuration/permissions#contract-deployer-allowlist',
+        destination: '/docs/avalanche-l1s/precompiles/deployer-allowlist',
         permanent: true,
       },
       {
         source: '/docs/virtual-machines/default-precompiles/txallowlist',
-        destination: '/docs/avalanche-l1s/evm-configuration/permissions#transaction-allowlist',
+        destination: '/docs/avalanche-l1s/precompiles/transaction-allowlist',
         permanent: true,
       },
       {
         source: '/docs/virtual-machines/default-precompiles/contractnativeminter',
-        destination: '/docs/avalanche-l1s/evm-configuration/tokenomics#native-minter',
+        destination: '/docs/avalanche-l1s/precompiles/native-minter',
         permanent: true,
       },
       {
         source: '/docs/virtual-machines/default-precompiles/nativeminter',
-        destination: '/docs/avalanche-l1s/evm-configuration/tokenomics#native-minter',
+        destination: '/docs/avalanche-l1s/precompiles/native-minter',
         permanent: true,
       },
       {
         source: '/docs/virtual-machines/default-precompiles/feemanager',
-        destination: '/docs/avalanche-l1s/evm-configuration/transaction-fees#fee-manager',
+        destination: '/docs/avalanche-l1s/precompiles/fee-manager',
         permanent: true,
       },
       {
         source: '/docs/virtual-machines/default-precompiles/rewardmanager',
-        destination: '/docs/avalanche-l1s/evm-configuration/transaction-fees#reward-manager',
+        destination: '/docs/avalanche-l1s/precompiles/reward-manager',
         permanent: true,
       },
       {
@@ -587,7 +587,7 @@ const config = {
         permanent: true,
       }, {
         source: '/docs/subnets/customize-a-subnet',
-        destination: '/docs/avalanche-l1s/upgrade/customize-avalanche-l1',
+        destination: '/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1',
         permanent: true,
       },       {
         source: '/docs/build/tutorials/platform/create-a-local-test-network',
@@ -595,19 +595,19 @@ const config = {
         permanent: true,
       }, {
         source: '/docs/api-reference/standards/guides/issuing-api-calls',
-        destination: '/docs/api-reference/guides/issuing-api-calls',
+        destination: '/docs/rpcs/other/guides/issuing-api-calls',
         permanent: true,
       }, {
         source: '/docs/api-reference/standards/guides/txn-fees',
-        destination: '/docs/api-reference/guides/txn-fees',
+        destination: '/docs/rpcs/other/guides/txn-fees',
         permanent: true,
       }, {
         source: '/docs/api-reference/standards/guides/txn-fees#c-chain-fees',
-        destination: '/docs/api-reference/guides/txn-fees#c-chain-fees',
+        destination: '/docs/rpcs/other/guides/txn-fees#c-chain-fees',
         permanent: true,
       }, {
         source: '/docs/tooling/guides/get-avalanche-cli',
-        destination: '/docs/tooling/get-avalanche-cli',
+        destination: '/docs/tooling/avalanche-cli/get-avalanche-cli',
         permanent: true,
       }, {
         source: '/evm-l1s/validator-manager/poa-vs-pos',
@@ -615,19 +615,19 @@ const config = {
         permanent: true,
       }, {
         source: '/docs/avalanche-l1s/allowlist',
-        destination: '/docs/avalanche-l1s/evm-configuration/allowlist',
+        destination: '/docs/avalanche-l1s/precompiles/allowlist-interface',
         permanent: true,
       }, {
         source: '/docs/virtual-machines/evm-customization/generating-your-precompile',
-        destination: '/docs/virtual-machines/custom-precompiles/create-precompile',
+        destination: '/docs/avalanche-l1s/custom-precompiles/create-precompile',
         permanent: true,
       }, {
         source: '/docs/virtual-machines/evm-customization/defining-precompile#event-file',
-        destination: '/docs/virtual-machines/custom-precompiles/defining-precompile#event-file',
+        destination: '/docs/avalanche-l1s/custom-precompiles/defining-precompile#event-file',
         permanent: true,
       }, {
         source: '/docs/virtual-machines/evm-customization/testing-your-precompile',
-        destination: '/docs/virtual-machines/custom-precompiles/test-precompile',
+        destination: '/docs/avalanche-l1s/custom-precompiles/executing-test-cases',
         permanent: true,
       }, {
         source: '/docs/nodes/run-a-node/manually#hardware-and-os-requirements',
@@ -639,15 +639,15 @@ const config = {
         permanent: true,
       }, {
         source: "/docs/virtual-machines/custom-precompiles#minting-native-coins",
-        destination: "/docs/avalanche-l1s/evm-configuration/tokenomics#native-minter",
+        destination: "/docs/avalanche-l1s/precompiles/native-minter",
         permanent: true,
       }, {
         source: "/docs/virtual-machines/evm-customization/introduction",
-        destination: "/docs/virtual-machines/evm-l1-customization",
+        destination: "/docs/avalanche-l1s/evm-configuration/evm-l1-customization",
         permanent: true,
       }, {
         source: "/docs/virtual-machines/evm-customization/background-requirements",
-        destination: "/docs/virtual-machines/custom-precompiles/background-requirements",
+        destination: "/docs/avalanche-l1s/custom-precompiles/background-requirements",
         permanent: true,
       }, {
         source: "/docs/nodes/run-a-node/manually",
@@ -655,7 +655,7 @@ const config = {
         permanent: true,
       }, {
         source: "/docs/tooling/avalanchego-postman-collection/setup",
-        destination: "/docs/tooling/avalanche-postman/add-postman-collection",
+        destination: "/docs/tooling/avalanche-postman",
         permanent: true,
       }, {
         source: "/docs/avalanche-l1s/deploy-a-avalanche-l1/fuji-testnet",
