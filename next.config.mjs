@@ -921,6 +921,28 @@ const config = {
         destination: "/docs/primary-network",
         permanent: true,
       },
+      // AvalancheJS -> TypeScript SDK redirects
+      {
+        source: "/docs/apis/avalanchejs/:path*",
+        destination: "/docs/tooling/avalanche-sdk",
+        permanent: true,
+      },
+      {
+        source: "/docs/avalanchejs/:path*",
+        destination: "/docs/tooling/avalanche-sdk",
+        permanent: true,
+      },
+      {
+        source: "/docs/tooling/avalanchejs/:path*",
+        destination: "/docs/tooling/avalanche-sdk",
+        permanent: true,
+      },
+      // Community tutorials -> main docs
+      {
+        source: "/docs/community/:path*",
+        destination: "/docs",
+        permanent: true,
+      },
     ];
   },
 };
