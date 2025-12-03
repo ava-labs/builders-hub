@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import l1ChainsData from "@/constants/l1-chains.json";
-import { TimeSeriesMetric, ICMMetric, TimeRange, L1Chain } from "@/types/stats";
+import { TimeSeriesMetric, ICMMetric, L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 import NetworkDiagram, { ChainCosmosData, ICMFlowRoute } from "@/components/stats/NetworkDiagram";
@@ -201,7 +201,6 @@ export default function AvalancheMetrics() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [visibleCount, setVisibleCount] = useState(25);
   const [searchTerm, setSearchTerm] = useState("");
-  const timeRange: TimeRange = "1y";
   
   const [icmFlows, setIcmFlows] = useState<ICMFlowRoute[]>([]);
   const [icmLoading, setIcmLoading] = useState(true);
@@ -316,7 +315,7 @@ export default function AvalancheMetrics() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/overview-stats?timeRange=${timeRange}`);
+        const response = await fetch(`/api/overview-stats`);
         if (!response.ok) throw new Error(`Failed to fetch metrics: ${response.status}`);
         const metrics = await response.json();
         setOverviewMetrics(metrics);
@@ -327,7 +326,7 @@ export default function AvalancheMetrics() {
       setLoading(false);
     };
     fetchMetrics();
-  }, [timeRange]);
+  }, []);
 
   const formatNumber = (num: number | string): string => {
     if (num === "N/A" || num === "" || num === null || num === undefined) return "N/A";
