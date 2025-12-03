@@ -28,6 +28,7 @@ export async function GET(
       title: hackathon.title,
       description: hackathon.description,
       path: 'hackathons',
+      backgroundImage: hackathon.icon?.trim() || undefined,
       fonts
     });
   } catch (error) {

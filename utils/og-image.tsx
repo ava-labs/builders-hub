@@ -4,12 +4,16 @@ type OGProps = {
   title: string;
   description: string;
   path: string;
+  backgroundImage?: string;
 };
+
+const DEFAULT_OG_BACKGROUND = 'https://build.avax.network/og.png';
 
 export function generateOGImage({
   title,
   description,
-  path
+  path,
+  backgroundImage
 }: OGProps): React.ReactElement {
   const truncateText: React.CSSProperties = {
     overflow: 'hidden',
@@ -29,7 +33,7 @@ export function generateOGImage({
         backgroundColor: '#fafafa',
         overflow: 'hidden',
         alignItems: 'center',
-        backgroundImage: "url('https://build.avax.network/og.png')",
+        backgroundImage: `url('${backgroundImage || DEFAULT_OG_BACKGROUND}')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat'
@@ -144,13 +148,15 @@ export async function createOGResponse({
   title,
   description,
   path,
+  backgroundImage,
   fonts
 }: OGProps & { fonts: { medium: ArrayBuffer, light: ArrayBuffer, regular: ArrayBuffer } }): Promise<ImageResponse> {
   return new ImageResponse(
     generateOGImage({
       title,
       description,
-      path
+      path,
+      backgroundImage
     }),
     {
       width: 1280,
