@@ -80,7 +80,6 @@ function FeeConfigBase({
   gasLimit,
   setGasLimit,
   targetBlockRate,
-  setTargetBlockRate,
   feeConfig,
   onFeeConfigChange,
   validationMessages,
@@ -97,7 +96,6 @@ function FeeConfigBase({
 
   // Local string state for smooth typing
   const [gasLimitInput, setGasLimitInput] = useState(gasLimit.toString());
-  const [targetBlockRateInput, setTargetBlockRateInput] = useState(targetBlockRate.toString());
   const [minBaseFeeInput, setMinBaseFeeInput] = useState((feeConfig.minBaseFee / 1000000000).toString());
   const [baseFeeChangeDenominatorInput, setBaseFeeChangeDenominatorInput] = useState(feeConfig.baseFeeChangeDenominator.toString());
   const [minBlockGasCostInput, setMinBlockGasCostInput] = useState(feeConfig.minBlockGasCost.toString());
@@ -109,9 +107,6 @@ function FeeConfigBase({
   useEffect(() => {
     if (focusedField !== 'gasLimit') setGasLimitInput(gasLimit.toString());
   }, [gasLimit, focusedField]);
-  useEffect(() => {
-    if (focusedField !== 'targetBlockRate') setTargetBlockRateInput(targetBlockRate.toString());
-  }, [targetBlockRate, focusedField]);
   useEffect(() => {
     if (focusedField !== 'minBaseFee') setMinBaseFeeInput((feeConfig.minBaseFee / 1000000000).toString());
   }, [feeConfig.minBaseFee, focusedField]);
@@ -139,14 +134,6 @@ function FeeConfigBase({
       setGasLimit(parsed);
     }
   }, [setGasLimit]);
-
-  const handleTargetBlockRateChange = useCallback((value: string) => {
-    setTargetBlockRateInput(value);
-    const parsed = parseInt(value);
-    if (!isNaN(parsed)) {
-      setTargetBlockRate(parsed);
-    }
-  }, [setTargetBlockRate]);
 
   const handleMinBaseFeeChange = useCallback((value: string) => {
     setMinBaseFeeInput(value);
@@ -181,11 +168,6 @@ function FeeConfigBase({
         if (gasLimitInput === '' || isNaN(parsed)) setGasLimitInput(gasLimit.toString());
         break;
       }
-      case 'targetBlockRate': {
-        const parsed = parseInt(targetBlockRateInput);
-        if (targetBlockRateInput === '' || isNaN(parsed)) setTargetBlockRateInput(targetBlockRate.toString());
-        break;
-      }
       case 'minBaseFee': {
         const parsed = parseFloat(minBaseFeeInput);
         if (minBaseFeeInput === '' || isNaN(parsed)) setMinBaseFeeInput((feeConfig.minBaseFee / 1000000000).toString());
@@ -218,7 +200,7 @@ function FeeConfigBase({
       }
     }
     setFocusedField(null);
-  }, [gasLimitInput, gasLimit, targetBlockRateInput, targetBlockRate, minBaseFeeInput, feeConfig, baseFeeChangeDenominatorInput, minBlockGasCostInput, maxBlockGasCostInput, blockGasCostStepInput, targetGasInput]);
+  }, [gasLimitInput, gasLimit, minBaseFeeInput, feeConfig, baseFeeChangeDenominatorInput, minBlockGasCostInput, maxBlockGasCostInput, blockGasCostStepInput, targetGasInput]);
 
   return (
     <div className="space-y-6">
@@ -237,19 +219,6 @@ function FeeConfigBase({
               placeholder="15000000"
               error={validationMessages.errors.gasLimit}
               warning={validationMessages.warnings.gasLimit}
-            />
-          </div>
-          <div key="targetBlockRate">
-            <Field
-              id="targetBlockRate"
-              label="Target Block Time (seconds)"
-              value={targetBlockRateInput}
-              onChange={handleTargetBlockRateChange}
-              onFocus={() => handleFocus('targetBlockRate')}
-              onBlur={() => normalizeOnBlur('targetBlockRate')}
-              placeholder="2"
-              error={validationMessages.errors.blockRate}
-              warning={validationMessages.warnings.blockRate}
             />
           </div>
           <div key="minBaseFee">
