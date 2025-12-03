@@ -30,10 +30,10 @@ import {
   BadgeDollarSign,
   Layers,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { ICMMetric } from "@/types/stats";
-import { ICMGlobe } from "@/components/stats/ICMGlobe";
 import Image from "next/image";
 import l1ChainsData from "@/constants/l1-chains.json";
 import {
@@ -49,6 +49,7 @@ import {
   ICTTDashboard,
   ICTTTransfersTable,
 } from "@/components/stats/ICTTDashboard";
+import ICMFlowChart from "@/components/stats/ICMFlowChart";
 
 interface AggregatedICMDataPoint {
   timestamp: number;
@@ -89,11 +90,21 @@ interface ICTTStats {
   last_updated: number;
 }
 
+interface ICMFlowResponse {
+  flows: any[];
+  sourceNodes: any[];
+  targetNodes: any[];
+  totalMessages: number;
+  last_updated: number;
+}
+
 export default function ICMStatsPage() {
   const [metrics, setMetrics] = useState<ICMStats | null>(null);
   const [icttData, setIcttData] = useState<ICTTStats | null>(null);
+  const [icmFlowData, setIcmFlowData] = useState<ICMFlowResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [icttLoading, setIcttLoading] = useState(true);
+  const [icmFlowLoading, setIcmFlowLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [chartPeriod, setChartPeriod] = useState<"D" | "W" | "M" | "Q" | "Y">(
     "D"
@@ -165,9 +176,25 @@ export default function ICMStatsPage() {
     }
   };
 
+  const fetchIcmFlowData = async () => {
+    try {
+      setIcmFlowLoading(true);
+      const response = await fetch("/api/icm-flow?days=30");
+      if (response.ok) {
+        const data = await response.json();
+        setIcmFlowData(data);
+      }
+    } catch (err) {
+      console.error("Error fetching ICM flow data:", err);
+    } finally {
+      setIcmFlowLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchData();
     fetchIcttData();
+    fetchIcmFlowData();
   }, []);
 
   // Section navigation tracking
@@ -267,6 +294,40 @@ export default function ICMStatsPage() {
         color: chain?.color || "#E84142",
       };
     });
+  };
+
+  const getTopPeers = (chainName: string) => {
+    if (!icmFlowData?.flows) return [];
+
+    const peerMap = new Map<
+      string,
+      { count: number; logo: string; color: string }
+    >();
+
+    icmFlowData.flows.forEach((flow: any) => {
+      if (flow.sourceChain === chainName) {
+        const current = peerMap.get(flow.targetChain) || {
+          count: 0,
+          logo: flow.targetLogo,
+          color: flow.targetColor,
+        };
+        current.count += flow.messageCount;
+        peerMap.set(flow.targetChain, current);
+      } else if (flow.targetChain === chainName) {
+        const current = peerMap.get(flow.sourceChain) || {
+          count: 0,
+          logo: flow.sourceLogo,
+          color: flow.sourceColor,
+        };
+        current.count += flow.messageCount;
+        peerMap.set(flow.sourceChain, current);
+      }
+    });
+
+    return Array.from(peerMap.entries())
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 3)
+      .map(([name, data]) => ({ name, ...data }));
   };
 
   const chartConfigs = [
@@ -550,7 +611,10 @@ export default function ICMStatsPage() {
                 asChild
                 className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
               >
-                <a href="/academy/avalanche-l1/avalanche-fundamentals/interoperability/icm-icmContracts-and-ictt" className="flex items-center gap-2">
+                <a
+                  href="/academy/avalanche-l1/avalanche-fundamentals/interoperability/icm-icmContracts-and-ictt"
+                  className="flex items-center gap-2"
+                >
                   <BookOpen className="h-4 w-4" />
                   <span className="hidden sm:inline">ICM Docs</span>
                   <span className="sm:hidden">ICM</span>
@@ -562,7 +626,10 @@ export default function ICMStatsPage() {
                 asChild
                 className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
               >
-                <a href="/docs/cross-chain/interchain-token-transfer/overview" className="flex items-center gap-2">
+                <a
+                  href="/docs/cross-chain/interchain-token-transfer/overview"
+                  className="flex items-center gap-2"
+                >
                   <ArrowUpRight className="h-4 w-4" />
                   <span className="hidden sm:inline">ICTT Docs</span>
                   <span className="sm:hidden">ICTT</span>
@@ -651,11 +718,22 @@ export default function ICMStatsPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="flex justify-start items-start">
-              <ICMGlobe />
+            <div className="rounded-xl overflow-hidden h-[500px]">
+              {icmFlowLoading ? (
+                <div className="h-full w-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-900 rounded-xl">
+                  <div className="animate-pulse text-zinc-500">
+                    Loading ICM flows...
+                  </div>
+                </div>
+              ) : (
+                <ICMFlowChart data={icmFlowData} height={520} maxFlows={30} />
+              )}
             </div>
 
-            <div className="flex flex-col gap-4">
+            <div
+              className="flex flex-col gap-4 h-[520px] overflow-y-auto pr-1"
+              style={{ scrollbarWidth: "thin" }}
+            >
               {getTopChains().map((chain, index) => {
                 const chainData = l1ChainsData.find(
                   (c) => c.chainName === chain.chainName
@@ -666,6 +744,7 @@ export default function ICMStatsPage() {
                   totalICMMessages > 0
                     ? ((chain.count / totalICMMessages) * 100).toFixed(1)
                     : "0";
+                const topPeers = getTopPeers(chain.chainName);
 
                 // Category colors matching overview page
                 const getCategoryStyle = (cat: string) => {
@@ -709,18 +788,18 @@ export default function ICMStatsPage() {
                       if (!slug) e.preventDefault();
                     }}
                     className={cn(
-                      "group relative rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm p-4 transition-all",
+                      "group relative rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm p-4 transition-all flex-shrink-0",
                       slug
                         ? "hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm cursor-pointer"
                         : "cursor-default"
                     )}
                   >
                     <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-4 min-w-0 flex-1">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
                         {/* Rank Badge */}
                         <div
                           className={cn(
-                            "flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold",
+                            "flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold",
                             index === 0
                               ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
                               : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
@@ -753,30 +832,65 @@ export default function ICMStatsPage() {
                             </div>
                           )}
                           <div className="min-w-0 flex-1">
-                            <div className="font-semibold text-base text-zinc-900 dark:text-white truncate group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors">
-                              {chain.chainName}
-                            </div>
-                            <div className="flex items-center gap-2 mt-1">
+                            {/* Chain name + Category on same line */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <div className="font-semibold text-base text-zinc-900 dark:text-white truncate group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors">
+                                {chain.chainName}
+                              </div>
                               <span
                                 className={cn(
-                                  "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium",
+                                  "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0",
                                   getCategoryStyle(category)
                                 )}
                               >
                                 {category}
                               </span>
-                              <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                                {percentage}%
-                              </span>
                             </div>
+                            {/* Top Routes Chips */}
+                            {topPeers.length > 0 && (
+                              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                                {topPeers.map((peer) => (
+                                  <Badge
+                                    key={peer.name}
+                                    variant="secondary"
+                                    className="px-1.5 py-0.5 h-5 text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-0 gap-1 pointer-events-none"
+                                    title={`${formatNumber(
+                                      peer.count
+                                    )} messages`}
+                                  >
+                                    {peer.logo ? (
+                                      <Image
+                                        src={peer.logo}
+                                        alt={peer.name}
+                                        width={12}
+                                        height={12}
+                                        className="rounded-full object-cover"
+                                        unoptimized
+                                      />
+                                    ) : (
+                                      <div
+                                        className="w-3 h-3 rounded-full flex items-center justify-center text-[6px] text-white font-bold"
+                                        style={{ backgroundColor: peer.color }}
+                                      >
+                                        {peer.name.charAt(0)}
+                                      </div>
+                                    )}
+                                    {peer.name}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
 
-                        {/* Message Count */}
+                        {/* Message Count + Percentage */}
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <div className="text-right">
                             <div className="font-mono font-bold text-lg text-zinc-900 dark:text-white tabular-nums">
                               {formatNumber(chain.count)}
+                            </div>
+                            <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                              {percentage}%
                             </div>
                           </div>
                           {slug && (
