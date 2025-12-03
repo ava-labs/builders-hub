@@ -16,6 +16,9 @@ import {
   ExternalLink,
   X,
   ChevronDown,
+  Globe,
+  ChevronRight,
+  BarChart3,
 } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -23,6 +26,7 @@ import { TimeSeriesMetric, ICMMetric, TimeRange, L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 import NetworkDiagram, { ChainCosmosData, ICMFlowRoute } from "@/components/stats/NetworkDiagram";
+import { CategoryChip, getCategoryColor } from "@/components/stats/CategoryChip";
 
 // Animated number component - continuously increasing
 function AnimatedNumber({ value, duration = 2000 }: { value: number; duration?: number }) {
@@ -272,8 +276,8 @@ export default function AvalancheMetrics() {
         if (validatorCount === 0) return null;
         
         const txCount = typeof chain.txCount.current_value === 'number' ? chain.txCount.current_value : 0;
-        const secondsInYear = 365 * 24 * 60 * 60;
-        const tps = txCount / secondsInYear;
+        const secondsInDay = 24 * 60 * 60;
+        const tps = txCount / secondsInDay;
         
         return {
           id: l1Chain?.subnetId || chain.chainId,
@@ -286,9 +290,9 @@ export default function AvalancheMetrics() {
           activeAddresses: typeof chain.activeAddresses?.daily?.current_value === 'number' 
             ? chain.activeAddresses.daily.current_value 
             : undefined,
-          txCount: txCount > 0 ? Math.round(txCount / 365) : undefined,
+          txCount: txCount > 0 ? Math.round(txCount) : undefined,
           icmMessages: typeof chain.icmMessages.current_value === 'number'
-            ? Math.round(chain.icmMessages.current_value / 365)
+            ? Math.round(chain.icmMessages.current_value)
             : undefined,
           tps: tps > 0 ? parseFloat(tps.toFixed(2)) : undefined,
           category: l1Chain?.category || 'General',
@@ -357,7 +361,7 @@ export default function AvalancheMetrics() {
 
   const getChainTPS = (chain: ChainOverviewMetrics): string => {
     const txCount = typeof chain.txCount.current_value === "number" ? chain.txCount.current_value : 0;
-    return (txCount / (365 * 24 * 60 * 60)).toFixed(2);
+    return (txCount / (24 * 60 * 60)).toFixed(2);
   };
 
   const chains = overviewMetrics?.chains || [];
@@ -412,16 +416,16 @@ export default function AvalancheMetrics() {
       case "chainName":
         aValue = a.chainName; bValue = b.chainName; break;
       case "weeklyTxCount":
-        aValue = typeof a.txCount.current_value === "number" ? a.txCount.current_value / 365 : 0;
-        bValue = typeof b.txCount.current_value === "number" ? b.txCount.current_value / 365 : 0;
+        aValue = typeof a.txCount.current_value === "number" ? a.txCount.current_value : 0;
+        bValue = typeof b.txCount.current_value === "number" ? b.txCount.current_value : 0;
         break;
       case "weeklyActiveAddresses":
         aValue = typeof a.activeAddresses?.daily?.current_value === "number" ? a.activeAddresses.daily.current_value : 0;
         bValue = typeof b.activeAddresses?.daily?.current_value === "number" ? b.activeAddresses.daily.current_value : 0;
         break;
       case "totalIcmMessages":
-        aValue = typeof a.icmMessages.current_value === "number" ? a.icmMessages.current_value / 365 : 0;
-        bValue = typeof b.icmMessages.current_value === "number" ? b.icmMessages.current_value / 365 : 0;
+        aValue = typeof a.icmMessages.current_value === "number" ? a.icmMessages.current_value : 0;
+        bValue = typeof b.icmMessages.current_value === "number" ? b.icmMessages.current_value : 0;
         break;
       case "validatorCount":
         aValue = typeof a.validatorCount === "number" ? a.validatorCount : 0;
@@ -463,98 +467,6 @@ export default function AvalancheMetrics() {
     </button>
   );
 
-  const getCategoryColor = (category: string): string => {
-    const colors: { [key: string]: string } = {
-      General: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
-      DeFi: "bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
-      Finance: "bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
-      Gaming: "bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-400",
-      Institutions: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
-      RWAs: "bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
-      Payments: "bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
-      Telecom: "bg-cyan-50 text-cyan-600 dark:bg-cyan-950 dark:text-cyan-400",
-      SocialFi: "bg-pink-50 text-pink-600 dark:bg-pink-950 dark:text-pink-400",
-      Sports: "bg-orange-50 text-orange-600 dark:bg-orange-950 dark:text-orange-400",
-      Fitness: "bg-lime-50 text-lime-600 dark:bg-lime-950 dark:text-lime-400",
-      AI: "bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
-      "AI Agents": "bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
-      Loyalty: "bg-yellow-50 text-yellow-600 dark:bg-yellow-950 dark:text-yellow-400",
-      Ticketing: "bg-teal-50 text-teal-600 dark:bg-teal-950 dark:text-teal-400",
-    };
-    return colors[category] || colors.General;
-  };
-
-  const getCategoryBadgeStyle = (cat: string, selected: boolean): string => {
-    if (cat === "All") {
-      return selected 
-        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent" 
-        : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700";
-    }
-    const styles: Record<string, { selected: string; normal: string }> = {
-      'DeFi': { 
-        selected: 'bg-blue-500 text-white border-transparent', 
-        normal: 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900' 
-      },
-      'Finance': { 
-        selected: 'bg-blue-500 text-white border-transparent', 
-        normal: 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900' 
-      },
-      'Gaming': { 
-        selected: 'bg-violet-500 text-white border-transparent', 
-        normal: 'bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-950 dark:text-violet-400 dark:border-violet-800 hover:bg-violet-100 dark:hover:bg-violet-900' 
-      },
-      'Institutions': { 
-        selected: 'bg-emerald-500 text-white border-transparent', 
-        normal: 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900' 
-      },
-      'RWAs': { 
-        selected: 'bg-amber-500 text-white border-transparent', 
-        normal: 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900' 
-      },
-      'Payments': { 
-        selected: 'bg-rose-500 text-white border-transparent', 
-        normal: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950 dark:text-rose-400 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900' 
-      },
-      'Telecom': { 
-        selected: 'bg-cyan-500 text-white border-transparent', 
-        normal: 'bg-cyan-50 text-cyan-600 border-cyan-200 dark:bg-cyan-950 dark:text-cyan-400 dark:border-cyan-800 hover:bg-cyan-100 dark:hover:bg-cyan-900' 
-      },
-      'SocialFi': { 
-        selected: 'bg-pink-500 text-white border-transparent', 
-        normal: 'bg-pink-50 text-pink-600 border-pink-200 dark:bg-pink-950 dark:text-pink-400 dark:border-pink-800 hover:bg-pink-100 dark:hover:bg-pink-900' 
-      },
-      'Sports': { 
-        selected: 'bg-orange-500 text-white border-transparent', 
-        normal: 'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-950 dark:text-orange-400 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900' 
-      },
-      'Fitness': { 
-        selected: 'bg-lime-500 text-white border-transparent', 
-        normal: 'bg-lime-50 text-lime-600 border-lime-200 dark:bg-lime-950 dark:text-lime-400 dark:border-lime-800 hover:bg-lime-100 dark:hover:bg-lime-900' 
-      },
-      'AI': { 
-        selected: 'bg-purple-500 text-white border-transparent', 
-        normal: 'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-950 dark:text-purple-400 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900' 
-      },
-      'AI Agents': { 
-        selected: 'bg-purple-500 text-white border-transparent', 
-        normal: 'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-950 dark:text-purple-400 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900' 
-      },
-      'Loyalty': { 
-        selected: 'bg-yellow-500 text-white border-transparent', 
-        normal: 'bg-yellow-50 text-yellow-600 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-400 dark:border-yellow-800 hover:bg-yellow-100 dark:hover:bg-yellow-900' 
-      },
-      'Ticketing': { 
-        selected: 'bg-teal-500 text-white border-transparent', 
-        normal: 'bg-teal-50 text-teal-600 border-teal-200 dark:bg-teal-950 dark:text-teal-400 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900' 
-      },
-      'General': { 
-        selected: 'bg-zinc-500 text-white border-transparent', 
-        normal: 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700' 
-      },
-    };
-    const style = styles[cat] || styles['General'];
-    return selected ? style.selected : style.normal;
-  };
 
   // Loading state
   if (loading) {
@@ -605,16 +517,29 @@ export default function AvalancheMetrics() {
   }
 
   const dailyTx = typeof overviewMetrics.aggregated.totalTxCount.current_value === "number" 
-    ? Math.round(overviewMetrics.aggregated.totalTxCount.current_value / 365) : 0;
+    ? Math.round(overviewMetrics.aggregated.totalTxCount.current_value) : 0;
   const totalTps = typeof overviewMetrics.aggregated.totalTxCount.current_value === "number"
-    ? (overviewMetrics.aggregated.totalTxCount.current_value / (365 * 24 * 60 * 60)).toFixed(2) : "0";
-  const dailyIcm = Math.round(overviewMetrics.aggregated.totalICMMessages.current_value / 365);
+    ? (overviewMetrics.aggregated.totalTxCount.current_value / (24 * 60 * 60)).toFixed(2) : "0";
+  const dailyIcm = Math.round(overviewMetrics.aggregated.totalICMMessages.current_value);
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Hero - Clean typographic approach */}
       <div className="border-b border-zinc-200 dark:border-zinc-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-1.5 text-xs sm:text-sm mb-3 sm:mb-4 overflow-x-auto scrollbar-hide pb-1">
+            <span className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 whitespace-nowrap flex-shrink-0">
+              <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <span>Ecosystem</span>
+            </span>
+            <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
+            <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap flex-shrink-0">
+              <BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500" />
+              <span>Overview</span>
+            </span>
+          </nav>
+
           <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
             <div className="space-y-4 sm:space-y-6 flex-1">
               <div>
@@ -720,22 +645,21 @@ export default function AvalancheMetrics() {
             <div className="flex flex-wrap items-center gap-2 flex-1">
               {/* Visible category badges */}
               {visibleCategories.map(category => {
-                const isSelected = selectedCategory === category;
                 const count = category === "All" 
                   ? chains.length 
                   : chains.filter(c => getChainCategory(c.chainId, c.chainName) === category).length;
                 
                 return (
-                  <button
+                  <CategoryChip
                     key={category}
+                    category={category}
+                    selected={selectedCategory === category}
+                    count={count}
                     onClick={() => {
                       setSelectedCategory(category);
                       setVisibleCount(25);
                     }}
-                    className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full border transition-all ${getCategoryBadgeStyle(category, isSelected)}`}
-                  >
-                    {category} <span className="opacity-70">({count})</span>
-                  </button>
+                  />
                 );
               })}
               
@@ -937,7 +861,7 @@ export default function AvalancheMetrics() {
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-2 sm:px-3 md:px-4 py-2 text-right">
                         <div className="text-xs sm:text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {typeof chain.txCount.current_value === "number"
-                            ? formatFullNumber(Math.round(chain.txCount.current_value / 365))
+                            ? formatFullNumber(Math.round(chain.txCount.current_value))
                             : chain.txCount.current_value}
                         </div>
                       </td>
@@ -945,7 +869,7 @@ export default function AvalancheMetrics() {
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-2 sm:px-3 md:px-4 py-2 text-right">
                         <div className="text-xs sm:text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {typeof chain.icmMessages.current_value === "number"
-                            ? formatFullNumber(Math.round(chain.icmMessages.current_value / 365))
+                            ? formatFullNumber(Math.round(chain.icmMessages.current_value))
                             : chain.icmMessages.current_value}
                         </div>
                       </td>
