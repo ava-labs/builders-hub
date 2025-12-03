@@ -19,6 +19,7 @@ import {
   Globe,
   ChevronRight,
   BarChart3,
+  Network,
 } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -524,8 +525,15 @@ export default function AvalancheMetrics() {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Hero - Clean typographic approach */}
-      <div className="border-b border-zinc-200 dark:border-zinc-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
+      <div className="relative overflow-hidden border-b border-zinc-200 dark:border-zinc-800">
+        {/* Avalanche gradient decoration */}
+        <div 
+          className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
+          style={{
+            background: `linear-gradient(to left, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.12) 40%, rgba(239, 68, 68, 0.04) 70%, transparent 100%)`,
+          }}
+        />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-1.5 text-xs sm:text-sm mb-3 sm:mb-4 overflow-x-auto scrollbar-hide pb-1">
             <span className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 whitespace-nowrap flex-shrink-0">
@@ -579,15 +587,26 @@ export default function AvalancheMetrics() {
               </div>
             </div>
 
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto mt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.href = "/stats/chain-list"}
+                className="w-full sm:w-auto gap-2 text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600"
+              >
+                <Network className="h-3.5 w-3.5" />
+                Chain List
+              </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => window.open("https://github.com/ava-labs/builders-hub/blob/master/constants/l1-chains.json", "_blank")}
-              className="w-full sm:w-auto mt-2 gap-2 text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600"
+                className="w-full sm:w-auto gap-2 text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600"
             >
               Submit L1
               <ExternalLink className="h-3.5 w-3.5" />
             </Button>
+            </div>
           </div>
 
           {/* Secondary stats row - responsive */}

@@ -453,9 +453,9 @@ export async function GET(
     return NextResponse.json({ error: 'Invalid address format' }, { status: 400 });
   }
 
-  const chain = l1ChainsData.find(c => c.chainId === chainId);
+  const chain = l1ChainsData.find(c => c.chainId === chainId) as any;
   const rpcUrl = chain?.rpcUrl || customRpcUrl;
-  const tokenSymbol = chain?.tokenSymbol || customTokenSymbol || undefined;
+  const tokenSymbol = chain?.networkToken?.symbol || customTokenSymbol || undefined;
   
   if (!rpcUrl) {
     return NextResponse.json({ error: 'Chain not found or RPC URL missing. Provide rpcUrl query parameter for custom chains.' }, { status: 404 });

@@ -721,7 +721,7 @@ export default function ConfigurableChart({
   const filteredChains = [
     // Include "All Chains" at the top if it matches the search
     ...(ALL_CHAINS_OPTION.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase()) ? [ALL_CHAINS_OPTION] : []),
-    ...l1ChainsData.filter((chain) =>
+    ...l1ChainsData.filter((chain) => chain.isTestnet !== true &&
       chain.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase())
     ),
   ];

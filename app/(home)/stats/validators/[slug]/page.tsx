@@ -66,6 +66,11 @@ interface ChainData {
     name: string;
     link: string;
   }>;
+  networkToken?: {
+    symbol: string;
+    name?: string;
+    decimals?: number;
+  };
 }
 
 export default function ChainValidatorsPage() {
@@ -583,7 +588,7 @@ export default function ChainValidatorsPage() {
                             rpcUrl={chainInfo.rpcUrl}
                             chainName={chainInfo.chainName}
                             chainId={chainInfo.chainId ? parseInt(chainInfo.chainId) : undefined}
-                            tokenSymbol={(chainInfo as any).tokenSymbol}
+                            tokenSymbol={chainInfo.networkToken?.symbol}
                           />
                         </div>
                       )}
