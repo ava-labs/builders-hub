@@ -49,7 +49,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
     // State and history
     const [acceptedCacheSize, setAcceptedCacheSize] = useState<number>(32);
     const [transactionHistory, setTransactionHistory] = useState<number>(0);
-    const [stateSyncEnabled, setStateSyncEnabled] = useState<boolean>(false);
+    const [stateSyncEnabled, setStateSyncEnabled] = useState<boolean>(true);
     const [skipTxIndexing, setSkipTxIndexing] = useState<boolean>(false);
 
     // Transaction settings
@@ -172,7 +172,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
         setBatchResponseMaxSize(25000000);
         setAcceptedCacheSize(32);
         setTransactionHistory(0);
-        setStateSyncEnabled(false);
+        setStateSyncEnabled(true);
         setSkipTxIndexing(false);
         setPreimagesEnabled(false);
         setLocalTxsEnabled(false);

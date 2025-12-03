@@ -34,7 +34,7 @@ const SUBNET_EVM_DEFAULTS = {
  * This configuration is saved to ~/.avalanchego/configs/chains/<blockchainID>/config.json
  */
 export const generateChainConfig = (
-    nodeType: 'validator' | 'public-rpc',
+    nodeType: 'validator' | 'public-rpc' | 'validator-rpc',
     enableDebugTrace: boolean = false,
     adminApiEnabled: boolean = false,
     pruningEnabled: boolean = true,
@@ -64,7 +64,8 @@ export const generateChainConfig = (
     continuousProfilerDir: string = "",
     continuousProfilerFrequency: string = "15m"
 ) => {
-    const isRPC = nodeType === 'public-rpc';
+    const isRPC = nodeType === 'public-rpc' || nodeType === 'validator-rpc';
+    const isValidator = nodeType === 'validator' || nodeType === 'validator-rpc';
     const config: any = {};
 
     // Helper function to add config only if it differs from default
@@ -196,7 +197,7 @@ export const generateChainConfig = (
     }
 
     // Gossip settings (primarily for validators) - only add if non-default
-    if (nodeType === 'validator') {
+    if (isValidator) {
         // These don't have documented defaults, so we always add them for validators
         config["push-gossip-num-validators"] = pushGossipNumValidators;
         config["push-gossip-percent-stake"] = pushGossipPercentStake;
@@ -217,7 +218,7 @@ export const generateChainConfig = (
 export const generateDeploymentMetadata = (
     subnetId: string,
     blockchainId: string,
-    nodeType: 'validator' | 'public-rpc',
+    nodeType: 'validator' | 'public-rpc' | 'validator-rpc',
     networkID: number,
     vmId: string = SUBNET_EVM_VM_ID,
     domain?: string
@@ -282,11 +283,11 @@ export const generateDockerCommand = (
     subnetId: string,
     blockchainId: string,
     chainConfig: any,
-    nodeType: 'validator' | 'public-rpc',
+    nodeType: 'validator' | 'public-rpc' | 'validator-rpc',
     networkID: number,
     vmId: string = SUBNET_EVM_VM_ID
 ) => {
-    const isRPC = nodeType === 'public-rpc';
+    const isRPC = nodeType === 'public-rpc' || nodeType === 'validator-rpc';
     const isTestnet = networkID === 5; // Fuji
     const isCustomVM = vmId !== SUBNET_EVM_VM_ID;
     const versions = getContainerVersions(isTestnet);

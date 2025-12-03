@@ -26,7 +26,7 @@ function AvalanchegoDockerInner() {
     const [subnet, setSubnet] = useState<any>(null);
     const [blockchainInfo, setBlockchainInfo] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [nodeType, setNodeType] = useState<"validator" | "public-rpc">("validator");
+    const [nodeType, setNodeType] = useState<"validator" | "public-rpc" | "validator-rpc">("validator");
     const [domain, setDomain] = useState("");
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
     const [adminApiEnabled, setAdminApiEnabled] = useState<boolean>(false);
@@ -57,7 +57,7 @@ function AvalanchegoDockerInner() {
     // State and history
     const [acceptedCacheSize, setAcceptedCacheSize] = useState<number>(32);
     const [transactionHistory, setTransactionHistory] = useState<number>(0);
-    const [stateSyncEnabled, setStateSyncEnabled] = useState<boolean>(false);
+    const [stateSyncEnabled, setStateSyncEnabled] = useState<boolean>(true);
     const [skipTxIndexing, setSkipTxIndexing] = useState<boolean>(false);
 
     // Transaction settings
@@ -77,7 +77,8 @@ function AvalanchegoDockerInner() {
 
     const { avalancheNetworkID } = useWalletStore();
 
-    const isRPC = nodeType === "public-rpc";
+    const isRPC = nodeType === "public-rpc" || nodeType === "validator-rpc";
+    const isValidator = nodeType === "validator" || nodeType === "validator-rpc";
 
     // Get highlighted lines for JSON preview
     const highlightedLines = useNodeConfigHighlighting(highlightPath, configJson);
@@ -154,6 +155,19 @@ function AvalanchegoDockerInner() {
             setSnapshotCache(512); // 2x for snapshot queries
             setAcceptedCacheSize(64); // Larger for more recent history
             setTransactionHistory(0); // Keep all tx history by default for getLogs
+        } else if (nodeType === "validator-rpc") {
+            // Combined Validator + RPC node defaults (TESTNET ONLY)
+            // Combines validator gossip settings with RPC query capabilities
+            setPruningEnabled(false); // Need full history for RPC queries
+            setLogLevel("info");
+            setMinDelayTarget(500); // Block production timing
+            setAllowUnfinalizedQueries(true); // Enable real-time queries
+            // Larger caches for RPC performance while validating
+            setTrieCleanCache(1024);
+            setTrieDirtyCache(1024);
+            setSnapshotCache(512);
+            setAcceptedCacheSize(64);
+            setTransactionHistory(0); // Keep all tx history
         }
     }, [nodeType]);
 
@@ -252,7 +266,7 @@ function AvalanchegoDockerInner() {
         setBatchResponseMaxSize(25000000);
         setAcceptedCacheSize(32);
         setTransactionHistory(0);
-        setStateSyncEnabled(false);
+        setStateSyncEnabled(true);
         setSkipTxIndexing(false);
         setPreimagesEnabled(false);
         setLocalTxsEnabled(false);
@@ -332,12 +346,21 @@ function AvalanchegoDockerInner() {
                                         </label>
                                         <select
                                             value={nodeType}
-                                            onChange={(e) => setNodeType(e.target.value as "validator" | "public-rpc")}
+                                            onChange={(e) => setNodeType(e.target.value as "validator" | "public-rpc" | "validator-rpc")}
                                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                                         >
                                             <option value="validator">Validator Node</option>
                                             <option value="public-rpc">Public RPC Node</option>
+                                            <option value="validator-rpc">Validator + Public RPC (Testnet Only)</option>
                                         </select>
+                                        {nodeType === "validator-rpc" && (
+                                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                </svg>
+                                                Not recommended for production. Combines validator and RPC for testnet convenience.
+                                            </p>
+                                        )}
                                     </div>
 
                                     <div onMouseEnter={() => setHighlightPath('logLevel')} onMouseLeave={clearHighlight}>
@@ -364,7 +387,7 @@ function AvalanchegoDockerInner() {
                                             Controls the verbosity of node logs
                                         </p>
                                     </div>
-                                    {nodeType === "validator" && (
+                                    {isValidator && (
                                         <div onMouseEnter={() => setHighlightPath('minDelayTarget')} onMouseLeave={clearHighlight}>
                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                 Min Delay Target (ms)
@@ -419,7 +442,7 @@ function AvalanchegoDockerInner() {
                                         </p>
                                     </div>
 
-                                    {nodeType === "public-rpc" && (
+                                    {isRPC && (
                                         <>
                                             <div onMouseEnter={() => setHighlightPath('ethApis')} onMouseLeave={clearHighlight}>
                                                 <label className="flex items-center space-x-2">
@@ -814,7 +837,7 @@ function AvalanchegoDockerInner() {
                                                     </div>
                                                 </div>
 
-                                                {nodeType === "validator" && (
+                                                {isValidator && (
                                                     <div className="border-t pt-3">
                                                         <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Gossip Settings (Validator)</h4>
 
@@ -1076,7 +1099,7 @@ function AvalanchegoDockerInner() {
                             </Accordions>
                         </Step>
 
-                        {nodeType === "public-rpc" && (
+                        {isRPC && (
                             <Step>
                                 <ReverseProxySetup
                                     domain={domain}
