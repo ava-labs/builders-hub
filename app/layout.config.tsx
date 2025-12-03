@@ -1,5 +1,5 @@
 import { type LinkItemType } from 'fumadocs-ui/layouts/docs';
-import { type BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
+import { MainItemType, type BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 import {
   Sprout,
@@ -169,7 +169,7 @@ export const stats: LinkItemType = {
     {
       icon: <Network />,
       text: "C-Chain",
-      url: "/stats/primary-network/c-chain",
+      url: "/stats/l1/c-chain",
       description:
       "View the latest metrics for the Avalanche C-Chain.",
       menu: {
@@ -187,6 +187,12 @@ export const stats: LinkItemType = {
       },
     },
   ],
+};
+
+export const explorerMenu: MainItemType = {
+  type: "main",
+  text: "Explorer",
+  url: "/explorer"
 };
 
 export const docsMenu: LinkItemType = {
@@ -583,6 +589,7 @@ export const baseOptions: BaseLayoutProps = {
     consoleMenu,
     docsMenu,
     eventsMenu,
+    explorerMenu,
     grantsMenu,
     integrationsMenu,
     stats,
