@@ -276,8 +276,8 @@ export default function AvalancheMetrics() {
         if (validatorCount === 0) return null;
         
         const txCount = typeof chain.txCount.current_value === 'number' ? chain.txCount.current_value : 0;
-        const secondsInYear = 365 * 24 * 60 * 60;
-        const tps = txCount / secondsInYear;
+        const secondsInDay = 24 * 60 * 60;
+        const tps = txCount / secondsInDay;
         
         return {
           id: l1Chain?.subnetId || chain.chainId,
@@ -290,9 +290,9 @@ export default function AvalancheMetrics() {
           activeAddresses: typeof chain.activeAddresses?.daily?.current_value === 'number' 
             ? chain.activeAddresses.daily.current_value 
             : undefined,
-          txCount: txCount > 0 ? Math.round(txCount / 365) : undefined,
+          txCount: txCount > 0 ? Math.round(txCount) : undefined,
           icmMessages: typeof chain.icmMessages.current_value === 'number'
-            ? Math.round(chain.icmMessages.current_value / 365)
+            ? Math.round(chain.icmMessages.current_value)
             : undefined,
           tps: tps > 0 ? parseFloat(tps.toFixed(2)) : undefined,
           category: l1Chain?.category || 'General',
@@ -361,7 +361,7 @@ export default function AvalancheMetrics() {
 
   const getChainTPS = (chain: ChainOverviewMetrics): string => {
     const txCount = typeof chain.txCount.current_value === "number" ? chain.txCount.current_value : 0;
-    return (txCount / (365 * 24 * 60 * 60)).toFixed(2);
+    return (txCount / (24 * 60 * 60)).toFixed(2);
   };
 
   const chains = overviewMetrics?.chains || [];
@@ -416,16 +416,16 @@ export default function AvalancheMetrics() {
       case "chainName":
         aValue = a.chainName; bValue = b.chainName; break;
       case "weeklyTxCount":
-        aValue = typeof a.txCount.current_value === "number" ? a.txCount.current_value / 365 : 0;
-        bValue = typeof b.txCount.current_value === "number" ? b.txCount.current_value / 365 : 0;
+        aValue = typeof a.txCount.current_value === "number" ? a.txCount.current_value : 0;
+        bValue = typeof b.txCount.current_value === "number" ? b.txCount.current_value : 0;
         break;
       case "weeklyActiveAddresses":
         aValue = typeof a.activeAddresses?.daily?.current_value === "number" ? a.activeAddresses.daily.current_value : 0;
         bValue = typeof b.activeAddresses?.daily?.current_value === "number" ? b.activeAddresses.daily.current_value : 0;
         break;
       case "totalIcmMessages":
-        aValue = typeof a.icmMessages.current_value === "number" ? a.icmMessages.current_value / 365 : 0;
-        bValue = typeof b.icmMessages.current_value === "number" ? b.icmMessages.current_value / 365 : 0;
+        aValue = typeof a.icmMessages.current_value === "number" ? a.icmMessages.current_value : 0;
+        bValue = typeof b.icmMessages.current_value === "number" ? b.icmMessages.current_value : 0;
         break;
       case "validatorCount":
         aValue = typeof a.validatorCount === "number" ? a.validatorCount : 0;
@@ -517,10 +517,10 @@ export default function AvalancheMetrics() {
   }
 
   const dailyTx = typeof overviewMetrics.aggregated.totalTxCount.current_value === "number" 
-    ? Math.round(overviewMetrics.aggregated.totalTxCount.current_value / 365) : 0;
+    ? Math.round(overviewMetrics.aggregated.totalTxCount.current_value) : 0;
   const totalTps = typeof overviewMetrics.aggregated.totalTxCount.current_value === "number"
-    ? (overviewMetrics.aggregated.totalTxCount.current_value / (365 * 24 * 60 * 60)).toFixed(2) : "0";
-  const dailyIcm = Math.round(overviewMetrics.aggregated.totalICMMessages.current_value / 365);
+    ? (overviewMetrics.aggregated.totalTxCount.current_value / (24 * 60 * 60)).toFixed(2) : "0";
+  const dailyIcm = Math.round(overviewMetrics.aggregated.totalICMMessages.current_value);
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -861,7 +861,7 @@ export default function AvalancheMetrics() {
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-2 sm:px-3 md:px-4 py-2 text-right">
                         <div className="text-xs sm:text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {typeof chain.txCount.current_value === "number"
-                            ? formatFullNumber(Math.round(chain.txCount.current_value / 365))
+                            ? formatFullNumber(Math.round(chain.txCount.current_value))
                             : chain.txCount.current_value}
                         </div>
                       </td>
@@ -869,7 +869,7 @@ export default function AvalancheMetrics() {
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-2 sm:px-3 md:px-4 py-2 text-right">
                         <div className="text-xs sm:text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {typeof chain.icmMessages.current_value === "number"
-                            ? formatFullNumber(Math.round(chain.icmMessages.current_value / 365))
+                            ? formatFullNumber(Math.round(chain.icmMessages.current_value))
                             : chain.icmMessages.current_value}
                         </div>
                       </td>
