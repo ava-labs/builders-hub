@@ -33,6 +33,7 @@ export default async function ChainExplorerLayout({
         website={chain.website}
         socials={chain.socials}
         rpcUrl={chain.rpcUrl}
+        blockchainId={chain.blockchainId}
         sourcifySupport={(chain as L1Chain & { sourcifySupport?: boolean }).sourcifySupport}
       >
         {children}

@@ -14,26 +14,58 @@ import { formatTokenValue } from "@/utils/formatTokenValue";
 import { formatPrice, formatAvaxPrice } from "@/utils/formatPrice";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { ChainChip, ChainInfo } from "@/components/stats/ChainChip";
+import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
+import { convertL1ListItemToL1Chain } from "@/components/explorer/utils/chainConverter";
 
-// Get chain info from hex blockchain ID
+// Get chain info from hex blockchain ID (checks both static and custom chains)
 function getChainFromBlockchainId(hexBlockchainId: string): ChainInfo | null {
   const normalizedHex = hexBlockchainId.toLowerCase();
   
-  // Find by blockchainId field (hex format)
-  const chain = (l1ChainsData as any[]).find(c => 
+  // First, check static chains from l1ChainsData
+  const staticChain = (l1ChainsData as any[]).find(c => 
     c.blockchainId?.toLowerCase() === normalizedHex
   );
   
-  if (!chain) return null;
+  if (staticChain) {
+    return {
+      chainId: staticChain.chainId,
+      chainName: staticChain.chainName,
+      chainSlug: staticChain.slug,
+      chainLogoURI: staticChain.chainLogoURI || '',
+      color: staticChain.color || '#6B7280',
+      tokenSymbol: staticChain.tokenSymbol || '',
+    };
+  }
+  
+  // If not found in static chains, check custom chains from localStorage
+  try {
+    const testnetStore = getL1ListStore(true);
+    const mainnetStore = getL1ListStore(false);
     
-  return {
-    chainId: chain.chainId,
-    chainName: chain.chainName,
-    chainSlug: chain.slug,
-    chainLogoURI: chain.chainLogoURI || '',
-    color: chain.color || '#6B7280',
-    tokenSymbol: chain.tokenSymbol || '',
-  };
+    const testnetChains: L1ListItem[] = testnetStore.getState().l1List;
+    const mainnetChains: L1ListItem[] = mainnetStore.getState().l1List;
+    
+    const allCustomChains = [...testnetChains, ...mainnetChains];
+    
+    // Convert each custom chain and check if blockchainId matches
+    for (const customChain of allCustomChains) {
+      const converted = convertL1ListItemToL1Chain(customChain);
+      if (converted.blockchainId?.toLowerCase() === normalizedHex) {
+        return {
+          chainId: converted.chainId,
+          chainName: converted.chainName,
+          chainSlug: converted.slug,
+          chainLogoURI: converted.chainLogoURI || '',
+          color: converted.color || '#6B7280',
+          tokenSymbol: converted.tokenSymbol || '',
+        };
+      }
+    }
+  } catch (e) {
+    // localStorage might not be available (SSR), silently fail
+  }
+  
+  return null;
 }
 
 interface Block {

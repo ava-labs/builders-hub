@@ -1,5 +1,6 @@
 import { L1Chain } from "@/types/stats";
 import { L1ListItem } from "@/components/toolbox/stores/l1ListStore";
+import { cb58ToHex } from "@/components/tools/common/utils/cb58";
 
 /**
  * Converts an L1ListItem (from localStorage/console) to L1Chain format (for explorer)
@@ -13,6 +14,7 @@ export function convertL1ListItemToL1Chain(item: L1ListItem): L1Chain {
     chainId: String(item.evmChainId),
     chainName: item.name,
     chainLogoURI: item.logoUrl || "",
+    blockchainId: cb58ToHex(item.id), // The L1ListItem.id IS the blockchain ID (cb58 format)
     subnetId: item.subnetId,
     slug,
     color: "#3B82F6", // Default blue color for custom chains
