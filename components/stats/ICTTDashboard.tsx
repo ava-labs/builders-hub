@@ -588,7 +588,7 @@ function TransactionsTable({
   }
 
   return (
-    <Card className="overflow-hidden py-0 border-0 shadow-none rounded-lg">
+    <Card className="overflow-hidden py-0 border-0 shadow-none rounded-lg gap-0">
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
