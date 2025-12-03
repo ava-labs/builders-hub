@@ -470,10 +470,10 @@ async function fetchHistoricalIcmMessages(
 
       if (topic0 === CROSS_CHAIN_TOPICS.SendCrossChainMessage.toLowerCase()) {
         sourceBlockchainId = currentBlockchainId;
-        destinationBlockchainId = log.topics[2];
+            destinationBlockchainId = log.topics[2];
       } else if (topic0 === CROSS_CHAIN_TOPICS.ReceiveCrossChainMessage.toLowerCase()) {
         destinationBlockchainId = currentBlockchainId;
-        sourceBlockchainId = log.topics[2];
+            sourceBlockchainId = log.topics[2];
       }
 
       transactions.push({
@@ -675,13 +675,13 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
         // SendCrossChainMessage: current chain is the source, destination is in topic[2]
         sourceBlockchainId = currentBlockchainId;
         if (log.topics.length > 2) {
-          destinationBlockchainId = log.topics[2];
+            destinationBlockchainId = log.topics[2];
         }
       } else if (topic0 === receiveTopic) {
         // ReceiveCrossChainMessage: current chain is the destination, source is in topic[2]
         destinationBlockchainId = currentBlockchainId;
         if (log.topics.length > 2) {
-          sourceBlockchainId = log.topics[2];
+            sourceBlockchainId = log.topics[2];
         }
       }
     }

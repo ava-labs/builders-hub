@@ -51,14 +51,14 @@ function getChainFromBlockchainId(hexBlockchainId: string): ChainInfo | null {
     for (const customChain of allCustomChains) {
       const converted = convertL1ListItemToL1Chain(customChain);
       if (converted.blockchainId?.toLowerCase() === normalizedHex) {
-        return {
+  return {
           chainId: converted.chainId,
           chainName: converted.chainName,
           chainSlug: converted.slug,
           chainLogoURI: converted.chainLogoURI || '',
           color: converted.color || '#6B7280',
           tokenSymbol: converted.networkToken?.symbol || '',
-        };
+  };
       }
     }
   } catch (e) {

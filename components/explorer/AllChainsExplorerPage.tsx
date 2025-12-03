@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { ArrowRightLeft, Box, Globe, Circle, Link2 } from "lucide-react";
+import { ArrowRightLeft, Box, Globe, Circle, Link2, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -200,6 +200,8 @@ export default function AllChainsExplorerPage() {
   
   // Track active chains count for UI
   const [activeChainCount, setActiveChainCount] = useState(supportedChains.length);
+  // Track how many chains have completed their initial load
+  const [completedInitialLoads, setCompletedInitialLoads] = useState(0);
 
   // Initialize first load tracking for each chain
   useEffect(() => {
@@ -408,6 +410,7 @@ export default function AllChainsExplorerPage() {
       if (isFirstLoad) {
         isFirstLoadRef.current.set(chainId, false);
         retryCountRef.current.set(chainId, 0);
+        setCompletedInitialLoads(prev => prev + 1);
       }
       
     } catch (error) {
@@ -427,6 +430,7 @@ export default function AllChainsExplorerPage() {
           console.warn(`Marking ${chain.chainName} as passive after ${newRetries} failed attempts`);
           passiveChainsRef.current.add(chainId);
           setActiveChainCount(supportedChains.length - passiveChainsRef.current.size);
+          setCompletedInitialLoads(prev => prev + 1); // Count as "completed" even though it failed
           fetchingChainsRef.current.delete(chainId);
           setLoading(false);
           return; // Don't schedule retry for passive chains
@@ -679,7 +683,7 @@ export default function AllChainsExplorerPage() {
                       <TooltipTrigger asChild>
                         <span className="text-base font-bold text-zinc-900 dark:text-white cursor-help">
                           {activeChainCount}
-                        </span>
+                    </span>
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>{activeChainCount} of {supportedChains.length} chains responding</p>
@@ -792,16 +796,16 @@ export default function AllChainsExplorerPage() {
                   </div>
                   <div className="flex items-baseline gap-1">
                     {icmPerSecond !== null ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="text-base font-bold text-zinc-900 dark:text-white cursor-help border-b border-dashed border-zinc-400 dark:border-zinc-500">
-                            {icmPerSecond}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-base font-bold text-zinc-900 dark:text-white cursor-help border-b border-dashed border-zinc-400 dark:border-zinc-500">
+                          {icmPerSecond}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
                           <p>Calculated from {icmMessages.length} cross-chain messages (60s window)</p>
-                        </TooltipContent>
-                      </Tooltip>
+                      </TooltipContent>
+                    </Tooltip>
                     ) : (
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -822,8 +826,18 @@ export default function AllChainsExplorerPage() {
             {/* Right: Transaction History Chart */}
             <div className="lg:col-span-1 border-l-0 lg:border-l border-zinc-100 dark:border-zinc-800 pl-0 lg:pl-5">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide flex items-center gap-2">
                   Ecosystem Activity (14 Days)
+                  {completedInitialLoads < activeChainCount && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Loader2 className="w-3 h-3 animate-spin text-zinc-400" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Loading: {completedInitialLoads} / {activeChainCount} chains</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                 </span>
               </div>
               <div className="relative">
