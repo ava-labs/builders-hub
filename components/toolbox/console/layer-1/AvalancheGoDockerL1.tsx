@@ -138,6 +138,7 @@ function AvalanchegoDockerInner() {
             setLogLevel("info");
             setMinDelayTarget(500); // Default block time for L1
             setAllowUnfinalizedQueries(false);
+            setStateSyncEnabled(true); // Validators benefit from fast sync
             // Standard cache sizes for validators
             setTrieCleanCache(512);
             setTrieDirtyCache(512);
@@ -149,6 +150,7 @@ function AvalanchegoDockerInner() {
             setPruningEnabled(false); // RPC nodes typically need full history
             setLogLevel("info");
             setAllowUnfinalizedQueries(true); // Enable real-time queries
+            setStateSyncEnabled(false); // RPC nodes need full historical data
             // Larger caches for better RPC performance
             setTrieCleanCache(1024); // 2x for better read performance
             setTrieDirtyCache(1024);
@@ -162,6 +164,7 @@ function AvalanchegoDockerInner() {
             setLogLevel("info");
             setMinDelayTarget(500); // Block production timing
             setAllowUnfinalizedQueries(true); // Enable real-time queries
+            setStateSyncEnabled(false); // Need full historical data for RPC queries
             // Larger caches for RPC performance while validating
             setTrieCleanCache(1024);
             setTrieDirtyCache(1024);

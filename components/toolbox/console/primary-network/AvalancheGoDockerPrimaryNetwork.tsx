@@ -124,6 +124,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             setLogLevel("info");
             setMinDelayTarget(1200);
             setAllowUnfinalizedQueries(false);
+            setStateSyncEnabled(true); // Validators benefit from fast sync
             setTrieCleanCache(512);
             setTrieDirtyCache(512);
             setSnapshotCache(256);
@@ -134,6 +135,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             setPruningEnabled(false);
             setLogLevel("info");
             setAllowUnfinalizedQueries(true);
+            setStateSyncEnabled(false); // RPC nodes need full historical data
             setTrieCleanCache(1024);
             setTrieDirtyCache(1024);
             setSnapshotCache(512);
