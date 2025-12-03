@@ -51,14 +51,20 @@ export async function generateMetadata({
       });
     }
 
+    const ogParams = new URLSearchParams({
+      path: hackathon.title,
+      ...(hackathon.icon?.trim() && { backgroundImage: hackathon.icon }),
+    });
+    const ogUrl = `/api/og/hackathons/${id}?${ogParams.toString()}`;
+
     return createMetadata({
       title: hackathon.title,
       description: hackathon.description,
       openGraph: {
-        images: `/api/og/hackathons/${id}`,
+        images: ogUrl,
       },
       twitter: {
-        images: `/api/og/hackathons/${id}`,
+        images: ogUrl,
       },
     });
   } catch (error) {

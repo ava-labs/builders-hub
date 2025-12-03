@@ -48,36 +48,40 @@ export function generateOGImage({
           width: '100%',
         }}
       >
-        <h1
-          style={{
-            fontSize: '5.35rem',
-            fontFamily: "Geist-Medium",
-            lineHeight: '1.3',
-            letterSpacing: '-0.015em',
-            margin: '0 0 30px 0',
-            color: 'black',
-          }}
-        >
-          <span style={{ ...truncateText }}>{title}</span>
-        </h1>
-        
-        <p
-          style={{
-            fontSize: '2.35rem',
-            color: '#4b5563',
-            maxWidth: '110%',
-            margin: '0 0 30px 0',
-            lineHeight: 1.4,
-            letterSpacing: '-0.01em',
-            fontFamily: "Geist-Light" 
-          }}
-        >
-          <span style={{ ...truncateText, WebkitLineClamp: 3 }}>{description}</span>
-        </p>
-        
+        {!backgroundImage && (
+          <>
+            <h1
+              style={{
+                fontSize: '5.35rem',
+                fontFamily: "Geist-Medium",
+                lineHeight: '1.3',
+                letterSpacing: '-0.015em',
+                margin: '0 0 30px 0',
+                color: 'black',
+              }}
+            >
+              <span style={{ ...truncateText }}>{title}</span>
+            </h1>
+
+            <p
+              style={{
+                fontSize: '2.35rem',
+                color: '#4b5563',
+                maxWidth: '110%',
+                margin: '0 0 30px 0',
+                lineHeight: 1.4,
+                letterSpacing: '-0.01em',
+                fontFamily: "Geist-Light"
+              }}
+            >
+              <span style={{ ...truncateText, WebkitLineClamp: 3 }}>{description}</span>
+            </p>
+          </>
+        )}
+
         <div
           style={{
-            marginTop: '4.5rem',
+            marginTop: backgroundImage ? 'auto' : '4.5rem',
             display: 'flex',
             alignItems: 'center'
           }}
@@ -114,7 +118,7 @@ export function generateOGImage({
                 />
               </g>
             </svg>
-            <span style={{paddingLeft: "10px"}}>build.avax.network/<span style={{color: "red"}}>{path}</span></span>
+            <span style={{paddingLeft: "10px"}}>{backgroundImage ? path : `build.avax.network/${path}`}</span>
           </div>
         </div>
       </div>
