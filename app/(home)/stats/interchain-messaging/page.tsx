@@ -543,23 +543,31 @@ export default function ICMStatsPage() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <a
-                href="/academy/avalanche-l1/avalanche-fundamentals/interoperability/icm-icmContracts-and-ictt"
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white border border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600 rounded-lg transition-colors whitespace-nowrap"
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
               >
-                <BookOpen className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">What is ICM?</span>
-                <span className="sm:hidden">ICM</span>
-              </a>
-              <a
-                href="/docs/cross-chain/interchain-token-transfer/overview"
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white border border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600 rounded-lg transition-colors whitespace-nowrap"
+                <a href="/academy/avalanche-l1/avalanche-fundamentals/interoperability/icm-icmContracts-and-ictt" className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  <span className="hidden sm:inline">ICM Docs</span>
+                  <span className="sm:hidden">ICM</span>
+                </a>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
               >
-                <ArrowUpRight className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">ICTT Docs</span>
-                <span className="sm:hidden">Docs</span>
-              </a>
+                <a href="/docs/cross-chain/interchain-token-transfer/overview" className="flex items-center gap-2">
+                  <ArrowUpRight className="h-4 w-4" />
+                  <span className="hidden sm:inline">ICTT Docs</span>
+                  <span className="sm:hidden">ICTT</span>
+                </a>
+              </Button>
             </div>
           </div>
         </div>
