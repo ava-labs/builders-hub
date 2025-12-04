@@ -216,16 +216,6 @@ const config = {
         permanent: true,
       },
       {
-        source: '/docs/virtual-machines/golang-vms/simple-golang-vm',
-        destination: '/docs/avalanche-l1s/golang-vms/simple-golang-vm',
-        permanent: true,
-      },
-      {
-        source: '/docs/virtual-machines/golang-vms/complex-golang-vm',
-        destination: '/docs/avalanche-l1s/golang-vms/complex-golang-vm',
-        permanent: true,
-      },
-      {
         source: '/docs/nodes/validate/node-validator',
         destination: '/docs/primary-network/validate/node-validator',
         permanent: true,
@@ -596,18 +586,6 @@ const config = {
       },       {
         source: '/docs/build/tutorials/platform/create-a-local-test-network',
         destination: '/academy/avalanche-l1/avalanche-fundamentals',
-        permanent: true,
-      }, {
-        source: '/docs/api-reference/standards/guides/issuing-api-calls',
-        destination: '/docs/rpcs/other/guides/issuing-api-calls',
-        permanent: true,
-      }, {
-        source: '/docs/api-reference/standards/guides/txn-fees',
-        destination: '/docs/rpcs/other/guides/txn-fees',
-        permanent: true,
-      }, {
-        source: '/docs/api-reference/standards/guides/txn-fees#c-chain-fees',
-        destination: '/docs/rpcs/other/guides/txn-fees#c-chain-fees',
         permanent: true,
       }, {
         source: '/docs/tooling/guides/get-avalanche-cli',
