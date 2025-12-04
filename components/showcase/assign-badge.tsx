@@ -26,7 +26,7 @@ export const AssignBadge = ({
   const [isLoading, setIsLoading] = useState(false);
   useEffect(() => {
     const fetchBadges = async () => {
-      
+      try {
        const response = await axios.get("/api/badge/get-all");
        const filteredBadges = response.data.filter(
          (badge: Badge) => badge.category == "hackathon"
@@ -37,6 +37,9 @@ export const AssignBadge = ({
            value: option.id,
          }))
        );
+      } catch (error) {
+        console.error("Error fetching badges", error);
+      }
     };
     fetchBadges();
   }, []);

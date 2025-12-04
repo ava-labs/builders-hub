@@ -81,12 +81,15 @@ export const useExports = (): UseExportsReturn => {
             errorMessage = errorData.message || errorMessage;
           } catch {
                 errorMessage = 'An error occurred while processing the server response';
+                console.error(errorMessage);
             }
         } else if (axiosError.response.data.message) {
           errorMessage = axiosError.response.data.message;
+          console.info(errorMessage);
         }
       } else if (axiosError.message) {
         errorMessage = axiosError.message;
+        console.info(errorMessage);
       }
       
       setError(errorMessage);

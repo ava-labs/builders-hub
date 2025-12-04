@@ -1,10 +1,9 @@
 import Modal from "@/components/ui/Modal";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import  { useEffect, useState } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
-import { set } from "date-fns";
 
 interface UserNotRegisteredProps {
   hackathonId: string;

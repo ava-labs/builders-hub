@@ -87,10 +87,10 @@ export default function ShowCaseCard({
       setIsExporting(true);
       await exportToExcel(exportFilters);
     } catch (err) {
-      console.error('Error exporting:', error);
+      console.error('Error exporting:', err);
       toast({
         title: "Error exporting projects",
-        description: error,
+        description: String(err),
         variant: "default",
         duration: 3000,
       });
