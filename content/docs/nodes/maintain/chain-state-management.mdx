@@ -1,0 +1,115 @@
+---
+title: Chain State Management
+description: Understanding active state vs archive state in EVM chains, and how to manage disk usage through state sync and offline pruning.
+---
+
+When running an EVM-based blockchain (C-Chain or Subnet-EVM L1s), your node stores blockchain state on disk. Understanding the difference between **active state** and **archive state** is crucial for managing disk space and choosing the right sync method.
+
+## Active State vs Archive State
+
+### Active State
+
+The **active state** represents the current state of the blockchain—all account balances, contract storage, and code as of the latest block. This is what your node needs to validate new transactions and participate in consensus.
+
+| Property | Details |
+|----------|---------|
+| **Size** | ~500 GB for C-Chain |
+| **Contents** | Current account balances, contract storage, code |
+| **Required for** | Validating, sending transactions, reading current state |
+| **Sync method** | State sync (fast, downloads only current state) |
+
+### Archive State (Total State)
+
+The **archive state** includes the complete history of all state changes since genesis. This allows querying historical state at any block height (e.g., "What was this account's balance at block 1,000,000?").
+
+| Property | Details |
+|----------|---------|
+| **Size** | ~3 TB+ for C-Chain (and growing) |
+| **Contents** | Complete state history at every block |
+| **Required for** | Historical queries, block explorers, analytics |
+| **Sync method** | Full sync from genesis (slower, replays all blocks) |
+
+<Callout>
+Most validators and RPC nodes only need the **active state**. Archive nodes are typically only required for block explorers, indexers, and specialized analytics applications.
+</Callout>
+
+## Why State Grows Over Time
+
+Even if you start with just the active state, your node's disk usage will grow over time:
+
+1. **New blocks**: Each block adds new state changes
+2. **State trie overhead**: The Merkle Patricia Trie structure stores intermediate nodes
+3. **Deleted state retention**: Old trie nodes aren't automatically removed
+
+This means a node that started with 500 GB via state sync might grow to 1 TB+ over months of operation, even though the "current" active state is still ~500 GB.
+
+## Managing Disk Usage
+
+### Option 1: State Sync (Re-sync)
+
+The simplest way to reclaim disk space is to delete your node's data and re-sync using state sync. This downloads only the current active state.
+
+```bash
+# Stop your node first
+sudo systemctl stop avalanchego
+
+# Remove the database (adjust path as needed)
+rm -rf ~/.avalanchego/db
+
+# Restart - node will state sync automatically
+sudo systemctl start avalanchego
+```
+
+| Pros | Cons |
+|------|------|
+| Simple, no configuration needed | Several hours of downtime |
+| Guarantees minimal disk usage | Loses any local transaction index |
+| Fresh database with no fragmentation | Must re-sync from scratch |
+
+<Callout title="Zero-Downtime Re-sync for Validators">
+To avoid validator downtime, spin up a fresh node and let it state sync completely. Once synced, stop both nodes, copy the `~/.avalanchego/staking/` folder from your current validator to the new node, then start the new node. Your validator identity (staking keys) transfers instantly with no missed uptime.
+</Callout>
+
+### Option 2: Offline Pruning
+
+Offline pruning removes old state trie nodes while keeping your node's database intact. This is faster than a full re-sync but requires temporary additional disk space.
+
+See the [Reduce Disk Usage](/docs/nodes/maintain/reduce-disk-usage) guide for detailed instructions.
+
+| Pros | Cons |
+|------|------|
+| Faster than full re-sync | Requires ~30-60 minutes downtime |
+| Preserves transaction index | Needs temporary disk space for bloom filter |
+| No network bandwidth required | Slightly more complex setup |
+
+## Choosing the Right Approach
+
+| Scenario | Recommended Approach |
+|----------|---------------------|
+| Disk nearly full, need space fast | State sync (re-sync) |
+| Regular maintenance, have spare disk space | Offline pruning |
+| Running a block explorer or indexer | Keep archive state, add more storage |
+| New validator setup | State sync (required) |
+
+## Monitoring Disk Usage
+
+Track your node's disk usage over time to plan maintenance:
+
+```bash
+# Check database size
+du -sh ~/.avalanchego/db
+
+# Check available disk space
+df -h /
+```
+
+Consider setting up alerts when disk usage exceeds 80% to give yourself time to plan maintenance.
+
+## L1-Specific Considerations
+
+For Avalanche L1s running Subnet-EVM:
+
+- **State size scales with usage**: High-throughput chains accumulate state faster
+- **Same pruning tools apply**: Offline pruning works identically to C-Chain
+- **Plan storage accordingly**: Reference the [system requirements](/docs/nodes/system-requirements) for your throughput tier
+
