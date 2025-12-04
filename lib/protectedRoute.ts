@@ -14,7 +14,7 @@ export function withAuth(handler: (request: NextRequest, context: any, session: 
 export function withAuthRole(role: string, handler: (request: NextRequest, context: any, session: any) => Promise<NextResponse>) {
   return async function (request: NextRequest, context: any) {
     const session = await getAuthSession();
-    const hasRole= session?.user.custom_attributes.includes(role)
+    const hasRole= session?.user.custom_attributes?.includes(role)??false;
     if (!session || !hasRole) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 401 });
     }
