@@ -37,7 +37,8 @@ export default function BubbleNavigation({
     const currentItem = config.items.find(
       (item) => item.href && pathname === item.href
     );
-      if (currentItem) {
+    
+    if (currentItem) {
       setUncontrolledActiveItem(currentItem.id);
     }
   }, [pathname, config.items, getActiveItem, isControlled]);
@@ -146,7 +147,8 @@ export default function BubbleNavigation({
 
     if (item.href) {
       setUncontrolledActiveItem(item.id);
-    router.push(item.href);
+      router.push(item.href);
+      window.scrollTo({ top: 0, behavior: 'instant' });
     }
   };
 
