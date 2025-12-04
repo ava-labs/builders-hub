@@ -148,7 +148,7 @@ const ChangeWeightStateless: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
             <Step>
               <h2 className="text-lg font-semibold">Initiate Weight Change</h2>
               <p className="text-sm text-gray-500 mb-4">
-                Start the weight change process by specifying the validator and new weight and calling the <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L642" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">initiateValidatorWeightUpdate</a> function on the Validator Manager contract. This transaction will emit an <a href="https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/77-reinventing-subnets/README.md#l1validatorweightmessage" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorWeightMessage</a> warp message.
+                Start the weight change process by specifying the validator and new weight and calling the <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L642" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">initiateValidatorWeightUpdate</a> function on the Validator Manager contract. This transaction will emit an <a href="/docs/acps/77-reinventing-subnets#l1validatorweightmessage" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorWeightMessage</a> warp message.
               </p>
               <InitiateChangeWeight
                 subnetId={subnetIdL1}
@@ -174,7 +174,7 @@ const ChangeWeightStateless: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
             <Step>
               <h2 className="text-lg font-semibold">Sign L1ValidatorWeightMessage & Submit SetL1ValidatorWeightTx to P-Chain</h2>
               <p className="text-sm text-gray-500 mb-4">
-                Sign the <a href="https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/77-reinventing-subnets/README.md#l1validatorweightmessage" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorWeightMessage</a> and submit a <a href="https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/77-reinventing-subnets/README.md#setl1validatorweighttx" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">SetL1ValidatorWeightTx</a> to the P-Chain.
+                Sign the <a href="/docs/acps/77-reinventing-subnets#l1validatorweightmessage" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorWeightMessage</a> and submit a <a href="/docs/acps/77-reinventing-subnets#setl1validatorweighttx" className="text-blue-600 hover:text-blue-800 underline">SetL1ValidatorWeightTx</a> to the P-Chain.
               </p>
               <SubmitPChainTxChangeWeight
                 key={`submit-pchain-${resetKey}`}
@@ -192,7 +192,7 @@ const ChangeWeightStateless: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
             <Step>
               <h2 className="text-lg font-semibold">Sign P-Chain L1ValidatorWeightMessage & Submit completeValidatorWeightUpdate on Validator Manager contract</h2>
               <p className="text-sm text-gray-500 mb-4">
-                Complete the weight change by signing the P-Chain <a href="https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/77-reinventing-subnets/README.md#l1validatorweightmessage" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorWeightMessage</a> and calling the <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L690" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">completeValidatorWeightUpdate</a> function on the Validator Manager contract.
+                Complete the weight change by signing the P-Chain <a href="/docs/acps/77-reinventing-subnets#l1validatorweightmessage" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorWeightMessage</a> and calling the <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L690" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">completeValidatorWeightUpdate</a> function on the Validator Manager contract.
               </p>
               <CompleteChangeWeight
                 key={`complete-change-${resetKey}`}

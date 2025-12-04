@@ -10,8 +10,6 @@ import Chatbot from "@/components/ui/chatbot";
 import { PrivacyPolicyBox } from "@/components/privacy-policy";
 import { SearchRootProvider } from "./searchRootProvider";
 import { Body } from "./layout.client";
-import { GraniteBanner } from "@/components/ui/granite-banner";
-
 
 export const metadata = createMetadata({
   title: {
@@ -39,7 +37,6 @@ export default function Layout({ children }: { children: ReactNode }) {
     >
       <PHProvider>
         <body className="flex min-h-screen flex-col">
-        <GraniteBanner />
           <Body>
             <SearchRootProvider>{children}</SearchRootProvider>
             <Chatbot />
