@@ -28,6 +28,7 @@ import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 import NetworkDiagram, { ChainCosmosData, ICMFlowRoute } from "@/components/stats/NetworkDiagram";
 import { CategoryChip, getCategoryColor } from "@/components/stats/CategoryChip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Animated number component - continuously increasing
 function AnimatedNumber({ value, duration = 2000 }: { value: number; duration?: number }) {
@@ -204,6 +205,7 @@ export default function AvalancheMetrics() {
   const [searchTerm, setSearchTerm] = useState("");
   
   const [icmFlows, setIcmFlows] = useState<ICMFlowRoute[]>([]);
+  const [icmFailedChainIds, setIcmFailedChainIds] = useState<string[]>([]);
   const [icmLoading, setIcmLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
@@ -228,6 +230,9 @@ export default function AvalancheMetrics() {
               targetChainId: f.targetChainId,
               messageCount: f.messageCount,
             })));
+          }
+          if (icmData.failedChainIds && Array.isArray(icmData.failedChainIds)) {
+            setIcmFailedChainIds(icmData.failedChainIds);
           }
         } catch (e) {
           console.warn('Could not parse ICM flow data:', e);
@@ -639,7 +644,7 @@ export default function AvalancheMetrics() {
       <div className="bg-zinc-900 dark:bg-black">
         <div className="h-[400px] sm:h-[500px] md:h-[560px]">
           {cosmosData.length > 0 ? (
-            <NetworkDiagram data={cosmosData} icmFlows={icmFlows} />
+            <NetworkDiagram data={cosmosData} icmFlows={icmFlows} failedChainIds={icmFailedChainIds} />
           ) : (
             <div className="h-full flex items-center justify-center text-zinc-500 text-xs sm:text-sm">
               No network data
@@ -886,7 +891,22 @@ export default function AvalancheMetrics() {
                       {/* Daily ICM - right aligned */}
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-2 sm:px-3 md:px-4 py-2 text-right">
                         <div className="text-xs sm:text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                          {typeof chain.icmMessages.current_value === "number"
+                          {icmFailedChainIds.includes(chain.chainId) ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="text-amber-500 cursor-pointer inline-flex justify-end">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="16" x2="12" y2="12"/>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                  </svg>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Data unavailable</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : typeof chain.icmMessages.current_value === "number"
                             ? formatFullNumber(Math.round(chain.icmMessages.current_value))
                             : chain.icmMessages.current_value}
                         </div>
@@ -916,13 +936,23 @@ export default function AvalancheMetrics() {
                       {/* Explorer - center aligned */}
                       <td className="px-2 sm:px-3 md:px-4 py-2 text-center">
                         <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                          <ExplorerDropdown
-                            explorers={(l1ChainsData.find((c) => c.chainId === chain.chainId) as L1Chain)?.explorers}
-                            size="sm"
-                            variant="outline"
-                            showIcon={true}
-                            buttonText="Open"
-                          />
+                          {(() => {
+                            const l1Chain = l1ChainsData.find((c) => c.chainId === chain.chainId) as L1Chain;
+                            const explorers = l1Chain?.explorers || [];
+                            // If rpcUrl is provided, add internal explorer as first option
+                            const allExplorers = l1Chain?.rpcUrl && l1Chain?.slug
+                              ? [{ name: "Builder Hub Explorer", link: `/explorer/${l1Chain.slug}` }, ...explorers]
+                              : explorers;
+                            return (
+                              <ExplorerDropdown
+                                explorers={allExplorers}
+                                size="sm"
+                                variant="outline"
+                                showIcon={true}
+                                buttonText="Open"
+                              />
+                            );
+                          })()}
                         </div>
                       </td>
                     </tr>
