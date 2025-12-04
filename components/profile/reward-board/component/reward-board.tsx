@@ -42,7 +42,7 @@ export default async function RewardBoard() {
       requirements: userBadge?.requirements || badge.requirements,
     };
 
-  }).sort(element=>element.is_unlocked ? -1 : 1);
+  }).sort(element => { return element.is_unlocked ? -1 : 1; });
    const rewards = hackathonBadgesUnlocked.map((reward) => (
      <RewardCard
        key={reward.name}
