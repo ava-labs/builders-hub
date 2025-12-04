@@ -41,7 +41,7 @@ let cachedData: Map<string, { data: OverviewMetrics; timestamp: number }> = new 
 let chainDataCache: Map<string, { data: ChainOverviewMetrics; timestamp: number }> = new Map();
 
 function getAllChains() {
-  return l1ChainsData.map(chain => ({
+  return l1ChainsData.filter(chain => chain.isTestnet !== true).map(chain => ({
     chainId: chain.chainId,
     chainName: chain.chainName,
     logoUri: chain.chainLogoURI || '',

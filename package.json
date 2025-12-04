@@ -5,10 +5,11 @@
   "scripts": {
     "build": "tsc --noEmit && next build",
     "dev": "next dev --turbopack",
-    "build:remote": "tsx ./utils/remote-content.mts && tsx ./scripts/generate-api-reference.mts",
+    "build:remote": "tsx ./utils/remote-content.mts && tsx ./scripts/generate-api-reference.mts && tsx ./scripts/enrich-chains.mts",
     "start": "pnpm build:remote && next build && next start",
     "check-links": "tsx .github/linkChecker.ts",
     "generate:event-signatures": "tsx ./scripts/generate-event-signatures.mts",
+    "enrich:chains": "tsx ./scripts/enrich-chains.mts",
     "postinstall": "prisma generate && fumadocs-mdx && node ./scripts/update_docker_tags.mjs && tsx ./scripts/generate-event-signatures.mts",
     "postbuild": "tsx ./utils/update-index.ts"
   },

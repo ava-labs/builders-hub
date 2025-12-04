@@ -1031,7 +1031,7 @@ export default function ChainMetricsPage({
                             rpcUrl={(rpcUrl || chainData?.rpcUrl)!}
                             chainName={chainName}
                             chainId={chainId ? parseInt(chainId) : undefined}
-                            tokenSymbol={chainData?.tokenSymbol}
+                            tokenSymbol={chainData?.networkToken?.symbol}
                           />
                         </div>
                       )}

@@ -56,6 +56,14 @@ export interface BlockExplorer {
   link: string;
 }
 
+export interface NetworkToken {
+  name: string;
+  symbol: string;
+  decimals: number;
+  logoUri?: string;
+  description?: string;
+}
+
 export interface L1Chain {
   chainId: string;
   chainName: string;
@@ -74,8 +82,9 @@ export interface L1Chain {
   explorers?: BlockExplorer[];
   rpcUrl?: string;
   coingeckoId?: string;
-  tokenSymbol?: string;
+  networkToken?: NetworkToken;
   sourcifySupport?: boolean;
+  isTestnet?: boolean;
 }
 
 export type TimeRange = "30d" | "90d" | "1y" | "all";

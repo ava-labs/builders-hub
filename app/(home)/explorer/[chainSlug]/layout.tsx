@@ -28,7 +28,7 @@ export default async function ChainExplorerLayout({
         chainSlug={chain.slug}
         themeColor={chain.color || "#E57373"}
         chainLogoURI={chain.chainLogoURI}
-        nativeToken={chain.tokenSymbol}
+        nativeToken={chain.networkToken?.symbol}
         description={chain.description}
         website={chain.website}
         socials={chain.socials}

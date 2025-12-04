@@ -142,7 +142,7 @@ function getChainFromBlockchainId(hexBlockchainId: string): ChainLookupResult | 
     slug: chain.slug,
     color: chain.color || '#6B7280',
     chainId: chain.chainId,
-    tokenSymbol: chain.tokenSymbol || '',
+    tokenSymbol: chain.networkToken?.symbol || '',
   };
 }
 

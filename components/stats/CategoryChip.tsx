@@ -93,6 +93,10 @@ export function getCategoryBadgeStyle(category: string, selected: boolean): stri
       selected: 'bg-indigo-500 text-white border-transparent', 
       normal: 'bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-950 dark:text-indigo-400 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900' 
     },
+    'Console': { 
+      selected: 'bg-sky-500 text-white border-transparent', 
+      normal: 'bg-sky-50 text-sky-600 border-sky-200 dark:bg-sky-950 dark:text-sky-400 dark:border-sky-800 hover:bg-sky-100 dark:hover:bg-sky-900' 
+    },
   };
   
   const style = styles[category] || styles['General'];
@@ -118,6 +122,7 @@ export function getCategoryColor(category: string): string {
     Loyalty: "bg-yellow-50 text-yellow-600 dark:bg-yellow-950 dark:text-yellow-400",
     Ticketing: "bg-teal-50 text-teal-600 dark:bg-teal-950 dark:text-teal-400",
     Infrastructure: "bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400",
+    Console: "bg-sky-50 text-sky-600 dark:bg-sky-950 dark:text-sky-400",
   };
   return colors[category] || colors.General;
 }

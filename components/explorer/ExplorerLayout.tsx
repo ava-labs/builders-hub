@@ -229,10 +229,10 @@ export function ExplorerLayout({
                       <div className="mt-3 -mx-4 px-4 sm:mx-0 sm:px-0">
                         <div className="flex flex-row items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
                           <div className="flex items-center gap-2 flex-shrink-0">
-                          <ChainIdChips 
-                            subnetId={currentChain?.subnetId} 
+                            <ChainIdChips 
+                              subnetId={currentChain?.subnetId} 
                             blockchainId={currentChain?.blockchainId} 
-                          />
+                            />
                           </div>
                           {rpcUrl && (
                             <div className="flex-shrink-0">
@@ -240,7 +240,7 @@ export function ExplorerLayout({
                                 rpcUrl={rpcUrl}
                                 chainName={chainName}
                                 chainId={currentChain?.chainId ? parseInt(currentChain.chainId) : undefined}
-                                tokenSymbol={currentChain?.tokenSymbol}
+                                tokenSymbol={currentChain?.networkToken?.symbol}
                               />
                             </div>
                           )}
