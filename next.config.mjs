@@ -947,6 +947,11 @@ const config = {
         destination: "/docs",
         permanent: true,
       },
+      {
+        source: "/docs/build/tutorials/nodes-and-staking/staking-avax-by-validating-or-delegating-with-the-avalanche-wallet",
+        destination: "/docs/primary-network/validate/node-validator",
+        permanent: true,
+      },
     ];
   },
 };
