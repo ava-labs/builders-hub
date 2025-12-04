@@ -261,9 +261,24 @@ function EncryptedMempoolCard({ colors }: { colors: Colors }) {
 export function Payoff({ colors }: { colors: Colors }) {
   return (
     <div className="space-y-6">
-      <h3 className={`text-lg md:text-xl font-bold ${colors.text}`}>
-        What this enables
-      </h3>
+      <div>
+        <h3 className={`text-lg md:text-xl font-bold ${colors.text} mb-2`}>
+          What this enables
+        </h3>
+        <p className={`text-sm ${colors.textMuted}`}>
+          When paired with{" "}
+          <a 
+            href="https://github.com/ava-labs/Simplex" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="underline hover:opacity-80"
+            style={{ color: '#3b82f6' }}
+          >
+            Simplex
+          </a>
+          {" "}and DKG (Distributed Key Generation)
+        </p>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="min-h-[300px]">
@@ -275,7 +290,7 @@ export function Payoff({ colors }: { colors: Colors }) {
       </div>
       
       <p className={`text-xs ${colors.textMuted} font-mono font-medium`}>
-        *ACP-194 does not introduce these features — but streaming asynchronous execution is required to implement them.
+        *Streaming async execution is required to implement these features.
       </p>
     </div>
   )

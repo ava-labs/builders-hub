@@ -69,6 +69,10 @@ export function FAQ({ colors }: { colors: Colors }) {
 
   const faqItems: FAQItem[] = [
     {
+      question: "Is finality slower with SAE?",
+      answer: "No — it's technically instant. As soon as consensus accepts a transaction, finality is locked. The key insight: ordering determines the truth, execution reveals it. We have finality the moment a block is accepted — we just won't know the outcome until execution completes. Consensus determines what will happen; execution shows us what happened."
+    },
+    {
       question: "What problem does SAE solve?",
       answer: "Traditional blockchains bottleneck because consensus waits for execution. SAE will run them in parallel — consensus will accept transactions into a queue while execution drains it independently. More throughput, lower latency."
     },

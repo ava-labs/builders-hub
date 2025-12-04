@@ -186,19 +186,25 @@ function SyncBlockDisplay({
         {/* Grey loading border for accepted state - fills around the box then turns green */}
         {showAcceptedPulse && (
           <svg
-            className="absolute -inset-[2px] pointer-events-none z-20"
-            style={{ width: 68, height: 68 }}
-            viewBox="0 0 68 68"
+            className="absolute pointer-events-none z-20"
+            style={{ 
+              width: 52, 
+              height: 52,
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+            }}
+            viewBox="0 0 52 52"
           >
             <motion.rect
-              x="2"
-              y="2"
-              width="64"
-              height="64"
+              x="1"
+              y="1"
+              width="50"
+              height="50"
               fill="none"
               strokeWidth="2"
-              strokeDasharray="256"
-              initial={{ strokeDashoffset: 256, stroke: "#9ca3af" }}
+              strokeDasharray="200"
+              initial={{ strokeDashoffset: 200, stroke: "#9ca3af" }}
               animate={{ strokeDashoffset: 0, stroke: "#22c55e" }}
               transition={{ 
                 strokeDashoffset: { duration: 1.2, ease: "linear" },
@@ -210,8 +216,14 @@ function SyncBlockDisplay({
         {/* Solid pulsing border - red (executing) then grey (consensus) */}
         {showProposingPulse && (
           <motion.div
-            className="absolute -inset-[2px] pointer-events-none z-20 border-2"
-            style={{ width: 68, height: 68 }}
+            className="absolute pointer-events-none z-20 border-2"
+            style={{ 
+              width: 52, 
+              height: 52,
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+            }}
             animate={{
               borderColor: proposingPhase === 'executing' 
                 ? [executionColor, `${executionColor}60`, executionColor]
@@ -223,8 +235,14 @@ function SyncBlockDisplay({
         {/* Solid red pulsing border for executing */}
         {isExecuting && block && (
           <motion.div
-            className="absolute -inset-[2px] pointer-events-none z-20 border-2"
-            style={{ width: 68, height: 68 }}
+            className="absolute pointer-events-none z-20 border-2"
+            style={{ 
+              width: 52, 
+              height: 52,
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+            }}
             animate={{
               borderColor: ["#ef4444", "#ef444460", "#ef4444"],
             }}
@@ -234,7 +252,14 @@ function SyncBlockDisplay({
         {/* Pulsing glow during consensus phase */}
         {showProposingPulse && proposingPhase === 'consensus' && (
           <motion.div
-            className="absolute -inset-[1px] pointer-events-none z-10"
+            className="absolute pointer-events-none z-10"
+            style={{ 
+              width: 52, 
+              height: 52,
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+            }}
             animate={{ 
               boxShadow: [
                 `0 0 0px rgba(156, 163, 175, 0)`,
@@ -304,60 +329,11 @@ function SyncBlockDisplay({
   )
 }
 
-function SyncSettledDisplay({ blocks, colors }: { blocks: Block[]; colors: Colors }) {
-  const visibleBlocks = blocks.slice(-8)
-
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <div
-        className={`border ${colors.border} ${colors.blockBg} p-1.5 overflow-hidden relative`}
-        style={{ width: 100, height: 80 }}
-      >
-        <div className="grid grid-cols-4 gap-1 h-full relative z-10">
-          <AnimatePresence mode="popLayout">
-            {visibleBlocks.map((block) => (
-              <motion.div
-                key={block.uid}
-                layout
-                initial={{ x: -40, opacity: 0, scale: 0.5 }}
-                animate={{ x: 0, opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.5 }}
-                transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                className="grid gap-px p-0.5 relative"
-                style={{
-                  gridTemplateColumns: "repeat(4, 1fr)",
-                  width: 18,
-                  height: 18,
-                  backgroundColor: `rgba(34, 197, 94, 0.15)`,
-                  border: `1px solid #22c55e`,
-                }}
-              >
-                {Array.from({ length: 16 }).map((_, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      aspectRatio: "1",
-                      backgroundColor: i < block.txCount
-                        ? (block.txColors[i] || `${colors.stroke}40`)
-                        : `${colors.stroke}10`,
-                    }}
-                  />
-                ))}
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      </div>
-      <span className={`text-xs uppercase tracking-[0.2em] ${colors.textMuted}`}>Settled</span>
-    </div>
-  )
-}
 
 export function SynchronousExecution({ colors }: { colors: Colors }) {
   const [mempoolTxs, setMempoolTxs] = useState<Transaction[]>([])
   const [currentStage, setCurrentStage] = useState<'idle' | 'proposing' | 'accepted' | 'executing'>('idle')
   const [currentBlock, setCurrentBlock] = useState<Block | null>(null)
-  const [settledBlocks, setSettledBlocks] = useState<Block[]>([])
 
   const blockIdRef = useRef(1000)
   const txIdRef = useRef(10000)
@@ -434,9 +410,8 @@ export function SynchronousExecution({ colors }: { colors: Colors }) {
             setCurrentStage('accepted')
           }, SYNC_CONFIG.proposeTime + SYNC_CONFIG.executeTime))
 
-          // Stage 4: Settled - then reset for next block
+          // Stage 4: Reset for next block
           timeouts.push(setTimeout(() => {
-            setSettledBlocks((prev) => [...prev.slice(-7), newBlock])
             setCurrentBlock(null)
             setCurrentStage('idle')
             isProcessingRef.current = false
@@ -476,7 +451,7 @@ export function SynchronousExecution({ colors }: { colors: Colors }) {
       content: "Transactions arrive via RPC and wait here. Users have no visibility into when their transaction will be included or executed — they must wait for the entire pipeline to complete."
     },
     proposing: {
-      title: "Block Proposing — The First Bottleneck",
+      title: "Block Building — The First Bottleneck",
       content: "The proposer must execute every transaction BEFORE proposing. This pre-execution runs the full VM, computing state changes. Other validators sit idle waiting for this single node to finish."
     },
     executing: {
@@ -485,11 +460,7 @@ export function SynchronousExecution({ colors }: { colors: Colors }) {
     },
     accepted: {
       title: "Consensus Voting",
-      content: "Only after execution completes can validators vote. The block waits in limbo while votes are collected. Any slow validator delays the entire network."
-    },
-    settled: {
-      title: "Finally Settled",
-      content: "State is committed, receipts available. The user finally learns if their transaction succeeded — potentially seconds after submission. Only NOW can the next block begin."
+      content: "Only after execution completes can validators vote. The block waits in limbo while votes are collected. Any slow validator delays the entire network. Only NOW can the next block begin."
     }
   }
 
@@ -690,7 +661,7 @@ export function SynchronousExecution({ colors }: { colors: Colors }) {
             <SyncBlockDisplay
               block={currentStage === 'proposing' ? currentBlock : null}
               colors={colors}
-              label="Proposing"
+              label="Block Building"
               isDotted
               isProposing={currentStage === 'proposing'}
             />
@@ -730,19 +701,7 @@ export function SynchronousExecution({ colors }: { colors: Colors }) {
             />
             {renderTooltip('accepted')}
           </div>
-
-          <FlowArrow colors={colors} />
-
-          {/* Settled */}
-          <div
-            className="relative cursor-help"
-            onMouseEnter={() => setActiveTooltip('settled')}
-            onMouseLeave={() => setActiveTooltip(null)}
-          >
-            <SyncSettledDisplay blocks={settledBlocks} colors={colors} />
-            {renderTooltip('settled')}
-            </div>
-          </div>
+        </div>
         </div>
         </div>
       </div>

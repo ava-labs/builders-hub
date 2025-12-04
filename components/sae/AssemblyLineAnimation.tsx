@@ -176,13 +176,14 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
       addedAt: number
     }[]
   >([])
-  const [isProcessing, setIsProcessing] = useState(false)
   const [smokeParticles, setSmokeParticles] = useState<{ id: number; color: string; x: number }[]>([])
-  const [processedTxIndices, setProcessedTxIndices] = useState<Set<string>>(new Set()) // "blockId-txIndex"
+  const [processedTxIndices, setProcessedTxIndices] = useState<Set<string>>(new Set())
   const blockIdRef = useRef(0)
   const lastBlockCreationTime = useRef(0)
   const smokeIdRef = useRef(0)
   const batchIdRef = useRef(0)
+  const processingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const currentTxIndexRef = useRef(0)
 
   const beltWidth = 400
   const blockSize = 36
@@ -208,11 +209,13 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
         setBeltBlocks([])
         setExecutingBlocks([])
         setSettledBatches([])
-        setIsProcessing(false)
         setProcessedTxIndices(new Set())
-        processingBlocksRef.current = new Set()
-        activeIntervalsRef.current.forEach(i => clearInterval(i))
-        activeIntervalsRef.current = []
+        setSmokeParticles([])
+        if (processingIntervalRef.current) {
+          clearInterval(processingIntervalRef.current)
+          processingIntervalRef.current = null
+        }
+        currentTxIndexRef.current = 0
       }
     }
 
@@ -318,194 +321,110 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
     }
   }, [])
 
-  // Track which blocks we've started processing and their intervals
-  const processingBlocksRef = useRef<Set<number>>(new Set())
-  const activeIntervalsRef = useRef<NodeJS.Timeout[]>([])
-  const currentProcessingBlockRef = useRef<number | null>(null)
+  // Track which block we're currently processing
+  const currentProcessingBlockIdRef = useRef<number | null>(null)
   
-  // Refs to access current state in settlement timer without resetting it
-  const executingBlocksRef = useRef(executingBlocks)
-  const processedTxIndicesRef = useRef(processedTxIndices)
-  
-  // Keep refs in sync with state
+  // Process first block in queue - emit particles for each tx
   useEffect(() => {
-    executingBlocksRef.current = executingBlocks
-  }, [executingBlocks])
-  
-  useEffect(() => {
-    processedTxIndicesRef.current = processedTxIndices
-  }, [processedTxIndices])
-  
-  // Emit smoke particles - process txs ONE BLOCK AT A TIME (wait for previous to finish)
-  useEffect(() => {
-    if (!isProcessing || executingBlocks.length === 0) return
-    
-    // If we're currently processing a block, wait for it to finish
-    if (currentProcessingBlockRef.current !== null) {
-      const currentBlock = executingBlocks.find(b => b.id === currentProcessingBlockRef.current)
-      if (currentBlock) {
-        // Check if current block is done (all its txs processed)
-        const allProcessed = currentBlock.txColors.every((_, idx) => 
-          processedTxIndices.has(`${currentBlock.id}-${idx}`)
-        )
-        if (!allProcessed) return // Still processing, wait
+    if (executingBlocks.length === 0) {
+      // No blocks - clear everything
+      if (processingIntervalRef.current) {
+        clearInterval(processingIntervalRef.current)
+        processingIntervalRef.current = null
       }
-      // Current block is done, clear it
-      currentProcessingBlockRef.current = null
+      currentProcessingBlockIdRef.current = null
+      return
     }
     
-    // Find next block to process (first unprocessed block in order)
-    const nextBlock = executingBlocks.find(b => !processingBlocksRef.current.has(b.id))
-    if (!nextBlock) return
+    const block = executingBlocks[0]
     
-    // Mark this block as being processed
-    processingBlocksRef.current.add(nextBlock.id)
-    currentProcessingBlockRef.current = nextBlock.id
+    // If we're already processing this block, don't touch anything
+    if (currentProcessingBlockIdRef.current === block.id) {
+      return // Keep existing interval running
+    }
     
-    // Build tx list for this block only
-    const txsToProcess = nextBlock.txColors.map((color, idx) => ({
-      blockId: nextBlock.id,
-      txIndex: idx,
-      color
-    }))
+    // Different block - clear old interval and start new one
+    if (processingIntervalRef.current) {
+      clearInterval(processingIntervalRef.current)
+      processingIntervalRef.current = null
+    }
     
-    if (txsToProcess.length === 0) return
+    // Start processing this block
+    currentProcessingBlockIdRef.current = block.id
+    currentTxIndexRef.current = 0
     
-    // Emit at fixed interval (~80ms per tx)
     const emitInterval = 80
-    let currentIndex = 0
+    const blockId = block.id // Capture for closure
+    const blockTxCount = block.txCount
+    const blockTxColors = block.txColors
     
-    const emitParticle = () => {
-      if (currentIndex >= txsToProcess.length) {
-        // Done with this block - clear interval
-        clearInterval(interval)
+    const processNextTx = () => {
+      if (currentTxIndexRef.current >= blockTxCount) {
+        // Done with this block - clear interval and move to executed belt
+        if (processingIntervalRef.current) {
+          clearInterval(processingIntervalRef.current)
+          processingIntervalRef.current = null
+        }
+        
+        // Move to settled batches
+        setSettledBatches(prev => [...prev, {
+          id: batchIdRef.current++,
+          blocks: [{ id: blockId, txCount: blockTxCount, txColors: blockTxColors }],
+          progress: 0,
+          addedAt: Date.now(),
+        }])
+        
+        // Remove this block from executing (keep others queued)
+        setExecutingBlocks(prev => prev.filter(b => b.id !== blockId))
+        
+        // Clear processed indices for next block
+        setProcessedTxIndices(new Set())
+        currentProcessingBlockIdRef.current = null
         return
       }
       
-      const tx = txsToProcess[currentIndex]
-      const key = `${tx.blockId}-${tx.txIndex}`
-      
-      // Mark as processed
-      setProcessedTxIndices(prev => new Set([...prev, key]))
-      
+      // Emit smoke particle
+      const color = blockTxColors[currentTxIndexRef.current] || '#f59e0b'
       const id = smokeIdRef.current++
       const x = Math.random() * 16 - 8
-      setSmokeParticles(prev => [...prev, { id, color: tx.color, x }])
+      setSmokeParticles(prev => [...prev, { id, color, x }])
+      
+      // Mark tx as processed for visual
+      const key = `${blockId}-${currentTxIndexRef.current}`
+      setProcessedTxIndices(prev => new Set([...prev, key]))
       
       // Remove particle after animation
       setTimeout(() => {
         setSmokeParticles(prev => prev.filter(p => p.id !== id))
       }, 1600)
       
-      currentIndex++
+      currentTxIndexRef.current++
     }
     
-    // Start emitting - store interval in ref so it doesn't get cleared by effect cleanup
-    emitParticle()
-    const interval = setInterval(emitParticle, emitInterval)
-    activeIntervalsRef.current.push(interval)
+    // Start processing immediately
+    processNextTx()
+    processingIntervalRef.current = setInterval(processNextTx, emitInterval)
     
-    // No cleanup - intervals self-terminate when done
-  }, [isProcessing, executingBlocks, processedTxIndices])
+    // NO cleanup function - we manage the interval ourselves
+  }, [executingBlocks])
 
-  // Move blocks that reach end of belt into execution - they join whatever is already executing
+  // Move blocks from belt into execution queue (allow multiple to queue up)
   useEffect(() => {
-    // Find blocks that are close to the end - get "sucked in" to execution (streaming feel)
-    const readyBlocks = beltBlocks.filter(b => b.progress >= 0.80)
+    // Limit queue size to prevent overcrowding
+    if (executingBlocks.length >= 4) return
     
-    if (readyBlocks.length === 0) return
+    const readyBlock = beltBlocks.find(b => b.progress >= 0.85)
+    if (!readyBlock) return
     
-    const idsToTake = new Set(readyBlocks.map(b => b.id))
-    const blocksToAdd = readyBlocks.map(b => ({ id: b.id, txCount: b.txCount, txColors: b.txColors }))
-    
-    // Remove from belt and add to executing (joins any ongoing execution)
-    setBeltBlocks(prev => prev.filter(b => !idsToTake.has(b.id)))
-    setExecutingBlocks(prev => [...prev, ...blocksToAdd])
-    
-    // Start processing if not already
-    if (!isProcessing) {
-      setIsProcessing(true)
-    }
-  }, [beltBlocks, isProcessing])
-  
-  // Settlement timer - fires every 5 seconds (τ = 5s)
-  // Settles all fully-processed blocks, keeps partially-processed ones
-  // Uses refs to access current state so the timer doesn't reset
-  useEffect(() => {
-    const settlementInterval = setInterval(() => {
-      const currentExecutingBlocks = executingBlocksRef.current
-      const currentProcessedIndices = processedTxIndicesRef.current
-      
-      if (currentExecutingBlocks.length === 0) return
-      
-      // Find blocks that are fully processed (all txs done)
-      const fullyProcessedBlocks: typeof currentExecutingBlocks = []
-      const stillProcessingBlocks: typeof currentExecutingBlocks = []
-      
-      currentExecutingBlocks.forEach(block => {
-        const allTxsProcessed = block.txColors.every((_, idx) => 
-          currentProcessedIndices.has(`${block.id}-${idx}`)
-        )
-        if (allTxsProcessed) {
-          fullyProcessedBlocks.push(block)
-        } else {
-          stillProcessingBlocks.push(block)
-        }
-      })
-      
-      // If we have fully processed blocks, settle them
-      if (fullyProcessedBlocks.length > 0) {
-        // Move fully processed blocks to settled as one batch
-        setSettledBatches(prevBatches => {
-          const newBatch = {
-            id: batchIdRef.current++,
-            blocks: fullyProcessedBlocks.map(b => ({ id: b.id, txCount: b.txCount, txColors: b.txColors })),
-            progress: 0,
-            addedAt: Date.now(),
-          }
-          return [...prevBatches, newBatch]
-        })
-        
-        // Keep only the still-processing blocks
-        setExecutingBlocks(stillProcessingBlocks)
-        
-        // Clean up processed indices for settled blocks
-        const settledBlockIds = new Set(fullyProcessedBlocks.map(b => b.id))
-        setProcessedTxIndices(prev => {
-          const newSet = new Set<string>()
-          prev.forEach(key => {
-            const blockId = parseInt(key.split('-')[0])
-            if (!settledBlockIds.has(blockId)) {
-              newSet.add(key)
-            }
-          })
-          return newSet
-        })
-        
-        // Clean up processing refs for settled blocks
-        settledBlockIds.forEach(id => processingBlocksRef.current.delete(id))
-        
-        // Clear currentProcessingBlockRef if that block was settled
-        if (currentProcessingBlockRef.current !== null && settledBlockIds.has(currentProcessingBlockRef.current)) {
-          currentProcessingBlockRef.current = null
-        }
-        
-        // If no blocks left, stop processing
-        if (stillProcessingBlocks.length === 0) {
-          activeIntervalsRef.current.forEach(i => clearInterval(i))
-          activeIntervalsRef.current = []
-          setIsProcessing(false)
-        }
-      }
-    }, 5000) // τ = 5 seconds
-    
-    return () => clearInterval(settlementInterval)
-  }, []) // Empty deps - timer runs once and never resets
+    // Remove from belt and add to executing queue
+    setBeltBlocks(prev => prev.filter(b => b.id !== readyBlock.id))
+    setExecutingBlocks(prev => [...prev, { id: readyBlock.id, txCount: readyBlock.txCount, txColors: readyBlock.txColors }])
+  }, [beltBlocks, executingBlocks.length])
 
   return (
-    <div className={`w-full py-2 md:py-8 ${colors.bg}`}>
+    <div className={`w-full py-2 md:py-8 ${colors.bg} relative`}>
       {/* Assembly Line - scales down on mobile */}
-      <div className="flex items-center justify-center gap-1" style={{ minWidth: 900 }}>
+      <div className="relative flex items-center justify-center gap-1" style={{ minWidth: 900 }}>
         {/* Consensus Box */}
         <motion.div
           className="relative flex items-center justify-center"
@@ -901,7 +820,7 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
 
         {/* Settled Conveyor Belt */}
         <div
-          className={`relative border ${colors.border} ${colors.blockBg} overflow-hidden`}
+          className={`relative border ${colors.border} ${colors.blockBg} overflow-visible`}
           style={{ width: settledBeltWidth, height: 80, minWidth: settledBeltWidth }}
         >
           <div className="absolute inset-0 overflow-hidden">
@@ -925,11 +844,71 @@ export function AssemblyLineAnimation({ colors }: { colors: Colors }) {
             ))}
           </div>
 
-          {/* Belt label */}
-          <div
-            className={`absolute top-1 left-0 right-0 text-center text-[8px] uppercase tracking-[0.15em] ${colors.textFaint} font-mono`}
+          {/* Dotted vertical divider line at halfway - extends down to state root curve */}
+          <div 
+            className="absolute z-10"
+            style={{ 
+              left: '50%',
+              top: 0,
+              bottom: -12,
+              borderLeft: `1.5px dashed ${colors.stroke}40`,
+            }}
+          />
+          
+          {/* State root feedback curve - from this divider back to Consensus */}
+          <svg 
+            className="absolute pointer-events-none z-0"
+            style={{ 
+              top: 88, // Start just below the vertical line
+              left: '50%', // Left edge at the dotted divider
+              transform: 'translateX(-100%)', // Move left so right edge is at divider
+              width: 770,
+              height: 50,
+            }}
+            viewBox="0 0 770 50"
+            preserveAspectRatio="xMaxYMin meet"
           >
-            Settled
+            {/* Curved dotted path back to consensus - curves around Firewood */}
+            <path
+              d="M 770 0 
+                 C 770 35, 720 45, 600 45
+                 L 170 45
+                 C 50 45, 0 35, 0 0"
+              fill="none"
+              stroke={colors.stroke}
+              strokeOpacity="0.35"
+              strokeWidth="1.5"
+              strokeDasharray="4 3"
+            />
+            {/* State root label - centered on the horizontal portion */}
+            <text
+              x="385"
+              y="38"
+              textAnchor="middle"
+              fill={colors.stroke}
+              fillOpacity="0.5"
+              fontSize="9"
+              fontFamily="monospace"
+              letterSpacing="0.1em"
+            >
+              STATE ROOT
+            </text>
+            {/* Arrow at consensus end - pointing up into the box */}
+            <polygon
+              points="0,0 -6,10 6,10"
+              fill={colors.stroke}
+              fillOpacity="0.35"
+            />
+          </svg>
+
+          {/* Belt labels - Executed on left, Settled on right */}
+          <div className="absolute top-1 left-0 right-0 flex justify-between px-3">
+            <span className={`text-[8px] uppercase tracking-[0.12em] ${colors.textFaint} font-mono`}>
+              Executed
+            </span>
+            <span className={`text-[8px] uppercase tracking-[0.12em] font-mono`} style={{ color: '#22c55e' }}>
+              Settled
+            </span>
           </div>
 
           <div className="absolute top-1/2 -translate-y-1/2 left-2 right-2" style={{ height: blockSize }}>

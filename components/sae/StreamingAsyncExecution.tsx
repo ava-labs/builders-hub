@@ -178,14 +178,18 @@ function ProposedStage({ block, colors }: { block: Block | null; colors: Colors 
         onMouseLeave={() => setShowTooltip(false)}
       >
         {/* Solid grey pulsing border */}
-        <motion.div
-          className="absolute -inset-[2px] pointer-events-none z-20 border-2"
-          style={{ width: 84, height: 84 }}
-          animate={{
-            borderColor: ["#9ca3af", "#9ca3af60", "#9ca3af"],
-          }}
-          transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
-        />
+        <AnimatePresence>
+          {block && (
+            <motion.div
+              className="absolute -inset-[2px] pointer-events-none z-20 border-2"
+              initial={{ borderColor: "#9ca3af" }}
+              animate={{
+                borderColor: ["#9ca3af", "#9ca3af60", "#9ca3af"],
+              }}
+              transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+            />
+          )}
+        </AnimatePresence>
         <AnimatePresence mode="wait">
           {block ? (
             <motion.div
@@ -248,7 +252,7 @@ function ProposedStage({ block, colors }: { block: Block | null; colors: Colors 
           )}
         </AnimatePresence>
       </div>
-      <span className={`text-xs uppercase tracking-[0.2em] ${colors.textMuted}`}>Proposing</span>
+      <span className={`text-xs uppercase tracking-[0.2em] ${colors.textMuted}`}>Block Building</span>
       
       {/* Tooltip */}
       <AnimatePresence>
@@ -270,7 +274,7 @@ function ProposedStage({ block, colors }: { block: Block | null; colors: Colors 
               }}
             >
               <div className={`text-[10px] font-mono uppercase tracking-wider ${colors.text} mb-2`}>
-                Block Proposal
+                Block Building
               </div>
               <div className={`text-[9px] font-mono leading-relaxed space-y-2`} style={{ color: `${colors.stroke}90` }}>
                 <p>Consensus validates that transactions <em>can</em> be executed — not executing them yet.</p>
@@ -297,7 +301,7 @@ function ProposedStage({ block, colors }: { block: Block | null; colors: Colors 
   )
 }
 
-function AcceptedStage({ block, colors, isSettling }: { block: Block | null; colors: Colors; isSettling?: boolean }) {
+function AcceptedStage({ block, colors }: { block: Block | null; colors: Colors }) {
   const [showTooltip, setShowTooltip] = useState(false)
   
   return (
@@ -313,43 +317,16 @@ function AcceptedStage({ block, colors, isSettling }: { block: Block | null; col
           className="absolute inset-0 pointer-events-none z-10"
           style={{ border: `1px solid ${colors.stroke}20` }}
         />
-        {/* Solid grey pulsing border - turns green when triggering settlement */}
+        {/* Solid grey pulsing border */}
         <AnimatePresence>
-        {block && (
+          {block && (
             <motion.div
               className="absolute -inset-[2px] pointer-events-none z-20 border-2"
-              style={{ width: 84, height: 84 }}
               initial={{ borderColor: "#9ca3af" }}
               animate={{
-                borderColor: isSettling 
-                  ? "#22c55e" 
-                  : ["#9ca3af", "#9ca3af60", "#9ca3af"],
+                borderColor: ["#9ca3af", "#9ca3af60", "#9ca3af"],
               }}
-              transition={isSettling 
-                ? { duration: 0.2, ease: "easeOut" }
-                : { duration: 1, repeat: Infinity, ease: "easeInOut" }
-              }
-            />
-          )}
-        </AnimatePresence>
-        {/* Green flash border - only when this block triggers settlement (executed -> settled) */}
-        <AnimatePresence>
-          {isSettling && (
-          <motion.div
-            className="absolute inset-0 pointer-events-none z-30"
-            style={{ border: `3px solid #22c55e` }}
-            initial={{ opacity: 0 }}
-            animate={{ 
-                opacity: [0, 1, 0.8, 0],
-              boxShadow: [
-                '0 0 0px rgba(34, 197, 94, 0)',
-                  '0 0 16px rgba(34, 197, 94, 0.7)',
-                  '0 0 8px rgba(34, 197, 94, 0.4)',
-                '0 0 0px rgba(34, 197, 94, 0)',
-              ]
-            }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
+              transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
             />
           )}
         </AnimatePresence>
@@ -399,7 +376,6 @@ function AcceptedStage({ block, colors, isSettling }: { block: Block | null; col
                 <p>Consensus responsibilities complete:</p>
                 <p style={{ color: `${colors.stroke}70` }}>• Block added to FIFO execution queue</p>
                 <p style={{ color: `${colors.stroke}70` }}>• Queue size limits enforced (DoS protection)</p>
-                <p style={{ color: '#22c55e' }}>• May include settlement data for previously executed blocks</p>
                 <p className="mt-1">Consensus continues accepting new blocks without waiting for execution.</p>
               </div>
             </div>
@@ -509,16 +485,16 @@ function QueueStage({ blocks, colors }: { blocks: Block[]; colors: Colors }) {
 }
 
 // Single block being executed - shows gas-based progress
-function ExecutingBlock({ block, colors, onComplete }: { 
+function ExecutingBlock({ block, colors, onComplete, onTxComplete }: { 
   block: Block; 
   colors: Colors; 
   onComplete?: () => void;
+  onTxComplete?: (txColor: string, success: boolean) => void;
 }) {
   const [executedCount, setExecutedCount] = useState(0)
   const blockTxCount = block.txCount
   
   // Determine which transactions will fail (about 15% chance, stored on block)
-  // Generate once and store on block so Executed stage can use same data
   useEffect(() => {
     if (!block.failedTxs) {
       const failed = new Set<number>()
@@ -541,6 +517,10 @@ function ExecutingBlock({ block, colors, onComplete }: {
     for (let i = 0; i < blockTxCount; i++) {
       const timer = setTimeout(() => {
         setExecutedCount(i + 1)
+        // Emit result immediately when tx completes
+        const isFailed = block.failedTxs?.has(i) ?? false
+        const txColor = block.txColors[i] || '#f59e0b'
+        onTxComplete?.(txColor, !isFailed)
       }, (i + 1) * txTime)
       timers.push(timer)
     }
@@ -554,7 +534,7 @@ function ExecutingBlock({ block, colors, onComplete }: {
     return () => {
       timers.forEach(t => clearTimeout(t))
     }
-  }, [block.uid, blockTxCount, onComplete])
+  }, [block.uid, blockTxCount, onComplete, onTxComplete, block.failedTxs, block.txColors])
   
   return (
     <div className="flex flex-col items-center gap-1">
@@ -622,10 +602,11 @@ function ExecutingBlock({ block, colors, onComplete }: {
 }
 
 // Shows the currently executing block (one at a time per spec)
-function ExecutingStage({ block, colors, onBlockComplete }: { 
+function ExecutingStage({ block, colors, onBlockComplete, onTxComplete }: { 
   block: Block | null; 
   colors: Colors;
   onBlockComplete: () => void;
+  onTxComplete: (txColor: string, success: boolean) => void;
 }) {
   const [showTooltip, setShowTooltip] = useState(false)
   
@@ -655,7 +636,7 @@ function ExecutingStage({ block, colors, onBlockComplete }: {
               exit={{ scale: 0.6, opacity: 0, x: 30, transition: { duration: 0.1 } }}
               transition={{ type: "spring", stiffness: 800, damping: 35 }}
             >
-              <ExecutingBlock block={block} colors={colors} onComplete={onBlockComplete} />
+              <ExecutingBlock block={block} colors={colors} onComplete={onBlockComplete} onTxComplete={onTxComplete} />
             </motion.div>
           ) : (
             <motion.span
@@ -714,118 +695,110 @@ function ExecutingStage({ block, colors, onBlockComplete }: {
     </div>
   )
 }
-// Blocks that finished executing, waiting for settlement
-function ExecutedStage({ blocks, colors, isSettling }: { blocks: Block[]; colors: Colors; isSettling?: boolean }) {
+// Results Available - shows transaction dots streaming in as they complete execution
+function ResultsStage({ results, colors }: { results: { id: number; color: string; success: boolean }[]; colors: Colors }) {
   const [showTooltip, setShowTooltip] = useState(false)
-  const visibleBlocks = blocks.slice(-9) // Show up to 9 blocks in 3x3 grid
+  const maxSlots = 32
+  
+  // Create a map of slot -> result using modulo for circular buffer effect
+  // Each result gets a stable slot based on its id
+  const slotMap = new Map<number, typeof results[0]>()
+  const visibleResults = results.slice(-maxSlots)
+  visibleResults.forEach((result) => {
+    const slot = (result.id - 1) % maxSlots
+    slotMap.set(slot, result)
+  })
   
   return (
     <div className="flex flex-col items-center gap-2 relative">
       <div
         className={`relative border ${colors.border} ${colors.blockBg} flex items-center justify-center overflow-hidden cursor-help`}
-        style={{ width: 140, height: 130, padding: 6 }}
+        style={{ width: 160, height: 100, padding: 8 }}
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
-        {/* Green flash when settlement happens */}
-        <AnimatePresence>
-          {isSettling && (
-            <motion.div
-              className="absolute inset-0 pointer-events-none z-20"
-              style={{ border: `2px solid #22c55e` }}
-              initial={{ opacity: 0 }}
-              animate={{ 
-                opacity: [0, 1, 0.8, 0],
-                boxShadow: [
-                  '0 0 0px rgba(34, 197, 94, 0)',
-                  '0 0 16px rgba(34, 197, 94, 0.7)',
-                  '0 0 8px rgba(34, 197, 94, 0.4)',
-                  '0 0 0px rgba(34, 197, 94, 0)',
-                ]
-              }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-            />
-          )}
-        </AnimatePresence>
-        {/* Red waiting indicator - execution complete, awaiting settlement */}
+        {/* Green pulsing border - results streaming */}
         <motion.div
           className="absolute inset-0 pointer-events-none"
-          style={{ border: `2px solid #ef4444` }}
+          style={{ border: `2px solid #22c55e` }}
           animate={{ 
-            opacity: [0.3, 0.6, 0.3],
+            opacity: [0.4, 0.7, 0.4],
           }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
         />
-        <AnimatePresence mode="popLayout">
-          {visibleBlocks.length > 0 ? (
-            <div 
-              className="grid"
-              style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}
-            >
-              {visibleBlocks.map((block) => {
-                return (
-                  <motion.div
-                    key={block.uid}
-                    layout
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.5, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                    className="flex flex-col items-center"
-                  >
-                    <div
-                      className="border grid"
-                      style={{
-                        gridTemplateColumns: 'repeat(4, 7px)',
-                        gridTemplateRows: 'repeat(4, 7px)',
-                        gap: 0,
-                        backgroundColor: `${colors.stroke}05`,
-                        borderColor: '#ef444450',
+        
+        {/* Fixed grid - results fill slots in circular pattern */}
+        <div 
+          className="grid gap-1"
+          style={{ gridTemplateColumns: 'repeat(8, 1fr)' }}
+        >
+          {Array.from({ length: maxSlots }).map((_, slotIndex) => {
+            const result = slotMap.get(slotIndex)
+            return (
+              <div
+                key={slotIndex}
+                className="relative"
+                style={{ width: 12, height: 12 }}
+              >
+                {/* Empty slot background */}
+                <div
+                  className="absolute inset-0"
+                  style={{ backgroundColor: `${colors.stroke}10` }}
+                />
+                {/* Result in this slot */}
+                <AnimatePresence mode="wait">
+                  {result && (
+                    <motion.div
+                      key={result.id}
+                      className="absolute inset-0 flex items-center justify-center"
+                      style={{ backgroundColor: result.color }}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ 
+                        opacity: 0,
+                        scale: 0.5,
+                        transition: { duration: 0.1 }
+                      }}
+                      transition={{ 
+                        type: "spring", 
+                        stiffness: 500, 
+                        damping: 30,
                       }}
                     >
-                      {Array.from({ length: MAX_TX }).map((_, i) => {
-                        const isTransaction = i < block.txCount
-                        const isFailed = block.failedTxs?.has(i) ?? false
-                        return (
-                          <div
-                            key={i}
-                            className="flex items-center justify-center"
-                            style={{ backgroundColor: `${colors.stroke}08` }}
-                          >
-                            {isTransaction && (
-                              isFailed ? (
-                                <svg width="5" height="5" viewBox="0 0 24 24" fill="none">
-                                  <path d="M6 6l12 12M18 6l-12 12" stroke="#ef4444" strokeWidth="6" strokeLinecap="round" />
-                                </svg>
-                              ) : (
-                                <svg width="5" height="5" viewBox="0 0 24 24" fill="none">
-                                  <path d="M5 13l4 4L19 7" stroke="#22c55e" strokeWidth="6" strokeLinecap="round" />
-                                </svg>
-                              )
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                    <span className={`text-[6px] font-mono font-bold ${colors.textFaint} leading-none mt-0.5`}>
-                      #{block.id}
-                    </span>
-                  </motion.div>
-                )
-              })}
-            </div>
-          ) : (
-            <motion.span
-              key="empty"
-              className={`text-[9px] uppercase tracking-widest ${colors.textFaint}`}
-            >
-              Empty
-            </motion.span>
-          )}
-        </AnimatePresence>
+                      {result.success ? (
+                        <motion.svg 
+                          width="6" 
+                          height="6" 
+                          viewBox="0 0 24 24" 
+                          fill="none"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.05, duration: 0.08 }}
+                        >
+                          <path d="M5 13l4 4L19 7" stroke="#22c55e" strokeWidth="5" strokeLinecap="round" />
+                        </motion.svg>
+                      ) : (
+                        <motion.svg 
+                          width="6" 
+                          height="6" 
+                          viewBox="0 0 24 24" 
+                          fill="none"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.05, duration: 0.08 }}
+                        >
+                          <path d="M6 6l12 12M18 6l-12 12" stroke="#ef4444" strokeWidth="5" strokeLinecap="round" />
+                        </motion.svg>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )
+          })}
+        </div>
       </div>
-      <span className={`text-xs uppercase tracking-[0.2em] ${colors.textMuted}`}>Executed</span>
+      <span className={`text-xs uppercase tracking-[0.2em] ${colors.textMuted}`}>Results</span>
       
       <AnimatePresence>
         {showTooltip && (
@@ -846,124 +819,15 @@ function ExecutedStage({ blocks, colors, isSettling }: { blocks: Block[]; colors
               }}
             >
               <div className={`text-[10px] font-mono uppercase tracking-wider ${colors.text} mb-2`}>
-                Awaiting Settlement
+                Instant Results
               </div>
               <div className={`text-[9px] font-mono leading-relaxed space-y-2`} style={{ color: `${colors.stroke}90` }}>
-                <p>After execution, blocks wait here until a following accepted block includes their results.</p>
-                <p style={{ color: `${colors.stroke}70` }}>• Settlement when: block timestamp ≥ execution time + constant delay</p>
-                <p style={{ color: `${colors.stroke}70` }}>• Multiple blocks can settle at once</p>
-                <p style={{ color: `${colors.stroke}70` }}>• Delay amortizes sporadic executor slowdowns</p>
+                <p>Transaction results stream to clients immediately as execution completes — no waiting.</p>
+                <p style={{ color: '#22c55e' }}>• Results available instantly after execution</p>
+                <p style={{ color: `${colors.stroke}70` }}>• Clients can act on results immediately</p>
+                <p style={{ color: `${colors.stroke}70` }}>• No blocking on settlement</p>
               </div>
             </div>
-            <div 
-              className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0"
-              style={{
-                borderLeft: '6px solid transparent',
-                borderRight: '6px solid transparent',
-                borderBottom: `6px solid ${colors.stroke}20`,
-              }}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  )
-}
-
-function SettledStage({ blocks, colors }: { blocks: Block[]; colors: Colors }) {
-  const visibleBlocks = blocks.slice(-12) // 4x3 grid
-  const [showTooltip, setShowTooltip] = useState(false)
-
-  return (
-    <div className="flex flex-col items-center gap-2 relative">
-      <div
-        className={`border ${colors.border} ${colors.blockBg} p-2 overflow-hidden relative cursor-help flex items-center justify-center`}
-        style={{ width: 150, height: 110 }}
-        onMouseEnter={() => setShowTooltip(true)}
-        onMouseLeave={() => setShowTooltip(false)}
-      >
-        <motion.div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: `linear-gradient(135deg, transparent 40%, ${colors.stroke}06 50%, transparent 60%)`,
-          }}
-          animate={{
-            backgroundPosition: ["200% 200%", "-100% -100%"],
-          }}
-          transition={{ duration: 4, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-        />
-        <div className="grid grid-cols-4 gap-1.5 relative z-10">
-          <AnimatePresence mode="popLayout">
-            {visibleBlocks.map((block, index) => (
-              <motion.div
-                key={block.uid}
-                layout
-                initial={{ x: -20, opacity: 0, scale: 0.8 }}
-                animate={{ x: 0, opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.15 } }}
-                transition={{
-                  type: "spring",
-                  stiffness: 400,
-                  damping: 25,
-                  delay: index >= visibleBlocks.length - 4 ? (index - (visibleBlocks.length - 4)) * 0.05 : 0,
-                }}
-                className="grid gap-px p-0.5"
-                style={{
-                  gridTemplateColumns: "repeat(4, 1fr)",
-                  width: 28,
-                  height: 28,
-                  backgroundColor: `rgba(34, 197, 94, 0.15)`,
-                  border: `1px solid #22c55e`,
-                }}
-              >
-                {Array.from({ length: MAX_TX }).map((_, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      aspectRatio: "1",
-                      backgroundColor: i < block.txCount 
-                        ? (block.txColors[i] || `${colors.stroke}40`)
-                        : `${colors.stroke}10`,
-                    }}
-                  />
-                ))}
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      </div>
-      <span className={`text-xs uppercase tracking-[0.2em] ${colors.textMuted}`}>Settled</span>
-      
-      {/* Tooltip */}
-      <AnimatePresence>
-        {showTooltip && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.15 }}
-            className="absolute z-[100] top-full mt-4 left-1/2 -translate-x-1/2"
-            style={{ width: 340 }}
-          >
-            <div 
-              className={`border p-4`}
-              style={{ 
-                backdropFilter: 'blur(12px)',
-                backgroundColor: colors.stroke === '#ffffff' ? 'rgba(10, 10, 10, 0.95)' : 'rgba(250, 250, 250, 0.95)',
-                borderColor: `${colors.stroke}20`
-              }}
-            >
-              <div className={`text-[10px] font-mono uppercase tracking-wider ${colors.text} mb-2`}>
-                Block Settlement
-              </div>
-              <div className={`text-[9px] font-mono leading-relaxed space-y-2`} style={{ color: `${colors.stroke}90` }}>
-                <p>Blocks are settled when a following accepted block includes their results.</p>
-                <p>Results are included via state root (last executed) and receipt root (MPT of all receipts since last settlement).</p>
-                <p style={{ color: `${colors.stroke}70` }}>• Multiple blocks can be settled at once</p>
-                <p style={{ color: `${colors.stroke}70` }}>• State is now final and queryable</p>
-              </div>
-            </div>
-            {/* Arrow pointing up */}
             <div 
               className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0"
               style={{
@@ -986,28 +850,17 @@ export function StreamingAsyncExecution({ colors }: { colors: Colors }) {
   const [acceptedBlock, setAcceptedBlock] = useState<Block | null>(null)
   const [queuedBlocks, setQueuedBlocks] = useState<Block[]>([])
   const [executingBlock, setExecutingBlock] = useState<Block | null>(null) // Single block executing
-  const [executedBlocks, setExecutedBlocks] = useState<Block[]>([]) // Awaiting settlement
-  const [settledBlocks, setSettledBlocks] = useState<Block[]>([])
-  const [isSettling, setIsSettling] = useState(false)
+  const [results, setResults] = useState<{ id: number; color: string; success: boolean }[]>([])
 
   const blockIdRef = useRef(0)
   const lastBlockCreationTime = useRef(0)
   const txIdRef = useRef(0)
+  const resultIdRef = useRef(0)
   const queueRef = useRef<Block[]>([])
-  const executingRef = useRef<Block | null>(null)
-  const executedRef = useRef<Block[]>([])
 
   useEffect(() => {
     queueRef.current = queuedBlocks
   }, [queuedBlocks])
-
-  useEffect(() => {
-    executingRef.current = executingBlock
-  }, [executingBlock])
-
-  useEffect(() => {
-    executedRef.current = executedBlocks
-  }, [executedBlocks])
 
   useEffect(() => {
     const scheduleMempoolTx = () => {
@@ -1145,66 +998,17 @@ export function StreamingAsyncExecution({ colors }: { colors: Colors }) {
       setQueuedBlocks(rest)
     }
   }, [queuedBlocks, executingBlock])
-
-  // Track when first block entered executed queue (for 5s delay)
-  const executedQueueStartTimeRef = useRef<number | null>(null)
-  const lastSettlementBlockIdRef = useRef<number | null>(null)
   
-  // Handler for when a block finishes execution - move to executed (awaiting settlement)
+  // Handler for when a block finishes execution
   const handleBlockExecutionComplete = useCallback(() => {
-    if (executingBlock) {
-      setExecutedBlocks((prev) => {
-        // Prevent duplicates
-        if (prev.some(b => b.uid === executingBlock.uid)) return prev
-        // Track when first block enters the executed queue
-        if (prev.length === 0) {
-          executedQueueStartTimeRef.current = Date.now()
-        }
-        return [...prev, executingBlock]
-      })
-      setExecutingBlock(null)
-    }
-  }, [executingBlock])
+    setExecutingBlock(null)
+  }, [])
   
-  // Settlement triggered after τ delay when next accepted block arrives
-  // Per spec: τ = 5s delay between execution and settlement
-  useEffect(() => {
-    if (acceptedBlock && 
-        acceptedBlock.id !== lastSettlementBlockIdRef.current && 
-        executedBlocks.length > 0 &&
-        executedQueueStartTimeRef.current !== null) {
-      
-      const timeInQueue = Date.now() - executedQueueStartTimeRef.current
-      
-      // Only settle if 5 seconds have passed since first block entered executed queue
-      if (timeInQueue >= 5000) {
-        lastSettlementBlockIdRef.current = acceptedBlock.id
-        
-        // Settle in middle of accepted animation
-        const timer = setTimeout(() => {
-          // Flash the accepted block green to show it includes results
-          setIsSettling(true)
-          setTimeout(() => setIsSettling(false), 800)
-          
-          setExecutedBlocks(prev => {
-            if (prev.length === 0) return prev
-            const blocksToSettle = [...prev]
-            setSettledBlocks(settled => {
-              const existingUids = new Set(settled.map(b => b.uid))
-              const newBlocks = blocksToSettle.filter(b => !existingUids.has(b.uid))
-              if (newBlocks.length === 0) return settled
-              return [...settled.slice(-(16 - newBlocks.length)), ...newBlocks]
-            })
-            // Reset the queue start time
-            executedQueueStartTimeRef.current = null
-            return []
-          })
-        }, SAE_CONFIG.consensusInterval * 0.3)
-        
-        return () => clearTimeout(timer)
-      }
-    }
-  }, [acceptedBlock, executedBlocks])
+  // Handler for when a transaction completes - stream result immediately
+  const handleTxComplete = useCallback((txColor: string, success: boolean) => {
+    resultIdRef.current += 1
+    setResults(prev => [...prev.slice(-31), { id: resultIdRef.current, color: txColor, success }])
+  }, [])
 
   return (
     <div>
@@ -1283,7 +1087,7 @@ export function StreamingAsyncExecution({ colors }: { colors: Colors }) {
               </div>
               <FlowArrow colors={colors} />
               <div className="flex-1 flex justify-center">
-                <AcceptedStage block={acceptedBlock} colors={colors} isSettling={isSettling} />
+                <AcceptedStage block={acceptedBlock} colors={colors} />
               </div>
             </div>
           </div>
@@ -1346,11 +1150,10 @@ export function StreamingAsyncExecution({ colors }: { colors: Colors }) {
                   block={executingBlock} 
                   colors={colors} 
                   onBlockComplete={handleBlockExecutionComplete}
+                  onTxComplete={handleTxComplete}
                 />
                 <FlowArrow colors={colors} />
-                <ExecutedStage blocks={executedBlocks} colors={colors} isSettling={isSettling} />
-                <FlowArrow colors={colors} />
-                <SettledStage blocks={settledBlocks} colors={colors} />
+                <ResultsStage results={results} colors={colors} />
               </div>
             </div>
           </div>
@@ -1360,7 +1163,7 @@ export function StreamingAsyncExecution({ colors }: { colors: Colors }) {
       {/* Explainer paragraph */}
       <div className="mt-4 md:mt-6">
         <p className={`text-base sm:text-base ${colors.text} leading-relaxed`}>
-          Consensus orders transactions and validates gas payment without running the VM. The queue buffers accepted blocks while execution drains them. Results stream to clients immediately. Settlement follows 5 seconds later.
+          Consensus orders transactions and validates gas payment without running the VM. The queue buffers accepted blocks while execution drains them. Results stream to clients immediately as each transaction completes.
         </p>
       </div>
     </div>

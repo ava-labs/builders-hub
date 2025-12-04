@@ -38,7 +38,7 @@ export function SynchronousExecutionDiagram({ colors }: { colors: Colors }) {
                         <svg width="16" height="16" viewBox="0 0 16 16">
                             <line x1="0" y1="8" x2="16" y2="8" stroke={colors.stroke} strokeWidth="2" strokeOpacity="0.6" strokeDasharray="6 4" />
                         </svg>
-                        <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Context Switching</span>
+                        <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-widest ${colors.text} font-semibold`}>Verification</span>
                     </div>
                 </div>
 
@@ -172,7 +172,7 @@ export function SynchronousExecutionDiagram({ colors }: { colors: Colors }) {
             {/* Annotations at the bottom */}
             <div className="mt-4 md:mt-6">
                 <p className={`text-base sm:text-base ${colors.text} leading-relaxed`}>
-                    Execution fragments consensus. The proposer runs the VM before proposing. Every validator re-executes to verify. The dashed lines are context switches — validators pause consensus for the VM, then pause the VM for consensus. Execution happens twice per block, yet only one result matters.
+                    Execution fragments consensus. The proposer runs the VM before proposing. Every validator re-executes to verify — a complete repeat of execution. The dashed lines represent verification: validators must fully re-run the VM to confirm correctness. Execution happens twice per block, yet only one result matters.
                 </p>
             </div>
         </div>

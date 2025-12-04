@@ -42,10 +42,10 @@ export function GuaranteedExecutionCard({ colors }: { colors: Colors }) {
     >
       <div className="mb-4">
         <h3 className={`text-lg font-bold ${colors.text} mb-2`}>
-          Pay for worst case, always execute.
+          Budget for worst case, pay for what you use.
         </h3>
         <p className={`text-base sm:text-sm ${colors.textMuted} leading-relaxed`}>
-          If you can afford the maximum possible cost, your transaction is guaranteed to run.
+          If you can cover the maximum possible cost, your transaction is guaranteed to execute. You only pay for actual gas used.
         </p>
       </div>
       
@@ -157,7 +157,7 @@ export function GuaranteedExecutionCard({ colors }: { colors: Colors }) {
       
       {/* Footer insight */}
       <div className={`text-[10px] ${colors.textMuted} font-mono text-center pt-3 mt-auto`} style={{ borderTop: `1px solid ${colors.stroke}10` }}>
-        Can pay worst case → accepted → guaranteed to settle
+        Can cover worst case → accepted → guaranteed to execute
       </div>
     </div>
   )
