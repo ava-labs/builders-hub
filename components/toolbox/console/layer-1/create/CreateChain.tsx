@@ -87,7 +87,7 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
     const canCreateChain = canProceedToStep4;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-12">
             <Steps>
                 {/* Step 1: Create Subnet */}
                 <Step>
@@ -100,19 +100,16 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                 {/* Step 2: Chain Configuration */}
                 <Step>
                     <div>
-                        <h2 className="text-[14px] font-semibold mb-1">Chain Configuration</h2>
-                        <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
+                        <h2 className="text-sm font-semibold mb-1">Chain Configuration</h2>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
                             Configure your chain name and virtual machine.
                         </p>
                     </div>
                     {!canProceedToStep2 ? (
-                        <div className="flex items-center justify-center py-12">
+                        <div className="flex items-center justify-center py-8">
                             <div className="text-center">
-                                <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">
-                                    Create or Select a Subnet First
-                                </h3>
                                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                    Please complete the subnet selection in Step 1 before proceeding.
+                                    Complete Step 1 to continue.
                                 </p>
                             </div>
                         </div>
@@ -129,21 +126,18 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                 {/* Step 3: Genesis Configuration */}
                 <Step>
                     <div>
-                        <h2 className="text-[14px] font-semibold mb-1">Genesis Configuration</h2>
-                        <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
+                        <h2 className="text-sm font-semibold mb-1">Genesis Configuration</h2>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
                             {vmId === SUBNET_EVM_VM_ID 
                                 ? "Configure the genesis parameters for your chain."
                                 : "Provide the genesis JSON for your custom virtual machine."}
                         </p>
                     </div>
                     {!canProceedToStep3 ? (
-                        <div className="flex items-center justify-center py-12">
+                        <div className="flex items-center justify-center py-8">
                             <div className="text-center">
-                                <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">
-                                    Configure Chain First
-                                </h3>
                                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                    Please configure your chain name and VM in Step 2 before proceeding.
+                                    Complete Step 2 to continue.
                                 </p>
                             </div>
                         </div>
@@ -163,26 +157,16 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                     ) : (
                         // For custom VMs, provide a simple JSON input
                         <div className="space-y-4">
-                            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                                <div className="flex items-start space-x-2">
-                                    <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                    </svg>
-                                    <div>
-                                        <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Custom Virtual Machine</h4>
-                                        <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                                            You're using a custom VM. Please provide your own genesis JSON configuration.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                Custom VM selected. Provide your genesis JSON below.
+                            </p>
                             
                             <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2">
                                     Genesis JSON
                                 </label>
                                 <textarea
-                                    className="w-full h-96 px-4 py-3 bg-zinc-900 dark:bg-zinc-950 text-zinc-100 rounded-lg border border-zinc-700 dark:border-zinc-800 font-mono text-xs resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full h-80 px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 rounded-lg border border-zinc-200 dark:border-zinc-800 font-mono text-xs resize-none focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 focus:border-transparent"
                                     placeholder='{"config": {...}, "alloc": {...}, ...}'
                                     value={genesisData}
                                     onChange={(e) => setGenesisData(e.target.value)}
@@ -191,14 +175,14 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                                     try {
                                         JSON.parse(genesisData);
                                         return (
-                                            <p className="text-xs text-green-600 dark:text-green-400 mt-2">
-                                                ✓ Valid JSON ({(new Blob([genesisData]).size / 1024).toFixed(2)} KiB)
+                                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5">
+                                                Valid JSON • {(new Blob([genesisData]).size / 1024).toFixed(2)} KiB
                                             </p>
                                         );
                                     } catch (e) {
                                         return (
-                                            <p className="text-xs text-red-600 dark:text-red-400 mt-2">
-                                                ✗ Invalid JSON: {(e as Error).message}
+                                            <p className="text-xs text-red-500 dark:text-red-400 mt-1.5">
+                                                Invalid JSON: {(e as Error).message}
                                             </p>
                                         );
                                     }
@@ -211,34 +195,57 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                 {/* Step 4: Create Chain */}
                 <Step>
                     <div>
-                        <h2 className="text-[14px] font-semibold mb-1">Create Chain</h2>
-                        <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
-                            Create your chain by issuing a CreateChainTx transaction.
+                        <h2 className="text-sm font-semibold mb-1">Review & Create</h2>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            Review your chain configuration and submit the CreateChainTx.
                         </p>
                     </div>
                     {!canProceedToStep4 ? (
-                        <div className="flex items-center justify-center py-12">
+                        <div className="flex items-center justify-center py-8">
                             <div className="text-center">
-                                <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">
-                                    Configure Genesis First
-                                </h3>
                                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                    Please complete the genesis configuration in Step 3 before creating your chain.
+                                    Complete Step 3 to continue.
                                 </p>
                             </div>
                         </div>
                     ) : (
-                        <div className="flex items-center justify-center py-12">
-                            <Button
-                                onClick={handleCreateChain}
-                                loading={isCreatingChain}
-                                loadingText="Creating Chain..."
-                                disabled={!canCreateChain}
-                                className="px-8"
-                                size="lg"
-                            >
-                                Create Chain
-                            </Button>
+                        <div className="space-y-5">
+                            {/* Overview */}
+                            <div className="grid grid-cols-2 gap-4 text-[13px]">
+                                <div>
+                                    <span className="text-xs text-zinc-500 dark:text-zinc-400">Chain Name</span>
+                                    <p className="font-medium text-zinc-900 dark:text-zinc-100 mt-0.5">{localChainName}</p>
+                                </div>
+                                <div>
+                                    <span className="text-xs text-zinc-500 dark:text-zinc-400">Virtual Machine</span>
+                                    <p className="font-medium text-zinc-900 dark:text-zinc-100 mt-0.5">
+                                        {vmId === SUBNET_EVM_VM_ID ? 'Subnet-EVM' : 'Custom VM'}
+                                    </p>
+                                </div>
+                                <div>
+                                    <span className="text-xs text-zinc-500 dark:text-zinc-400">Subnet ID</span>
+                                    <p className="font-mono text-zinc-900 dark:text-zinc-100 mt-0.5 text-xs truncate" title={subnetId}>{subnetId}</p>
+                                </div>
+                                <div>
+                                    <span className="text-xs text-zinc-500 dark:text-zinc-400">Genesis Size</span>
+                                    <p className="font-medium text-zinc-900 dark:text-zinc-100 mt-0.5">
+                                        {(new Blob([genesisData]).size / 1024).toFixed(1)} KiB
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Create Button */}
+                            <div className="pt-2">
+                                <Button
+                                    onClick={handleCreateChain}
+                                    loading={isCreatingChain}
+                                    loadingText="Creating Chain..."
+                                    disabled={!canCreateChain}
+                                    className="w-full"
+                                >
+                                    Create Chain
+                                </Button>
+                            </div>
                         </div>
                     )}
                 </Step>

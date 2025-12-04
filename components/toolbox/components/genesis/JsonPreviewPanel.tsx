@@ -313,55 +313,37 @@ export function JsonPreviewPanel({
     const barClass = percent >= 90 ? 'bg-red-500' : percent >= 75 ? 'bg-yellow-500' : 'bg-green-500';
 
     return (
-        <div className="flex flex-col max-h-[calc(100vh-8rem)] border-l border-zinc-200 dark:border-zinc-800">
+        <div className="flex flex-col max-h-[calc(100vh-8rem)]">
             {/* Header */}
-            <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
-                <div className="flex items-start justify-between">
-                    <div>
-                        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{title}</h3>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                            {isValidJson ? `${jsonSizeKiB.toFixed(2)} KiB / ${maxSizeKiB} KiB • ${statusText}` : 'Awaiting configuration'}
-                        </p>
+            <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400 font-mono">genesis.json</span>
+                        {isValidJson && (
+                            <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                                {jsonSizeKiB.toFixed(1)} / {maxSizeKiB} KiB
+                            </span>
+                        )}
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
+                    <div className="flex items-center gap-1">
+                        <button
                             onClick={handleCopy}
                             disabled={!isValidJson}
-                            className="h-8"
+                            className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            title="Copy"
                         >
-                            {copied ? (
-                                <>
-                                    <Check className="h-4 w-4 mr-1 text-green-500" />
-                                    Copied
-                                </>
-                            ) : (
-                                <>
-                                    <Copy className="h-4 w-4 mr-1" />
-                                    Copy
-                                </>
-                            )}
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
+                            {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                        </button>
+                        <button
                             onClick={handleDownload}
                             disabled={!isValidJson}
-                            className="h-8"
+                            className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            title="Download"
                         >
-                            <Download className="h-4 w-4 mr-1" />
-                            Download
-                        </Button>
+                            <Download className="h-3.5 w-3.5" />
+                        </button>
                     </div>
                 </div>
-                {isValidJson && (
-                    <div className="mt-2">
-                        <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800">
-                            <div className={`h-1.5 rounded-full transition-all duration-300 ${barClass}`} style={{ width: `${percent}%` }} />
-                        </div>
-                    </div>
-                )}
             </div>
 
             {/* JSON Content */}

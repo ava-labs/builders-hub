@@ -397,10 +397,10 @@ function GenesisBuilderInner({
                     {/* EVM Chain ID - Outside of sections */}
                     <div>
                         <div className="flex items-baseline gap-1.5 mb-1.5">
-                            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">EVM Chain ID</label>
+                            <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">EVM Chain ID</label>
                             <Tooltip>
                                 <TooltipTrigger className="inline-flex">
-                                    <Info className="h-3.5 w-3.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" />
+                                    <Info className="h-3 w-3 text-zinc-400 hover:text-zinc-500 dark:hover:text-zinc-300" />
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
                                     <div className="space-y-2">
@@ -409,7 +409,7 @@ function GenesisBuilderInner({
                                             href="https://chainlist.org" 
                                             target="_blank" 
                                             rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
+                                            className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-300"
                                         >
                                             Check registered IDs on chainlist.org
                                             <ExternalLink className="h-3 w-3" />
