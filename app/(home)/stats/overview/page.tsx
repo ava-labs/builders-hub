@@ -941,13 +941,13 @@ export default function AvalancheMetrics() {
                               ? [{ name: "Builder Hub Explorer", link: `/explorer/${l1Chain.slug}` }, ...explorers]
                               : explorers;
                             return (
-                              <ExplorerDropdown
+                          <ExplorerDropdown
                                 explorers={allExplorers}
-                                size="sm"
-                                variant="outline"
-                                showIcon={true}
-                                buttonText="Open"
-                              />
+                            size="sm"
+                            variant="outline"
+                            showIcon={true}
+                            buttonText="Open"
+                          />
                             );
                           })()}
                         </div>
@@ -961,7 +961,7 @@ export default function AvalancheMetrics() {
         </Card>
 
         {hasMoreData && (
-          <div className="flex justify-center mt-4 sm:mt-6">
+          <div className="flex justify-center mt-4 sm:mt-6 pb-14">
             <Button
               onClick={handleLoadMore}
               variant="outline"
