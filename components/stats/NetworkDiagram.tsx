@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useTheme } from 'next-themes';
+import { Info } from 'lucide-react';
 import l1ChainsData from '@/constants/l1-chains.json';
 
 export interface ChainCosmosData {
@@ -1516,11 +1517,7 @@ export default function NetworkDiagram({
                   {displayChain.chainId && failedChainIds.includes(displayChain.chainId) ? (
                     <div className="relative group/icm inline-flex justify-center">
                       <span className="text-amber-400 cursor-pointer">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="10"/>
-                          <line x1="12" y1="16" x2="12" y2="12"/>
-                          <line x1="12" y1="8" x2="12.01" y2="8"/>
-                        </svg>
+                        <Info className="w-5 h-5" />
                       </span>
                       <span className="absolute left-1/2 -translate-x-1/2 top-full mt-1 px-2 py-1 bg-black border border-amber-400/50 text-amber-300 text-[10px] rounded whitespace-nowrap opacity-0 group-hover/icm:opacity-100 transition-opacity z-[100] pointer-events-none">
                         Data unavailable
@@ -1547,11 +1544,7 @@ export default function NetworkDiagram({
                   {displayChain.chainId && failedChainIds.includes(displayChain.chainId) ? (
                     <div className="relative group/routes inline-flex justify-center">
                       <span className="text-amber-400 cursor-pointer">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="10"/>
-                          <line x1="12" y1="16" x2="12" y2="12"/>
-                          <line x1="12" y1="8" x2="12.01" y2="8"/>
-                        </svg>
+                        <Info className="w-5 h-5" />
                       </span>
                       <span className="absolute left-1/2 -translate-x-1/2 top-full mt-1 px-2 py-1 bg-black border border-amber-400/50 text-amber-300 text-[10px] rounded whitespace-nowrap opacity-0 group-hover/routes:opacity-100 transition-opacity z-[100] pointer-events-none">
                         Data unavailable

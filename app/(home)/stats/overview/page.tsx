@@ -20,6 +20,7 @@ import {
   ChevronRight,
   BarChart3,
   Network,
+  Info,
 } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -895,11 +896,7 @@ export default function AvalancheMetrics() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <span className="text-amber-500 cursor-pointer inline-flex justify-end">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <line x1="12" y1="16" x2="12" y2="12"/>
-                                    <line x1="12" y1="8" x2="12.01" y2="8"/>
-                                  </svg>
+                                  <Info className="w-4 h-4" />
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent>
