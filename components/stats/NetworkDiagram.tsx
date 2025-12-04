@@ -1524,7 +1524,7 @@ export default function NetworkDiagram({
                       </span>
                     </div>
                   ) : (
-                    <p className="text-lg font-bold text-cyan-400">{formatNum(displayChain.icmMessages)}</p>
+                  <p className="text-lg font-bold text-cyan-400">{formatNum(displayChain.icmMessages)}</p>
                   )}
                   <p className="text-[10px] text-white/50">Daily ICM</p>
                 </div>
@@ -1551,7 +1551,7 @@ export default function NetworkDiagram({
                       </span>
                     </div>
                   ) : (
-                    <p className="text-lg font-bold text-amber-400">{formatNum(totalOutgoing + totalIncoming)}</p>
+                  <p className="text-lg font-bold text-amber-400">{formatNum(totalOutgoing + totalIncoming)}</p>
                   )}
                   <p className="text-[10px] text-white/50">ICM Routes</p>
                 </div>

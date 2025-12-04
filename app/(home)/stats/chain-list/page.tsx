@@ -46,6 +46,7 @@ export default function ChainListPage() {
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
+  const [hideWithoutRpc, setHideWithoutRpc] = useState(true);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
 
   // Load custom chains from localStorage
@@ -217,9 +218,12 @@ export default function ChainListPage() {
         chain.networkToken?.symbol?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         chain.slug.toLowerCase().includes(searchTerm.toLowerCase());
 
-      return matchesNetwork && matchesCategory && matchesSearch;
+      // RPC URL filter
+      const matchesRpcFilter = !hideWithoutRpc || !!chain.rpcUrl;
+
+      return matchesNetwork && matchesCategory && matchesSearch && matchesRpcFilter;
     });
-  }, [allChains, selectedNetwork, selectedCategory, searchTerm]);
+  }, [allChains, selectedNetwork, selectedCategory, searchTerm, hideWithoutRpc]);
 
   const getThemedLogoUrl = (logoUrl: string): string => {
     if (!isMounted || !logoUrl) return logoUrl;
@@ -360,28 +364,43 @@ export default function ChainListPage() {
 
         <div className="flex flex-col gap-4 mb-6">
           {/* Network Filter */}
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
-            <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">Network:</span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-2">
-              {(["mainnet", "testnet", "console"] as const).map((network) => (
-                <button
-                  key={network}
-                  onClick={() => setSelectedNetwork(network)}
-                  className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full border transition-all cursor-pointer ${
-                    selectedNetwork === network
-                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent"
-                      : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  }`}
-                >
-                  {network.charAt(0).toUpperCase() + network.slice(1)}
-                </button>
-              ))}
+              <Filter className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+              <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">Network:</span>
+              <div className="flex items-center gap-2">
+                {(["mainnet", "testnet", "console"] as const).map((network) => (
+                  <button
+                    key={network}
+                    onClick={() => setSelectedNetwork(network)}
+                    className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full border transition-all cursor-pointer ${
+                      selectedNetwork === network
+                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent"
+                        : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                    }`}
+                  >
+                    {network.charAt(0).toUpperCase() + network.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
+            
+            {/* RPC Filter Checkbox */}
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={hideWithoutRpc}
+                onChange={(e) => setHideWithoutRpc(e.target.checked)}
+                className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-zinc-900 dark:text-white bg-zinc-100 dark:bg-zinc-800 focus:ring-zinc-500 dark:focus:ring-zinc-400 cursor-pointer"
+              />
+              <span className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
+                Only show chains with RPC URL
+              </span>
+            </label>
           </div>
 
           {/* Category Filter and Search */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 sm:gap-4">
             {/* Category filter badges */}
             <div className="flex flex-wrap items-center gap-2 flex-1">
               {visibleCategories.map(category => {
@@ -681,7 +700,7 @@ export default function ChainListPage() {
         )}
 
         {filteredChains.length > 0 && (
-          <div className="mt-4 text-center text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+          <div className="mt-4 pb-14 text-center text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
             Showing {filteredChains.length} of {allChains.length} chains
           </div>
         )}
