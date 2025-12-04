@@ -38,6 +38,7 @@ import {
   continents,
   countries,
 } from "@/types/infrabuidlForm";
+import { useSession } from "next-auth/react";
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -50,6 +51,7 @@ export default function GrantApplicationForm({
   programType,
   headerComponent,
 }: GrantApplicationFormProps) {
+
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submissionStatus, setSubmissionStatus] = useState<
     "idle" | "success" | "error"
@@ -71,6 +73,10 @@ export default function GrantApplicationForm({
     useState<boolean>(false);
   const [showReferrer, setShowReferrer] = useState<boolean>(false);
   const [showGrantSource, setShowGrantSource] = useState<boolean>(false);
+  const [userProjects, setUserProjects] = useState<any[]>([]);
+  const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(false);
+
+  const { data: session, status } = useSession();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -232,7 +238,35 @@ export default function GrantApplicationForm({
   const watchGrantSource = form.watch("avalanche_grant_source");
   const watchReferralCheck = form.watch("program_referral_check");
 
+  // Load projects (TEMPORARY: using public endpoint for testing)
   useEffect(() => {
+    const loadProjects = async () => {
+      setIsLoadingProjects(true);
+      try {
+        // TEMPORARY: Using public endpoint instead of user-specific endpoint for testing
+        const response = await fetch(`/api/projects?pageSize=100`);
+        if (response.ok) {
+          const data = await response.json();
+          // The public endpoint returns { projects: [], total: number }
+          const projects = data.projects || data || [];
+          setUserProjects(Array.isArray(projects) ? projects : []);
+        } else {
+          console.error("Failed to load projects");
+          setUserProjects([]);
+        }
+      } catch (error) {
+        console.error("Error loading projects:", error);
+        setUserProjects([]);
+      } finally {
+        setIsLoadingProjects(false);
+      }
+    };
+
+    loadProjects();
+  }, []); // Removed session dependency for temporary testing
+
+  useEffect(() => {
+
     setShowTeamMembers(watchTeamSize !== "1" && watchTeamSize !== "");
     setShowProjectTypeOther(watchProjectType === "Other");
     setShowJobRoleOther(watchApplicantJobRole === "Other");
@@ -271,6 +305,161 @@ export default function GrantApplicationForm({
     watchGrantSource,
     watchReferralCheck,
   ]);
+
+  // Function to extract social media links
+  const extractSocialMedia = (socialMediaArray: string[] = []) => {
+    const socialMedia: { x?: string; linkedin?: string; telegram?: string; github?: string } = {};
+    
+    socialMediaArray.forEach((link) => {
+      if (!link) return;
+      const lowerLink = link.toLowerCase();
+      if (lowerLink.includes("x.com") || lowerLink.includes("twitter.com")) {
+        socialMedia.x = link;
+      } else if (lowerLink.includes("linkedin.com")) {
+        socialMedia.linkedin = link;
+      } else if (lowerLink.includes("t.me") || lowerLink.includes("telegram")) {
+        socialMedia.telegram = link;
+      } else if (lowerLink.includes("github.com")) {
+        socialMedia.github = link;
+      }
+    });
+    
+    return socialMedia;
+  };
+
+  // Function to split name into first and last name
+  const splitName = (name: string | null | undefined) => {
+    if (!name) return { firstName: "", lastName: "" };
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return { firstName: parts[0], lastName: "" };
+    const lastName = parts.slice(-1)[0];
+    const firstName = parts.slice(0, -1).join(" ");
+    return { firstName, lastName };
+  };
+
+  // Function to fill form with project data
+  const fillFormWithProjectData = async (projectId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}`);
+      if (!response.ok) {
+        console.error("Failed to load project details");
+        return;
+      }
+
+      const project = await response.json();
+      if (!project) return;
+
+      // Fill project basic information
+      if (project.project_name) {
+        form.setValue("project", project.project_name);
+      }
+      if (project.full_description || project.short_description) {
+        form.setValue("project_abstract_objective", project.full_description || project.short_description);
+      }
+      if (project.github_repository) {
+        form.setValue("project_company_github", project.github_repository);
+      }
+      if (project.demo_link) {
+        form.setValue("project_company_website", project.demo_link);
+      }
+
+      // Fill team members information
+      if (project.members && Array.isArray(project.members)) {
+        // Filter out removed members and sort by role (prioritize leaders)
+        const activeMembers = project.members
+          .filter((member: any) => member.status !== "Removed" && member.status !== "Removed")
+          .sort((a: any, b: any) => {
+            const rolePriority: { [key: string]: number } = {
+              "leader": 0,
+              "admin": 1,
+              "member": 2,
+            };
+            return (rolePriority[a.role?.toLowerCase()] ?? 3) - (rolePriority[b.role?.toLowerCase()] ?? 3);
+          });
+
+        // Fill first team member (index 0)
+        if (activeMembers[0]) {
+          const member1 = activeMembers[0];
+          const user1 = member1.user;
+          if (user1) {
+            const { firstName, lastName } = splitName(user1.name);
+            if (firstName) form.setValue("team_member_1_first_name", firstName);
+            if (lastName) form.setValue("team_member_1_last_name", lastName);
+            if (user1.email) form.setValue("team_member_1_email", user1.email);
+            if (user1.bio) form.setValue("team_member_1_bio", user1.bio);
+            
+            const social1 = extractSocialMedia(user1.social_media);
+            if (social1.x) form.setValue("team_member_1_x_account", social1.x);
+            if (social1.linkedin) form.setValue("team_member_1_linkedin", social1.linkedin);
+            if (social1.github) form.setValue("team_member_1_github", social1.github);
+            if (user1.telegram_user) {
+              form.setValue("team_member_1_telegram", user1.telegram_user.startsWith("http") 
+                ? user1.telegram_user 
+                : `https://t.me/${user1.telegram_user}`);
+            }
+            
+            // Try to match role with jobRoles
+            if (member1.role) {
+              const matchingRole = jobRoles.find(role => 
+                role.toLowerCase().includes(member1.role.toLowerCase()) ||
+                member1.role.toLowerCase().includes(role.toLowerCase().split(" ")[0])
+              );
+              if (matchingRole) {
+                form.setValue("job_role_team_member_1", matchingRole);
+              }
+            }
+          }
+        }
+
+        // Fill second team member (index 1)
+        if (activeMembers[1]) {
+          const member2 = activeMembers[1];
+          const user2 = member2.user;
+          if (user2) {
+            const { firstName, lastName } = splitName(user2.name);
+            if (firstName) form.setValue("team_member_2_first_name", firstName);
+            if (lastName) form.setValue("team_member_2_last_name", lastName);
+            if (user2.email) form.setValue("team_member_2_email", user2.email);
+            if (user2.bio) form.setValue("team_member_2_bio", user2.bio);
+            
+            const social2 = extractSocialMedia(user2.social_media);
+            if (social2.x) form.setValue("team_member_2_x_account", social2.x);
+            if (social2.linkedin) form.setValue("team_member_2_linkedin", social2.linkedin);
+            if (social2.github) form.setValue("team_member_2_github", social2.github);
+            if (user2.telegram_user) {
+              form.setValue("team_member_2_telegram", user2.telegram_user.startsWith("http") 
+                ? user2.telegram_user 
+                : `https://t.me/${user2.telegram_user}`);
+            }
+            
+            // Try to match role with jobRoles
+            if (member2.role) {
+              const matchingRole = jobRoles.find(role => 
+                role.toLowerCase().includes(member2.role.toLowerCase()) ||
+                member2.role.toLowerCase().includes(role.toLowerCase().split(" ")[0])
+              );
+              if (matchingRole) {
+                form.setValue("job_role_team_member_2", matchingRole);
+              }
+            }
+          }
+        }
+
+        // Update team size based on number of members
+        if (activeMembers.length > 1) {
+          if (activeMembers.length <= 5) {
+            form.setValue("team_size", "2-5");
+          } else if (activeMembers.length <= 10) {
+            form.setValue("team_size", "6-10");
+          } else {
+            form.setValue("team_size", "10+");
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error filling form with project data:", error);
+    }
+  };
 
   // Function to handle form submission
   async function onSubmit(values: FormValues) {
@@ -373,6 +562,70 @@ export default function GrantApplicationForm({
               </div>
 
               <div className="space-y-6">
+
+                {/* Projects belonged to */}
+                <FormField
+                  control={form.control}
+                  name="project"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="dark:text-gray-200 text-md">
+                        Project{" "}
+                        <span className="text-red-500">*</span>
+                      </FormLabel>
+                      <Select
+                        onValueChange={(value) => {
+                          // Find the selected project
+                          const selectedProject = userProjects.find((p: any) => p.id === value);
+                          if (selectedProject) {
+                            // Set the project name in the field, not the ID
+                            field.onChange(selectedProject.project_name);
+                            // Fill form with project data using the project ID
+                            fillFormWithProjectData(value);
+                          }
+                        }}
+                        value={userProjects.find((p: any) => p.project_name === field.value)?.id || field.value}
+                        disabled={isLoadingProjects}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100">
+                            <SelectValue placeholder={isLoadingProjects ? "Loading projects..." : "Select project"} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                          {userProjects.length > 0 ? (
+                            userProjects.map((project: any) => (
+                              <SelectItem
+                                key={project.id}
+                                value={project.id}
+                                className="dark:text-gray-200"
+                              >
+                                {project.project_name}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem
+                              value="no-projects"
+                              disabled
+                              className="dark:text-gray-400"
+                            >
+                              {isLoadingProjects ? "Loading..." : "No projects found"}
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription className="text-sm text-gray-500 dark:text-gray-400">
+                        {userProjects.length > 0 
+                          ? "Select a project to auto-fill the form with project information (TEMPORARY: showing all projects for testing)"
+                          : isLoadingProjects
+                            ? "Loading projects..."
+                            : "No projects found. You can still fill the form manually."}
+                      </FormDescription>
+                      <FormMessage className="dark:text-red-400" />
+                    </FormItem>
+                  )}
+                />
+
                 {/* Project/Company Name */}
                 <FormField
                   control={form.control}
