@@ -2,7 +2,7 @@
 import React from 'react';
 import { usePathname } from 'next/navigation';
 import { AISearchTrigger } from '@/components/ai';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/cn';
 
 interface ChatbotProps {
   variant?: 'fixed' | 'static';
