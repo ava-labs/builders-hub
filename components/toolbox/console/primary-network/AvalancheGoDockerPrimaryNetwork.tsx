@@ -242,12 +242,15 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                 <Steps>
                     <Step>
                         <h3 className="text-xl font-bold mb-4">Set up Instance</h3>
-                        <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. For Primary Network nodes, we recommend:</p>
+                        <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. Requirements scale with stake weight:</p>
                         <ul className="list-disc pl-5 mt-2 mb-4">
-                            <li><strong>Minimum specs:</strong> 8 vCPUs, 16GB RAM, 1TB storage</li>
-                            <li><strong>Recommended specs:</strong> 16 vCPUs, 32GB RAM, 2TB NVMe SSD</li>
+                            <li><strong>Low stake:</strong> 4 cores, 16GB RAM, 1TB NVMe SSD</li>
+                            <li><strong>High stake:</strong> 8+ cores, 32GB RAM, 2TB NVMe SSD</li>
                         </ul>
-                    <p>If you do not have access to a server, you can also run a node for educational purposes locally. Simply select the &quot;Public RPC Node&quot; option in the next step.</p>
+                        <p className="text-sm text-amber-600 dark:text-amber-400 mb-4">
+                            <strong>Important:</strong> Use local NVMe storage, not cloud block storage (EBS, Persistent Disk). See <a href="/docs/nodes/system-requirements" className="underline hover:no-underline">system requirements</a> for details.
+                        </p>
+                        <p>If you do not have access to a server, you can also run a node for educational purposes locally. Simply select the &quot;Public RPC Node&quot; option in the next step.</p>
                     </Step>
 
                     <Step>
