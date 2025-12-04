@@ -319,7 +319,7 @@ export async function GET(request: Request) {
       
       return NextResponse.json(cached.data, {
         headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Cache-Control': 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400',
           'X-Data-Source': 'stale-while-revalidate',
           'X-Cache-Age': `${Math.round(cacheAge / 1000)}s`,
           'X-Time-Range': timeRange,
@@ -330,7 +330,7 @@ export async function GET(request: Request) {
     if (isCacheValid) {
       return NextResponse.json(cached!.data, {
         headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Cache-Control': 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400',
           'X-Data-Source': 'cache',
           'X-Cache-Age': `${Math.round(cacheAge / 1000)}s`,
           'X-Time-Range': timeRange,
@@ -346,7 +346,7 @@ export async function GET(request: Request) {
     
     return NextResponse.json(freshData.data, {
       headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Cache-Control': 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400',
         'X-Data-Source': 'fresh',
         'X-Fetch-Time': `${freshData.fetchTime}ms`,
         'X-Chain-Count': freshData.chainCount.toString(),
