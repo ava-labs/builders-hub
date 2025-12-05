@@ -143,6 +143,7 @@ function latLngToSVG(lat: number, lng: number): { x: number; y: number } {
 export async function GET() {
   try {
     if (cachedGeoData && Date.now() - cachedGeoData.timestamp < CACHE_DURATION) {
+      console.log(`[GET /api/validator-geolocation] Source: cache`);
       return NextResponse.json(cachedGeoData.data, {
         headers: {
           'Cache-Control': CACHE_CONTROL_HEADER,
@@ -175,6 +176,7 @@ export async function GET() {
     };
 
     const fetchTime = Date.now() - startTime;
+    console.log(`[GET /api/validator-geolocation] Source: fresh, fetchTime: ${fetchTime}ms`);
     return NextResponse.json(countryDataWithCoords, {
       headers: {
         'Cache-Control': CACHE_CONTROL_HEADER,
@@ -189,6 +191,7 @@ export async function GET() {
     console.error('Error in validator geolocation API:', error);
     
     if (cachedGeoData) {
+      console.log(`[GET /api/validator-geolocation] Source: cache-fallback`);
       return NextResponse.json(cachedGeoData.data, {
         headers: {
           'X-Data-Source': 'cache-fallback',

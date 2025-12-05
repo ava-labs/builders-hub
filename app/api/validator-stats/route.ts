@@ -395,6 +395,8 @@ export async function GET(request: Request) {
       (cacheAge && cacheAge < CACHE_DURATION ? 'cache' : 'stale-while-revalidate') : 
       'fresh';
     
+    console.log(`[GET /api/validator-stats] Network: ${network}, Source: ${source}, fetchTime: ${fetchTime}ms`);
+
     return createResponse(stats, { 
       source, 
       network, 
@@ -409,6 +411,7 @@ export async function GET(request: Request) {
     if (network === 'mainnet' || network === 'fuji') {
       const cache = statsCached[network];
       if (cache) {
+        console.log(`[GET /api/validator-stats] Network: ${network}, Source: error-fallback-cache`);
         return createResponse(cache.data, { 
           source: 'error-fallback-cache', 
           network,

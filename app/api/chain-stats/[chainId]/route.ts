@@ -453,6 +453,7 @@ export async function GET(
         }
       })();
       
+      console.log(`[GET /api/chain-stats/${chainId}] TimeRange: ${timeRange}, Source: stale-while-revalidate`);
       return createResponse(cached.data, { 
         source: 'stale-while-revalidate', 
         chainId,
@@ -479,6 +480,7 @@ export async function GET(
         }
       }
       
+      console.log(`[GET /api/chain-stats/${chainId}] TimeRange: ${timeRange}, Source: cache`);
       return createResponse(cached.data, { 
         source: 'cache', 
         chainId,
@@ -509,6 +511,7 @@ export async function GET(
       const fallbackCacheKey = `${chainId}-30d-${metricsKey}`;
       const fallbackCached = cachedData.get(fallbackCacheKey);
       if (fallbackCached) {
+        console.log(`[GET /api/chain-stats/${chainId}] TimeRange: 30d, Source: fallback-cache`);
         return createResponse(fallbackCached.data, { 
           source: 'fallback-cache', 
           chainId,
@@ -517,6 +520,7 @@ export async function GET(
           metrics: metricsKey
         }, 206);
       }
+      console.log(`[GET /api/chain-stats/${chainId}] TimeRange: ${timeRange}, Source: error (no data)`);
       return createResponse({ error: 'Failed to fetch chain metrics' }, { source: 'error', chainId }, 500);
     }
     
@@ -527,11 +531,14 @@ export async function GET(
       icmTimeRange: timeRange 
     });
     
+    const fetchTime = Date.now() - startTime;
+    console.log(`[GET /api/chain-stats/${chainId}] TimeRange: ${timeRange}, Source: fresh, fetchTime: ${fetchTime}ms`);
+
     return createResponse(freshData, { 
       source: 'fresh', 
       chainId,
       timeRange, 
-      fetchTime: Date.now() - startTime,
+      fetchTime,
       metrics: metricsKey
     });
   } catch (error) {

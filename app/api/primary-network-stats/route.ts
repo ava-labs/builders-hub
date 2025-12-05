@@ -173,6 +173,7 @@ export async function GET(request: Request) {
         }
       })();
       
+      console.log(`[GET /api/primary-network-stats] TimeRange: ${timeRange}, Source: stale-while-revalidate`);
       return createResponse(cached.data, { 
         source: 'stale-while-revalidate', 
         timeRange, 
@@ -182,6 +183,7 @@ export async function GET(request: Request) {
     
     // Return valid cache
     if (isCacheValid && cached) {
+      console.log(`[GET /api/primary-network-stats] TimeRange: ${timeRange}, Source: cache`);
       return createResponse(cached.data, { source: 'cache', timeRange, cacheAge });
     }
     
@@ -202,22 +204,27 @@ export async function GET(request: Request) {
       // Fallback to any available cached data
       const fallbackCached = cachedData.get('30d');
       if (fallbackCached) {
+        console.log(`[GET /api/primary-network-stats] TimeRange: 30d, Source: fallback-cache`);
         return createResponse(fallbackCached.data, { 
           source: 'fallback-cache', 
           timeRange: '30d',
           cacheAge: Date.now() - fallbackCached.timestamp
         }, 206);
       }
+      console.log(`[GET /api/primary-network-stats] TimeRange: ${timeRange}, Source: error (no data)`);
       return createResponse({ error: 'Failed to fetch primary network stats' }, { source: 'error' }, 500);
     }
     
     // Cache fresh data
     cachedData.set(timeRange, { data: freshData, timestamp: Date.now() });
     
+    const fetchTime = Date.now() - startTime;
+    console.log(`[GET /api/primary-network-stats] TimeRange: ${timeRange}, Source: fresh, fetchTime: ${fetchTime}ms`);
+
     return createResponse(freshData, { 
       source: 'fresh', 
       timeRange, 
-      fetchTime: Date.now() - startTime 
+      fetchTime 
     });
   } catch (error) {
     console.error('[GET /api/primary-network-stats] Unhandled error:', error);
@@ -228,6 +235,7 @@ export async function GET(request: Request) {
     const cached = cachedData.get(timeRange);
     
     if (cached) {
+      console.log(`[GET /api/primary-network-stats] TimeRange: ${timeRange}, Source: error-fallback-cache`);
       return createResponse(cached.data, { 
         source: 'error-fallback-cache', 
         timeRange,
@@ -235,6 +243,7 @@ export async function GET(request: Request) {
       }, 206);
     }
     
+    console.log(`[GET /api/primary-network-stats] TimeRange: ${timeRange}, Source: error (no data)`);
     return createResponse({ error: 'Failed to fetch primary network stats' }, { source: 'error' }, 500);
   }
 }

@@ -133,6 +133,8 @@ export async function GET(_request: Request) {
     // Determine data source based on response time
     const source = fetchTime < 50 && cachedData ? (cacheAge && cacheAge < CACHE_DURATION ? 'cache' : 'stale-while-revalidate') : 'fresh';
 
+    console.log(`[GET /api/primary-network-validators] Source: ${source}, fetchTime: ${fetchTime}ms`);
+
     return createResponse(
       {
         validators,
@@ -145,6 +147,7 @@ export async function GET(_request: Request) {
     console.error('[GET /api/primary-network-validators] Error:', error);
     
     if (cachedData && (Date.now() - cachedData.timestamp) < STALE_DURATION) {
+      console.log(`[GET /api/primary-network-validators] Source: error-fallback-cache`);
       return createResponse(
         {
           validators: cachedData.data,
