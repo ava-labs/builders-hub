@@ -35,11 +35,15 @@ package main
 import (
     "context"
     "fmt"
+    "os"
     "time"
 
     "github.com/ava-labs/avalanchego/ids"
     "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+    "github.com/ava-labs/avalanchego/utils/logging"
+    "github.com/ava-labs/avalanchego/utils/units"
     "github.com/ava-labs/avalanchego/vms/platformvm/txs"
+    "github.com/ava-labs/avalanchego/vms/secp256k1fx"
     "github.com/ava-labs/avalanchego/wallet/subnet/primary"
 )
 
@@ -47,21 +51,35 @@ func main() {
     // Start a network
     network := &tmpnet.Network{
         Nodes: tmpnet.NewNodesOrPanic(5),
+        DefaultRuntimeConfig: tmpnet.NodeRuntimeConfig{
+            Process: &tmpnet.ProcessRuntimeConfig{
+                AvalancheGoPath: "./build/avalanchego",
+                PluginDir:       os.ExpandEnv("$HOME/.avalanchego/plugins"),
+            },
+        },
     }
 
     ctx := context.Background()
-    tmpnet.BootstrapNewNetwork(ctx, os.Stdout, network, "",
-        "./build/avalanchego", "")
+    err := tmpnet.BootstrapNewNetwork(
+        ctx,
+        logging.NoLog{},
+        network,
+        "",
+    )
+    if err != nil {
+        panic(err)
+    }
 
     // Get a pre-funded key
     fundedKey := network.PreFundedKeys[0]
 
     // Create wallet for P-Chain operations
     nodeURI := network.Nodes[0].URI
+    keychain := fundedKey.KeyChain()
     wallet, err := primary.MakeWallet(ctx, &primary.WalletConfig{
-        URI:          nodeURI,
-        AVAXKeychain: fundedKey.KeyChain(),
-        EthKeychain:  fundedKey.KeyChain(),
+        URI:              nodeURI,
+        AVAXKeychain:     keychain,
+        EthKeychain:      keychain,
     })
     if err != nil {
         panic(err)

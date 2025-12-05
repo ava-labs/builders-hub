@@ -70,6 +70,7 @@ import (
 
     "github.com/ava-labs/avalanchego/ids"
     "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+    "github.com/ava-labs/avalanchego/utils/logging"
 )
 
 func main() {
@@ -93,6 +94,12 @@ func main() {
     network := &tmpnet.Network{
         Nodes:   tmpnet.NewNodesOrPanic(5),
         Subnets: []*tmpnet.Subnet{subnet},
+        DefaultRuntimeConfig: tmpnet.NodeRuntimeConfig{
+            Process: &tmpnet.ProcessRuntimeConfig{
+                AvalancheGoPath: "./build/avalanchego",
+                PluginDir:       os.ExpandEnv("$HOME/.avalanchego/plugins"),
+            },
+        },
     }
 
     // All nodes validate the subnet
@@ -104,8 +111,15 @@ func main() {
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
     defer cancel()
 
-    tmpnet.BootstrapNewNetwork(ctx, os.Stdout, network, "",
-        "./build/avalanchego", "~/.avalanchego/plugins")
+    err := tmpnet.BootstrapNewNetwork(
+        ctx,
+        logging.NoLog{}, // Or use a real logger
+        network,
+        "",              // Empty string uses default path (~/.tmpnet/networks)
+    )
+    if err != nil {
+        panic(err)
+    }
 
     println("Chain ID:", subnet.Chains[0].ChainID.String())
 
@@ -119,8 +133,9 @@ func main() {
 1. Read your genesis configuration
 2. Define a `Chain` with your VM ID and genesis
 3. Create a `Subnet` containing your chain
-4. Assign validator nodes to the subnet
-5. Bootstrap and test
+4. Set up `DefaultRuntimeConfig` with paths to avalanchego and plugins
+5. Assign validator nodes to the subnet
+6. Bootstrap and test
 
 ### 4. Interact with Your Chain
 

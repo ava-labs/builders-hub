@@ -22,9 +22,26 @@ tmpnet supports comprehensive subnet testing:
 Create a subnet validated by specific nodes:
 
 ```go
+import (
+    "context"
+    "os"
+    "time"
+
+    "github.com/ava-labs/avalanchego/ids"
+    "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+    "github.com/ava-labs/avalanchego/utils/constants"
+    "github.com/ava-labs/avalanchego/utils/logging"
+)
+
 // Create 5-node network
 network := &tmpnet.Network{
     Nodes: tmpnet.NewNodesOrPanic(5),
+    DefaultRuntimeConfig: tmpnet.NodeRuntimeConfig{
+        Process: &tmpnet.ProcessRuntimeConfig{
+            AvalancheGoPath: "./build/avalanchego",
+            PluginDir:       os.ExpandEnv("$HOME/.avalanchego/plugins"),
+        },
+    },
 }
 
 // Subnet validated by first 3 nodes only
@@ -44,8 +61,13 @@ subnet := &tmpnet.Subnet{
 network.Subnets = []*tmpnet.Subnet{subnet}
 
 // Bootstrap
-ctx, _ := context.WithTimeout(context.Background(), 5*time.Minute)
-tmpnet.BootstrapNewNetwork(ctx, os.Stdout, network, "", avalanchegoPath, pluginDir)
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+defer cancel()
+
+err := tmpnet.BootstrapNewNetwork(ctx, logging.NoLog{}, network, "")
+if err != nil {
+    panic(err)
+}
 
 println("Subnet ID:", subnet.SubnetID.String())
 ```

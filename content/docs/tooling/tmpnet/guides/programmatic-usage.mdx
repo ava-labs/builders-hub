@@ -46,12 +46,19 @@ import (
     "time"
 
     "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+    "github.com/ava-labs/avalanchego/utils/logging"
 )
 
 func main() {
     // Create network with 5 validator nodes
     network := &tmpnet.Network{
         Nodes: tmpnet.NewNodesOrPanic(5),
+        DefaultRuntimeConfig: tmpnet.NodeRuntimeConfig{
+            Process: &tmpnet.ProcessRuntimeConfig{
+                AvalancheGoPath: "./build/avalanchego",
+                PluginDir:       os.ExpandEnv("$HOME/.avalanchego/plugins"),
+            },
+        },
     }
 
     // Bootstrap the network
@@ -60,11 +67,9 @@ func main() {
 
     err := tmpnet.BootstrapNewNetwork(
         ctx,
-        os.Stdout,             // Progress output
+        logging.NoLog{}, // Use logging.NoLog{} or a real logger
         network,
-        "",                    // Use default network directory
-        "./build/avalanchego", // Path to avalanchego binary
-        "",                    // Use default plugin directory
+        "",              // Use default network directory (~/.tmpnet/networks)
     )
     if err != nil {
         panic(err)
@@ -151,7 +156,7 @@ network := &tmpnet.Network{
 
 // Bootstrap (create and start)
 ctx := context.Background()
-err := tmpnet.BootstrapNewNetwork(ctx, os.Stdout, network, "", avalanchegoPath, pluginDir)
+err := tmpnet.BootstrapNewNetwork(ctx, logging.NoLog{}, network, "")
 
 // Stop all nodes
 err = network.Stop(ctx)
@@ -217,13 +222,26 @@ func TestWithTmpnet(t *testing.T) {
     // Create network
     network := &tmpnet.Network{
         Nodes: tmpnet.NewNodesOrPanic(5),
+        DefaultRuntimeConfig: tmpnet.NodeRuntimeConfig{
+            Process: &tmpnet.ProcessRuntimeConfig{
+                AvalancheGoPath: "./build/avalanchego",
+                PluginDir:       os.ExpandEnv("$HOME/.avalanchego/plugins"),
+            },
+        },
     }
 
     // Bootstrap
     ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
     defer cancel()
 
-    err := tmpnet.BootstrapNewNetwork(ctx, t.Logf, network, "", avalanchegoPath, "")
+    // Create a logger that writes to the test log
+    logger := logging.NewLogger("", logging.NewWrappedCore(
+        logging.Info,
+        io.Discard,
+        logging.Plain.ConsoleEncoder(),
+    ))
+
+    err := tmpnet.BootstrapNewNetwork(ctx, logger, network, "")
     if err != nil {
         t.Fatal("Failed to bootstrap network:", err)
     }
@@ -268,12 +286,18 @@ var _ = Describe("My Feature", func() {
     BeforeEach(func() {
         network = &tmpnet.Network{
             Nodes: tmpnet.NewNodesOrPanic(5),
+            DefaultRuntimeConfig: tmpnet.NodeRuntimeConfig{
+                Process: &tmpnet.ProcessRuntimeConfig{
+                    AvalancheGoPath: "./build/avalanchego",
+                    PluginDir:       os.ExpandEnv("$HOME/.avalanchego/plugins"),
+                },
+            },
         }
 
         ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
         defer cancel()
 
-        err := tmpnet.BootstrapNewNetwork(ctx, GinkgoWriter, network, "", avalanchegoPath, "")
+        err := tmpnet.BootstrapNewNetwork(ctx, logging.NoLog{}, network, "")
         Expect(err).NotTo(HaveOccurred())
 
         DeferCleanup(func() {
@@ -299,12 +323,18 @@ var _ = Describe("Feature Tests", func() {
     BeforeSuite(func() {
         sharedNetwork = &tmpnet.Network{
             Nodes: tmpnet.NewNodesOrPanic(5),
+            DefaultRuntimeConfig: tmpnet.NodeRuntimeConfig{
+                Process: &tmpnet.ProcessRuntimeConfig{
+                    AvalancheGoPath: "./build/avalanchego",
+                    PluginDir:       os.ExpandEnv("$HOME/.avalanchego/plugins"),
+                },
+            },
         }
 
         ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
         defer cancel()
 
-        err := tmpnet.BootstrapNewNetwork(ctx, GinkgoWriter, sharedNetwork, "", avalanchegoPath, "")
+        err := tmpnet.BootstrapNewNetwork(ctx, logging.NoLog{}, sharedNetwork, "")
         Expect(err).NotTo(HaveOccurred())
     })
 
@@ -433,11 +463,9 @@ customDir := "/tmp/my-test-networks"
 
 err := tmpnet.BootstrapNewNetwork(
     ctx,
-    os.Stdout,
+    logging.NoLog{},
     network,
     customDir, // Custom root directory
-    avalanchegoPath,
-    pluginDir,
 )
 ```
 
@@ -483,12 +511,18 @@ func createNetworks(count int) []*tmpnet.Network {
 
             network := &tmpnet.Network{
                 Nodes: tmpnet.NewNodesOrPanic(3),
+                DefaultRuntimeConfig: tmpnet.NodeRuntimeConfig{
+                    Process: &tmpnet.ProcessRuntimeConfig{
+                        AvalancheGoPath: "./build/avalanchego",
+                        PluginDir:       os.ExpandEnv("$HOME/.avalanchego/plugins"),
+                    },
+                },
             }
 
             ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
             defer cancel()
 
-            err := tmpnet.BootstrapNewNetwork(ctx, os.Stdout, network, "", avalanchegoPath, "")
+            err := tmpnet.BootstrapNewNetwork(ctx, logging.NoLog{}, network, "")
             networks[index] = network
             errors[index] = err
         }(i)
@@ -539,7 +573,7 @@ if err != nil {
 bootstrapCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 defer cancel()
 
-err = tmpnet.BootstrapNewNetwork(bootstrapCtx, os.Stdout, network, "", avalanchegoPath, "")
+err = tmpnet.BootstrapNewNetwork(bootstrapCtx, logging.NoLog{}, network, "")
 ```
 
 ## Best Practices
