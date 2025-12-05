@@ -929,7 +929,7 @@ export default function ConfigurableChart({
   };
 
   return (
-    <Card className="border-gray-200 dark:border-gray-700 py-2" ref={chartContainerRef}>
+    <Card className="border-gray-200 dark:border-gray-700 py-0" ref={chartContainerRef}>
       <CardContent className="p-0">
         {/* Header Controls */}
         <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 space-y-3 sm:space-y-4">
