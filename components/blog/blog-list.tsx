@@ -58,7 +58,7 @@ export function BlogList({ blogs }: BlogListProps) {
           {filteredBlogs[0] && (
             <Link
               href={filteredBlogs[0].url}
-              className="group relative flex flex-col md:flex-row gap-6 rounded-xl border border-primary/30 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-sm p-6 md:p-8 shadow-lg transition-all duration-300 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-0.5 dark:from-card-dark/80 dark:to-card-dark/60 mb-8"
+              className="group relative flex flex-col md:flex-row gap-6 rounded-xl border border-primary/30 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-sm p-6 md:p-8 shadow-lg transition-all duration-300 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-0.5 dark:from-card-dark/80 dark:to-card-dark/60 dark:border-white/20 dark:hover:border-white/30 mb-8"
             >
               {/* Hover gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 rounded-xl" />
@@ -129,7 +129,7 @@ export function BlogList({ blogs }: BlogListProps) {
               <Link
                 key={post.url}
                 href={post.url}
-                className="group relative flex flex-col rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm shadow-md transition-all duration-300 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 dark:bg-card-dark/60 overflow-hidden"
+                className="group relative flex flex-col rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm shadow-md transition-all duration-300 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 dark:bg-card-dark/60 dark:border-white/20 dark:hover:border-white/30 overflow-hidden"
               >
                 {/* Hover gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
