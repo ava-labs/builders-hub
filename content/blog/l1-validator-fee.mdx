@@ -58,14 +58,14 @@ The current validator fee rate can be retrieved with the P-Chain API endpoint
 An L1 validator's available remaining balance can be retrieved using the P-Chain API endpoint
 [`platform.getL1Validator`](https://build.avax.network/docs/api-reference/p-chain/api#platformgetl1validator).
 
-The validator fee configuration, with the current parameters set to calculate the L1 validator fee rate according to the formula in [ACP-77](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets#parameters), can be
+The validator fee configuration, with the current parameters set to calculate the L1 validator fee rate according to the formula in [ACP-77](/docs/acps/77-reinventing-subnets#parameters), can be
 retrieved with the P-Chain API endpoint
 [`platform.getValidatorFeeConfig`](https://build.avax.network/docs/api-reference/p-chain/api#platformgetvalidatorfeeconfig).
 
 ## How the Fee Changes
 
 The L1 Validator Fee is calculated each time the P-Chain adds a new block, according to the algorithm outlined in
-[ACP-77](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets#fee-algorithm):
+[ACP-77](/docs/acps/77-reinventing-subnets#fee-algorithm):
 
 $$ M \cdot \exp\left(\frac{x}{K}\right) $$
 
@@ -99,5 +99,5 @@ In a nutshell, when the total number of L1 validators is greater than or equal t
 increase in the next block according to the formula. These parameters can be changed with community input and the implementation of any future ACP.
 
 The validator fee configuration, with the current parameters set to calculate the L1 validator fee rate according to the formula in
-[ACP-77](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets#parameters), can be retrieved with the P-Chain API
+[ACP-77](/docs/acps/77-reinventing-subnets#parameters), can be retrieved with the P-Chain API
 endpoint [`platform.getValidatorFeeConfig`](https://build.avax.network/docs/api-reference/p-chain/api#platformgetvalidatorfeeconfig).

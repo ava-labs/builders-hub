@@ -27,6 +27,8 @@ export function ActiveNavHighlighter() {
       activeSection = '/guides'; // Blog menu has url '/guides'
     } else if (pathname.startsWith('/integrations')) {
       activeSection = '/integrations';
+    } else if (pathname.startsWith('/explorer')) {
+      activeSection = '/explorer';
     } else if (pathname.startsWith('/stats')) {
       activeSection = '/stats';
     } else if (pathname.startsWith('/events') || pathname.startsWith('/hackathons')) {
@@ -45,13 +47,18 @@ export function ActiveNavHighlighter() {
         if (href) {
           // Check if this link's href matches or starts with the active section
           if (href === activeSection || href.startsWith(activeSection + '/')) {
-            // Special handling for docs (which might have url '/docs/dapps')
-            if (activeSection === '/docs' && (href === '/docs/dapps' || href.startsWith('/docs/'))) {
+            // Special handling for docs
+            if (activeSection === '/docs' && href.startsWith('/docs/')) {
               link.setAttribute('data-active', 'true');
               link.setAttribute('aria-current', 'page');
             }
             // Handle stats which has url '/stats/overview'
             else if (activeSection === '/stats' && href.startsWith('/stats')) {
+              link.setAttribute('data-active', 'true');
+              link.setAttribute('aria-current', 'page');
+            }
+            // Handle explorer which has url '/explorer'
+            else if (activeSection === '/explorer' && href.startsWith('/explorer')) {
               link.setAttribute('data-active', 'true');
               link.setAttribute('aria-current', 'page');
             }
