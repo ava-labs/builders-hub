@@ -30,29 +30,14 @@ Even with state sync, your node's storage usage will grow over time as new block
 
 Resource requirements scale with your stake weight. Higher stake means more validator duties and network traffic.
 
-#### Low Stake Validators
-
-For validators with modest stake delegations who want reliable operation without over-provisioning.
-
-| Component | Requirement |
-|-----------|-------------|
-| **CPU** | 4 cores / 8 threads (e.g., AMD Ryzen 5, Intel i5) |
-| **RAM** | 16 GB |
-| **Storage** | 1 TB NVMe SSD (local, not network-attached) |
-| **Network** | 100 Mbps symmetric, stable connection |
-| **OS** | Ubuntu 22.04 LTS or macOS ≥ 12 |
-
-#### High Stake Validators
-
-For validators with significant stake who will handle proportionally more network traffic and validation duties.
-
-| Component | Requirement |
-|-----------|-------------|
-| **CPU** | 8+ cores / 16 threads (e.g., AMD Ryzen 7/9, Intel i7/i9) |
-| **RAM** | 32 GB |
-| **Storage** | 2 TB NVMe SSD (local, not network-attached) |
-| **Network** | 1 Gbps symmetric, low-latency connection |
-| **OS** | Ubuntu 22.04 LTS or macOS ≥ 12 |
+| Component | Low Stake Validators | High Stake Validators |
+|-----------|---------------------|----------------------|
+| **Use Case** | Validators with modest stake delegations who want reliable operation without over-provisioning | Validators with significant stake who handle proportionally more network traffic and validation duties |
+| **CPU** | 4 cores / 8 threads (e.g., AMD Ryzen 5, Intel i5) | 8+ cores / 16 threads (e.g., AMD Ryzen 7/9, Intel i7/i9) |
+| **RAM** | 16 GB | 32 GB |
+| **Storage** | 1 TB NVMe SSD (local, not network-attached) | 2 TB NVMe SSD (local, not network-attached) |
+| **Network** | 100 Mbps symmetric, stable connection | 1 Gbps symmetric, low-latency connection |
+| **OS** | Ubuntu 22.04 LTS or macOS ≥ 12 | Ubuntu 22.04 LTS or macOS ≥ 12 |
 
 <Callout>
 If you're unsure which tier applies to you: start with low-stake specs and monitor performance. If you see high CPU usage, memory pressure, or network saturation, upgrade accordingly.
@@ -64,41 +49,14 @@ If you're unsure which tier applies to you: start with low-stake specs and monit
 
 L1 validators run your own blockchain with custom parameters. Hardware requirements depend on your chain's transaction throughput and state size.
 
-### Low Throughput
-
-Suitable for testnets, development chains, or production L1s with minimal traffic (< 10 TPS average).
-
-| Component | Requirement |
-|-----------|-------------|
-| **CPU** | 2 cores |
-| **RAM** | 4 GB |
-| **Storage** | 100 GB SSD |
-| **Network** | 25 Mbps |
-| **OS** | Ubuntu 22.04 LTS or macOS ≥ 12 |
-
-### Medium Throughput
-
-For production L1s with moderate activity (10–100 TPS average), gaming chains, or DeFi applications.
-
-| Component | Requirement |
-|-----------|-------------|
-| **CPU** | 4 cores |
-| **RAM** | 8 GB |
-| **Storage** | 500 GB SSD |
-| **Network** | 100 Mbps |
-| **OS** | Ubuntu 22.04 LTS or macOS ≥ 12 |
-
-### High Throughput
-
-For high-performance L1s with heavy transaction volume (100+ TPS), large state, or complex smart contracts.
-
-| Component | Requirement |
-|-----------|-------------|
-| **CPU** | 8+ cores |
-| **RAM** | 16 GB+ |
-| **Storage** | 1 TB+ NVMe SSD |
-| **Network** | 1 Gbps |
-| **OS** | Ubuntu 22.04 LTS or macOS ≥ 12 |
+| Component | Low Throughput | Medium Throughput | High Throughput |
+|-----------|----------------|-------------------|-----------------|
+| **Use Case** | Testnets, development chains, or production L1s with minimal traffic (< 10 TPS) | Production L1s with moderate activity (10–100 TPS), gaming chains, or DeFi applications | High-performance L1s with heavy transaction volume (100+ TPS), large state, or complex smart contracts |
+| **CPU** | 2 cores | 4 cores | 8+ cores |
+| **RAM** | 4 GB | 8 GB | 16 GB+ |
+| **Storage** | 100 GB (SSD optional) | 500 GB SSD | 1 TB+ NVMe SSD |
+| **Network** | 25 Mbps | 100 Mbps | 1 Gbps |
+| **OS** | Ubuntu 22.04 LTS or macOS ≥ 12 | Ubuntu 22.04 LTS or macOS ≥ 12 | Ubuntu 22.04 LTS or macOS ≥ 12 |
 
 <Callout>
 L1 validators sync the P-Chain to track validator sets and cross-chain messages. This adds minimal overhead to the requirements above.

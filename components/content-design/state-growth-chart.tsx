@@ -14,13 +14,13 @@ import {
 } from "recharts";
 
 const data = [
-  { time: "t0", totalState: 50, activeState: 0, prunedTotal: null },
-  { time: "t1", totalState: 250, activeState: 75, prunedTotal: null },
-  { time: "t2", totalState: 450, activeState: 150, prunedTotal: null },
-  { time: "t3", totalState: 650, activeState: 225, prunedTotal: 225 },
-  { time: "t4", totalState: 850, activeState: 300, prunedTotal: 425 },
-  { time: "t5", totalState: 1050, activeState: 375, prunedTotal: 625 },
-  { time: "t6", totalState: 1250, activeState: 450, prunedTotal: 825 },
+  { time: "t0", totalState: 50, activeState: 0, prunedState: 25, prunedTotal: null },
+  { time: "t1", totalState: 250, activeState: 75, prunedState: 150, prunedTotal: null },
+  { time: "t2", totalState: 450, activeState: 150, prunedState: 275, prunedTotal: null },
+  { time: "t3", totalState: 650, activeState: 225, prunedState: 400, prunedTotal: 225 },
+  { time: "t4", totalState: 850, activeState: 300, prunedState: 525, prunedTotal: 425 },
+  { time: "t5", totalState: 1050, activeState: 375, prunedState: 650, prunedTotal: 625 },
+  { time: "t6", totalState: 1250, activeState: 450, prunedState: 775, prunedTotal: 825 },
 ];
 
 const StateGrowthChart = (): JSX.Element => {
@@ -33,21 +33,21 @@ const StateGrowthChart = (): JSX.Element => {
     ];
 
     return (
-      <div style={{ display: "flex", justifyContent: "center", gap: "20px", paddingBottom: "20px" }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: "16px", paddingBottom: "16px", flexWrap: "wrap" }}>
         {customPayload.map((entry: any, index: number) => (
-          <div key={`legend-${index}`} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <svg width="20" height="2" style={{ overflow: "visible" }}>
+          <div key={`legend-${index}`} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <svg width="16" height="2" style={{ overflow: "visible" }}>
               <line
                 x1="0"
                 y1="1"
-                x2="20"
+                x2="16"
                 y2="1"
                 stroke={entry.color}
                 strokeWidth="2"
                 strokeDasharray={entry.value === "Total State After Pruning / Resync" || entry.type === "arrow" ? "3 3" : "0"}
               />
             </svg>
-            <span style={{ fontSize: "14px", color: "#666" }}>{entry.value}</span>
+            <span style={{ fontSize: "11px", color: "#666" }}>{entry.value}</span>
           </div>
         ))}
       </div>
@@ -96,6 +96,15 @@ const StateGrowthChart = (): JSX.Element => {
           />
           <Line
             type="monotone"
+            dataKey="prunedState"
+            stroke="#FFA500"
+            strokeWidth={3}
+            name="Pruned State"
+            dot={false}
+            legendType="line"
+          />
+          <Line
+            type="monotone"
             dataKey="prunedTotal"
             stroke="#ff0000"
             strokeWidth={3}
@@ -118,7 +127,7 @@ const StateGrowthChart = (): JSX.Element => {
         </LineChart>
       </ResponsiveContainer>
       <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 text-center">
-        <strong>Note:</strong> The dotted line shows how resync or offline pruning reduces total state back to active state level.
+        <strong>Note:</strong> The dotted line shows how resync or offline pruning reduces total state or pruned state back to active state level.
       </div>
     </div>
   );
