@@ -135,6 +135,31 @@ NODE_URI=$(cat ~/.tmpnet/networks/latest/NodeID-*/process.json | jq -r '.uri' | 
 echo $NODE_URI
 ```
 
+### Call Node RPCs
+
+Use the URI to call standard Avalanche APIs over HTTP:
+
+```bash
+# Health
+curl -s "$NODE_URI/ext/health" | jq '.healthy'
+
+# Node ID
+curl -s -X POST --data '{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "info.getNodeID"
+}' -H 'content-type:application/json;' "$NODE_URI/ext/info" | jq
+
+# C-Chain RPC (replace with your chain ID if different)
+CHAIN_ID=C
+curl -s -X POST --data '{
+  "jsonrpc":"2.0",
+  "id":1,
+  "method":"eth_blockNumber",
+  "params":[]
+}' -H 'content-type:application/json;' "$NODE_URI/ext/bc/$CHAIN_ID/rpc" | jq
+```
+
 ## Interact with Your Network
 
 ### Check Node Health
