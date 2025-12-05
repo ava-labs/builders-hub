@@ -25,16 +25,15 @@ interface BlogListProps {
 export function BlogList({ blogs }: BlogListProps) {
   const [filteredBlogs, setFilteredBlogs] = useState<BlogPost[]>(blogs);
   const handleFilteredResults = useCallback((filtered: BlogPost[]) => {setFilteredBlogs(filtered)}, []);
-  const [featured, ...others] = filteredBlogs;
 
   return (
     <>
-      <section className="mt-8 sm:mt-12">
+      <section className="mt-8 sm:mt-10">
         <BlogSearch blogs={blogs} onFilteredResults={handleFilteredResults} />
       </section>
 
       {filteredBlogs.length !== blogs.length && (
-        <section className="text-center mb-6">
+        <section className="text-center mb-6 mt-6">
           <p className="text-sm text-muted-foreground">
             Showing {filteredBlogs.length} of {blogs.length} blog posts
           </p>
@@ -42,7 +41,7 @@ export function BlogList({ blogs }: BlogListProps) {
       )}
 
       {filteredBlogs.length === 0 && (
-        <section className="text-center py-12">
+        <section className="text-center py-16">
           <p className="text-lg text-muted-foreground mb-2">
             No matching blog posts found
           </p>
@@ -52,108 +51,140 @@ export function BlogList({ blogs }: BlogListProps) {
         </section>
       )}
 
-      {/* Featured Post */}
-      {featured && (
-        <section className="mt-6 sm:mt-8">
-          <Link
-            href={featured.url}
-            className="group block overflow-hidden rounded-xl border border-white/20 bg-card/80 p-6 sm:p-8 shadow-sm transition duration-300 hover:border-[#E84142]/60 hover:shadow-[0_0_0_1px_rgba(232,65,66,0.6),0_0_30px_6px_rgba(232,65,66,0.35)] dark:bg-card-dark/80"
-          >
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  {new Date(
-                    featured.data.date ?? featured.url
-                  ).toDateString()}
-                </p>
-                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                  Featured
-                </span>
-              </div>
+      {/* Blog Grid */}
+      {filteredBlogs.length > 0 && (
+        <section className="mt-10 sm:mt-12">
+          {/* Featured Post - Full Width */}
+          {filteredBlogs[0] && (
+            <Link
+              href={filteredBlogs[0].url}
+              className="group relative flex flex-col md:flex-row gap-6 rounded-xl border border-primary/30 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-sm p-6 md:p-8 shadow-lg transition-all duration-300 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-0.5 dark:from-card-dark/80 dark:to-card-dark/60 mb-8"
+            >
+              {/* Hover gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 rounded-xl" />
 
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-                {featured.data.title}
-              </h2>
-
-              <p className="text-sm sm:text-base text-muted-foreground max-w-3xl">
-                {featured.data.description}
-              </p>
-
-              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                {featured.data.topics.map((topic: string) => (
-                  <span
-                    key={topic}
-                    className="rounded-full bg-fd-accent px-3 py-1.5 font-medium text-muted-foreground"
-                  >
-                    {topic}
+              <div className="relative flex-1 flex flex-col">
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary ring-1 ring-primary/20">
+                    Latest
                   </span>
-                ))}
-              </div>
+                  <time className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider">
+                    {new Date(filteredBlogs[0].data.date ?? filteredBlogs[0].url).toDateString()}
+                  </time>
+                </div>
 
-              <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                {featured.data.authors.map((author: string) => (
-                  <span key={author} className="inline-flex items-center gap-2">
-                    <X size={12} />
-                    <span className="truncate">{author}</span>
-                  </span>
-                ))}
-                <span className="ml-auto inline-flex items-center gap-1 text-primary">
-                  Read article{" "}
-                  <ArrowRight
-                    size={14}
-                    className="transition-transform group-hover:translate-x-0.5"
-                  />
-                </span>
-              </div>
-            </div>
-          </Link>
-        </section>
-      )}
+                {/* Title */}
+                <h3 className="text-2xl md:text-3xl font-bold tracking-tight leading-tight transition-colors group-hover:text-primary mb-3">
+                  {filteredBlogs[0].data.title}
+                </h3>
 
-      {/* All Posts */}
-      {others.length > 0 && (
-        <section className="mt-12 sm:mt-16">
-          <h3 className="mb-6 text-lg font-semibold tracking-tight text-foreground/90">
-            {filteredBlogs.length === blogs.length
-              ? "Latest posts"
-              : "More matching posts"}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {others.map((g) => (
-              <Link
-                key={g.url}
-                href={g.url}
-                className="flex flex-col gap-2 rounded-lg border border-white/20 bg-card p-4 shadow-sm transition duration-300 hover:border-[#E84142]/60 hover:shadow-[0_0_0_1px_rgba(232,65,66,0.6),0_0_24px_5px_rgba(232,65,66,0.3)] dark:bg-card-dark"
-              >
-                <p className="text-xs text-muted-foreground">
-                  {new Date(g.data.date ?? g.url).toDateString()}
+                {/* Description */}
+                <p className="text-base text-muted-foreground/90 leading-relaxed mb-4 line-clamp-2">
+                  {filteredBlogs[0].data.description}
                 </p>
-                <h4 className="text-xl font-semibold tracking-tight">
-                  {g.data.title}
-                </h4>
-                <p className="text-sm text-muted-foreground line-clamp-3">
-                  {g.data.description}
-                </p>
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                  {g.data.topics.map((topic: string) => (
+
+                {/* Topics */}
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  {filteredBlogs[0].data.topics.slice(0, 4).map((topic: string) => (
                     <span
                       key={topic}
-                      className="rounded-full bg-fd-accent px-3 py-1.5 font-medium text-muted-foreground"
+                      className="rounded-full bg-secondary/70 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors group-hover:bg-secondary"
                     >
                       {topic}
                     </span>
                   ))}
-                </div>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                  {g.data.authors.map((author: string) => (
-                    <span
-                      key={author}
-                      className="inline-flex items-center gap-2"
-                    >
-                      <X size={12} />
-                      <span className="truncate">{author}</span>
+                  {filteredBlogs[0].data.topics.length > 4 && (
+                    <span className="text-xs text-muted-foreground">
+                      +{filteredBlogs[0].data.topics.length - 4}
                     </span>
-                  ))}
+                  )}
+                </div>
+
+                {/* Authors & Read More */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 mt-auto border-t border-border/30">
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground/80">
+                    {filteredBlogs[0].data.authors.slice(0, 2).map((author: string) => (
+                      <span key={author} className="inline-flex items-center gap-1.5">
+                        <X size={12} />
+                        <span className="truncate font-medium text-xs">{author}</span>
+                      </span>
+                    ))}
+                    {filteredBlogs[0].data.authors.length > 2 && (
+                      <span className="text-xs">+{filteredBlogs[0].data.authors.length - 2}</span>
+                    )}
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary transition-transform group-hover:translate-x-1">
+                    Read article
+                    <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </div>
+              </div>
+            </Link>
+          )}
+
+          {/* Regular Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredBlogs.slice(1).map((post) => (
+              <Link
+                key={post.url}
+                href={post.url}
+                className="group relative flex flex-col rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm shadow-md transition-all duration-300 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 dark:bg-card-dark/60 overflow-hidden"
+              >
+                {/* Hover gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+                <div className="relative flex flex-col h-full p-6">
+                  {/* Header */}
+                  <time className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider mb-3">
+                    {new Date(post.data.date ?? post.url).toDateString()}
+                  </time>
+
+                  {/* Title */}
+                  <h4 className="text-xl font-bold tracking-tight leading-snug transition-colors group-hover:text-primary mb-3">
+                    {post.data.title}
+                  </h4>
+
+                  {/* Description */}
+                  <p className="text-sm text-muted-foreground/90 leading-relaxed mb-4 flex-grow line-clamp-3">
+                    {post.data.description}
+                  </p>
+
+                  {/* Topics */}
+                  <div className="flex flex-wrap items-center gap-2 mb-4">
+                    {post.data.topics.slice(0, 3).map((topic: string) => (
+                      <span
+                        key={topic}
+                        className="rounded-full bg-secondary/70 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors group-hover:bg-secondary"
+                      >
+                        {topic}
+                      </span>
+                    ))}
+                    {post.data.topics.length > 3 && (
+                      <span className="text-xs text-muted-foreground">
+                        +{post.data.topics.length - 3}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Authors & Read More */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border/30">
+                    <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground/80">
+                      {post.data.authors.slice(0, 2).map((author: string) => (
+                        <span key={author} className="inline-flex items-center gap-1.5">
+                          <X size={12} />
+                          <span className="truncate font-medium text-xs">{author}</span>
+                        </span>
+                      ))}
+                      {post.data.authors.length > 2 && (
+                        <span className="text-xs">+{post.data.authors.length - 2}</span>
+                      )}
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary transition-transform group-hover:translate-x-1">
+                      Read
+                      <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                  </div>
                 </div>
               </Link>
             ))}
