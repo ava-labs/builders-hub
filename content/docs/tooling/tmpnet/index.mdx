@@ -1,0 +1,86 @@
+---
+title: Overview
+description: Create and manage temporary Avalanche networks for local development and testing
+---
+
+tmpnet creates temporary Avalanche networks on your local machine. You get a complete multi-node network with consensus, P2P communication, and pre-funded test keys—everything you need to test custom VMs, L1s, and applications before deploying to testnet or mainnet.
+
+Networks run as native processes (no Docker needed). All configuration lives on disk at `~/.tmpnet/networks/`, making it easy to inspect state, share configs, or debug issues.
+
+## What You Get
+
+| Feature | Description |
+|---------|-------------|
+| **Multi-node networks** | Spin up 2-50 validator nodes in under a minute |
+| **Pre-funded keys** | 50 keys with AVAX balances on P, X, and C-Chain |
+| **Custom VMs** | Deploy and test your Virtual Machines |
+| **Subnets** | Create subnets with specific validator sets |
+| **Monitoring** | Prometheus metrics and Promtail logs out of the box |
+| **CLI + Go API** | Use `tmpnetctl` commands or Go code |
+
+## Use Cases
+
+| Scenario | What You Can Test |
+|----------|-------------------|
+| **L1 Development** | Run your L1 with multiple validators locally before deploying to Fuji |
+| **Custom VMs** | Test VM behavior with real consensus across multiple nodes |
+| **Staking Operations** | Add validators, test delegation, verify rewards distribution |
+| **Subnet Testing** | Create subnets, manage validators, test cross-subnet messaging |
+| **Integration Tests** | Write automated Go tests that spin up networks on demand |
+
+## Basic Workflow
+
+```bash
+# Start a 5-node network
+./build/tmpnetctl start-network --avalanchego-path=./build/avalanchego
+
+# Network is running at ~/.tmpnet/networks/latest
+# Get node URIs
+cat ~/.tmpnet/networks/latest/NodeID-*/process.json | jq -r '.uri'
+
+# Get pre-funded keys
+cat ~/.tmpnet/networks/latest/config.json | jq -r '.preFundedKeys[0]'
+
+# Stop when done
+./build/tmpnetctl stop-network
+```
+
+## Network Directory Structure
+
+Each network you create gets its own directory at `~/.tmpnet/networks/[timestamp]/`:
+
+| Path | Contents |
+|------|----------|
+| `config.json` | Network settings, pre-funded keys |
+| `genesis.json` | Genesis configuration |
+| `NodeID-*/` | Per-node directories (logs, database, config) |
+| `NodeID-*/process.json` | Running node info (PID, URI, ports) |
+| `metrics.txt` | Grafana dashboard link |
+
+The `latest` symlink always points to your most recent network.
+
+Both `tmpnetctl` and your Go code can manage the same networks because everything is file-based. No daemon, no Docker, no magic.
+
+## Getting Started
+
+<Cards>
+  <Card title="Installation" href="/docs/tooling/tmpnet/installation">
+    Build tmpnet and avalanchego
+  </Card>
+  <Card title="Quick Start" href="/docs/tooling/tmpnet/quick-start">
+    Create your first network
+  </Card>
+  <Card title="Testing Custom VMs" href="/docs/tooling/tmpnet/guides/testing-custom-vms">
+    Deploy your VM to a local network
+  </Card>
+  <Card title="Staking & Delegation" href="/docs/tooling/tmpnet/guides/staking-and-delegation">
+    Test validator operations
+  </Card>
+</Cards>
+
+## Support & Resources
+
+- [GitHub Repository](https://github.com/ava-labs/avalanchego/tree/master/tests/fixture/tmpnet)
+- [Full README](https://github.com/ava-labs/avalanchego/blob/master/tests/fixture/tmpnet/README.md)
+- [Discord Community](https://chat.avalabs.org/)
+- [Documentation](https://docs.avax.network/)

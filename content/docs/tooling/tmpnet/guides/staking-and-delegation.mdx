@@ -1,0 +1,457 @@
+---
+title: Testing Staking and Delegation
+description: Test validator staking and delegation operations on the Primary Network
+---
+
+This guide shows you how to test validator staking and delegation operations on the Primary Network using tmpnet.
+
+## Overview
+
+tmpnet allows you to test Primary Network staking operations locally:
+
+- **Add validators** - Test adding new validators to the Primary Network
+- **Test delegation** - Delegate stake to validators and test rewards
+- **Validator lifecycle** - Test validator start times, end times, and transitions
+- **Reward distribution** - Verify staking and delegation rewards
+- **Edge cases** - Test insufficient stake, invalid times, and other error conditions
+
+Testing these operations locally helps you understand the staking system before using real funds on testnet or mainnet.
+
+## Prerequisites
+
+- tmpnet installed - See [Installation](/docs/tooling/tmpnet/installation)
+- Running tmpnet network - See [Quick Start](/docs/tooling/tmpnet/quick-start)
+- Pre-funded keys available in the network
+
+## Adding a Validator to the Primary Network
+
+### Using Go Code
+
+Here's a complete example of adding a validator to the Primary Network:
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "time"
+
+    "github.com/ava-labs/avalanchego/ids"
+    "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+    "github.com/ava-labs/avalanchego/vms/platformvm/txs"
+    "github.com/ava-labs/avalanchego/wallet/subnet/primary"
+)
+
+func main() {
+    // Start a network
+    network := &tmpnet.Network{
+        Nodes: tmpnet.NewNodesOrPanic(5),
+    }
+
+    ctx := context.Background()
+    tmpnet.BootstrapNewNetwork(ctx, os.Stdout, network, "",
+        "./build/avalanchego", "")
+
+    // Get a pre-funded key
+    fundedKey := network.PreFundedKeys[0]
+
+    // Create wallet for P-Chain operations
+    nodeURI := network.Nodes[0].URI
+    wallet, err := primary.MakeWallet(ctx, &primary.WalletConfig{
+        URI:          nodeURI,
+        AVAXKeychain: fundedKey.KeyChain(),
+        EthKeychain:  fundedKey.KeyChain(),
+    })
+    if err != nil {
+        panic(err)
+    }
+
+    // Create a new node to add as validator
+    newNode := tmpnet.NewEphemeralNode(tmpnet.FlagsMap{})
+    err = network.StartNode(ctx, newNode)
+    if err != nil {
+        panic(err)
+    }
+
+    // Define validation period
+    startTime := time.Now().Add(1 * time.Minute)
+    endTime := startTime.Add(2 * 7 * 24 * time.Hour) // 2 weeks
+
+    // Add node as Primary Network validator
+    tx, err := wallet.P().IssueAddPermissionlessValidatorTx(
+        &txs.SubnetValidator{
+            Validator: txs.Validator{
+                NodeID: newNode.NodeID,
+                Start:  uint64(startTime.Unix()),
+                End:    uint64(endTime.Unix()),
+                Wght:   2000 * units.Avax, // 2000 AVAX stake
+            },
+            Subnet: ids.Empty, // Primary Network
+        },
+        &secp256k1fx.OutputOwners{
+            Threshold: 1,
+            Addrs:     []ids.ShortID{fundedKey.Address()},
+        },
+        &secp256k1fx.OutputOwners{
+            Threshold: 1,
+            Addrs:     []ids.ShortID{fundedKey.Address()},
+        },
+        20, // Delegation fee percentage
+    )
+    if err != nil {
+        panic(err)
+    }
+
+    fmt.Println("Added validator. TxID:", tx.ID())
+    fmt.Println("Node ID:", newNode.NodeID)
+    fmt.Println("Validation starts:", startTime)
+    fmt.Println("Validation ends:", endTime)
+
+    // Wait for validator to become active
+    fmt.Println("Waiting for validator to become active...")
+    time.Sleep(2 * time.Minute)
+
+    // Verify validator is active
+    // Query P-Chain to check validator status
+    // ...
+
+    network.Stop(ctx)
+}
+```
+
+### Key Parameters
+
+When adding a validator, you specify:
+
+- **NodeID** - The node to add as a validator
+- **Start time** - When validation begins (must be in the future)
+- **End time** - When validation ends (must be after start, max duration limits apply)
+- **Stake amount** - How much AVAX to stake (minimum 2000 AVAX on mainnet)
+- **Delegation fee** - Percentage of delegator rewards you keep (0-100%)
+- **Reward addresses** - Where to send staking rewards
+
+## Testing Delegation
+
+Delegation allows token holders to stake their AVAX with an existing validator:
+
+```go
+func testDelegation(wallet primary.Wallet, validatorNodeID ids.NodeID) error {
+    // Define delegation period
+    startTime := time.Now().Add(1 * time.Minute)
+    endTime := startTime.Add(1 * 7 * 24 * time.Hour) // 1 week
+
+    // Delegate to the validator
+    tx, err := wallet.P().IssueAddPermissionlessDelegatorTx(
+        &txs.SubnetValidator{
+            Validator: txs.Validator{
+                NodeID: validatorNodeID,
+                Start:  uint64(startTime.Unix()),
+                End:    uint64(endTime.Unix()),
+                Wght:   1000 * units.Avax, // Delegate 1000 AVAX
+            },
+            Subnet: ids.Empty, // Primary Network
+        },
+        &secp256k1fx.OutputOwners{
+            Threshold: 1,
+            Addrs:     []ids.ShortID{delegatorAddress},
+        },
+    )
+    if err != nil {
+        return err
+    }
+
+    fmt.Println("Delegation TxID:", tx.ID())
+    return nil
+}
+```
+
+**Important notes:**
+- Delegation start time must be after validator's start time
+- Delegation end time must be before or equal to validator's end time
+- Minimum delegation amount varies by network
+
+## Validator Lifecycle Testing
+
+### Test Validator Transitions
+
+Test validators moving through different states:
+
+```go
+func testValidatorLifecycle(t *testing.T) {
+    network := setupNetwork(t)
+    defer network.Stop(context.Background())
+
+    // 1. Add validator with near-future start time
+    startTime := time.Now().Add(30 * time.Second)
+    endTime := startTime.Add(5 * time.Minute)
+
+    validatorTx := addValidator(network, startTime, endTime)
+
+    // 2. Check validator is pending
+    isPending := checkValidatorStatus(network, validatorNodeID, "pending")
+    require.True(t, isPending, "Validator should be pending")
+
+    // 3. Wait for validator to become active
+    time.Sleep(35 * time.Second)
+
+    isActive := checkValidatorStatus(network, validatorNodeID, "active")
+    require.True(t, isActive, "Validator should be active")
+
+    // 4. Wait for validation period to end
+    time.Sleep(6 * time.Minute)
+
+    // 5. Check validator completed and rewards distributed
+    hasRewards := checkRewardsReceived(network, rewardAddress)
+    require.True(t, hasRewards, "Validator should have received rewards")
+}
+```
+
+### Testing with Different Stake Amounts
+
+Test the impact of different stake amounts:
+
+```go
+func testStakeAmounts(t *testing.T) {
+    testCases := []struct {
+        name        string
+        stakeAmount uint64
+        shouldPass  bool
+    }{
+        {"Minimum stake", 2000 * units.Avax, true},
+        {"Below minimum", 1000 * units.Avax, false},
+        {"Large stake", 100000 * units.Avax, true},
+    }
+
+    for _, tc := range testCases {
+        t.Run(tc.name, func(t *testing.T) {
+            err := addValidatorWithStake(network, tc.stakeAmount)
+            if tc.shouldPass {
+                require.NoError(t, err)
+            } else {
+                require.Error(t, err)
+            }
+        })
+    }
+}
+```
+
+## Testing Delegation Rewards
+
+### Calculate Expected Rewards
+
+Test that delegation rewards are calculated correctly:
+
+```go
+func testDelegationRewards(t *testing.T) {
+    network := setupNetwork(t)
+
+    // Add validator with 10% delegation fee
+    validatorStake := 2000 * units.Avax
+    delegationFee := uint32(10) // 10%
+
+    addValidatorWithFee(network, validatorStake, delegationFee)
+
+    // Delegate to validator
+    delegatorStake := 1000 * units.Avax
+    addDelegation(network, validatorNodeID, delegatorStake)
+
+    // Wait for validation period to end
+    waitForValidationEnd(network)
+
+    // Check rewards distribution
+    validatorRewards := getRewards(network, validatorAddress)
+    delegatorRewards := getRewards(network, delegatorAddress)
+
+    // Validator should receive:
+    // - Rewards for their own stake
+    // - 10% of delegator's rewards (delegation fee)
+
+    // Delegator should receive:
+    // - 90% of their staking rewards (100% - 10% fee)
+
+    require.True(t, validatorRewards > 0, "Validator should receive rewards")
+    require.True(t, delegatorRewards > 0, "Delegator should receive rewards")
+}
+```
+
+## Common Patterns
+
+### Testing Validator Node Uptime
+
+Test that validators must maintain uptime to receive rewards:
+
+```go
+// Add validator
+addValidator(network, nodeID, startTime, endTime, stake)
+
+// Stop the node after it becomes active
+time.Sleep(2 * time.Minute)
+network.Nodes[0].Stop(ctx)
+
+// Leave it stopped for significant portion of validation period
+time.Sleep(10 * time.Minute)
+
+// Restart and complete validation
+network.Nodes[0].Restart(ctx)
+waitForValidationEnd(network)
+
+// Validators with poor uptime may receive reduced or no rewards
+rewards := getRewards(network, validatorAddress)
+// Check that rewards reflect uptime
+```
+
+### Testing Multiple Delegators
+
+Test multiple delegators staking to the same validator:
+
+```go
+// Add validator
+addValidator(network, validatorNodeID, startTime, endTime, 2000*units.Avax)
+
+// Add multiple delegators
+for i := 0; i < 5; i++ {
+    delegatorKey := network.PreFundedKeys[i+1]
+    addDelegation(network, validatorNodeID, 500*units.Avax, delegatorKey)
+}
+
+// Verify all delegators receive proportional rewards
+waitForValidationEnd(network)
+
+for i := 0; i < 5; i++ {
+    rewards := getRewards(network, delegatorAddresses[i])
+    require.True(t, rewards > 0, "Each delegator should receive rewards")
+}
+```
+
+### Testing Validator with Zero Delegators
+
+Verify validators work correctly with no delegations:
+
+```go
+// Add validator
+addValidator(network, nodeID, startTime, endTime, 2000*units.Avax)
+
+// Don't add any delegators
+
+// Complete validation period
+waitForValidationEnd(network)
+
+// Validator should still receive rewards for their own stake
+rewards := getRewards(network, validatorAddress)
+require.True(t, rewards > 0, "Validator should receive rewards without delegators")
+```
+
+## Querying Validator Information
+
+### Get Current Validators
+
+Check which validators are currently active:
+
+```go
+import "github.com/ava-labs/avalanchego/vms/platformvm"
+
+func getCurrentValidators(network *tmpnet.Network) {
+    client := platformvm.NewClient(network.Nodes[0].URI)
+
+    validators, err := client.GetCurrentValidators(context.Background(), ids.Empty, nil)
+    if err != nil {
+        panic(err)
+    }
+
+    for _, validator := range validators {
+        fmt.Printf("NodeID: %s, Stake: %d, EndTime: %s\n",
+            validator.NodeID,
+            validator.Weight,
+            time.Unix(int64(validator.EndTime), 0))
+    }
+}
+```
+
+### Get Pending Validators
+
+Check validators waiting to start:
+
+```go
+func getPendingValidators(network *tmpnet.Network) {
+    client := platformvm.NewClient(network.Nodes[0].URI)
+
+    validators, delegators, err := client.GetPendingValidators(
+        context.Background(), ids.Empty, nil)
+    if err != nil {
+        panic(err)
+    }
+
+    fmt.Printf("Pending validators: %d\n", len(validators))
+    fmt.Printf("Pending delegators: %d\n", len(delegators))
+}
+```
+
+## Troubleshooting
+
+### Validator Not Becoming Active
+
+**Issue:** Validator stays in pending state
+
+**Check:**
+- Start time is in the future when transaction is issued
+- Sufficient stake amount (minimum 2000 AVAX)
+- Node is running and healthy
+- Network time is synchronized
+
+```bash
+# Check node is running
+ps aux | grep avalanchego
+
+# Check node health
+curl http://127.0.0.1:PORT/ext/health
+```
+
+### Delegation Transaction Fails
+
+**Issue:** Unable to add delegation
+
+**Common causes:**
+- Delegation start time is before validator start time
+- Delegation end time is after validator end time
+- Insufficient balance to delegate
+- Validator doesn't exist or hasn't started
+
+### No Rewards Received
+
+**Issue:** Validator or delegator receives no rewards
+
+**Possible reasons:**
+- Validation period hasn't ended yet
+- Validator had poor uptime (< 80%)
+- Validator was offline during validation
+- Incorrect reward address specified
+
+## Testing Best Practices
+
+1. **Use short validation periods** - For testing, use validation periods of a few minutes instead of weeks
+2. **Test time boundaries** - Test validators starting/ending at exact times
+3. **Test edge cases** - Test minimum stake, maximum stake, etc.
+4. **Verify rewards** - Always check that rewards are distributed correctly
+5. **Test uptime requirements** - Simulate validator downtime to test uptime requirements
+6. **Test delegation fees** - Verify delegation fees are calculated correctly
+
+## Next Steps
+
+<Cards>
+  <Card title="Subnet Testing" href="/docs/tooling/tmpnet/guides/subnet-testing">
+    Test subnet validator operations
+  </Card>
+  <Card title="Programmatic Usage" href="/docs/tooling/tmpnet/guides/programmatic-usage">
+    Use tmpnet in your test suite
+  </Card>
+  <Card title="P-Chain API" href="/docs/rpcs/p-chain">
+    P-Chain API reference
+  </Card>
+</Cards>
+
+## Additional Resources
+
+- [Staking Documentation](/docs/nodes/validate/staking)
+- [P-Chain API](/docs/rpcs/p-chain)
+- [Validator Management](/docs/nodes/validate)

@@ -1,0 +1,11 @@
+{
+  "title": "Guides",
+  "description": "Comprehensive guides for using tmpnet",
+  "pages": [
+    "testing-custom-vms",
+    "subnet-testing",
+    "staking-and-delegation",
+    "programmatic-usage",
+    "monitoring"
+  ]
+}

@@ -110,6 +110,12 @@ export const toolingOptions = [
     url: '/docs/tooling/avalanche-cli',
   },
   {
+    title: 'tmpnet',
+    description: 'Temporary networks for local testing',
+    icon: <Network className="w-5 h-5" />,
+    url: '/docs/tooling/tmpnet',
+  },
+  {
     title: "Postman Collection",
     description: 'Postman collection for Avalanche APIs',
     icon: <Milestone className="w-5 h-5" />,

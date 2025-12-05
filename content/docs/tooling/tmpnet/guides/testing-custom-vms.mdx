@@ -1,0 +1,294 @@
+---
+title: Testing Custom VMs
+description: Deploy and test your custom Virtual Machine on a local temporary network
+---
+
+This guide shows you how to use tmpnet to test your custom Virtual Machine (VM) or L1 blockchain before deploying to testnet or mainnet.
+
+## Overview
+
+Testing custom VMs with tmpnet allows you to deploy your VM to a multi-node network, test consensus behavior, and iterate quickly before public deployment.
+
+## Prerequisites
+
+1. **tmpnet installed** - See [Installation](/docs/tooling/tmpnet/installation)
+2. **VM binary compiled** - Your VM binary in `~/.avalanchego/plugins/`
+3. **Genesis file** - Genesis configuration for your chain
+
+## Quick Example: Testing a Custom VM
+
+Here's a complete workflow for testing a custom VM:
+
+### 1. Prepare Your VM Binary
+
+Build your VM and place it in the plugins directory:
+
+```bash
+# Build your VM (example)
+cd /path/to/your-vm
+go build -o ~/.avalanchego/plugins/your-vm ./cmd/your-vm
+
+# Verify the binary exists
+ls -lh ~/.avalanchego/plugins/your-vm
+```
+
+The binary name should match your VM name.
+
+### 2. Create Genesis Configuration
+
+Create a genesis file for your chain. The exact format depends on your VM. Example for a simple VM:
+
+```json
+{
+  "config": {
+    "chainId": 12345,
+    "feeConfig": {
+      "gasLimit": 8000000
+    }
+  },
+  "alloc": {
+    "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC": {
+      "balance": "0x295BE96E64066972000000"
+    }
+  }
+}
+```
+
+Save this as `genesis.json`.
+
+### 3. Test Your VM Using Go Code
+
+Create a test script to deploy your VM:
+
+```go
+package main
+
+import (
+    "context"
+    "os"
+    "time"
+
+    "github.com/ava-labs/avalanchego/ids"
+    "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+)
+
+func main() {
+    // Read genesis
+    genesisBytes, _ := os.ReadFile("genesis.json")
+
+    // Define your VM chain
+    chain := &tmpnet.Chain{
+        VMID:    ids.ID{'y', 'o', 'u', 'r', 'v', 'm', 'i', 'd'},
+        Genesis: genesisBytes,
+        Config:  `{"blockGasLimit": 8000000}`,
+    }
+
+    // Create subnet with your chain
+    subnet := &tmpnet.Subnet{
+        Name:   "my-vm-subnet",
+        Chains: []*tmpnet.Chain{chain},
+    }
+
+    // Create 5-node network
+    network := &tmpnet.Network{
+        Nodes:   tmpnet.NewNodesOrPanic(5),
+        Subnets: []*tmpnet.Subnet{subnet},
+    }
+
+    // All nodes validate the subnet
+    for _, node := range network.Nodes {
+        subnet.ValidatorIDs = append(subnet.ValidatorIDs, node.NodeID)
+    }
+
+    // Bootstrap network
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+    defer cancel()
+
+    tmpnet.BootstrapNewNetwork(ctx, os.Stdout, network, "",
+        "./build/avalanchego", "~/.avalanchego/plugins")
+
+    println("Chain ID:", subnet.Chains[0].ChainID.String())
+
+    // Test your chain...
+
+    network.Stop(context.Background())
+}
+```
+
+**Key steps:**
+1. Read your genesis configuration
+2. Define a `Chain` with your VM ID and genesis
+3. Create a `Subnet` containing your chain
+4. Assign validator nodes to the subnet
+5. Bootstrap and test
+
+### 4. Interact with Your Chain
+
+Once your chain is deployed, interact with it using the chain's API:
+
+```bash
+# Get the chain ID from the network configuration
+CHAIN_ID=$(cat ~/.tmpnet/networks/latest/subnets/your-vm-subnet.json | jq -r '.chains[0].chainId')
+
+# Get a node URI
+NODE_URI=$(cat ~/.tmpnet/networks/latest/NodeID-*/process.json | jq -r '.uri' | head -1)
+
+# Call your chain's API
+curl -X POST --data '{
+  "jsonrpc": "2.0",
+  "method": "your.method",
+  "params": {},
+  "id": 1
+}' -H 'content-type:application/json;' ${NODE_URI}/ext/bc/${CHAIN_ID}/rpc
+```
+
+## Development Workflow
+
+### Iterative Testing
+
+**1. Make code changes**
+**2. Rebuild your VM:**
+```bash
+go build -o ~/.avalanchego/plugins/your-vm ./cmd/your-vm
+```
+
+**3. Restart the network:**
+```bash
+tmpnetctl stop-network
+go run test-vm.go
+```
+
+### Automated Testing
+
+Integrate tmpnet into your test suite:
+
+```go
+func TestYourVM(t *testing.T) {
+    network := setupNetwork(t)
+    defer network.Stop(context.Background())
+
+    chain := deployChain(t, network)
+
+    t.Run("BasicTransaction", func(t *testing.T) {
+        // Test transaction functionality
+    })
+
+    t.Run("Consensus", func(t *testing.T) {
+        // Test consensus behavior
+    })
+}
+```
+
+### Monitor Logs
+
+```bash
+# Watch logs from all nodes
+tail -f ~/.tmpnet/networks/latest/NodeID-*/logs/main.log
+
+# Search for errors
+grep -i error ~/.tmpnet/networks/latest/NodeID-*/logs/main.log
+```
+
+## Common Patterns
+
+### Testing VM Upgrades
+
+```go
+// Start with v1
+network := createNetworkWithVM("your-vm", "v1.0.0")
+// ... test v1 behavior ...
+network.Stop(ctx)
+
+// Replace plugin binary with v2
+// cp your-vm-v2 ~/.avalanchego/plugins/your-vm
+
+network.Restart(ctx)
+// ... verify v2 upgrade ...
+```
+
+### Custom Genesis Allocations
+
+Pre-fund specific addresses:
+
+```go
+genesis := map[string]interface{}{
+    "alloc": map[string]interface{}{
+        "0xYourAddress": map[string]interface{}{
+            "balance": "0x1000000000000000000000",
+        },
+    },
+}
+genesisBytes, _ := json.Marshal(genesis)
+chain.Genesis = genesisBytes
+```
+
+### Testing with Debug Logging
+
+Enable verbose logging for debugging:
+
+```go
+network.DefaultFlags = tmpnet.FlagsMap{
+    "log-level": "debug",
+    "log-display-level": "debug",
+}
+```
+
+## Troubleshooting
+
+### VM Binary Not Found
+
+**Error:** `plugin binary not found`
+
+**Solution:** Ensure your VM binary is in the correct location:
+```bash
+ls -lh ~/.avalanchego/plugins/your-vm
+```
+
+The plugin directory can be customized with `--plugin-dir` flag.
+
+### Genesis Validation Fails
+
+**Error:** `invalid genesis`
+
+**Solution:** Verify your genesis format matches your VM's expectations. Check logs:
+```bash
+grep -i genesis ~/.tmpnet/networks/latest/NodeID-*/logs/main.log
+```
+
+### Chain Not Starting
+
+**Error:** Chain doesn't appear in network
+
+**Solution:**
+1. Verify VM binary is executable: `chmod +x ~/.avalanchego/plugins/your-vm`
+2. Check node logs for VM loading errors
+3. Ensure VM ID is correct and unique
+
+### Subnet Validators Not Active
+
+**Error:** Validators don't become active
+
+**Solution:**
+- Ensure sufficient validators are assigned to the subnet
+- Check that nodes are tracking the subnet
+- Verify subnet creation succeeded in logs
+
+## Next Steps
+
+<Cards>
+  <Card title="Subnet Testing" href="/docs/tooling/tmpnet/guides/subnet-testing">
+    Advanced subnet testing scenarios
+  </Card>
+  <Card title="Programmatic Usage" href="/docs/tooling/tmpnet/guides/programmatic-usage">
+    Learn more about using tmpnet in code
+  </Card>
+  <Card title="Monitoring" href="/docs/tooling/tmpnet/guides/monitoring">
+    Set up monitoring for your test network
+  </Card>
+</Cards>
+
+## Additional Resources
+
+- [Full tmpnet README](https://github.com/ava-labs/avalanchego/blob/master/tests/fixture/tmpnet/README.md)
+- [VM Testing Examples](https://github.com/ava-labs/avalanchego/tree/master/tests/e2e/vms)
+- [Custom VM Documentation](/docs/virtual-machines)

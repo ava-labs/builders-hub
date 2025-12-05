@@ -1,0 +1,509 @@
+---
+title: CLI Commands Reference
+description: Complete reference for all tmpnetctl commands and options
+---
+
+This reference covers all commands available in the `tmpnetctl` CLI tool.
+
+## Global Flags
+
+These flags are available for all commands:
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--network-dir` | Path to target network directory | `$TMPNET_NETWORK_DIR` or error |
+| `--log-format` | Logging format (auto, json) | `auto` |
+| `--help, -h` | Show help | |
+
+## Network Commands
+
+### start-network
+
+Start a new temporary network.
+
+```bash
+tmpnetctl start-network [flags]
+```
+
+**Flags:**
+
+| Flag | Type | Description | Default |
+|------|------|-------------|---------|
+| `--avalanchego-path` | string | Path to avalanchego binary | `$AVALANCHEGO_PATH` (required) |
+| `--plugin-dir` | string | Directory containing VM plugins | `$AVALANCHE_PLUGIN_DIR` or `~/.avalanchego/plugins` |
+| `--node-count` | int | Number of validator nodes | `5` |
+| `--network-owner` | string | Owner identifier for the network | `tmpnet-owner` |
+| `--root-dir` | string | Root directory for networks | `~/.tmpnet/networks` |
+
+**Example:**
+
+```bash
+# Start default 5-node network
+tmpnetctl start-network --avalanchego-path=./build/avalanchego
+
+# Start 3-node network
+tmpnetctl start-network --avalanchego-path=./build/avalanchego --node-count=3
+
+# Custom plugin directory
+tmpnetctl start-network \
+  --avalanchego-path=./build/avalanchego \
+  --plugin-dir=/custom/plugins
+```
+
+**Output:**
+
+```
+Starting network with 5 nodes
+...
+Started network /home/user/.tmpnet/networks/20240312-143052.123456 (UUID: abc-123...)
+
+Configure tmpnetctl to target this network by default:
+ - source /home/user/.tmpnet/networks/20240312-143052.123456/network.env
+ - export TMPNET_NETWORK_DIR=/home/user/.tmpnet/networks/20240312-143052.123456
+ - export TMPNET_NETWORK_DIR=/home/user/.tmpnet/networks/latest
+```
+
+### stop-network
+
+Stop a running network.
+
+```bash
+tmpnetctl stop-network [flags]
+```
+
+**Flags:**
+
+| Flag | Type | Description | Default |
+|------|------|-------------|---------|
+| `--network-dir` | string | Network directory to stop | `$TMPNET_NETWORK_DIR` (required) |
+
+**Example:**
+
+```bash
+# Stop using TMPNET_NETWORK_DIR
+export TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest
+tmpnetctl stop-network
+
+# Stop with explicit path
+tmpnetctl stop-network --network-dir=~/.tmpnet/networks/20240312-143052.123456
+```
+
+### restart-network
+
+Restart a stopped network.
+
+```bash
+tmpnetctl restart-network [flags]
+```
+
+**Flags:**
+
+| Flag | Type | Description | Default |
+|------|------|-------------|---------|
+| `--network-dir` | string | Network directory to restart | `$TMPNET_NETWORK_DIR` (required) |
+
+**Example:**
+
+```bash
+# Restart using TMPNET_NETWORK_DIR
+tmpnetctl restart-network
+
+# Restart with explicit path
+tmpnetctl restart-network --network-dir=~/.tmpnet/networks/latest
+```
+
+## Monitoring Commands
+
+### start-metrics-collector
+
+Start Prometheus to collect metrics from networks.
+
+```bash
+tmpnetctl start-metrics-collector [flags]
+```
+
+**Required Environment Variables:**
+
+- `PROMETHEUS_URL` - Prometheus backend URL
+- `PROMETHEUS_PUSH_URL` - Prometheus push URL
+- `PROMETHEUS_USERNAME` - Username for authentication
+- `PROMETHEUS_PASSWORD` - Password for authentication
+
+**Example:**
+
+```bash
+# Set environment variables
+export PROMETHEUS_URL="https://prometheus.example.com"
+export PROMETHEUS_PUSH_URL="https://prometheus.example.com/api/v1/push"
+export PROMETHEUS_USERNAME="user"
+export PROMETHEUS_PASSWORD="pass"
+
+# Start collector
+tmpnetctl start-metrics-collector
+```
+
+**Output:**
+
+```
+Starting Prometheus metrics collector...
+Metrics collector started successfully
+```
+
+### stop-metrics-collector
+
+Stop the running Prometheus metrics collector.
+
+```bash
+tmpnetctl stop-metrics-collector
+```
+
+**Example:**
+
+```bash
+tmpnetctl stop-metrics-collector
+```
+
+### start-logs-collector
+
+Start Promtail to collect logs from networks.
+
+```bash
+tmpnetctl start-logs-collector [flags]
+```
+
+**Required Environment Variables:**
+
+- `LOKI_URL` - Loki backend URL
+- `LOKI_PUSH_URL` - Loki push URL
+- `LOKI_USERNAME` - Username for authentication
+- `LOKI_PASSWORD` - Password for authentication
+
+**Example:**
+
+```bash
+# Set environment variables
+export LOKI_URL="https://loki.example.com"
+export LOKI_PUSH_URL="https://loki.example.com/loki/api/v1/push"
+export LOKI_USERNAME="user"
+export LOKI_PASSWORD="pass"
+
+# Start collector
+tmpnetctl start-logs-collector
+```
+
+### stop-logs-collector
+
+Stop the running Promtail logs collector.
+
+```bash
+tmpnetctl stop-logs-collector
+```
+
+**Example:**
+
+```bash
+tmpnetctl stop-logs-collector
+```
+
+### check-metrics
+
+Verify that metrics are being collected for a network.
+
+```bash
+tmpnetctl check-metrics [flags]
+```
+
+**Flags:**
+
+| Flag | Type | Description | Default |
+|------|------|-------------|---------|
+| `--network-dir` | string | Network directory | `$TMPNET_NETWORK_DIR` (required) |
+
+**Required Environment Variables:**
+
+- `PROMETHEUS_URL`
+- `PROMETHEUS_USERNAME`
+- `PROMETHEUS_PASSWORD`
+
+**Example:**
+
+```bash
+tmpnetctl check-metrics --network-dir=~/.tmpnet/networks/latest
+```
+
+**Output:**
+
+```
+Checking metrics for network abc-123...
+✓ Metrics found for network
+```
+
+### check-logs
+
+Verify that logs are being collected for a network.
+
+```bash
+tmpnetctl check-logs [flags]
+```
+
+**Flags:**
+
+| Flag | Type | Description | Default |
+|------|------|-------------|---------|
+| `--network-dir` | string | Network directory | `$TMPNET_NETWORK_DIR` (required) |
+
+**Required Environment Variables:**
+
+- `LOKI_URL`
+- `LOKI_USERNAME`
+- `LOKI_PASSWORD`
+
+**Example:**
+
+```bash
+tmpnetctl check-logs --network-dir=~/.tmpnet/networks/latest
+```
+
+## Kubernetes Commands
+
+### start-kind-cluster
+
+Start a local kind (Kubernetes in Docker) cluster for tmpnet.
+
+```bash
+tmpnetctl start-kind-cluster [flags]
+```
+
+**Flags:**
+
+| Flag | Type | Description | Default |
+|------|------|-------------|---------|
+| `--kubeconfig` | string | Path to kubeconfig file | `~/.kube/config` |
+| `--start-metrics-collector` | bool | Start metrics collector | `false` |
+| `--start-logs-collector` | bool | Start logs collector | `false` |
+| `--install-chaos-mesh` | bool | Install Chaos Mesh | `false` |
+
+**Example:**
+
+```bash
+# Start basic kind cluster
+tmpnetctl start-kind-cluster
+
+# Start with monitoring
+tmpnetctl start-kind-cluster \
+  --start-metrics-collector \
+  --start-logs-collector
+
+# Start with Chaos Mesh for chaos engineering
+tmpnetctl start-kind-cluster --install-chaos-mesh
+```
+
+## Utility Commands
+
+### version
+
+Print tmpnetctl version information.
+
+```bash
+tmpnetctl version
+```
+
+**Example:**
+
+```bash
+tmpnetctl version
+```
+
+**Output:**
+
+```
+tmpnetctl version 1.11.0
+```
+
+### help
+
+Show help for tmpnetctl or a specific command.
+
+```bash
+tmpnetctl help [command]
+```
+
+**Example:**
+
+```bash
+# General help
+tmpnetctl help
+
+# Help for specific command
+tmpnetctl help start-network
+```
+
+## Common Usage Patterns
+
+### Setting Up a Network
+
+Complete workflow for creating and using a network:
+
+```bash
+# Build binaries
+./scripts/build.sh
+./scripts/build_tmpnetctl.sh
+
+# Start network
+./build/tmpnetctl start-network --avalanchego-path=./build/avalanchego
+
+# Configure shell
+export TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest
+
+# Use the network...
+
+# Stop when done
+./build/tmpnetctl stop-network
+```
+
+### Using with direnv
+
+Simplify commands with direnv:
+
+```bash
+# Enable direnv
+cd avalanchego
+direnv allow
+
+# Now you can use simplified commands
+tmpnetctl start-network        # No --avalanchego-path needed
+tmpnetctl stop-network
+tmpnetctl restart-network
+```
+
+### Monitoring Workflow
+
+Set up monitoring for development:
+
+```bash
+# Configure monitoring environment
+export PROMETHEUS_URL="..."
+export PROMETHEUS_PUSH_URL="..."
+export PROMETHEUS_USERNAME="..."
+export PROMETHEUS_PASSWORD="..."
+export LOKI_URL="..."
+export LOKI_PUSH_URL="..."
+export LOKI_USERNAME="..."
+export LOKI_PASSWORD="..."
+
+# Start collectors once
+tmpnetctl start-metrics-collector
+tmpnetctl start-logs-collector
+
+# Create/destroy networks as needed
+tmpnetctl start-network --avalanchego-path=./build/avalanchego
+# ... test ...
+tmpnetctl stop-network
+
+# Collectors continue running
+# Stop when done
+tmpnetctl stop-metrics-collector
+tmpnetctl stop-logs-collector
+```
+
+### Multiple Networks
+
+Manage multiple networks:
+
+```bash
+# Start first network
+tmpnetctl start-network --avalanchego-path=./build/avalanchego
+NETWORK1=~/.tmpnet/networks/latest
+
+# Start second network
+tmpnetctl start-network --avalanchego-path=./build/avalanchego
+NETWORK2=~/.tmpnet/networks/latest
+
+# Target specific networks
+tmpnetctl stop-network --network-dir=$NETWORK1
+tmpnetctl restart-network --network-dir=$NETWORK2
+```
+
+## Environment Configuration
+
+### Recommended Shell Setup
+
+Add to your `.bashrc` or `.zshrc`:
+
+```bash
+# Set default network to latest
+export TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest
+
+# Set avalanchego path
+export AVALANCHEGO_PATH=~/avalanchego/build/avalanchego
+
+# Add tmpnetctl to PATH (if not using direnv)
+export PATH=$PATH:~/avalanchego/build
+```
+
+### Monitoring Environment
+
+Create a monitoring env file:
+
+```bash
+# monitoring.env
+export PROMETHEUS_URL="https://prometheus.example.com"
+export PROMETHEUS_PUSH_URL="https://prometheus.example.com/api/v1/push"
+export PROMETHEUS_USERNAME="user"
+export PROMETHEUS_PASSWORD="pass"
+export LOKI_URL="https://loki.example.com"
+export LOKI_PUSH_URL="https://loki.example.com/loki/api/v1/push"
+export LOKI_USERNAME="user"
+export LOKI_PASSWORD="pass"
+```
+
+Source when needed:
+
+```bash
+source monitoring.env
+tmpnetctl start-metrics-collector
+tmpnetctl start-logs-collector
+```
+
+## Exit Codes
+
+tmpnetctl uses standard exit codes:
+
+- `0` - Success
+- `1` - General error
+- `2` - Invalid arguments or usage
+
+## Error Handling
+
+### Common Errors
+
+**Network directory not found:**
+```
+Error: network directory not found: /path/to/network
+```
+**Solution:** Check that `TMPNET_NETWORK_DIR` is set correctly or provide `--network-dir`
+
+**Binary not found:**
+```
+Error: avalanchego binary not found: /path/to/avalanchego
+```
+**Solution:** Verify `--avalanchego-path` points to a valid binary
+
+**Port already in use:**
+```
+Error: failed to start node: address already in use
+```
+**Solution:** Stop conflicting processes or use dynamic ports (default)
+
+**Missing monitoring credentials:**
+```
+Error: PROMETHEUS_URL environment variable not set
+```
+**Solution:** Set required environment variables for monitoring
+
+## See Also
+
+- [Configuration Reference](/docs/tooling/tmpnet/reference/configuration)
+- [Quick Start Guide](/docs/tooling/tmpnet/quick-start)
+- [Monitoring Guide](/docs/tooling/tmpnet/guides/monitoring)
+- [Full README](https://github.com/ava-labs/avalanchego/blob/master/tests/fixture/tmpnet/README.md)

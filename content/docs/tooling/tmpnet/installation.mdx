@@ -1,0 +1,254 @@
+---
+title: Installation
+description: Set up tmpnet and its prerequisites for local network testing
+---
+
+This guide walks you through setting up tmpnet for testing your Avalanche applications and L1s.
+
+## Prerequisites
+
+### 1. Operating System
+
+tmpnet runs on:
+- **macOS** (Intel and Apple Silicon)
+- **Linux**
+
+Windows is not currently supported.
+
+### 2. Go
+
+tmpnet requires **Go 1.21 or later**. Check your version:
+
+```bash
+go version
+```
+
+If you need to install or update Go, visit [golang.org/dl](https://golang.org/dl/).
+
+### 3. Git
+
+Ensure you have Git installed:
+
+```bash
+git --version
+```
+
+## Installation
+
+### Step 1: Clone AvalancheGo
+
+tmpnet is part of the AvalancheGo repository:
+
+```bash
+# Clone the repository
+git clone https://github.com/ava-labs/avalanchego.git
+cd avalanchego
+```
+
+### Step 2: Build the Binaries
+
+Build both AvalancheGo and tmpnetctl:
+
+```bash
+# Build AvalancheGo
+./scripts/build.sh
+
+# Build tmpnetctl
+./scripts/build_tmpnetctl.sh
+```
+
+The binaries will be available in the `build/` directory:
+- `build/avalanchego` - The AvalancheGo node binary
+- `build/tmpnetctl` - The tmpnet CLI tool
+
+### Step 3: Verify Installation
+
+Test that the binaries work:
+
+```bash
+# Check AvalancheGo
+./build/avalanchego --version
+
+# Check tmpnetctl
+./build/tmpnetctl --help
+```
+
+You should see version information and available commands.
+
+## Understanding the Directory Structure
+
+AvalancheGo has two directories for binaries:
+
+### `build/` Directory (Actual Binaries)
+Contains the compiled binaries:
+- `build/avalanchego` - Main node binary
+- `build/tmpnetctl` - Network management CLI
+- `build/plugins/` - Custom VM plugins
+
+### `bin/` Directory (Convenience Symlinks)
+Contains symlinks to run scripts that automatically rebuild before executing:
+- `bin/avalanchego` → `scripts/run_avalanchego.sh`
+- `bin/tmpnetctl` → `scripts/run_tmpnetctl.sh`
+
+**For tmpnet usage, always use the `build/` directory paths.**
+
+## Optional: Simplified Setup with direnv
+
+[direnv](https://direnv.net/) automatically sets environment variables when you enter the avalanchego directory, making commands simpler.
+
+### Install and Configure
+
+**macOS:**
+```bash
+brew install direnv
+echo 'eval "$(direnv hook zsh)"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+**Linux:**
+```bash
+# Ubuntu/Debian
+sudo apt-get install direnv
+
+# Add to shell
+echo 'eval "$(direnv hook bash)"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### Enable in AvalancheGo
+
+```bash
+cd /path/to/avalanchego
+direnv allow
+```
+
+Now you can use short commands:
+```bash
+# Instead of ./build/tmpnetctl start-network --avalanchego-path=$(pwd)/build/avalanchego
+tmpnetctl start-network --node-count=3
+```
+
+direnv automatically sets `AVALANCHEGO_PATH`, `TMPNET_NETWORK_DIR`, and adds tools to `PATH`.
+
+## Optional: Monitoring Tools
+
+To collect metrics and logs from your networks:
+
+**Using Nix (Recommended):**
+```bash
+nix develop  # Provides prometheus and promtail
+```
+
+**Manual Installation:**
+- **Prometheus**: Download from [prometheus.io/download](https://prometheus.io/download/) or `brew install prometheus`
+- **Promtail**: Download from [Grafana Loki releases](https://github.com/grafana/loki/releases)
+
+See the [Monitoring guide](/docs/tooling/tmpnet/guides/monitoring) for setup details.
+
+## Environment Variables
+
+Key environment variables tmpnet uses:
+
+| Variable | Purpose |
+|----------|---------|
+| `TMPNET_NETWORK_DIR` | Target network directory (default: must specify) |
+| `AVALANCHEGO_PATH` | Path to avalanchego binary (required) |
+| `AVAGO_PLUGIN_DIR` | Custom VM plugins directory |
+
+### Recommended Shell Setup
+
+Add to `~/.bashrc` or `~/.zshrc`:
+
+```bash
+export AVALANCHEGO_PATH=~/avalanchego/build/avalanchego
+export TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest
+export PATH=$PATH:~/avalanchego/build
+```
+
+## Plugin Directory Setup
+
+If you're testing custom VMs, create the plugin directory:
+
+```bash
+mkdir -p ~/.avalanchego/plugins
+```
+
+Place your custom VM binaries in this directory. The plugin binary name should match your VM name.
+
+## Troubleshooting
+
+### Command not found: tmpnetctl
+
+If you get "command not found":
+
+**Option 1:** Use the full path
+```bash
+./build/tmpnetctl --help
+```
+
+**Option 2:** Add to PATH
+```bash
+export PATH=$PATH:$(pwd)/build
+tmpnetctl --help
+```
+
+**Option 3:** Use direnv (recommended)
+```bash
+direnv allow
+tmpnetctl --help
+```
+
+### Build Failures
+
+If builds fail:
+
+1. **Check Go version:**
+   ```bash
+   go version  # Must be 1.21 or later
+   ```
+
+2. **Check you're in the repository root:**
+   ```bash
+   pwd  # Should be /path/to/avalanchego
+   ls scripts/build.sh  # Should exist
+   ```
+
+3. **Try cleaning and rebuilding:**
+   ```bash
+   rm -rf build/
+   ./scripts/build.sh
+   ```
+
+### Permission Denied
+
+If you get permission errors:
+
+```bash
+chmod +x ./build/tmpnetctl
+chmod +x ./build/avalanchego
+```
+
+### Binary Not Found Error
+
+If tmpnetctl says avalanchego not found:
+
+```bash
+# Verify the binary exists
+ls -lh ./build/avalanchego
+
+# Use absolute path when starting networks
+./build/tmpnetctl start-network --avalanchego-path="$(pwd)/build/avalanchego"
+```
+
+## Next Steps
+
+Now that tmpnet is installed, create your first network!
+
+<Cards>
+  <Card title="Quick Start" href="/docs/tooling/tmpnet/quick-start">
+    Start your first temporary network in minutes
+  </Card>
+  <Card title="Test Custom VMs" href="/docs/tooling/tmpnet/guides/testing-custom-vms">
+    Learn how to test your custom VM or L1
+  </Card>
+</Cards>
