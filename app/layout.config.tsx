@@ -495,7 +495,7 @@ export const universityMenu: LinkItemType = {
 export const eventsMenu: LinkItemType = {
   type: 'menu',
   text: 'Events',
-  url: '/events',
+  url: '/hackathons',
   items: [
     {
       menu: {

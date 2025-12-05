@@ -486,6 +486,11 @@ const config = {
         permanent: true,
       },
       {
+        source: '/events',
+        destination: '/hackathons',
+        permanent: true,
+      },
+      {
         source: '/tools/l1-launcher',
         destination: '/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1',
         permanent: true,
