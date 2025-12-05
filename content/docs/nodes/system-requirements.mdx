@@ -1,37 +1,130 @@
 ---
 title: System Requirements
-description: This document provides information about the system and networking requirements for running an AvalancheGo node.
+description: Hardware, storage, and networking requirements for running Avalanche nodes on the Primary Network and Avalanche L1s.
 ---
 
-## Hardware and Operating Systems
+## Primary Network Validators
 
-Avalanche is an incredibly lightweight protocol, so nodes can run on commodity hardware. Note that as network usage increases, hardware requirements may change.
+Running a Primary Network validator requires careful consideration of your stake weight. Validators with higher stake receive more traffic and must process more data, requiring better hardware.
 
-- **CPU**: Equivalent of 8 AWS vCPU
-- **RAM**: 8 GiB (16 GiB recommended)
-- **Storage**: 1 TiB SSD
-- **OS**: Ubuntu 22.04 or MacOS >= 12
+### Storage Requirements
 
-<Callout title="Warning" type="warn">
-Nodes which choose to use a HDD may get poor and random read/write latencies, therefore reducing performance and reliability. An SSD is strongly suggested.
+<Callout type="error" title="SSD Required - No Cloud Block Storage">
+You **must** use a local NVMe SSD attached directly to your hardware. Cloud block storage (AWS EBS, GCP Persistent Disk, Azure Managed Disks) introduces latency that causes poor performance, missed blocks, and potential benching. If running in the cloud, use instance types with local NVMe storage (e.g., AWS i3/i4 instances, GCP N2 with local SSD).
 </Callout>
+
+<Callout title="State Sync Recommended">
+New validators should use **state sync** to bootstrap. While full sync from genesis is still possible, state sync is significantly faster—downloading only the active state (~500 GB) rather than replaying all historical blocks.
+</Callout>
+
+| Storage Type | Size | Description |
+|--------------|------|-------------|
+| Active State | ~500 GB | Current state required to validate. Downloaded via state sync. |
+| Full Archive | ~3 TB+ | Complete historical state. Only needed for archive nodes or block explorers. |
+
+### Hardware Requirements
+
+Resource requirements scale with your stake weight. Higher stake means more validator duties and network traffic.
+
+#### Low Stake Validators
+
+For validators with modest stake delegations who want reliable operation without over-provisioning.
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | 4 cores / 8 threads (e.g., AMD Ryzen 5, Intel i5) |
+| **RAM** | 16 GB |
+| **Storage** | 1 TB NVMe SSD (local, not network-attached) |
+| **Network** | 100 Mbps symmetric, stable connection |
+| **OS** | Ubuntu 22.04 LTS or macOS ≥ 12 |
+
+#### High Stake Validators
+
+For validators with significant stake who will handle proportionally more network traffic and validation duties.
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | 8+ cores / 16 threads (e.g., AMD Ryzen 7/9, Intel i7/i9) |
+| **RAM** | 32 GB |
+| **Storage** | 2 TB NVMe SSD (local, not network-attached) |
+| **Network** | 1 Gbps symmetric, low-latency connection |
+| **OS** | Ubuntu 22.04 LTS or macOS ≥ 12 |
+
+<Callout>
+If you're unsure which tier applies to you: start with low-stake specs and monitor performance. If you see high CPU usage, memory pressure, or network saturation, upgrade accordingly.
+</Callout>
+
+---
+
+## Avalanche L1 Validators
+
+L1 validators run your own blockchain with custom parameters. Hardware requirements depend on your chain's transaction throughput and state size.
+
+### Low Throughput
+
+Suitable for testnets, development chains, or production L1s with minimal traffic (< 10 TPS average).
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | 2 cores |
+| **RAM** | 4 GB |
+| **Storage** | 100 GB SSD |
+| **Network** | 25 Mbps |
+| **OS** | Ubuntu 22.04 LTS or macOS ≥ 12 |
+
+### Medium Throughput
+
+For production L1s with moderate activity (10–100 TPS average), gaming chains, or DeFi applications.
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | 4 cores |
+| **RAM** | 8 GB |
+| **Storage** | 500 GB SSD |
+| **Network** | 100 Mbps |
+| **OS** | Ubuntu 22.04 LTS or macOS ≥ 12 |
+
+### High Throughput
+
+For high-performance L1s with heavy transaction volume (100+ TPS), large state, or complex smart contracts.
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | 8+ cores |
+| **RAM** | 16 GB+ |
+| **Storage** | 1 TB+ NVMe SSD |
+| **Network** | 1 Gbps |
+| **OS** | Ubuntu 22.04 LTS or macOS ≥ 12 |
+
+<Callout>
+L1 validators sync the P-Chain to track validator sets and cross-chain messages. This adds minimal overhead to the requirements above.
+</Callout>
+
+---
 
 ## Networking
 
-To run successfully, AvalancheGo needs to accept connections from the Internet on the network port `9651`. Before you proceed with the installation, you need to determine the networking environment your node will run in.
+AvalancheGo requires inbound connections on port `9651`. Before installation, ensure your networking environment is properly configured.
 
-### On a Cloud Provider
+### Cloud Providers
 
-If your node is running on a cloud provider computer instance, it will have a static IP. Find out what that static IP is, or set it up if you didn't already.
+Cloud instances have static IPs by default. Ensure your security group or firewall allows:
+- **Inbound**: TCP port 9651
+- **Outbound**: All traffic
 
-### On a Home Connection
+### Home Connections
 
-If you're running a node on a computer that is on a residential internet connection, you have a dynamic IP; that is, your IP will change periodically. **For the sake of demonstration, you can ignore the following information.** Otherwise, you will need to set up inbound port forwarding of port `9651` from the internet to the computer the node is installed on.
+Residential connections typically have dynamic IPs. You'll need to:
+1. Configure port forwarding for port `9651` on your router
+2. Consider a dynamic DNS service if your IP changes frequently
 
-As there are too many models and router configurations, we cannot provide instructions on what exactly to do, but there are online guides to be found (like [this](https://www.noip.com/support/knowledgebase/general-port-forwarding-guide/), or [this](https://www.howtogeek.com/66214/how-to-forward-ports-on-your-router/) ), and your service provider support might help too.
-
-<Callout title="Note">
-Please note that a fully connected Avalanche node maintains and communicates over a couple of thousand of live TCP connections.
-
-For some under-powered and older home routers, that might be too much to handle. If that is the case, you may experience lagging on other computers connected to the same router, node getting benched, or failing to sync and similar issues.
+<Callout>
+A fully connected Avalanche node maintains thousands of live TCP connections. Under-powered home routers may struggle with this load, causing lag on other devices or node synchronization issues.
 </Callout>
+
+---
+
+## Next Steps
+
+- Learn about [Active State vs Archive State](/docs/nodes/maintain/chain-state-management) to understand storage requirements
+- Set up [node monitoring](/docs/nodes/maintain/monitoring) to track resource usage

@@ -147,6 +147,7 @@ package-lock.json
 
 
 
+
 # Remote content output paths
 content/docs/acps/103-dynamic-fees.mdx
 content/docs/acps/108-evm-event-importing.mdx
@@ -168,6 +169,7 @@ content/docs/acps/226-dynamic-minimum-block-times.mdx
 content/docs/acps/23-p-chain-native-transfers.mdx
 content/docs/acps/236-continuous-staking.mdx
 content/docs/acps/24-shanghai-eips.mdx
+content/docs/acps/247-delegation-multiplier-increase-maximum-validator-weight-reduction.mdx
 content/docs/acps/25-vm-application-errors.mdx
 content/docs/acps/30-avalanche-warp-x-evm.mdx
 content/docs/acps/31-enable-subnet-ownership-transfer.mdx
@@ -184,11 +186,11 @@ content/docs/avalanche-l1s/validator-manager/contract.mdx
 content/docs/cross-chain/avalanche-warp-messaging/deep-dive.mdx
 content/docs/cross-chain/avalanche-warp-messaging/evm-integration.mdx
 content/docs/cross-chain/avalanche-warp-messaging/run-relayer.mdx
+content/docs/cross-chain/icm-contracts/cli.mdx
+content/docs/cross-chain/icm-contracts/deep-dive.mdx
+content/docs/cross-chain/icm-contracts/overview.mdx
+content/docs/cross-chain/icm-contracts/upgradeability.mdx
 content/docs/cross-chain/interchain-token-transfer/overview.mdx
-content/docs/cross-chain/teleporter/cli.mdx
-content/docs/cross-chain/teleporter/deep-dive.mdx
-content/docs/cross-chain/teleporter/overview.mdx
-content/docs/cross-chain/teleporter/upgradeability.mdx
 content/docs/nodes/chain-configs/primary-network/c-chain.mdx
 content/docs/nodes/chain-configs/primary-network/p-chain.mdx
 content/docs/nodes/chain-configs/primary-network/x-chain.mdx
@@ -224,6 +226,9 @@ content/docs/rpcs/other/subnet-evm-rpc.mdx
 content/docs/rpcs/p-chain/rpc.mdx
 content/docs/rpcs/x-chain/rpc.mdx
 content/docs/tooling/cli-commands.mdx
+# Generated event signatures for explorer
+abi/event-signatures.generated.ts
+
 # Generated OpenAPI specs (fetched during build)
 public/openapi/glacier.json
 public/openapi/popsicle.json

@@ -56,15 +56,35 @@ export interface BlockExplorer {
   link: string;
 }
 
+export interface NetworkToken {
+  name: string;
+  symbol: string;
+  decimals: number;
+  logoUri?: string;
+  description?: string;
+}
+
 export interface L1Chain {
   chainId: string;
   chainName: string;
   chainLogoURI: string;
+  blockchainId?: string;
   subnetId: string;
   slug: string;
   color?: string;
   category?: string;
+  description?: string;
+  website?: string;
+  socials?: {
+    twitter?: string;
+    linkedin?: string;
+  };
   explorers?: BlockExplorer[];
+  rpcUrl?: string;
+  coingeckoId?: string;
+  networkToken?: NetworkToken;
+  sourcifySupport?: boolean;
+  isTestnet?: boolean;
 }
 
 export type TimeRange = "30d" | "90d" | "1y" | "all";

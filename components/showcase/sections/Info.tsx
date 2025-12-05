@@ -1,8 +1,35 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Project } from "@/types/showcase";
-import { MapPin, Trophy } from "lucide-react";
+import { MapPin, Trophy, Code2 } from "lucide-react";
 import Link from "next/link";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+function parseLinks(linkString: string): string[] {
+  if (!linkString) return [];
+  return linkString
+    .split(/[,\s\n]+/)
+    .map(l => l.trim())
+    .filter(l => l.startsWith('http://') || l.startsWith('https://'));
+}
+
+function getRepoPath(url: string): string {
+  try {
+    const pathname = new URL(url).pathname;
+    const parts = pathname.split('/').filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[0]}/${parts[1]}`;
+    }
+    return parts[parts.length - 1] || url;
+  } catch {
+    return url;
+  }
+}
+
 
 type Props = {
   project: Project;
@@ -53,27 +80,58 @@ export default function Info({ project }: Props) {
         ))}
       </div>
       
-      <div className="flex gap-4">
-        {project.demo_link && (
-          <Link href={project.demo_link} target="_blank">
-            <Button
-              variant="secondary"
-              className="flex-1 md:flex-none bg-red-500 hover:bg-red-500 text-zinc-50"
-            >
-              Live Demo
-            </Button>
-          </Link>
-        )}
-        {project.github_repository && (
-          <Link href={project.github_repository} target="_blank">
-            <Button
-              variant="secondary"
-              className="flex-1 md:flex-none bg-zinc-900 hover:bg-zinc-900 dark:bg-zinc-50 hover:dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900"
-            >
-              Source Code
-            </Button>
-          </Link>
-        )}
+      <div className="flex flex-wrap gap-4">
+        {project.demo_link && (() => {
+          const firstLink = parseLinks(project.demo_link)[0];
+          return firstLink ? (
+            <Link href={firstLink} target="_blank">
+              <Button
+                variant="secondary"
+                className="flex-1 md:flex-none bg-red-500 hover:bg-red-500 text-zinc-50"
+              >
+                Live Demo
+              </Button>
+            </Link>
+          ) : null;
+        })()}
+        {project.github_repository && (() => {
+          const repos = parseLinks(project.github_repository);
+          if (repos.length === 0) return null;
+
+          // If single repo, show simple button
+          if (repos.length === 1) {
+            return (
+              <Link href={repos[0]} target="_blank">
+                <Button
+                  variant="secondary"
+                  className="flex-1 md:flex-none bg-zinc-900 hover:bg-zinc-900 dark:bg-zinc-50 hover:dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900"
+                >
+                  Source Code
+                </Button>
+              </Link>
+            );
+          }
+
+          // Multiple repos - show each with friendly label and tooltip
+          return repos.map((repo, index) => (
+            <Tooltip key={index}>
+              <TooltipTrigger asChild>
+                <Link href={repo} target="_blank">
+                  <Button
+                    variant="secondary"
+                    className="flex-1 md:flex-none bg-zinc-900 hover:bg-zinc-900 dark:bg-zinc-50 hover:dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900 gap-2"
+                  >
+                    <Code2 className="w-4 h-4" />
+                    Repo {index + 1}
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{getRepoPath(repo)}</p>
+              </TooltipContent>
+            </Tooltip>
+          ));
+        })()}
       </div>
     </div>
   );
