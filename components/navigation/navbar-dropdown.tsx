@@ -48,9 +48,9 @@ export function NavbarDropdown() {
     },
     {
       title: 'Documentation',
-      href: '/docs/dapps',
+      href: '/docs/primary-network',
       items: [
-        { text: 'Build Apps', href: '/docs/dapps' },
+        { text: 'Primary Network', href: '/docs/primary-network' },
         { text: 'Avalanche L1s', href: '/docs/avalanche-l1s' },
         { text: 'Nodes & Validators', href: '/docs/nodes' },
         { text: 'Interoperability', href: '/docs/cross-chain' },

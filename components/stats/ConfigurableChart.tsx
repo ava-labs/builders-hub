@@ -305,8 +305,8 @@ export default function ConfigurableChart({
     setLoadingMetrics((prev) => new Set(prev).add(cacheKey));
 
     try {
-      // Build query string with timestamps if available
-      let queryString = 'timeRange=all';
+      // Build query string with timestamps if available and the specific metric
+      let queryString = `timeRange=all&metrics=${metricKey}`;
       if (startTimestamp !== undefined && endTimestamp !== undefined) {
         queryString += `&startTimestamp=${startTimestamp}&endTimestamp=${endTimestamp}`;
       }
@@ -643,8 +643,10 @@ export default function ConfigurableChart({
     const metric = AVAILABLE_METRICS.find((m) => m.id === selectedMetric);
     if (!metric) return;
 
-    const chain = l1ChainsData.find((c) => c.chainId === chainId);
-    const chainColor = chain?.color || DEFAULT_COLORS[0];
+    // Special handling for "All Chains" option
+    const isAllChains = chainId === "all";
+    const chain = isAllChains ? null : l1ChainsData.find((c) => c.chainId === chainId);
+    const chainColor = isAllChains ? "#E84142" : (chain?.color || DEFAULT_COLORS[0]);
 
     const seriesId = `${chainId}-${selectedMetric}`;
     const existingSeries = dataSeries.find((s) => s.id === seriesId);
@@ -708,9 +710,21 @@ export default function ConfigurableChart({
     m.name.toLowerCase().includes(metricSearchTerm.toLowerCase())
   );
 
-  const filteredChains = l1ChainsData.filter((chain) =>
-    chain.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase())
-  );
+  // Special "All Chains" option for aggregated metrics
+  const ALL_CHAINS_OPTION = {
+    chainId: "all",
+    chainName: "All Chains",
+    chainLogoURI: "",
+    color: "#E84142", // Avalanche red
+  };
+
+  const filteredChains = [
+    // Include "All Chains" at the top if it matches the search
+    ...(ALL_CHAINS_OPTION.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase()) ? [ALL_CHAINS_OPTION] : []),
+    ...l1ChainsData.filter((chain) => chain.isTestnet !== true &&
+      chain.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase())
+    ),
+  ];
 
   const getThemedLogoUrl = (logoUrl: string): string => {
     if (!isMounted || !logoUrl) return logoUrl;
@@ -918,22 +932,23 @@ export default function ConfigurableChart({
     <Card className="border-gray-200 dark:border-gray-700 py-2" ref={chartContainerRef}>
       <CardContent className="p-0">
         {/* Header Controls */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 space-y-4">
+        <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 space-y-3 sm:space-y-4">
           {/* Data Series Legends */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {dataSeries.map((series) => {
               const index = dataSeries.findIndex(s => s.id === series.id);
               const isLoading = loadingMetrics.has(series.id);
               const chain = l1ChainsData.find((c) => c.chainId === series.chainId);
               const isDragging = draggedIndex === index;
               const isDragOver = dragOverIndex === index;
+              const canDrag = !disableControls && dataSeries.length > 1;
               
               return (
                 <div
                   key={series.id}
-                  draggable={!disableControls}
+                  draggable={canDrag}
                   onDragStart={(e) => {
-                    if (disableControls) {
+                    if (!canDrag) {
                       e.preventDefault();
                       return;
                     }
@@ -1010,8 +1025,8 @@ export default function ConfigurableChart({
                     setDraggedIndex(null);
                     setDragOverIndex(null);
                   }}
-                  className={`group flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-neutral-900 border transition-all ${
-                    disableControls
+                  className={`group flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-white dark:bg-neutral-900 border transition-all ${
+                    disableControls || !canDrag
                       ? "cursor-default border-gray-200 dark:border-neutral-800"
                       : isDragging 
                         ? "opacity-50 cursor-grabbing border-gray-300 dark:border-neutral-700 shadow-lg scale-95" 
@@ -1020,7 +1035,8 @@ export default function ConfigurableChart({
                     isDragOver ? "border-blue-500 dark:border-blue-400 shadow-md ring-2 ring-blue-500/20 dark:ring-blue-400/20" : ""
                   } ${!series.visible ? "opacity-60" : ""}`}
                 >
-                  {!disableControls && (
+                  {/* Only show grip icon when there are multiple series to reorder */}
+                  {canDrag && (
                     <div
                       onMouseDown={(e) => {
                         // Make the grip icon area draggable
@@ -1029,7 +1045,7 @@ export default function ConfigurableChart({
                           div.draggable = true;
                         }
                       }}
-                      className="cursor-grab active:cursor-grabbing text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 transition-colors"
+                      className="cursor-grab active:cursor-grabbing text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 transition-colors hidden sm:block"
                     >
                       <GripVertical className="h-4 w-4 flex-shrink-0" />
                     </div>
@@ -1052,7 +1068,7 @@ export default function ConfigurableChart({
                         }, 0);
                       }
                     }}
-                    className={`flex items-center gap-2.5 transition-opacity flex-1 min-w-0 ${disableControls ? "cursor-default" : "hover:opacity-80"}`}
+                    className={`flex items-center gap-1.5 sm:gap-2.5 transition-opacity flex-1 min-w-0 ${disableControls ? "cursor-default" : "hover:opacity-80"}`}
                     disabled={isLoading || disableControls}
                     title={series.visible ? "Hide from chart" : "Show in chart"}
                   >
@@ -1060,8 +1076,12 @@ export default function ConfigurableChart({
                       <Loader2 className="h-4 w-4 animate-spin text-gray-400 flex-shrink-0" />
                     ) : (
                       <>
-                        {chain?.chainLogoURI && (
-                          <div className="relative h-5 w-5 flex-shrink-0 rounded-full overflow-hidden ring-1 ring-gray-200 dark:ring-neutral-700">
+                        {series.chainId === "all" ? (
+                          <div className="relative h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 flex items-center justify-center">
+                            <AvalancheLogo className="h-4 w-4 sm:h-5 sm:w-5" fill="#E84142" />
+                          </div>
+                        ) : chain?.chainLogoURI && (
+                          <div className="relative h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 rounded-full overflow-hidden ring-1 ring-gray-200 dark:ring-neutral-700">
                             <Image
                               src={getThemedLogoUrl(chain.chainLogoURI)}
                               alt={`${series.chainName} logo`}
@@ -1074,23 +1094,29 @@ export default function ConfigurableChart({
                             />
                           </div>
                         )}
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                          {series.name}
+                        {/* On mobile: show only metric name (chain icon is enough). On desktop: show full name */}
+                        <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 truncate max-w-[100px] sm:max-w-[150px] md:max-w-none">
+                          <span className="sm:hidden">
+                            {AVAILABLE_METRICS.find(m => m.id === series.metricKey)?.name || series.name}
+                          </span>
+                          <span className="hidden sm:inline">
+                            {series.name}
+                          </span>
                         </span>
                       </>
                     )}
                     {!disableControls && (
                       <>
                         {series.visible ? (
-                          <Eye className="h-4 w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                          <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
                         ) : (
-                          <EyeOff className="h-4 w-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                          <EyeOff className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
                         )}
                       </>
                     )}
                   </button>
                   {series.visible && !isLoading && !disableControls && (
-                    <div className="flex items-center gap-1.5 ml-1 border-l border-gray-200 dark:border-neutral-700 pl-2">
+                    <div className="flex items-center gap-1 sm:gap-1.5 ml-0.5 sm:ml-1 border-l border-gray-200 dark:border-neutral-700 pl-1.5 sm:pl-2">
                       <select
                         value={series.chartStyle}
                         onChange={(e) =>
@@ -1100,7 +1126,7 @@ export default function ConfigurableChart({
                             e.target.value
                           )
                         }
-                        className="text-xs px-2 py-1 rounded-md border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-gray-400 dark:focus:ring-neutral-500 transition-colors"
+                        className="text-[10px] sm:text-xs px-1 sm:px-2 py-0.5 sm:py-1 rounded-md border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-gray-400 dark:focus:ring-neutral-500 transition-colors"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <option value="line">Line</option>
@@ -1116,7 +1142,7 @@ export default function ConfigurableChart({
                             e.target.value
                           )
                         }
-                        className="text-xs px-2 py-1 rounded-md border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-gray-400 dark:focus:ring-neutral-500 transition-colors"
+                        className="text-[10px] sm:text-xs px-1 sm:px-2 py-0.5 sm:py-1 rounded-md border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-gray-400 dark:focus:ring-neutral-500 transition-colors"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <option value="left">Y1</option>
@@ -1133,7 +1159,7 @@ export default function ConfigurableChart({
                               e.target.value
                             )
                           }
-                          className="w-7 h-7 rounded border border-gray-200 dark:border-neutral-700 cursor-pointer hover:border-gray-300 dark:hover:border-neutral-600 transition-colors appearance-none p-0 overflow-hidden"
+                          className="w-5 h-5 sm:w-7 sm:h-7 rounded border border-gray-200 dark:border-neutral-700 cursor-pointer hover:border-gray-300 dark:hover:border-neutral-600 transition-colors appearance-none p-0 overflow-hidden"
                           style={{
                             backgroundColor: series.color,
                           }}
@@ -1148,10 +1174,10 @@ export default function ConfigurableChart({
                         e.stopPropagation();
                         removeSeries(series.id);
                       }}
-                      className="ml-1 p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors flex-shrink-0"
+                      className="ml-0.5 sm:ml-1 p-0.5 sm:p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors flex-shrink-0"
                       title="Remove series"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     </button>
                   )}
                 </div>
@@ -1269,36 +1295,47 @@ export default function ConfigurableChart({
                       </div>
                     </div>
                     <div className="max-h-64 overflow-y-auto">
-                      {filteredChains.map((chain) => {
+                      {filteredChains.map((chain, index) => {
                         const seriesId = `${chain.chainId}-${selectedMetric}`;
                         const isAdded = dataSeries.some((s) => s.id === seriesId);
+                        const isAllChains = chain.chainId === "all";
+                        const isLastAllChains = isAllChains && index < filteredChains.length - 1 && filteredChains[index + 1].chainId !== "all";
+                        
                         return (
-                          <button
-                            key={chain.chainId}
-                            onClick={() =>
-                              handleChainSelect(chain.chainId, chain.chainName)
-                            }
-                            className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2 text-sm"
-                          >
-                            {chain.chainLogoURI && (
-                              <div className="relative h-5 w-5 flex-shrink-0">
-                                <Image
-                                  src={getThemedLogoUrl(chain.chainLogoURI)}
-                                  alt={`${chain.chainName} logo`}
-                                  width={20}
-                                  height={20}
-                                  className="rounded-full object-cover"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = "none";
-                                  }}
-                                />
-                              </div>
+                          <div key={chain.chainId}>
+                            <button
+                              onClick={() =>
+                                handleChainSelect(chain.chainId, chain.chainName)
+                              }
+                              className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2 text-sm"
+                            >
+                              {isAllChains ? (
+                                <div className="relative h-5 w-5 flex-shrink-0 flex items-center justify-center">
+                                  <AvalancheLogo className="h-5 w-5" fill="#E84142" />
+                                </div>
+                              ) : chain.chainLogoURI ? (
+                                <div className="relative h-5 w-5 flex-shrink-0">
+                                  <Image
+                                    src={getThemedLogoUrl(chain.chainLogoURI)}
+                                    alt={`${chain.chainName} logo`}
+                                    width={20}
+                                    height={20}
+                                    className="rounded-full object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = "none";
+                                    }}
+                                  />
+                                </div>
+                              ) : null}
+                              <span className="flex-1">{chain.chainName}</span>
+                              {isAdded && (
+                                <Eye className="h-4 w-4 text-gray-400" />
+                              )}
+                            </button>
+                            {isLastAllChains && (
+                              <hr className="border-t border-gray-200 dark:border-gray-700" />
                             )}
-                            <span className="flex-1">{chain.chainName}</span>
-                            {isAdded && (
-                              <Eye className="h-4 w-4 text-gray-400" />
-                            )}
-                          </button>
+                          </div>
                         );
                       })}
                     </div>

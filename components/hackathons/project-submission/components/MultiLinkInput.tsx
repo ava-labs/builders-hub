@@ -68,7 +68,7 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
     } catch (error) {
       form.setError(name, {
         type: 'manual',
-        message: 'Please enter a valid URL'
+        message: 'Please enter a valid URL (e.g., https://github.com/user/repo)'
       });
     }
   };

@@ -11,7 +11,7 @@ This [state transition diagram](https://github.com/ava-labs/icm-contracts/blob/m
 
 ### (PoS only) Register a Delegator
 
-`PoSValidatorManager` supports Delegation to an active Validator as a way for users to earn staking rewards without having to validate the chain. Delegators pay a configurable percentage fee on any earned staking rewards to the host Validator. A Delegator may be registered by calling `initializeDelegatorRegistration` and providing an amount to stake. The Delegator will be registered as long as churn restrictions are not violated. The Delegator is reflected on the P-Chain by adjusting the Validator's registered weight via a [`SetSubnetValidatorWeightTx`](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets#setsubnetvalidatorweighttx). The weight change acknowledgement is delivered to the `PoSValidatorManager` via a [`SubnetValidatorWeightMessage`](https://github.com/ava-labs/icm-contracts/blob/prorated-rewards-v2/contracts/validator-manager/MessageSpec.md#SubnetValidatorWeightMessage), which is provided by calling `completeDelegatorRegistration`.
+`PoSValidatorManager` supports Delegation to an active Validator as a way for users to earn staking rewards without having to validate the chain. Delegators pay a configurable percentage fee on any earned staking rewards to the host Validator. A Delegator may be registered by calling `initializeDelegatorRegistration` and providing an amount to stake. The Delegator will be registered as long as churn restrictions are not violated. The Delegator is reflected on the P-Chain by adjusting the Validator's registered weight via a [`SetSubnetValidatorWeightTx`](/docs/acps/77-reinventing-subnets#setl1validatorweighttx). The weight change acknowledgement is delivered to the `PoSValidatorManager` via a [`SubnetValidatorWeightMessage`](https://github.com/ava-labs/icm-contracts/blob/prorated-rewards-v2/contracts/validator-manager/MessageSpec.md#SubnetValidatorWeightMessage), which is provided by calling `completeDelegatorRegistration`.
 
 > The P-Chain is only willing to sign a `SubnetValidatorWeightUpdateMessage` for an active Validator. Once Validator exit has been initiated (via a call to `initializeEndValidation`), the `PoSValidatorManager` must assume that the Validator has been deactivated on the P-Chain, and will therefore not sign any further weight updates. Therefore, it is invalid to _initiate_ adding or removing a Delegator when the Validator is in this state, though it _may be_ valid to _complete_ an already initiated Delegator action, depending on the order of delivery to the P-Chain. If the Delegator weight change was submitted (and a Warp signature on the acknowledgement retrieved) before the Validator was removed, then the Delegator action may be completed. Otherwise, the acknowledgement of the Validation end must first be delivered before completing the Delegator action. 
 
@@ -50,7 +50,7 @@ cast keccak "SendWarpMessage(address,bytes32,bytes)"
 
 To find a specific warp messageID, one must know the block number or block hash to retrieve the logs, or be monitoring all events, looking for and indexing messages. 
 
-When a block is [accepted](https://github.com/ava-labs/coreth/blob/7242ae2d235593d2bb14e2496b6ed102aab14c3d/precompile/contracts/warp/config.go#L130) by the network, a precompile hook is called, and the EVM saves the warp message to a local database. The validator node will then be willing to sign any messages in that database upon request, typically via an `AppRequest` message over the p2p network.
+When a block is [accepted](https://github.com/ava-labs/avalanchego/blob/master/graft/coreth/precompile/contracts/warp/config.go#L133) by the network, a precompile hook is called, and the EVM saves the warp message to a local database. The validator node will then be willing to sign any messages in that database upon request, typically via an `AppRequest` message over the p2p network.
 
 ### Receiving Warp Messages
 
@@ -58,7 +58,7 @@ On the EVM, any smart contract can call the precompile
 
 which returns the warp message and verifies the attached signature. But what is `index`? Where does it get the warp message from?  The answer is, you!  When you send a tx to any contract that eventually calls `getVerifiedWarpMessage`, you **must** pass in the signed warp message as a “predicate”.  It’s called an AccessList, and typically this is an optional field that can be used by the EVM to pre-fetch storage slots that will be accessed, for efficiency and reducing gas costs. But Warp cleverly (ab)uses this feature of the EVM to verify the signature of the warp message, and then make the warp message available during the transactions lifetime, by calling `getVerifiedWarpMessage`. You can pass multiple warp messages which is where the `index` comes in.  (All of this is abstracted away by ICM for EVM to EVM comms)
 
-Details: [Warp README](https://github.com/ava-labs/coreth/blob/7242ae2d235593d2bb14e2496b6ed102aab14c3d/precompile/contracts/warp/README.md)
+Details: [Warp README](https://github.com/ava-labs/avalanchego/blob/master/graft/coreth/precompile/contracts/warp/README.md)
 
 ### Interchain Messaging Contracts (ICM)
 

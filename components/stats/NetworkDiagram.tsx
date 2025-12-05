@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useTheme } from 'next-themes';
+import { Info } from 'lucide-react';
 import l1ChainsData from '@/constants/l1-chains.json';
 
 export interface ChainCosmosData {
@@ -29,6 +30,7 @@ export interface ICMFlowRoute {
 interface NetworkDiagramProps {
   data: ChainCosmosData[];
   icmFlows?: ICMFlowRoute[];
+  failedChainIds?: string[];
   onChainHover?: (chain: ChainCosmosData | null) => void;
 }
 
@@ -140,6 +142,7 @@ function getPointOnLine(t: number, x0: number, y0: number, x1: number, y1: numbe
 export default function NetworkDiagram({
   data,
   icmFlows = [],
+  failedChainIds = [],
   onChainHover,
 }: NetworkDiagramProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1511,7 +1514,18 @@ export default function NetworkDiagram({
                   <p className="text-[10px] text-white/50">Daily Tx</p>
                 </div>
                 <div className="bg-white/5 rounded-lg p-2 text-center">
+                  {displayChain.chainId && failedChainIds.includes(displayChain.chainId) ? (
+                    <div className="relative group/icm inline-flex justify-center">
+                      <span className="text-amber-400 cursor-pointer">
+                        <Info className="w-5 h-5" />
+                      </span>
+                      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-1 px-2 py-1 bg-black border border-amber-400/50 text-amber-300 text-[10px] rounded whitespace-nowrap opacity-0 group-hover/icm:opacity-100 transition-opacity z-[100] pointer-events-none">
+                        Data unavailable
+                      </span>
+                    </div>
+                  ) : (
                   <p className="text-lg font-bold text-cyan-400">{formatNum(displayChain.icmMessages)}</p>
+                  )}
                   <p className="text-[10px] text-white/50">Daily ICM</p>
                 </div>
               </div>
@@ -1527,7 +1541,18 @@ export default function NetworkDiagram({
                   <p className="text-[10px] text-white/50">Avg TPS</p>
                 </div>
                 <div className="bg-white/5 rounded-lg p-2 text-center">
+                  {displayChain.chainId && failedChainIds.includes(displayChain.chainId) ? (
+                    <div className="relative group/routes inline-flex justify-center">
+                      <span className="text-amber-400 cursor-pointer">
+                        <Info className="w-5 h-5" />
+                      </span>
+                      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-1 px-2 py-1 bg-black border border-amber-400/50 text-amber-300 text-[10px] rounded whitespace-nowrap opacity-0 group-hover/routes:opacity-100 transition-opacity z-[100] pointer-events-none">
+                        Data unavailable
+                      </span>
+                    </div>
+                  ) : (
                   <p className="text-lg font-bold text-amber-400">{formatNum(totalOutgoing + totalIncoming)}</p>
+                  )}
                   <p className="text-[10px] text-white/50">ICM Routes</p>
                 </div>
               </div>
@@ -1580,9 +1605,11 @@ export default function NetworkDiagram({
               )}
               
               {/* No ICM data */}
-              {outgoingRoutes.length === 0 && incomingRoutes.length === 0 && icmFlows.length > 0 && (
+              {outgoingRoutes.length === 0 && incomingRoutes.length === 0 && (
                 <p className="text-xs text-white/40 text-center pt-2 border-t border-white/10">
-                  No ICM routes for this chain
+                  {displayChain.chainId && failedChainIds.includes(displayChain.chainId) 
+                    ? 'ICM data unavailable for this chain'
+                    : 'No ICM routes for this chain'}
                 </p>
               )}
               
