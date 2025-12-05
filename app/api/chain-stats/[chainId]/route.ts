@@ -249,7 +249,6 @@ async function fetchFreshDataInternal(
   isSpecificMetricsMode: boolean = false
 ): Promise<ChainMetrics | null> {
   try {
-    const startTime = Date.now();
     const config = STATS_CONFIG.TIME_RANGES[timeRange as keyof typeof STATS_CONFIG.TIME_RANGES] || STATS_CONFIG.TIME_RANGES['30d'];
     const { pageSize, fetchAllPages } = config;
     
