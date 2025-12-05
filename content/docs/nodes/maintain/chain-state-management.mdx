@@ -43,6 +43,27 @@ Even if you start with just the active state, your node's disk usage will grow o
 
 This means a node that started with 500 GB via state sync might grow to 1 TB+ over months of operation, even though the "current" active state is still ~500 GB.
 
+### State Growth Visualization
+
+<StateGrowthChart />
+
+**Understanding the Chart:**
+
+- **Total State** (solid red line): Grows faster over time as historical state data accumulates
+  - Includes both current state and all historical intermediate trie nodes
+  - Always larger than active state due to storage overhead
+
+- **Active State** (solid blue line): Grows at a slower, steady rate
+  - Represents only the current blockchain state needed for validation
+
+- **Total State After Pruning / Resync** (dotted red line): Shows state growth after performing maintenance
+  - Starts fresh from active state level after pruning or resync
+  - Continues to grow at the same rate as total state
+
+- **Resync/Offline Pruning** (vertical grey dotted line): The maintenance operation that reduces disk usage
+  - Removes accumulated historical data
+  - Brings total state back down close to active state level
+
 <Callout title="Future Improvement: Firewood">
 [Firewood](https://github.com/ava-labs/firewood) is an upcoming database upgrade that will address the issue of total state growing too large. This next-generation storage layer is designed to efficiently manage state growth and reduce disk space requirements for node operators.
 </Callout>
