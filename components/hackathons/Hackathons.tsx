@@ -76,7 +76,6 @@ export default function Hackathons({
   const isHackathonCreator = session?.user?.custom_attributes.includes("hackathonCreator") || session?.user?.custom_attributes.includes("team1-admin");
   
   const router = useRouter();
-  const pageSize = 4;
 
   const [pastHackathons, setPastHackathons] = useState<HackathonHeader[]>(
     initialPastHackathons
@@ -90,6 +89,7 @@ export default function Hackathons({
 
   const [filters, setFilters] = useState<HackathonsFilters>(initialFilters);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [pageSize, setPageSize] = useState<number>(filters.recordsByPage ?? 4);
   const [totalPages, setTotalPages] = useState<number>(
     Math.ceil(totalPastHackathons / pageSize)
   );
@@ -346,7 +346,7 @@ export default function Hackathons({
                 length: totalPages > 7 ? 7 : totalPages,
               },
               (_, i) =>
-                currentPage +
+                1 +
                 i -
                 (currentPage > 3
                   ? totalPages - currentPage > 3
@@ -386,7 +386,7 @@ export default function Hackathons({
               onValueChange={(value: string) =>
                 handleFilterChange("recordsByPage", value)
               }
-              value={String(filters.recordsByPage ?? 4)}
+              value={String(pageSize) ?? 4}
             >
               <SelectTrigger className="border border-zinc-300 dark:border-zinc-800">
                 <SelectValue placeholder="Select track" />
