@@ -27,6 +27,7 @@ import {
 import OverviewBanner from "./hackathon/sections/OverviewBanner";
 import Link from "next/link";
 import Image from "next/image";
+import DiscoveryCard from "./DiscoveryCard";
 
 
 function buildQueryString(
@@ -216,6 +217,35 @@ export default function Hackathons({
           </div>
           </div>
         )}
+
+        {/* Discovery Section */}
+        <div className={`${topMostHackathon ? "mt-12" : "mt-0"} mb-12`}>
+          <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mb-4">
+            Discover More
+          </h2>
+          <Separator className="mb-6 bg-zinc-300 dark:bg-zinc-800" />
+          <div className="grid md:grid-cols-3 gap-6">
+            <DiscoveryCard
+              title="Avalanche Calendar"
+              description="Explore upcoming Avalanche events, meetups, and community gatherings. Stay connected with the latest happenings in the ecosystem."
+              image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/Avalanche-Event-TnQovuFzkt8CGHyF0wfiSYTrGVtuPU.jpg"
+              url="https://lu.ma/calendar/cal-Igl2DB6quhzn7Z4"
+            />
+            <DiscoveryCard
+              title="Community Events"
+              description="Check out and join the global meetups, workshops and events organized by Avalanche Team1"
+              image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg"
+              url="https://lu.ma/Team1?utm_source=builder_hub"
+            />
+            <DiscoveryCard
+              title="Campus Connect"
+              description="Discover opportunities for students and educators to explore blockchain technology and join our community of builders."
+              image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/University-Slideshow/729e397093550313627a7a1717249ef2%20%282%29.jpg"
+              url="/university"
+            />
+          </div>
+        </div>
+
         {isHackathonCreator && <><button
           className={`flex items-center gap-2 font-medium text-3xl text-zinc-900 dark:text-zinc-50 ${topMostHackathon ? "mt-12" : ""} px-4 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 hover:bg-red-500 hover:text-white transition-colors duration-200 cursor-pointer`}
           onClick={addNewHackathon}
