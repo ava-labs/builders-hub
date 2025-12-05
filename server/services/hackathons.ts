@@ -254,64 +254,6 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
   const hackathons = await Promise.all(hackathonList.map(getHackathonLite));
   let hackathonsLite = hackathons;
 
-  if (options.status) {
-    switch (options.status) {
-      case "ENDED":
-        hackathonsLite = hackathons.filter(
-          (hackathon) => new Date(hackathon.end_date).getTime() < Date.now()
-        );
-        break;
-      case "ONGOING":
-        hackathonsLite = hackathons.filter(
-          (hackathon) =>
-            new Date(hackathon.start_date).getTime() <= Date.now() &&
-            new Date(hackathon.end_date).getTime() >= Date.now()
-        );
-        break;
-      case "UPCOMING":
-        hackathonsLite = hackathons.filter(
-          (hackathon) => new Date(hackathon.start_date).getTime() > Date.now()
-        );
-        break;
-    }
-  }
-
-  // If status is filtered, we need to count all matching hackathons, not just the page
-  let totalHackathons;
-  if (options.status) {
-    // Fetch all hackathons matching the filters to count by status
-    const allHackathons = await prisma.hackathon.findMany({
-      where: filters,
-    });
-    const allHackathonsLite = await Promise.all(allHackathons.map(getHackathonLite));
-    let filteredByStatus: any[] = [];
-    
-    switch (options.status) {
-      case "ENDED":
-        filteredByStatus = allHackathonsLite.filter(
-          (hackathon) => new Date(hackathon.end_date).getTime() < Date.now()
-        );
-        break;
-      case "ONGOING":
-        filteredByStatus = allHackathonsLite.filter(
-          (hackathon) =>
-            new Date(hackathon.start_date).getTime() <= Date.now() &&
-            new Date(hackathon.end_date).getTime() >= Date.now()
-        );
-        break;
-      case "UPCOMING":
-        filteredByStatus = allHackathonsLite.filter(
-          (hackathon) => new Date(hackathon.start_date).getTime() > Date.now()
-        );
-        break;
-    }
-    totalHackathons = filteredByStatus.length;
-  } else {
-    totalHackathons = await prisma.hackathon.count({
-      where: filters,
-    });
-  }
-
   return {
     hackathons: hackathonsLite.map(
       (hackathon) =>
@@ -323,7 +265,7 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
           ),
         } as HackathonHeader)
     ),
-    total: totalHackathons,
+    total: hackathonsLite.length,
     page,
     pageSize,
   };
