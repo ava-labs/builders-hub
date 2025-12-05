@@ -57,23 +57,23 @@ export const avalancheLearningPaths: CourseNode[] = [
     },
     // Third Layer - Advanced topics
     {
-        id: "interchain-token-transfer",
-        name: "Interchain Token Transfer",
-        description: "Transfer assets between chains using Interchain Messaging",
-        slug: "avalanche-l1/interchain-token-transfer",
-        category: "Interoperability",
-        dependencies: ["interchain-messaging"],
-        position: { x: 82.5, y: 500 },
-        mobileOrder: 4
-    },
-    {
-        id: "erc20-to-erc20-bridge",
-        name: "ERC20 to ERC20 Bridge",
+        id: "erc20-bridge",
+        name: "ERC20 Bridge",
         description: "Bridge ERC20 tokens between chains using Interchain Token Transfer",
         slug: "avalanche-l1/erc20-bridge",
         category: "Interoperability",
-        dependencies: ["interchain-messaging", "l1-native-tokenomics"],
-        position: { x: 52.5, y: 500 },
+        dependencies: ["interchain-messaging"],
+        position: { x: 62.5, y: 450 },
+        mobileOrder: 4
+    },
+    {
+        id: "native-token-bridge",
+        name: "Native Token Bridge",
+        description: "Bridge native tokens between chains using Interchain Token Transfer",
+        slug: "avalanche-l1/native-token-bridge",
+        category: "Interoperability",
+        dependencies: ["erc20-bridge", "l1-native-tokenomics"],
+        position: { x: 50, y: 650 },
         mobileOrder: 5
     },
     {

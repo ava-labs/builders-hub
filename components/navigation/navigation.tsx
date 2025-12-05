@@ -141,10 +141,10 @@ export function AcademyDropdown() {
       url: "https://academy.avax.network/course/interchain-messaging",
     },
     {
-      title: "Interchain Token Transfer",
-      description: "Transfer assets between Avalanche blockchains.",
+      title: "ERC20 Bridge",
+      description: "Bridge ERC-20 tokens between Avalanche L1s.",
       icon: <ArrowLeftRight className="w-5 h-5" />,
-      url: "https://academy.avax.network/course/interchain-token-transfer",
+      url: "https://academy.avax.network/course/erc20-bridge",
     },
     {
       title: "Customizing the EVM",
