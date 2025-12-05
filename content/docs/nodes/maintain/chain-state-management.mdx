@@ -43,11 +43,31 @@ Even if you start with just the active state, your node's disk usage will grow o
 
 This means a node that started with 500 GB via state sync might grow to 1 TB+ over months of operation, even though the "current" active state is still ~500 GB.
 
+<Callout title="Future Improvement: Firewood">
+[Firewood](https://github.com/ava-labs/firewood) is an upcoming database upgrade that will address the issue of total state growing too large. This next-generation storage layer is designed to efficiently manage state growth and reduce disk space requirements for node operators.
+</Callout>
+
 ## Managing Disk Usage
 
 ### Option 1: State Sync (Re-sync)
 
-The simplest way to reclaim disk space is to delete your node's data and re-sync using state sync. This downloads only the current active state.
+The simplest way to reclaim disk space is to delete your node's data and re-sync using state sync. Instead of replaying the entire blockchain history to reconstruct the current state, state sync allows nodes to download only the current state directly from network peers. This shortens the bootstrap process from multiple days to just a couple of hours.
+
+State sync is ideal for:
+- Validator nodes that don't need full transaction history
+- RPC nodes focused on current state queries
+- Any node where historical data queries are not required
+
+<Callout>
+State sync is available for the C-Chain and Avalanche L1s, but not for P-Chain or X-Chain. Since the bulk of transactions and state growth occur on the C-Chain, state sync still provides significant benefits for bootstrap time and disk usage management.
+</Callout>
+
+#### Configuring State Sync
+
+State sync is enabled by default for the C-Chain. For Avalanche L1s, you can configure it per-chain:
+
+- **C-Chain configuration**: See [C-Chain Config](/docs/nodes/chain-configs/primary-network/c-chain#state-sync-enabled)
+- **Avalanche L1 configuration**: See [Subnet-EVM Config](/docs/nodes/chain-configs/avalanche-l1s/subnet-evm#state-sync-enabled)
 
 ```bash
 # Stop your node first
@@ -65,6 +85,7 @@ sudo systemctl start avalanchego
 | Simple, no configuration needed | Several hours of downtime |
 | Guarantees minimal disk usage | Loses any local transaction index |
 | Fresh database with no fragmentation | Must re-sync from scratch |
+| Fast bootstrap (hours vs days) | Not available for P-Chain or X-Chain |
 
 <Callout title="Zero-Downtime Re-sync for Validators">
 To avoid validator downtime, spin up a fresh node and let it state sync completely. Once synced, stop both nodes, copy the `~/.avalanchego/staking/` folder from your current validator to the new node, then start the new node. Your validator identity (staking keys) transfers instantly with no missed uptime.
@@ -105,11 +126,25 @@ df -h /
 
 Consider setting up alerts when disk usage exceeds 80% to give yourself time to plan maintenance.
 
+## P-Chain and X-Chain State
+
+The P-Chain and X-Chain have significantly smaller state footprints compared to the C-Chain:
+
+- **P-Chain**: Stores validator metadata, Avalanche L1 definitions, and staking transactions. State size is typically < 10 GB and grows very slowly.
+- **X-Chain**: Handles AVAX transfers using the UTXO model. State size is typically < 50 GB and grows slowly.
+
+**Important limitations:**
+- State sync is **not available** for P-Chain or X-Chain
+- These chains always sync from genesis by replaying all transactions
+- Bootstrap time is faster than C-Chain despite no state sync due to much smaller state size (typically < 1 hour)
+- Disk space management is rarely needed for these chains
+
 ## L1-Specific Considerations
 
 For Avalanche L1s running Subnet-EVM:
 
 - **State size scales with usage**: High-throughput chains accumulate state faster
 - **Same pruning tools apply**: Offline pruning works identically to C-Chain
+- **State sync available**: Configure via [Subnet-EVM chain config](/docs/nodes/chain-configs/avalanche-l1s/subnet-evm#state-sync-enabled)
 - **Plan storage accordingly**: Reference the [system requirements](/docs/nodes/system-requirements) for your throughput tier
 
