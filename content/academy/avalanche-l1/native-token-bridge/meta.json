@@ -5,15 +5,16 @@
   "pages": [
     "---Native Token Bridge---",
     "index",
-    "...02-getting-started",
+    "---Getting Started---",
+    "...01-getting-started",
     "---Native to ERC-20 Token Bridge---",
-    "...08-native-to-erc-20-bridge",
+    "...02-native-to-erc-20-bridge",
     "---Send and Call---",
-    "...12-send-and-call",
+    "...03-send-and-call",
     "---Cross-Chain Token Swaps---",
-    "...13-cross-chain-token-swaps",
+    "...04-cross-chain-token-swaps",
     "---Scaling Token Decimals---",
-    "...14-scaling-decimals",
+    "...05-scaling-decimals",
     "---Conclusion---",
     "certificate"
   ]
