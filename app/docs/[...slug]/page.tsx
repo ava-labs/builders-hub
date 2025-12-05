@@ -145,7 +145,7 @@ export default async function Page(props: {
               }
             },
             blockquote: (props: ComponentProps<"blockquote">) => (
-              <Callout {...props} />
+              <Callout>{props.children}</Callout>
             ),
           }}
         />
