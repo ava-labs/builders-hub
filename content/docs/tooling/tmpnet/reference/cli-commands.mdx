@@ -11,7 +11,7 @@ These flags are available for all commands:
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--network-dir` | Path to target network directory | `$TMPNET_NETWORK_DIR` or error |
+| `--network-dir` | Path to an existing network (needed for stop/restart/check) | `$TMPNET_NETWORK_DIR` if set |
 | `--log-format` | Logging format (auto, json) | `auto` |
 | `--help, -h` | Show help | |
 
@@ -30,7 +30,7 @@ tmpnetctl start-network [flags]
 | Flag | Type | Description | Default |
 |------|------|-------------|---------|
 | `--avalanchego-path` | string | Path to avalanchego binary | `$AVALANCHEGO_PATH` (required) |
-| `--plugin-dir` | string | Directory containing VM plugins | `$AVALANCHE_PLUGIN_DIR` or `~/.avalanchego/plugins` |
+| `--plugin-dir` | string | Directory containing VM plugins | `$AVAGO_PLUGIN_DIR` or `~/.avalanchego/plugins` |
 | `--node-count` | int | Number of validator nodes | `5` |
 | `--network-owner` | string | Owner identifier for the network | `tmpnet-owner` |
 | `--root-dir` | string | Root directory for networks | `~/.tmpnet/networks` |
@@ -39,14 +39,14 @@ tmpnetctl start-network [flags]
 
 ```bash
 # Start default 5-node network
-tmpnetctl start-network --avalanchego-path=./build/avalanchego
+tmpnetctl start-network --avalanchego-path=./bin/avalanchego
 
 # Start 3-node network
-tmpnetctl start-network --avalanchego-path=./build/avalanchego --node-count=3
+tmpnetctl start-network --avalanchego-path=./bin/avalanchego --node-count=3
 
 # Custom plugin directory
 tmpnetctl start-network \
-  --avalanchego-path=./build/avalanchego \
+  --avalanchego-path=./bin/avalanchego \
   --plugin-dir=/custom/plugins
 ```
 
@@ -350,7 +350,7 @@ Complete workflow for creating and using a network:
 ./scripts/build_tmpnetctl.sh
 
 # Start network
-./build/tmpnetctl start-network --avalanchego-path=./build/avalanchego
+tmpnetctl start-network --avalanchego-path=./bin/avalanchego
 
 # Configure shell
 export TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest
@@ -358,7 +358,7 @@ export TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest
 # Use the network...
 
 # Stop when done
-./build/tmpnetctl stop-network
+tmpnetctl stop-network
 ```
 
 ### Using with direnv
@@ -396,7 +396,7 @@ tmpnetctl start-metrics-collector
 tmpnetctl start-logs-collector
 
 # Create/destroy networks as needed
-tmpnetctl start-network --avalanchego-path=./build/avalanchego
+tmpnetctl start-network --avalanchego-path=./bin/avalanchego
 # ... test ...
 tmpnetctl stop-network
 
@@ -412,11 +412,11 @@ Manage multiple networks:
 
 ```bash
 # Start first network
-tmpnetctl start-network --avalanchego-path=./build/avalanchego
+tmpnetctl start-network --avalanchego-path=./bin/avalanchego
 NETWORK1=~/.tmpnet/networks/latest
 
 # Start second network
-tmpnetctl start-network --avalanchego-path=./build/avalanchego
+tmpnetctl start-network --avalanchego-path=./bin/avalanchego
 NETWORK2=~/.tmpnet/networks/latest
 
 # Target specific networks
@@ -435,10 +435,10 @@ Add to your `.bashrc` or `.zshrc`:
 export TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest
 
 # Set avalanchego path
-export AVALANCHEGO_PATH=~/avalanchego/build/avalanchego
+export AVALANCHEGO_PATH=~/avalanchego/bin/avalanchego
 
 # Add tmpnetctl to PATH (if not using direnv)
-export PATH=$PATH:~/avalanchego/build
+export PATH=$PATH:~/avalanchego/bin
 ```
 
 ### Monitoring Environment

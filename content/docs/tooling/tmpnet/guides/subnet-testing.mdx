@@ -38,8 +38,8 @@ network := &tmpnet.Network{
     Nodes: tmpnet.NewNodesOrPanic(5),
     DefaultRuntimeConfig: tmpnet.NodeRuntimeConfig{
         Process: &tmpnet.ProcessRuntimeConfig{
-            AvalancheGoPath: "./build/avalanchego",
-            PluginDir:       os.ExpandEnv("$HOME/.avalanchego/plugins"),
+            AvalancheGoPath: os.Getenv("AVALANCHEGO_PATH"),
+            PluginDir:       os.Getenv("AVAGO_PLUGIN_DIR"),
         },
     },
 }
@@ -282,10 +282,16 @@ func testSubnetConfigUpdate(t *testing.T) {
     network := &tmpnet.Network{
         Nodes:   nodes,
         Subnets: []*tmpnet.Subnet{subnet},
+        DefaultRuntimeConfig: tmpnet.NodeRuntimeConfig{
+            Process: &tmpnet.ProcessRuntimeConfig{
+                AvalancheGoPath: avalanchegoPath,
+                PluginDir:       pluginDir,
+            },
+        },
     }
 
     // Bootstrap network
-    tmpnet.BootstrapNewNetwork(ctx, os.Stdout, network, "", avalanchegoPath, pluginDir)
+    require.NoError(t, tmpnet.BootstrapNewNetwork(ctx, os.Stdout, network, ""))
 
     // Test behavior with initial config
     measureBlockTime(t, subnet, 1000)

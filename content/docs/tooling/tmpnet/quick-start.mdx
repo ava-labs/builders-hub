@@ -8,21 +8,25 @@ This guide will help you create, interact with, and manage your first temporary 
 ## Before You Start
 
 Make sure you've completed the [installation](/docs/tooling/tmpnet/installation) and have:
-- Built `avalanchego` and `tmpnetctl` binaries
-- Current directory is the avalanchego repository root
+- Built `avalanchego` and `tmpnetctl`
+- A shell in the avalanchego repo root
+- Either `direnv allow`'d the repo **or** can pass `--avalanchego-path`
 
 ## Start Your First Network
 
 ### Basic Start Command
 
-Start a 2-node network (the minimum for consensus):
+Start a 2-node network (default is 5):
 
 ```bash
 cd /path/to/avalanchego
 
-# Start network with absolute path
-./build/tmpnetctl start-network \
-  --avalanchego-path="$(pwd)/build/avalanchego" \
+# If you enabled direnv (.envrc sets paths)
+tmpnetctl start-network --node-count=2
+
+# Without direnv, pass the avalanchego path explicitly
+./bin/tmpnetctl start-network \
+  --avalanchego-path="$(pwd)/bin/avalanchego" \
   --node-count=2
 ```
 
@@ -69,8 +73,8 @@ export TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest
 The `latest` symlink always points to the most recently created network. Now you can run commands without flags:
 
 ```bash
-./build/tmpnetctl stop-network    # Uses TMPNET_NETWORK_DIR
-./build/tmpnetctl restart-network
+tmpnetctl stop-network    # Uses TMPNET_NETWORK_DIR
+tmpnetctl restart-network
 ```
 
 **Make it permanent** by adding to your shell config:
@@ -250,7 +254,7 @@ cat ~/.tmpnet/networks/latest/NodeID-*/config.json | head -1 | jq
 ### Stop the Network
 
 ```bash
-./build/tmpnetctl stop-network
+tmpnetctl stop-network
 ```
 
 **Output:**
@@ -261,7 +265,7 @@ Stopped network configured at: /Users/you/.tmpnet/networks/latest
 ### Restart the Network
 
 ```bash
-./build/tmpnetctl restart-network
+tmpnetctl restart-network
 ```
 
 This preserves all network data and configuration, restarting with the same genesis and keys.
@@ -270,8 +274,8 @@ This preserves all network data and configuration, restarting with the same gene
 
 ```bash
 # This creates a completely new network with new keys
-./build/tmpnetctl start-network \
-  --avalanchego-path="$(pwd)/build/avalanchego" \
+tmpnetctl start-network \
+  --avalanchego-path="$(pwd)/bin/avalanchego" \
   --node-count=3
 ```
 
@@ -358,11 +362,11 @@ cat ~/.tmpnet/networks/latest/NodeID-*/process.json | jq '{
 Solution:
 ```bash
 # Verify binary exists
-ls -lh ./build/avalanchego
+ls -lh ./bin/avalanchego
 
 # Use absolute path
-./build/tmpnetctl start-network \
-  --avalanchego-path="$(pwd)/build/avalanchego"
+tmpnetctl start-network \
+  --avalanchego-path="$(pwd)/bin/avalanchego"
 ```
 
 **Error: `address already in use`**
@@ -374,7 +378,7 @@ ps aux | grep avalanchego
 
 # Stop existing network
 export TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest
-./build/tmpnetctl stop-network
+tmpnetctl stop-network
 ```
 
 ### Can't Connect to Nodes
@@ -400,10 +404,10 @@ curl http://127.0.0.1:<actual-port>/ext/health
 Solution:
 ```bash
 # Use full path
-./build/tmpnetctl --help
+./bin/tmpnetctl --help
 
 # Or add to PATH
-export PATH=$PATH:$(pwd)/build
+export PATH=$PATH:$(pwd)/bin
 tmpnetctl --help
 
 # Or use direnv
@@ -418,7 +422,7 @@ To remove all networks and start fresh:
 ```bash
 # Stop any running networks
 export TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest
-./build/tmpnetctl stop-network
+tmpnetctl stop-network
 
 # Remove all tmpnet data (optional)
 rm -rf ~/.tmpnet/networks

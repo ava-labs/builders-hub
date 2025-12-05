@@ -57,9 +57,9 @@ Build both AvalancheGo and tmpnetctl:
 ./scripts/build_tmpnetctl.sh
 ```
 
-The binaries will be available in the `build/` directory:
-- `build/avalanchego` - The AvalancheGo node binary
-- `build/tmpnetctl` - The tmpnet CLI tool
+You now have:
+- `build/avalanchego` and `build/tmpnetctl` - compiled binaries
+- `bin/avalanchego` and `bin/tmpnetctl` - thin wrappers that rebuild if needed
 
 ### Step 3: Verify Installation
 
@@ -67,10 +67,10 @@ Test that the binaries work:
 
 ```bash
 # Check AvalancheGo
-./build/avalanchego --version
+./bin/avalanchego --version
 
 # Check tmpnetctl
-./build/tmpnetctl --help
+./bin/tmpnetctl --help
 ```
 
 You should see version information and available commands.
@@ -85,16 +85,16 @@ Contains the compiled binaries:
 - `build/tmpnetctl` - Network management CLI
 - `build/plugins/` - Custom VM plugins
 
-### `bin/` Directory (Convenience Symlinks)
-Contains symlinks to run scripts that automatically rebuild before executing:
+### `bin/` Directory (Convenience Wrappers)
+Symlinks that rebuild when needed, so they're safe defaults while iterating:
 - `bin/avalanchego` → `scripts/run_avalanchego.sh`
 - `bin/tmpnetctl` → `scripts/run_tmpnetctl.sh`
 
-**For tmpnet usage, always use the `build/` directory paths.**
+For most workflows (and in the upstream README), use the `bin/` wrappers or enable the repo's `.envrc` so `tmpnetctl` is on your `PATH`.
 
 ## Optional: Simplified Setup with direnv
 
-[direnv](https://direnv.net/) automatically sets environment variables when you enter the avalanchego directory, making commands simpler.
+[direnv](https://direnv.net/) automatically loads the repo's `.envrc` so tmpnet has the paths it needs.
 
 ### Install and Configure
 
@@ -122,13 +122,16 @@ cd /path/to/avalanchego
 direnv allow
 ```
 
-Now you can use short commands:
+The repo's `.envrc` then:
+- Adds `bin/` to `PATH` so you can run `tmpnetctl` directly
+- Sets `AVALANCHEGO_PATH=$PWD/bin/avalanchego`
+- Sets `AVAGO_PLUGIN_DIR=$PWD/build/plugins` (and creates the dir)
+- Sets `TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest`
+
+Now you can run:
 ```bash
-# Instead of ./build/tmpnetctl start-network --avalanchego-path=$(pwd)/build/avalanchego
 tmpnetctl start-network --node-count=3
 ```
-
-direnv automatically sets `AVALANCHEGO_PATH`, `TMPNET_NETWORK_DIR`, and adds tools to `PATH`.
 
 ## Optional: Monitoring Tools
 
@@ -149,20 +152,22 @@ See the [Monitoring guide](/docs/tooling/tmpnet/guides/monitoring) for setup det
 
 Key environment variables tmpnet uses:
 
-| Variable | Purpose |
-|----------|---------|
-| `TMPNET_NETWORK_DIR` | Target network directory (default: must specify) |
-| `AVALANCHEGO_PATH` | Path to avalanchego binary (required) |
-| `AVAGO_PLUGIN_DIR` | Custom VM plugins directory |
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `AVALANCHEGO_PATH` | Path to avalanchego binary (required unless passed as `--avalanchego-path`) | None |
+| `AVAGO_PLUGIN_DIR` | Plugin directory for custom VMs | `~/.avalanchego/plugins` (or `$PWD/build/plugins` via `.envrc`) |
+| `TMPNET_ROOT_NETWORK_DIR` | Where new networks are created | `~/.tmpnet/networks` |
+| `TMPNET_NETWORK_DIR` | Existing network to target for stop/restart/check commands | Unset (set automatically by `network.env` or `.envrc`) |
 
 ### Recommended Shell Setup
 
-Add to `~/.bashrc` or `~/.zshrc`:
+If you aren't using direnv, add something like this to `~/.bashrc` or `~/.zshrc`:
 
 ```bash
-export AVALANCHEGO_PATH=~/avalanchego/build/avalanchego
-export TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest
-export PATH=$PATH:~/avalanchego/build
+export AVALANCHEGO_PATH=~/avalanchego/bin/avalanchego
+export AVAGO_PLUGIN_DIR=~/.avalanchego/plugins
+export TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest  # optional convenience
+export PATH=$PATH:~/avalanchego/bin
 ```
 
 ## Plugin Directory Setup
@@ -183,12 +188,12 @@ If you get "command not found":
 
 **Option 1:** Use the full path
 ```bash
-./build/tmpnetctl --help
+./bin/tmpnetctl --help
 ```
 
 **Option 2:** Add to PATH
 ```bash
-export PATH=$PATH:$(pwd)/build
+export PATH=$PATH:$(pwd)/bin
 tmpnetctl --help
 ```
 
@@ -224,8 +229,8 @@ If builds fail:
 If you get permission errors:
 
 ```bash
-chmod +x ./build/tmpnetctl
-chmod +x ./build/avalanchego
+chmod +x ./bin/tmpnetctl
+chmod +x ./bin/avalanchego
 ```
 
 ### Binary Not Found Error
@@ -234,10 +239,10 @@ If tmpnetctl says avalanchego not found:
 
 ```bash
 # Verify the binary exists
-ls -lh ./build/avalanchego
+ls -lh ./bin/avalanchego
 
 # Use absolute path when starting networks
-./build/tmpnetctl start-network --avalanchego-path="$(pwd)/build/avalanchego"
+tmpnetctl start-network --avalanchego-path="$(pwd)/bin/avalanchego"
 ```
 
 ## Next Steps

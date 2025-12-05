@@ -96,8 +96,8 @@ func main() {
         Subnets: []*tmpnet.Subnet{subnet},
         DefaultRuntimeConfig: tmpnet.NodeRuntimeConfig{
             Process: &tmpnet.ProcessRuntimeConfig{
-                AvalancheGoPath: "./build/avalanchego",
-                PluginDir:       os.ExpandEnv("$HOME/.avalanchego/plugins"),
+                AvalancheGoPath: "./bin/avalanchego",
+                PluginDir:       "./build/plugins",
             },
         },
     }

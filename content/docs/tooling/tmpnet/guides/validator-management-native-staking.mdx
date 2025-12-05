@@ -1,0 +1,751 @@
+---
+title: Testing Native Token Staking
+description: Test complete validator lifecycle with native token staking on Avalanche L1s
+---
+
+This guide covers testing native token staking validators on L1s, including the complete lifecycle: registration, delegation, rewards, and removal.
+
+> These examples follow the staking helpers in `icm-services` (see `tests/contracts/lib/icm-contracts/tests/network` for runnable code). They rely on shared utilities for contract bindings, Warp signatures, and tmpnet setup.
+
+## Overview
+
+Native token staking allows validators to stake the L1's native currency (like AVAX) to secure the network. This guide covers:
+
+- Deploying a native staking manager
+- Registering validators with stake
+- Adding and removing delegators
+- Removing validators with uptime proofs
+- Testing edge cases and failures
+
+## Prerequisites
+
+- Complete [Getting Started](/docs/tooling/tmpnet/guides/getting-started)
+- Understand [L1 Conversion](/docs/tooling/tmpnet/guides/l1-conversion)
+- Have an L1 converted to use native staking
+
+## Complete Lifecycle Test
+
+```go title="native_staking_test.go"
+package staking_test
+
+import (
+    "context"
+    "flag"
+    "math/big"
+    "os"
+    "testing"
+    "time"
+
+    "github.com/ava-labs/avalanchego/ids"
+    "github.com/ava-labs/avalanchego/tests/fixture/e2e"
+    "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+    "github.com/ava-labs/avalanchego/units"
+    nativestaking "github.com/ava-labs/icm-contracts/abi-bindings/go/validator-manager/NativeTokenStakingManager"
+    "github.com/ethereum/go-ethereum/common"
+    "github.com/ethereum/go-ethereum/crypto"
+    "github.com/onsi/ginkgo/v2"
+    . "github.com/onsi/gomega"
+)
+
+var (
+    network               *tmpnet.Network
+    e2eFlags              *e2e.FlagVars
+    l1Info                L1TestInfo
+    stakingManagerAddress common.Address
+    fundedKey             *ecdsa.PrivateKey
+)
+
+func TestMain(m *testing.M) {
+    e2eFlags = e2e.RegisterFlags()
+    flag.Parse()
+    os.Exit(m.Run())
+}
+
+func TestNativeStaking(t *testing.T) {
+    if os.Getenv("RUN_E2E") == "" {
+        t.Skip("RUN_E2E not set")
+    }
+
+    RegisterFailHandler(ginkgo.Fail)
+    ginkgo.RunSpecs(t, "Native Staking Test Suite")
+}
+
+var _ = ginkgo.BeforeSuite(func() {
+    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+    defer cancel()
+
+    // Create network and convert L1 to native staking
+    network, l1Info, stakingManagerAddress = setupNativeStakingL1(ctx)
+
+    fundedKey = network.PreFundedKeys[0]
+})
+
+var _ = ginkgo.AfterSuite(func() {
+    if network != nil {
+        network.Stop(context.Background())
+    }
+})
+
+var _ = ginkgo.Describe("[Native Token Staking]", func() {
+    ginkgo.It("should complete full validator lifecycle",
+        ginkgo.Label("staking", "validator"),
+        func() {
+            ctx := context.Background()
+
+            // Register new validator
+            validationID, node := registerValidator(
+                ctx,
+                network,
+                l1Info,
+                stakingManagerAddress,
+                100*units.Avax,
+                fundedKey,
+            )
+
+            // Add delegator
+            delegationID := addDelegator(
+                ctx,
+                l1Info,
+                stakingManagerAddress,
+                validationID,
+                50*units.Avax,
+                fundedKey,
+            )
+
+            // Wait for active period
+            time.Sleep(2 * time.Second)
+
+            // Remove delegator
+            removeDelegator(
+                ctx,
+                network,
+                l1Info,
+                stakingManagerAddress,
+                delegationID,
+                fundedKey,
+            )
+
+            // Remove validator
+            removeValidator(
+                ctx,
+                network,
+                l1Info,
+                stakingManagerAddress,
+                validationID,
+                100, // 100% uptime
+                fundedKey,
+            )
+        })
+})
+```
+
+## Validator Registration
+
+### Step-by-Step Registration Flow
+
+The registration process has three phases:
+
+1. **Initialize** - Submit registration on L1
+2. **P-Chain** - Register on P-Chain with Warp message
+3. **Complete** - Finalize with P-Chain acknowledgment
+
+```go
+func registerValidator(
+    ctx context.Context,
+    network *tmpnet.Network,
+    l1 L1TestInfo,
+    stakingManagerAddress common.Address,
+    stakeAmount uint64,
+    senderKey *ecdsa.PrivateKey,
+) (ids.ID, *tmpnet.Node) {
+
+    // Create new node to validate
+    node := tmpnet.NewEphemeralNode(tmpnet.FlagsMap{})
+    err := network.StartNode(ctx, node)
+    Expect(err).NotTo(HaveOccurred())
+
+    err = node.WaitForHealthy(ctx)
+    Expect(err).NotTo(HaveOccurred())
+
+    // Step 1: Initialize registration on L1
+    registrationReceipt := initializeValidatorRegistration(
+        ctx,
+        l1,
+        stakingManagerAddress,
+        node,
+        stakeAmount,
+        senderKey,
+    )
+
+    // Extract registration details from event
+    validationID, warpMessage := extractRegistrationInfo(registrationReceipt)
+
+    // Step 2: Register on P-Chain
+    registerOnPChain(
+        ctx,
+        network,
+        l1.SubnetID,
+        node,
+        stakeAmount,
+        warpMessage,
+        senderKey,
+    )
+
+    // Step 3: Complete registration with P-Chain proof
+    completeRegistration(
+        ctx,
+        network,
+        l1,
+        stakingManagerAddress,
+        validationID,
+        senderKey,
+    )
+
+    // Verify validator is active
+    verifyValidatorActive(ctx, l1, stakingManagerAddress, validationID)
+
+    return validationID, node
+}
+```
+
+### Initialize Registration
+
+```go
+func initializeValidatorRegistration(
+    ctx context.Context,
+    l1 L1TestInfo,
+    stakingManagerAddress common.Address,
+    node *tmpnet.Node,
+    stakeAmount uint64,
+    senderKey *ecdsa.PrivateKey,
+) *types.Receipt {
+
+    stakingManager, err := nativestaking.NewNativeTokenStakingManager(
+        stakingManagerAddress,
+        l1.RPCClient,
+    )
+    Expect(err).NotTo(HaveOccurred())
+
+    // Prepare node PoP (Proof of Possession)
+    nodeID := node.NodeID
+    blsPublicKey := node.BlsPublicKey
+    expiry := uint64(time.Now().Add(24 * time.Hour).Unix())
+
+    // Create transaction with staked native tokens
+    opts, err := bind.NewKeyedTransactorWithChainID(senderKey, l1.EVMChainID)
+    Expect(err).NotTo(HaveOccurred())
+
+    // Send native tokens as stake
+    opts.Value = new(big.Int).SetUint64(stakeAmount)
+
+    // Call initializeValidatorRegistration
+    tx, err := stakingManager.InitializeValidatorRegistration(
+        opts,
+        nativestaking.ValidatorRegistrationInput{
+            NodeID:             nodeID.Bytes(),
+            BlsPublicKey:       blsPublicKey,
+            RegistrationExpiry: expiry,
+            RemainingBalanceOwner: nativestaking.PChainOwner{
+                Threshold: 1,
+                Addresses: []common.Address{
+                    crypto.PubkeyToAddress(senderKey.PublicKey),
+                },
+            },
+            DisableOwner: nativestaking.PChainOwner{
+                Threshold: 1,
+                Addresses: []common.Address{
+                    crypto.PubkeyToAddress(senderKey.PublicKey),
+                },
+            },
+        },
+        uint16(20), // Delegation fee: 20%
+        uint64(1),  // Min stake duration: 1 second
+    )
+    Expect(err).NotTo(HaveOccurred())
+
+    receipt := waitForSuccess(ctx, l1, tx.Hash())
+
+    return receipt
+}
+```
+
+### Register on P-Chain
+
+```go
+func registerOnPChain(
+    ctx context.Context,
+    network *tmpnet.Network,
+    subnetID ids.ID,
+    node *tmpnet.Node,
+    stakeAmount uint64,
+    warpMessage []byte,
+    senderKey *ecdsa.PrivateKey,
+) {
+
+    // Get P-Chain wallet
+    pWallet := network.GetPChainWallet(senderKey)
+
+    // Issue RegisterL1ValidatorTx
+    txID, err := pWallet.IssueRegisterL1ValidatorTx(
+        stakeAmount,
+        node.NodePoP.ProofOfPossession,
+        warpMessage,
+    )
+    Expect(err).NotTo(HaveOccurred())
+
+    // Wait for P-Chain acceptance
+    Eventually(func() bool {
+        status, err := pWallet.GetTxStatus(ctx, txID)
+        if err != nil {
+            return false
+        }
+        return status == status.Committed
+    }, 30*time.Second, 500*time.Millisecond).Should(BeTrue())
+}
+```
+
+### Complete Registration
+
+```go
+func completeRegistration(
+    ctx context.Context,
+    network *tmpnet.Network,
+    l1 L1TestInfo,
+    stakingManagerAddress common.Address,
+    validationID ids.ID,
+    senderKey *ecdsa.PrivateKey,
+) {
+
+    // Get P-Chain info
+    pChainInfo := getPChainInfo(network)
+
+    // Query P-Chain for registration message
+    unsignedMessage := createL1ValidatorRegistrationMessage(
+        validationID,
+        true, // valid
+    )
+
+    // Sign with P-Chain validators
+    aggregator := NewSignatureAggregator(
+        pChainInfo.NodeURIs[0],
+        []ids.ID{constants.PrimaryNetworkID},
+    )
+    defer aggregator.Shutdown()
+
+    signedMessage, err := aggregator.CreateSignedMessage(
+        unsignedMessage,
+        nil,
+        constants.PrimaryNetworkID,
+        67,
+    )
+    Expect(err).NotTo(HaveOccurred())
+
+    // Complete on L1 with signed message
+    stakingManager, _ := nativestaking.NewNativeTokenStakingManager(
+        stakingManagerAddress,
+        l1.RPCClient,
+    )
+
+    tx := createPredicateTx(
+        ctx,
+        l1,
+        stakingManagerAddress,
+        signedMessage,
+        senderKey,
+        func(opts *bind.TransactOpts) (*types.Transaction, error) {
+            return stakingManager.CompleteValidatorRegistration(opts, 0)
+        },
+    )
+
+    err = l1.RPCClient.SendTransaction(ctx, tx)
+    Expect(err).NotTo(HaveOccurred())
+
+    receipt := waitForSuccess(ctx, l1, tx.Hash())
+
+    // Verify completion event
+    event, err := getEventFromLogs(
+        receipt.Logs,
+        stakingManager.ParseValidatorRegistrationCompleted,
+    )
+    Expect(err).NotTo(HaveOccurred())
+    Expect(event.ValidationID).To(Equal(validationID))
+}
+```
+
+## Delegation
+
+### Adding a Delegator
+
+```go
+func addDelegator(
+    ctx context.Context,
+    l1 L1TestInfo,
+    stakingManagerAddress common.Address,
+    validationID ids.ID,
+    delegationAmount uint64,
+    delegatorKey *ecdsa.PrivateKey,
+) ids.ID {
+
+    // Step 1: Initialize delegation
+    delegationID := initializeDelegation(
+        ctx,
+        l1,
+        stakingManagerAddress,
+        validationID,
+        delegationAmount,
+        delegatorKey,
+    )
+
+    // Step 2: Complete delegation (similar to validator registration)
+    completeDelegation(
+        ctx,
+        l1,
+        stakingManagerAddress,
+        delegationID,
+        delegatorKey,
+    )
+
+    return delegationID
+}
+
+func initializeDelegation(
+    ctx context.Context,
+    l1 L1TestInfo,
+    stakingManagerAddress common.Address,
+    validationID ids.ID,
+    delegationAmount uint64,
+    delegatorKey *ecdsa.PrivateKey,
+) ids.ID {
+
+    stakingManager, _ := nativestaking.NewNativeTokenStakingManager(
+        stakingManagerAddress,
+        l1.RPCClient,
+    )
+
+    opts, _ := bind.NewKeyedTransactorWithChainID(delegatorKey, l1.EVMChainID)
+    opts.Value = new(big.Int).SetUint64(delegationAmount)
+
+    tx, err := stakingManager.InitializeDelegatorRegistration(
+        opts,
+        validationID,
+    )
+    Expect(err).NotTo(HaveOccurred())
+
+    receipt := waitForSuccess(ctx, l1, tx.Hash())
+
+    // Extract delegation ID from event
+    event, err := getEventFromLogs(
+        receipt.Logs,
+        stakingManager.ParseDelegatorAdded,
+    )
+    Expect(err).NotTo(HaveOccurred())
+
+    return event.DelegationID
+}
+```
+
+### Removing a Delegator
+
+```go
+func removeDelegator(
+    ctx context.Context,
+    network *tmpnet.Network,
+    l1 L1TestInfo,
+    stakingManagerAddress common.Address,
+    delegationID ids.ID,
+    delegatorKey *ecdsa.PrivateKey,
+) {
+
+    // Step 1: Initialize end delegation
+    initializeEndDelegation(
+        ctx,
+        l1,
+        stakingManagerAddress,
+        delegationID,
+        delegatorKey,
+    )
+
+    // Step 2: Complete end delegation with uptime proof
+    completeEndDelegation(
+        ctx,
+        network,
+        l1,
+        stakingManagerAddress,
+        delegationID,
+        delegatorKey,
+    )
+
+    // Verify delegation removed
+    stakingManager, _ := nativestaking.NewNativeTokenStakingManager(
+        stakingManagerAddress,
+        l1.RPCClient,
+    )
+
+    delegation, err := stakingManager.GetDelegation(
+        &bind.CallOpts{},
+        delegationID,
+    )
+    Expect(err).NotTo(HaveOccurred())
+    Expect(delegation.Status).To(Equal(DelegationStatusCompleted))
+}
+```
+
+## Validator Removal
+
+### Removing with Uptime Proof
+
+```go
+func removeValidator(
+    ctx context.Context,
+    network *tmpnet.Network,
+    l1 L1TestInfo,
+    stakingManagerAddress common.Address,
+    validationID ids.ID,
+    uptimePercentage uint64,
+    senderKey *ecdsa.PrivateKey,
+) {
+
+    // Step 1: Initialize validator removal
+    initializeEndValidation(
+        ctx,
+        l1,
+        stakingManagerAddress,
+        validationID,
+        senderKey,
+    )
+
+    // Step 2: Complete with uptime proof from P-Chain
+    completeEndValidationWithUptime(
+        ctx,
+        network,
+        l1,
+        stakingManagerAddress,
+        validationID,
+        uptimePercentage,
+        senderKey,
+    )
+
+    // Verify validator removed
+    verifyValidatorRemoved(ctx, l1, stakingManagerAddress, validationID)
+}
+
+func completeEndValidationWithUptime(
+    ctx context.Context,
+    network *tmpnet.Network,
+    l1 L1TestInfo,
+    stakingManagerAddress common.Address,
+    validationID ids.ID,
+    uptimePercentage uint64,
+    senderKey *ecdsa.PrivateKey,
+) {
+
+    // Create L1ValidatorWeightMessage with uptime
+    unsignedMessage := createL1ValidatorWeightMessage(
+        validationID,
+        0, // nonce
+        0, // weight (removal)
+        uptimePercentage,
+    )
+
+    // Sign with P-Chain validators
+    pChainInfo := getPChainInfo(network)
+    aggregator := NewSignatureAggregator(
+        pChainInfo.NodeURIs[0],
+        []ids.ID{constants.PrimaryNetworkID},
+    )
+    defer aggregator.Shutdown()
+
+    signedMessage, err := aggregator.CreateSignedMessage(
+        unsignedMessage,
+        nil,
+        constants.PrimaryNetworkID,
+        67,
+    )
+    Expect(err).NotTo(HaveOccurred())
+
+    // Complete on L1
+    stakingManager, _ := nativestaking.NewNativeTokenStakingManager(
+        stakingManagerAddress,
+        l1.RPCClient,
+    )
+
+    tx := createPredicateTx(
+        ctx,
+        l1,
+        stakingManagerAddress,
+        signedMessage,
+        senderKey,
+        func(opts *bind.TransactOpts) (*types.Transaction, error) {
+            return stakingManager.CompleteEndValidation(opts, 0)
+        },
+    )
+
+    err = l1.RPCClient.SendTransaction(ctx, tx)
+    Expect(err).NotTo(HaveOccurred())
+
+    receipt := waitForSuccess(ctx, l1, tx.Hash())
+
+    // Verify completion event
+    event, err := getEventFromLogs(
+        receipt.Logs,
+        stakingManager.ParseValidationPeriodEnded,
+    )
+    Expect(err).NotTo(HaveOccurred())
+    Expect(event.ValidationID).To(Equal(validationID))
+}
+```
+
+## Testing Edge Cases
+
+### Minimum Stake Requirements
+
+```go
+ginkgo.It("should enforce minimum stake",
+    ginkgo.Label("staking", "validation"),
+    func() {
+        ctx := context.Background()
+
+        // Try to register with less than minimum stake
+        stakingManager, _ := nativestaking.NewNativeTokenStakingManager(
+            stakingManagerAddress,
+            l1Info.RPCClient,
+        )
+
+        // Get minimum stake
+        minStake, err := stakingManager.MinimumStakeAmount(&bind.CallOpts{})
+        Expect(err).NotTo(HaveOccurred())
+
+        // Try with less than minimum
+        belowMinimum := new(big.Int).Sub(minStake, big.NewInt(1))
+
+        opts, _ := bind.NewKeyedTransactorWithChainID(fundedKey, l1Info.EVMChainID)
+        opts.Value = belowMinimum
+
+        _, err = stakingManager.InitializeValidatorRegistration(
+            opts,
+            validatorInput,
+            20,
+            1,
+        )
+
+        // Should fail
+        Expect(err).To(HaveOccurred())
+    })
+```
+
+### Expired Registration
+
+```go
+ginkgo.It("should reject expired registration",
+    ginkgo.Label("staking", "validation"),
+    func() {
+        ctx := context.Background()
+
+        node := createTestNode(ctx, network)
+
+        // Create registration with past expiry
+        expiry := uint64(time.Now().Add(-1 * time.Hour).Unix())
+
+        validatorInput := nativestaking.ValidatorRegistrationInput{
+            NodeID:             node.NodeID.Bytes(),
+            BlsPublicKey:       node.BlsPublicKey,
+            RegistrationExpiry: expiry,
+            // ... other fields
+        }
+
+        // Initialize registration
+        receipt := initializeValidatorRegistration(
+            ctx,
+            l1Info,
+            stakingManagerAddress,
+            validatorInput,
+            100*units.Avax,
+            fundedKey,
+        )
+
+        validationID, warpMessage := extractRegistrationInfo(receipt)
+
+        // Try to register on P-Chain - should fail due to expiry
+        pWallet := network.GetPChainWallet(fundedKey)
+
+        _, err := pWallet.IssueRegisterL1ValidatorTx(
+            100*units.Avax,
+            node.NodePoP.ProofOfPossession,
+            warpMessage,
+        )
+
+        Expect(err).To(HaveOccurred())
+        Expect(err.Error()).To(ContainSubstring("expired"))
+    })
+```
+
+## Helper Functions
+
+### Verify Validator Status
+
+```go
+func verifyValidatorActive(
+    ctx context.Context,
+    l1 L1TestInfo,
+    stakingManagerAddress common.Address,
+    validationID ids.ID,
+) {
+    stakingManager, _ := nativestaking.NewNativeTokenStakingManager(
+        stakingManagerAddress,
+        l1.RPCClient,
+    )
+
+    validator, err := stakingManager.GetValidator(&bind.CallOpts{}, validationID)
+    Expect(err).NotTo(HaveOccurred())
+
+    Expect(validator.Status).To(Equal(ValidatorStatusActive))
+    Expect(validator.Weight).To(BeNumerically(">", 0))
+    Expect(validator.StartedAt).To(BeNumerically(">", 0))
+}
+```
+
+### Check Delegation Rewards
+
+```go
+func checkDelegationRewards(
+    ctx context.Context,
+    l1 L1TestInfo,
+    stakingManagerAddress common.Address,
+    delegationID ids.ID,
+    expectedMinimum uint64,
+) {
+    stakingManager, _ := nativestaking.NewNativeTokenStakingManager(
+        stakingManagerAddress,
+        l1.RPCClient,
+    )
+
+    delegation, err := stakingManager.GetDelegation(&bind.CallOpts{}, delegationID)
+    Expect(err).NotTo(HaveOccurred())
+
+    // Check rewards accrued
+    Expect(delegation.Rewards).To(BeNumerically(">=", expectedMinimum))
+}
+```
+
+## Best Practices
+
+1. **Always complete registration**: Don't leave validators in pending state
+2. **Test minimum/maximum stakes**: Verify contract validation works
+3. **Handle P-Chain delays**: P-Chain operations can be slow, use appropriate timeouts
+4. **Verify uptime calculations**: Test different uptime percentages
+5. **Clean up validators**: Remove test validators in AfterEach/AfterSuite
+6. **Test delegation limits**: Verify maximum delegators per validator
+
+## Next Steps
+
+<Cards>
+  <Card title="PoA Validators" href="/docs/tooling/tmpnet/guides/validator-management-poa">
+    Test proof of authority validator management
+  </Card>
+  <Card title="ERC20 Staking" href="/docs/tooling/tmpnet/guides/validator-management-erc20-staking">
+    Test ERC20 token staking validators
+  </Card>
+  <Card title="PoA to PoS Migration" href="/docs/tooling/tmpnet/guides/validator-management-migration">
+    Test upgrading from PoA to PoS
+  </Card>
+</Cards>

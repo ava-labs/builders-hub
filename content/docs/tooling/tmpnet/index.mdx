@@ -32,7 +32,7 @@ Networks run as native processes (no Docker needed). All configuration lives on 
 
 ```bash
 # Start a 5-node network
-./build/tmpnetctl start-network --avalanchego-path=./build/avalanchego
+tmpnetctl start-network --avalanchego-path=./bin/avalanchego
 
 # Network is running at ~/.tmpnet/networks/latest
 # Get node URIs
@@ -42,7 +42,7 @@ cat ~/.tmpnet/networks/latest/NodeID-*/process.json | jq -r '.uri'
 cat ~/.tmpnet/networks/latest/config.json | jq -r '.preFundedKeys[0]'
 
 # Stop when done
-./build/tmpnetctl stop-network
+tmpnetctl stop-network
 ```
 
 ## Network Directory Structure

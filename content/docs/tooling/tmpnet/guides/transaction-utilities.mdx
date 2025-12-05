@@ -1,0 +1,641 @@
+---
+title: Transaction Utilities
+description: Helper functions for transactions, events, and common testing operations
+---
+
+This guide covers essential utility functions for working with transactions, events, and common operations in tmpnet tests. These helpers are extracted from ICM Services and provide battle-tested patterns.
+
+## Transaction Management
+
+### Calculating Transaction Parameters
+
+Every transaction needs gas parameters and nonce. Use this helper:
+
+```go title="transaction_utils.go"
+package testutils
+
+import (
+    "context"
+    "math/big"
+
+    "github.com/ethereum/go-ethereum/common"
+    "github.com/ethereum/go-ethereum/ethclient"
+    . "github.com/onsi/gomega"
+)
+
+// CalculateTxParams calculates gas parameters and nonce for a transaction
+func CalculateTxParams(
+    ctx context.Context,
+    l1 L1TestInfo,
+    fromAddress common.Address,
+) (*big.Int, *big.Int, uint64) {
+
+    // Get base fee from latest block
+    baseFee, err := l1.RPCClient.EstimateBaseFee(ctx)
+    Expect(err).NotTo(HaveOccurred())
+
+    // Get suggested tip
+    gasTipCap, err := l1.RPCClient.SuggestGasTipCap(ctx)
+    Expect(err).NotTo(HaveOccurred())
+
+    // Get current nonce
+    nonce, err := l1.RPCClient.NonceAt(ctx, fromAddress, nil)
+    Expect(err).NotTo(HaveOccurred())
+
+    // Calculate gas fee cap: baseFee * 2.5 + maxPriorityFee
+    gasFeeCap := new(big.Int).Mul(baseFee, big.NewInt(25))
+    gasFeeCap.Div(gasFeeCap, big.NewInt(10))
+
+    maxPriorityFee := big.NewInt(2_500_000_000) // 2.5 gwei
+    gasFeeCap.Add(gasFeeCap, maxPriorityFee)
+
+    // Cap the tip at maxPriorityFee
+    if gasTipCap.Cmp(maxPriorityFee) > 0 {
+        gasTipCap = maxPriorityFee
+    }
+
+    return gasFeeCap, gasTipCap, nonce
+}
+```
+
+### Creating Transactions
+
+#### Native Transfer
+
+```go
+const NativeTransferGas = uint64(21000)
+
+func CreateNativeTransferTransaction(
+    ctx context.Context,
+    l1 L1TestInfo,
+    fromKey *ecdsa.PrivateKey,
+    to common.Address,
+    amount *big.Int,
+) *types.Transaction {
+
+    fromAddress := crypto.PubkeyToAddress(fromKey.PublicKey)
+    gasFeeCap, gasTipCap, nonce := CalculateTxParams(ctx, l1, fromAddress)
+
+    tx := types.NewTx(&types.DynamicFeeTx{
+        ChainID:   l1.EVMChainID,
+        Nonce:     nonce,
+        To:        &to,
+        Gas:       NativeTransferGas,
+        GasFeeCap: gasFeeCap,
+        GasTipCap: gasTipCap,
+        Value:     amount,
+    })
+
+    return SignTransaction(tx, fromKey, l1.EVMChainID)
+}
+
+func SendNativeTransfer(
+    ctx context.Context,
+    l1 L1TestInfo,
+    fromKey *ecdsa.PrivateKey,
+    to common.Address,
+    amount *big.Int,
+) *types.Receipt {
+
+    tx := CreateNativeTransferTransaction(ctx, l1, fromKey, to, amount)
+    return SendTransactionAndWaitForSuccess(ctx, l1, tx)
+}
+```
+
+#### Contract Call Transaction
+
+```go
+func CreateContractCallTransaction(
+    ctx context.Context,
+    l1 L1TestInfo,
+    fromKey *ecdsa.PrivateKey,
+    contract common.Address,
+    callData []byte,
+    gasLimit uint64,
+) *types.Transaction {
+
+    fromAddress := crypto.PubkeyToAddress(fromKey.PublicKey)
+    gasFeeCap, gasTipCap, nonce := CalculateTxParams(ctx, l1, fromAddress)
+
+    tx := types.NewTx(&types.DynamicFeeTx{
+        ChainID:   l1.EVMChainID,
+        Nonce:     nonce,
+        To:        &contract,
+        Gas:       gasLimit,
+        GasFeeCap: gasFeeCap,
+        GasTipCap: gasTipCap,
+        Data:      callData,
+    })
+
+    return SignTransaction(tx, fromKey, l1.EVMChainID)
+}
+```
+
+### Signing Transactions
+
+```go
+func SignTransaction(
+    tx *types.Transaction,
+    key *ecdsa.PrivateKey,
+    chainID *big.Int,
+) *types.Transaction {
+
+    signer := types.NewLondonSigner(chainID)
+    signedTx, err := types.SignTx(tx, signer, key)
+    Expect(err).NotTo(HaveOccurred())
+
+    return signedTx
+}
+```
+
+### Sending and Waiting
+
+```go
+func SendTransactionAndWaitForSuccess(
+    ctx context.Context,
+    l1 L1TestInfo,
+    tx *types.Transaction,
+) *types.Receipt {
+
+    err := l1.RPCClient.SendTransaction(ctx, tx)
+    Expect(err).NotTo(HaveOccurred())
+
+    return WaitForTransactionSuccess(ctx, l1, tx.Hash())
+}
+
+func SendTransactionAndWaitForFailure(
+    ctx context.Context,
+    l1 L1TestInfo,
+    tx *types.Transaction,
+) *types.Receipt {
+
+    err := l1.RPCClient.SendTransaction(ctx, tx)
+    Expect(err).NotTo(HaveOccurred())
+
+    return WaitForTransactionFailure(ctx, l1, tx.Hash())
+}
+```
+
+### Waiting for Receipts
+
+```go
+func WaitForTransactionSuccess(
+    ctx context.Context,
+    l1 L1TestInfo,
+    txHash common.Hash,
+) *types.Receipt {
+
+    var receipt *types.Receipt
+
+    Eventually(func() bool {
+        var err error
+        receipt, err = l1.RPCClient.TransactionReceipt(ctx, txHash)
+        return err == nil
+    }, 30*time.Second, 500*time.Millisecond).Should(BeTrue(),
+        "Transaction receipt not found: %s", txHash.Hex())
+
+    Expect(receipt.Status).To(Equal(uint64(1)),
+        "Transaction failed: %s", txHash.Hex())
+
+    return receipt
+}
+
+func WaitForTransactionFailure(
+    ctx context.Context,
+    l1 L1TestInfo,
+    txHash common.Hash,
+) *types.Receipt {
+
+    var receipt *types.Receipt
+
+    Eventually(func() bool {
+        var err error
+        receipt, err = l1.RPCClient.TransactionReceipt(ctx, txHash)
+        return err == nil
+    }, 30*time.Second, 500*time.Millisecond).Should(BeTrue())
+
+    Expect(receipt.Status).To(Equal(uint64(0)),
+        "Transaction succeeded unexpectedly: %s", txHash.Hex())
+
+    return receipt
+}
+```
+
+## Predicate Transactions (Warp)
+
+Predicate transactions include Warp messages in the access list:
+
+```go
+func CreatePredicateTx(
+    ctx context.Context,
+    l1 L1TestInfo,
+    contractAddress common.Address,
+    signedWarpMessage *avalancheWarp.Message,
+    senderKey *ecdsa.PrivateKey,
+    gasLimit uint64,
+    callData []byte,
+) *types.Transaction {
+
+    fromAddress := crypto.PubkeyToAddress(senderKey.PublicKey)
+    gasFeeCap, gasTipCap, nonce := CalculateTxParams(ctx, l1, fromAddress)
+
+    // Create predicate access list with Warp message
+    tx := predicateutils.NewPredicateTx(
+        l1.EVMChainID,
+        nonce,
+        &contractAddress,
+        gasLimit,
+        gasFeeCap,
+        gasTipCap,
+        big.NewInt(0),
+        callData,
+        types.AccessList{},
+        warp.ContractAddress,
+        signedWarpMessage.Bytes(),
+    )
+
+    return SignTransaction(tx, senderKey, l1.EVMChainID)
+}
+```
+
+## Event Parsing
+
+### Extract Events from Logs
+
+```go
+func GetEventFromLogs[T any](
+    logs []*types.Log,
+    parser func(*types.Log) (T, error),
+) (T, error) {
+
+    for _, log := range logs {
+        event, err := parser(log)
+        if err == nil {
+            return event, nil
+        }
+    }
+
+    var zero T
+    return zero, errors.New("event not found in logs")
+}
+
+// Usage example
+event, err := GetEventFromLogs(
+    receipt.Logs,
+    teleporter.ParseSendCrossChainMessage,
+)
+Expect(err).NotTo(HaveOccurred())
+messageID := event.MessageID
+```
+
+### With Transaction Trace Fallback
+
+For better debugging when events aren't found:
+
+```go
+func GetEventFromLogsOrTrace[T any](
+    ctx context.Context,
+    l1 L1TestInfo,
+    receipt *types.Receipt,
+    parser func(*types.Log) (T, error),
+) T {
+
+    event, err := GetEventFromLogs(receipt.Logs, parser)
+    if err == nil {
+        return event
+    }
+
+    // Event not found - trace transaction for debugging
+    trace := TraceTransaction(ctx, l1.RPCClient, receipt.TxHash)
+    ginkgo.GinkgoWriter.Printf("Transaction trace:\n%s\n", trace)
+
+    Fail("Event not found in logs. See trace above.")
+
+    var zero T
+    return zero
+}
+```
+
+## Transaction Tracing
+
+### Get Transaction Trace
+
+```go
+func TraceTransaction(
+    ctx context.Context,
+    client *ethclient.Client,
+    txHash common.Hash,
+) string {
+
+    var result interface{}
+    err := client.Client().CallContext(
+        ctx,
+        &result,
+        "debug_traceTransaction",
+        txHash,
+        map[string]interface{}{
+            "tracer": "callTracer",
+        },
+    )
+
+    if err != nil {
+        return fmt.Sprintf("Failed to trace: %v", err)
+    }
+
+    jsonBytes, _ := json.MarshalIndent(result, "", "  ")
+    return string(jsonBytes)
+}
+
+func TraceTransactionAndExit(
+    ctx context.Context,
+    client *ethclient.Client,
+    txHash common.Hash,
+) {
+
+    trace := TraceTransaction(ctx, client, txHash)
+    ginkgo.GinkgoWriter.Printf("Transaction trace:\n%s\n", trace)
+    Fail("Transaction trace requested")
+}
+```
+
+## Contract Deployment
+
+### Deploy Contract
+
+```go
+func DeployContract(
+    ctx context.Context,
+    l1 L1TestInfo,
+    fromKey *ecdsa.PrivateKey,
+    contractBytecode []byte,
+) (common.Address, *types.Receipt) {
+
+    fromAddress := crypto.PubkeyToAddress(fromKey.PublicKey)
+    gasFeeCap, gasTipCap, nonce := CalculateTxParams(ctx, l1, fromAddress)
+
+    tx := types.NewTx(&types.DynamicFeeTx{
+        ChainID:   l1.EVMChainID,
+        Nonce:     nonce,
+        Gas:       5_000_000,
+        GasFeeCap: gasFeeCap,
+        GasTipCap: gasTipCap,
+        Data:      contractBytecode,
+    })
+
+    signedTx := SignTransaction(tx, fromKey, l1.EVMChainID)
+    receipt := SendTransactionAndWaitForSuccess(ctx, l1, signedTx)
+
+    return receipt.ContractAddress, receipt
+}
+```
+
+### Deploy with Constructor Args
+
+```go
+func DeployContractWithArgs(
+    ctx context.Context,
+    l1 L1TestInfo,
+    fromKey *ecdsa.PrivateKey,
+    contractBytecode []byte,
+    constructorArgs []byte,
+) (common.Address, *types.Receipt) {
+
+    // Combine bytecode and constructor args
+    data := append(contractBytecode, constructorArgs...)
+
+    return DeployContract(ctx, l1, fromKey, data)
+}
+```
+
+## Block and Network Utilities
+
+### Wait for Block Acceptance
+
+```go
+func WaitForAllValidatorsToAcceptBlock(
+    ctx context.Context,
+    nodeURIs []string,
+    blockchainID ids.ID,
+    blockHeight uint64,
+) {
+
+    for _, nodeURI := range nodeURIs {
+        Eventually(func() bool {
+            client := ethclient.NewClient(nodeURI + "/ext/bc/" + blockchainID.String() + "/rpc")
+
+            block, err := client.BlockByNumber(ctx, big.NewInt(int64(blockHeight)))
+            if err != nil {
+                return false
+            }
+
+            return block != nil
+        }, 30*time.Second, 500*time.Millisecond).Should(BeTrue(),
+            "Node %s did not accept block %d", nodeURI, blockHeight)
+    }
+}
+```
+
+### Advance Proposer VM
+
+For networks using Proposer VM:
+
+```go
+func AdvanceProposerVM(
+    ctx context.Context,
+    l1 L1TestInfo,
+    fundedKey *ecdsa.PrivateKey,
+    numBlocks int,
+) {
+
+    recipient := common.HexToAddress("0x0123456789012345678901234567890123456789")
+
+    for i := 0; i < numBlocks; i++ {
+        // Send dummy transaction to produce block
+        SendNativeTransfer(
+            ctx,
+            l1,
+            fundedKey,
+            recipient,
+            big.NewInt(1),
+        )
+    }
+}
+```
+
+## Balance Checking
+
+### Check Balance
+
+```go
+func CheckBalance(
+    ctx context.Context,
+    address common.Address,
+    expectedBalance *big.Int,
+    client *ethclient.Client,
+) {
+
+    balance, err := client.BalanceAt(ctx, address, nil)
+    Expect(err).NotTo(HaveOccurred())
+
+    Expect(balance).To(Equal(expectedBalance),
+        "Address %s has balance %s, expected %s",
+        address.Hex(),
+        balance.String(),
+        expectedBalance.String())
+}
+```
+
+### BigInt Helpers
+
+```go
+func ExpectBigEqual(a, b *big.Int) {
+    Expect(a.Cmp(b)).To(Equal(0),
+        "Expected %s to equal %s", a.String(), b.String())
+}
+
+func BigIntSub(a, b *big.Int) *big.Int {
+    return new(big.Int).Sub(a, b)
+}
+
+func BigIntMul(a, b *big.Int) *big.Int {
+    return new(big.Int).Mul(a, b)
+}
+
+func BigIntAdd(a, b *big.Int) *big.Int {
+    return new(big.Int).Add(a, b)
+}
+```
+
+## URI Conversion
+
+### Convert HTTP to WebSocket/RPC
+
+```go
+func HttpToWebsocketURI(uri string, blockchainID string) string {
+    return strings.Replace(uri, "http://", "ws://", 1) +
+        "/ext/bc/" + blockchainID + "/ws"
+}
+
+func HttpToRPCURI(uri string, blockchainID string) string {
+    return uri + "/ext/bc/" + blockchainID + "/rpc"
+}
+```
+
+## Complete Helper Package Example
+
+```go title="testutils/helpers.go"
+package testutils
+
+import (
+    "context"
+    "crypto/ecdsa"
+    "math/big"
+    "time"
+
+    "github.com/ethereum/go-ethereum/common"
+    "github.com/ethereum/go-ethereum/core/types"
+    "github.com/ethereum/go-ethereum/crypto"
+    . "github.com/onsi/gomega"
+)
+
+type TxHelper struct {
+    L1   L1TestInfo
+    Key  *ecdsa.PrivateKey
+    From common.Address
+}
+
+func NewTxHelper(l1 L1TestInfo, key *ecdsa.PrivateKey) *TxHelper {
+    return &TxHelper{
+        L1:   l1,
+        Key:  key,
+        From: crypto.PubkeyToAddress(key.PublicKey),
+    }
+}
+
+func (h *TxHelper) SendNative(
+    ctx context.Context,
+    to common.Address,
+    amount *big.Int,
+) *types.Receipt {
+    return SendNativeTransfer(ctx, h.L1, h.Key, to, amount)
+}
+
+func (h *TxHelper) CallContract(
+    ctx context.Context,
+    contract common.Address,
+    callData []byte,
+    gasLimit uint64,
+) *types.Receipt {
+    tx := CreateContractCallTransaction(
+        ctx, h.L1, h.Key, contract, callData, gasLimit,
+    )
+    return SendTransactionAndWaitForSuccess(ctx, h.L1, tx)
+}
+
+func (h *TxHelper) GetBalance(ctx context.Context) *big.Int {
+    balance, err := h.L1.RPCClient.BalanceAt(ctx, h.From, nil)
+    Expect(err).NotTo(HaveOccurred())
+    return balance
+}
+```
+
+## Usage in Tests
+
+```go
+var _ = ginkgo.Describe("[Transaction Tests]", func() {
+    var helper *TxHelper
+
+    ginkgo.BeforeEach(func() {
+        helper = NewTxHelper(l1A, fundedKey)
+    })
+
+    ginkgo.It("should transfer native tokens", func() {
+        ctx := context.Background()
+        recipient := common.HexToAddress("0x1234...")
+        amount := big.NewInt(1e18)
+
+        initialBalance := helper.GetBalance(ctx)
+
+        receipt := helper.SendNative(ctx, recipient, amount)
+        Expect(receipt.Status).To(Equal(uint64(1)))
+
+        finalBalance := helper.GetBalance(ctx)
+
+        // Account for gas cost
+        gasUsed := new(big.Int).Mul(
+            receipt.EffectiveGasPrice,
+            big.NewInt(int64(receipt.GasUsed)),
+        )
+
+        expected := BigIntSub(
+            BigIntSub(initialBalance, amount),
+            gasUsed,
+        )
+
+        ExpectBigEqual(finalBalance, expected)
+    })
+})
+```
+
+## Best Practices
+
+1. **Always use CalculateTxParams**: Don't hardcode gas values
+2. **Use Eventually for receipts**: Network delays are common
+3. **Trace failed transactions**: Use TraceTransaction for debugging
+4. **Extract events safely**: Use GetEventFromLogsOrTrace
+5. **Check transaction status**: Always verify receipt.Status
+6. **Handle BigInt carefully**: Use helper functions to avoid mutations
+
+## Next Steps
+
+<Cards>
+  <Card title="Warp Messages" href="/docs/tooling/tmpnet/guides/warp-messages">
+    Construct and sign Warp messages
+  </Card>
+  <Card title="Cross-Chain Messaging" href="/docs/tooling/tmpnet/guides/cross-chain-messaging">
+    Use these utilities for Teleporter testing
+  </Card>
+  <Card title="Getting Started" href="/docs/tooling/tmpnet/guides/getting-started">
+    Back to testing fundamentals
+  </Card>
+</Cards>
