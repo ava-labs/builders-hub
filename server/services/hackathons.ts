@@ -67,15 +67,17 @@ export class ValidationError extends Error {
   }
 }
 
-export async function getHackathonLite(hackathon: any): Promise<HackathonHeader> {
+export async function getHackathonLite(
+  hackathon: any
+): Promise<HackathonHeader> {
   // Get user information if created_by exists
   if (hackathon.created_by) {
     try {
       const user = await getUserById(hackathon.created_by);
-      hackathon.created_by_name = user?.name || user?.email || 'Unknown User';
+      hackathon.created_by_name = user?.name || user?.email || "Unknown User";
     } catch (error) {
-      console.error('Error fetching user info:', error);
-      hackathon.created_by_name = 'Unknown User';
+      console.error("Error fetching user info:", error);
+      hackathon.created_by_name = "Unknown User";
     }
   }
 
@@ -83,13 +85,13 @@ export async function getHackathonLite(hackathon: any): Promise<HackathonHeader>
   if (hackathon.updated_by) {
     try {
       const user = await getUserById(hackathon.updated_by);
-      hackathon.updated_by_name = user?.name || user?.email || 'Unknown User';
+      hackathon.updated_by_name = user?.name || user?.email || "Unknown User";
     } catch (error) {
-      console.error('Error fetching updated_by user info:', error);
-      hackathon.updated_by_name = 'Unknown User';
+      console.error("Error fetching updated_by user info:", error);
+      hackathon.updated_by_name = "Unknown User";
     }
   }
-  
+
   return hackathon;
 }
 
@@ -141,10 +143,10 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
   const offset = (page - 1) * pageSize;
 
   let filters: any = {};
-  
+
   // Build all conditions
   const conditions: any[] = [];
-  
+
   if (options.location) {
     if (options.location == "InPerson") {
       conditions.push({ NOT: { location: "Online" } });
@@ -152,32 +154,29 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
       conditions.push({ location: options.location });
     }
   }
-  
+
   if (options.created_by) {
     // Show hackathons where user is either creator OR updater
     conditions.push({
       OR: [
         { created_by: options.created_by },
-        { updated_by: options.created_by }
-      ]
+        { updated_by: options.created_by },
+      ],
     });
   }
-  
+
   if (options.date) {
     conditions.push({ date: options.date });
   }
-  
+
   // Filter by visibility: only show public hackathons unless include_private is true
   // Treat null/undefined as public for backwards compatibility
   if (!options.include_private) {
     conditions.push({
-      OR: [
-        { is_public: true },
-        { is_public: null },
-      ]
+      OR: [{ is_public: true }, { is_public: null }],
     });
   }
-  
+
   if (options.search) {
     const searchWords = options.search.split(/\s+/);
     let searchFilters: any[] = [];
@@ -215,7 +214,7 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
 
     conditions.push({ OR: searchFilters });
   }
-  
+
   if (options.status) {
     switch (options.status) {
       case "ENDED":
@@ -232,15 +231,16 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
         break;
     }
   }
-  
+
   // Combine all conditions with AND
   if (conditions.length === 1) {
     filters = conditions[0];
   } else if (conditions.length > 1) {
     filters = { AND: conditions };
   }
-  
+
   console.log("Filters: ", filters);
+  const hackathonCount = await prisma.hackathon.count({ where: filters });
 
   const hackathonList = await prisma.hackathon.findMany({
     where: filters,
@@ -265,7 +265,7 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
           ),
         } as HackathonHeader)
     ),
-    total: hackathonsLite.length,
+    total: hackathonCount,
     page,
     pageSize,
   };
@@ -329,8 +329,10 @@ export async function updateHackathon(
   userId?: string
 ): Promise<HackathonHeader> {
   // Skip validation if we're only updating is_public field
-  const isOnlyPublicUpdate = Object.keys(hackathonData).length === 1 && hackathonData.hasOwnProperty('is_public');
-  
+  const isOnlyPublicUpdate =
+    Object.keys(hackathonData).length === 1 &&
+    hackathonData.hasOwnProperty("is_public");
+
   if (!isOnlyPublicUpdate) {
     const errors = validateHackathon(hackathonData);
     console.log(errors);
@@ -360,10 +362,11 @@ export async function updateHackathon(
   }
   // Build update data object with only provided fields
   const updateData: any = {};
-  
+
   if (hackathonData.id !== undefined) updateData.id = hackathonData.id;
   if (hackathonData.title !== undefined) updateData.title = hackathonData.title;
-  if (hackathonData.description !== undefined) updateData.description = hackathonData.description;
+  if (hackathonData.description !== undefined)
+    updateData.description = hackathonData.description;
   if (hackathonData.start_date !== undefined) {
     updateData.start_date = getDateWithTimezone(
       hackathonData.start_date,
@@ -376,22 +379,35 @@ export async function updateHackathon(
       hackathonData.timezone ?? existingHackathon.timezone
     );
   }
-  if (hackathonData.location !== undefined) updateData.location = hackathonData.location;
-  if (hackathonData.total_prizes !== undefined) updateData.total_prizes = hackathonData.total_prizes;
+  if (hackathonData.location !== undefined)
+    updateData.location = hackathonData.location;
+  if (hackathonData.total_prizes !== undefined)
+    updateData.total_prizes = hackathonData.total_prizes;
   if (hackathonData.tags !== undefined) updateData.tags = hackathonData.tags;
-  if (hackathonData.timezone !== undefined) updateData.timezone = hackathonData.timezone;
+  if (hackathonData.timezone !== undefined)
+    updateData.timezone = hackathonData.timezone;
   if (hackathonData.icon !== undefined) updateData.icon = hackathonData.icon;
-  if (hackathonData.banner !== undefined) updateData.banner = hackathonData.banner;
-  if (hackathonData.small_banner !== undefined) updateData.small_banner = hackathonData.small_banner;
-  if (hackathonData.participants !== undefined) updateData.participants = hackathonData.participants;
-  if (hackathonData.top_most !== undefined) updateData.top_most = hackathonData.top_most;
-  if (hackathonData.organizers !== undefined) updateData.organizers = hackathonData.organizers;
-  if (hackathonData.custom_link !== undefined) updateData.custom_link = hackathonData.custom_link;
-  if (hackathonData.created_by !== undefined) updateData.created_by = hackathonData.created_by;
-  if (hackathonData.is_public !== undefined) updateData.is_public = hackathonData.is_public;
+  if (hackathonData.banner !== undefined)
+    updateData.banner = hackathonData.banner;
+  if (hackathonData.small_banner !== undefined)
+    updateData.small_banner = hackathonData.small_banner;
+  if (hackathonData.participants !== undefined)
+    updateData.participants = hackathonData.participants;
+  if (hackathonData.top_most !== undefined)
+    updateData.top_most = hackathonData.top_most;
+  if (hackathonData.organizers !== undefined)
+    updateData.organizers = hackathonData.organizers;
+  if (hackathonData.custom_link !== undefined)
+    updateData.custom_link = hackathonData.custom_link;
+  if (hackathonData.created_by !== undefined)
+    updateData.created_by = hackathonData.created_by;
+  if (hackathonData.is_public !== undefined)
+    updateData.is_public = hackathonData.is_public;
   if (userId) updateData.updated_by = userId;
   if (hackathonData.content !== undefined) {
-    const content = { ...hackathonData.content } as unknown as Prisma.JsonObject;
+    const content = {
+      ...hackathonData.content,
+    } as unknown as Prisma.JsonObject;
     updateData.content = content;
   }
 
