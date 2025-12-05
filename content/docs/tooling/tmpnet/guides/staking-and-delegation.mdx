@@ -5,6 +5,10 @@ description: Test Primary Network validator staking, delegation, and reward dist
 
 This guide covers testing P-Chain staking and delegation on the Primary Network, including validator registration, delegator management, reward distribution, and uptime tracking.
 
+> This is a pattern guide. For a runnable example, see `tests/e2e/p/staking_rewards.go` in the avalanchego repo. Adapt the code there for your suite rather than copying these snippets verbatim.
+
+**Where to put your tests:** keep tmpnet-based staking tests alongside your application code or in an existing test suite (e.g., `tests/e2e` in your repo). Avoid creating a new repo just for these; reuse your project’s test harness and helpers so fixtures, CI, and dependencies stay in one place.
+
 ## Overview
 
 P-Chain staking differs from L1 validator management:
