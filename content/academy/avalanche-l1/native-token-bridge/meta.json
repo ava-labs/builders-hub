@@ -1,9 +1,9 @@
 {
-  "title": "Interchain Token Transfer",
+  "title": "Native Token Bridge",
   "icon": "ArrowLeftRight",
   "root": true,
   "pages": [
-    "---Interchain Token Transfer---",
+    "---Native Token Bridge---",
     "index",
     "...02-getting-started",
     "---Native to ERC-20 Token Bridge---",

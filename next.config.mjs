@@ -1150,22 +1150,32 @@ const config = {
       },
       {
         source: "/academy/avalanche-l1/interchain-token-transfer",
-        destination: "/academy/avalanche-l1/cross-chain-l1-native-tokens",
+        destination: "/academy/avalanche-l1/native-token-bridge",
         permanent: true,
       },
       {
         source: "/academy/avalanche-l1/interchain-token-transfer/:path*",
-        destination: "/academy/avalanche-l1/cross-chain-l1-native-tokens/:path*",
+        destination: "/academy/avalanche-l1/native-token-bridge/:path*",
         permanent: true,
       },
       {
         source: "/academy/interchain-token-transfer",
-        destination: "/academy/avalanche-l1/cross-chain-l1-native-tokens",
+        destination: "/academy/avalanche-l1/native-token-bridge",
         permanent: true,
       },
       {
         source: "/academy/interchain-token-transfer/:path*",
-        destination: "/academy/avalanche-l1/cross-chain-l1-native-tokens/:path*",
+        destination: "/academy/avalanche-l1/native-token-bridge/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/cross-chain-l1-native-tokens",
+        destination: "/academy/avalanche-l1/native-token-bridge",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/cross-chain-l1-native-tokens/:path*",
+        destination: "/academy/avalanche-l1/native-token-bridge/:path*",
         permanent: true,
       },
     ];
