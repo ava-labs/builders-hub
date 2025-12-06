@@ -1,0 +1,501 @@
+---
+title: Monitoring
+description: Monitor your temporary networks with metrics, logs, and dashboards
+---
+
+This guide shows you how to set up monitoring for your temporary networks using Prometheus for metrics and Promtail for logs.
+
+## Overview
+
+tmpnet provides built-in integration with:
+
+- **Prometheus** - Collect and store metrics from all nodes
+- **Promtail** - Aggregate logs from all nodes
+- **Grafana** - Visualize metrics and logs in dashboards
+
+Monitoring helps you:
+- Debug network behavior
+- Identify performance bottlenecks
+- Analyze consensus patterns
+- Track resource usage
+- Troubleshoot issues
+
+## Prerequisites
+
+### Install Monitoring Tools
+
+The easiest way to get the required tools is using Nix:
+
+```bash
+# Start a development shell with monitoring tools
+nix develop
+```
+
+This provides both `prometheus` and `promtail` binaries.
+
+### Alternative: Manual Installation
+
+Install tools manually if you don't use Nix:
+
+**Prometheus:**
+```bash
+# macOS
+brew install prometheus
+
+# Linux - download from prometheus.io/download
+```
+
+**Promtail:**
+```bash
+# Download from GitHub releases
+# github.com/grafana/loki/releases
+```
+
+### Configure Monitoring Backend
+
+You'll need access to a Prometheus and Loki backend. Set these environment variables:
+
+```bash
+export PROMETHEUS_URL="https://your-prometheus.example.com"
+export PROMETHEUS_PUSH_URL="https://your-prometheus.example.com/api/v1/push"
+export PROMETHEUS_USERNAME="your-username"
+export PROMETHEUS_PASSWORD="your-password"
+
+export LOKI_URL="https://your-loki.example.com"
+export LOKI_PUSH_URL="https://your-loki.example.com/loki/api/v1/push"
+export LOKI_USERNAME="your-username"
+export LOKI_PASSWORD="your-password"
+```
+
+## Quick Start
+
+### Start Collectors
+
+Start Prometheus and Promtail collectors:
+
+```bash
+# Start metrics collection
+tmpnetctl start-metrics-collector
+
+# Start log collection
+tmpnetctl start-logs-collector
+```
+
+### Start Your Network
+
+Create a network - monitoring will be automatic:
+
+```bash
+tmpnetctl start-network
+```
+
+**Output includes a Grafana link:**
+```
+Started network /home/user/.tmpnet/networks/20240312-143052.123456
+Network metrics: https://grafana.example.com/...
+```
+
+### View Metrics and Logs
+
+Click the Grafana link or open the URL saved at:
+```bash
+cat ~/.tmpnet/networks/latest/metrics.txt
+```
+
+### Stop Collectors
+
+When done, stop the collectors:
+
+```bash
+tmpnetctl stop-metrics-collector
+tmpnetctl stop-logs-collector
+```
+
+## Monitoring Configuration
+
+### Service Discovery
+
+tmpnet uses file-based service discovery to automatically configure monitoring:
+
+**Prometheus Configuration:**
+```
+~/.tmpnet/prometheus/file_sd_configs/
+└── [network-uuid]-[node-id].json
+```
+
+**Promtail Configuration:**
+```
+~/.tmpnet/promtail/file_sd_configs/
+└── [network-uuid]-[node-id].json
+```
+
+When a node starts, tmpnet automatically creates these configuration files. When a node stops, the files are removed.
+
+### Metric Labels
+
+All metrics include these labels for filtering:
+
+- `network_uuid` - Unique identifier for the network
+- `node_id` - Node ID
+- `is_ephemeral_node` - Whether the node is ephemeral
+- `network_owner` - User-defined network owner identifier
+
+When running in GitHub Actions, additional labels are added:
+- `gh_repo` - Repository name
+- `gh_workflow` - Workflow name
+- `gh_run_id` - Run ID
+- `gh_job_id` - Job ID
+
+### Custom Grafana Instance
+
+Use a custom Grafana instance:
+
+```bash
+export GRAFANA_URI="https://your-grafana.example.com/d/your-dashboard-id"
+```
+
+The emitted links will use your custom Grafana instance.
+
+## Monitoring in Code
+
+### Enable Monitoring Programmatically
+
+Start collectors from Go code:
+
+```go
+import "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+
+// Start Prometheus
+err := tmpnet.StartPrometheus(
+    prometheusURL,
+    prometheusUsername,
+    prometheusPassword,
+    pushURL,
+    os.Stdout, // Progress output
+)
+if err != nil {
+    panic(err)
+}
+
+// Start Promtail
+err = tmpnet.StartPromtail(
+    lokiURL,
+    lokiUsername,
+    lokiPassword,
+    pushURL,
+    os.Stdout,
+)
+if err != nil {
+    panic(err)
+}
+```
+
+### Verify Collection
+
+Check that metrics and logs are being collected:
+
+```go
+// Check metrics
+err := tmpnet.CheckMetricsExist(context.Background(), prometheusURL, prometheusUsername, prometheusPassword, network.UUID)
+if err != nil {
+    fmt.Println("Metrics not found:", err)
+}
+
+// Check logs
+err = tmpnet.CheckLogsExist(context.Background(), lokiURL, lokiUsername, lokiPassword, network.UUID)
+if err != nil {
+    fmt.Println("Logs not found:", err)
+}
+```
+
+## Monitoring Patterns
+
+### Development Workflow
+
+For local development:
+
+```bash
+# Start collectors once
+tmpnetctl start-metrics-collector
+tmpnetctl start-logs-collector
+
+# Create/destroy networks as needed
+tmpnetctl start-network
+# ... test ...
+tmpnetctl stop-network
+
+# Collectors keep running
+# Stop when done with all testing
+tmpnetctl stop-metrics-collector
+tmpnetctl stop-logs-collector
+```
+
+### Test Isolation
+
+Filter to specific networks using the network UUID:
+
+```
+# In Grafana, filter by:
+network_uuid="abc-123-def-456"
+```
+
+Each network gets a unique UUID, making it easy to isolate results.
+
+### Ephemeral Node Monitoring
+
+Track ephemeral nodes separately:
+
+```
+# Filter to only ephemeral nodes:
+is_ephemeral_node="true"
+
+# Filter to only permanent nodes:
+is_ephemeral_node="false"
+```
+
+## Common Metrics
+
+tmpnet collects standard AvalancheGo metrics:
+
+### Node Health
+- `avalanche_network_peers` - Number of connected peers
+- `avalanche_P_vm_blks_accepted` - Accepted blocks on P-Chain
+- `avalanche_health_checks_failing` - Failing health checks
+
+### Network Activity
+- `avalanche_network_msgs_sent` - Messages sent
+- `avalanche_network_msgs_received` - Messages received
+- `avalanche_network_bandwidth_throttler_inbound_acquired_bytes` - Inbound bandwidth
+
+### Consensus
+- `avalanche_snowman_polls_successful` - Successful consensus polls
+- `avalanche_snowman_polls_failed` - Failed consensus polls
+- `avalanche_P_blks_processing` - Blocks currently processing
+
+### Performance
+- `avalanche_P_vm_blks_processing_time` - Block processing time
+- `go_goroutines` - Number of goroutines
+- `go_memstats_alloc_bytes` - Memory allocated
+
+### Custom VM Metrics
+
+If your custom VM exports Prometheus metrics, they'll be collected automatically.
+
+## Log Collection
+
+### Log Levels
+
+Configure log verbosity per node:
+
+```go
+node.Flags = tmpnet.FlagsMap{
+    "log-level": "debug", // trace, debug, info, warn, error, fatal
+    "log-display-level": "info",
+}
+```
+
+### Log Queries in Grafana
+
+Example queries in Grafana Explore (Loki):
+
+```text
+# All logs for a network
+{network_uuid="abc-123"}
+
+# Error logs only
+{network_uuid="abc-123"} |= "error" or "ERROR"
+
+# Logs from a specific node
+{network_uuid="abc-123", node_id="NodeID-7Xhw2..."}
+
+# Search for specific patterns
+{network_uuid="abc-123"} |= "consensus"
+
+# Regex search
+{network_uuid="abc-123"} |~ "block \\d+ accepted"
+```
+
+### Structured Logging
+
+Enable JSON structured logging for easier parsing:
+
+```go
+network.DefaultFlags = tmpnet.FlagsMap{
+    "log-format": "json",
+}
+```
+
+## Troubleshooting
+
+### Collectors Won't Start
+
+**Check if already running:**
+```bash
+ps aux | grep prometheus
+ps aux | grep promtail
+```
+
+**Stop existing processes:**
+```bash
+tmpnetctl stop-metrics-collector
+tmpnetctl stop-logs-collector
+```
+
+### No Metrics Appear
+
+**Verify collectors are running:**
+```bash
+ps aux | grep prometheus
+```
+
+**Check service discovery configs exist:**
+```bash
+ls ~/.tmpnet/prometheus/file_sd_configs/
+```
+
+**Verify network UUID:**
+```bash
+cat ~/.tmpnet/networks/latest/config.json | jq -r '.uuid'
+```
+
+**Check Prometheus is scraping:**
+```bash
+# Check Prometheus logs
+tail -f ~/.tmpnet/prometheus/*.log
+```
+
+### No Logs Appear
+
+**Check Promtail is running:**
+```bash
+ps aux | grep promtail
+```
+
+**Verify log files exist:**
+```bash
+ls ~/.tmpnet/networks/latest/NodeID-*/logs/
+```
+
+**Check Promtail configuration:**
+```bash
+ls ~/.tmpnet/promtail/file_sd_configs/
+```
+
+### Can't Access Grafana
+
+**Check the metrics link:**
+```bash
+cat ~/.tmpnet/networks/latest/metrics.txt
+```
+
+**Verify GRAFANA_URI is set:**
+```bash
+echo $GRAFANA_URI
+```
+
+**Check network UUID is in the URL:**
+The URL should contain `var-network_uuid=YOUR_UUID`
+
+## CI/CD Integration
+
+### GitHub Actions
+
+Use the provided GitHub Action for automated monitoring:
+
+```yaml
+- name: Run tests with monitoring
+  uses: ./.github/actions/run-monitored-tmpnet-cmd
+  with:
+    run: ./scripts/test.sh
+    prometheus_url: ${{ secrets.PROMETHEUS_URL }}
+    prometheus_push_url: ${{ secrets.PROMETHEUS_PUSH_URL }}
+    prometheus_username: ${{ secrets.PROMETHEUS_USERNAME }}
+    prometheus_password: ${{ secrets.PROMETHEUS_PASSWORD }}
+    loki_url: ${{ secrets.LOKI_URL }}
+    loki_push_url: ${{ secrets.LOKI_PUSH_URL }}
+    loki_username: ${{ secrets.LOKI_USERNAME }}
+    loki_password: ${{ secrets.LOKI_PASSWORD }}
+```
+
+The action automatically:
+- Starts collectors
+- Runs your tests
+- Stops collectors
+- Uploads network artifacts
+- Emits Grafana links in logs
+
+### Custom CI Systems
+
+For other CI systems:
+
+```bash
+#!/bin/bash
+set -e
+
+# Start collectors
+tmpnetctl start-metrics-collector
+tmpnetctl start-logs-collector
+
+# Ensure cleanup on exit
+trap "tmpnetctl stop-metrics-collector; tmpnetctl stop-logs-collector" EXIT
+
+# Run your tests
+./run-tests.sh
+
+# Metrics link is in the network directory
+cat ~/.tmpnet/networks/latest/metrics.txt
+```
+
+## Advanced Monitoring
+
+### Custom Metrics Dashboard
+
+Create custom Grafana dashboards using tmpnet labels:
+
+```
+# Panel: Network Message Rate
+rate(avalanche_network_msgs_sent{network_uuid="$network_uuid"}[1m])
+
+# Panel: Block Processing Time (P-Chain)
+histogram_quantile(0.99, rate(avalanche_P_vm_blks_processing_time_bucket[5m]))
+
+# Panel: Active Validators
+avalanche_P_vm_validators_count{network_uuid="$network_uuid"}
+```
+
+### Alerting
+
+Set up alerts based on network behavior:
+
+```
+# Alert when nodes disconnect
+avalanche_network_peers < 4
+
+# Alert on high block processing time
+histogram_quantile(0.99, rate(avalanche_P_vm_blks_processing_time_bucket[5m])) > 1000
+
+# Alert on failed health checks
+avalanche_health_checks_failing > 0
+```
+
+### Metric Retention
+
+Metrics are retained according to your Prometheus backend configuration. For long-running tests, ensure sufficient retention.
+
+## Next Steps
+
+<Cards>
+  <Card title="Configuration Reference" href="/docs/tooling/tmpnet/reference/configuration">
+    Detailed configuration options
+  </Card>
+  <Card title="CLI Reference" href="/docs/tooling/tmpnet/reference/cli-commands">
+    Complete tmpnetctl commands
+  </Card>
+</Cards>
+
+## Additional Resources
+
+- [Prometheus Documentation](https://prometheus.io/docs/)
+- [Grafana Loki Documentation](https://grafana.com/docs/loki/)
+- [AvalancheGo Metrics](/docs/nodes/metrics)
+- [Full tmpnet README - Monitoring Section](https://github.com/ava-labs/avalanchego/blob/master/tests/fixture/tmpnet/README.md#monitoring)

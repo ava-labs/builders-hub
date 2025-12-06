@@ -1,0 +1,16 @@
+{
+  "title": "Guides",
+  "description": "Task-focused guides for testing Avalanche L1s with tmpnet and Ginkgo",
+  "pages": [
+    "getting-started",
+    "l1-conversion",
+    "validator-management-native-staking",
+    "staking-and-delegation",
+    "cross-chain-messaging",
+    "transaction-utilities",
+    "warp-messages",
+    "testing-custom-vms",
+    "subnet-testing",
+    "monitoring"
+  ]
+}

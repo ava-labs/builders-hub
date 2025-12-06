@@ -1,0 +1,493 @@
+---
+title: Subnet Testing
+description: Test subnet creation, validators, and cross-subnet interactions with tmpnet
+---
+
+This guide covers advanced subnet testing scenarios using tmpnet, including subnet creation, validator management, and testing cross-subnet functionality.
+
+## Overview
+
+tmpnet supports comprehensive subnet testing:
+
+- Create subnets with specific validators
+- Test validator operations (add/remove)
+- Configure subnet parameters
+- Test cross-subnet messaging with Warp
+- Validate L1 conversions
+
+## Creating a Subnet with Specific Validators
+
+### Basic Example
+
+Create a subnet validated by specific nodes:
+
+```go
+import (
+    "context"
+    "os"
+    "time"
+
+    "github.com/ava-labs/avalanchego/ids"
+    "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+    "github.com/ava-labs/avalanchego/utils/constants"
+    "github.com/ava-labs/avalanchego/utils/logging"
+)
+
+// Create 5-node network
+network := &tmpnet.Network{
+    Nodes: tmpnet.NewNodesOrPanic(5),
+    DefaultRuntimeConfig: tmpnet.NodeRuntimeConfig{
+        Process: &tmpnet.ProcessRuntimeConfig{
+            AvalancheGoPath: os.Getenv("AVALANCHEGO_PATH"),
+            PluginDir:       os.Getenv("AVAGO_PLUGIN_DIR"),
+        },
+    },
+}
+
+// Subnet validated by first 3 nodes only
+subnet := &tmpnet.Subnet{
+    Name: "my-subnet",
+    ValidatorIDs: []ids.NodeID{
+        network.Nodes[0].NodeID,
+        network.Nodes[1].NodeID,
+        network.Nodes[2].NodeID,
+    },
+    Chains: []*tmpnet.Chain{{
+        VMID:    constants.XSVMID,
+        Genesis: genesisBytes,
+    }},
+}
+
+network.Subnets = []*tmpnet.Subnet{subnet}
+
+// Bootstrap
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+defer cancel()
+
+err := tmpnet.BootstrapNewNetwork(ctx, logging.NoLog{}, network, "")
+if err != nil {
+    panic(err)
+}
+
+println("Subnet ID:", subnet.SubnetID.String())
+```
+
+### Subnet Configuration
+
+Customize subnet parameters:
+
+```go
+subnet.Config = tmpnet.ConfigMap{
+    "proposerMinBlockDelay": 0,        // Minimum block delay
+    "proposerNumHistoricalBlocks": 50000,  // Historical blocks
+}
+```
+
+## Testing Multiple Subnets
+
+Create overlapping and isolated subnets:
+
+```go
+nodes := tmpnet.NewNodesOrPanic(7)
+
+// Subnet A: nodes 0-2
+subnetA := &tmpnet.Subnet{
+    Name:         "subnet-a",
+    ValidatorIDs: []ids.NodeID{nodes[0].NodeID, nodes[1].NodeID, nodes[2].NodeID},
+    Chains:       []*tmpnet.Chain{chainA},
+}
+
+// Subnet B: nodes 2-4 (node 2 validates both A and B)
+subnetB := &tmpnet.Subnet{
+    Name:         "subnet-b",
+    ValidatorIDs: []ids.NodeID{nodes[2].NodeID, nodes[3].NodeID, nodes[4].NodeID},
+    Chains:       []*tmpnet.Chain{chainB},
+}
+
+// Subnet C: nodes 5-6 (isolated)
+subnetC := &tmpnet.Subnet{
+    Name:         "subnet-c",
+    ValidatorIDs: []ids.NodeID{nodes[5].NodeID, nodes[6].NodeID},
+    Chains:       []*tmpnet.Chain{chainC},
+}
+
+network := &tmpnet.Network{
+    Nodes:   nodes,
+    Subnets: []*tmpnet.Subnet{subnetA, subnetB, subnetC},
+}
+```
+
+This lets you test:
+- Shared validators (node 2 validates both A and B)
+- Isolated subnets (subnet C)
+- Cross-subnet messaging via shared validators
+
+## Adding Validators to a Running Subnet
+
+Test adding validators dynamically to an existing subnet:
+
+```go
+func addValidatorToSubnet(network *tmpnet.Network, subnet *tmpnet.Subnet) error {
+    // Create a new ephemeral node
+    newNode := tmpnet.NewEphemeralNode(tmpnet.FlagsMap{
+        config.TrackSubnetsKey: subnet.SubnetID.String(),
+    })
+
+    // Start the node
+    err := network.StartNode(context.Background(), newNode)
+    if err != nil {
+        return err
+    }
+
+    // Add as subnet validator using the subnet wallet
+    // (Implementation details depend on your wallet setup)
+    err = addSubnetValidator(subnet, newNode.NodeID)
+    if err != nil {
+        return err
+    }
+
+    // Wait for validator to become active
+    return subnet.WaitForActiveValidators(context.Background(), newNode.NodeID)
+}
+```
+
+## Testing Subnet-to-L1 Conversion
+
+Test converting a subnet to an L1 blockchain:
+
+```go
+func testL1Conversion(t *testing.T) {
+    // Create initial subnet
+    network := createNetworkWithSubnet()
+    defer network.Stop(context.Background())
+
+    subnet := network.Subnets[0]
+
+    // Perform L1 conversion operations
+    // 1. Register L1 validators
+    for _, node := range network.Nodes {
+        err := registerL1Validator(subnet, node)
+        require.NoError(t, err)
+    }
+
+    // 2. Convert subnet to L1
+    err := convertSubnetToL1(subnet)
+    require.NoError(t, err)
+
+    // 3. Wait for validators to activate
+    err = waitForL1Validators(subnet)
+    require.NoError(t, err)
+
+    // 4. Verify L1 functionality
+    verifyL1Behavior(t, subnet)
+}
+```
+
+## Cross-Subnet Messaging
+
+Test Avalanche Warp Messaging between subnets:
+
+```go
+func testWarpMessaging(t *testing.T) {
+    // Create network with two subnets
+    network := createMultiSubnetNetwork()
+    defer network.Stop(context.Background())
+
+    sourceSubnet := network.Subnets[0]
+    destSubnet := network.Subnets[1]
+
+    // Send a Warp message from source to destination
+    message := createWarpMessage(sourceSubnet)
+
+    // Get signatures from source subnet validators
+    signatures := collectWarpSignatures(sourceSubnet, message)
+
+    // Submit message to destination subnet
+    err := submitWarpMessage(destSubnet, message, signatures)
+    require.NoError(t, err)
+
+    // Verify message was received and processed
+    verifyWarpMessage(t, destSubnet, message)
+}
+```
+
+## Subnet Validator Lifecycle Testing
+
+Test the complete validator lifecycle on a subnet:
+
+```go
+func TestSubnetValidatorLifecycle(t *testing.T) {
+    network := setupNetwork(t)
+    defer network.Stop(context.Background())
+
+    subnet := network.Subnets[0]
+
+    // Create a new node to add as validator
+    node := tmpnet.NewEphemeralNode(tmpnet.FlagsMap{
+        config.TrackSubnetsKey: subnet.SubnetID.String(),
+    })
+
+    // Start the node
+    err := network.StartNode(context.Background(), node)
+    require.NoError(t, err)
+
+    // Add as pending validator
+    t.Run("AddValidator", func(t *testing.T) {
+        err := addSubnetValidator(subnet, node.NodeID, startTime, endTime, weight)
+        require.NoError(t, err)
+    })
+
+    // Wait for validation period to start
+    t.Run("WaitForActive", func(t *testing.T) {
+        err := subnet.WaitForActiveValidators(context.Background(), node.NodeID)
+        require.NoError(t, err)
+    })
+
+    // Verify validator is active
+    t.Run("VerifyActive", func(t *testing.T) {
+        active := isValidatorActive(subnet, node.NodeID)
+        require.True(t, active)
+    })
+
+    // Remove validator
+    t.Run("RemoveValidator", func(t *testing.T) {
+        err := removeSubnetValidator(subnet, node.NodeID)
+        require.NoError(t, err)
+    })
+
+    // Verify validator is removed
+    t.Run("VerifyRemoved", func(t *testing.T) {
+        active := isValidatorActive(subnet, node.NodeID)
+        require.False(t, active)
+    })
+}
+```
+
+## Testing Subnet Configuration Changes
+
+Test how subnet configuration changes affect behavior:
+
+```go
+func testSubnetConfigUpdate(t *testing.T) {
+    // Initial configuration
+    subnet := &tmpnet.Subnet{
+        Name: "configurable-subnet",
+        Config: tmpnet.ConfigMap{
+            "proposerMinBlockDelay": 1000, // 1 second
+        },
+        Chains:       []*tmpnet.Chain{chain},
+        ValidatorIDs: validatorIDs,
+    }
+
+    network := &tmpnet.Network{
+        Nodes:   nodes,
+        Subnets: []*tmpnet.Subnet{subnet},
+        DefaultRuntimeConfig: tmpnet.NodeRuntimeConfig{
+            Process: &tmpnet.ProcessRuntimeConfig{
+                AvalancheGoPath: avalanchegoPath,
+                PluginDir:       pluginDir,
+            },
+        },
+    }
+
+    // Bootstrap network
+    require.NoError(t, tmpnet.BootstrapNewNetwork(ctx, os.Stdout, network, ""))
+
+    // Test behavior with initial config
+    measureBlockTime(t, subnet, 1000)
+
+    // Update configuration
+    subnet.Config["proposerMinBlockDelay"] = 0
+
+    // Restart nodes to apply new configuration
+    network.Restart(context.Background())
+
+    // Test behavior with updated config
+    measureBlockTime(t, subnet, 0)
+}
+```
+
+## Tracking Specific Subnets
+
+Configure nodes to track specific subnets for testing:
+
+```go
+// Configure network to track subnet
+network.DefaultFlags = tmpnet.FlagsMap{
+    config.TrackSubnetsKey: subnetID.String(),
+}
+
+// Or configure individual nodes
+node.Flags = tmpnet.FlagsMap{
+    config.TrackSubnetsKey: fmt.Sprintf("%s,%s", subnet1.String(), subnet2.String()),
+}
+```
+
+## Testing Subnet Validator Weights
+
+Test different validator weight distributions:
+
+```go
+func testValidatorWeights(t *testing.T) {
+    network := setupNetwork(t)
+
+    // Add validators with different weights
+    validators := []struct {
+        nodeID ids.NodeID
+        weight uint64
+    }{
+        {network.Nodes[0].NodeID, 100}, // 50% of total weight
+        {network.Nodes[1].NodeID, 50},  // 25% of total weight
+        {network.Nodes[2].NodeID, 30},  // 15% of total weight
+        {network.Nodes[3].NodeID, 20},  // 10% of total weight
+    }
+
+    for _, v := range validators {
+        err := addSubnetValidator(subnet, v.nodeID, startTime, endTime, v.weight)
+        require.NoError(t, err)
+    }
+
+    // Test consensus with weighted validators
+    testConsensusWithWeights(t, subnet, validators)
+}
+```
+
+## Ephemeral Subnet Validators
+
+Add temporary validators for specific test scenarios:
+
+```go
+func addEphemeralValidator(network *tmpnet.Network, subnet *tmpnet.Subnet) (*tmpnet.Node, error) {
+    // Create ephemeral node that tracks the subnet
+    ephemeralNode := tmpnet.NewEphemeralNode(tmpnet.FlagsMap{
+        config.TrackSubnetsKey:          subnet.SubnetID.String(),
+        config.SybilProtectionEnabledKey: "false", // For testing only
+    })
+
+    // Add to network
+    err := network.AddEphemeralNode(context.Background(), ephemeralNode)
+    if err != nil {
+        return nil, err
+    }
+
+    // Add as subnet validator with short duration
+    shortDuration := 5 * time.Minute
+    err = addSubnetValidator(
+        subnet,
+        ephemeralNode.NodeID,
+        time.Now(),
+        time.Now().Add(shortDuration),
+        20, // weight
+    )
+
+    return ephemeralNode, err
+}
+```
+
+## Common Testing Patterns
+
+### Testing Subnet Bootstrap
+
+Verify that nodes can bootstrap from a subnet:
+
+```go
+func testSubnetBootstrap(t *testing.T) {
+    // Create and bootstrap network with subnet
+    network := createNetworkWithSubnet()
+    defer network.Stop(context.Background())
+
+    // Create a new node
+    newNode := tmpnet.NewNode()
+    newNode.Flags = tmpnet.FlagsMap{
+        config.TrackSubnetsKey: subnet.SubnetID.String(),
+    }
+
+    // Start the node
+    err := network.StartNode(context.Background(), newNode)
+    require.NoError(t, err)
+
+    // Verify the node bootstrapped the subnet
+    verifySubnetBootstrap(t, newNode, subnet)
+}
+```
+
+### Testing Subnet Chain Upgrades
+
+Test deploying chain upgrades on a subnet:
+
+```go
+func testChainUpgrade(t *testing.T) {
+    network := setupNetworkWithSubnet(t)
+
+    // Deploy initial chain version
+    // ... operate chain ...
+
+    // Stop network
+    network.Stop(context.Background())
+
+    // Update chain configuration or VM binary
+    updateChainConfig(network.Subnets[0])
+
+    // Restart network
+    err := network.Restart(context.Background())
+    require.NoError(t, err)
+
+    // Verify upgrade succeeded
+    verifyChainUpgrade(t, network.Subnets[0])
+}
+```
+
+## Troubleshooting
+
+### Subnet Creation Fails
+
+**Check:**
+- Sufficient nodes are specified as validators (minimum 1)
+- Nodes have generated staking keys
+- Bootstrap node has sufficient funds for transactions
+
+**Debug:**
+```bash
+# Check subnet creation logs
+grep -i "subnet" ~/.tmpnet/networks/latest/NodeID-*/logs/main.log
+```
+
+### Validators Not Becoming Active
+
+**Check:**
+- Validation period has started
+- Nodes are tracking the subnet
+- Subnet validators were added correctly
+
+**Debug:**
+```bash
+# Check if node is tracking subnet
+cat ~/.tmpnet/networks/latest/NodeID-*/flags.json | jq '.["track-subnets"]'
+```
+
+### Cross-Subnet Messaging Issues
+
+**Check:**
+- Both subnets have active validators
+- Nodes validating both subnets have proper connectivity
+- Warp messaging is enabled
+
+## Next Steps
+
+<Cards>
+  <Card title="Programmatic Usage" href="/docs/tooling/tmpnet/guides/programmatic-usage">
+    Learn more about using tmpnet in Go code
+  </Card>
+  <Card title="Monitoring" href="/docs/tooling/tmpnet/guides/monitoring">
+    Monitor subnet behavior with metrics
+  </Card>
+  <Card title="Configuration Reference" href="/docs/tooling/tmpnet/reference/configuration">
+    Detailed configuration options
+  </Card>
+</Cards>
+
+## Additional Resources
+
+- [Subnet Examples in E2E Tests](https://github.com/ava-labs/avalanchego/tree/master/tests/e2e)
+- [Subnet Documentation](/docs/subnets)
+- [Warp Messaging](/docs/cross-chain)

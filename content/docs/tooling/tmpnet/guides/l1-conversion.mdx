@@ -1,0 +1,595 @@
+---
+title: Testing L1 Conversion
+description: Learn how to convert subnets to L1s with validator managers in your tests
+---
+
+This guide shows how to test converting a subnet to an L1 (Layer 1) blockchain with a validator manager. L1 conversion is the process of upgrading a subnet to use Proof of Stake consensus with custom validator management.
+
+> Pattern guide only. These snippets mirror helpers in `icm-services` (for example `icm-contracts/tests/network`) and rely on shared utilities for genesis creation, contract bindings, and Warp signing. Copy from those source files for runnable code.
+
+## Overview
+
+Converting a subnet to an L1 involves:
+
+1. Deploying a validator manager contract
+2. Issuing a `ConvertSubnetToL1Tx` on the P-Chain
+3. Initializing the validator set with a Warp message
+4. Managing validator registration and removal
+
+## Prerequisites
+
+- Complete the [Getting Started](/docs/tooling/tmpnet/guides/getting-started) guide
+- Understand basic Ginkgo test setup
+- Have a network with at least one L1 created
+
+## Validator Manager Types
+
+Choose one of three validator manager types:
+
+| Type | Description | Use Case |
+|------|-------------|----------|
+| **PoA** | Proof of Authority | Permissioned networks with owner-controlled validators |
+| **Native Token Staking** | Stake native chain tokens | Public networks using chain's native currency |
+| **ERC20 Token Staking** | Stake ERC20 tokens | Networks with custom governance tokens |
+
+## Basic L1 Conversion Flow
+
+### Complete Test Example
+
+```go title="l1_conversion_test.go"
+package conversion_test
+
+import (
+    "context"
+    "flag"
+    "math/big"
+    "os"
+    "testing"
+    "time"
+
+    "github.com/ava-labs/avalanchego/ids"
+    "github.com/ava-labs/avalanchego/tests/fixture/e2e"
+    "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+    "github.com/ava-labs/avalanchego/units"
+    "github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
+    "github.com/ethereum/go-ethereum/common"
+    "github.com/ethereum/go-ethereum/crypto"
+    "github.com/ethereum/go-ethereum/ethclient"
+    "github.com/onsi/ginkgo/v2"
+    . "github.com/onsi/gomega"
+)
+
+var (
+    network      *tmpnet.Network
+    e2eFlags     *e2e.FlagVars
+    fundedKey    *secp256k1.PrivateKey
+    l1Info       L1TestInfo
+)
+
+func TestMain(m *testing.M) {
+    e2eFlags = e2e.RegisterFlags()
+    flag.Parse()
+    os.Exit(m.Run())
+}
+
+func TestL1Conversion(t *testing.T) {
+    if os.Getenv("RUN_E2E") == "" {
+        t.Skip("RUN_E2E not set")
+    }
+
+    RegisterFailHandler(ginkgo.Fail)
+    ginkgo.RunSpecs(t, "L1 Conversion Test Suite")
+}
+
+var _ = ginkgo.BeforeSuite(func() {
+    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+    defer cancel()
+
+    // Create network with one L1
+    network = createNetworkWithL1(ctx)
+
+    // Get funded key
+    fundedKey = network.PreFundedKeys[0]
+
+    // Get L1 info
+    l1Info = getL1Info(network.Subnets[0])
+})
+
+var _ = ginkgo.AfterSuite(func() {
+    if network != nil {
+        network.Stop(context.Background())
+    }
+})
+
+var _ = ginkgo.Describe("[L1 Conversion]", func() {
+    ginkgo.It("should convert subnet to L1 with native staking",
+        ginkgo.Label("conversion", "native-staking"),
+        func() {
+            ctx := context.Background()
+
+            // Convert subnet to L1
+            nodes, validationIDs := convertSubnetToL1(
+                ctx,
+                network,
+                l1Info,
+                NativeTokenStakingManager,
+                fundedKey,
+            )
+
+            Expect(nodes).To(HaveLen(2))
+            Expect(validationIDs).To(HaveLen(2))
+
+            // Verify validators are active
+            for _, validationID := range validationIDs {
+                status := getValidatorStatus(ctx, l1Info, validationID)
+                Expect(status).To(Equal(ValidatorStatusActive))
+            }
+        })
+})
+```
+
+## ConvertSubnet Implementation
+
+### The ConvertSubnet Function
+
+Here's the core conversion logic based on ICM Services:
+
+```go title="conversion.go"
+package conversion
+
+import (
+    "context"
+    "math/big"
+
+    "github.com/ava-labs/avalanchego/ids"
+    "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+    "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+    "github.com/ethereum/go-ethereum/common"
+)
+
+type ValidatorManagerType int
+
+const (
+    PoAValidatorManager ValidatorManagerType = iota
+    NativeTokenStakingManager
+    ERC20TokenStakingManager
+)
+
+// ConvertSubnet converts a subnet to an L1 with validator manager
+func ConvertSubnet(
+    ctx context.Context,
+    network *tmpnet.Network,
+    l1 L1TestInfo,
+    managerType ValidatorManagerType,
+    weights []uint64,
+    fundedKey *ecdsa.PrivateKey,
+) ([]*tmpnet.Node, []ids.ID) {
+
+    // Step 1: Deploy validator manager
+    validatorManagerAddress := deployValidatorManager(
+        ctx,
+        l1,
+        managerType,
+        fundedKey,
+    )
+
+    // Step 2: Initialize validator manager settings
+    initializeValidatorManager(
+        ctx,
+        l1,
+        validatorManagerAddress,
+        managerType,
+        fundedKey,
+    )
+
+    // Step 3: Add new nodes to network
+    numValidators := len(weights)
+    newNodes := make([]*tmpnet.Node, numValidators)
+
+    for i := 0; i < numValidators; i++ {
+        node := tmpnet.NewEphemeralNode(tmpnet.FlagsMap{})
+        err := network.StartNode(ctx, node)
+        Expect(err).NotTo(HaveOccurred())
+
+        err = node.WaitForHealthy(ctx)
+        Expect(err).NotTo(HaveOccurred())
+
+        newNodes[i] = node
+    }
+
+    // Step 4: Issue ConvertSubnetToL1Tx on P-Chain
+    convertSubnetTxID := issueConvertSubnetToL1Tx(
+        ctx,
+        network,
+        l1.SubnetID,
+        validatorManagerAddress,
+        fundedKey,
+    )
+
+    // Step 5: Initialize validator set with Warp message
+    initialValidationIDs := initializeValidatorSet(
+        ctx,
+        network,
+        l1,
+        validatorManagerAddress,
+        newNodes,
+        weights,
+        convertSubnetTxID,
+        fundedKey,
+    )
+
+    // Step 6: Add new nodes as L1 validators
+    for i, node := range newNodes {
+        addNodeToL1(ctx, network, l1, node)
+    }
+
+    return newNodes, initialValidationIDs
+}
+
+// deployValidatorManager deploys the appropriate validator manager contract
+func deployValidatorManager(
+    ctx context.Context,
+    l1 L1TestInfo,
+    managerType ValidatorManagerType,
+    fundedKey *ecdsa.PrivateKey,
+) common.Address {
+
+    var address common.Address
+
+    switch managerType {
+    case PoAValidatorManager:
+        address = deployPoAValidatorManager(ctx, l1, fundedKey)
+    case NativeTokenStakingManager:
+        address = deployNativeStakingManager(ctx, l1, fundedKey)
+    case ERC20TokenStakingManager:
+        address = deployERC20StakingManager(ctx, l1, fundedKey)
+    }
+
+    return address
+}
+
+// initializeValidatorManager sets up initial validator manager parameters
+func initializeValidatorManager(
+    ctx context.Context,
+    l1 L1TestInfo,
+    managerAddress common.Address,
+    managerType ValidatorManagerType,
+    fundedKey *ecdsa.PrivateKey,
+) {
+
+    switch managerType {
+    case PoAValidatorManager:
+        // PoA: Set owner address
+        ownerAddress := crypto.PubkeyToAddress(fundedKey.PublicKey)
+        initializePoA(ctx, l1, managerAddress, ownerAddress, fundedKey)
+
+    case NativeTokenStakingManager:
+        // Native Staking: Set staking parameters
+        settings := NativeTokenStakingSettings{
+            MinStakeDuration:      1,
+            MinStakeAmount:        big.NewInt(1e16),
+            MaxStakeAmount:        big.NewInt(10e18),
+            MinDelegateFee:        1,
+            MaxChurnPercentage:    20,
+            ChurnPeriodSeconds:    1,
+            WeightToValueFactor:   big.NewInt(1e12),
+        }
+        initializeNativeStaking(ctx, l1, managerAddress, settings, fundedKey)
+
+    case ERC20TokenStakingManager:
+        // ERC20 Staking: Set token and parameters
+        tokenAddress := common.HexToAddress("0x...") // Your ERC20 token
+        settings := ERC20TokenStakingSettings{
+            MinStakeDuration:    1,
+            MinStakeAmount:      big.NewInt(1e18),
+            MaxStakeAmount:      big.NewInt(1000e18),
+            MinDelegateFee:      1,
+            MaxChurnPercentage:  20,
+            ChurnPeriodSeconds:  1,
+        }
+        initializeERC20Staking(ctx, l1, managerAddress, tokenAddress, settings, fundedKey)
+    }
+}
+
+// issueConvertSubnetToL1Tx issues the conversion transaction on P-Chain
+func issueConvertSubnetToL1Tx(
+    ctx context.Context,
+    network *tmpnet.Network,
+    subnetID ids.ID,
+    validatorManagerAddress common.Address,
+    fundedKey *ecdsa.PrivateKey,
+) ids.ID {
+
+    // Get P-Chain wallet
+    pChainWallet := network.GetPChainWallet(fundedKey)
+
+    // Convert address to proper format
+    managerAddressBytes := validatorManagerAddress.Bytes()
+    var chainAddress [20]byte
+    copy(chainAddress[:], managerAddressBytes)
+
+    // Issue ConvertSubnetToL1Tx
+    txID, err := pChainWallet.IssueConvertSubnetToL1Tx(
+        subnetID,
+        chainAddress,
+        fundedKey,
+    )
+    Expect(err).NotTo(HaveOccurred())
+
+    return txID
+}
+
+// initializeValidatorSet creates initial validators with Warp message
+func initializeValidatorSet(
+    ctx context.Context,
+    network *tmpnet.Network,
+    l1 L1TestInfo,
+    validatorManagerAddress common.Address,
+    nodes []*tmpnet.Node,
+    weights []uint64,
+    convertTxID ids.ID,
+    fundedKey *ecdsa.PrivateKey,
+) []ids.ID {
+
+    // Build initial validator set
+    validatorSet := make([]InitialValidator, len(nodes))
+    for i, node := range nodes {
+        validationID := createValidationID(node.NodeID, l1.SubnetID)
+
+        validatorSet[i] = InitialValidator{
+            NodeID:       node.NodeID.Bytes(),
+            Weight:       weights[i],
+            BlsPublicKey: node.BlsPublicKey,
+        }
+    }
+
+    // Create SubnetToL1ConversionMessage
+    conversionData := SubnetToL1ConversionData{
+        SubnetID:                  l1.SubnetID,
+        ManagerBlockchainID:       l1.BlockchainID,
+        ManagerAddress:            validatorManagerAddress.Bytes(),
+        Validators:                validatorSet,
+    }
+
+    // Sign with P-Chain validators
+    unsignedMessage := warp.NewUnsignedMessage(
+        network.NetworkID,
+        l1.BlockchainID,
+        encodeConversionData(conversionData),
+    )
+
+    signedMessage := signWarpMessage(
+        ctx,
+        network,
+        unsignedMessage,
+        l1.SubnetID,
+    )
+
+    // Initialize validator set on contract
+    validatorManager := getValidatorManagerContract(l1, validatorManagerAddress)
+
+    tx := initializeValidatorSet(
+        ctx,
+        l1,
+        validatorManager,
+        conversionData,
+        signedMessage.Bytes(),
+        fundedKey,
+    )
+
+    receipt := waitForSuccess(ctx, l1, tx.Hash())
+
+    // Extract validation IDs from events
+    validationIDs := extractValidationIDsFromReceipt(receipt)
+
+    return validationIDs
+}
+```
+
+## Testing Different Validator Manager Types
+
+### PoA (Proof of Authority)
+
+```go
+ginkgo.It("should convert to PoA",
+    ginkgo.Label("poa"),
+    func() {
+        nodes, validationIDs := convertSubnetToL1(
+            context.Background(),
+            network,
+            l1Info,
+            PoAValidatorManager,
+            fundedKey,
+        )
+
+        Expect(nodes).To(HaveLen(2))
+        Expect(validationIDs).To(HaveLen(2))
+    })
+```
+
+### Native Token Staking
+
+```go
+ginkgo.It("should convert to native staking",
+    ginkgo.Label("native-staking"),
+    func() {
+        // Use different weights for validators
+        weights := []uint64{
+            1 * units.Schmeckle,      // Validator 1: 1 AVAX
+            1000 * units.Schmeckle,   // Validator 2: 1000 AVAX
+        }
+
+        nodes, validationIDs := convertSubnetToL1WithWeights(
+            context.Background(),
+            network,
+            l1Info,
+            NativeTokenStakingManager,
+            weights,
+            fundedKey,
+        )
+
+        Expect(nodes).To(HaveLen(2))
+        Expect(validationIDs).To(HaveLen(2))
+
+        // Verify weights
+        for i, validationID := range validationIDs {
+            weight := getValidatorWeight(context.Background(), l1Info, validationID)
+            Expect(weight).To(Equal(weights[i]))
+        }
+    })
+```
+
+### ERC20 Token Staking
+
+```go
+ginkgo.It("should convert to ERC20 staking",
+    ginkgo.Label("erc20-staking"),
+    func() {
+        // Deploy ERC20 token first
+        tokenAddress, token := deployERC20Token(
+            context.Background(),
+            l1Info,
+            fundedKey,
+            "Staking Token",
+            "STK",
+        )
+
+        // Convert with ERC20 manager
+        nodes, validationIDs := convertSubnetToL1WithERC20(
+            context.Background(),
+            network,
+            l1Info,
+            tokenAddress,
+            fundedKey,
+        )
+
+        Expect(nodes).To(HaveLen(2))
+        Expect(validationIDs).To(HaveLen(2))
+    })
+```
+
+## Verifying Conversion Success
+
+### Check Validator Status
+
+```go
+func verifyValidatorsActive(
+    ctx context.Context,
+    l1 L1TestInfo,
+    validationIDs []ids.ID,
+) {
+    validatorManager := getValidatorManagerContract(l1)
+
+    for _, validationID := range validationIDs {
+        validator, err := validatorManager.GetValidator(
+            &bind.CallOpts{},
+            validationID,
+        )
+        Expect(err).NotTo(HaveOccurred())
+
+        Expect(validator.Status).To(Equal(ValidatorStatusActive))
+        Expect(validator.Weight).To(BeNumerically(">", 0))
+    }
+}
+```
+
+### Check P-Chain State
+
+```go
+func verifyPChainValidators(
+    ctx context.Context,
+    network *tmpnet.Network,
+    subnetID ids.ID,
+    expectedCount int,
+) {
+    pClient := network.GetPChainClient()
+
+    validators, err := pClient.GetCurrentValidators(ctx, subnetID, nil)
+    Expect(err).NotTo(HaveOccurred())
+
+    Expect(validators).To(HaveLen(expectedCount))
+}
+```
+
+## Common Patterns
+
+### Conversion with Proxy
+
+For upgradeable validator managers:
+
+```go
+nodes, validationIDs, proxyAdmin := convertSubnetToL1WithProxy(
+    ctx,
+    network,
+    l1Info,
+    NativeTokenStakingManager,
+    fundedKey,
+)
+
+// Can upgrade later
+newImplementation := deployNewImplementation(ctx, l1Info, fundedKey)
+upgradeProxy(ctx, l1Info, proxyAdmin, newImplementation, fundedKey)
+```
+
+### Multiple Validators with Different Weights
+
+```go
+weights := []uint64{
+    100,   // Light validator
+    1000,  // Medium validator
+    10000, // Heavy validator
+}
+
+nodes, validationIDs := convertSubnetToL1WithWeights(
+    ctx, network, l1Info, NativeTokenStakingManager, weights, fundedKey,
+)
+```
+
+## Best Practices
+
+1. **Use generous timeouts**: Conversion involves P-Chain transactions which can be slow
+2. **Verify all steps**: Check validator status after conversion
+3. **Test different weights**: Ensure validator weighting works correctly
+4. **Handle errors**: P-Chain operations can fail, plan for retries
+5. **Clean up**: Stop extra nodes in AfterEach if creating new networks per test
+
+## Troubleshooting
+
+### Conversion Transaction Fails
+
+```go
+// Add retry logic
+var txID ids.ID
+err := retry.Do(func() error {
+    var err error
+    txID, err = issueConvertSubnetToL1Tx(ctx, network, subnetID, managerAddress, fundedKey)
+    return err
+}, retry.Attempts(3), retry.Delay(time.Second))
+```
+
+### Warp Message Not Signed
+
+Ensure all validators have accepted the block:
+
+```go
+waitForAllValidatorsToAcceptBlock(
+    ctx,
+    l1.NodeURIs,
+    l1.BlockchainID,
+    receipt.BlockNumber.Uint64(),
+)
+```
+
+## Next Steps
+
+<Cards>
+  <Card title="Native Token Staking" href="/docs/tooling/tmpnet/guides/validator-management-native-staking">
+    Test complete validator lifecycle with native tokens
+  </Card>
+  <Card title="PoA Management" href="/docs/tooling/tmpnet/guides/validator-management-poa">
+    Test proof of authority validator management
+  </Card>
+  <Card title="Cross-Chain Messaging" href="/docs/tooling/tmpnet/guides/cross-chain-messaging">
+    Test messaging between converted L1s
+  </Card>
+</Cards>

@@ -1,0 +1,175 @@
+---
+title: Warp Message Construction
+description: Learn how to construct, sign, and verify Warp messages for cross-chain communication
+---
+
+Warp messages enable secure cross-chain communication on Avalanche. This guide covers constructing unsigned messages, aggregating signatures, and verifying signed messages.
+
+## Overview
+
+Warp message flow:
+1. **Extract** unsigned message from transaction logs
+2. **Wait** for validator acceptance
+3. **Aggregate** signatures from validators
+4. **Create** signed message
+5. **Include** in predicate transaction on destination
+
+## Extracting Unsigned Messages
+
+### From Transaction Logs
+
+```go
+func ExtractWarpMessageFromLogs(
+    ctx context.Context,
+    receipt *types.Receipt,
+    source L1TestInfo,
+) *avalancheWarp.UnsignedMessage {
+
+    // Find SendWarpMessage log
+    var warpMessageBytes []byte
+
+    for _, log := range receipt.Logs {
+        if log.Topics[0] == warpMesssageEventTopic {
+            warpMessageBytes = log.Data
+            break
+        }
+    }
+
+    Expect(warpMessageBytes).NotTo(BeEmpty())
+
+    // Parse unsigned message
+    unsignedMessage, err := avalancheWarp.ParseUnsignedMessage(warpMessageBytes)
+    Expect(err).NotTo(HaveOccurred())
+
+    return unsignedMessage
+}
+```
+
+## Signature Aggregation
+
+### Setting Up Aggregator
+
+```go
+type SignatureAggregator struct {
+    client    *aggregator.SignatureAggregatorClient
+    subnetIDs []ids.ID
+}
+
+func NewSignatureAggregator(
+    nodeURI string,
+    subnetIDs []ids.ID,
+) *SignatureAggregator {
+
+    apiURI := fmt.Sprintf("%s/ext/bc/P", nodeURI)
+
+    client, err := aggregator.NewSignatureAggregatorClient(apiURI)
+    Expect(err).NotTo(HaveOccurred())
+
+    return &SignatureAggregator{
+        client:    client,
+        subnetIDs: subnetIDs,
+    }
+}
+
+func (a *SignatureAggregator) Shutdown() {
+    // Clean up resources
+}
+```
+
+### Creating Signed Messages
+
+```go
+func (a *SignatureAggregator) CreateSignedMessage(
+    unsignedMessage *avalancheWarp.UnsignedMessage,
+    justification []byte,
+    subnetID ids.ID,
+    quorumNum uint64,
+) (*avalancheWarp.Message, error) {
+
+    signedMessage, err := a.client.AggregateSignatures(
+        context.Background(),
+        unsignedMessage.ID(),
+        justification,
+        subnetID,
+        quorumNum,
+    )
+
+    return signedMessage, err
+}
+```
+
+## Complete Construction Flow
+
+```go
+func ConstructSignedWarpMessage(
+    ctx context.Context,
+    sourceReceipt *types.Receipt,
+    source L1TestInfo,
+    destination L1TestInfo,
+    justification []byte,
+    aggregator *SignatureAggregator,
+) *avalancheWarp.Message {
+
+    // Step 1: Extract unsigned message
+    unsignedMessage := ExtractWarpMessageFromLogs(ctx, sourceReceipt, source)
+
+    // Step 2: Wait for block acceptance
+    WaitForAllValidatorsToAcceptBlock(
+        ctx,
+        source.NodeURIs,
+        source.BlockchainID,
+        sourceReceipt.BlockNumber.Uint64(),
+    )
+
+    // Step 3: Aggregate signatures (67% quorum)
+    signedMessage, err := aggregator.CreateSignedMessage(
+        unsignedMessage,
+        justification,
+        source.SubnetID,
+        67, // warp.WarpDefaultQuorumNumerator
+    )
+    Expect(err).NotTo(HaveOccurred())
+
+    return signedMessage
+}
+```
+
+## Using Signed Messages
+
+### In Predicate Transactions
+
+```go
+// Create transaction with Warp message
+tx := predicateutils.NewPredicateTx(
+    l1.EVMChainID,
+    nonce,
+    &contractAddress,
+    gasLimit,
+    gasFeeCap,
+    gasTipCap,
+    big.NewInt(0),
+    callData,
+    types.AccessList{},
+    warp.ContractAddress,      // Predicate address
+    signedMessage.Bytes(),      // Warp message
+)
+```
+
+## Best Practices
+
+1. **Always wait for acceptance**: Don't aggregate before validators see the block
+2. **Use 67% quorum**: Standard for Warp messages
+3. **Clean up aggregator**: Always defer `aggregator.Shutdown()`
+4. **Handle errors**: Signature aggregation can fail if nodes are down
+5. **Cache aggregators**: Reuse for multiple messages in same test
+
+## Next Steps
+
+<Cards>
+  <Card title="Cross-Chain Messaging" href="/docs/tooling/tmpnet/guides/cross-chain-messaging">
+    Use Warp messages for Teleporter
+  </Card>
+  <Card title="Transaction Utilities" href="/docs/tooling/tmpnet/guides/transaction-utilities">
+    Helper functions for transactions
+  </Card>
+</Cards>

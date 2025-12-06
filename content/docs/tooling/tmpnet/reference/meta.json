@@ -1,0 +1,8 @@
+{
+  "title": "Reference",
+  "description": "Complete reference documentation for tmpnet",
+  "pages": [
+    "configuration",
+    "cli-commands"
+  ]
+}
