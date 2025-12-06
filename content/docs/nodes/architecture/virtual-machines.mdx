@@ -1,0 +1,442 @@
+---
+title: Virtual Machines
+description: Understand how Virtual Machines (VMs) define blockchain behavior in AvalancheGo, including the VM interface and built-in VMs.
+---
+
+A Virtual Machine (VM) defines the application-level logic of a blockchain. In AvalancheGo, VMs are decoupled from consensus, allowing developers to create custom blockchain behavior while reusing the battle-tested consensus layer.
+
+## What is a Virtual Machine?
+
+Think of a VM as the "personality" of a blockchain:
+
+| Aspect | What the VM Defines |
+|--------|---------------------|
+| **State** | What data the blockchain stores |
+| **Transactions** | Valid operations and their effects |
+| **Blocks** | How transactions are packaged |
+| **APIs** | How users interact with the chain |
+| **Validation** | Rules for accepting blocks |
+
+<Callout type="info">
+VMs are reusable. Multiple blockchains can run the same VM, each with independent state. This is similar to how a class can have multiple instances in object-oriented programming.
+</Callout>
+
+## VM Architecture
+
+<Mermaid chart={`
+graph TB
+    subgraph AvalancheGo_Node["AvalancheGo Node"]
+        CE[Consensus Engine]
+
+        subgraph Virtual_Machine["Virtual Machine"]
+            VMI[VM Interface]
+            BM[Block Manager]
+            TXP[Transaction Pool]
+            ST[State]
+            API[API Handlers]
+        end
+
+        DB[(Database)]
+    end
+
+    CE <-->|BuildBlock, Verify, Accept| VMI
+    VMI --> BM
+    VMI --> TXP
+    VMI --> API
+    BM --> ST
+    ST --> DB
+
+    User -->|RPC| API
+    API -->|Submit TX| TXP
+`} />
+
+## Core VM Interface
+
+Every VM must implement the [`ChainVM`](https://github.com/ava-labs/avalanchego/blob/master/snow/engine/snowman/block/vm.go) interface for linear chain consensus:
+
+```go title="snow/engine/snowman/block/vm.go"
+type ChainVM interface {
+    common.VM
+
+    // Block building
+    BuildBlock(ctx context.Context) (snowman.Block, error)
+
+    // Block retrieval
+    GetBlock(ctx context.Context, blkID ids.ID) (snowman.Block, error)
+    ParseBlock(ctx context.Context, blockBytes []byte) (snowman.Block, error)
+
+    // Consensus integration
+    SetPreference(ctx context.Context, blkID ids.ID) error
+    LastAccepted(ctx context.Context) (ids.ID, error)
+
+    // Optional: height-indexed access
+    GetBlockIDAtHeight(ctx context.Context, height uint64) (ids.ID, error)
+}
+```
+
+### Base VM Interface
+
+The foundation interface that all VMs implement ([source](https://github.com/ava-labs/avalanchego/blob/master/snow/engine/common/vm.go)):
+
+```go title="snow/engine/common/vm.go"
+type VM interface {
+    common.AppHandler          // AppRequest/AppResponse/AppGossip hooks
+    health.Checker             // Exposed via /ext/health
+    validators.Connector       // Called on peer connect/disconnect
+
+    // Lifecycle
+    Initialize(ctx context.Context, chainCtx *snow.Context,
+        db database.Database, genesisBytes []byte,
+        upgradeBytes []byte, configBytes []byte,
+        fxs []*common.Fx, appSender common.AppSender) error
+    SetState(ctx context.Context, state snow.State) error
+    Shutdown(ctx context.Context) error
+
+    // Info
+    Version(ctx context.Context) (string, error)
+
+    // APIs
+    CreateHandlers(ctx context.Context) (map[string]http.Handler, error)
+    NewHTTPHandler(ctx context.Context) (http.Handler, error)
+
+    // Engine notifications (PendingTxs, etc.)
+    WaitForEvent(ctx context.Context) (common.Message, error)
+}
+```
+
+## Block Interface
+
+Blocks are the fundamental unit of consensus ([source](https://github.com/ava-labs/avalanchego/blob/master/snow/consensus/snowman/block.go)):
+
+```go title="snow/consensus/snowman/block.go"
+type Block interface {
+    // ID(), Accept(), Reject(), Status() come from snow.Decidable
+    snow.Decidable
+
+    // Identity
+    Parent() ids.ID
+    Height() uint64
+    Timestamp() time.Time
+    Bytes() []byte
+
+    // Validation
+    Verify(context.Context) error
+}
+```
+
+### Block Lifecycle
+
+<Mermaid chart={`
+stateDiagram-v2
+    [*] --> Received: ParseBlock
+    Received --> Pending: Waiting for ancestors
+    Pending --> Processing: Ancestors verified
+    Processing --> Verified: Verify succeeds
+    Processing --> Invalid: Verify fails
+    Verified --> Accepted: Accept
+    Verified --> Rejected: Reject
+    Invalid --> [*]: Discarded
+    Accepted --> [*]: Committed to state
+    Rejected --> [*]: Discarded
+`} />
+
+### Block Status
+
+```go
+type Status int
+
+const (
+    Unknown Status = iota
+    Processing
+    Rejected
+    Accepted
+)
+```
+
+## Built-in Virtual Machines
+
+### Platform VM (P-Chain)
+
+The Platform VM ([`vms/platformvm`](https://github.com/ava-labs/avalanchego/tree/master/vms/platformvm)) manages the Avalanche network itself:
+
+```go title="vms/platformvm/vm.go"
+type VM struct {
+    // State management
+    state        state.State
+    atomicUTXOs  atomic.SharedMemory
+
+    // Block building
+    Builder      blockbuilder.Builder
+    Network      network.Network
+
+    // Validators
+    Validators   validators.Manager
+}
+```
+
+**Responsibilities:**
+- **Validator Management**: Add/remove validators, track stake
+- **Subnet Creation**: Create new validator sets
+- **Chain Creation**: Launch new blockchains
+- **Staking**: Manage delegation and rewards
+- **Warp Messaging**: Sign cross-chain messages
+
+**Key Transaction Types:**
+
+| Transaction | Purpose |
+|-------------|---------|
+| `AddValidatorTx` | Add a Primary Network validator |
+| `AddDelegatorTx` | Delegate stake to a validator |
+| `CreateSubnetTx` | Create a new subnet |
+| `CreateChainTx` | Launch a blockchain on a subnet |
+| `TransformSubnetTx` | Convert subnet to Avalanche L1 |
+
+### AVM (X-Chain)
+
+The AVM ([`vms/avm`](https://github.com/ava-labs/avalanchego/tree/master/vms/avm)) handles asset creation and transfers using the UTXO model:
+
+```go title="vms/avm/vm.go"
+type VM struct {
+    // Asset management
+    fxs     []*Fx
+    state   state.State
+
+    // UTXO handling
+    utxoSet atomic.SharedMemory
+}
+```
+
+**Features:**
+- **Multi-Asset Support**: Native AVAX and custom assets
+- **UTXO Model**: Bitcoin-style transaction inputs/outputs
+- **Feature Extensions (Fxs)**: Pluggable transaction types
+  - `secp256k1fx`: Standard signatures
+  - `nftfx`: Non-fungible tokens
+  - `propertyfx`: Property ownership
+
+**Transaction Types:**
+
+| Transaction | Purpose |
+|-------------|---------|
+| `CreateAssetTx` | Create a new asset |
+| `OperationTx` | Mint/burn assets |
+| `BaseTx` | Transfer assets |
+| `ImportTx` | Import from other chains |
+| `ExportTx` | Export to other chains |
+
+### Coreth (C-Chain)
+
+Coreth is the EVM implementation for the C-Chain:
+
+<Callout>
+Coreth is developed in [`ava-labs/coreth`](https://github.com/ava-labs/coreth) and vendored into AvalancheGo under `graft/coreth`, so it ships with the node binary by default.
+</Callout>
+
+**Features:**
+- Full Ethereum Virtual Machine compatibility
+- Supports Solidity smart contracts
+- Web3 JSON-RPC API
+- EIP-1559 dynamic fees
+- Atomic transactions with other Avalanche chains
+
+### ProposerVM (Snowman++)
+
+The ProposerVM ([`vms/proposervm`](https://github.com/ava-labs/avalanchego/tree/master/vms/proposervm)) wraps other VMs to add Snowman++ proposer windows:
+
+```go title="vms/proposervm/vm.go"
+type VM struct {
+    // Wrapped VM
+    ChainVM block.ChainVM
+
+    // Proposer selection
+    windower proposer.Windower
+
+    // Block timing
+    MinBlockDelay time.Duration
+}
+```
+
+**How it Works:**
+1. Stake-weighted proposers are sampled for each height.
+2. Each proposer has a 5s slot (up to 6 slots) counted from the parent timestamp.
+3. Only the active proposer can build during its slot; after the final slot any validator may build.
+4. The wrapper enforces proposer signatures/timestamps before issuing to consensus.
+
+Snowman++ is enabled on Snowman chains (P-Chain, C-Chain) to pace block production without sacrificing liveness.
+
+## Custom VMs
+
+You can build custom VMs that run on Avalanche L1s. There are two approaches:
+
+### 1. Native Go VM
+
+Implement the `ChainVM` interface directly in Go:
+
+```go
+type MyVM struct {
+    db      database.Database
+    state   *MyState
+    builder *BlockBuilder
+    pending <-chan struct{}
+}
+
+func (vm *MyVM) Initialize(ctx context.Context, ...) error {
+    // Set up database and state
+    vm.db = db
+    vm.state = NewState(db)
+    vm.pending = vm.builder.Subscribe() // emits when there are pending txs
+    return nil
+}
+
+func (vm *MyVM) WaitForEvent(ctx context.Context) (common.Message, error) {
+    select {
+    case <-ctx.Done():
+        return 0, ctx.Err()
+    case <-vm.pending:
+        return common.PendingTxs, nil
+    }
+}
+
+func (vm *MyVM) BuildBlock(ctx context.Context) (snowman.Block, error) {
+    // Collect pending transactions
+    txs := vm.builder.GetPendingTxs()
+    // Create new block
+    return NewBlock(vm.state.LastAccepted(), txs), nil
+}
+```
+
+### 2. RPC VM (Any Language)
+
+Use the [`rpcchainvm`](https://github.com/ava-labs/avalanchego/tree/master/vms/rpcchainvm) interface to build VMs in any language:
+
+<Mermaid chart={`
+graph LR
+    subgraph AvalancheGo["AvalancheGo"]
+        Client[RPCChainVM Client]
+    end
+
+    subgraph External_Process["External Process"]
+        Server[VM Server]
+        Logic[VM Logic]
+    end
+
+    Client <-->|gRPC| Server
+    Server --> Logic
+`} />
+
+**Benefits:**
+- Write VMs in Rust, TypeScript, etc.
+- Process isolation
+- Independent deployment
+
+**Protocol:**
+```go
+// gRPC service definition
+service VM {
+    rpc Initialize(InitializeRequest) returns (InitializeResponse);
+    rpc BuildBlock(BuildBlockRequest) returns (BuildBlockResponse);
+    rpc ParseBlock(ParseBlockRequest) returns (ParseBlockResponse);
+    rpc GetBlock(GetBlockRequest) returns (GetBlockResponse);
+    // ... more methods
+}
+```
+
+## VM Registration
+
+VMs are registered with the node at startup:
+
+```go title="node/node.go"
+func (n *Node) initVMs() error {
+    // Built-in VMs
+    n.VMManager.RegisterFactory(ctx, constants.PlatformVMID,
+        &platformvm.Factory{})
+    n.VMManager.RegisterFactory(ctx, constants.AVMID,
+        &avm.Factory{})
+    n.VMManager.RegisterFactory(ctx, constants.EVMID,
+        &coreth.Factory{})
+
+    // Plugin VMs are discovered from the plugins directory
+    // (default: ~/.avalanchego/plugins/)
+}
+```
+
+**Plugin Discovery:**
+1. VMs are placed in `~/.avalanchego/plugins/`
+2. Filename is the VM ID (e.g., `srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy`)
+3. Node discovers and loads plugins at startup
+
+## VM Configuration
+
+Each chain can have custom VM configuration:
+
+```json title="~/.avalanchego/configs/chains/{chainID}/config.json"
+{
+  "pruning-enabled": true,
+  "state-sync-enabled": true,
+  "eth-apis": ["eth", "eth-filter", "net", "web3"]
+}
+```
+
+**Chain-Specific Configs:**
+- Stored in `~/.avalanchego/configs/chains/{chainID}/`
+- `config.json`: VM configuration
+- `upgrade.json`: Upgrade coordination
+
+## Best Practices
+
+### State Management
+
+```go
+// Use versioned database for atomic commits
+func (vm *VM) Accept(ctx context.Context, blk *Block) error {
+    batch := vm.db.NewBatch()
+    defer batch.Reset()
+
+    // Apply state changes
+    for _, tx := range blk.Txs {
+        if err := vm.state.Apply(batch, tx); err != nil {
+            return err
+        }
+    }
+
+    // Commit atomically
+    return batch.Write()
+}
+```
+
+### Block Building
+
+```go
+// Drive block production: return PendingTxs when mempool has work
+func (vm *VM) WaitForEvent(ctx context.Context) (common.Message, error) {
+    select {
+    case <-ctx.Done():
+        return 0, ctx.Err()
+    case <-vm.pending:
+        return common.PendingTxs, nil
+    }
+}
+```
+
+### API Design
+
+```go
+func (vm *VM) CreateHandlers(ctx context.Context) (map[string]http.Handler, error) {
+    return map[string]http.Handler{
+        "/rpc":    vm.newJSONRPCHandler(),
+        "/ws":     vm.newWebSocketHandler(),
+        "/health": vm.newHealthHandler(),
+    }, nil
+}
+```
+
+## Next Steps
+
+<Cards>
+  <Card title="Networking" href="/docs/nodes/architecture/networking">
+    Learn how VMs communicate over the network
+  </Card>
+  <Card title="Build a Custom VM" href="/docs/avalanche-l1s/build-custom-vm">
+    Start building your own Virtual Machine
+  </Card>
+</Cards>

@@ -12,6 +12,8 @@
     "configure/configs-flags",
     "chain-configs/primary-network",
     "chain-configs/avalanche-l1s",
+    "---Architecture Reference---",
+    "...architecture",
     "---Maintenance---",
     "...maintain",
     "run-a-node/common-errors"
