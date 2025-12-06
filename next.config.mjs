@@ -1211,7 +1211,7 @@ const config = {
       },
       {
         source: "/docs/api-reference/avalanche-sdk/interchain/ictt",
-        destination: "/docs/builderkit/hooks/ictt",
+        destination: "/docs/cross-chain/interchain-token-transfer/overview",
         permanent: true,
       },
       {
