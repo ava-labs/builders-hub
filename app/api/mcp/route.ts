@@ -429,10 +429,36 @@ export async function GET() {
   });
 }
 
-// POST endpoint - handles MCP JSON-RPC requests
+// Helper to create SSE response
+function createSSEResponse(data: unknown, eventId?: string): Response {
+  const encoder = new TextEncoder();
+  let sseMessage = '';
+
+  if (eventId) {
+    sseMessage += `id: ${eventId}\n`;
+  }
+  sseMessage += `data: ${JSON.stringify(data)}\n\n`;
+
+  return new Response(encoder.encode(sseMessage), {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+    },
+  });
+}
+
+// Helper to check if client wants SSE
+function wantsSSE(request: Request): boolean {
+  const accept = request.headers.get('accept') || '';
+  return accept.includes('text/event-stream');
+}
+
+// POST endpoint - handles MCP JSON-RPC requests with Streamable HTTP support
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const useSSE = wantsSSE(request);
 
     // Handle batch requests
     if (Array.isArray(body)) {
@@ -452,39 +478,54 @@ export async function POST(request: Request) {
           return processRequest(parsed.data);
         })
       );
+
+      if (useSSE) {
+        return createSSEResponse(results);
+      }
       return NextResponse.json(results);
     }
 
     // Handle single request
     const parsed = jsonRpcRequestSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
-        {
-          jsonrpc: '2.0',
-          id: body.id ?? null,
-          error: {
-            code: -32600,
-            message: 'Invalid request',
-          },
+      const errorResponse = {
+        jsonrpc: '2.0',
+        id: body.id ?? null,
+        error: {
+          code: -32600,
+          message: 'Invalid request',
         },
-        { status: 400 }
-      );
+      };
+
+      if (useSSE) {
+        return createSSEResponse(errorResponse);
+      }
+      return NextResponse.json(errorResponse, { status: 400 });
     }
 
     const result = await processRequest(parsed.data);
+
+    if (useSSE) {
+      // Generate event ID for resumability
+      const eventId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      return createSSEResponse(result, eventId);
+    }
+
     return NextResponse.json(result);
   } catch (error) {
     console.error('MCP error:', error);
-    return NextResponse.json(
-      {
-        jsonrpc: '2.0',
-        id: null,
-        error: {
-          code: -32700,
-          message: 'Parse error',
-        },
+    const errorResponse = {
+      jsonrpc: '2.0',
+      id: null,
+      error: {
+        code: -32700,
+        message: 'Parse error',
       },
-      { status: 400 }
-    );
+    };
+
+    if (wantsSSE(request)) {
+      return createSSEResponse(errorResponse);
+    }
+    return NextResponse.json(errorResponse, { status: 400 });
   }
 }
