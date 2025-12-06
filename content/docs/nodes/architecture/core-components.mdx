@@ -1,0 +1,337 @@
+---
+title: Core Components
+description: Deep dive into AvalancheGo's package structure, startup flow, and how components interact.
+---
+
+This page provides a detailed overview of AvalancheGo's internal architecture, including the main packages, startup sequence, and how components communicate.
+
+## Package Structure
+
+AvalancheGo is organized into well-defined packages, each responsible for specific functionality (top-level folders only):
+
+```
+avalanchego/
+├── main/            # CLI entry point
+├── app/             # Process lifecycle (signals, shutdown)
+├── config/          # Flags/env/config parsing
+├── node/            # Node wiring and initialization
+├── chains/          # Chain manager and handlers
+├── snow/            # Consensus protocols and engines
+├── vms/             # Built-in VMs, proposerVM, rpcchainvm
+├── network/         # P2P stack
+├── message/         # Message codecs
+├── database/        # LevelDB/Pebble/memdb backends
+├── graft/           # Vendored Coreth (C-Chain)
+├── subnets/         # Subnet configs and validator utilities
+├── staking/         # TLS/BLS staking keys and POP
+├── upgrade/         # Network upgrade rules
+├── trace/           # OpenTelemetry tracing helpers
+├── utils/           # Common utilities
+└── genesis/         # Genesis configuration and samples
+```
+
+## Startup Flow
+
+When you run AvalancheGo, the following initialization sequence occurs:
+
+<Mermaid chart={`
+sequenceDiagram
+    participant Main as main.go
+    participant Config as Config
+    participant App as App
+    participant Node as Node
+
+    Main->>Config: Parse flags & config
+    Config-->>Main: NodeConfig
+    Main->>App: New(nodeConfig)
+    App->>Node: Initialize components
+    Node->>Node: Init database
+    Node->>Node: Init networking
+    Node->>Node: Init API server
+    Node->>Node: Register VMs
+    Node->>Node: Start chain manager
+    Main->>App: Run()
+    App->>Node: Dispatch (event loop)
+`} />
+
+### 1. Configuration Parsing
+
+[View source on GitHub](https://github.com/ava-labs/avalanchego/blob/master/main/main.go)
+
+```go title="main/main.go"
+func main() {
+    evm.RegisterAllLibEVMExtras()
+
+    // Build configuration from flags/env/config file
+    fs := config.BuildFlagSet()
+    v, err := config.BuildViper(fs, os.Args[1:])
+
+    if errors.Is(err, pflag.ErrHelp) {
+        os.Exit(0)
+    }
+
+    if v.GetBool(config.VersionJSONKey) && v.GetBool(config.VersionKey) {
+        fmt.Println("can't print both JSON and human readable versions")
+        os.Exit(1)
+    }
+
+    if v.GetBool(config.VersionJSONKey) {
+        versions := version.GetVersions()
+        jsonBytes, err := json.MarshalIndent(versions, "", "  ")
+        if err != nil {
+            fmt.Printf("couldn't marshal versions: %s\n", err)
+            os.Exit(1)
+        }
+        fmt.Println(string(jsonBytes))
+        os.Exit(0)
+    }
+
+    if v.GetBool(config.VersionKey) {
+        fmt.Println(version.GetVersions().String())
+        os.Exit(0)
+    }
+
+    nodeConfig, err := config.GetNodeConfig(v)
+    if term.IsTerminal(int(os.Stdout.Fd())) {
+        fmt.Println(app.Header)
+    }
+
+    nodeApp, err := app.New(nodeConfig)
+    exitCode := app.Run(nodeApp)
+    os.Exit(exitCode)
+}
+```
+
+The configuration system supports:
+- **Command-line flags**: `--network-id=fuji`, `--http-port=9650`
+- **Config file**: Pass `--config-file=/path/to/file`. The installer writes `~/.avalanchego/configs/node.json`; source builds do not create a default file.
+- **Environment variables**: Prefixed with `AVAGO_`
+
+### 2. Node Initialization
+
+The `Node` struct in [`node/node.go`](https://github.com/ava-labs/avalanchego/blob/master/node/node.go) orchestrates all components:
+
+```go title="node/node.go"
+type Node struct {
+    Log        logging.Logger
+    ID         ids.NodeID
+    Config     *node.Config
+
+    // Networking & routing
+    Net         network.Network
+    chainRouter router.Router
+    msgCreator  message.Creator
+
+    // Storage & shared state
+    DB           database.Database
+    sharedMemory *atomic.Memory
+
+    // VM/chain orchestration
+    VMAliaser    ids.Aliaser
+    VMManager    vms.Manager
+    VMRegistry   registry.VMRegistry
+    chainManager chains.Manager
+
+    // APIs and services
+    APIServer       server.Server
+    health          health.Health
+    resourceManager resource.Manager
+}
+```
+
+### 3. Component Initialization Order
+
+Components are initialized in a specific order to satisfy dependencies:
+
+| Order | Component | Purpose |
+|-------|-----------|---------|
+| 1 | **Identity & logging** | Staking certs/POP, VM aliases, log factories |
+| 2 | **Metrics** | Prometheus registries + `/ext/metrics` |
+| 3 | **APIs** | HTTP server + metrics API (health/info/admin added later) |
+| 4 | **Database & shared memory** | Open LevelDB/PebbleDB/memdb and atomic memory |
+| 5 | **Message codec** | `message.Creator` shared by network/engines |
+| 6 | **Validators & resources** | Validator manager, CPU/disk targeters, resource manager |
+| 7 | **Networking** | Listener, NAT/port mapping, throttlers, IP updater |
+| 8 | **Health & aliases** | Health API, default VM/API/chain aliases |
+| 9 | **Chain manager & VM registry** | Chain manager, register PlatformVM/AVM/EVM + plugins |
+| 10 | **Indexer & profiler** | Optional index API and continuous profiler |
+| 11 | **Chains** | Start PlatformVM, then other chains/bootstrap |
+
+## The Node Struct
+
+The `Node` struct is the central coordinator. Here are its key responsibilities:
+
+### VM Management
+
+```go
+// Register built-in VMs
+n.VMManager.RegisterFactory(ctx, constants.PlatformVMID, &platformvm.Factory{})
+n.VMManager.RegisterFactory(ctx, constants.AVMID, &avm.Factory{})
+n.VMManager.RegisterFactory(ctx, constants.EVMID, &coreth.Factory{})
+```
+
+### Chain Creation
+
+When a new chain needs to be created (e.g., during P-Chain bootstrap):
+
+```go
+type ChainParameters struct {
+    ID          ids.ID      // Chain ID
+    SubnetID    ids.ID      // Subnet that validates this chain
+    GenesisData []byte      // Genesis state
+    VMID        ids.ID      // Which VM to run
+    FxIDs       []ids.ID    // Feature extensions
+    CustomBeacons validators.Manager // Optional: bootstrap peers for P-Chain
+}
+```
+
+### API Registration
+
+Each VM can register its own API endpoints:
+
+```go
+// VM implements CreateHandlers
+func (vm *VM) CreateHandlers(ctx context.Context) (map[string]http.Handler, error) {
+    return map[string]http.Handler{
+        "/rpc": vm.rpcHandler,
+        "/ws":  vm.wsHandler,
+    }, nil
+}
+```
+
+## Chain Manager
+
+The Chain Manager ([`chains/manager.go`](https://github.com/ava-labs/avalanchego/blob/master/chains/manager.go)) is responsible for:
+
+1. **Creating chains** when requested by the P-Chain
+2. **Managing chain lifecycle** (start, stop, restart)
+3. **Handling bootstrapping** and state sync
+4. **Routing messages** between chains and the network
+
+```go title="chains/manager.go"
+type Manager interface {
+    // Queue a chain to be created after P-Chain bootstraps
+    QueueChainCreation(ChainParameters)
+
+    // Check if a chain has finished bootstrapping
+    IsBootstrapped(ids.ID) bool
+
+    // Resolve chain aliases
+    Lookup(string) (ids.ID, error)
+
+    // Start the chain creation process
+    StartChainCreator(platformChain ChainParameters) error
+}
+```
+
+### Chain Bootstrapping
+
+When a chain starts, it must bootstrap to catch up with the network:
+
+<Mermaid chart={`
+stateDiagram-v2
+    [*] --> Bootstrapping
+    Bootstrapping --> StateSyncing: State sync enabled
+    StateSyncing --> NormalOperation: Sync complete
+    Bootstrapping --> NormalOperation: Bootstrap complete
+    NormalOperation --> [*]
+`} />
+
+## Database Layer
+
+AvalancheGo supports multiple database backends:
+
+### Database Backends
+
+| Backend | Description |
+|---------|-------------|
+| **LevelDB** | Default, widely tested |
+| **PebbleDB** | Modern alternative, better performance |
+| **memdb** | In-memory (non-persistent), useful for fast testing |
+
+### Database Organization
+
+Data is organized using prefix databases:
+
+```go
+// Each component gets its own namespace
+vmDB := prefixdb.New(VMDBPrefix, db)
+chainDB := prefixdb.New(chainID[:], vmDB)
+```
+
+This allows:
+- **Isolation**: Each VM and chain has isolated storage
+- **Metrics**: Per-database metrics via `meterdb`
+- **Cleanup**: Easy removal of chain data
+
+## Message Flow
+
+Here's how a transaction flows through the system:
+
+<Mermaid chart={`
+sequenceDiagram
+    participant Client
+    participant API as API Server
+    participant VM as Virtual Machine
+    participant Engine as Consensus Engine
+    participant Network as Network Layer
+
+    Client->>API: Submit transaction
+    API->>VM: IssueTx(tx)
+    VM->>VM: Validate tx
+    VM->>Engine: Notify pending txs
+    Engine->>VM: BuildBlock()
+    VM-->>Engine: New block
+    Engine->>Network: Broadcast block
+    Network->>Engine: Receive votes
+    Engine->>VM: Accept/Reject block
+    VM-->>API: Confirmation
+    API-->>Client: Response
+`} />
+
+## Health Checks
+
+AvalancheGo exposes health checks at `/ext/health`:
+
+```go
+type Checker interface {
+    // HealthCheck returns nil if healthy
+    HealthCheck(context.Context) (interface{}, error)
+}
+```
+
+Components that implement health checks:
+- **Network**: Peer connectivity
+- **Chains**: Bootstrap status
+- **Database**: I/O health
+- **Consensus**: Liveness
+
+## Metrics
+
+Prometheus metrics are exposed at `/ext/metrics`:
+
+```go
+// Example metrics namespaces
+const (
+    networkNamespace = "avalanche_network"
+    dbNamespace      = "avalanche_db"
+    consensusNS      = "avalanche_snowman"
+)
+```
+
+Key metrics include:
+- `avalanche_network_peers`: Connected peer count
+- `avalanche_db_*`: Database operations
+- `avalanche_snowman_*`: Consensus metrics
+- `avalanche_api_*`: API request metrics
+
+## Next Steps
+
+<Cards>
+  <Card title="Consensus Protocols" href="/docs/nodes/architecture/consensus">
+    Learn how Snowman and Avalanche consensus work
+  </Card>
+  <Card title="Virtual Machines" href="/docs/nodes/architecture/virtual-machines">
+    Understand VM architecture and interfaces
+  </Card>
+</Cards>

@@ -1,0 +1,353 @@
+---
+title: Consensus Protocols
+description: Deep dive into Avalanche's Snow* family of consensus protocols including Snowball, Snowman, and Avalanche consensus.
+---
+
+Avalanche uses a novel family of consensus protocols collectively known as the **Snow* protocols**. These protocols achieve consensus through repeated random sampling, providing probabilistic safety guarantees with sub-second finality.
+
+## Consensus Overview
+
+Traditional consensus protocols (like PBFT) require all-to-all communication, limiting scalability. Avalanche's approach is fundamentally different:
+
+| Property | Traditional (PBFT) | Avalanche Snow* |
+|----------|-------------------|-----------------|
+| **Communication** | All-to-all (O(n²)) | Random sampling (O(k log n)) |
+| **Finality** | Deterministic | Probabilistic (tunable) |
+| **Scalability** | ~100 nodes | Thousands of nodes |
+| **Latency** | Seconds | Sub-second |
+
+<Callout type="info">
+The Snow* protocols are named after their "snowball" effect - once a preference starts forming, it quickly avalanches to a decision.
+</Callout>
+
+## The Snow* Protocol Family
+
+### Snowball: Binary Consensus
+
+Snowball is the foundational protocol for deciding between two conflicting options:
+
+<Mermaid chart={`
+sequenceDiagram
+    participant V as Validator
+    participant S1 as Sample 1
+    participant S2 as Sample 2
+    participant S3 as Sample 3
+
+    Note over V: Has preference for option A
+
+    V->>S1: Query preference?
+    V->>S2: Query preference?
+    V->>S3: Query preference?
+
+    S1-->>V: A
+    S2-->>V: A
+    S3-->>V: B
+
+    Note over V: Supermajority 2/3 for A
+    Note over V: Increment confidence for A
+
+    loop Until confidence threshold
+        V->>S1: Query preference?
+        Note over V: Continue sampling
+    end
+
+    Note over V: Decision Accept A
+`} />
+
+**Key Parameters:**
+- **k (sample size)**: Number of validators to query (default `20`)
+- **αₚ (preference threshold)**: Votes needed to switch preference (default `15`)
+- **α꜀ (confidence threshold)**: Votes needed to increase confidence (default `15`)
+- **β (finalization threshold)**: Consecutive successful rounds (default `20`)
+- **Concurrent polls**: Parallel polls while processing (default `4`)
+- **Optimal processing**: Soft cap on in-flight items (default `10`)
+
+### Snowman: Linear Chain Consensus
+
+Snowman extends Snowball to decide on a linear sequence of blocks. It's used by:
+- **P-Chain** (Platform Chain)
+- **C-Chain** (Contract Chain)
+- **Most Avalanche L1s**
+
+[View source on GitHub](https://github.com/ava-labs/avalanchego/blob/master/snow/consensus/snowman/consensus.go)
+
+```go title="snow/consensus/snowman/consensus.go"
+type Consensus interface {
+    // Initialize with last accepted block
+    Initialize(
+        ctx *snow.ConsensusContext,
+        params snowball.Parameters,
+        lastAcceptedID ids.ID,
+        lastAcceptedHeight uint64,
+        lastAcceptedTime time.Time,
+    ) error
+
+    // Tracking & liveness
+    NumProcessing() int
+    Processing(ids.ID) bool
+    IsPreferred(ids.ID) bool
+
+    // Add a new block to consensus
+    Add(Block) error
+
+    // Get the preferred blocks
+    Preference() ids.ID
+    PreferenceAtHeight(height uint64) (ids.ID, bool)
+
+    // Get the last accepted block
+    LastAccepted() (ids.ID, uint64)
+
+    // Record poll results from network sampling
+    RecordPoll(context.Context, bag.Bag[ids.ID]) error
+
+    // Lightweight ancestry lookup
+    GetParent(id ids.ID) (ids.ID, bool)
+}
+```
+
+**Block Lifecycle in Snowman:**
+
+<Mermaid chart={`
+stateDiagram-v2
+    [*] --> Processing: ParseBlock
+    Processing --> Processing: Verify
+    Processing --> Accepted: Accept
+    Processing --> Rejected: Reject
+    Accepted --> [*]
+    Rejected --> [*]
+`} />
+
+### Avalanche: DAG Consensus
+
+Avalanche consensus operates on a Directed Acyclic Graph (DAG) of transactions. It's used by the **X-Chain** for high-throughput asset transfers.
+
+```
+       ┌───┐
+       │ G │  Genesis
+       └─┬─┘
+      ┌──┴──┐
+    ┌─┴─┐ ┌─┴─┐
+    │ A │ │ B │  Vertices can have
+    └─┬─┘ └─┬─┘  multiple parents
+      │  ╲╱  │
+      │  ╱╲  │
+    ┌─┴─┐ ┌─┴─┐
+    │ C │ │ D │
+    └───┘ └───┘
+```
+
+**Key Difference**: In Avalanche consensus, non-conflicting transactions can be processed in parallel, increasing throughput.
+
+## Consensus Engine Architecture
+
+The consensus engine sits between the VM and the network:
+
+<Mermaid chart={`
+graph LR
+    subgraph Consensus_Engine["Consensus Engine"]
+        B[Bootstrapper]
+        E[Engine]
+        S[Sender]
+    end
+
+    VM[Virtual Machine] <--> E
+    E <--> S
+    S <--> Network
+    B --> E
+`} />
+
+### Engine States
+
+```go
+type EngineState int
+
+const (
+    StateBootstrapping EngineState = iota
+    StateNormalOperation
+)
+```
+
+| State | Description |
+|-------|-------------|
+| **Bootstrapping** | Catching up with network state |
+| **Normal Operation** | Participating in consensus |
+
+### The Snowman Engine
+
+[View source on GitHub](https://github.com/ava-labs/avalanchego/blob/master/snow/engine/snowman/engine.go)
+
+```go title="snow/engine/snowman/engine.go"
+type Engine struct {
+    Config
+
+    // Consensus instance
+    Consensus smcon.Consensus
+
+    // VM interface
+    VM block.ChainVM
+
+    // Network communication
+    Sender common.Sender
+
+    // Block management
+    pending   map[ids.ID]snowman.Block
+    blocked   map[ids.ID][]snowman.Block
+}
+```
+
+**Engine Responsibilities:**
+1. **Block fetching**: Request missing blocks from peers
+2. **Block verification**: Validate blocks via the VM
+3. **Consensus voting**: Query peers and record votes
+4. **Block finalization**: Accept or reject blocks based on consensus
+
+## Block Processing Flow
+
+### 1. Receiving a Block
+
+```go
+func (e *Engine) Put(ctx context.Context, nodeID ids.NodeID, requestID uint32, blkBytes []byte) error {
+    // Parse the block
+    blk, err := e.VM.ParseBlock(ctx, blkBytes)
+
+    // Verify ancestry exists
+    if !e.hasAncestry(blk) {
+        // Request missing ancestors
+        e.requestAncestors(blk.Parent())
+        return nil
+    }
+
+    // Issue to consensus
+    return e.issue(ctx, blk)
+}
+```
+
+### 2. Issuing to Consensus
+
+```go
+func (e *Engine) issue(ctx context.Context, blk snowman.Block) error {
+    // Verify the block
+    if err := blk.Verify(ctx); err != nil {
+        return err
+    }
+
+    // Add to consensus
+    if err := e.Consensus.Add(blk); err != nil {
+        return err
+    }
+
+    // Start voting
+    e.sendQuery(ctx, blk.ID())
+    return nil
+}
+```
+
+### 3. Recording Votes
+
+```go
+func (e *Engine) Chits(ctx context.Context, nodeID ids.NodeID, requestID uint32, preferredID ids.ID, ...) error {
+    // Collect votes in a bag
+    votes := bag.Of(preferredID)
+
+    // When enough votes collected, record the poll
+    if e.polls.Finished() {
+        return e.Consensus.RecordPoll(ctx, e.polls.Result())
+    }
+    return nil
+}
+```
+
+## Snowman++ (ProposerVM)
+
+Snowman++ adds **soft proposer windows** on top of Snowman to pace block production. It is implemented by wrapping a ChainVM in the [ProposerVM](https://github.com/ava-labs/avalanchego/tree/master/vms/proposervm) and is enabled on the P-Chain and C-Chain.
+
+```go title="vms/proposervm/vm.go"
+// ProposerVM wraps a ChainVM to add proposer selection
+type VM struct {
+    inner block.ChainVM
+
+    // Proposer selection
+    windower Windower
+}
+```
+
+**How it works:**
+1. Validators are sampled (by stake) to form a proposer list for the next block.
+2. Each proposer gets a 5s window; up to 6 windows are scheduled from the parent timestamp.
+3. Within their window, only the designated proposer can build a valid block.
+4. After the final window, any validator may propose, which preserves liveness if proposers are offline.
+
+**Benefits:**
+- **Predictable pacing**: Prevents multiple validators from racing the same height.
+- **Stake-weighted fairness**: Windows are derived from the subnet validator set.
+- **Graceful fallback**: Production opens to everyone after the final window.
+
+## Consensus Parameters
+
+Consensus parameters live in [`snow/consensus/snowball/parameters.go`](https://github.com/ava-labs/avalanchego/blob/master/snow/consensus/snowball/parameters.go):
+
+```go
+type Parameters struct {
+    // Sample size for each poll
+    K int `json:"k"`
+
+    // Switch preference threshold
+    AlphaPreference int `json:"alphaPreference"`
+
+    // Increase confidence threshold
+    AlphaConfidence int `json:"alphaConfidence"`
+
+    // Finalization threshold
+    Beta int `json:"beta"`
+
+    // Concurrent polls
+    ConcurrentRepolls int `json:"concurrentRepolls"`
+
+    // Congestion control
+    OptimalProcessing     int `json:"optimalProcessing"`
+    MaxOutstandingItems   int `json:"maxOutstandingItems"`
+    MaxItemProcessingTime time.Duration `json:"maxItemProcessingTime"`
+}
+```
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| **K** | 20 | Validators sampled per round |
+| **AlphaPreference** | 15 | Votes needed to change preference |
+| **AlphaConfidence** | 15 | Votes needed to increase confidence |
+| **Beta** | 20 | Consecutive successful polls to finalize |
+| **ConcurrentRepolls** | 4 | Parallel polls while processing |
+| **OptimalProcessing** | 10 | Soft target for in-flight vertices/blocks |
+| **MaxOutstandingItems** | 256 | Health threshold for queued items |
+| **MaxItemProcessingTime** | 30s | Health threshold for a single item |
+
+<Callout type="warning">
+These parameters are network-wide and cannot be changed for individual nodes. Modifying them would cause consensus failures.
+</Callout>
+
+## Security Properties
+
+### Probabilistic Safety
+
+The probability of a safety violation (accepting conflicting blocks) is:
+
+$$P(\text{safety violation}) < \left(1 - \frac{\alpha_{confidence}}{k}\right)^\beta$$
+
+With default parameters: $P < \left(1 - \frac{15}{20}\right)^{20} \approx 10^{-12}$
+
+### Liveness
+
+Avalanche guarantees liveness as long as:
+- More than `α/k` (75%) of stake is honest
+- Network is eventually synchronous
+
+## Next Steps
+
+<Cards>
+  <Card title="Virtual Machines" href="/docs/nodes/architecture/virtual-machines">
+    Learn how VMs implement block building and verification
+  </Card>
+  <Card title="Networking" href="/docs/nodes/architecture/networking">
+    Understand how consensus messages are transmitted
+  </Card>
+</Cards>
