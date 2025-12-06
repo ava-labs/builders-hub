@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { ArrowRightLeft, ArrowRight, Clock, Fuel, Box, Layers, DollarSign, Globe, Circle, Link2 } from "lucide-react";
+import { ArrowRightLeft, ArrowRight, Clock, Fuel, Box, Layers, DollarSign, Globe, Circle, Link2, Info } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -99,7 +99,9 @@ interface Transaction {
 interface ExplorerStats {
   latestBlock: number;
   totalTransactions: number;
-  avgBlockTime: number;
+  avgBlockTime?: number; // Average block time in seconds
+  avgBlockTimeMs?: number; // Average block time in milliseconds (Avalanche-specific)
+  avgBlockTimeBlockSpan?: number; // Number of blocks used to calculate avgBlockTime
   gasPrice: string;
   lastFinalizedBlock?: number;
   totalGasFeesInBlocks?: string;
@@ -881,6 +883,42 @@ export default function L1ExplorerPage({
                   </div>
                 </div>
               </div>
+
+              {/* Average Block Time */}
+              {data?.stats.avgBlockTime !== undefined && (
+                <div className="flex items-center gap-2.5">
+                  <div 
+                    className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: `${themeColor}15` }}
+                  >
+                    <Clock className="w-5 h-5" style={{ color: themeColor }} />
+                  </div>
+                  <div>
+                    <div className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide flex items-center gap-1">
+                      Avg Block Time
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 cursor-help">
+                            <Info className="w-3 h-3" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Calculated from the last {data.stats.avgBlockTimeBlockSpan?.toLocaleString() || '5,000'} blocks</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <div className="text-base font-bold text-zinc-900 dark:text-white">
+                      {data.stats.avgBlockTimeMs !== undefined ? (
+                        // Show millisecond precision for Avalanche
+                        `${data.stats.avgBlockTimeMs.toFixed(2)} ms`
+                      ) : (
+                        // Show second precision for other chains
+                        `${data.stats.avgBlockTime.toFixed(3)} s`
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Right: Transaction History Chart */}
