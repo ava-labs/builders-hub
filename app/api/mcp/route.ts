@@ -3,17 +3,8 @@ import { z } from 'zod';
 import { documentation, academy, integration, blog } from '@/lib/source';
 import { getLLMText } from '@/lib/llm-utils';
 
-// Cache for documentation content
-const docsCache: Map<string, { content: string; timestamp: number }> = new Map();
-const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
-
-// Helper to get page content with caching
+// Helper to get page content
 async function getPageContent(url: string): Promise<string | null> {
-  const cached = docsCache.get(url);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return cached.content;
-  }
-
   // Find page in all sources
   const allPages = [
     ...documentation.getPages(),
@@ -26,9 +17,7 @@ async function getPageContent(url: string): Promise<string | null> {
   if (!page) return null;
 
   try {
-    const content = await getLLMText(page);
-    docsCache.set(url, { content, timestamp: Date.now() });
-    return content;
+    return await getLLMText(page);
   } catch (error) {
     console.error(`Error getting content for ${url}:`, error);
     return null;

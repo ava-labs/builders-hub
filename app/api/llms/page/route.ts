@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { documentation, academy, integration, blog } from '@/lib/source';
 import { getLLMText } from '@/lib/llm-utils';
 
-export const revalidate = 3600; // Cache for 1 hour
-
 /**
  * API route to fetch individual pages as markdown for LLM consumption.
  *

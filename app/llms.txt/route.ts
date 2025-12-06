@@ -1,8 +1,5 @@
 import { documentation, academy, integration, blog } from '@/lib/source';
 
-// Revalidate every hour to ensure fresh content
-export const revalidate = 3600;
-
 // Helper to group pages by top-level section
 function groupPagesBySection(pages: Array<{ url: string; data: { title: string; description?: string } }>) {
   const sections: Record<string, Array<{ url: string; title: string; description?: string }>> = {};
