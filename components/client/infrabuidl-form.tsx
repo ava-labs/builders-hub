@@ -78,11 +78,44 @@ export default function GrantApplicationForm({
 
   const { data: session, status } = useSession();
 
+  // LocalStorage key based on program type
+  const storageKey = `infrabuidl-form-${programType}`;
+
+  // Load saved data from localStorage before initializing form
+  const getInitialValues = (): Partial<FormValues> => {
+    if (typeof window === "undefined") {
+      return {};
+    }
+    
+    try {
+      const savedData = localStorage.getItem(storageKey);
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        
+        // Convert date strings back to Date objects
+        const processedData: any = { ...parsedData };
+        Object.keys(processedData).forEach((key) => {
+          if (key.includes("completion_date") || key.includes("date")) {
+            if (processedData[key] && typeof processedData[key] === "string") {
+              processedData[key] = new Date(processedData[key]);
+            }
+          }
+        });
+        
+        return processedData;
+      }
+    } catch (error) {
+      console.error("Error loading form data from localStorage:", error);
+    }
+    
+    return {};
+  };
+
+  const savedValues = getInitialValues();
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      grant_program: programType,
-
       // Project Overview defaults
       project: "",
       project_type: "",
@@ -218,6 +251,13 @@ export default function GrantApplicationForm({
       // Legal Compliance defaults
       gdpr: false,
       marketing_consent: false,
+      
+      // Override with saved values from localStorage (excluding grant_program)
+      ...Object.fromEntries(
+        Object.entries(savedValues).filter(([key]) => key !== "grant_program")
+      ),
+      // Always use current programType
+      grant_program: programType,
     },
   });
 
@@ -238,32 +278,99 @@ export default function GrantApplicationForm({
   const watchGrantSource = form.watch("avalanche_grant_source");
   const watchReferralCheck = form.watch("program_referral_check");
 
-  // Load projects (TEMPORARY: using public endpoint for testing)
+  // Track if we're loading from localStorage to avoid saving during initial load
+  const [isLoadingFromStorage, setIsLoadingFromStorage] = useState(false);
+
+  // Update form values from localStorage if they exist (for Select components that need it)
   useEffect(() => {
-    const loadProjects = async () => {
+    if (typeof window === "undefined" || Object.keys(savedValues).length === 0) return;
+    
+    // Small delay to ensure form is fully initialized
+    const timer = setTimeout(() => {
+      form.reset({
+        ...form.getValues(),
+        ...savedValues,
+        grant_program: programType,
+      });
+      setIsLoadingFromStorage(false);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []); // Only run once on mount
+
+  // Save form data to localStorage whenever it changes (with debounce)
+  useEffect(() => {
+    if (typeof window === "undefined" || isLoadingFromStorage) return;
+    
+    let timeoutId: NodeJS.Timeout;
+    
+    const subscription = form.watch((value) => {
+      // Clear previous timeout
+      clearTimeout(timeoutId);
+      
+      // Debounce: save after 1 second of no changes
+      timeoutId = setTimeout(() => {
+        try {
+          // Only save if form has been interacted with (has meaningful values)
+          const hasData = Object.entries(value).some(([key, val]) => {
+            // Skip grant_program as it's always set
+            if (key === "grant_program") return false;
+            
+            if (Array.isArray(val)) return val.length > 0;
+            if (typeof val === "string") return val.trim() !== "";
+            if (typeof val === "number") return val !== 0;
+            if (typeof val === "boolean") return val === true;
+            if (val instanceof Date) return true;
+            return val !== null && val !== undefined;
+          });
+          
+          if (hasData) {
+            // Convert Date objects to ISO strings for JSON storage
+            const dataToSave = { ...value };
+            Object.keys(dataToSave).forEach((key) => {
+              if (dataToSave[key as keyof typeof dataToSave] instanceof Date) {
+                dataToSave[key as keyof typeof dataToSave] = (dataToSave[key as keyof typeof dataToSave] as Date).toISOString() as any;
+              }
+            });
+            localStorage.setItem(storageKey, JSON.stringify(dataToSave));
+          }
+        } catch (error) {
+          console.error("Error saving form data to localStorage:", error);
+        }
+      }, 1000); // Wait 1 second after last change
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeoutId);
+    };
+  }, [form, storageKey, isLoadingFromStorage]);
+
+  // Load user projects when session is available
+  useEffect(() => {
+    const loadUserProjects = async () => {
+      if (!session?.user?.id) return;
+      
       setIsLoadingProjects(true);
       try {
-        // TEMPORARY: Using public endpoint instead of user-specific endpoint for testing
-        const response = await fetch(`/api/projects?pageSize=100`);
+        const response = await fetch(`/api/projects/member/${session.user.id}`);
         if (response.ok) {
-          const data = await response.json();
-          // The public endpoint returns { projects: [], total: number }
-          const projects = data.projects || data || [];
-          setUserProjects(Array.isArray(projects) ? projects : []);
+          const projects = await response.json();
+          setUserProjects(projects || []);
         } else {
-          console.error("Failed to load projects");
+          console.error("Failed to load user projects");
           setUserProjects([]);
         }
       } catch (error) {
-        console.error("Error loading projects:", error);
+        console.error("Error loading user projects:", error);
         setUserProjects([]);
       } finally {
         setIsLoadingProjects(false);
       }
     };
 
-    loadProjects();
-  }, []); // Removed session dependency for temporary testing
+    loadUserProjects();
+  }, [session?.user?.id]);
 
   useEffect(() => {
 
@@ -514,6 +621,12 @@ export default function GrantApplicationForm({
 
       setSubmissionStatus("success");
       alert("Your grant application has been successfully submitted!");
+      
+      // Clear localStorage after successful submission
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(storageKey);
+      }
+      
       form.reset();
       form.setValue("grant_program", programType);
     } catch (error) {
@@ -542,6 +655,10 @@ export default function GrantApplicationForm({
           <Button
             onClick={() => {
               setSubmissionStatus("idle");
+              // Clear localStorage when starting a new application
+              if (typeof window !== "undefined") {
+                localStorage.removeItem(storageKey);
+              }
               form.reset();
               form.setValue("grant_program", programType);
             }}
@@ -585,7 +702,7 @@ export default function GrantApplicationForm({
                           }
                         }}
                         value={userProjects.find((p: any) => p.project_name === field.value)?.id || field.value}
-                        disabled={isLoadingProjects}
+                        disabled={isLoadingProjects || status !== "authenticated" }
                       >
                         <FormControl>
                           <SelectTrigger className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100">
@@ -616,10 +733,10 @@ export default function GrantApplicationForm({
                       </Select>
                       <FormDescription className="text-sm text-gray-500 dark:text-gray-400">
                         {userProjects.length > 0 
-                          ? "Select a project to auto-fill the form with project information (TEMPORARY: showing all projects for testing)"
-                          : isLoadingProjects
-                            ? "Loading projects..."
-                            : "No projects found. You can still fill the form manually."}
+                          ? "Select a project to auto-fill the form with your project information"
+                          : session?.user?.id 
+                            ? "You don't have any projects yet. You can still fill the form manually."
+                            : "Please sign in to load your projects"}
                       </FormDescription>
                       <FormMessage className="dark:text-red-400" />
                     </FormItem>
@@ -662,7 +779,7 @@ export default function GrantApplicationForm({
                             field.onChange(value);
                             setShowProjectTypeOther(value === "Other");
                           }}
-                          defaultValue={field.value}
+                          value={field.value}
                           className="flex flex-col space-y-1"
                         >
                           {programType === "infraBUIDL()" ? (
@@ -1050,7 +1167,7 @@ export default function GrantApplicationForm({
                       <FormControl>
                         <RadioGroup
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          value={field.value}
                           className="flex flex-col space-y-1"
                         >
                           <div className="flex items-center space-x-2">
@@ -2608,7 +2725,7 @@ export default function GrantApplicationForm({
                       <FormControl>
                         <RadioGroup
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          value={field.value}
                           className="flex flex-col space-y-1"
                         >
                           <div className="flex items-center space-x-2">
@@ -2659,7 +2776,7 @@ export default function GrantApplicationForm({
                       <FormControl>
                         <RadioGroup
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          value={field.value}
                           className="flex flex-col space-y-1"
                         >
                           <div className="flex items-center space-x-2">
@@ -2714,7 +2831,7 @@ export default function GrantApplicationForm({
                       <FormControl>
                         <RadioGroup
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          value={field.value}
                           className="flex flex-col space-y-1"
                         >
                           <div className="flex items-center space-x-2">
@@ -2762,7 +2879,7 @@ export default function GrantApplicationForm({
                             field.onChange(value);
                             setShowMultichainDetails(value === "Yes");
                           }}
-                          defaultValue={field.value}
+                          value={field.value}
                           className="flex flex-col space-y-1"
                         >
                           <div className="flex items-center space-x-2">
@@ -2820,7 +2937,7 @@ export default function GrantApplicationForm({
                             field.onChange(value);
                             setShowPreviousProjectDetails(value === "No");
                           }}
-                          defaultValue={field.value}
+                          value={field.value}
                           className="flex flex-col space-y-1"
                         >
                           <div className="flex items-center space-x-2">
@@ -2907,7 +3024,7 @@ export default function GrantApplicationForm({
                             field.onChange(value);
                             setShowBenefitDetails(value === "Yes");
                           }}
-                          defaultValue={field.value}
+                          value={field.value}
                           className="flex flex-col space-y-1"
                         >
                           <div className="flex items-center space-x-2">
@@ -3036,7 +3153,7 @@ export default function GrantApplicationForm({
                             field.onChange(value);
                             setShowSimilarProjects(value === "Yes");
                           }}
-                          defaultValue={field.value}
+                          value={field.value}
                           className="flex flex-col space-y-1"
                         >
                           <div className="flex items-center space-x-2">
@@ -3161,7 +3278,7 @@ export default function GrantApplicationForm({
                             field.onChange(value);
                             setShowCompetitors(value === "Yes");
                           }}
-                          defaultValue={field.value}
+                          value={field.value}
                           className="flex flex-col space-y-1"
                         >
                           <div className="flex items-center space-x-2">
@@ -3288,7 +3405,7 @@ export default function GrantApplicationForm({
                             field.onChange(value);
                             setShowTokenLaunchDetails(value === "No");
                           }}
-                          defaultValue={field.value}
+                          value={field.value}
                           className="flex flex-col space-y-1"
                         >
                           <div className="flex items-center space-x-2">
@@ -3574,7 +3691,7 @@ export default function GrantApplicationForm({
                       </FormLabel>
                       <RadioGroup
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                         className="flex flex-col space-y-1"
                       >
                         <FormItem className="flex items-center space-x-3 space-y-0">
@@ -3742,7 +3859,7 @@ export default function GrantApplicationForm({
                             field.onChange(value);
                             setShowTeamMembers(value !== "1" && value !== "");
                           }}
-                          defaultValue={field.value}
+                          value={field.value}
                           className="flex flex-col space-y-1"
                         >
                           <div className="flex items-center space-x-2">
@@ -4350,7 +4467,7 @@ export default function GrantApplicationForm({
                       </FormDescription>
                       <RadioGroup
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                         className="flex flex-col space-y-1"
                       >
                         <FormItem className="flex items-center space-x-3 space-y-0">
@@ -4509,7 +4626,7 @@ export default function GrantApplicationForm({
                             field.onChange(value);
                             setShowReferrer(value === "Yes");
                           }}
-                          defaultValue={field.value}
+                          value={field.value}
                           className="flex flex-col space-y-1"
                         >
                           <div className="flex items-center space-x-2">
