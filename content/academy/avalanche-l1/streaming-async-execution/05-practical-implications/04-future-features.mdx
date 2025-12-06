@@ -1,0 +1,255 @@
+---
+title: Future Features
+description: Future capabilities enabled by SAE including VRF and encrypted mempools.
+updated: 2024-12-06
+authors: [owenwahlgren]
+---
+
+## Features Enabled by SAE
+
+SAE's architecture of executing transactions after consensus opens the door to powerful future capabilities. While not part of ACP-194 itself, these features require some form of asynchronous execution to work correctly.
+
+## Real-Time VRF
+
+### The Problem with Current VRF
+
+Verifiable Random Functions (VRF) are crucial for on-chain randomness. However, current implementations have limitations:
+
+**Current Approach (Commit-Reveal)**:
+1. User commits to a random seed
+2. Wait for block finality
+3. Reveal the seed
+4. Generate randomness
+
+This requires:
+- Multiple transactions
+- Waiting periods
+- User coordination
+
+**Current Approach (Oracle-based)**:
+1. Request randomness from oracle
+2. Wait for oracle response
+3. Use randomness
+
+This requires:
+- External trust (the oracle)
+- Additional fees
+- Network latency
+
+### VRF with SAE
+
+SAE enables a new approach:
+
+```
+Transaction Execution:
+1. Transaction is accepted by consensus
+2. Consensus produces artifacts (signatures, block hash, etc.)
+3. Transaction executes AFTER consensus
+4. VRF can use consensus artifacts as seed!
+```
+
+<Mermaid chart={`flowchart LR
+    A[Consensus] -->|produces| R[Random Seed]
+    A --> E[Execution]
+    R --> E
+    E --> V[VRF Output]`} />
+
+### Why This Works
+
+The key insight is **timing**:
+- Random seed is determined by consensus
+- Block producer cannot know the seed when selecting transactions
+- Execution uses the seed after it's finalized
+- No manipulation possible
+
+```solidity
+// Future Solidity with SAE VRF
+contract RandomGame {
+    function playGame() external {
+        // This would use consensus-derived randomness
+        uint256 random = block.saeRandom;
+
+        // Random is unpredictable at transaction submission
+        // But deterministic at execution
+        bool winner = (random % 2) == 0;
+
+        if (winner) {
+            payWinner(msg.sender);
+        }
+    }
+}
+```
+
+### Applications
+
+- **Gaming**: Fair random outcomes without oracles
+- **NFT Minting**: Truly random trait distribution
+- **Lotteries**: Provably fair selection
+- **Governance**: Random committee selection
+
+## Encrypted Mempool
+
+### The MEV Problem
+
+Maximal Extractable Value (MEV) is profit extracted by reordering transactions:
+- **Front-running**: Placing trades before user transactions
+- **Sandwich attacks**: Surrounding user trades with attacker trades
+- **Back-running**: Executing immediately after profitable transactions
+
+This costs users billions of dollars annually across DeFi.
+
+### Encrypted Mempool Solution
+
+With SAE, an encrypted mempool becomes possible:
+
+```
+Traditional Flow:
+1. User submits transaction (visible)
+2. Block builder sees transaction
+3. Block builder can front-run
+4. Transactions execute
+
+Encrypted Flow:
+1. User submits encrypted transaction
+2. Block builder orders encrypted transactions
+3. Consensus finalizes order
+4. Transactions decrypt and execute
+```
+
+### How SAE Enables This
+
+The key is the separation of ordering and execution:
+
+<Mermaid chart={`flowchart LR
+    subgraph Ordering["Consensus (Blind)"]
+    E1[Encrypted Tx 1]
+    E2[Encrypted Tx 2]
+    E3[Encrypted Tx 3]
+    end
+    subgraph Execution["Execution (Revealed)"]
+    D1[Decrypted Tx 1]
+    D2[Decrypted Tx 2]
+    D3[Decrypted Tx 3]
+    end
+    E1 --> D1
+    E2 --> D2
+    E3 --> D3`} />
+
+**Synchronous Execution**: Cannot encrypt because execution determines block validity.
+
+**Asynchronous Execution (SAE)**: Can encrypt because:
+1. Ordering happens without seeing content
+2. Worst-case validity ensures execution
+3. Decryption happens at execution time
+
+### Implementation Considerations
+
+Encrypted mempools require:
+- Threshold decryption (multiple parties needed)
+- Commitment schemes
+- Timing coordination
+
+SAE provides the necessary architecture, but additional protocol work is needed.
+
+### MEV Protection Benefits
+
+| Attack | Traditional | With Encrypted Mempool |
+|--------|-------------|----------------------|
+| Front-running | Possible | Impossible |
+| Sandwich | Possible | Impossible |
+| Back-running | Possible | Requires luck |
+| Censorship | Possible | Detectable |
+
+## Other Future Features
+
+### Pre-Execution State Access
+
+Smart contracts could access pre-execution state:
+
+```solidity
+// Hypothetical future capability
+contract AdvancedTrader {
+    function atomicArbitrage() external {
+        // Check state BEFORE other transactions in block
+        uint256 priceAtBlockStart = preExecution.getPrice();
+
+        // Execute trade
+        trade();
+
+        // Verify profit
+        uint256 priceAfterTrade = currentPrice();
+        require(priceAfterTrade > priceAtBlockStart);
+    }
+}
+```
+
+### Conditional Execution
+
+Transactions could specify execution conditions:
+
+```
+Transaction:
+  Execute if: queueSize < 10 blocks
+  Execute if: worstCaseGasPrice < 100 gwei
+  Execute if: previousTxSuccess == true
+```
+
+### Parallel Execution
+
+SAE's architecture could enable parallel transaction execution:
+- Identify independent transactions
+- Execute in parallel
+- Combine results
+
+This is complementary to SAE and could further increase throughput.
+
+## Roadmap Context
+
+<Callout type="info" title="Future Development">
+These features are NOT part of ACP-194. They represent potential future directions that SAE enables. Implementation would require additional ACPs and community consensus.
+</Callout>
+
+### Expected Timeline
+
+1. **ACP-194 Activation**: SAE goes live
+2. **Ecosystem Adaptation**: dApps and tools update
+3. **Future ACPs**: VRF and encrypted mempool proposals
+4. **Implementation**: Additional protocol changes
+
+## Preparing for the Future
+
+### For Developers
+
+- Understand SAE's acceptance-execution separation
+- Design for future VRF availability
+- Consider MEV implications of current designs
+- Stay updated on ACP discussions
+
+### For Researchers
+
+- Study SAE's security properties
+- Explore encrypted mempool designs
+- Propose improvements to the model
+- Analyze MEV mitigation strategies
+
+### For Users
+
+- Understand transaction lifecycle
+- Prepare for improved randomness
+- Anticipate MEV protection
+- Participate in governance discussions
+
+## Summary
+
+SAE enables future features that are currently impossible:
+
+- **Real-Time VRF**: Consensus-derived randomness available at execution
+- **Encrypted Mempool**: Transaction content hidden until execution
+- **Pre-Execution Access**: State visibility before block execution
+- **Conditional Execution**: Context-aware transaction processing
+
+These capabilities will significantly enhance Avalanche's DeFi ecosystem when implemented.
+
+<Quiz quizId="sae-406" question="Why does SAE enable real-time VRF that was previously impossible?" options={["SAE provides faster random number generation", "Execution happens after consensus, so consensus artifacts can be used as random seeds that block producers cannot predict", "SAE has built-in VRF support", "Consensus timing in SAE is more precise"]} correctAnswer={1} hint="Think about the timing relationship between consensus and execution" explanation="In SAE, transactions execute AFTER consensus is complete. This means consensus artifacts (like block hashes and signatures) can be used as VRF seeds. Block producers cannot predict these values when selecting transactions, making the randomness unpredictable and unmanipulable." />
+
+<Quiz quizId="sae-407" question="How does SAE enable encrypted mempools to prevent front-running?" options={["SAE encrypts all transactions automatically", "Block ordering happens without seeing transaction content, and decryption occurs at execution time", "SAE uses special MEV protection algorithms", "Validators cannot see any transaction data in SAE"]} correctAnswer={1} hint="Think about the separation of ordering and execution" explanation="SAE separates ordering (consensus) from execution. This allows transactions to be encrypted during ordering - block builders order transactions without seeing their content. Decryption happens at execution time, after the order is finalized, making front-running impossible." />

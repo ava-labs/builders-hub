@@ -1,0 +1,212 @@
+---
+title: Executing Blocks
+description: How the block executor processes the FIFO queue and manages timestamps.
+updated: 2024-12-06
+authors: [owenwahlgren]
+---
+
+## The Block Executor
+
+Each client runs a **block executor** in parallel with consensus. This executor continuously processes blocks from the FIFO queue, computing state changes and preparing results for settlement.
+
+## Execution Stream
+
+The execution stream operates independently of consensus:
+
+<Mermaid chart={`flowchart TB
+    subgraph Consensus["Consensus Stream"]
+    C1[Accept Block 103] --> C2[Accept Block 104] --> C3[Accept Block 105]
+    end
+    subgraph Queue["Execution Queue"]
+    Q1[Block 101] --> Q2[Block 102] --> Q3[Block 103]
+    end
+    subgraph Executor["Block Executor"]
+    E1[Execute Block 101]
+    end
+    C1 --> Q3
+    Q1 --> E1`} />
+
+Key characteristics:
+- **Parallel operation**: Executor runs while consensus continues
+- **FIFO processing**: Blocks are executed in order of acceptance
+- **Continuous**: As soon as one block finishes, the next begins
+
+## Timestamp Management
+
+The block executor maintains its own timestamp $t_e$, which is distinct from wall-clock time. This timestamp tracks:
+
+1. **Block header timestamps**: The timestamp included in each block
+2. **Gas consumption**: How much gas has been charged
+
+### Initialization
+
+When SAE is activated, the executor's timestamp is initialized:
+
+$$
+t_e := timestamp_{lastAccepted}
+$$
+
+### Pre-Execution Update
+
+Before executing a block with timestamp $t_b$, the executor updates its timestamp and gas excess:
+
+$$
+\begin{align}
+\Delta{t} &:= \max\left(0, t_b - t_e\right) \\
+t_e &:= t_e + \Delta{t} \\
+x &:= \max\left(x - T \cdot \Delta{t}, 0\right)
+\end{align}
+$$
+
+**What this means:**
+- If the block timestamp is ahead of the executor, time advances
+- Advancing time reduces the gas excess (prices decrease)
+- If the executor is ahead of the block timestamp, no time passes
+
+<Callout type="info" title="Execution Timestamps">
+Execution timestamps are more granular than block header timestamps to allow sub-second block execution times.
+</Callout>
+
+### Post-Execution Update
+
+After executing a block that charged $g_C$ gas in total:
+
+$$
+\begin{align}
+\Delta{t} &:= \frac{g_C}{R} \\
+t_e &:= t_e + \Delta{t} \\
+x &:= x + \Delta{t} \cdot (R - T)
+\end{align}
+$$
+
+**What this means:**
+- Time advances based on gas charged
+- Higher gas consumption = more time passes
+- Gas excess increases (prices increase)
+
+## Gas Charged vs Gas Used
+
+A key concept in SAE is **gas charged** ($g_C$):
+
+$$
+g_C := \max\left(g_U, \frac{g_L}{\lambda}\right)
+$$
+
+Where:
+- $g_U$ = gas actually used
+- $g_L$ = gas limit set by user
+- $\lambda$ = 2 for C-Chain
+
+This formula ensures that:
+- Users are charged at least half their gas limit
+- High-limit, low-usage transactions are disincentivized
+- The execution stream advances based on reserved, not actual, gas
+
+### Example
+
+```
+Transaction A:
+  Gas Limit: 100,000
+  Gas Used:  80,000
+  Gas Charged: max(80,000, 100,000/2) = 80,000  // Normal case
+
+Transaction B:
+  Gas Limit: 1,000,000
+  Gas Used:  21,000
+  Gas Charged: max(21,000, 1,000,000/2) = 500,000  // Penalized!
+```
+
+## Execution Process
+
+For each block in the queue:
+
+```
+1. Check if block is available
+   - If queue is empty, wait
+
+2. Update timestamp (pre-execution)
+   - Advance t_e if block timestamp is ahead
+   - Reduce excess x if time passed
+
+3. Execute block
+   - Process all transactions
+   - Compute state changes
+   - Generate receipts
+
+4. Update timestamp (post-execution)
+   - Advance t_e based on gas charged
+   - Increase excess x
+
+5. Mark block as executed
+   - Record execution timestamp t_e
+   - Block is now available for settlement
+```
+
+## Handling Gas Target Changes
+
+When a block modifies $T$ (the gas target), the handling is carefully ordered:
+
+1. The consensus thread calculates queue restrictions based on the **parent block's** $T$
+2. The execution thread calculates time spent based on the **parent block's** $T$
+3. Both threads update to the new $T$ after processing that block
+
+This ensures consistency between consensus and execution.
+
+## Lean Execution Clients
+
+SAE enables optimized execution-only clients:
+
+### Traditional Full Node
+```
+Execution:
+1. Process transactions
+2. Update state trie
+3. Compute Merkle root
+4. Store receipts
+```
+
+### Lean Execution Client
+```
+Execution:
+1. Process transactions
+2. Update state (flat storage)
+3. Store receipts
+(No Merkle root computation needed!)
+```
+
+Without state roots, these clients can:
+- Eschew expensive Merkle data structures
+- Process transactions faster
+- Provide accelerated receipt issuance
+- Enable HFT DeFi applications
+
+## Execution Timing
+
+The execution timestamp provides precise timing for settlement:
+
+```
+Block Accepted at wall-clock time: 12:00:00.000
+Block timestamp (t_b):             12:00:00
+Execution starts at:               12:00:00.500 (queue processing)
+Execution completes at:            12:00:00.650
+Execution timestamp (t_e):         12:00:00 + (gas_charged / R)
+
+Settlement possible when: t_e + tau <= next block's timestamp
+```
+
+<Callout type="warn" title="Fractional Timestamps">
+The execution timestamp tracks fractional seconds via gas accumulation. This must NOT be simply rounded - the fraction must be preserved for accurate settlement timing.
+</Callout>
+
+## Summary
+
+The block executor:
+- Runs in parallel with consensus
+- Processes blocks in FIFO order
+- Maintains its own timestamp based on gas consumption
+- Uses gas charged (not gas used) for timing
+- Enables lean execution clients
+
+Next, we will explore how executed blocks are settled.
+
+<Quiz quizId="sae-204" question="How does the executor's timestamp advance after executing a block?" options={["By a fixed amount per block", "By the wall-clock time taken", "By gas_charged / R", "By the block timestamp difference"]} correctAnswer={2} hint="The timestamp is based on gas consumption" explanation="After executing a block, the executor's timestamp advances by gas_charged divided by R (gas capacity per second). This ensures consistent timing regardless of actual execution speed." />

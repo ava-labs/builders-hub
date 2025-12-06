@@ -1,0 +1,180 @@
+---
+title: Proposing Blocks
+description: How block builders create blocks under Streaming Asynchronous Execution.
+updated: 2024-12-06
+authors: [owenwahlgren]
+---
+
+## Block Building Under SAE
+
+In Streaming Asynchronous Execution, the block proposer's role changes significantly. Block builders are no longer expected to execute transactions during block building - instead, they focus on lightweight verification.
+
+## Validator Selection
+
+The mechanism for selecting which validator proposes the next block remains unchanged. Validators are selected based on stake weight and the Snowman consensus protocol.
+
+What changes is **what the proposer does** once selected.
+
+## Building Without Execution
+
+Under SAE, block builders create blocks by:
+
+1. **Selecting transactions** from the mempool
+2. **Verifying worst-case bounds** for each transaction
+3. **Ordering transactions** appropriately
+4. **Computing the worst-case base fee**
+
+Notably absent: actually executing the transactions.
+
+```
+Traditional Block Building:
+1. Select transactions
+2. Execute transactions        <-- Expensive!
+3. Compute state root          <-- Very expensive!
+4. Build block header
+5. Submit to consensus
+
+SAE Block Building:
+1. Select transactions
+2. Verify worst-case bounds    <-- Lightweight
+3. Build block header
+4. Submit to consensus
+```
+
+## Building Upon Settled State
+
+The block builder constructs the block by building upon the **most recently settled state**. This is the state that has been:
+- Executed
+- Waited the settlement delay ($\tau$)
+- Recorded in a subsequent block
+
+For the ancestor blocks that are accepted but not yet settled, the builder applies **worst-case bounds** to determine transaction validity.
+
+<Mermaid chart={`flowchart LR
+    subgraph Settled
+    B1[Block N-3] --> B2[Block N-2]
+    end
+    subgraph "Not Settled"
+    B2 --> B3[Block N-1]
+    B3 --> B4[Block N]
+    end
+    B4 --> B5[New Block]
+    style B1 fill:#90EE90
+    style B2 fill:#90EE90
+    style B3 fill:#FFE4B5
+    style B4 fill:#FFE4B5
+    style B5 fill:#87CEEB`} />
+
+## Worst-Case Bounds
+
+For unsettled ancestor blocks, the builder must assume the worst case:
+
+### Worst-Case Gas Excess
+
+The gas excess determines the base fee. The builder calculates the worst-case excess by assuming all transactions in the queue use their **full gas limit**:
+
+$$
+x_{worst} = f(\{g_L\}_{i<j})
+$$
+
+Where $g_L$ is the gas limit of each transaction in block $i$, and $x_{worst}$ is the resulting worst-case excess.
+
+### Worst-Case Account Balances
+
+For each sender, the builder calculates the minimum possible balance by:
+1. Starting from the settled balance
+2. Deducting the worst-case gas cost for each pending transaction
+3. Deducting the value transferred in each pending transaction
+
+$$
+balance_{worst} = balance_{settled} - \sum_{pending} (g_L \cdot gasPrice_{worst} + value)
+$$
+
+## Base Fee Computation
+
+The `baseFeePerGas` field in the block header must be populated with the gas price based on the worst-case bound on $x$ at the start of block execution:
+
+$$
+baseFee = M \cdot \exp\left(\frac{x_{worst}}{K}\right)
+$$
+
+Where:
+- $M$ is the minimum gas price
+- $K$ is the gas price update constant ($K = 87 \cdot T$)
+- $x_{worst}$ is the worst-case gas excess
+
+<Callout type="info" title="Validator Verification">
+Prior to adding a proposed block to consensus, all validators MUST verify that the block builder correctly enforced the worst-case bounds while building the block. This guarantees that the block can be executed successfully if it is accepted.
+</Callout>
+
+## What Worst-Case Guarantees
+
+The worst-case bounds guarantee that transactions can be paid for. Specifically:
+
+**Guaranteed:**
+- The transaction sender has enough balance to pay for gas
+- The base fee will not exceed the worst-case calculation
+- The transaction will eventually execute
+
+**Not Guaranteed:**
+- Whether the transaction will revert
+- Whether computation will run out of gas at the limit
+- The actual gas used (could be less than limit)
+
+## Block Size Limits
+
+Blocks under SAE have a maximum size defined by:
+
+$$
+\omega_B := R \cdot \tau \cdot \lambda
+$$
+
+Where:
+- $R$ = gas capacity per second
+- $\tau$ = settlement delay (5 seconds for C-Chain)
+- $\lambda$ = gas limit divisor (2 for C-Chain)
+
+Any block whose total sum of gas limits exceeds $\omega_B$ is considered invalid.
+
+## Example: Building a Block
+
+Let's walk through building a block with SAE:
+
+**Current State:**
+- Last settled block: Block 100
+- Accepted but unsettled: Blocks 101, 102
+- Building: Block 103
+
+**Step 1: Calculate worst-case excess**
+```
+Settled excess (Block 100): 1,000,000 gas
+Block 101 gas limits total: 500,000
+Block 102 gas limits total: 600,000
+Worst-case excess for 103: 1,000,000 + 500,000 + 600,000 = 2,100,000
+```
+
+**Step 2: Calculate worst-case base fee**
+```
+baseFee = M * exp(2,100,000 / K)
+```
+
+**Step 3: Verify each transaction**
+For each transaction to include:
+- Calculate sender's worst-case balance
+- Verify: balance >= gasLimit * baseFee + value
+- If valid, include in block
+
+**Step 4: Submit to consensus**
+The block is submitted without executing transactions.
+
+## Summary
+
+Block building under SAE is lightweight but requires careful accounting:
+- No execution during block building
+- Worst-case bounds ensure eventual execution
+- Base fee is computed from worst-case excess
+- Block size is limited by $\omega_B$
+
+Next, we will explore what happens when a block is accepted by consensus.
+
+<Quiz quizId="sae-201" question="Why do block builders not execute transactions under SAE?" options={["Execution is disabled in SAE", "Validators do the execution instead", "Execution happens asynchronously after consensus", "Transactions don't need execution in SAE"]} correctAnswer={2} hint="Think about the core principle of SAE - decoupling" explanation="Under SAE, block builders do not execute transactions because execution is decoupled from consensus. Transactions are executed asynchronously by the block executor after the block has been accepted by consensus." />

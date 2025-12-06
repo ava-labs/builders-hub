@@ -1,0 +1,18 @@
+{
+  "title": "Streaming Asynchronous Execution",
+  "icon": "Zap",
+  "root": true,
+  "pages": [
+    "index",
+    "---Execution Models---",
+    "...02-execution-models",
+    "---Block Lifecycle---",
+    "...03-block-lifecycle",
+    "---Gas Mechanics---",
+    "...04-gas-mechanics",
+    "---Practical Implications---",
+    "...05-practical-implications",
+    "---Course Completion---",
+    "get-certificate"
+  ]
+}

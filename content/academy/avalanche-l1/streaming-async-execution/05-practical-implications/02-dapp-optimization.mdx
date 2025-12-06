@@ -1,0 +1,273 @@
+---
+title: dApp Optimization
+description: Strategies for optimizing decentralized applications under SAE.
+updated: 2024-12-06
+authors: [owenwahlgren]
+---
+
+## Optimizing for SAE
+
+SAE introduces new considerations for dApp developers. This lesson covers best practices for gas limit strategies, user experience, and application architecture.
+
+## Gas Limit Strategies
+
+### The Lambda Factor
+
+With $\lambda = 2$, users are charged at least half their gas limit:
+
+$$
+g_C := \max\left(g_U, \frac{g_L}{\lambda}\right)
+$$
+
+**Optimization Goal**: Set gas limits close to actual usage while maintaining a safety buffer.
+
+### Recommended Approach
+
+```javascript
+async function estimateGasLimit(transaction) {
+    // Get accurate estimate
+    const estimate = await provider.estimateGas(transaction);
+
+    // Add buffer based on transaction complexity
+    const buffer = getBufferForTransaction(transaction);
+
+    // Final limit: estimate + buffer
+    // Buffer should be <= 100% for no penalty
+    return estimate.mul(100 + buffer).div(100);
+}
+
+function getBufferForTransaction(tx) {
+    if (isSimpleTransfer(tx)) {
+        return 0;  // Exact for EOA transfers
+    } else if (isWellTestedContract(tx)) {
+        return 20; // 20% buffer for predictable contracts
+    } else {
+        return 50; // 50% for variable execution
+    }
+}
+```
+
+### Avoiding Overestimation Penalties
+
+```
+Example - Setting 10x the needed gas:
+
+Needed: 50,000 gas
+User sets: 500,000 gas
+Used: 50,000 gas
+
+Gas Charged = max(50,000, 250,000) = 250,000
+Overpayment = 200,000 gas (5x actual usage!)
+```
+
+<Callout type="warn" title="User Education">
+Inform users that extreme gas limit overestimates will cost more under SAE. Wallet interfaces should discourage setting limits much higher than estimates.
+</Callout>
+
+## User Experience Design
+
+### State Transitions
+
+Show users the transaction lifecycle:
+
+```
+Transaction Submitted
+       |
+       v
+[Accepted] - Transaction ordered, execution guaranteed
+       |
+       v
+[Executed] - Result known, receipts available
+       |
+       v
+[Settled] - Permanently recorded on-chain
+```
+
+### UI Patterns
+
+```jsx
+function TransactionStatus({ txHash }) {
+    const [status, setStatus] = useState('pending');
+
+    useEffect(() => {
+        trackTransaction(txHash, setStatus);
+    }, [txHash]);
+
+    return (
+        <div>
+            {status === 'submitted' && <Spinner />}
+            {status === 'accepted' && (
+                <div>
+                    <CheckIcon /> Accepted - Execution guaranteed
+                </div>
+            )}
+            {status === 'executed' && (
+                <div>
+                    <CheckIcon /> Executed - View receipt
+                </div>
+            )}
+            {status === 'settled' && (
+                <div>
+                    <CheckIcon /> Settled - Permanently recorded
+                </div>
+            )}
+        </div>
+    );
+}
+```
+
+### When to Show Confirmation
+
+| Use Case | Confirm At |
+|----------|-----------|
+| Simple transfers | Acceptance (outcome is deterministic) |
+| Contract interactions | Execution (need result) |
+| Critical operations | Settlement (maximum certainty) |
+
+## Handling the Acceptance-Execution Gap
+
+### Optimistic Updates
+
+For predictable operations, update UI at acceptance:
+
+```javascript
+async function handleTransfer(to, amount) {
+    // Submit transaction
+    const tx = await sendTransfer(to, amount);
+
+    // Optimistically update UI after acceptance
+    await tx.wait(0); // Wait for acceptance
+    updateBalance(-amount);
+
+    // Confirm at execution
+    const receipt = await tx.wait(1); // Wait for execution
+    if (receipt.status === 0) {
+        // Rollback if failed (shouldn't happen for transfers)
+        rollbackBalance(amount);
+    }
+}
+```
+
+### Conservative Approach
+
+For complex operations, wait for execution:
+
+```javascript
+async function handleSwap(params) {
+    const tx = await submitSwap(params);
+
+    // Show pending state
+    showPendingSwap(tx.hash);
+
+    // Wait for execution to confirm
+    const receipt = await tx.wait(1);
+
+    if (receipt.status === 1) {
+        // Parse logs to get actual amounts
+        const result = parseSwapResult(receipt);
+        updateBalances(result);
+    } else {
+        showSwapFailed();
+    }
+}
+```
+
+## Batch Transaction Optimization
+
+### Transaction Ordering
+
+Transactions in the same block are ordered. Use this for dependent operations:
+
+```javascript
+// These will execute in order within the block
+const tx1 = await approve(token, spender, amount);
+const tx2 = await swap(tokenIn, tokenOut, amount);
+
+// Both get accepted together, execute in order
+await Promise.all([tx1.wait(1), tx2.wait(1)]);
+```
+
+### Gas Limit for Batches
+
+When batching, account for total gas:
+
+```javascript
+async function submitBatch(transactions) {
+    const estimates = await Promise.all(
+        transactions.map(tx => provider.estimateGas(tx))
+    );
+
+    // Total gas for the batch
+    const totalGas = estimates.reduce((a, b) => a.add(b), BigNumber.from(0));
+
+    // Check against block limit (omega_B)
+    if (totalGas.gt(maxBlockGas)) {
+        throw new Error('Batch too large for single block');
+    }
+
+    return submitAll(transactions, estimates);
+}
+```
+
+## Error Handling
+
+### Distinguishing Errors
+
+```javascript
+async function handleTransaction(tx) {
+    try {
+        const receipt = await tx.wait(1);
+        return receipt;
+    } catch (error) {
+        if (error.code === 'QUEUE_FULL') {
+            // Queue at omega_Q limit, retry later
+            return retryLater(tx);
+        } else if (error.code === 'INSUFFICIENT_BALANCE') {
+            // Worst-case balance too low
+            return showInsufficientFunds(error);
+        } else if (error.code === 'EXECUTION_REVERTED') {
+            // Contract execution failed
+            return handleRevert(error);
+        }
+        throw error;
+    }
+}
+```
+
+## Performance Monitoring
+
+Track SAE-specific metrics:
+
+```javascript
+const metrics = {
+    // Time from submission to acceptance
+    acceptanceLatency: [],
+
+    // Time from acceptance to execution
+    executionDelay: [],
+
+    // Time from execution to settlement
+    settlementDelay: [],
+
+    // Gas charged vs gas used ratio
+    gasEfficiency: [],
+
+    // Worst-case vs actual costs
+    costAccuracy: []
+};
+```
+
+## Summary
+
+Optimizing for SAE involves:
+
+- **Gas Limits**: Set accurately with appropriate buffers (≤100%)
+- **UX**: Show transaction lifecycle clearly
+- **Timing**: Choose confirmation level based on use case
+- **Batching**: Consider block size limits
+- **Errors**: Handle SAE-specific error conditions
+- **Monitoring**: Track SAE-specific metrics
+
+The next lesson covers advanced use cases enabled by SAE.
+
+<Quiz quizId="sae-403" question="What is the maximum gas limit buffer that avoids penalty under SAE with lambda=2?" options={["25%", "50%", "100%", "200%"]} correctAnswer={2} hint="Think about the formula gas_charged = max(gas_used, gas_limit/lambda)" explanation="With lambda=2, users are charged at least half their gas limit. This means if usage is at least 50% of the limit (100% buffer), there is no penalty. Beyond 100% buffer, users start paying more than actual usage." />

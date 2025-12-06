@@ -1,0 +1,203 @@
+---
+title: Gas Pricing Review
+description: Review of gas pricing variables from ACP-103 and ACP-176 that underpin SAE.
+updated: 2024-12-06
+authors: [owenwahlgren]
+---
+
+## Background: Gas Pricing on Avalanche
+
+Before diving into SAE's gas mechanics, let's review the foundational gas pricing model established by ACP-103 and refined by ACP-176. These ACPs define the variables and formulas that SAE builds upon.
+
+## ACP-103 Variables
+
+ACP-103 introduced four key variables for calculating gas prices:
+
+| Variable | Description |
+|----------|-------------|
+| $T$ | Target gas consumed per second |
+| $M$ | Minimum gas price |
+| $K$ | Gas price update constant |
+| $R$ | Gas capacity added per second |
+
+### Gas Target ($T$)
+
+The gas target represents the desired sustainable throughput of the network:
+- Measured in gas units per second
+- Blocks are considered "full" when they hit this target
+- Network aims to operate at this level on average
+
+### Minimum Gas Price ($M$)
+
+The floor price for gas:
+- Transactions must pay at least this much
+- Prevents spam even during low-demand periods
+- Sets the baseline for the exponential pricing formula
+
+### Gas Price Update Constant ($K$)
+
+Controls how quickly prices respond to demand:
+- Higher $K$ = slower price changes
+- Lower $K$ = faster price changes
+- Balances responsiveness with stability
+
+### Gas Capacity ($R$)
+
+The maximum gas the network can process per second:
+- Represents the hard upper limit
+- Always greater than $T$ to allow bursts
+- Sets the ceiling for throughput
+
+## ACP-176 Refinements
+
+ACP-176 made $T$ dynamic and established relationships between variables:
+
+$$
+\begin{align}
+R &= 2 \cdot T \\
+K &= 87 \cdot T
+\end{align}
+$$
+
+This means:
+- Gas capacity is always 2x the target (100% burst capacity)
+- Price update constant scales with target
+
+## The Gas Excess ($x$)
+
+The **gas excess** is the key variable for price calculation. It represents accumulated "extra" consumption beyond the target:
+
+$$
+x := \int (consumption - T) \, dt
+$$
+
+In practice, this is tracked via numerical integration:
+- When gas usage exceeds $T$, excess increases
+- When gas usage is below $T$, excess decreases
+- Excess cannot go below 0
+
+## Gas Price Formula
+
+The gas price is calculated as an exponential function of excess:
+
+$$
+gasPrice = M \cdot \exp\left(\frac{x}{K}\right)
+$$
+
+This creates:
+- Price = $M$ when excess is 0
+- Exponential growth as excess increases
+- Smooth, continuous price adjustments
+
+<Mermaid chart={`flowchart LR
+    subgraph Inputs
+    T[Target T]
+    R[Capacity R]
+    x[Excess x]
+    end
+    subgraph Price
+    M[Min Price M]
+    K[Constant K]
+    P[Gas Price]
+    end
+    x --> P
+    M --> P
+    K --> P
+    T --> K
+    T --> R`} />
+
+## Excess Update Rules
+
+The excess is updated based on time and gas consumption:
+
+### Time Passing (Decreases Excess)
+
+When time $\Delta t$ passes without gas consumption:
+
+$$
+x := \max(x - T \cdot \Delta t, 0)
+$$
+
+### Gas Consumed (Increases Excess)
+
+When gas $g$ is consumed:
+
+$$
+x := x + g \cdot \frac{(R - T)}{R}
+$$
+
+Since $R = 2T$:
+
+$$
+x := x + g \cdot \frac{(2T - T)}{2T} = x + \frac{g}{2}
+$$
+
+## Example Calculation
+
+Let's walk through a simple example:
+
+**Setup:**
+- $T$ = 100,000 gas/second
+- $R$ = 200,000 gas/second
+- $M$ = 1 gwei
+- $K$ = 8,700,000 (= 87 * T)
+- Current $x$ = 0
+
+**Block arrives with 150,000 gas used:**
+
+```
+1. Excess increases:
+   x = 0 + 150,000 * (200,000 - 100,000) / 200,000
+   x = 0 + 150,000 * 0.5
+   x = 75,000
+
+2. New gas price:
+   price = 1 gwei * exp(75,000 / 8,700,000)
+   price = 1 gwei * exp(0.00862)
+   price = 1.00866 gwei
+```
+
+**1 second passes with no activity:**
+
+```
+1. Excess decreases:
+   x = max(75,000 - 100,000 * 1, 0)
+   x = max(-25,000, 0)
+   x = 0
+
+2. Gas price returns to minimum:
+   price = 1 gwei * exp(0)
+   price = 1 gwei
+```
+
+## Why This Matters for SAE
+
+SAE modifies how gas consumption is measured:
+
+| Traditional | SAE |
+|------------|-----|
+| Use gas used ($g_U$) | Use gas charged ($g_C$) |
+| Actual consumption | Bounded consumption |
+| Can be manipulated | Protected against DoS |
+
+The next lesson will explain the gas charged formula and why it's essential for SAE's security.
+
+<Callout type="info" title="Related ACPs">
+For more details on the gas pricing model, see:
+- [ACP-103](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/103-dynamic-fees/README.md) - Original dynamic fees proposal
+- [ACP-176](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/176-dynamic-gas-limit/README.md) - Dynamic gas limits
+</Callout>
+
+## Summary
+
+The Avalanche gas pricing model:
+- Uses four key variables: $T$, $M$, $K$, $R$
+- Tracks gas excess $x$ to determine prices
+- Calculates prices via exponential formula
+- Balances throughput with price stability
+
+SAE builds on this foundation by modifying what counts as "gas consumption" to provide security guarantees.
+
+<Quiz quizId="sae-301" question="What is the relationship between gas capacity R and gas target T?" options={["R = T", "R = 2T", "R = T/2", "R = 87T"]} correctAnswer={1} hint="ACP-176 defines this relationship" explanation="According to ACP-176, R = 2 * T, meaning the gas capacity is always twice the target. This allows for 100% burst capacity above the sustainable target." />
+
+<Quiz quizId="sae-302" question="What happens to gas prices when the excess x is 0?" options={["Gas prices are 0", "Gas prices are at minimum M", "Gas prices are at maximum", "Gas prices are undefined"]} correctAnswer={1} hint="Look at the exponential formula when x = 0" explanation="When x = 0, the gas price formula gives M * exp(0) = M * 1 = M. So the gas price equals the minimum price M." />

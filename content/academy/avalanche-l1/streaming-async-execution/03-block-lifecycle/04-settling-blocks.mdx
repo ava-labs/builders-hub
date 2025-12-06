@@ -1,0 +1,168 @@
+---
+title: Settling Blocks
+description: How executed blocks are settled and their results recorded on-chain.
+updated: 2024-12-06
+authors: [owenwahlgren]
+---
+
+## Block Settlement
+
+Settlement is the final stage of the block lifecycle under SAE. When a block is settled, its execution results are permanently recorded on-chain, and the state changes become part of the official blockchain history.
+
+## Settlement Timing
+
+Settlement occurs after a constant delay $\tau$ from execution:
+
+<Mermaid chart={`flowchart LR
+    A[Accepted] -->|"variable delay"| E[Executed]
+    E -->|"tau = 5 seconds"| S[Settled]
+    style S fill:#90EE90`} />
+
+For a proposed block with timestamp $t_b$, all ancestors whose execution timestamp $t_e$ satisfies:
+
+$$
+t_e \leq t_b - \tau
+$$
+
+are considered settled.
+
+<Callout type="info" title="C-Chain Parameters">
+For the C-Chain, tau = 5 seconds. This means a block is settled when the next block's timestamp is at least 5 seconds after the execution timestamp.
+</Callout>
+
+## Settlement Mechanics
+
+When a new block is proposed, it must include the execution results of settled blocks:
+
+### State Root
+The `stateRoot` in the new block header is set to the state root of the **most recently settled block**.
+
+### Newly Settled Blocks
+For any blocks that are **newly settled** by this block, the proposer must include:
+
+| Field | Description |
+|-------|-------------|
+| `receiptsRoot` | Merkle Patricia Trie root of all receipts |
+| `logsBloom` | Bloom filter of all logs |
+| `gasUsed` | Total gas used across settled blocks |
+
+### Receipts Root Computation
+
+The receipts root is computed as defined in [EIP-2718](https://eips.ethereum.org/EIPS/eip-2718), with one key difference: the tree is built from the **concatenation of receipts from all blocks being settled**.
+
+```
+If settling blocks 100, 101, 102:
+
+receiptsRoot = MPT([
+    ...receipts_from_block_100,
+    ...receipts_from_block_101,
+    ...receipts_from_block_102
+])
+```
+
+## Why the Delay?
+
+The $\tau$ delay serves several purposes:
+
+### 1. Amortizing Execution Variance
+
+The block executor may experience sporadic slowdowns due to:
+- Database compaction
+- System load
+- Complex transactions
+
+The delay provides buffer time to recover from these events.
+
+### 2. Consistent Settlement Timing
+
+With a constant delay, settlement timing is predictable:
+- Users know when to expect settlement
+- Applications can plan accordingly
+- The system is more understandable
+
+### 3. Queue Management
+
+The delay works with queue limits to ensure:
+- Blocks have time to be executed
+- The queue doesn't grow unbounded
+- Settlement is guaranteed
+
+## Executor Catch-Up
+
+If the block executor falls behind, there's a special rule:
+
+<Callout type="warn" title="Executor Lag">
+If the block executor has fallen behind, the node may not be able to determine precisely which ancestors should be considered settled. If this occurs, validators MUST allow the block executor to catch up prior to deciding the block's validity.
+</Callout>
+
+This ensures:
+- Correct settlement determination
+- No premature or delayed settlements
+- Network consistency
+
+## Settlement Example
+
+Let's walk through a settlement scenario:
+
+```
+Timeline:
+t=0s:   Block 100 accepted (t_b = 0)
+t=0.5s: Block 100 executed (t_e = 0.2 based on gas)
+t=1s:   Block 101 accepted (t_b = 1)
+t=1.3s: Block 101 executed (t_e = 1.1)
+t=2s:   Block 102 accepted (t_b = 2)
+...
+t=5s:   Block 105 accepted (t_b = 5)
+
+For Block 105, check settlement condition:
+- Block 100: t_e(0.2) <= 5 - 5 = 0? Yes -> Settled
+- Block 101: t_e(1.1) <= 5 - 5 = 0? No -> Not yet settled
+
+Block 105 includes:
+- stateRoot: from Block 100
+- receipts: from Block 100 (newly settled)
+```
+
+## Block Header Changes
+
+Several block header fields change their meaning under SAE:
+
+| Field | Before SAE | Under SAE |
+|-------|------------|-----------|
+| `stateRoot` | Current block's state | Most recently settled block's state |
+| `receiptsRoot` | Current block's receipts | All newly settled blocks' receipts |
+| `logsBloom` | Current block's logs | All newly settled blocks' logs |
+| `gasUsed` | Current block's gas | All newly settled blocks' gas |
+
+<Callout type="info" title="Backwards Compatibility">
+These changes affect block interpretation. A comprehensive list of field changes will be produced once a reference implementation is available.
+</Callout>
+
+## Finality Guarantees
+
+Under SAE, there are multiple levels of finality:
+
+| State | Meaning | Guarantee |
+|-------|---------|-----------|
+| Accepted | Transaction is sequenced | Will execute |
+| Executed | Transaction has run | Results known |
+| Settled | Results recorded | Permanent |
+
+Importantly, due to Snowman consensus:
+- There is no risk of re-org after acceptance
+- The path from accepted to settled is guaranteed
+- Only negligible risk of data corruption local to the node
+
+## Summary
+
+Settlement under SAE:
+- Occurs after a constant delay ($\tau$ = 5 seconds for C-Chain)
+- Includes results from potentially multiple executed blocks
+- Changes the meaning of several block header fields
+- Provides strong finality guarantees
+
+With the block lifecycle complete, we will next explore the gas mechanics that make SAE secure.
+
+<Quiz quizId="sae-205" question="When is a block considered settled under SAE?" options={["Immediately when executed", "When tau seconds have passed since acceptance", "When the next block's timestamp is at least tau seconds after the execution timestamp", "When all transactions have been confirmed"]} correctAnswer={2} hint="Look at the settlement condition formula involving timestamps" explanation="A block is settled when a following block is accepted with timestamp t_b such that t_e <= t_b - tau, where t_e is the execution timestamp. This means at least tau seconds must have passed since execution." />
+
+<Quiz quizId="sae-206" question="What is included in the receiptsRoot of a new block under SAE?" options={["Only the receipts from that block's transactions", "Receipts from all executed but unsettled blocks", "Receipts from all newly settled blocks concatenated together", "Receipts from the entire blockchain history"]} correctAnswer={2} hint="Think about what 'newly settled' means" explanation="The receiptsRoot is computed from the concatenation of receipts from all blocks that are newly settled by the current block. Multiple blocks may be settled at once." />

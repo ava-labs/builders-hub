@@ -1,0 +1,83 @@
+---
+title: Synchronous Execution
+description: Understanding traditional blockchain execution where transactions are executed before consensus.
+updated: 2024-12-06
+authors: [owenwahlgren]
+---
+
+## Traditional Blockchain Execution
+
+In traditional blockchain systems, including Avalanche's current implementation, transaction execution is **synchronous** with consensus. This means that transactions must be fully executed before a block can be accepted by the network.
+
+## The Synchronous Model
+
+Under synchronous execution, the block lifecycle follows a strict sequential order:
+
+<Mermaid chart={`flowchart LR
+    I[Proposed] --> E[Executed] --> A[Accepted/Settled]`} />
+
+### Step-by-Step Process
+
+1. **Proposed**: A validator creates a new block containing transactions
+2. **Executed**: The validator executes all transactions to compute the resulting state
+3. **Accepted/Settled**: Once execution is complete and the state root is known, the block is submitted to consensus. Upon acceptance, the block is immediately settled.
+
+## Why Execute Before Consensus?
+
+The reason for this ordering is straightforward: in synchronous execution, the block header must contain the **state root** - a cryptographic commitment to the post-execution state. Validators need this state root to verify that the block producer executed transactions correctly.
+
+```
+Block Header:
+- Parent Hash
+- Timestamp
+- Transaction Root
+- State Root        <-- Requires execution to compute
+- Receipts Root     <-- Requires execution to compute
+- Gas Used          <-- Requires execution to compute
+```
+
+## The Cost of Synchronous Execution
+
+While simple and intuitive, synchronous execution has significant performance implications:
+
+### Context Switching Overhead
+
+Validators must constantly switch between two different tasks:
+
+1. **Consensus work**: Communicating with other validators, voting, finalizing blocks
+2. **Execution work**: Processing transactions, computing state changes
+
+Each context switch introduces latency. While a validator is executing transactions, it cannot participate in consensus, and vice versa.
+
+### VM Time vs Wall Time
+
+In synchronous execution, "VM time" (the time spent executing transactions) is significantly less than wall time because:
+
+- Consensus operations consume time that could be used for execution
+- Database operations (like Merkle tree updates) add overhead
+- Irregular events like database compaction can halt execution entirely
+
+<Callout type="info" title="Performance Impact">
+Under synchronous execution, the effective throughput is limited by the slower of consensus or execution, plus the overhead of switching between them.
+</Callout>
+
+## State Root Computation
+
+One of the most expensive operations in synchronous execution is computing the state root. This requires:
+
+1. Executing all transactions in the block
+2. Updating the Merkle Patricia Trie with all state changes
+3. Computing the new root hash
+
+This Merkle tree computation is particularly expensive and must complete before consensus can proceed.
+
+## Summary
+
+Synchronous execution provides a simple mental model where:
+- Blocks are executed before being accepted
+- State roots are immediately available at acceptance time
+- Settlement happens implicitly upon acceptance
+
+However, this simplicity comes at a performance cost due to the tight coupling between consensus and execution. In the next lesson, we will explore how asynchronous execution addresses these limitations.
+
+<Quiz quizId="sae-101" question="In synchronous execution, when is the state root computed?" options={["Before the block is proposed", "After the block is accepted by consensus", "Before the block is submitted to consensus", "State roots are not computed in synchronous execution"]} correctAnswer={2} hint="Think about what information needs to be in the block header" explanation="In synchronous execution, the state root must be computed by executing all transactions BEFORE the block can be submitted to consensus. This is because the state root is included in the block header and validators need it to verify the block." />

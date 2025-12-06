@@ -1,0 +1,222 @@
+---
+title: Queue DoS Protection
+description: How SAE protects against denial-of-service attacks on the execution queue.
+updated: 2024-12-06
+authors: [owenwahlgren]
+---
+
+## The Queue DoS Problem
+
+While worst-case validity protects execution, it leaves the queue vulnerable. An attacker could:
+
+1. Send transactions with high gas limits
+2. Actually use minimal gas
+3. Pay little (based on usage) but reserve lots of queue space
+4. Inflate worst-case costs for other users
+
+This is where gas charged and queue limits come in.
+
+## Attack Scenario
+
+Consider Mallory, a malicious actor:
+
+**Without Protection:**
+```
+Mallory sends 100 transactions:
+  Gas Limit each: 1,000,000 (1M)
+  Actual Usage: 21,000 (simple transfer)
+
+Queue Effect:
+  Reserved space: 100M gas worth
+  Actual payment: 2.1M gas worth
+
+Other Users:
+  Must calculate worst-case against 100M gas
+  Pay much higher estimated fees
+  Queue appears full
+```
+
+## Gas Charged Solution
+
+The gas charged formula addresses this:
+
+$$
+g_C := \max\left(g_U, \frac{g_L}{\lambda}\right)
+$$
+
+**With Protection ($\lambda = 2$):**
+```
+Mallory's transactions:
+  Gas Limit: 1,000,000
+  Gas Used: 21,000
+  Gas Charged: max(21,000, 500,000) = 500,000
+
+Cost Multiplier: 500,000 / 21,000 = ~24x more expensive!
+```
+
+The attack becomes economically infeasible.
+
+## Block and Queue Size Limits
+
+SAE enforces hard limits on block and queue sizes:
+
+### Maximum Block Size
+
+$$
+\omega_B := R \cdot \tau \cdot \lambda
+$$
+
+For C-Chain ($\tau = 5$, $\lambda = 2$):
+
+$$
+\omega_B = 2T \cdot 5 \cdot 2 = 20T
+$$
+
+Where $T$ is the gas target per second. This means:
+- A single block can contain up to 20 seconds worth of target gas
+- Allows for bursty activity
+- Bounds individual block impact
+
+### Maximum Queue Size
+
+$$
+\omega_Q := 2 \cdot \omega_B
+$$
+
+For C-Chain:
+
+$$
+\omega_Q = 2 \cdot 20T = 40T
+$$
+
+This means:
+- Queue can hold up to 40 seconds worth of target gas
+- Bounds total pending execution work
+- Prevents unbounded queue growth
+
+<Callout type="info" title="Queue Check Timing">
+The queue size is checked **prior** to adding a new block. This ensures $\omega_B$ is the only limitation on individual block size.
+</Callout>
+
+## Upper Bound on DoS Impact
+
+Let's calculate the maximum damage Mallory can cause:
+
+### Difference in Excess
+
+The difference between worst-case and actual gas excess from the queue:
+
+$$
+\begin{align}
+\Delta x_A &\ge \frac{\omega_Q}{\lambda} \cdot \frac{(R - T)}{R} \\
+\Delta x_W &= \omega_Q \cdot \frac{(R - T)}{R} \\
+\Delta x_W - \Delta x_A &\le \omega_Q \cdot \frac{(R - T)}{R} \cdot \left(1-\frac{1}{\lambda}\right)
+\end{align}
+$$
+
+Simplifying with $R = 2T$ and the queue size:
+
+$$
+\Delta x_W - \Delta x_A \le 2 \cdot T \cdot \tau \cdot (\lambda-1)
+$$
+
+### DoS Quotient
+
+Mallory's DoS quotient (ratio of worst-case to actual fee):
+
+$$
+D := \frac{f_W}{f_A} = \exp\left(\frac{x_W - x_A}{K}\right)
+$$
+
+When the queue is empty, $D = 1$ (no discrepancy). The maximum $D$ is bounded by:
+
+$$
+D \le \exp\left(\frac{2 \cdot T \cdot \tau \cdot (\lambda-1)}{K}\right)
+$$
+
+Substituting $K = 87 \cdot T$:
+
+$$
+D \le \exp\left(\frac{2 \cdot \tau \cdot (\lambda-1)}{87}\right)
+$$
+
+### C-Chain Calculation
+
+For C-Chain parameters ($\tau = 5$, $\lambda = 2$):
+
+$$
+D \le \exp\left(\frac{2 \cdot 5 \cdot (2-1)}{87}\right) = \exp\left(\frac{10}{87}\right) \approx 1.12
+$$
+
+<Callout type="warn" title="Maximum Impact">
+Mallory can require users to increase their gas price by **at most ~12%**. In practice, gas prices often fluctuate more than 12% naturally.
+</Callout>
+
+## Why 12% Is Acceptable
+
+The ~12% maximum DoS impact is considered acceptable because:
+
+### 1. Natural Volatility
+
+Gas prices regularly fluctuate by more than 12% due to:
+- Normal demand variation
+- Block-to-block changes
+- Network activity spikes
+
+### 2. Economic Cost
+
+To achieve even this 12% impact, Mallory must:
+- Fill the entire queue with malicious transactions
+- Pay at least half the gas limit for each
+- Sustain this attack continuously
+
+The cost is substantial with minimal benefit.
+
+### 3. Self-Correcting
+
+As the queue processes:
+- Worst-case excess decreases
+- Actual execution reveals true usage
+- DoS impact diminishes automatically
+
+## Protection Summary
+
+SAE provides multi-layered DoS protection:
+
+| Mechanism | Protection |
+|-----------|------------|
+| Gas Charged ($g_C$) | Penalizes inflated limits |
+| Block Size ($\omega_B$) | Bounds per-block impact |
+| Queue Size ($\omega_Q$) | Bounds total pending work |
+| Worst-Case Validity | Guarantees execution |
+| Economic Incentives | Makes attacks costly |
+
+## Monitoring the Queue
+
+For operators and users:
+
+### Queue Health Indicators
+- Current queue size vs $\omega_Q$
+- Worst-case vs actual excess
+- Processing rate vs acceptance rate
+
+### Warning Signs
+- Queue consistently near $\omega_Q$
+- Large gap between worst-case and actual fees
+- Many high-limit, low-usage transactions
+
+## Summary
+
+Queue DoS protection in SAE:
+
+- Uses gas charged to penalize inflated limits
+- Enforces block size limit $\omega_B = R \cdot \tau \cdot \lambda$
+- Enforces queue size limit $\omega_Q = 2 \cdot \omega_B$
+- Bounds maximum DoS impact to ~12% fee increase
+- Makes sustained attacks economically infeasible
+
+This completes the gas mechanics module. Next, we will explore the practical implications of SAE for developers and users.
+
+<Quiz quizId="sae-307" question="What is the maximum DoS impact an attacker can have on gas prices under SAE for the C-Chain?" options={["0%", "About 12%", "50%", "100%"]} correctAnswer={1} hint="The formula gives exp(10/87)" explanation="With C-Chain parameters (tau=5, lambda=2), the maximum DoS quotient D is approximately 1.12, meaning attackers can increase worst-case fees by at most about 12% compared to actual fees." />
+
+<Quiz quizId="sae-308" question="What is the relationship between block size limit and queue size limit?" options={["omega_Q = omega_B", "omega_Q = 2 * omega_B", "omega_Q = omega_B / 2", "omega_Q = omega_B * tau"]} correctAnswer={1} hint="The queue can hold multiple blocks" explanation="The queue size limit omega_Q = 2 * omega_B, meaning the queue can hold the equivalent of two maximum-sized blocks. This allows for bursty activity while bounding total pending work." />

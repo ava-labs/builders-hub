@@ -1,4 +1,4 @@
-import { ArrowLeftRight, Coins, MailIcon, SquareCode, SquareIcon, SquareStackIcon, TerminalIcon, Triangle, HexagonIcon, UserPen } from 'lucide-react';
+import { ArrowLeftRight, Coins, MailIcon, SquareCode, SquareIcon, SquareStackIcon, TerminalIcon, Triangle, HexagonIcon, UserPen, Zap } from 'lucide-react';
 
 export type Course = {
     name: string;
@@ -154,6 +154,19 @@ const officialCourses: Course[] = [
         tools: ["Validator Manager", "P-Chain", "ICM"],
         languages: ["Solidity"],
         instructors: ["Martin Eckardt", "Owen Wahlgren", "Nicolas Arnedo"],
+        category: "L1 Development",
+        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
+    },
+    {
+        name: "Streaming Asynchronous Execution",
+        description: "Learn about ACP-194 and how asynchronous execution transforms Avalanche block processing",
+        slug: "streaming-async-execution",
+        icon: <Zap />,
+        duration: "1.5 hours",
+        status: "featured",
+        tools: ["ACP-194"],
+        languages: [],
+        instructors: ["Owen Wahlgren"],
         category: "L1 Development",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },

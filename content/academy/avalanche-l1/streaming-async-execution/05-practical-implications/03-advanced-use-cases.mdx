@@ -1,0 +1,298 @@
+---
+title: Advanced Use Cases
+description: Advanced applications enabled by SAE including HFT DeFi and custodial platforms.
+updated: 2024-12-06
+authors: [owenwahlgren]
+---
+
+## Use Cases Enabled by SAE
+
+SAE's architecture enables sophisticated applications that were previously impractical. This lesson explores advanced use cases for different types of users.
+
+## High-Frequency DeFi Trading
+
+### The Opportunity
+
+SAE enables HFT-style trading on DeFi by allowing:
+- Early execution through lean clients
+- Predictable transaction ordering
+- Faster receipt availability
+
+### Lean Execution Clients
+
+A sophisticated trader can run a custom execution client:
+
+```
+Standard Node:
+1. Receive accepted block
+2. Execute transactions
+3. Update Merkle trie
+4. Compute state root
+5. Store in database
+
+Lean Execution Client:
+1. Receive accepted block
+2. Execute transactions
+3. Update flat state store
+4. Done!
+
+Time savings: ~40-60% faster execution
+```
+
+<Callout type="info" title="No Merkle Required">
+Without the need to compute state roots, lean clients can use flat key-value stores instead of Merkle Patricia Tries. This dramatically speeds up state access.
+</Callout>
+
+### Trading Strategy
+
+```
+1. Subscribe to accepted blocks
+2. Execute locally before network
+3. Know transaction outcomes early
+4. Submit next transaction based on result
+5. Repeat for multi-hop arbitrage
+
+Example Timeline:
+t=0:    Block N accepted
+t=50ms: Local execution complete (ahead of network)
+t=100ms: Submit Block N+1 transaction
+t=200ms: Network completes Block N execution
+```
+
+### Competitive Advantage
+
+Traders with optimized execution clients:
+- Know prices before others
+- Can react to executed transactions
+- Submit follow-up transactions faster
+- Execute multi-leg strategies atomically
+
+## Custodial Platforms
+
+### Immediate Balance Crediting
+
+Custodial platforms can credit user balances immediately upon acceptance for EOA-to-EOA transfers:
+
+```javascript
+async function handleDeposit(txHash) {
+    // Wait for acceptance (not execution)
+    const tx = await waitForAcceptance(txHash);
+
+    // Verify it's a simple EOA transfer (gasLimit = 21000)
+    if (tx.gasLimit.eq(21000)) {
+        // Credit balance immediately - outcome is guaranteed
+        await creditUserBalance(tx.to, tx.value);
+        notifyUser('Deposit credited!');
+    } else {
+        // Wait for execution for contract interactions
+        const receipt = await tx.wait(1);
+        if (receipt.status === 1) {
+            await creditUserBalance(tx.to, tx.value);
+        }
+    }
+}
+```
+
+### Why This Works
+
+For EOA-to-EOA transfers with gasLimit = 21000:
+- No bytecode execution
+- Outcome is entirely deterministic
+- Worst-case validity guarantees settlement
+- No possibility of revert
+
+### Platform Benefits
+
+| Traditional | With SAE |
+|-------------|----------|
+| Wait for confirmations | Credit at acceptance |
+| 10-60 second delay | ~1 second delay |
+| User frustration | Instant feedback |
+| Complex confirmation logic | Simple detection |
+
+## Queue-Aware Applications
+
+### Monitoring Queue State
+
+Applications can monitor the execution queue:
+
+```javascript
+async function monitorQueue() {
+    const queueStats = await getQueueStats();
+
+    return {
+        // Current queue size
+        queueSize: queueStats.size,
+
+        // Percentage of omega_Q used
+        queueUtilization: queueStats.size / OMEGA_Q,
+
+        // Estimated time to clear queue
+        clearTime: queueStats.size / GAS_RATE,
+
+        // Worst-case vs actual excess
+        excessGap: queueStats.worstCaseExcess - queueStats.actualExcess
+    };
+}
+```
+
+### Adaptive Gas Pricing
+
+```javascript
+async function getOptimalGasPrice() {
+    const queueStats = await monitorQueue();
+
+    if (queueStats.queueUtilization < 0.3) {
+        // Low queue - use actual base fee
+        return getActualBaseFee();
+    } else if (queueStats.queueUtilization < 0.7) {
+        // Medium queue - slight premium
+        return getActualBaseFee().mul(105).div(100);
+    } else {
+        // High queue - use worst-case estimate
+        return getWorstCaseBaseFee();
+    }
+}
+```
+
+## Third-Party Accounting
+
+### Pre-Execution Accounting
+
+For non-data-dependent transactions, accounting can happen at acceptance:
+
+```javascript
+async function processAcceptedBlock(block) {
+    for (const tx of block.transactions) {
+        if (isPredicatbleTransaction(tx)) {
+            // Account for it now
+            await recordTransaction({
+                hash: tx.hash,
+                from: tx.from,
+                to: tx.to,
+                value: tx.value,
+                status: 'guaranteed', // Will definitely settle
+                recordedAt: 'acceptance'
+            });
+        }
+    }
+}
+
+function isPredicatbleTransaction(tx) {
+    // EOA-to-EOA transfer
+    if (tx.gasLimit === 21000 && tx.data === '0x') {
+        return true;
+    }
+    // Add other predictable patterns
+    return false;
+}
+```
+
+### Compliance Benefits
+
+- Real-time transaction recording
+- Audit trail from acceptance
+- Clear settlement tracking
+- Regulatory reporting simplified
+
+## Node Operators
+
+### Configuring for SAE
+
+Node operators should understand:
+
+```yaml
+# Execution client configuration
+execution:
+  # Parallel executor settings
+  executor_threads: 4
+
+  # Queue management
+  max_queue_size: OMEGA_Q
+
+  # Database optimization
+  state_cache_size: "8GB"
+
+  # Settlement tracking
+  settlement_delay: TAU
+```
+
+### Monitoring Health
+
+```javascript
+const healthMetrics = {
+    // Queue processing rate
+    executionRate: blocksPerSecond,
+
+    // Lag behind consensus
+    queueDepth: currentQueueSize,
+
+    // Settlement status
+    latestSettled: settledBlockNumber,
+
+    // Resource usage
+    executorCpuUsage: cpuPercent,
+    stateDbSize: diskUsage
+};
+```
+
+### Handling Executor Lag
+
+If the executor falls behind:
+
+```javascript
+async function handleExecutorLag() {
+    const lag = getExecutorLag();
+
+    if (lag > WARNING_THRESHOLD) {
+        // Pause accepting new blocks
+        pauseConsensus();
+
+        // Let executor catch up
+        await waitForExecutorCatchup();
+
+        // Resume
+        resumeConsensus();
+    }
+}
+```
+
+## Transaction Prioritization
+
+### Block Builder Considerations
+
+Block builders can prioritize transactions:
+
+```
+Prioritization Options:
+1. Gas price (traditional)
+2. Transaction type (EOA vs contract)
+3. Sender reputation
+4. Gas limit accuracy history
+```
+
+### EOA Transfer Prioritization
+
+As noted in ACP-194:
+
+> Block builders MAY choose to prioritise EOA-to-EOA transfers for earlier execution.
+
+However:
+- This could delay dependent transactions
+- Block builders make their own decisions
+- Users should not rely on specific ordering
+
+## Summary
+
+SAE enables advanced use cases:
+
+- **HFT DeFi**: Lean clients for faster execution
+- **Custodial**: Immediate balance crediting
+- **Accounting**: Pre-execution transaction recording
+- **Operations**: Queue-aware infrastructure
+
+These capabilities create new opportunities for sophisticated applications on Avalanche.
+
+<Quiz quizId="sae-404" question="Why can custodial platforms credit balances immediately for EOA-to-EOA transfers under SAE?" options={["SAE executes these transactions faster", "The gas limit of 21,000 indicates a deterministic outcome with no possibility of revert", "SAE has special handling for custodial accounts", "These transactions skip the queue"]} correctAnswer={1} hint="Think about what makes the outcome predictable" explanation="EOA-to-EOA transfers with gasLimit=21000 indicate no bytecode execution. Combined with worst-case validity guarantees, the outcome is entirely deterministic - the transfer will succeed. This allows immediate crediting at acceptance." />
+
+<Quiz quizId="sae-405" question="What advantage do lean execution clients provide for trading?" options={["Lower transaction fees", "Faster execution than the network, enabling earlier knowledge of outcomes", "Priority queue access", "Larger transaction limits"]} correctAnswer={1} hint="Think about what lean clients skip" explanation="Lean execution clients can skip Merkle tree computation, executing transactions 40-60% faster than standard nodes. This means traders can know transaction outcomes before the network, enabling faster reactions and multi-leg strategies." />
