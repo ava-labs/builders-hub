@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { RawInput } from "../Input";
-import { Info } from "lucide-react";
 import { ValidationMessages } from "./types";
 import { useGenesisHighlight } from "./GenesisHighlightContext";
 
@@ -203,10 +202,9 @@ function FeeConfigBase({
   }, [gasLimitInput, gasLimit, minBaseFeeInput, feeConfig, baseFeeChangeDenominatorInput, minBlockGasCostInput, maxBlockGasCostInput, blockGasCostStepInput, targetGasInput]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Advanced Mode with All Fields */}
-        <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-md p-3">
-          <h4 className="text-[13px] font-medium mb-2">Fee Configuration</h4>
+        <div>
           <div className={`grid grid-cols-1 md:grid-cols-2 ${compact ? 'gap-3' : 'gap-4'}`}>
           <div key="gasLimit">
             <Field
@@ -303,19 +301,9 @@ function FeeConfigBase({
         </div>
 
       {/* Static Gas Price Info */}
-        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-md p-3 mt-3">
-          <div className="flex gap-2">
-            <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-            <div className="text-xs space-y-1">
-              <div className="font-medium text-blue-900 dark:text-blue-100">Tip: Static Gas Price</div>
-              <div className="text-blue-800 dark:text-blue-200">
-                For static gas pricing (no congestion-based adjustments), set Target Gas &gt; (Gas Limit × 10 ÷ Block Time).
-                Current threshold: &gt;{Math.ceil((gasLimit * 10) / targetBlockRate)} gas (~{Math.ceil((gasLimit * 10) / targetBlockRate / 1000000)}M).
-                Useful for permissioned chains where congestion pricing isn't needed.
-              </div>
-            </div>
-          </div>
-        </div>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+          For static gas pricing, set Target Gas &gt; {Math.ceil((gasLimit * 10) / targetBlockRate).toLocaleString()}.
+        </p>
       </div>
       {/* Dynamic fee/reward sections removed; these are now configured under Precompiles. */}
     </div>

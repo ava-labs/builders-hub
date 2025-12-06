@@ -53,21 +53,21 @@ export function ChainConfigStep({ chainName, onChainNameChange, vmId, onVmIdChan
     };
 
     return (
-        <div className="space-y-6 text-[13px]">
+        <div className="space-y-5 text-[13px]">
             <div className="space-y-4">
                 {/* Chain Name */}
                 <div>
-                    <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
                             Chain Name
                         </label>
                         <button
                             type="button"
                             onClick={handleGenerateRandomName}
-                            className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors cursor-pointer active:scale-95"
+                            className="text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors cursor-pointer"
                             style={{ pointerEvents: 'auto' }}
                         >
-                            Generate Random
+                            Randomize
                         </button>
                     </div>
                     <Input
@@ -81,16 +81,9 @@ export function ChainConfigStep({ chainName, onChainNameChange, vmId, onVmIdChan
 
                 {/* Virtual Machine Selection */}
                 <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                            Virtual Machine
-                        </label>
-                        {!showVMIdInput && (
-                            <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">
-                                {SUBNET_EVM_VM_ID.slice(0, 8)}...
-                            </span>
-                        )}
-                    </div>
+                    <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                        Virtual Machine
+                    </label>
                     <Select
                         label=""
                         value={showVMIdInput ? 'custom' : 'standard'}
@@ -110,7 +103,7 @@ export function ChainConfigStep({ chainName, onChainNameChange, vmId, onVmIdChan
                     
                     {/* Custom VM ID Input */}
                     {showVMIdInput && (
-                        <div className="space-y-2 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                        <div className="space-y-2 pt-2">
                             <Input
                                 label="Custom VM ID"
                                 value={vmId}
@@ -118,8 +111,8 @@ export function ChainConfigStep({ chainName, onChainNameChange, vmId, onVmIdChan
                                 placeholder={SUBNET_EVM_VM_ID}
                                 className="font-mono text-sm"
                             />
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                                Enter a custom VM ID or use the standard Subnet-EVM ID above
+                            <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                                Enter a custom VM ID
                             </p>
                         </div>
                     )}
