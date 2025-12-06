@@ -15,6 +15,9 @@ import { ConsoleToolMetadata, withConsoleToolMetadata } from "../../../component
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { AccountRequirementsConfigKey } from "@/components/toolbox/hooks/useAccountRequirements";
+import { SUBNET_EVM_VM_ID } from "@/constants/console";
+import { Subnet } from "@avalanche-sdk/chainkit/models/components/subnet.js";
+import { AlertTriangle } from "lucide-react";
 
 const metadata: ConsoleToolMetadata = {
     title: "Create Managed Testnet Node",
@@ -26,13 +29,17 @@ const metadata: ConsoleToolMetadata = {
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
+// Maximum number of active nodes per user
+const MAX_USER_NODES = 3;
+
 function CreateManagedTestnetNodeBase() {
-    const { createNode, fetchNodes, nodes } = useManagedTestnetNodes();
+    const { createNode, fetchNodes, nodes, checkExistingNode } = useManagedTestnetNodes();
     const { addChain } = useWallet();
     const { notify } = useConsoleNotifications();
 
     const [subnetId, setSubnetId] = useState("");
     const [selectedBlockchainId, setSelectedBlockchainId] = useState("");
+    const [selectedSubnet, setSelectedSubnet] = useState<Subnet | null>(null);
 
     const [createdResponse, setCreatedResponse] = useState<RegisterSubnetResponse | null>(null);
     const [createdNode, setCreatedNode] = useState<NodeRegistration | null>(null);
@@ -72,7 +79,52 @@ function CreateManagedTestnetNodeBase() {
         return () => clearInterval(intervalId);
     }, [createdNode]);
 
+    // Pre-flight validation checks
+    const selectedVmId = selectedSubnet?.blockchains?.[0]?.vmId;
+    const isUnsupportedVm = selectedVmId && selectedVmId !== SUBNET_EVM_VM_ID;
+    const activeNodeCount = nodes.filter(n => n.status === 'active').length;
+    const hasMaxNodes = activeNodeCount >= MAX_USER_NODES;
+    const existingNodeForSubnet = subnetId ? checkExistingNode(subnetId) : null;
+
+    // Determine if creation should be blocked
+    const canCreate = subnetId && selectedBlockchainId && !isUnsupportedVm && !hasMaxNodes && !existingNodeForSubnet && !isCreatingNode;
+
     const handleCreate = async () => {
+        // Final pre-flight checks before API call
+        if (isUnsupportedVm) {
+            notify({
+                name: "Managed Testnet Node Creation",
+                type: "local"
+            }, Promise.reject(new Error(
+                `This blockchain uses a custom VM that is not supported. ` +
+                `Only Subnet EVM blockchains can use managed testnet nodes. ` +
+                `For custom VMs, please run your own validator node.`
+            )));
+            return;
+        }
+
+        if (hasMaxNodes) {
+            notify({
+                name: "Managed Testnet Node Creation",
+                type: "local"
+            }, Promise.reject(new Error(
+                `You already have ${MAX_USER_NODES} active nodes (maximum allowed). ` +
+                `Please delete an existing node or wait for one to expire before creating a new one.`
+            )));
+            return;
+        }
+
+        if (existingNodeForSubnet) {
+            notify({
+                name: "Managed Testnet Node Creation",
+                type: "local"
+            }, Promise.reject(new Error(
+                `You already have an active node for this subnet. ` +
+                `Each user can only have one node per subnet.`
+            )));
+            return;
+        }
+
         setIsCreatingNode(true);
         const createNodePromise = createNode(subnetId, selectedBlockchainId);
         notify({
@@ -110,19 +162,75 @@ function CreateManagedTestnetNodeBase() {
                     onChange={(selection) => {
                         setSubnetId(selection.subnetId);
                         setSelectedBlockchainId(selection.subnet?.blockchains?.[0]?.blockchainId || '');
+                        setSelectedSubnet(selection.subnet);
                     }}
                 />
+
+                {/* Pre-flight warning: Unsupported VM */}
+                {isUnsupportedVm && (
+                    <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg flex items-start gap-3">
+                        <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-medium text-yellow-800 dark:text-yellow-200">Unsupported VM Type</p>
+                            <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                                This blockchain uses a custom VM (<code className="text-xs bg-yellow-100 dark:bg-yellow-800 px-1 rounded">{selectedVmId?.slice(0, 12)}...</code>) which is not supported by managed testnet nodes.
+                                Only <strong>Subnet EVM</strong> blockchains are supported. For custom VMs, you'll need to run your own validator node.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Pre-flight warning: Existing node for subnet */}
+                {existingNodeForSubnet && (
+                    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex items-start gap-3">
+                        <AlertTriangle className="h-5 w-5 text-blue-600 dark:text-blue-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-medium text-blue-800 dark:text-blue-200">Node Already Exists</p>
+                            <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                                You already have an active node for this subnet. Each user can only have one node per subnet.
+                                <Link href="/console/testnet-infra/nodes" className="ml-1 underline hover:no-underline">
+                                    View your nodes →
+                                </Link>
+                            </p>
+                        </div>
+                    </div>
+                )}
             </Step>
 
             <Step>
                 <h2 className="text-lg font-semibold">Step 2: Create Node</h2>
-                <p className="text-sm text-gray-500 mb-8">
+                <p className="text-sm text-gray-500 mb-4">
                     Review the details and create your managed testnet node.
                 </p>
+
+                {/* Pre-flight warning: Max nodes reached */}
+                {hasMaxNodes && (
+                    <div className="mb-4 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg flex items-start gap-3">
+                        <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-medium text-orange-800 dark:text-orange-200">Node Limit Reached</p>
+                            <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
+                                You have {activeNodeCount} active nodes (maximum {MAX_USER_NODES} allowed).
+                                Please delete an existing node or wait for one to expire.
+                                <Link href="/console/testnet-infra/nodes" className="ml-1 underline hover:no-underline">
+                                    Manage your nodes →
+                                </Link>
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Node count indicator */}
+                {!hasMaxNodes && activeNodeCount > 0 && (
+                    <p className="text-sm text-gray-500 mb-4">
+                        You have {activeNodeCount} of {MAX_USER_NODES} active nodes.
+                    </p>
+                )}
+
                 <Button
                     onClick={handleCreate}
                     loading={isCreatingNode}
-                    disabled={!subnetId || !selectedBlockchainId || isCreatingNode}
+                    disabled={!canCreate}
                 >
                     Create Node
                 </Button>

@@ -40,14 +40,57 @@ export default function InputSubnetId({
 
     const [validationError, setValidationError] = useState<string | null>(null);
 
-    // Validate subnet ID format and checksum using Base58Check
-    const validateBase58Format = (subnetId: string): boolean => {
+    // Base58 character set (excludes 0, O, I, l)
+    const BASE58_CHARS = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+    // Validate subnet ID format and checksum using Base58Check with detailed errors
+    const validateBase58Format = (subnetId: string): { valid: boolean; error?: string } => {
+        // Check for invalid characters first
+        const invalidChars: string[] = [];
+        for (const char of subnetId) {
+            if (!BASE58_CHARS.includes(char)) {
+                invalidChars.push(char);
+            }
+        }
+
+        if (invalidChars.length > 0) {
+            const uniqueInvalid = [...new Set(invalidChars)].join(', ');
+            // Provide specific guidance for common mistakes
+            if (invalidChars.includes('0') || invalidChars.includes('O')) {
+                return {
+                    valid: false,
+                    error: `Invalid characters: ${uniqueInvalid}. Note: Base58 uses "o" (lowercase) instead of "0" (zero) or "O" (capital O).`
+                };
+            }
+            if (invalidChars.includes('I') || invalidChars.includes('l')) {
+                return {
+                    valid: false,
+                    error: `Invalid characters: ${uniqueInvalid}. Note: Base58 uses "L" (capital) instead of "l" (lowercase L) or "I" (capital i).`
+                };
+            }
+            return {
+                valid: false,
+                error: `Invalid characters in subnet ID: ${uniqueInvalid}. Subnet IDs use Base58 encoding.`
+            };
+        }
+
+        // Check length
+        if (subnetId.length < 40 || subnetId.length > 60) {
+            return {
+                valid: false,
+                error: `Invalid length (${subnetId.length} chars). Subnet IDs are typically 43-50 characters.`
+            };
+        }
+
+        // Validate checksum using avalanchejs
         try {
-            // Validate Base58Check format and checksum (last 4 bytes)
             utils.base58check.decode(subnetId);
-            return true;
+            return { valid: true };
         } catch (error) {
-            return false;
+            return {
+                valid: false,
+                error: "Invalid checksum. Please verify the subnet ID is correct and complete."
+            };
         }
     };
 
@@ -58,9 +101,10 @@ export default function InputSubnetId({
             return;
         }
 
-        // First validate Base58Check format and checksum
-        if (!validateBase58Format(subnetId)) {
-            setValidationError("Invalid subnet ID format or checksum");
+        // First validate Base58Check format and checksum with detailed errors
+        const formatValidation = validateBase58Format(subnetId);
+        if (!formatValidation.valid) {
+            setValidationError(formatValidation.error || "Invalid subnet ID format");
             return;
         }
 
@@ -73,7 +117,7 @@ export default function InputSubnetId({
             setValidationError(null);
         } catch (error) {
             // Show validation error for invalid subnet IDs
-            setValidationError("Subnet ID not found or invalid");
+            setValidationError("Subnet ID not found on the network. Please verify it exists and try again.");
         }
     }, []);
 

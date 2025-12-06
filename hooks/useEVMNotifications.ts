@@ -22,7 +22,11 @@ export type EVMTransactionType = 'deploy' | 'call' | 'transfer' | 'local';
 export type EVMNotificationOptions = {
     type: EVMTransactionType;
     name: string; // Human-readable name for the action
+    timeoutMs?: number; // Optional timeout in milliseconds (default: 10 seconds)
 };
+
+// Default timeout: 10 seconds
+const DEFAULT_TIMEOUT_MS = 10000;
 
 const getMessages = (type: EVMTransactionType, name: string) => {
     switch (type) {
@@ -52,6 +56,46 @@ const getMessages = (type: EVMTransactionType, name: string) => {
             };
     }
 };
+
+// Custom error class for timeout with transaction hash
+class TransactionTimeoutError extends Error {
+    txHash: string;
+
+    constructor(txHash: string, timeoutMs: number) {
+        const timeoutSeconds = Math.round(timeoutMs / 1000);
+        super(
+            `Transaction confirmation timed out after ${timeoutSeconds} second${timeoutSeconds !== 1 ? 's' : ''}. ` +
+            `Your transaction (${txHash.slice(0, 10)}...) may still be pending. ` +
+            `Please check the block explorer to verify its status before retrying.`
+        );
+        this.name = 'TransactionTimeoutError';
+        this.txHash = txHash;
+    }
+}
+
+// Wait for transaction with configurable timeout
+async function waitForTransactionWithTimeout(
+    publicClient: ReturnType<typeof createPublicClient>,
+    hash: `0x${string}`,
+    timeoutMs: number
+): Promise<Awaited<ReturnType<ReturnType<typeof createPublicClient>['waitForTransactionReceipt']>>> {
+    return new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+            reject(new TransactionTimeoutError(hash, timeoutMs));
+        }, timeoutMs);
+
+        publicClient
+            .waitForTransactionReceipt({ hash })
+            .then((receipt) => {
+                clearTimeout(timeoutId);
+                resolve(receipt);
+            })
+            .catch((error) => {
+                clearTimeout(timeoutId);
+                reject(error);
+            });
+    });
+}
 
 const useEVMNotifications = () => {
     const isTestnet = typeof window !== 'undefined' ? useWalletStore((s) => s.isTestnet) : false;
@@ -99,13 +143,18 @@ const useEVMNotifications = () => {
                 // All EVM transactions need confirmation
                 else if (viemChain) {
                     const hash = result;
+                    const timeoutMs = options.timeoutMs || DEFAULT_TIMEOUT_MS;
                     toast.loading('Waiting for transaction confirmation...', { id: toastId });
 
                     const publicClient = createPublicClient({
                         chain: viemChain,
                         transport: http()
                     });
-                    const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+                    const receipt = await waitForTransactionWithTimeout(
+                        publicClient,
+                        hash as `0x${string}`,
+                        timeoutMs
+                    );
 
                     // For deployments, include the deployed contract address
                     if (options.type === 'deploy' && receipt.contractAddress) {

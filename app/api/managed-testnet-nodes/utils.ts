@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { rateLimit } from '@/lib/rateLimit';
 import { ServiceErrorSchema } from './types';
+import { utils } from '@avalabs/avalanchejs';
 
 export async function getUserId(): Promise<{ userId: string | null; error?: NextResponse }> {
   const isDevelopment = process.env.NODE_ENV === 'development';
@@ -24,9 +25,56 @@ export async function getUserId(): Promise<{ userId: string | null; error?: Next
   return { userId: session.user.id };
 }
 
-// we should have this in avalanche-sdk-ts
+// Validation result type for detailed error messages
+export type SubnetIdValidationResult = {
+  valid: boolean;
+  error?: string;
+};
+
+// Validate subnet ID using Base58Check (same as Avalanche uses)
 export function validateSubnetId(subnetId: string): boolean {
-  return typeof subnetId === 'string' && subnetId.length >= 40 && subnetId.length <= 60;
+  const result = validateSubnetIdWithDetails(subnetId);
+  return result.valid;
+}
+
+// Detailed validation with specific error messages
+export function validateSubnetIdWithDetails(subnetId: string): SubnetIdValidationResult {
+  // Check basic type and emptiness
+  if (typeof subnetId !== 'string' || !subnetId.trim()) {
+    return { valid: false, error: 'Subnet ID is required' };
+  }
+
+  // Check length range (Base58Check encoded 32-byte IDs are typically 43-50 characters)
+  if (subnetId.length < 40 || subnetId.length > 60) {
+    return {
+      valid: false,
+      error: `Invalid subnet ID length (${subnetId.length} characters). Expected 40-60 characters.`
+    };
+  }
+
+  // Base58 character set validation (no 0, O, I, l)
+  const base58Regex = /^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$/;
+  if (!base58Regex.test(subnetId)) {
+    // Find the invalid characters for a helpful error message
+    const invalidChars = subnetId.split('').filter(c => !base58Regex.test(c));
+    const uniqueInvalid = [...new Set(invalidChars)].join(', ');
+    return {
+      valid: false,
+      error: `Invalid characters in subnet ID: ${uniqueInvalid}. Subnet IDs use Base58 encoding (excludes 0, O, I, l).`
+    };
+  }
+
+  // Validate Base58Check format and checksum using avalanchejs
+  try {
+    utils.base58check.decode(subnetId);
+    return { valid: true };
+  } catch (error) {
+    // Checksum validation failed
+    return {
+      valid: false,
+      error: 'Invalid subnet ID checksum. Please verify the ID is correct.'
+    };
+  }
 }
 
 export function toDateFromEpoch(epoch: number): Date {
