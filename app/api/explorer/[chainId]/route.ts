@@ -17,6 +17,7 @@ interface Block {
   gasLimit: string;
   baseFeePerGas?: string;
   gasFee?: string; // Total gas fee in native token (sum of all tx fees)
+  timestampMilliseconds?: number; // Avalanche-specific: block timestamp in milliseconds
 }
 
 interface RpcTransaction {
@@ -84,6 +85,10 @@ interface RpcBlock {
   gasUsed: string;
   gasLimit: string;
   baseFeePerGas?: string;
+  blockGasCost?: string; // Avalanche-specific
+  extDataGasUsed?: string; // Avalanche-specific
+  extDataHash?: string; // Avalanche-specific
+  timestampMilliseconds?: string; // Avalanche-specific: block timestamp in milliseconds (hex)
 }
 
 interface Transaction {
@@ -619,6 +624,11 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     const gasFeeWei = blockGasFees.get(blockIndex) || BigInt(0);
     const gasFee = gasFeeWei > 0 ? (Number(gasFeeWei) / 1e18).toFixed(6) : undefined;
 
+    // Parse timestampMilliseconds for Avalanche (hex string to number)
+    const timestampMilliseconds = block.timestampMilliseconds 
+      ? parseInt(block.timestampMilliseconds, 16) 
+      : undefined;
+
     return {
       number: hexToNumber(block.number).toString(),
       hash: block.hash,
@@ -629,6 +639,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
       gasLimit: hexToNumber(block.gasLimit).toLocaleString(),
       baseFeePerGas: block.baseFeePerGas ? formatGasPrice(block.baseFeePerGas) : undefined,
       gasFee,
+      timestampMilliseconds,
     };
   });
 
