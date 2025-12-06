@@ -5,6 +5,7 @@ import { avalancheFuji } from 'viem/chains';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { rateLimit } from '@/lib/rateLimit';
 import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { faucetNonceManager } from '@/lib/nonceManager';
 
 const SERVER_PRIVATE_KEY = process.env.FAUCET_C_CHAIN_PRIVATE_KEY;
 const FAUCET_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
@@ -165,6 +166,64 @@ async function validateFaucetRequest(request: NextRequest): Promise<NextResponse
   }
 }
 
+// Transform internal errors to user-friendly messages
+function getUserFriendlyError(error: Error): string {
+  const message = error.message.toLowerCase();
+
+  if (message.includes('nonce') && message.includes('too low')) {
+    return 'The faucet is experiencing high demand. Please try again in a few moments.';
+  }
+  if (message.includes('insufficient') && message.includes('balance')) {
+    return 'The faucet is temporarily out of funds. Please try again later or contact support.';
+  }
+  if (message.includes('replacement transaction underpriced')) {
+    return 'Transaction pending. Please wait a moment and try again.';
+  }
+  if (message.includes('timeout') || message.includes('timed out')) {
+    return 'The network is congested. Please try again in a few minutes.';
+  }
+  if (message.includes('network') || message.includes('connection')) {
+    return 'Unable to connect to the network. Please check your connection and try again.';
+  }
+
+  // Return original message if no transformation needed
+  return error.message;
+}
+
+// Retry logic with exponential backoff for nonce errors
+async function executeWithRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelayMs: number = 500
+): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      const errorMessage = lastError.message.toLowerCase();
+
+      // Only retry on nonce-related errors
+      const isNonceError =
+        errorMessage.includes('nonce') ||
+        errorMessage.includes('replacement transaction underpriced') ||
+        errorMessage.includes('already known');
+
+      if (!isNonceError || attempt === maxRetries - 1) {
+        throw lastError;
+      }
+
+      // Exponential backoff: 500ms, 1000ms, 2000ms
+      const delay = baseDelayMs * Math.pow(2, attempt);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError || new Error('Operation failed after retries');
+}
+
 async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -173,11 +232,16 @@ async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> 
     const supportedChain = findSupportedChain(chainId);
     const dripAmount = (supportedChain?.faucetThresholds?.dripAmount || 3).toString();
 
-    const tx = await transferEVMTokens(
-      FAUCET_ADDRESS!,
-      destinationAddress,
-      chainId,
-      dripAmount
+    // Use nonce manager to serialize transactions and prevent nonce conflicts
+    const tx = await faucetNonceManager.enqueue(() =>
+      executeWithRetry(() =>
+        transferEVMTokens(
+          FAUCET_ADDRESS!,
+          destinationAddress,
+          chainId,
+          dripAmount
+        )
+      )
     );
 
     const response: TransferResponse = {
@@ -194,9 +258,13 @@ async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> 
   } catch (error) {
     console.error('EVM chain transfer failed:', error);
 
+    const userFriendlyMessage = error instanceof Error
+      ? getUserFriendlyError(error)
+      : 'Failed to complete transfer. Please try again later.';
+
     const response: TransferResponse = {
       success: false,
-      message: error instanceof Error ? error.message : 'Failed to complete transfer'
+      message: userFriendlyMessage
     };
 
     return NextResponse.json(response, { status: 500 });
