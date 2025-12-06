@@ -109,8 +109,9 @@ interface Transaction {
 interface ExplorerStats {
   latestBlock: number;
   totalTransactions: number;
-  avgBlockTime?: number; // Average block time in seconds (based on last 5000 blocks, only on initial load)
+  avgBlockTime?: number; // Average block time in seconds (based on last 5000 blocks or fewer)
   avgBlockTimeMs?: number; // Average block time in milliseconds (Avalanche-specific, based on timestampMilliseconds)
+  avgBlockTimeBlockSpan?: number; // Number of blocks used to calculate avgBlockTime
   gasPrice: string;
   lastFinalizedBlock?: number;
   totalGasFeesInBlocks?: string; // Total gas fees for latest blocks in native token
@@ -774,6 +775,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
   // Fetch block at (latest - 5000) or block 1 if chain has fewer blocks
   let avgBlockTime: number | undefined;
   let avgBlockTimeMs: number | undefined; // Millisecond precision for Avalanche
+  let avgBlockTimeBlockSpan: number | undefined; // Track the actual block span used
 
   if (latestBlockNumber > 1 && validBlocks.length > 0) {
     // Use block (latest - 5000) or block 1 if chain has fewer than 5000 blocks
@@ -785,6 +787,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
       
       if (historicalBlock) {
         const latestBlock = validBlocks[0];
+        avgBlockTimeBlockSpan = blockSpan; // Store the block span used
         
         // Try millisecond precision first (Avalanche)
         if (latestBlock?.timestampMilliseconds && historicalBlock.timestampMilliseconds) {
@@ -824,6 +827,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     totalTransactions,
     avgBlockTime: avgBlockTime !== undefined ? Math.round(avgBlockTime * 1000) / 1000 : undefined, // 3 decimal places for seconds
     avgBlockTimeMs: avgBlockTimeMs !== undefined ? Math.round(avgBlockTimeMs * 100) / 100 : undefined, // 2 decimal places for ms
+    avgBlockTimeBlockSpan,
     totalGasFeesInBlocks,
     gasPrice: `${gasPrice} Gwei`,
     lastFinalizedBlock: latestBlockNumber - 2, // Approximate finalized block

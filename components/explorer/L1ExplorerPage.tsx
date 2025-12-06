@@ -99,8 +99,9 @@ interface Transaction {
 interface ExplorerStats {
   latestBlock: number;
   totalTransactions: number;
-  avgBlockTime?: number; // Average block time in seconds (only on initial load)
+  avgBlockTime?: number; // Average block time in seconds
   avgBlockTimeMs?: number; // Average block time in milliseconds (Avalanche-specific)
+  avgBlockTimeBlockSpan?: number; // Number of blocks used to calculate avgBlockTime
   gasPrice: string;
   lastFinalizedBlock?: number;
   totalGasFeesInBlocks?: string;
@@ -883,7 +884,7 @@ export default function L1ExplorerPage({
                 </div>
               </div>
 
-              {/* Average Block Time (based on last 5000 blocks) */}
+              {/* Average Block Time */}
               {data?.stats.avgBlockTime !== undefined && (
                 <div className="flex items-center gap-2.5">
                   <div 
@@ -902,7 +903,7 @@ export default function L1ExplorerPage({
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Calculated from the last 5,000 blocks</p>
+                          <p>Calculated from the last {data.stats.avgBlockTimeBlockSpan?.toLocaleString() || '5,000'} blocks</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
