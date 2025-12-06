@@ -26,6 +26,10 @@ const Mermaid = dynamic(() => import("@/components/content-design/mermaid"), {
   ssr: false,
 });
 
+const StateGrowthChart = dynamic(() => import("@/components/content-design/state-growth-chart"), {
+  ssr: false,
+});
+
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   // Exclude heading and img components from defaultComponents to avoid conflicts
   const { h1, h2, h3, h4, h5, h6, img, ...restDefaultComponents } = defaultComponents;
@@ -73,6 +77,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     YouTube,
     Gallery,
     Mermaid,
+    StateGrowthChart,
     InstallTabs: ({
       items,
       children,
