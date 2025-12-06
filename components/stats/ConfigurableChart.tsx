@@ -106,11 +106,13 @@ export interface ConfigurableChartProps {
   title?: string;
   initialDataSeries?: Partial<DataSeries>[];
   initialStackSameMetrics?: boolean;
+  initialAbbreviateNumbers?: boolean;
   colSpan?: 6 | 12;
   onColSpanChange?: (colSpan: 6 | 12) => void;
   onTitleChange?: (title: string) => void;
   onDataSeriesChange?: (dataSeries: DataSeries[]) => void;
   onStackSameMetricsChange?: (stackSameMetrics: boolean) => void;
+  onAbbreviateNumbersChange?: (abbreviateNumbers: boolean) => void;
   onRemove?: () => void;
   disableControls?: boolean;
   startTime?: string | null;
@@ -156,11 +158,13 @@ export default function ConfigurableChart({
   title = "Chart",
   initialDataSeries = [],
   initialStackSameMetrics = false,
+  initialAbbreviateNumbers = true,
   colSpan = 12,
   onColSpanChange,
   onTitleChange,
   onDataSeriesChange,
   onStackSameMetricsChange,
+  onAbbreviateNumbersChange,
   onRemove,
   disableControls = false,
   startTime,
@@ -190,6 +194,7 @@ export default function ConfigurableChart({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [stackSameMetrics, setStackSameMetrics] = useState<boolean>(initialStackSameMetrics);
+  const [abbreviateNumbers, setAbbreviateNumbers] = useState<boolean>(initialAbbreviateNumbers);
 
   const [chartData, setChartData] = useState<Record<string, ChartDataPoint[]>>({});
   const [loadingMetrics, setLoadingMetrics] = useState<Set<string>>(new Set());
@@ -443,23 +448,28 @@ export default function ConfigurableChart({
     >();
 
     mergedData.forEach((point) => {
-      const date = new Date(point.date);
+      // Parse date string directly to avoid timezone issues
+      // point.date is in format "YYYY-MM-DD"
+      const [year, month, day] = point.date.split("-").map(Number);
       let key: string;
 
       if (resolution === "W") {
-        const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay());
-        key = weekStart.toISOString().split("T")[0];
+        // Create date in local time to calculate week start
+        const date = new Date(year, month - 1, day);
+        const weekStartDay = day - date.getDay();
+        const weekStart = new Date(year, month - 1, weekStartDay);
+        // Format as YYYY-MM-DD
+        const wy = weekStart.getFullYear();
+        const wm = String(weekStart.getMonth() + 1).padStart(2, "0");
+        const wd = String(weekStart.getDate()).padStart(2, "0");
+        key = `${wy}-${wm}-${wd}`;
       } else if (resolution === "M") {
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}`;
+        key = `${year}-${String(month).padStart(2, "0")}`;
       } else if (resolution === "Q") {
-        const quarter = Math.floor(date.getMonth() / 3) + 1;
-        key = `${date.getFullYear()}-Q${quarter}`;
+        const quarter = Math.floor((month - 1) / 3) + 1;
+        key = `${year}-Q${quarter}`;
       } else {
-        key = String(date.getFullYear());
+        key = String(year);
       }
 
       if (!grouped.has(key)) {
@@ -531,11 +541,11 @@ export default function ConfigurableChart({
 
   // Set default brush range
   useEffect(() => {
-    if (filteredData.length === 0) return;
+    if (aggregatedData.length === 0) return;
     if (resolution === "D") {
       setBrushRange({
-        startIndex: Math.max(0, filteredData.length - 90),
-        endIndex: filteredData.length - 1,
+        startIndex: Math.max(0, aggregatedData.length - 90),
+        endIndex: aggregatedData.length - 1,
       });
     } else {
       setBrushRange({
@@ -543,11 +553,30 @@ export default function ConfigurableChart({
         endIndex: aggregatedData.length - 1,
       });
     }
-  }, [resolution, filteredData.length]);
+  }, [resolution, aggregatedData.length]);
 
-  const displayData = brushRange
-    ? filteredData.slice(brushRange.startIndex, brushRange.endIndex + 1)
-    : filteredData;
+  // Compute safe brush indices that are always valid for current data
+  const safeBrushRange = useMemo(() => {
+    const maxIndex = Math.max(0, aggregatedData.length - 1);
+    
+    if (!brushRange) {
+      return {
+        startIndex: 0,
+        endIndex: maxIndex,
+      };
+    }
+    
+    return {
+      startIndex: Math.max(0, Math.min(brushRange.startIndex, maxIndex)),
+      endIndex: Math.max(0, Math.min(brushRange.endIndex, maxIndex)),
+    };
+  }, [brushRange, aggregatedData.length]);
+
+  const displayData = useMemo(() => {
+    if (filteredData.length === 0) return filteredData;
+    
+    return filteredData.slice(safeBrushRange.startIndex, safeBrushRange.endIndex + 1);
+  }, [safeBrushRange, filteredData]);
 
   const visibleSeries = useMemo(() => {
     return dataSeries
@@ -568,6 +597,16 @@ export default function ConfigurableChart({
   }, [visibleSeries]);
 
 
+  // Parse date string as local time to avoid timezone issues
+  const parseLocalDate = (value: string): Date => {
+    // Handle different formats: "YYYY-MM-DD", "YYYY-MM", "YYYY"
+    const parts = value.split("-");
+    const year = parseInt(parts[0], 10);
+    const month = parts[1] ? parseInt(parts[1], 10) - 1 : 0;
+    const day = parts[2] ? parseInt(parts[2], 10) : 1;
+    return new Date(year, month, day);
+  };
+
   const formatXAxis = (value: string) => {
     if (resolution === "Q") {
       const parts = value.split("-");
@@ -575,7 +614,7 @@ export default function ConfigurableChart({
       return value;
     }
     if (resolution === "Y") return value;
-    const date = new Date(value);
+    const date = parseLocalDate(value);
     if (resolution === "M") {
       return date.toLocaleDateString("en-US", {
         month: "short",
@@ -592,7 +631,7 @@ export default function ConfigurableChart({
       if (parts.length === 2) return `${parts[1]} ${parts[0]}`;
       return value;
     }
-    const date = new Date(value);
+    const date = parseLocalDate(value);
     if (resolution === "M") {
       return date.toLocaleDateString("en-US", {
         month: "long",
@@ -606,10 +645,21 @@ export default function ConfigurableChart({
     });
   };
 
+  // Always abbreviate for Y-axis labels to ensure they fit
   const formatYAxis = (value: number) => {
     if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
     if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
     if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
+    return value.toLocaleString();
+  };
+
+  // Format values for tooltip - respects abbreviateNumbers setting
+  const formatValue = (value: number) => {
+    if (abbreviateNumbers) {
+      if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
+      if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
+      if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
+    }
     return value.toLocaleString();
   };
 
@@ -803,7 +853,7 @@ export default function ConfigurableChart({
                       />
                       <span>{entry.name}:</span>
                       <span className="font-mono">
-                        {formatYAxis(entry.value)}
+                        {formatValue(entry.value)}
                       </span>
                     </div>
                   ))}
@@ -1208,6 +1258,28 @@ export default function ConfigurableChart({
                 >
                   <Layers className="h-3.5 w-3.5" />
                   <span>Show stacked same metrics</span>
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="abbreviate-numbers"
+                  checked={abbreviateNumbers}
+                  onChange={(e) => {
+                    const newValue = e.target.checked;
+                    setAbbreviateNumbers(newValue);
+                    if (onAbbreviateNumbersChange) {
+                      onAbbreviateNumbersChange(newValue);
+                    }
+                  }}
+                  className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer"
+                />
+                <label
+                  htmlFor="abbreviate-numbers"
+                  className="text-xs text-gray-700 dark:text-gray-300 cursor-pointer"
+                >
+                  <span>Abbreviate numbers</span>
                 </label>
               </div>
 
@@ -1634,10 +1706,8 @@ export default function ConfigurableChart({
                     stroke={visibleSeries[0]?.color || "#888"}
                     fill={`${visibleSeries[0]?.color || "#888"}20`}
                     alwaysShowText={false}
-                    startIndex={brushRange?.startIndex ?? 0}
-                    endIndex={
-                      brushRange?.endIndex ?? filteredData.length - 1
-                    }
+                    startIndex={safeBrushRange.startIndex}
+                    endIndex={safeBrushRange.endIndex}
                     onChange={(e: any) => {
                       if (
                         e.startIndex !== undefined &&
