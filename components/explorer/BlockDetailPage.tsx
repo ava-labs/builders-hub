@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Box, Clock, Fuel, Hash, ArrowLeft, ArrowRight, ChevronUp, ChevronDown, Layers, FileText, ArrowRightLeft } from "lucide-react";
+import { Box, Clock, Fuel, Hash, ArrowLeft, ArrowRight, ChevronUp, ChevronDown, Layers, FileText, ArrowRightLeft, Info, ExternalLink } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { DetailRow, CopyButton } from "@/components/explorer/DetailRow";
 import Link from "next/link";
@@ -16,6 +17,7 @@ interface BlockDetail {
   hash: string;
   parentHash: string;
   timestamp: string;
+  timestampMilliseconds?: number; // Avalanche-specific: block timestamp in milliseconds
   miner: string;
   transactionCount: number;
   transactions: string[];
@@ -63,16 +65,19 @@ interface BlockDetailPageProps {
   rpcUrl?: string;
 }
 
-function formatTimestamp(timestamp: string): string {
-  const date = new Date(timestamp);
+function formatTimeAgo(date: Date): string {
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  let timeAgo = "";
-  if (diffInSeconds < 60) timeAgo = `${diffInSeconds} secs ago`;
-  else if (diffInSeconds < 3600) timeAgo = `${Math.floor(diffInSeconds / 60)} mins ago`;
-  else if (diffInSeconds < 86400) timeAgo = `${Math.floor(diffInSeconds / 3600)} hrs ago`;
-  else timeAgo = `${Math.floor(diffInSeconds / 86400)} days ago`;
+  if (diffInSeconds < 60) return `${diffInSeconds} secs ago`;
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} mins ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hrs ago`;
+  return `${Math.floor(diffInSeconds / 86400)} days ago`;
+}
+
+function formatTimestamp(timestamp: string): string {
+  const date = new Date(timestamp);
+  const timeAgo = formatTimeAgo(date);
 
   const formatted = date.toLocaleString('en-US', {
     month: 'short',
@@ -86,6 +91,29 @@ function formatTimestamp(timestamp: string): string {
   });
 
   return `${timeAgo} (${formatted})`;
+}
+
+// Format timestamp with millisecond precision (for Avalanche timestampMilliseconds per ACP-226)
+function formatTimestampWithMs(timestampMs: number): string {
+  const date = new Date(timestampMs);
+  const timeAgo = formatTimeAgo(date);
+  const ms = date.getMilliseconds().toString().padStart(3, '0');
+
+  const formatted = date.toLocaleString('en-US', {
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+    timeZoneName: 'short'
+  });
+
+  // Insert milliseconds after seconds (e.g., "09:44:04" -> "09:44:04.227")
+  const formattedWithMs = formatted.replace(/(\d{2}:\d{2}:\d{2})/, `$1.${ms}`);
+
+  return `${timeAgo} (${formattedWithMs})`;
 }
 
 function formatGasUsedPercentage(gasUsed: string, gasLimit: string): string {
@@ -336,13 +364,48 @@ export default function BlockDetailPage({
                 }
               />
 
-              {/* Timestamp */}
+              {/* Timestamp (milliseconds - Avalanche per ACP-226) */}
+              {block?.timestampMilliseconds && (
+                <DetailRow
+                  icon={<Clock className="w-4 h-4" />}
+                  label={
+                    <>
+                      Timestamp
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <a
+                            href="https://build.avax.network/docs/acps/226-dynamic-minimum-block-times#timestampmilliseconds"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-0.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors ml-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Info className="w-3.5 h-3.5" />
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">Millisecond precision timestamp per ACP-226</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </>
+                  }
+                  themeColor={themeColor}
+                  value={
+                    <span className="text-sm text-zinc-900 dark:text-white">
+                      {formatTimestampWithMs(block.timestampMilliseconds)}
+                    </span>
+                  }
+                />
+              )}
+
+              {/* Legacy Timestamp (seconds precision) */}
               <DetailRow
                 icon={<Clock className="w-4 h-4" />}
-                label="Timestamp"
+                label={block?.timestampMilliseconds ? "Timestamp (legacy)" : "Timestamp"}
                 themeColor={themeColor}
                 value={
-                  <span className="text-sm text-zinc-900 dark:text-white">
+                  <span className={`text-sm ${block?.timestampMilliseconds ? 'line-through text-zinc-400 dark:text-zinc-500' : 'text-zinc-900 dark:text-white'}`}>
                     {block?.timestamp ? formatTimestamp(block.timestamp) : '-'}
                   </span>
                 }
