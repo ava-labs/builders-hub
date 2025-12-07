@@ -1,0 +1,504 @@
+---
+title: Configuration Reference
+description: Complete reference for tmpnet configuration options
+---
+
+This reference covers all configuration options available in tmpnet for networks, nodes, subnets, and chains.
+
+## Network Configuration
+
+The `Network` type represents a complete temporary network.
+
+### Basic Properties
+
+```go
+type Network struct {
+    // Owner identifier for the network
+    Owner string
+
+    // UUID for unique identification across hosts
+    UUID string
+
+    // Genesis configuration for the network
+    Genesis *genesis.Genesis
+
+    // Collection of nodes in the network
+    Nodes []*Node
+
+    // Subnets to create on the network
+    Subnets []*Subnet
+
+    // Keys pre-funded in genesis
+    PreFundedKeys []*secp256k1.PrivateKey
+
+    // Default flags applied to all nodes
+    DefaultFlags FlagsMap
+
+    // Default runtime configuration for nodes
+    DefaultRuntimeConfig NodeRuntimeConfig
+
+    // Network directory path
+    Dir string
+}
+```
+
+### Default Flags
+
+Common default flags for networks:
+
+```go
+network.DefaultFlags = tmpnet.FlagsMap{
+    // Logging
+    "log-level":         "info",      // trace, debug, info, warn, error, fatal
+    "log-display-level": "info",
+    "log-format":        "auto",      // auto, plain, colors, json
+
+    // Network
+    "network-id":                    "local",
+    "network-max-reconnect-delay":   "1s",
+    "public-ip":                     "127.0.0.1",
+    "public-ip-resolution-service":  "",
+
+    // Staking
+    "staking-enabled":               "true",
+    "staking-tls-cert-file":         "", // Auto-generated
+    "staking-tls-key-file":          "", // Auto-generated
+
+    // API
+    "http-host":                     "",
+    "http-port":                     "0", // Dynamic port
+    "staking-port":                  "0", // Dynamic port
+
+    // Performance
+    "snow-sample-size":              "2",
+    "snow-quorum-size":              "2",
+    "proposervm-use-current-height": "true",
+}
+```
+
+### Configuration on Disk
+
+Network configuration is stored at `[network-dir]/config.json`:
+
+```json
+{
+  "owner": "test-owner",
+  "uuid": "abc-123-def-456",
+  "defaultFlags": {
+    "log-level": "info",
+    "network-id": "local"
+  },
+  "defaultRuntimeConfig": {
+    "process": {
+      "avalancheGoPath": "/path/to/avalanchego",
+      "pluginDir": "/path/to/plugins"
+    }
+  },
+  "preFundedKeys": ["PrivateKey-..."],
+  "subnets": []
+}
+```
+
+## Node Configuration
+
+The `Node` type represents a single AvalancheGo node.
+
+### Basic Properties
+
+```go
+type Node struct {
+    // Node identifier derived from staking certificate
+    NodeID ids.NodeID
+
+    // Node-specific flags (override network defaults)
+    Flags FlagsMap
+
+    // Optional node-specific runtime configuration
+    RuntimeConfig *NodeRuntimeConfig
+
+    // URI of the node's API endpoint (set at runtime)
+    URI string
+
+    // Staking address for P2P (set at runtime)
+    StakingAddress string
+
+    // Whether this is a temporary/ephemeral node
+    IsEphemeral bool
+}
+```
+
+### Node-Specific Flags
+
+Override network defaults for individual nodes:
+
+```go
+node.Flags = tmpnet.FlagsMap{
+    "log-level":  "debug",        // More verbose than network default
+    "http-port":  "9650",          // Fixed port instead of dynamic
+    "track-subnets": "subnet-id",  // Track specific subnet
+}
+```
+
+### Node Configuration Files
+
+**Runtime Config** (`[node-dir]/config.json`):
+```json
+{
+  "process": {
+    "avalancheGoPath": "/path/to/avalanchego",
+    "pluginDir": "/path/to/plugins"
+  }
+}
+```
+
+**Flags** (`[node-dir]/flags.json`):
+```json
+{
+  "log-level": "info",
+  "http-host": "",
+  "http-port": "0",
+  "staking-port": "0",
+  "network-id": "local",
+  "genesis-file-content": "...",
+  "track-subnets": ""
+}
+```
+
+**Process Info** (`[node-dir]/process.json`):
+```json
+{
+  "pid": 12345,
+  "uri": "http://127.0.0.1:9650",
+  "stakingAddress": "127.0.0.1:9651"
+}
+```
+
+## Runtime Configuration
+
+Runtime configuration controls how nodes are executed.
+
+### Process Runtime
+
+For local process-based nodes:
+
+```go
+type ProcessRuntimeConfig struct {
+    // Path to avalanchego binary
+    AvalancheGoPath string
+
+    // Plugin directory for custom VMs
+    PluginDir string
+
+    // Whether to reuse dynamic ports across restarts
+    ReuseDynamicPorts bool
+}
+```
+
+**Usage:**
+```go
+network.DefaultRuntimeConfig = tmpnet.NodeRuntimeConfig{
+    Process: &tmpnet.ProcessRuntimeConfig{
+        AvalancheGoPath:   "/path/to/avalanchego",
+        PluginDir:         "~/.avalanchego/plugins",
+        ReuseDynamicPorts: true,
+    },
+}
+```
+
+### Kubernetes Runtime
+
+For Kubernetes-based deployment:
+
+```go
+type KubeRuntimeConfig struct {
+    // Kubeconfig file path
+    ConfigPath string
+
+    // Kubeconfig context to use
+    ConfigContext string
+
+    // Target namespace
+    Namespace string
+
+    // Docker image for nodes
+    Image string
+
+    // Persistent volume size in GB
+    VolumeSizeGB int
+
+    // Use exclusive scheduling (one pod per k8s node)
+    UseExclusiveScheduling bool
+
+    // Custom scheduling labels
+    SchedulingLabelKey   string
+    SchedulingLabelValue string
+
+    // Ingress configuration
+    IngressHost   string
+    IngressSecret string
+}
+```
+
+## FlagsMap
+
+`FlagsMap` is a string map for avalanchego flags with special handling for defaults.
+
+### Operations
+
+```go
+flags := tmpnet.FlagsMap{
+    "log-level": "info",
+}
+
+// Set a value
+flags["log-level"] = "debug"
+
+// Set only if not already set
+flags.SetDefault("log-level", "warn") // No effect, already set
+
+// Set multiple defaults
+flags.SetDefaults(tmpnet.FlagsMap{
+    "log-display-level": "info",
+    "http-port":         "0",
+})
+
+// Get a value
+logLevel := flags["log-level"]
+```
+
+### Common Flags
+
+**Logging:**
+- `log-level` - Minimum log level (trace, debug, info, warn, error, fatal)
+- `log-display-level` - Level to display
+- `log-format` - Format (auto, plain, colors, json)
+
+**Network:**
+- `network-id` - Network identifier
+- `bootstrap-ips` - Bootstrap node IPs (auto-configured)
+- `bootstrap-ids` - Bootstrap node IDs (auto-configured)
+- `public-ip` - Node's public IP
+
+**API:**
+- `http-host` - HTTP host for API
+- `http-port` - HTTP port (0 for dynamic)
+- `http-allowed-hosts` - Allowed hosts for API
+
+**Staking:**
+- `staking-enabled` - Enable staking
+- `staking-port` - Staking port (0 for dynamic)
+- `staking-tls-cert-file` - TLS certificate path
+- `staking-tls-key-file` - TLS key path
+
+**Consensus:**
+- `snow-sample-size` - Sample size for consensus
+- `snow-quorum-size` - Quorum size
+- `snow-concurrent-repolls` - Concurrent repolls
+
+**Subnets:**
+- `track-subnets` - Comma-separated list of subnet IDs to track
+
+**Advanced:**
+- `proposervm-use-current-height` - Use current height in proposervm
+- `throttler-inbound-validator-alloc-size` - Validator bandwidth allocation
+- `consensus-on-accept-gossip-validator-size` - Gossip size
+
+## Subnet Configuration
+
+The `Subnet` type represents a custom subnet.
+
+### Basic Properties
+
+```go
+type Subnet struct {
+    // User-defined name
+    Name string
+
+    // Subnet ID (set after creation)
+    SubnetID ids.ID
+
+    // Nodes that validate this subnet
+    ValidatorIDs []ids.NodeID
+
+    // Chains on this subnet
+    Chains []*Chain
+
+    // Subnet-specific configuration
+    Config ConfigMap
+}
+```
+
+### Subnet Config Options
+
+```go
+subnet.Config = tmpnet.ConfigMap{
+    // Block proposal delay
+    "proposerMinBlockDelay": 0,
+
+    // Historical blocks to keep
+    "proposerNumHistoricalBlocks": 50000,
+
+    // Consensus parameters
+    "consensusParameters": map[string]interface{}{
+        "k":                     20,
+        "alpha":                 15,
+        "betaVirtuous":          15,
+        "betaRogue":             20,
+        "concurrentRepolls":     4,
+        "optimalProcessing":     10,
+        "maxOutstandingItems":   256,
+        "maxItemProcessingTime": 120000,
+    },
+}
+```
+
+### Subnet Configuration File
+
+Stored at `[network-dir]/subnets/[subnet-name].json`:
+
+```json
+{
+  "name": "my-subnet",
+  "subnetId": "2bRCr6B4MiEfSjidDwxDpdCyviwnfUVqB2HGwhm947w9YYqb7r",
+  "validatorIds": ["NodeID-..."],
+  "config": {
+    "proposerMinBlockDelay": 0
+  },
+  "chains": [...]
+}
+```
+
+## Chain Configuration
+
+The `Chain` type represents a blockchain on a subnet.
+
+### Basic Properties
+
+```go
+type Chain struct {
+    // Chain ID (set after creation)
+    ChainID ids.ID
+
+    // Virtual Machine ID
+    VMID ids.ID
+
+    // Genesis bytes for the chain
+    Genesis []byte
+
+    // Chain-specific configuration (JSON string)
+    Config string
+
+    // Pre-funded key for the chain
+    PreFundedKey *secp256k1.PrivateKey
+
+    // Arguments to get VM version
+    VersionArgs []string
+}
+```
+
+### Chain Configuration Example
+
+```go
+chain := &tmpnet.Chain{
+    VMID:    myVMID,
+    Genesis: genesisBytes,
+    Config:  `{
+        "blockGasLimit": 8000000,
+        "minGasPrice": 25000000000,
+        "priorityRegossipFrequency": 1000000000
+    }`,
+    PreFundedKey: testKey,
+    VersionArgs:  []string{"--version"},
+}
+```
+
+## Directory Structure
+
+Complete directory layout for a tmpnet network:
+
+```
+~/.tmpnet/
+├── prometheus/                          # Prometheus working directory
+│   └── file_sd_configs/
+│       └── [network-uuid]-[node-id].json
+├── promtail/                            # Promtail working directory
+│   └── file_sd_configs/
+│       └── [network-uuid]-[node-id].json
+└── networks/
+    └── [timestamp]/                     # Network directory
+        ├── config.json                  # Network configuration
+        ├── genesis.json                 # Genesis file
+        ├── network.env                  # Shell environment
+        ├── metrics.txt                  # Grafana link
+        ├── subnets/
+        │   └── [subnet-name].json       # Subnet configuration
+        └── [node-id]/                   # Node directory
+            ├── config.json              # Runtime configuration
+            ├── flags.json               # Node flags
+            ├── process.json             # Process info
+            ├── staking.crt              # Staking certificate
+            ├── staking.key              # Staking key
+            ├── signer.key               # BLS signing key
+            ├── logs/
+            │   └── main.log
+            ├── db/                      # Node database
+            └── plugins/                 # VM plugins
+```
+
+## Environment Variables
+
+tmpnet uses these environment variables:
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `TMPNET_NETWORK_DIR` | Target network directory | None (must specify) |
+| `TMPNET_ROOT_NETWORK_DIR` | Root for new networks | `~/.tmpnet/networks` |
+| `AVALANCHEGO_PATH` | Path to avalanchego binary | None (must specify) |
+| `AVAGO_PLUGIN_DIR` | Plugin directory | `~/.avalanchego/plugins` |
+| `STACK_TRACE_ERRORS` | Enable stack traces | Not set |
+| `PROMETHEUS_URL` | Prometheus backend URL | None |
+| `PROMETHEUS_PUSH_URL` | Prometheus push URL | None |
+| `PROMETHEUS_USERNAME` | Prometheus username | None |
+| `PROMETHEUS_PASSWORD` | Prometheus password | None |
+| `LOKI_URL` | Loki backend URL | None |
+| `LOKI_PUSH_URL` | Loki push URL | None |
+| `LOKI_USERNAME` | Loki username | None |
+| `LOKI_PASSWORD` | Loki password | None |
+| `GRAFANA_URI` | Custom Grafana dashboard URI | Default Grafana instance |
+
+## Configuration Precedence
+
+Configuration is applied in this order (later overrides earlier):
+
+1. **tmpnet defaults** - Built-in defaults
+2. **Network defaults** - `network.DefaultFlags`
+3. **Node-specific** - `node.Flags`
+4. **Runtime-generated** - Bootstrap IPs/IDs, genesis content, etc.
+
+Example:
+
+```go
+// 1. tmpnet default: log-level = "info"
+// 2. Network default:
+network.DefaultFlags["log-level"] = "debug"
+
+// 3. Node-specific override:
+node.Flags["log-level"] = "trace"
+
+// Final result: node runs with log-level = "trace"
+```
+
+## Best Practices
+
+1. **Use defaults for common settings** - Set `network.DefaultFlags` for settings shared by all nodes
+2. **Override per-node when needed** - Use `node.Flags` only for node-specific configuration
+3. **Use dynamic ports** - Set ports to "0" for automatic allocation
+4. **Enable verbose logging during development** - Use "debug" or "trace" log levels
+5. **Configure subnet tracking** - Set `track-subnets` for nodes that need to sync subnets
+6. **Use environment variables** - Store credentials in environment variables, not in code
+
+## See Also
+
+- [CLI Commands Reference](/docs/tooling/tmpnet/reference/cli-commands)
+- [Programmatic Usage Guide](/docs/tooling/tmpnet/guides/programmatic-usage)
+- [Full README](https://github.com/ava-labs/avalanchego/blob/master/tests/fixture/tmpnet/README.md)
