@@ -1353,6 +1353,8 @@ const config = {
       {
         source: "/docs/nodes/maintain/reduce-disk-usage",
         destination: "/docs/nodes/maintain/chain-state-management",
+        permanent: true,
+      },
       // 404 fixes - December 2025
       {
         source: "/docs/build",
