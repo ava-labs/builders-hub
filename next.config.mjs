@@ -1350,6 +1350,11 @@ const config = {
         destination: "/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1",
         permanent: true,
       },
+      {
+        source: "/docs/nodes/maintain/reduce-disk-usage",
+        destination: "/docs/nodes/maintain/chain-state-management",
+        permanent: true,
+      },
       // 404 fixes - December 2025
       {
         source: "/docs/build",
