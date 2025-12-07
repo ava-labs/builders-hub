@@ -286,8 +286,8 @@ export async function CheckInvitation(invitationId: string, user_id: string) {
   });
 
   const isValid =
-    existingConfirmedProject == null &&
-    member?.status == "Pending Confirmation";
+    existingConfirmedProject === null &&
+    member?.status === "Pending Confirmation";
 
   return {
     invitation: {
@@ -310,7 +310,7 @@ export async function GetProjectByHackathonAndUser(
   user_id: string,
   invitation_id: string
 ) {
-  if (hackaton_id == "" || user_id == "") {
+  if (hackaton_id === "" || user_id === "") {
     throw new ValidationError("hackathon id or user id is required", []);
   }
 
@@ -324,7 +324,7 @@ export async function GetProjectByHackathonAndUser(
     throw new ValidationError("user not found", []);
   }
   let project_id = "";
-  if (invitation_id != "") {
+  if (invitation_id !== "") {
     const invitation = await prisma.member.findFirst({
       where: { id: invitation_id },
     });

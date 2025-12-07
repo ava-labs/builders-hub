@@ -218,7 +218,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
           .map(([formattedGroupDate, activities], index) => {
             const now = new Date();
             const nowFormattedDay = getFormattedDay(now);
-            const dateIsCurrentDate = formattedGroupDate == nowFormattedDay;
+            const dateIsCurrentDate = formattedGroupDate === nowFormattedDay;
             return (
               <div key={index} className='flex flex-col gap-4'>
                 <h3

@@ -35,7 +35,7 @@ async function verifyOTP(
     where: { identifier: email, token: code },
   });
 
-  if (record == null) {
+  if (record === null) {
     return { isValid: false, reason: 'NOT_FOUND' };
   }
   if (record.expires < new Date()) {
@@ -149,7 +149,7 @@ export const AuthOptions: NextAuthOptions = {
         token.name = dbUser.name ?? '';
         token.email = dbUser.email ?? '';
         token.user_name = dbUser.user_name ?? '';
-        token.is_new_user = dbUser.notifications == null
+        token.is_new_user = dbUser.notifications === null
       } else if (user?.email) {
         token.email = user.email;
         token.name = user.name ?? '';

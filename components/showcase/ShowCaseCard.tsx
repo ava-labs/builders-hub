@@ -65,8 +65,8 @@ export default function ShowCaseCard({
       [type]: value === 'all' ? '' : value,
       ...(type !== 'page' ? { page: undefined } : {}),
       ...(type === 'event' ? { track: '' } : {}),
-      ...(type == 'winningProjecs'
-        ? value == 'true'
+      ...(type === 'winningProjecs'
+        ? value === 'true'
           ? { winningProjecs: true }
           : { winningProjecs: false }
         : {}),
@@ -154,7 +154,7 @@ export default function ShowCaseCard({
             onChange={(e) => {
               const value = e.target.value;
               setSearchValue(value);
-              if (value == '') {
+              if (value === '') {
                 handleFilterChange('search', value);
               }
             }}
@@ -202,7 +202,7 @@ export default function ShowCaseCard({
           {totalProjects}{' '}
           {totalProjects > 1
             ? 'Projects'
-            : totalProjects == 0
+            : totalProjects === 0
             ? 'No projects found'
             : 'Project'}{' '}
           found

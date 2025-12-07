@@ -23,7 +23,7 @@ export const POST = withAuth(async (req: NextRequest) => {
           name: wrappedError.name
         }
       },
-      { status: wrappedError.cause == 'ValidationError' ? 400 : 500 }
+      { status: wrappedError.cause === 'ValidationError' ? 400 : 500 }
     );
   }
 });

@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     const wrappedError = error as Error;
     return NextResponse.json(
       { error: wrappedError.message },
-      { status: wrappedError.cause == 'BadRequest' ? 400 : 500 }
+      { status: wrappedError.cause === 'BadRequest' ? 400 : 500 }
     );
   }
 }
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     const wrappedError = error as Error;
     return NextResponse.json(
       { error: wrappedError },
-      { status: wrappedError.cause == 'ValidationError' ? 400 : 500 }
+      { status: wrappedError.cause === 'ValidationError' ? 400 : 500 }
     );
   }
 }

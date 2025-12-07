@@ -148,7 +148,7 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
   const conditions: any[] = [];
 
   if (options.location) {
-    if (options.location == "InPerson") {
+    if (options.location === "InPerson") {
       conditions.push({ NOT: { location: "Online" } });
     } else {
       conditions.push({ location: options.location });

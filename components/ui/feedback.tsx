@@ -66,7 +66,7 @@ export function Feedback({
 
   function submit(e?: SyntheticEvent) {
     e?.preventDefault();
-    if (opinion == null) return;
+    if (opinion === null) return;
 
     const feedback: Feedback = {
       opinion,

@@ -18,7 +18,7 @@ export default async function ShowCasePage({
 }) {
   const { page, event, track, recordsByPage, search, winningProjects } =
     await searchParams;
-  const boolWinningProjects = winningProjects == "true" ? true : false;
+  const boolWinningProjects = winningProjects === "true";
   const { projects, total } = await getFilteredProjects({
     page: page ? Number(page) : 1,
     pageSize: recordsByPage ? Number(recordsByPage) : 12,

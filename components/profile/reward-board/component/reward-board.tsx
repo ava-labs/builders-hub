@@ -14,7 +14,7 @@ export default async function RewardBoard() {
     return <div>Loading...</div>;
   }
   const data:UserBadge[] = await getRewardBoard(user_id);
-  const rewards = data.filter((reward) => reward.metadata?.type == "hackathon").map((reward) => (
+  const rewards = data.filter((reward) => reward.metadata?.type === "hackathon").map((reward) => (
     <RewardCard
       key={reward.name}
       icon={reward.image_path}
@@ -25,7 +25,7 @@ export default async function RewardBoard() {
       className="border border-red-500 dark:bg-zinc-900"
     />
   ));
-  const academyRewards = data.filter((reward) => reward.metadata?.type == "course").map((reward) => (
+  const academyRewards = data.filter((reward) => reward.metadata?.type === "course").map((reward) => (
     <RewardCard
       key={reward.name}
       icon={reward.image_path}

@@ -57,14 +57,14 @@ export async function GET(req: NextRequest) {
     const wrappedError = error as Error;
     return NextResponse.json(
       { error: wrappedError.message },
-      { status: wrappedError.cause == 'BadRequest' ? 400 : 500 }
+      { status: wrappedError.cause === 'BadRequest' ? 400 : 500 }
     );
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    if (req.headers.get("x-api-key") != env.APIKEY)
+    if (req.headers.get("x-api-key") !== env.APIKEY)
       throw new Error('Unauthorized')
     const body = await req.json();
     const newHackathon = await createHackathon(body);
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     const wrappedError = error as Error;
     return NextResponse.json(
       { error: wrappedError },
-      { status: wrappedError.cause == 'ValidationError' ? 400 : 500 }
+      { status: wrappedError.cause === 'ValidationError' ? 400 : 500 }
     );
   }
 }

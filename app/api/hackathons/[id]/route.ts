@@ -25,7 +25,7 @@ export async function GET(req: NextRequest, context: any) {
 
 export async function PUT(req: NextRequest, context: any) {
   try {
-    if (req.headers.get("x-api-key") != env.APIKEY)
+    if (req.headers.get("x-api-key") !== env.APIKEY)
       throw new Error('Unauthorized')
     const { id } = await context.params;
     const updateData = await req.json();
@@ -46,7 +46,7 @@ export async function PUT(req: NextRequest, context: any) {
 
 export async function PATCH(req: NextRequest, context: any) {
   try {
-    if (req.headers.get("x-api-key") != env.APIKEY)
+    if (req.headers.get("x-api-key") !== env.APIKEY)
       throw new Error('Unauthorized')
     
     const { id } = await context.params;

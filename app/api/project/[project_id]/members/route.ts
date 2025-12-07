@@ -23,7 +23,7 @@ export const GET = withAuth(async (request, context: any) => {
     const wrappedError = error as Error;
     return NextResponse.json(
       { error: wrappedError },
-      { status: wrappedError.cause == "ValidationError" ? 400 : 500 }
+      { status: wrappedError.cause === "ValidationError" ? 400 : 500 }
     );
   }
 });

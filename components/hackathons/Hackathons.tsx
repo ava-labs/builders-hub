@@ -332,7 +332,7 @@ export default function Hackathons({
               {totalPastHackathons ?? ""}{" "}
               {totalPastHackathons > 1
                 ? "Hackathons"
-                : totalPastHackathons == 0
+                : totalPastHackathons === 0
                 ? "No Hackathons"
                 : "Hackathon"}{" "}
               found
