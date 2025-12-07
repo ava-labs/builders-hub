@@ -1,4 +1,4 @@
-import { 
+import {
   Network,
   Layers,
   Cable,
@@ -12,7 +12,8 @@ import {
   Terminal,
   Milestone,
   Book,
-  Eye
+  Eye,
+  Bot
 } from 'lucide-react';
 
 export const documentationOptions = [
@@ -120,6 +121,12 @@ export const toolingOptions = [
     description: 'Postman collection for Avalanche APIs',
     icon: <Milestone className="w-5 h-5" />,
     url: '/docs/tooling/avalanche-postman',
+  },
+  {
+    title: 'AI & LLM',
+    description: 'Integrate docs with AI apps and LLMs',
+    icon: <Bot className="w-5 h-5" />,
+    url: '/docs/tooling/ai-llm',
   },
 ];
 
