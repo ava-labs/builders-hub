@@ -486,6 +486,11 @@ const config = {
         permanent: true,
       },
       {
+        source: '/events',
+        destination: '/hackathons',
+        permanent: true,
+      },
+      {
         source: '/tools/l1-launcher',
         destination: '/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1',
         permanent: true,
@@ -1348,6 +1353,70 @@ const config = {
       {
         source: "/docs/nodes/maintain/reduce-disk-usage",
         destination: "/docs/nodes/maintain/chain-state-management",
+      // 404 fixes - December 2025
+      {
+        source: "/docs/build",
+        destination: "/docs",
+        permanent: true,
+      },
+      {
+        source: "/docs/build/:path*",
+        destination: "/docs",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/chain-configs",
+        destination: "/docs/nodes/chain-configs/primary-network/c-chain",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/chain-configs/c-chain",
+        destination: "/docs/nodes/chain-configs/primary-network/c-chain",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/chain-configs/x-chain",
+        destination: "/docs/nodes/chain-configs/primary-network/x-chain",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/on-third-party-services/latitude",
+        destination: "/docs/nodes/run-a-node/on-third-party-services/latitude",
+        permanent: true,
+      },
+      {
+        source: "/docs/reference/avalanchego/keystore-api",
+        destination: "/docs/rpcs/other",
+        permanent: true,
+      },
+      {
+        source: "/docs/specs/coreth-arc20s",
+        destination: "/docs/primary-network",
+        permanent: true,
+      },
+      {
+        source: "/docs/tooling/guides/import-avalanche-l1",
+        destination: "/docs/tooling/avalanche-cli/guides/import-avalanche-l1",
+        permanent: true,
+      },
+      {
+        source: "/docs/tooling/maintain/view-avalanche-l1s",
+        destination: "/docs/tooling/avalanche-cli/maintain/view-avalanche-l1s",
+        permanent: true,
+      },
+      {
+        source: "/docs/virtual-machines/evm-l1-customization",
+        destination: "/docs/avalanche-l1s/evm-configuration/evm-l1-customization",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/08-transfer-an-erc-20-token",
+        destination: "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/05-erc20",
+        permanent: true,
+      },
+      {
+        source: "/docs/avalanche-l1s/evm-configuration/transaction-fees",
+        destination: "/docs/avalanche-l1s/precompiles/fee-manager",
         permanent: true,
       },
     ];
