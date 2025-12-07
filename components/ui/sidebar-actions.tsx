@@ -1,8 +1,9 @@
 'use client';
 
 import { cn } from '@/utils/cn';
-import { Github, AlertCircle, MessageSquare, ChevronDown, ExternalLink } from 'lucide-react';
+import { Github, AlertCircle, MessageSquare, ChevronDown, ExternalLink, Copy, Check } from 'lucide-react';
 import newGithubIssueUrl from 'new-github-issue-url';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -18,12 +19,53 @@ export interface SidebarActionsProps {
   pageType?: 'docs' | 'academy';
 }
 
-export function SidebarActions({ 
-  editUrl, 
-  title, 
+export function SidebarActions({
+  editUrl,
+  title,
   pagePath,
-  pageType = 'docs' 
+  pageType = 'docs'
 }: SidebarActionsProps) {
+  const [isCopyingMarkdown, setIsCopyingMarkdown] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopyMarkdown = async () => {
+    setIsCopyingMarkdown(true);
+    setIsCopied(false);
+
+    try {
+      // Construct the full path with the correct prefix for the API
+      const fullPath = pagePath.startsWith(`/${pageType}`) ? pagePath : `/${pageType}${pagePath}`;
+      const apiUrl = `${window.location.origin}/api/llms/page?path=${encodeURIComponent(fullPath)}`;
+      const response = await fetch(apiUrl);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch markdown content');
+      }
+
+      const markdownContent = await response.text();
+      await navigator.clipboard.writeText(markdownContent);
+      setIsCopied(true);
+
+      setTimeout(() => {
+        setIsCopied(false);
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy markdown:', err);
+      // Fallback to copying the page URL
+      try {
+        await navigator.clipboard.writeText(`${window.location.origin}${pagePath}`);
+        setIsCopied(true);
+        setTimeout(() => {
+          setIsCopied(false);
+        }, 2000);
+      } catch (clipboardErr) {
+        console.error('Failed to copy URL:', clipboardErr);
+      }
+    } finally {
+      setIsCopyingMarkdown(false);
+    }
+  };
+
   const openInChatGPT = () => {
     const mdxUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://build.avax.network'}${pagePath}`;
     const prompt = `Read ${mdxUrl}, I want to ask questions about it.`;
@@ -73,8 +115,8 @@ Page: [${pagePath}](https://build.avax.network${pagePath})
       </Button>
 
       {/* Secondary action: Report Issue */}
-      <Button 
-        variant="outline" 
+      <Button
+        variant="outline"
         size="sm"
         className="w-full justify-start gap-2"
         asChild
@@ -88,6 +130,32 @@ Page: [${pagePath}](https://build.avax.network${pagePath})
           Report Issue
           <ExternalLink className="size-3 ml-auto" />
         </a>
+      </Button>
+
+      {/* Copy Markdown */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full justify-start gap-2"
+        onClick={handleCopyMarkdown}
+        disabled={isCopyingMarkdown}
+      >
+        {isCopied ? (
+          <>
+            <Check className="size-4" />
+            Copied!
+          </>
+        ) : isCopyingMarkdown ? (
+          <>
+            <Copy className="size-4 animate-pulse" />
+            Copying...
+          </>
+        ) : (
+          <>
+            <Copy className="size-4" />
+            Copy Markdown
+          </>
+        )}
       </Button>
 
       {/* AI Assistant Dropdown */}
