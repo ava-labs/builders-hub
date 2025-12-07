@@ -56,7 +56,7 @@ export async function GET(_request: Request) {
 
     while (currentTimestamp < now) {
       const nextTimestamp = Math.min(currentTimestamp + oneDaySeconds, now);
-      
+
       try {
         const response = await fetch(
           `https://idx6.solokhin.com/api/43114/contract-stats?contracts=${icmContract}&tsFrom=${currentTimestamp}&tsTo=${nextTimestamp}`,
@@ -71,8 +71,8 @@ export async function GET(_request: Request) {
           const data: ContractStatsResponse = await response.json();
           const dailyFees = data.transactions?.totalGasCost || 0;
           const dailyTxCount = data.transactions?.total || 0;
-          const date = new Date(currentTimestamp * 1000).toISOString().split('T')[0];
-          
+          const date = new Date(currentTimestamp * 1000).toISOString().split("T")[0];
+
           dailyData.push({
             date,
             timestamp: currentTimestamp,
@@ -85,7 +85,7 @@ export async function GET(_request: Request) {
       }
 
       currentTimestamp = nextTimestamp;
-      await new Promise(resolve => setTimeout(resolve, 5));
+      await new Promise((resolve) => setTimeout(resolve, 5));
     }
 
     const totalFees = dailyData.reduce((sum, item) => sum + item.feesPaid, 0);
@@ -102,15 +102,11 @@ export async function GET(_request: Request) {
     return NextResponse.json(result);
   } catch (error) {
     console.error("Error fetching ICM contract fees:", error);
-    
+
     if (cachedDailyData) {
       return NextResponse.json(cachedDailyData);
     }
-    
-    return NextResponse.json(
-      { error: "Failed to fetch ICM contract fees data" },
-      { status: 500 }
-    );
+
+    return NextResponse.json({ error: "Failed to fetch ICM contract fees data" }, { status: 500 });
   }
 }
-

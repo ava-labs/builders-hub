@@ -1,25 +1,32 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createWalletClient, http, parseEther, createPublicClient, defineChain, isAddress } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { avalancheFuji } from 'viem/chains';
-import { getAuthSession } from '@/lib/auth/authSession';
-import { rateLimit } from '@/lib/rateLimit';
-import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { NextRequest, NextResponse } from "next/server";
+import {
+  createWalletClient,
+  http,
+  parseEther,
+  createPublicClient,
+  defineChain,
+  isAddress,
+} from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { avalancheFuji } from "viem/chains";
+import { getAuthSession } from "@/lib/auth/authSession";
+import { rateLimit } from "@/lib/rateLimit";
+import { getL1ListStore, type L1ListItem } from "@/components/toolbox/stores/l1ListStore";
 
 const SERVER_PRIVATE_KEY = process.env.FAUCET_C_CHAIN_PRIVATE_KEY;
 const FAUCET_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
 
 if (!SERVER_PRIVATE_KEY || !FAUCET_ADDRESS) {
-  console.error('necessary environment variables for EVM chain faucets are not set');
+  console.error("necessary environment variables for EVM chain faucets are not set");
 }
 
 // Helper function to find a testnet chain that supports BuilderHub faucet
 function findSupportedChain(chainId: number): L1ListItem | undefined {
   const testnetStore = getL1ListStore(true);
 
-  return testnetStore.getState().l1List.find(
-    (chain: L1ListItem) => chain.evmChainId === chainId && chain.hasBuilderHubFaucet
-  );
+  return testnetStore
+    .getState()
+    .l1List.find((chain: L1ListItem) => chain.evmChainId === chainId && chain.hasBuilderHubFaucet);
 }
 
 function createViemChain(l1Data: L1ListItem) {
@@ -40,13 +47,17 @@ function createViemChain(l1Data: L1ListItem) {
         http: [l1Data.rpcUrl],
       },
     },
-    blockExplorers: l1Data.explorerUrl ? {
-      default: { name: 'Explorer', url: l1Data.explorerUrl },
-    } : undefined,
+    blockExplorers: l1Data.explorerUrl
+      ? {
+          default: { name: "Explorer", url: l1Data.explorerUrl },
+        }
+      : undefined,
   });
 }
 
-const account = SERVER_PRIVATE_KEY ? privateKeyToAccount(SERVER_PRIVATE_KEY as `0x${string}`) : null;
+const account = SERVER_PRIVATE_KEY
+  ? privateKeyToAccount(SERVER_PRIVATE_KEY as `0x${string}`)
+  : null;
 
 interface TransferResponse {
   success: boolean;
@@ -65,7 +76,7 @@ async function transferEVMTokens(
   amount: string
 ): Promise<{ txHash: string }> {
   if (!account) {
-    throw new Error('Wallet not initialized');
+    throw new Error("Wallet not initialized");
   }
 
   const l1Data = findSupportedChain(chainId);
@@ -78,7 +89,7 @@ async function transferEVMTokens(
   const publicClient = createPublicClient({ chain: viemChain, transport: http() });
 
   const balance = await publicClient.getBalance({
-    address: sourceAddress as `0x${string}`
+    address: sourceAddress as `0x${string}`,
   });
 
   const amountToSend = parseEther(amount);
@@ -100,32 +111,32 @@ async function validateFaucetRequest(request: NextRequest): Promise<NextResponse
     const session = await getAuthSession();
     if (!session?.user) {
       return NextResponse.json(
-        { success: false, message: 'Authentication required' },
+        { success: false, message: "Authentication required" },
         { status: 401 }
       );
     }
 
     if (!SERVER_PRIVATE_KEY || !FAUCET_ADDRESS) {
       return NextResponse.json(
-        { success: false, message: 'Server not properly configured' },
+        { success: false, message: "Server not properly configured" },
         { status: 500 }
       );
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const destinationAddress = searchParams.get('address');
-    const chainId = searchParams.get('chainId');
+    const destinationAddress = searchParams.get("address");
+    const chainId = searchParams.get("chainId");
 
     if (!destinationAddress) {
       return NextResponse.json(
-        { success: false, message: 'Destination address is required' },
+        { success: false, message: "Destination address is required" },
         { status: 400 }
       );
     }
 
     if (!chainId) {
       return NextResponse.json(
-        { success: false, message: 'Chain ID is required' },
+        { success: false, message: "Chain ID is required" },
         { status: 400 }
       );
     }
@@ -141,24 +152,24 @@ async function validateFaucetRequest(request: NextRequest): Promise<NextResponse
 
     if (!isAddress(destinationAddress)) {
       return NextResponse.json(
-        { success: false, message: 'Invalid Ethereum address format' },
+        { success: false, message: "Invalid Ethereum address format" },
         { status: 400 }
       );
     }
 
     if (destinationAddress.toLowerCase() === FAUCET_ADDRESS?.toLowerCase()) {
       return NextResponse.json(
-        { success: false, message: 'Cannot send tokens to the faucet address' },
+        { success: false, message: "Cannot send tokens to the faucet address" },
         { status: 400 }
       );
     }
     return null;
   } catch (error) {
-    console.error('Validation failed:', error);
+    console.error("Validation failed:", error);
     return NextResponse.json(
       {
         success: false,
-        message: error instanceof Error ? error.message : 'Failed to validate request'
+        message: error instanceof Error ? error.message : "Failed to validate request",
       },
       { status: 500 }
     );
@@ -168,17 +179,12 @@ async function validateFaucetRequest(request: NextRequest): Promise<NextResponse
 async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const destinationAddress = searchParams.get('address')!;
-    const chainId = parseInt(searchParams.get('chainId')!);
+    const destinationAddress = searchParams.get("address")!;
+    const chainId = parseInt(searchParams.get("chainId")!);
     const supportedChain = findSupportedChain(chainId);
     const dripAmount = (supportedChain?.faucetThresholds?.dripAmount || 3).toString();
 
-    const tx = await transferEVMTokens(
-      FAUCET_ADDRESS!,
-      destinationAddress,
-      chainId,
-      dripAmount
-    );
+    const tx = await transferEVMTokens(FAUCET_ADDRESS!, destinationAddress, chainId, dripAmount);
 
     const response: TransferResponse = {
       success: true,
@@ -186,17 +192,16 @@ async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> 
       sourceAddress: FAUCET_ADDRESS,
       destinationAddress,
       amount: dripAmount,
-      chainId
+      chainId,
     };
 
     return NextResponse.json(response);
-
   } catch (error) {
-    console.error('EVM chain transfer failed:', error);
+    console.error("EVM chain transfer failed:", error);
 
     const response: TransferResponse = {
       success: false,
-      message: error instanceof Error ? error.message : 'Failed to complete transfer'
+      message: error instanceof Error ? error.message : "Failed to complete transfer",
     };
 
     return NextResponse.json(response, { status: 500 });
@@ -210,17 +215,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return validationResponse;
   }
 
-  const chainId = request.nextUrl.searchParams.get('chainId');
+  const chainId = request.nextUrl.searchParams.get("chainId");
   const rateLimitHandler = rateLimit(handleFaucetRequest, {
     windowMs: 24 * 60 * 60 * 1000,
     maxRequests: 1,
     identifier: async (_req: NextRequest) => {
-      const session = await import('@/lib/auth/authSession').then(mod => mod.getAuthSession());
-      if (!session) throw new Error('Authentication required');
+      const session = await import("@/lib/auth/authSession").then((mod) => mod.getAuthSession());
+      if (!session) throw new Error("Authentication required");
       const email = session.user.email;
-      if (!email) throw new Error('email required for rate limiting');
+      if (!email) throw new Error("email required for rate limiting");
       return `${email}-${chainId}`;
-    }
+    },
   });
 
   return rateLimitHandler(request);

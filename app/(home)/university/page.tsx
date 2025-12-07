@@ -21,7 +21,7 @@ import {
 import Link from "next/link";
 import { HeroBackground } from "@/components/landing/hero";
 import UniversitySlideshow from "@/components/university/UniversitySlideshow";
-import StudentCallout from '@/components/landing/student-callout';
+import StudentCallout from "@/components/landing/student-callout";
 
 interface ProgramCardProps {
   title: string;
@@ -35,9 +35,7 @@ function ProgramCard({ title, description, icon, href, external = false }: Progr
   const cardContent = (
     <div className="p-6 space-y-4 bg-card border border-border rounded-lg hover:shadow-sm transition-shadow duration-200 h-full">
       <div className="flex justify-between items-start">
-        <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-          {icon}
-        </div>
+        <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">{icon}</div>
         {external ? (
           <ExternalLink className="h-4 w-4 text-muted-foreground" />
         ) : (
@@ -85,9 +83,7 @@ function ActionCard({ title, description, icon, href, external = false }: Action
   const cardContent = (
     <div className="p-6 space-y-4 bg-card border border-border rounded-lg hover:shadow-sm transition-shadow duration-200 h-full">
       <div className="flex justify-between items-start">
-        <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-          {icon}
-        </div>
+        <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">{icon}</div>
         {external ? (
           <ExternalLink className="h-4 w-4 text-muted-foreground" />
         ) : (
@@ -146,11 +142,9 @@ export default function Page() {
               className="hidden dark:block"
             />
           </div>
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-            Campus Connect
-          </h1>
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight">Campus Connect</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Discover opportunities for students and educators to explore blockchain technology, 
+            Discover opportunities for students and educators to explore blockchain technology,
             access educational resources, and join our community of builders on Avalanche.
           </p>
         </section>
@@ -162,8 +156,6 @@ export default function Page() {
             Learn, connect, build and innovate with Avalanche.
           </p>
         </section>
-
-
 
         {/* LEARN Section */}
         <section className="space-y-12 mt-24">
@@ -201,10 +193,11 @@ export default function Page() {
           <div className="text-center space-y-4">
             <h2 className="text-3xl md:text-4xl font-bold">CONNECT</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Students and educators — step into blockchain and join the Avalanche builder community.
+              Students and educators — step into blockchain and join the Avalanche builder
+              community.
             </p>
           </div>
-          
+
           <div className="grid md:grid-cols-3 gap-6">
             {/* Stay in the loop */}
             <ActionCard
@@ -248,7 +241,8 @@ export default function Page() {
                 </div>
                 <h2 className="text-3xl md:text-4xl font-bold">STUDENT CLUB LAUNCHPAD</h2>
                 <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-                  Want more Avalanche on your campus? Get access to resources for your club, from guest speakers to teaching materials and funding for your event.
+                  Want more Avalanche on your campus? Get access to resources for your club, from
+                  guest speakers to teaching materials and funding for your event.
                 </p>
               </div>
 
@@ -260,7 +254,8 @@ export default function Page() {
                   </div>
                   <h3 className="font-semibold text-lg">Funding Support</h3>
                   <p className="text-muted-foreground">
-                    Get financial support<br />
+                    Get financial support
+                    <br />
                     for your blockchain events and initiatives
                   </p>
                 </div>
@@ -270,7 +265,8 @@ export default function Page() {
                   </div>
                   <h3 className="font-semibold text-lg">Expert Speakers</h3>
                   <p className="text-muted-foreground">
-                    Access to industry experts<br />
+                    Access to industry experts
+                    <br />
                     and guest speakers for your events
                   </p>
                 </div>
@@ -280,12 +276,13 @@ export default function Page() {
                   </div>
                   <h3 className="font-semibold text-lg">Learning Materials</h3>
                   <p className="text-muted-foreground">
-                    Comprehensive teaching materials<br />
+                    Comprehensive teaching materials
+                    <br />
                     and educational resources
                   </p>
                 </div>
               </div>
-              
+
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/student-launchpad" className="group">
@@ -308,8 +305,9 @@ export default function Page() {
               Ready to Start Your Blockchain Journey?
             </h2>
             <p className="text-muted-foreground max-w-3xl mx-auto">
-              Join thousands of students and educators already building the future of blockchain 
-              technology with Avalanche. Start learning today and become part of our global community.
+              Join thousands of students and educators already building the future of blockchain
+              technology with Avalanche. Start learning today and become part of our global
+              community.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/academy">

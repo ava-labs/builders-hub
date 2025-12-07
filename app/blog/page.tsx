@@ -53,8 +53,8 @@ export default function Page(): React.ReactElement {
               </span>
             </h1>
             <p className="mt-6 text-base sm:text-lg leading-7 text-muted-foreground">
-              Takeaways and tutorials from building a network of fast,
-              efficient, highly-optimized chains.
+              Takeaways and tutorials from building a network of fast, efficient, highly-optimized
+              chains.
             </p>
           </section>
 

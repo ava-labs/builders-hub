@@ -34,7 +34,11 @@ export async function GET(
 
       // Extract symbol based on contract type
       let symbol: string | undefined;
-      if (result.ercType === 'ERC-20' || result.ercType === 'ERC-721' || result.ercType === 'ERC-1155') {
+      if (
+        result.ercType === "ERC-20" ||
+        result.ercType === "ERC-721" ||
+        result.ercType === "ERC-1155"
+      ) {
         symbol = result.symbol || undefined;
       }
 
@@ -53,4 +57,3 @@ export async function GET(
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-

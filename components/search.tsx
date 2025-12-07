@@ -41,8 +41,7 @@ export default function CustomSearchDialog(props: SharedProps) {
       const searchParams: any = {
         hitsPerPage: 10,
         attributesToSnippet: ["content:30", "description:30"],
-        highlightPreTag:
-          '<mark class="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">',
+        highlightPreTag: '<mark class="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">',
         highlightPostTag: "</mark>",
         snippetEllipsisText: "...",
       };
@@ -95,10 +94,7 @@ export default function CustomSearchDialog(props: SharedProps) {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        modalRef.current &&
-        !modalRef.current.contains(event.target as Node)
-      ) {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
         handleClose();
       }
     };
@@ -106,14 +102,14 @@ export default function CustomSearchDialog(props: SharedProps) {
     if (props.open) {
       document.addEventListener("mousedown", handleClickOutside);
       // Add class to body to hide subnavbar when search is open
-      document.body.classList.add('search-open');
+      document.body.classList.add("search-open");
     } else {
-      document.body.classList.remove('search-open');
+      document.body.classList.remove("search-open");
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
-      document.body.classList.remove('search-open');
+      document.body.classList.remove("search-open");
     };
   }, [props.open, handleClose]);
 
@@ -177,16 +173,13 @@ export default function CustomSearchDialog(props: SharedProps) {
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent"></div>
-                <span className="ml-3 text-sm text-muted-foreground">
-                  Searching...
-                </span>
+                <span className="ml-3 text-sm text-muted-foreground">Searching...</span>
               </div>
             ) : results.length > 0 ? (
               <div className="p-2">
                 {results.map((item: any, index: number) => {
                   const snippet = getHighlightedSnippet(item);
-                  const highlightedTitle =
-                    item._highlightResult?.title?.value || item.title;
+                  const highlightedTitle = item._highlightResult?.title?.value || item.title;
 
                   return (
                     <button
@@ -214,19 +207,13 @@ export default function CustomSearchDialog(props: SharedProps) {
             ) : search ? (
               <div className="py-12 text-center">
                 <Search className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
-                <p className="text-sm text-muted-foreground">
-                  No results found for "{search}"
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Try different keywords
-                </p>
+                <p className="text-sm text-muted-foreground">No results found for "{search}"</p>
+                <p className="text-xs text-muted-foreground mt-1">Try different keywords</p>
               </div>
             ) : (
               <div className="py-12 text-center">
                 <Search className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
-                <p className="text-sm text-muted-foreground">
-                  Start typing to search
-                </p>
+                <p className="text-sm text-muted-foreground">Start typing to search</p>
               </div>
             )}
           </div>

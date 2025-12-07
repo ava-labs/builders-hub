@@ -1,16 +1,16 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import { getQuizResponse } from '@/utils/quizzes/indexedDB';
-import { buttonVariants } from '@/components/ui/button';
-import { cn } from '@/utils/cn';
-import quizDataImport from '@/components/quizzes/quizData.json';
-import Quiz from '@/components/quizzes/quiz';
-import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
-import { Linkedin, Twitter, Award, Share2 } from 'lucide-react';
-import { AwardBadgeWrapper } from './components/awardBadgeWrapper';
-import { useRouter } from 'next/navigation';
-import { useCertificates } from '@/hooks/useCertificates';
-import { toast } from '@/hooks/use-toast';
+import React, { useState, useEffect } from "react";
+import { getQuizResponse } from "@/utils/quizzes/indexedDB";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/utils/cn";
+import quizDataImport from "@/components/quizzes/quizData.json";
+import Quiz from "@/components/quizzes/quiz";
+import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
+import { Linkedin, Twitter, Award, Share2 } from "lucide-react";
+import { AwardBadgeWrapper } from "./components/awardBadgeWrapper";
+import { useRouter } from "next/navigation";
+import { useCertificates } from "@/hooks/useCertificates";
+import { toast } from "@/hooks/use-toast";
 
 interface CertificatePageProps {
   courseId: string;
@@ -60,10 +60,10 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
   useEffect(() => {
     const fetchQuizzes = () => {
       const courseQuizzes = quizData.courses[courseId]?.quizzes || [];
-      const quizzesWithChapters = courseQuizzes.map(quizId => ({
+      const quizzesWithChapters = courseQuizzes.map((quizId) => ({
         id: quizId,
-        chapter: quizData.quizzes[quizId]?.chapter || 'Unknown Chapter',
-        question: quizData.quizzes[quizId]?.question || ''
+        chapter: quizData.quizzes[quizId]?.chapter || "Unknown Chapter",
+        question: quizData.quizzes[quizId]?.question || "",
       }));
       setQuizzes(quizzesWithChapters);
       setTotalQuizzes(courseQuizzes.length);
@@ -97,22 +97,18 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
     }
   }, [quizzes]);
 
-
   useEffect(() => {
     if (totalQuizzes > 0 && correctlyAnsweredQuizzes === totalQuizzes) {
-
       setShouldShowCertificate(true);
 
-      setTimeout(() => {
-
-      }, 3000);
+      setTimeout(() => {}, 3000);
     }
   }, [correctlyAnsweredQuizzes, totalQuizzes]);
 
   const handleQuizCompleted = (quizId: string) => {
     if (!completedQuizzes.includes(quizId)) {
-      setCompletedQuizzes(prev => [...prev, quizId]);
-      setCorrectlyAnsweredQuizzes(prev => prev + 1);
+      setCompletedQuizzes((prev) => [...prev, quizId]);
+      setCorrectlyAnsweredQuizzes((prev) => prev + 1);
     }
   };
 
@@ -126,15 +122,18 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
     await generateCertificate(courseId);
   };
 
-  const chapters = [...new Set(quizzes.map(quiz => quiz.chapter))];
+  const chapters = [...new Set(quizzes.map((quiz) => quiz.chapter))];
 
-  const quizzesByChapter = chapters.reduce((acc, chapter) => {
-    acc[chapter] = quizzes.filter(quiz => quiz.chapter === chapter);
-    return acc;
-  }, {} as Record<string, QuizInfo[]>);
+  const quizzesByChapter = chapters.reduce(
+    (acc, chapter) => {
+      acc[chapter] = quizzes.filter((quiz) => quiz.chapter === chapter);
+      return acc;
+    },
+    {} as Record<string, QuizInfo[]>
+  );
 
   const shareOnLinkedIn = () => {
-    const organizationName = 'Avalanche';
+    const organizationName = "Avalanche";
     const organizationId = 19104188;
     const certificationName = encodeURIComponent(quizData.courses[courseId].title);
     const issuedMonth = new Date().getMonth() + 1;
@@ -146,12 +145,12 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
   const shareOnTwitter = () => {
     const text = `I just completed the ${quizData.courses[courseId].title} course on Avalanche Academy! 🎉`;
     const url = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank');
+    window.open(url, "_blank");
   };
-  
+
   const viewCertificate = () => {
     if (certificatePdfUrl) {
-      window.open(certificatePdfUrl, '_blank');
+      window.open(certificatePdfUrl, "_blank");
     }
   };
 
@@ -163,9 +162,12 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
     return (
       <div className="max-w-4xl mx-auto p-4">
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-red-800 dark:text-red-200 mb-2">Course Not Found</h2>
+          <h2 className="text-xl font-semibold text-red-800 dark:text-red-200 mb-2">
+            Course Not Found
+          </h2>
           <p className="text-red-600 dark:text-red-300">
-            The course "{courseId}" could not be found. Please check the course ID and try again.
+            The course &quot;{courseId}&quot; could not be found. Please check the course ID and try
+            again.
           </p>
         </div>
       </div>
@@ -174,39 +176,44 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
 
   return (
     <div className="max-w-4xl mx-auto p-4">
-      {!shouldShowCertificate && chapters.map((chapter) => {
-        const chapterQuizzes = quizzesByChapter[chapter];
+      {!shouldShowCertificate &&
+        chapters.map((chapter) => {
+          const chapterQuizzes = quizzesByChapter[chapter];
 
-        return (
-          <div key={chapter} className="mb-8">
-            <h3 className="text-xl font-medium mb-4">{chapter}</h3>
-            <Accordions type="single" collapsible>
-              {chapterQuizzes.map((quiz) => (
-                <Accordion key={quiz.id} title={`${quiz.question}`}>
-                  <Quiz quizId={quiz.id} onQuizCompleted={handleQuizCompleted} />
-                </Accordion>
-              ))}
-            </Accordions>
-          </div>
-        );
-      })}
-
+          return (
+            <div key={chapter} className="mb-8">
+              <h3 className="text-xl font-medium mb-4">{chapter}</h3>
+              <Accordions type="single" collapsible>
+                {chapterQuizzes.map((quiz) => (
+                  <Accordion key={quiz.id} title={`${quiz.question}`}>
+                    <Quiz quizId={quiz.id} onQuizCompleted={handleQuizCompleted} />
+                  </Accordion>
+                ))}
+              </Accordions>
+            </div>
+          );
+        })}
 
       {allQuizzesCompleted && (
-
         <div className="mt-12 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
           <AwardBadgeWrapper courseId={courseId} isCompleted={allQuizzesCompleted} />
           <div className="flex items-center justify-center mb-6">
             <Award className="w-16 h-16 text-green-500 mr-4" />
-            <h2 className="text-3xl font-bold text-gray-800 dark:text-white" style={{ fontSize: '2rem', marginTop: '1em' }}>Congratulations!</h2>
+            <h2
+              className="text-3xl font-bold text-gray-800 dark:text-white"
+              style={{ fontSize: "2rem", marginTop: "1em" }}
+            >
+              Congratulations!
+            </h2>
           </div>
           <p className="text-center text-gray-600 dark:text-gray-300 mb-8">
-            You've completed all quizzes for the {quizData.courses[courseId].title} course. Claim your certificate now!
+            You&apos;ve completed all quizzes for the {quizData.courses[courseId].title} course.
+            Claim your certificate now!
           </p>
           <button
             className={cn(
-              buttonVariants({ variant: 'default' }),
-              'w-full mb-6 py-3 text-lg relative overflow-hidden'
+              buttonVariants({ variant: "default" }),
+              "w-full mb-6 py-3 text-lg relative overflow-hidden"
             )}
             onClick={handleGenerateCertificate}
             disabled={isGenerating}
@@ -217,7 +224,7 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
                 Generating Certificate...
               </span>
             ) : (
-              'Generate My Certificate'
+              "Generate My Certificate"
             )}
           </button>
           <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
@@ -225,26 +232,30 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
               Share your achievement:
             </p>
             <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Your certificate PDF has been downloaded. You can attach it when sharing on social media.
+              Your certificate PDF has been downloaded. You can attach it when sharing on social
+              media.
             </p>
             <div className="flex justify-center space-x-4">
               {certificatePdfUrl && (
                 <button
                   onClick={viewCertificate}
                   className={cn(
-                    buttonVariants({ variant: 'secondary' }),
-                    'flex items-center px-4 py-2'
+                    buttonVariants({ variant: "secondary" }),
+                    "flex items-center px-4 py-2"
                   )}
                 >
                   <Award className="mr-2 h-5 w-5" />
                   View Certificate
                 </button>
               )}
-              <a href={shareOnLinkedIn()} target="_blank" rel="noopener noreferrer"
-                style={{ textDecoration: 'none' }}
+              <a
+                href={shareOnLinkedIn()}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ textDecoration: "none" }}
                 className={cn(
-                  buttonVariants({ variant: 'secondary' }),
-                  'flex items-center px-4 py-2'
+                  buttonVariants({ variant: "secondary" }),
+                  "flex items-center px-4 py-2"
                 )}
               >
                 <Linkedin className="mr-2 h-5 w-5" />
@@ -252,8 +263,8 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
               </a>
               <button
                 className={cn(
-                  buttonVariants({ variant: 'secondary' }),
-                  'flex items-center px-4 py-2'
+                  buttonVariants({ variant: "secondary" }),
+                  "flex items-center px-4 py-2"
                 )}
                 onClick={shareOnTwitter}
               >
@@ -268,7 +279,8 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
         <div className="mt-12 bg-muted rounded-lg shadow-lg p-8">
           <Share2 className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
           <p className="text-center text-gray-600 dark:text-gray-300 mb-2">
-            There are several quizzes throughout this course. Complete them all to get your certificate.
+            There are several quizzes throughout this course. Complete them all to get your
+            certificate.
           </p>
           <p className="text-center text-gray-500 dark:text-gray-400">
             So far you have completed {correctlyAnsweredQuizzes} out of {totalQuizzes} quizzes.

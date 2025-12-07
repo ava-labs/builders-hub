@@ -25,9 +25,8 @@ export default function JoinButton({
   variant = "red",
   showChatWhenRegistered = false,
   allowNavigationWhenRegistered = false,
-  utm = ""
+  utm = "",
 }: JoinButtonProps) {
-  
   const getButtonText = () => {
     if (isRegistered) {
       if (showChatWhenRegistered) {
@@ -79,18 +78,10 @@ export default function JoinButton({
   };
 
   return (
-    <Button
-      asChild
-      variant={variant}
-      className={className}
-    >
-      <Link
-        href={getButtonHref()}
-        target={getButtonTarget()}
-        onClick={handleClick}
-      >
+    <Button asChild variant={variant} className={className}>
+      <Link href={getButtonHref()} target={getButtonTarget()} onClick={handleClick}>
         {getButtonText()}
       </Link>
     </Button>
   );
-} 
+}

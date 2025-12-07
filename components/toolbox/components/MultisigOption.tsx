@@ -1,17 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from './Button';
-import { MultisigInfo } from './MultisigInfo';
-import { AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
-import Safe from '@safe-global/protocol-kit';
-import { encodeFunctionData, getAddress } from 'viem';
-import { MetaTransactionData } from '@safe-global/types-kit';
-import validatorManagerAbi from '../../../contracts/icm-contracts/compiled/ValidatorManager.json';
-import poaManagerAbi from '../../../contracts/icm-contracts/compiled/PoAManager.json';
-import { useWalletStore } from '../stores/walletStore';
-import { useViemChainStore } from '../stores/toolboxStore';
-import { useSafeAPI, SafeInfo, NonceResponse, AshWalletUrlResponse } from '../hooks/useSafeAPI';
-
-
+import React, { useState, useEffect } from "react";
+import { Button } from "./Button";
+import { MultisigInfo } from "./MultisigInfo";
+import { AlertCircle, CheckCircle, ExternalLink } from "lucide-react";
+import Safe from "@safe-global/protocol-kit";
+import { encodeFunctionData, getAddress } from "viem";
+import { MetaTransactionData } from "@safe-global/types-kit";
+import validatorManagerAbi from "../../../contracts/icm-contracts/compiled/ValidatorManager.json";
+import poaManagerAbi from "../../../contracts/icm-contracts/compiled/PoAManager.json";
+import { useWalletStore } from "../stores/walletStore";
+import { useViemChainStore } from "../stores/toolboxStore";
+import { useSafeAPI, SafeInfo, NonceResponse, AshWalletUrlResponse } from "../hooks/useSafeAPI";
 
 interface MultisigOptionProps {
   validatorManagerAddress: string;
@@ -25,11 +23,11 @@ interface MultisigOptionProps {
 
 /**
  * MultisigOption Component
- * 
+ *
  * A wrapper component that provides multisig functionality for ValidatorManager operations.
  * This component automatically detects if the current user is the contract owner and conditionally
  * renders either direct transaction capabilities or Ash Wallet multisig proposal interface.
- * 
+ *
  * @example
  * ```tsx
  * <MultisigOption
@@ -45,19 +43,19 @@ interface MultisigOptionProps {
  *   </Button>
  * </MultisigOption>
  * ```
- * 
+ *
  * Behavior:
  * - Automatically detects if PoAManager is owned by a multisig
  * - If user is the owner: Shows direct transaction button
  * - If multisig-owned: Automatically initializes Ash Wallet and shows proposal interface
  * - No manual toggle required - multisig is detected and initialized automatically
- * 
+ *
  * Requirements:
  * - ValidatorManager contract must have PoAManager as owner
  * - PoAManager must have Safe contract as owner (for multisig)
  * - Current wallet must be a signer of the Safe contract (for multisig)
  * - Chain must be supported by Safe Transaction Service
- * 
+ *
  * @param validatorManagerAddress - Address of the ValidatorManager contract
  * @param functionName - Function name to call on PoAManager (e.g., "completeValidatorRegistration")
  * @param args - Arguments array to pass to the function
@@ -74,21 +72,21 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   onSuccess,
   onError,
   disabled,
-  children
+  children,
 }) => {
   const [isInitializing, setIsInitializing] = useState(false);
   const [isProposing, setIsProposing] = useState(false);
   const [isExecutingDirect, setIsExecutingDirect] = useState(false);
   const [protocolKit, setProtocolKit] = useState<any>(null);
-  const [walletAddress, setWalletAddress] = useState('');
-  const [poaManagerAddress, setPoaManagerAddress] = useState('');
-  const [safeAddress, setSafeAddress] = useState('');
+  const [walletAddress, setWalletAddress] = useState("");
+  const [poaManagerAddress, setPoaManagerAddress] = useState("");
+  const [safeAddress, setSafeAddress] = useState("");
   const [safeInfo, setSafeInfo] = useState<SafeInfo | null>(null);
   const [isPoaOwner, setIsPoaOwner] = useState<boolean | null>(null);
   const [isCheckingOwnership, setIsCheckingOwnership] = useState(false);
-  const [chainId, setChainId] = useState<string>('');
+  const [chainId, setChainId] = useState<string>("");
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-  const [ashWalletUrl, setAshWalletUrl] = useState('');
+  const [ashWalletUrl, setAshWalletUrl] = useState("");
 
   const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
@@ -122,7 +120,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
       const poaManagerAddr = await publicClient.readContract({
         address: validatorManagerAddress as `0x${string}`,
         abi: validatorManagerAbi.abi,
-        functionName: 'owner',
+        functionName: "owner",
       });
       setPoaManagerAddress(poaManagerAddr as string);
 
@@ -130,7 +128,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
       const poaOwner = await publicClient.readContract({
         address: poaManagerAddr as `0x${string}`,
         abi: poaManagerAbi.abi,
-        functionName: 'owner',
+        functionName: "owner",
       });
 
       // Check if current wallet is the owner of PoAManager
@@ -141,9 +139,8 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
       if (!isOwner) {
         setSafeAddress(poaOwner as string);
       }
-
     } catch (err) {
-      console.error('Failed to check ownership:', err);
+      console.error("Failed to check ownership:", err);
       setIsPoaOwner(false);
     } finally {
       setIsCheckingOwnership(false);
@@ -152,18 +149,18 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
 
   // Get chain ID helper
   const getChainId = (): string => {
-    return viemChain?.id.toString() || '1';
+    return viemChain?.id.toString() || "1";
   };
 
   const initializeMultisig = async () => {
     setIsInitializing(true);
     try {
       if (!coreWalletClient?.account) {
-        throw new Error('Wallet not connected');
+        throw new Error("Wallet not connected");
       }
 
       if (!poaManagerAddress || !safeAddress) {
-        throw new Error('PoAManager or Safe address not determined');
+        throw new Error("PoAManager or Safe address not determined");
       }
 
       const address = walletEVMAddress;
@@ -172,24 +169,27 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
 
       // Get Safe info from backend API
       try {
-        const safeInfo = await callSafeAPI<SafeInfo>('getSafeInfo', {
+        const safeInfo = await callSafeAPI<SafeInfo>("getSafeInfo", {
           chainId: currentChainId,
-          safeAddress: safeAddress
+          safeAddress: safeAddress,
         });
 
         setSafeInfo(safeInfo);
 
         // Check if the current wallet address is one of the Safe owners
-        const isOwner = safeInfo.owners.some((owner: string) =>
-          owner.toLowerCase() === address.toLowerCase()
+        const isOwner = safeInfo.owners.some(
+          (owner: string) => owner.toLowerCase() === address.toLowerCase()
         );
 
         if (!isOwner) {
-          throw new Error(`Wallet address ${address} is not an owner of the Ash L1 Multisig at ${safeAddress}`);
+          throw new Error(
+            `Wallet address ${address} is not an owner of the Ash L1 Multisig at ${safeAddress}`
+          );
         }
-
       } catch (err) {
-        throw new Error(`Invalid Safe contract at address ${safeAddress}: ${(err as Error).message}`);
+        throw new Error(
+          `Invalid Safe contract at address ${safeAddress}: ${(err as Error).message}`
+        );
       }
 
       // Try to initialize Safe Protocol Kit normally first
@@ -198,14 +198,16 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
         protocolKitInstance = await Safe.init({
           provider: window.ethereum! as any,
           signer: address,
-          safeAddress: safeAddress
+          safeAddress: safeAddress,
         });
       } catch (error) {
         // If initialization fails due to missing MultiSend addresses, retry with hardcoded deterministic addresses
         const errorMessage = (error as Error).message;
-        if (errorMessage.includes('multiSend') || errorMessage.includes('MultiSend')) {
-          console.log('MultiSend addresses not found in Safe SDK, using hardcoded deterministic addresses...');
-          
+        if (errorMessage.includes("multiSend") || errorMessage.includes("MultiSend")) {
+          console.log(
+            "MultiSend addresses not found in Safe SDK, using hardcoded deterministic addresses..."
+          );
+
           // Hardcoded deterministic Safe contract addresses for Avalanche L1s
           // These are deployed via CREATE2 and have the same addresses across all chains for 1.3 deployments (What Ash Wallet uses)
           // ideally they are included in safe v1.3 deployments https://github.com/safe-global/safe-deployments/blob/main/src/assets/v1.3.0/multi_send.json
@@ -215,10 +217,10 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
             safeAddress: safeAddress,
             contractNetworks: {
               [currentChainId]: {
-                multiSendAddress: '0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761',
-                multiSendCallOnlyAddress: '0x40A2aCCbd92BCA938b02010E17A5b8929b49130D',
-              }
-            }
+                multiSendAddress: "0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761",
+                multiSendCallOnlyAddress: "0x40A2aCCbd92BCA938b02010E17A5b8929b49130D",
+              },
+            },
           });
         } else {
           // If it's a different error, rethrow it
@@ -227,7 +229,6 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
       }
 
       setProtocolKit(protocolKitInstance);
-
     } catch (err) {
       onError(`Failed to initialize Ash L1 Multisig: ${(err as Error).message}`);
     } finally {
@@ -237,7 +238,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
 
   const proposeTransaction = async () => {
     if (!protocolKit || !poaManagerAddress || !safeAddress || !chainId) {
-      onError('Safe SDK not initialized or addresses not found');
+      onError("Safe SDK not initialized or addresses not found");
       return;
     }
 
@@ -253,19 +254,19 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
         to: getAddress(poaManagerAddress),
         data: functionData,
         value: "0",
-        operation: 0
+        operation: 0,
       };
 
       // Get next nonce from backend API
-      const nonceData = await callSafeAPI<NonceResponse>('getNextNonce', {
+      const nonceData = await callSafeAPI<NonceResponse>("getNextNonce", {
         chainId: chainId,
-        safeAddress: safeAddress
+        safeAddress: safeAddress,
       });
       const nonceNumber = nonceData.nonce;
 
       const safeTransaction = await protocolKit.createTransaction({
         transactions: [safeTransactionData],
-        options: { nonce: nonceNumber, safeTxGas: 0 }
+        options: { nonce: nonceNumber, safeTxGas: 0 },
       });
 
       const safeTxHash = await protocolKit.getTransactionHash(safeTransaction);
@@ -274,7 +275,8 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
       const signedSafeTransaction = await protocolKit.signTransaction(safeTransaction);
 
       // Extract the signature from the signed transaction
-      const signature = signedSafeTransaction.signatures.get(walletAddress.toLowerCase())?.data || '';
+      const signature =
+        signedSafeTransaction.signatures.get(walletAddress.toLowerCase())?.data || "";
 
       const proposalData = {
         safeAddress: getAddress(safeAddress),
@@ -286,20 +288,20 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
         safeTxHash,
         senderAddress: getAddress(walletAddress),
         senderSignature: signature,
-        origin: 'Avalanche Toolbox'
+        origin: "Avalanche Toolbox",
       };
 
       // Propose transaction via backend API using Safe API Kit directly
-      await callSafeAPI('proposeTransaction', {
+      await callSafeAPI("proposeTransaction", {
         chainId: chainId,
         safeAddress: safeAddress,
-        proposalData: proposalData
+        proposalData: proposalData,
       });
 
       // Get Ash Wallet URL from backend API
-      const ashWalletResponse = await callSafeAPI<AshWalletUrlResponse>('getAshWalletUrl', {
+      const ashWalletResponse = await callSafeAPI<AshWalletUrlResponse>("getAshWalletUrl", {
         chainId: chainId,
-        safeAddress: safeAddress
+        safeAddress: safeAddress,
       });
 
       // Show success UI directly in the component
@@ -318,13 +320,12 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
 
   const executeDirectTransaction = async () => {
     if (!coreWalletClient) {
-      onError('Core wallet not found');
+      onError("Core wallet not found");
       return;
     }
 
-
     if (!poaManagerAddress) {
-      onError('PoAManager address not found');
+      onError("PoAManager address not found");
       return;
     }
 
@@ -344,7 +345,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
         hash: txHash as `0x${string}`,
       });
 
-      if (receipt.status === 'reverted') {
+      if (receipt.status === "reverted") {
         throw new Error(`Transaction reverted. Hash: ${txHash}`);
       }
 
@@ -353,11 +354,11 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
       let message = err instanceof Error ? err.message : String(err);
 
       // Handle specific error types
-      if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
-      } else if (message.includes('insufficient funds')) {
-        message = 'Insufficient funds for transaction';
-      } else if (message.includes('execution reverted')) {
+      if (message.includes("User rejected")) {
+        message = "Transaction was rejected by user";
+      } else if (message.includes("insufficient funds")) {
+        message = "Insufficient funds for transaction";
+      } else if (message.includes("execution reverted")) {
         message = `Transaction reverted: ${message}`;
       }
 
@@ -407,13 +408,10 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
         <div className="space-y-3">
           <div className="p-4 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
             <div className="flex items-center space-x-3">
-              <img
-                src="/images/ash.png"
-                alt="Ash Wallet"
-                className="h-5 w-5 flex-shrink-0"
-              />
+              <img src="/images/ash.png" alt="Ash Wallet" className="h-5 w-5 flex-shrink-0" />
               <p className="text-blue-700 dark:text-blue-300 font-medium text-sm">
-                This PoAManager is owned by an Ash L1 Multisig. Transactions will be proposed to the multisig for approval.
+                This PoAManager is owned by an Ash L1 Multisig. Transactions will be proposed to the
+                multisig for approval.
               </p>
             </div>
           </div>
@@ -421,19 +419,13 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
           {isInitializing && (
             <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-base">
               <div className="flex items-center justify-center">
-                <img
-                  src="/images/ash.png"
-                  alt="Ash"
-                  className="h-6 w-6 mr-3 flex-shrink-0"
-                />
+                <img src="/images/ash.png" alt="Ash" className="h-6 w-6 mr-3 flex-shrink-0" />
                 <span>Initializing Ash Wallet multisig...</span>
               </div>
             </div>
           )}
 
-          {safeInfo && (
-            <MultisigInfo safeInfo={safeInfo} walletAddress={walletAddress} />
-          )}
+          {safeInfo && <MultisigInfo safeInfo={safeInfo} walletAddress={walletAddress} />}
 
           {showSuccessMessage ? (
             <div className="p-6 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -448,12 +440,15 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
                       Transaction Proposed Successfully
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      Your transaction has been submitted to the multisig. Review and approve it in Ash Wallet to complete the process.
+                      Your transaction has been submitted to the multisig. Review and approve it in
+                      Ash Wallet to complete the process.
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Next steps:</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      Next steps:
+                    </p>
                     <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1 ml-4 list-disc">
                       <li>Review and approve the transaction</li>
                       <li>Wait for additional approvals if required</li>
@@ -462,14 +457,10 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
                   </div>
 
                   <Button
-                    onClick={() => window.open(ashWalletUrl, '_blank')}
+                    onClick={() => window.open(ashWalletUrl, "_blank")}
                     className="inline-flex items-center space-x-2"
                   >
-                    <img
-                      src="/images/ash.png"
-                      alt="Ash"
-                      className="h-4 w-4 flex-shrink-0"
-                    />
+                    <img src="/images/ash.png" alt="Ash" className="h-4 w-4 flex-shrink-0" />
                     <span>Open Ash Wallet</span>
                     <ExternalLink className="h-4 w-4" />
                   </Button>
@@ -490,4 +481,4 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
       )}
     </div>
   );
-}; 
+};

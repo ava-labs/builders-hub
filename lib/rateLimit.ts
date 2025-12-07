@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
 interface RateLimitEntry {
   lastRequest: number;
@@ -7,16 +7,19 @@ interface RateLimitEntry {
 
 const rateLimits = new Map<string, RateLimitEntry>();
 
-setInterval(() => {
-  const now = Date.now();
-  const oneHour = 60 * 60 * 1000;
-  for (const [key, entry] of rateLimits.entries()) {
-    // add 1hr buffer beyond the 24h window
-    if (now - entry.lastRequest > (24 * oneHour + oneHour)) {
-      rateLimits.delete(key);
+setInterval(
+  () => {
+    const now = Date.now();
+    const oneHour = 60 * 60 * 1000;
+    for (const [key, entry] of rateLimits.entries()) {
+      // add 1hr buffer beyond the 24h window
+      if (now - entry.lastRequest > 24 * oneHour + oneHour) {
+        rateLimits.delete(key);
+      }
     }
-  }
-}, 60 * 60 * 1000);
+  },
+  60 * 60 * 1000
+);
 export interface RateLimitOptions {
   windowMs: number;
   maxRequests: number;
@@ -29,85 +32,82 @@ const DEFAULT_OPTIONS: RateLimitOptions = {
 };
 
 async function defaultIdentifier(): Promise<string> {
-    const session = await import('@/lib/auth/authSession').then(mod => mod.getAuthSession());
-    if (!session) throw new Error('Authentication required');
+  const session = await import("@/lib/auth/authSession").then((mod) => mod.getAuthSession());
+  if (!session) throw new Error("Authentication required");
 
-    const email = session.user.email;
-    if (!email || email === '') throw new Error('email required for rate limiting');
-    
-    return email;
+  const email = session.user.email;
+  if (!email || email === "") throw new Error("email required for rate limiting");
+
+  return email;
 }
 
 function getResetTime(timestamp: number): string {
-  const resetTime = new Date(timestamp); 
-  const localString = resetTime.toLocaleString('en-US', { 
-    month: 'long', 
-    day: 'numeric', 
-    hour: 'numeric', 
-    minute: '2-digit',
-    timeZoneName: 'short'
+  const resetTime = new Date(timestamp);
+  const localString = resetTime.toLocaleString("en-US", {
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
   });
-  
+
   // add relative time for better user experience
   const now = Date.now();
   const diffMs = timestamp - now;
   const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
   const diffMinutes = Math.ceil(diffMs / (1000 * 60));
-  
-  let relativeTime = '';
+
+  let relativeTime = "";
   if (diffHours >= 1) {
-    relativeTime = `in about ${diffHours} hour${diffHours > 1 ? 's' : ''}`;
+    relativeTime = `in about ${diffHours} hour${diffHours > 1 ? "s" : ""}`;
   } else if (diffMinutes > 1) {
-    relativeTime = `in about ${diffMinutes} minute${diffMinutes > 1 ? 's' : ''}`;
+    relativeTime = `in about ${diffMinutes} minute${diffMinutes > 1 ? "s" : ""}`;
   } else {
-    relativeTime = 'in less than a minute';
+    relativeTime = "in less than a minute";
   }
-  
+
   return `${localString} (${relativeTime})`;
 }
 
 export function rateLimit(handler: Function, options?: Partial<RateLimitOptions>) {
-  const opts: RateLimitOptions = { 
-    ...DEFAULT_OPTIONS, 
+  const opts: RateLimitOptions = {
+    ...DEFAULT_OPTIONS,
     identifier: defaultIdentifier,
-    ...options 
+    ...options,
   };
-  
+
   return async (req: NextRequest, ...args: any[]) => {
     try {
       const identifier = await opts.identifier!(req);
       const now = Date.now();
       const entry = rateLimits.get(identifier);
-      
-      if (!entry || (now - entry.lastRequest) > opts.windowMs) {
+
+      if (!entry || now - entry.lastRequest > opts.windowMs) {
         rateLimits.set(identifier, { lastRequest: now, count: 1 });
-      }
-      else if (entry.count >= opts.maxRequests) {
+      } else if (entry.count >= opts.maxRequests) {
         const resetTime = getResetTime(entry.lastRequest + opts.windowMs);
         return NextResponse.json(
-          { 
-            success: false, 
-            message: `Rate limit exceeded. You can try again after ${resetTime}.` 
+          {
+            success: false,
+            message: `Rate limit exceeded. You can try again after ${resetTime}.`,
           },
           { status: 429 }
         );
-      }
-      else {
+      } else {
         entry.count += 1;
         entry.lastRequest = now;
         rateLimits.set(identifier, entry);
       }
       return handler(req, ...args);
     } catch (error) {
-      console.error('Error in rate limiter middleware', error);
-      const status = error instanceof Error && error.message === 'Authentication required' ? 401 : 500;
-      const message = error instanceof Error && error.message === 'Authentication required' 
-        ? 'Authentication required: Please login to continue' 
-        : 'Error processing request';   
-      return NextResponse.json(
-        { success: false, message },
-        { status }
-      );
+      // Error in rate limiter middleware - log for monitoring
+      const status =
+        error instanceof Error && error.message === "Authentication required" ? 401 : 500;
+      const message =
+        error instanceof Error && error.message === "Authentication required"
+          ? "Authentication required: Please login to continue"
+          : "Error processing request";
+      return NextResponse.json({ success: false, message }, { status });
     }
   };
 }

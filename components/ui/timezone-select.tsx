@@ -55,14 +55,8 @@ export function TimeZoneSelect({ timeZone, setTimeZone }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div
-      className="flex w-full max-w-md items-center gap-1.5 text-zinc-400"
-      color="#a1a1aa"
-    >
-      <Label
-        htmlFor="timezone"
-        className="pr-3 dark:text-zinc-50 text-zinc-900 hidden md:inline"
-      >
+    <div className="flex w-full max-w-md items-center gap-1.5 text-zinc-400" color="#a1a1aa">
+      <Label htmlFor="timezone" className="pr-3 dark:text-zinc-50 text-zinc-900 hidden md:inline">
         Time Zone:{" "}
       </Label>
       <Popover open={open} onOpenChange={setOpen}>
@@ -77,9 +71,7 @@ export function TimeZoneSelect({ timeZone, setTimeZone }: Props) {
               className="h-5 w-5 !text-zinc-600 dark:!text-zinc-400" /** text-zinc-400 = #a1a1aa */
             />
             <p className="!text-zinc-600 dark:!text-zinc-400">
-              {timezoneMap[timeZone]
-                ? timezoneMap[timeZone][0]?.slice(0, 25)
-                : "Select time zone"}
+              {timezoneMap[timeZone] ? timezoneMap[timeZone][0]?.slice(0, 25) : "Select time zone"}
               ...
             </p>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 !text-zinc-600 dark:!text-zinc-400" />
@@ -96,18 +88,14 @@ export function TimeZoneSelect({ timeZone, setTimeZone }: Props) {
                     key={timeZoneEntrie[0]}
                     value={timeZoneEntrie[0]}
                     onSelect={(currentValue) => {
-                      setTimeZone(
-                        timeZone === timeZoneEntrie[0] ? "" : currentValue
-                      );
+                      setTimeZone(timeZone === timeZoneEntrie[0] ? "" : currentValue);
                       setOpen(false);
                     }}
                   >
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4 !text-zinc-600 dark:!text-zinc-400",
-                        timeZone === timeZoneEntrie[0]
-                          ? "opacity-100"
-                          : "opacity-0"
+                        timeZone === timeZoneEntrie[0] ? "opacity-100" : "opacity-0"
                       )}
                     />
                     {timeZoneEntrie[1]}

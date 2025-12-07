@@ -11,22 +11,22 @@ const support = [
     title: "Academy <strong>Telegram</strong>.",
     description:
       "Get direct technical support from our Developer Relations team while building on Avalanche.",
-    href: "https://t.me/avalancheacademy"
+    href: "https://t.me/avalancheacademy",
   },
   {
     id: 2,
     title: "<strong>X</strong>.",
     description:
       "Follow the official Avalanche Developers handle on X for latest news and development updates.",
-    href: "https://x.com/AvaxDevelopers"
+    href: "https://x.com/AvaxDevelopers",
   },
   {
     id: 3,
     title: "Avalanche <strong>Support</strong>.",
     description:
       "Get direct answers and support for everything related to Avalanche: Network Basics, Wallets, Explorers, Staking, etc.",
-    href: "https://support.avax.network/"
-  }
+    href: "https://support.avax.network/",
+  },
 ];
 
 export default function Support() {
@@ -57,7 +57,7 @@ export default function Support() {
                             __html: support.title,
                           }}
                         />
-                        <ArrowUpRight 
+                        <ArrowUpRight
                           className="w-6 h-6 text-gray-600 dark:text-gray-400
                           transform translate-x-0 translate-y-0
                           group-hover:-translate-y-1 group-hover:translate-x-1

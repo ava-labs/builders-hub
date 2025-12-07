@@ -1,8 +1,8 @@
-'use client';
-import { useState, useCallback } from 'react';
-import Link from 'next/link';
-import { ArrowRight, X } from 'lucide-react';
-import { BlogSearch } from './blog-search';
+"use client";
+import { useState, useCallback } from "react";
+import Link from "next/link";
+import { ArrowRight, X } from "lucide-react";
+import { BlogSearch } from "./blog-search";
 
 interface BlogPost {
   url: string;
@@ -24,7 +24,9 @@ interface BlogListProps {
 
 export function BlogList({ blogs }: BlogListProps) {
   const [filteredBlogs, setFilteredBlogs] = useState<BlogPost[]>(blogs);
-  const handleFilteredResults = useCallback((filtered: BlogPost[]) => {setFilteredBlogs(filtered)}, []);
+  const handleFilteredResults = useCallback((filtered: BlogPost[]) => {
+    setFilteredBlogs(filtered);
+  }, []);
   const [featured, ...others] = filteredBlogs;
 
   return (
@@ -43,9 +45,7 @@ export function BlogList({ blogs }: BlogListProps) {
 
       {filteredBlogs.length === 0 && (
         <section className="text-center py-12">
-          <p className="text-lg text-muted-foreground mb-2">
-            No matching blog posts found
-          </p>
+          <p className="text-lg text-muted-foreground mb-2">No matching blog posts found</p>
           <p className="text-sm text-muted-foreground">
             Try adjusting your search terms or browse all blog posts
           </p>
@@ -62,9 +62,7 @@ export function BlogList({ blogs }: BlogListProps) {
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">
-                  {new Date(
-                    featured.data.date ?? featured.url
-                  ).toDateString()}
+                  {new Date(featured.data.date ?? featured.url).toDateString()}
                 </p>
                 <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                   Featured
@@ -114,9 +112,7 @@ export function BlogList({ blogs }: BlogListProps) {
       {others.length > 0 && (
         <section className="mt-12 sm:mt-16">
           <h3 className="mb-6 text-lg font-semibold tracking-tight text-foreground/90">
-            {filteredBlogs.length === blogs.length
-              ? "Latest posts"
-              : "More matching posts"}
+            {filteredBlogs.length === blogs.length ? "Latest posts" : "More matching posts"}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {others.map((g) => (
@@ -128,12 +124,8 @@ export function BlogList({ blogs }: BlogListProps) {
                 <p className="text-xs text-muted-foreground">
                   {new Date(g.data.date ?? g.url).toDateString()}
                 </p>
-                <h4 className="text-xl font-semibold tracking-tight">
-                  {g.data.title}
-                </h4>
-                <p className="text-sm text-muted-foreground line-clamp-3">
-                  {g.data.description}
-                </p>
+                <h4 className="text-xl font-semibold tracking-tight">{g.data.title}</h4>
+                <p className="text-sm text-muted-foreground line-clamp-3">{g.data.description}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                   {g.data.topics.map((topic: string) => (
                     <span
@@ -146,10 +138,7 @@ export function BlogList({ blogs }: BlogListProps) {
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                   {g.data.authors.map((author: string) => (
-                    <span
-                      key={author}
-                      className="inline-flex items-center gap-2"
-                    >
+                    <span key={author} className="inline-flex items-center gap-2">
                       <X size={12} />
                       <span className="truncate">{author}</span>
                     </span>

@@ -8,13 +8,13 @@ export const revalidate = 3600;
 export const dynamicParams = true;
 
 export const metadata: Metadata = createMetadata({
-  title: 'Hackathons',
-  description: 'Join exciting blockchain hackathons and build the future on Avalanche',
+  title: "Hackathons",
+  description: "Join exciting blockchain hackathons and build the future on Avalanche",
   openGraph: {
-    images: '/api/og/hackathons',
+    images: "/api/og/hackathons",
   },
   twitter: {
-    images: '/api/og/hackathons',
+    images: "/api/og/hackathons",
   },
 });
 
@@ -28,13 +28,12 @@ export default async function HackathonsPage({
   }>;
 }) {
   const { page, location, recordsByPage } = await searchParams;
-  const { hackathons: pastHackathons, total: totalPastHackathons } =
-    await getFilteredHackathons({
-      page: page ?? 1,
-      pageSize: Number(recordsByPage ?? 4),
-      location: location,
-      status: "ENDED",
-    });
+  const { hackathons: pastHackathons, total: totalPastHackathons } = await getFilteredHackathons({
+    page: page ?? 1,
+    pageSize: Number(recordsByPage ?? 4),
+    location: location,
+    status: "ENDED",
+  });
 
   const { hackathons: upcomingHackathons, total: totalUpcomingHackathons } =
     await getFilteredHackathons({
@@ -55,7 +54,7 @@ export default async function HackathonsPage({
   const initialFilters: HackathonsFilters = {
     page: page ?? 1,
     location: location,
-    recordsByPage: Number(recordsByPage ?? 4)
+    recordsByPage: Number(recordsByPage ?? 4),
   };
 
   return (

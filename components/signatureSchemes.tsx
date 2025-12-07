@@ -6,25 +6,15 @@ import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/inputWithLabel";
 
 const bufferToHex = (buffer: ArrayBufferLike): string => {
-  return [...new Uint8Array(buffer)]
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  return [...new Uint8Array(buffer)].map((b) => b.toString(16).padStart(2, "0")).join("");
 };
 
-const checkSig = async (
-  signature: string,
-  publicKey: string,
-  message: string
-) => {
+const checkSig = async (signature: string, publicKey: string, message: string) => {
   try {
-    let res = await bls.verify(
-      signature,
-      new TextEncoder().encode(message),
-      publicKey
-    );
+    const res = await bls.verify(signature, new TextEncoder().encode(message), publicKey);
     return res;
   } catch (error) {
-    console.error(error);
+    // Signature verification failed
     return false;
   }
 };
@@ -71,9 +61,7 @@ export const SignMessageButton: React.FC = () => {
     if (!privKey || !message) {
       return;
     }
-    setSignature(
-      bufferToHex(await bls.sign(new TextEncoder().encode(message), privKey))
-    );
+    setSignature(bufferToHex(await bls.sign(new TextEncoder().encode(message), privKey)));
   };
 
   return (
@@ -94,11 +82,7 @@ export const SignMessageButton: React.FC = () => {
         onChange={(e) => setMessage(e.target.value)}
       />
 
-      <button
-        className={buttonVariants()}
-        onClick={signMessage}
-        disabled={!privKey || !message}
-      >
+      <button className={buttonVariants()} onClick={signMessage} disabled={!privKey || !message}>
         Sign Message
       </button>
 
@@ -111,15 +95,13 @@ export const SignMessageButton: React.FC = () => {
   );
 };
 
-export const VerifySignatureButton: React.FC<{ aggregated?: boolean }> = ({
-  aggregated,
-}) => {
+export const VerifySignatureButton: React.FC<{ aggregated?: boolean }> = ({ aggregated }) => {
   const [pubKey, setPubKey] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [signature, setSignature] = useState<string | null>(null);
   const [isValid, setIsValid] = useState<boolean | null>(null);
 
-  const verifySignature = async () => {
+  const verifySignature = () => {
     if (signature && pubKey && message) {
       checkSig(signature, pubKey, message).then((res) => {
         if (res) {
@@ -165,9 +147,7 @@ export const VerifySignatureButton: React.FC<{ aggregated?: boolean }> = ({
         Verify Signature
       </button>
 
-      {isValid !== null && (
-        <p>{isValid ? "✅ Signature is valid!" : "❌ Signature is invalid!"}</p>
-      )}
+      {isValid !== null && <p>{isValid ? "✅ Signature is valid!" : "❌ Signature is invalid!"}</p>}
     </div>
   );
 };
@@ -175,9 +155,7 @@ export const VerifySignatureButton: React.FC<{ aggregated?: boolean }> = ({
 export const AggregateSignaturesButton: React.FC = () => {
   const [signature1, setSignature1] = useState<string | null>(null);
   const [signature2, setSignature2] = useState<string | null>(null);
-  const [aggregatedSignature, setAggregatedSignature] = useState<string | null>(
-    null
-  );
+  const [aggregatedSignature, setAggregatedSignature] = useState<string | null>(null);
   const [showAggregatedSignature, setShowAggregatedSignature] = useState(false);
 
   return (
@@ -200,9 +178,7 @@ export const AggregateSignaturesButton: React.FC = () => {
         className={buttonVariants()}
         onClick={() => {
           if (signature1 && signature2) {
-            setAggregatedSignature(
-              bufferToHex(bls.aggregateSignatures([signature1, signature2]))
-            );
+            setAggregatedSignature(bufferToHex(bls.aggregateSignatures([signature1, signature2])));
             setShowAggregatedSignature(true);
           }
         }}
@@ -213,11 +189,7 @@ export const AggregateSignaturesButton: React.FC = () => {
       {showAggregatedSignature && (
         <>
           {aggregatedSignature && (
-            <CodeBlock
-              title="🔏 Aggregated Signature:"
-              lang="bash"
-              allowCopy={true}
-            >
+            <CodeBlock title="🔏 Aggregated Signature:" lang="bash" allowCopy={true}>
               <Pre>{aggregatedSignature}</Pre>
             </CodeBlock>
           )}
@@ -254,9 +226,7 @@ export const AggregatePublicKeysButton: React.FC = () => {
         className={buttonVariants()}
         onClick={() => {
           if (pubKey1 && pubKey2) {
-            setAggregatedPubKey(
-              bufferToHex(bls.aggregatePublicKeys([pubKey1, pubKey2]))
-            );
+            setAggregatedPubKey(bufferToHex(bls.aggregatePublicKeys([pubKey1, pubKey2])));
             setShowAggregatedPubKey(true);
           }
         }}
@@ -267,11 +237,7 @@ export const AggregatePublicKeysButton: React.FC = () => {
       {showAggregatedPubKey && (
         <>
           {aggregatedPubKey && (
-            <CodeBlock
-              title="🔑 Aggregated Public Key:"
-              lang="bash"
-              allowCopy={true}
-            >
+            <CodeBlock title="🔑 Aggregated Public Key:" lang="bash" allowCopy={true}>
               <Pre>{aggregatedPubKey}</Pre>
             </CodeBlock>
           )}

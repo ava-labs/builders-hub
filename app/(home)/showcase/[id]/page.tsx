@@ -1,12 +1,7 @@
-import React from "react";
 import ProjectOverview from "../../../../components/showcase/ProjectOverview";
 import { getProject } from "@/server/services/projects";
 import { Project } from "@/types/showcase";
-export default async function ProjectPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const project = await getProject(id);
   return (

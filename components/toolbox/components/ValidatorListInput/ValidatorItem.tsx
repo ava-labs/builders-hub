@@ -1,20 +1,20 @@
-"use client"
+"use client";
 
-import { ChevronDown, ChevronUp, Trash2 } from "lucide-react"
-import { cn } from "../utils"
-import { OwnerAddressesInput, type PChainOwner } from "../OwnerAddressesInput"
-import type { ConvertToL1Validator } from "../ValidatorListInput"
+import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { cn } from "../utils";
+import { OwnerAddressesInput, type PChainOwner } from "../OwnerAddressesInput";
+import type { ConvertToL1Validator } from "../ValidatorListInput";
 
 interface Props {
-  index: number
-  validator: ConvertToL1Validator
-  isExpanded: boolean
-  onToggle: (index: number) => void
-  onRemove: (index: number) => void
-  onUpdate: (index: number, updated: Partial<ConvertToL1Validator>) => void
-  l1TotalInitializedWeight?: bigint | null
-  userPChainBalanceNavax?: bigint | null
-  hideConsensusWeight?: boolean
+  index: number;
+  validator: ConvertToL1Validator;
+  isExpanded: boolean;
+  onToggle: (index: number) => void;
+  onRemove: (index: number) => void;
+  onUpdate: (index: number, updated: Partial<ConvertToL1Validator>) => void;
+  l1TotalInitializedWeight?: bigint | null;
+  userPChainBalanceNavax?: bigint | null;
+  hideConsensusWeight?: boolean;
 }
 
 export function ValidatorItem({
@@ -28,22 +28,26 @@ export function ValidatorItem({
   userPChainBalanceNavax = null,
   hideConsensusWeight = false,
 }: Props) {
-
-  let insufficientBalanceError: string | null = null
+  let insufficientBalanceError: string | null = null;
   if (userPChainBalanceNavax !== null && validator.validatorBalance > userPChainBalanceNavax) {
-    insufficientBalanceError = `Validator balance (${(Number(validator.validatorBalance) / 1e9).toFixed(2)} AVAX) exceeds your P-Chain balance (${(Number(userPChainBalanceNavax) / 1e9).toFixed(2)} AVAX).`
+    insufficientBalanceError = `Validator balance (${(Number(validator.validatorBalance) / 1e9).toFixed(2)} AVAX) exceeds your P-Chain balance (${(Number(userPChainBalanceNavax) / 1e9).toFixed(2)} AVAX).`;
   }
 
-  const hasWeightError = l1TotalInitializedWeight && l1TotalInitializedWeight > 0n && validator.validatorWeight > 0n &&
-    (validator.validatorWeight * 100n / l1TotalInitializedWeight) >= 20n
+  const hasWeightError =
+    l1TotalInitializedWeight &&
+    l1TotalInitializedWeight > 0n &&
+    validator.validatorWeight > 0n &&
+    (validator.validatorWeight * 100n) / l1TotalInitializedWeight >= 20n;
 
-  const hasError = !!insufficientBalanceError || !!hasWeightError
+  const hasError = !!insufficientBalanceError || !!hasWeightError;
 
   return (
-    <div className={cn(
-      "bg-white dark:bg-zinc-900 rounded-lg border overflow-hidden shadow-sm hover:shadow transition-shadow duration-200",
-      hasError ? "border-red-500 dark:border-red-500" : "border-zinc-200 dark:border-zinc-700"
-    )}>
+    <div
+      className={cn(
+        "bg-white dark:bg-zinc-900 rounded-lg border overflow-hidden shadow-sm hover:shadow transition-shadow duration-200",
+        hasError ? "border-red-500 dark:border-red-500" : "border-zinc-200 dark:border-zinc-700"
+      )}
+    >
       <div
         className={cn(
           "flex items-center justify-between p-3 cursor-pointer transition-colors",
@@ -52,13 +56,21 @@ export function ValidatorItem({
             : "hover:bg-zinc-50 dark:hover:bg-zinc-700"
         )}
         onClick={() => onToggle(index)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggle(index);
+          }
+        }}
+        role="button"
+        tabIndex={0}
       >
         <div className="flex-1 font-mono text-sm truncate">{validator.nodeID}</div>
         <div className="flex items-center gap-2">
           <button
             onClick={(e) => {
-              e.stopPropagation()
-              onRemove(index)
+              e.stopPropagation();
+              onRemove(index);
             }}
             className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-md transition-colors text-red-500"
             title="Remove validator"
@@ -86,12 +98,17 @@ export function ValidatorItem({
                 "border border-zinc-200 dark:border-zinc-700",
                 "text-zinc-900 dark:text-zinc-100",
                 "shadow-sm focus:ring focus:ring-primary/30 focus:ring-opacity-50",
-                "font-mono text-sm",
+                "font-mono text-sm"
               )}
             />
           </div>
 
-          <div className={cn("grid gap-3", hideConsensusWeight ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2")}>
+          <div
+            className={cn(
+              "grid gap-3",
+              hideConsensusWeight ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
+            )}
+          >
             {!hideConsensusWeight && (
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -100,18 +117,24 @@ export function ValidatorItem({
                 <input
                   type="number"
                   value={validator.validatorWeight.toString()}
-                  onChange={(e) => onUpdate(index, { validatorWeight: BigInt(e.target.value || 0) })}
+                  onChange={(e) =>
+                    onUpdate(index, { validatorWeight: BigInt(e.target.value || 0) })
+                  }
                   className={cn(
                     "w-full rounded p-2",
                     "bg-zinc-50 dark:bg-zinc-900",
                     "border border-zinc-200 dark:border-zinc-700",
                     "text-zinc-900 dark:text-zinc-100",
-                    "shadow-sm focus:ring focus:ring-primary/30 focus:ring-opacity-50",
+                    "shadow-sm focus:ring focus:ring-primary/30 focus:ring-opacity-50"
                   )}
                 />
                 {hasWeightError && (
                   <p className="text-xs mt-1 text-red-500 dark:text-red-400">
-                    Warning: This validator's weight is 20% or more of the current L1 total stake ({ Number(validator.validatorWeight * 10000n / l1TotalInitializedWeight / 100n).toFixed(2) }%). Recommended to be less than 20%.
+                    Warning: This validator's weight is 20% or more of the current L1 total stake (
+                    {Number(
+                      (validator.validatorWeight * 10000n) / l1TotalInitializedWeight / 100n
+                    ).toFixed(2)}
+                    %). Recommended to be less than 20%.
                   </p>
                 )}
               </div>
@@ -125,18 +148,26 @@ export function ValidatorItem({
                 step="0.000001"
                 min="0"
                 value={Number(validator.validatorBalance) / 1000000000}
-                onChange={(e) => onUpdate(index, { validatorBalance: BigInt(parseFloat(e.target.value || "0") * 1000000000) })}
+                onChange={(e) =>
+                  onUpdate(index, {
+                    validatorBalance: BigInt(parseFloat(e.target.value || "0") * 1000000000),
+                  })
+                }
                 className={cn(
                   "w-full rounded p-2",
                   "bg-zinc-50 dark:bg-zinc-900",
                   "border border-zinc-200 dark:border-zinc-700",
-                  (insufficientBalanceError ? "border-red-500 dark:border-red-500 focus:border-red-500 focus:ring-red-500/30" : "focus:ring-primary/30 focus:border-primary"),
+                  insufficientBalanceError
+                    ? "border-red-500 dark:border-red-500 focus:border-red-500 focus:ring-red-500/30"
+                    : "focus:ring-primary/30 focus:border-primary",
                   "text-zinc-900 dark:text-zinc-100",
-                  "shadow-sm focus:ring focus:ring-opacity-50",
+                  "shadow-sm focus:ring focus:ring-opacity-50"
                 )}
               />
               <p className="text-xs mt-0 mb-0 text-zinc-500 dark:text-zinc-400">
-                Will last for {getBalanceDurationEstimate(Number(validator.validatorBalance) / 1000000000)} with a fee of 1.33 AVAX per month.
+                Will last for{" "}
+                {getBalanceDurationEstimate(Number(validator.validatorBalance) / 1000000000)} with a
+                fee of 1.33 AVAX per month.
               </p>
               {insufficientBalanceError && (
                 <p className="text-xs mt-1 text-red-500 dark:text-red-400">
@@ -159,7 +190,7 @@ export function ValidatorItem({
         </div>
       )}
     </div>
-  )
+  );
 }
 
 function getBalanceDurationEstimate(balance: number): string {
@@ -186,5 +217,3 @@ function getBalanceDurationEstimate(balance: number): string {
   }
   return "more than 1 year";
 }
-
-

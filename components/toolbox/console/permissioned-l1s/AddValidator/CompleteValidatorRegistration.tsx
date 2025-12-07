@@ -1,32 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
-import { Button } from '@/components/toolbox/components/Button';
-import { Input } from '@/components/toolbox/components/Input';
-import { Success } from '@/components/toolbox/components/Success';
-import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/justification';
-import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp';
-import { hexToBytes, bytesToHex } from 'viem';
-import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
-import poaManagerAbi from '@/contracts/icm-contracts/compiled/PoAManager.json';
-import nativeTokenStakingManagerAbi from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
-import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
-import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
-import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { Alert } from '@/components/toolbox/components/Alert';
+import React, { useState, useEffect } from "react";
+import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
+import { Button } from "@/components/toolbox/components/Button";
+import { Input } from "@/components/toolbox/components/Input";
+import { Success } from "@/components/toolbox/components/Success";
+import { GetRegistrationJustification } from "@/components/toolbox/console/permissioned-l1s/ValidatorManager/justification";
+import { packWarpIntoAccessList } from "@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp";
+import { hexToBytes, bytesToHex } from "viem";
+import validatorManagerAbi from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
+import poaManagerAbi from "@/contracts/icm-contracts/compiled/PoAManager.json";
+import nativeTokenStakingManagerAbi from "@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json";
+import { packL1ValidatorRegistration } from "@/components/toolbox/coreViem/utils/convertWarp";
+import { getValidationIdHex } from "@/components/toolbox/coreViem/hooks/getValidationID";
+import { useAvalancheSDKChainkit } from "@/components/toolbox/stores/useAvalancheSDKChainkit";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { Alert } from "@/components/toolbox/components/Alert";
 
 interface CompleteValidatorRegistrationProps {
   subnetIdL1: string;
   pChainTxId?: string;
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
-  ownershipState: 'contract' | 'currentWallet' | 'differentEOA' | 'loading';
+  ownershipState: "contract" | "currentWallet" | "differentEOA" | "loading";
   validatorManagerAddress: string;
   signingSubnetId: string;
   contractOwner: string | null;
   isLoadingOwnership: boolean;
-  ownerType: 'PoAManager' | 'StakingManager' | 'EOA' | null;
+  ownerType: "PoAManager" | "StakingManager" | "EOA" | null;
 }
 
 const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps> = ({
@@ -45,7 +45,7 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
   const { aggregateSignature } = useAvalancheSDKChainkit();
   const { notify } = useConsoleNotifications();
   const viemChain = useViemChainStore();
-  const [pChainTxIdState, setPChainTxId] = useState(pChainTxId || '');
+  const [pChainTxIdState, setPChainTxId] = useState(pChainTxId || "");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -61,18 +61,19 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
   } | null>(null);
 
   // Determine target contract and ABI based on ownerType
-  const useMultisig = ownerType === 'PoAManager';
-  const useStakingManager = ownerType === 'StakingManager';
-  
+  const useMultisig = ownerType === "PoAManager";
+  const useStakingManager = ownerType === "StakingManager";
+
   // For both PoAManager and StakingManager, we use the contractOwner address
   // For direct ValidatorManager (EOA owned), we use validatorManagerAddress
-  const targetContractAddress = (useMultisig || useStakingManager) ? contractOwner : validatorManagerAddress;
-  
+  const targetContractAddress =
+    useMultisig || useStakingManager ? contractOwner : validatorManagerAddress;
+
   // Select the appropriate ABI based on owner type
-  const targetAbi = useMultisig 
-    ? poaManagerAbi.abi 
-    : useStakingManager 
-      ? nativeTokenStakingManagerAbi.abi 
+  const targetAbi = useMultisig
+    ? poaManagerAbi.abi
+    : useStakingManager
+      ? nativeTokenStakingManagerAbi.abi
       : validatorManagerAbi.abi;
 
   // Initialize state with prop value when it becomes available
@@ -101,19 +102,27 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
       onError("Validator Manager address is not set. Check L1 Subnet selection.");
       return;
     }
-    if (ownershipState === 'differentEOA' && !useMultisig && !useStakingManager) {
+    if (ownershipState === "differentEOA" && !useMultisig && !useStakingManager) {
       setErrorState("You are not the contract owner. Please contact the contract owner.");
       onError("You are not the contract owner. Please contact the contract owner.");
       return;
     }
     if (useMultisig && !contractOwner?.trim()) {
-      setErrorState("PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager.");
-      onError("PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager.");
+      setErrorState(
+        "PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager."
+      );
+      onError(
+        "PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager."
+      );
       return;
     }
     if (useStakingManager && !contractOwner?.trim()) {
-      setErrorState("StakingManager address could not be fetched. Please ensure the ValidatorManager is owned by a StakingManager.");
-      onError("StakingManager address could not be fetched. Please ensure the ValidatorManager is owned by a StakingManager.");
+      setErrorState(
+        "StakingManager address could not be fetched. Please ensure the ValidatorManager is owned by a StakingManager."
+      );
+      onError(
+        "StakingManager address could not be fetched. Please ensure the ValidatorManager is owned by a StakingManager."
+      );
       return;
     }
     if (!coreWalletClient || !publicClient || !viemChain || !coreWalletClient.account) {
@@ -126,7 +135,7 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
     try {
       // Step 1: Extract RegisterL1ValidatorMessage from P-Chain transaction
       const registrationMessageData = await coreWalletClient.extractRegisterL1ValidatorMessage({
-        txId: pChainTxIdState
+        txId: pChainTxIdState,
       });
 
       setExtractedData({
@@ -134,32 +143,41 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
         nodeID: registrationMessageData.nodeID,
         blsPublicKey: registrationMessageData.blsPublicKey,
         expiry: registrationMessageData.expiry,
-        weight: registrationMessageData.weight
+        weight: registrationMessageData.weight,
       });
 
       // Step 2: Get validation ID from contract using nodeID
       // For StakingManager, we need to query the underlying ValidatorManager
       let validationIdQueryAddress = validatorManagerAddress;
-      
+
       if (useStakingManager && contractOwner) {
         // Get the underlying ValidatorManager address from StakingManager settings
         try {
-          const settings = await publicClient.readContract({
+          const settings = (await publicClient.readContract({
             address: contractOwner as `0x${string}`,
             abi: nativeTokenStakingManagerAbi.abi,
-            functionName: 'getStakingManagerSettings',
-          }) as any;
-          
+            functionName: "getStakingManagerSettings",
+          })) as any;
+
           validationIdQueryAddress = settings.manager; // This is the actual ValidatorManager
-          console.log('[StakingManager] Querying ValidatorManager for validation ID:', validationIdQueryAddress);
+          console.log(
+            "[StakingManager] Querying ValidatorManager for validation ID:",
+            validationIdQueryAddress
+          );
         } catch (err) {
-          console.warn("Failed to get ValidatorManager from StakingManager settings, using default:", err);
+          console.warn(
+            "Failed to get ValidatorManager from StakingManager settings, using default:",
+            err
+          );
         }
       }
-      
-      console.log('[CompleteValidatorRegistration] Querying validation ID from:', validationIdQueryAddress);
-      console.log('[CompleteValidatorRegistration] NodeID:', registrationMessageData.nodeID);
-      
+
+      console.log(
+        "[CompleteValidatorRegistration] Querying validation ID from:",
+        validationIdQueryAddress
+      );
+      console.log("[CompleteValidatorRegistration] NodeID:", registrationMessageData.nodeID);
+
       const validationId = await getValidationIdHex(
         publicClient,
         validationIdQueryAddress as `0x${string}`,
@@ -168,11 +186,13 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
 
       // Check if validation ID exists (not zero)
       if (validationId === "0x0000000000000000000000000000000000000000000000000000000000000000") {
-        throw new Error("No validation ID found for this node. The validator may not be registered yet.");
+        throw new Error(
+          "No validation ID found for this node. The validator may not be registered yet."
+        );
       }
 
       // Update extracted data with validation ID
-      setExtractedData(prev => prev ? { ...prev, validationId } : null);
+      setExtractedData((prev) => (prev ? { ...prev, validationId } : null));
 
       // Step 3: Create L1ValidatorRegistrationMessage (P-Chain response)
       // This message indicates that the validator has been registered on P-Chain
@@ -205,10 +225,13 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
         signingSubnetId: signingSubnetId || subnetIdL1,
         quorumPercentage: 67,
       });
-      notify({
-        type: 'local',
-        name: 'Aggregate Signatures'
-      }, aggregateSignaturePromise);
+      notify(
+        {
+          type: "local",
+          name: "Aggregate Signatures",
+        },
+        aggregateSignaturePromise
+      );
       const signature = await aggregateSignaturePromise;
       setPChainSignature(signature.signedMessage);
 
@@ -223,36 +246,39 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
         args: [0], // messageIndex
         accessList,
         account: coreWalletClient.account,
-        chain: viemChain
+        chain: viemChain,
       });
-      notify({
-        type: 'call',
-        name: 'Complete Validator Registration'
-      }, writePromise, viemChain ?? undefined);
+      notify(
+        {
+          type: "call",
+          name: "Complete Validator Registration",
+        },
+        writePromise,
+        viemChain ?? undefined
+      );
 
       const hash = await writePromise;
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
-      if (receipt.status === 'success') {
+      if (receipt.status === "success") {
         setTransactionHash(hash);
         setSuccessMessage("Validator registration completed successfully!");
         onSuccess("Validator registration completed successfully!");
       } else {
         throw new Error(`Transaction failed with status: ${receipt.status}`);
       }
-
     } catch (err: any) {
       let message = err instanceof Error ? err.message : String(err);
 
       // Handle specific error types
-      if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
-      } else if (message.includes('insufficient funds')) {
-        message = 'Insufficient funds for transaction';
-      } else if (message.includes('execution reverted')) {
+      if (message.includes("User rejected")) {
+        message = "Transaction was rejected by user";
+      } else if (message.includes("insufficient funds")) {
+        message = "Insufficient funds for transaction";
+      } else if (message.includes("execution reverted")) {
         message = `Transaction reverted: ${message}`;
-      } else if (message.includes('nonce')) {
-        message = 'Transaction nonce error. Please try again.';
+      } else if (message.includes("nonce")) {
+        message = "Transaction nonce error. Please try again.";
       }
 
       setErrorState(`Failed to complete validator registration: ${message}`);
@@ -273,9 +299,7 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
 
   return (
     <div className="space-y-4">
-      {error && (
-        <Alert variant="error">{error}</Alert>
-      )}
+      {error && <Alert variant="error">{error}</Alert>}
 
       <Input
         label="P-Chain RegisterL1ValidatorTx ID"
@@ -293,17 +317,22 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
 
       <Button
         onClick={handleCompleteRegisterValidator}
-        disabled={isProcessing || !pChainTxIdState.trim() || !!successMessage || (ownershipState === 'differentEOA' && !useMultisig && !useStakingManager) || isLoadingOwnership}
+        disabled={
+          isProcessing ||
+          !pChainTxIdState.trim() ||
+          !!successMessage ||
+          (ownershipState === "differentEOA" && !useMultisig && !useStakingManager) ||
+          isLoadingOwnership
+        }
       >
-        {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : 'Sign & Complete Validator Registration')}
+        {isLoadingOwnership
+          ? "Checking ownership..."
+          : isProcessing
+            ? "Processing..."
+            : "Sign & Complete Validator Registration"}
       </Button>
 
-      {transactionHash && (
-        <Success
-          label="Transaction Hash"
-          value={transactionHash}
-        />
-      )}
+      {transactionHash && <Success label="Transaction Hash" value={transactionHash} />}
     </div>
   );
 };

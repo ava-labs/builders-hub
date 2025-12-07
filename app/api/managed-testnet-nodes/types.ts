@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export interface NodeInfo {
   nodeIndex: number;
@@ -35,24 +35,24 @@ export const NodeInfoSchema = z.object({
       nodeID: z.string().min(40),
       nodePOP: z.object({
         publicKey: z.string().min(98),
-        proofOfPossession: z.string().min(194)
-      })
-    })
+        proofOfPossession: z.string().min(194),
+      }),
+    }),
   }),
   dateCreated: z.number(),
-  expiresAt: z.number()
+  expiresAt: z.number(),
 });
 
 export const SubnetStatusResponseSchema = z.object({
   subnetId: z.string().min(49),
   nodes: z.array(NodeInfoSchema),
   error: z.string().optional(),
-  message: z.string().optional()
+  message: z.string().optional(),
 });
 
-export const ServiceErrorSchema = z.object({
-  error: z.string().optional(),
-  message: z.string().optional()
-}).passthrough();
-
-
+export const ServiceErrorSchema = z
+  .object({
+    error: z.string().optional(),
+    message: z.string().optional(),
+  })
+  .passthrough();

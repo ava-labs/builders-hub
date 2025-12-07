@@ -11,21 +11,22 @@ import nativeMinterAbi from "@/contracts/precompiles/NativeMinter.json";
 import { AllowlistComponent } from "@/components/toolbox/components/AllowListComponents";
 import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
+import {
+  BaseConsoleToolProps,
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from "../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 // Default Native Minter address
-const DEFAULT_NATIVE_MINTER_ADDRESS =
-  "0x0200000000000000000000000000000000000001";
+const DEFAULT_NATIVE_MINTER_ADDRESS = "0x0200000000000000000000000000000000000001";
 
 const metadata: ConsoleToolMetadata = {
   title: "Native Minter",
   description: "Mint native tokens (AVAX) to any address on your L1",
-  toolRequirements: [
-    WalletRequirementsConfigKey.EVMChainBalance
-  ],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
@@ -70,13 +71,12 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
   };
 
   const isValidAmount = amount && Number(amount) > 0;
-  const canMint = Boolean(recipient && isValidAmount && walletEVMAddress && coreWalletClient && !isMinting);
+  const canMint = Boolean(
+    recipient && isValidAmount && walletEVMAddress && coreWalletClient && !isMinting
+  );
 
   return (
-    <CheckPrecompile
-      configKey="contractNativeMinterConfig"
-      precompileName="Native Minter"
-    >
+    <CheckPrecompile configKey="contractNativeMinterConfig" precompileName="Native Minter">
       <div>
         <div className="space-y-4">
           <div className="space-y-4">
@@ -97,23 +97,10 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
             />
           </div>
 
-          {txHash && (
-            <ResultField
-              label="Transaction Successful"
-              value={txHash}
-              showCheck={true}
-            />
-          )}
+          {txHash && <ResultField label="Transaction Successful" value={txHash} showCheck={true} />}
 
-          <Button
-            variant="primary"
-            onClick={handleMint}
-            loading={isMinting}
-            disabled={!canMint}
-          >
-            {!walletEVMAddress
-              ? "Connect Wallet to Mint"
-              : "Mint Native Tokens"}
+          <Button variant="primary" onClick={handleMint} loading={isMinting} disabled={!canMint}>
+            {!walletEVMAddress ? "Connect Wallet to Mint" : "Mint Native Tokens"}
           </Button>
         </div>
       </div>

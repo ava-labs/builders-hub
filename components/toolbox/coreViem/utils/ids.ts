@@ -9,7 +9,7 @@ import { utils } from "@avalabs/avalanchejs";
 export const parseNodeID = (nodeID: string): string => {
   const nodeIDWithoutPrefix = nodeID.replace("NodeID-", "");
   const decodedID = utils.base58.decode(nodeIDWithoutPrefix);
-  const nodeIDHex = fromBytes(decodedID, 'hex');
+  const nodeIDHex = fromBytes(decodedID, "hex");
   const nodeIDHexTrimmed = nodeIDHex.slice(0, -8);
   return nodeIDHexTrimmed;
 };

@@ -1,7 +1,7 @@
 /**
  * EIP-3091 compliant URL utilities
  * https://eips.ethereum.org/EIPS/eip-3091
- * 
+ *
  * Standard URL format:
  * - /block/{blockNumber} - block number as decimal
  * - /tx/{txHash} - transaction hash as lowercase hex with 0x prefix
@@ -13,11 +13,11 @@
  * Ensures block number is decimal (not hex)
  */
 export function normalizeBlockNumber(blockNumber: string | number): string {
-  if (typeof blockNumber === 'number') {
+  if (typeof blockNumber === "number") {
     return blockNumber.toString();
   }
   // If it's hex, convert to decimal
-  if (blockNumber.startsWith('0x')) {
+  if (blockNumber.startsWith("0x")) {
     return parseInt(blockNumber, 16).toString();
   }
   return blockNumber;
@@ -28,10 +28,10 @@ export function normalizeBlockNumber(blockNumber: string | number): string {
  * Ensures hash is lowercase hex with 0x prefix
  */
 export function normalizeTxHash(txHash: string): string {
-  if (!txHash) return '';
+  if (!txHash) return "";
   // Ensure lowercase and 0x prefix
   const normalized = txHash.toLowerCase();
-  return normalized.startsWith('0x') ? normalized : `0x${normalized}`;
+  return normalized.startsWith("0x") ? normalized : `0x${normalized}`;
 }
 
 /**
@@ -39,10 +39,10 @@ export function normalizeTxHash(txHash: string): string {
  * Ensures address is lowercase hex with 0x prefix
  */
 export function normalizeAddress(address: string): string {
-  if (!address) return '';
+  if (!address) return "";
   // Ensure lowercase and 0x prefix
   const normalized = address.toLowerCase();
-  return normalized.startsWith('0x') ? normalized : `0x${normalized}`;
+  return normalized.startsWith("0x") ? normalized : `0x${normalized}`;
 }
 
 /**
@@ -65,4 +65,3 @@ export function buildTxUrl(basePath: string, txHash: string): string {
 export function buildAddressUrl(basePath: string, address: string): string {
   return `${basePath}/address/${normalizeAddress(address)}`;
 }
-

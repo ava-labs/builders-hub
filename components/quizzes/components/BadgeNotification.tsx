@@ -17,7 +17,7 @@ export const BadgeNotification = ({
   const ref = useRef<FireworksHandlers>(null);
   const [showFireworks, setShowFireworks] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+
   const [badge, setBadge] = useState<Badge | null>(null);
 
   useEffect(() => {
@@ -31,8 +31,7 @@ export const BadgeNotification = ({
           setShowFireworks(true);
           setIsModalOpen(true);
           // small delay for fade in
-          
-          
+
           const timer = setTimeout(() => {
             setShowFireworks(false);
             setIsModalOpen(false);
@@ -46,12 +45,10 @@ export const BadgeNotification = ({
   }, [isCompleted, session]);
 
   const handleModalClose = () => {
-    
     // delay for fade out before closing
     setTimeout(() => {
       setIsModalOpen(false);
       setShowFireworks(false);
-   
     }, 300);
   };
 
@@ -77,15 +74,8 @@ export const BadgeNotification = ({
         title={""}
         content={
           <div className={`flex flex-col items-center justify-center`}>
-            <h3 className="text-lg font-bold text-center">
-              {"Congratulations!"}
-            </h3>
-            <Image
-              src={badge?.image_path || ""}
-              alt={"badge"}
-              width={100}
-              height={100}
-            />
+            <h3 className="text-lg font-bold text-center">{"Congratulations!"}</h3>
+            <Image src={badge?.image_path || ""} alt={"badge"} width={100} height={100} />
 
             <p className="text-sm text-gray-500 text-center">
               {"You have been awarded with a new badge"}

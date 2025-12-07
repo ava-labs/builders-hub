@@ -1,3 +1,3 @@
 export interface SocialLoginProps {
-  callbackUrl?: string; 
+  callbackUrl?: string;
 }

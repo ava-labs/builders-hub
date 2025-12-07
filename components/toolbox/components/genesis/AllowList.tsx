@@ -1,88 +1,101 @@
-"use client"
+"use client";
 
-import { useCallback } from 'react'
-import EthereumAddressList from './EthereumAddressList'
-import { Role, AddressRoles } from './types'
-import { isAddress } from 'viem'
+import { useCallback } from "react";
+import EthereumAddressList from "./EthereumAddressList";
+import { Role, AddressRoles } from "./types";
+import { isAddress } from "viem";
 
 interface AllowlistProps {
-  addresses: AddressRoles
-  onUpdateAllowlist: (newAddresses: AddressRoles) => void
-  precompileAction: string
+  addresses: AddressRoles;
+  onUpdateAllowlist: (newAddresses: AddressRoles) => void;
+  precompileAction: string;
 }
 
 export default function AllowList({
   addresses,
   onUpdateAllowlist,
-  precompileAction
+  precompileAction,
 }: AllowlistProps) {
-  const isAddressInvalid = useCallback((address: string, _: Role, currentId?: string, currentAddresses = addresses): string | undefined => {
-    if (!isAddress(address, { strict: false })) {
-      return 'Invalid Ethereum address format'
-    }
-
-    const roles: Role[] = ['Admin', 'Manager', 'Enabled']
-    for (const role of roles) {
-      const duplicateEntry = currentAddresses[role].find(
-        entry => entry.address.toLowerCase() === address.toLowerCase() && entry.id !== currentId
-      )
-      if (duplicateEntry) {
-        return 'Duplicate address'
+  const isAddressInvalid = useCallback(
+    (
+      address: string,
+      _: Role,
+      currentId?: string,
+      currentAddresses = addresses
+    ): string | undefined => {
+      if (!isAddress(address, { strict: false })) {
+        return "Invalid Ethereum address format";
       }
-    }
 
-    return undefined
-  }, [addresses])
+      const roles: Role[] = ["Admin", "Manager", "Enabled"];
+      for (const role of roles) {
+        const duplicateEntry = currentAddresses[role].find(
+          (entry) => entry.address.toLowerCase() === address.toLowerCase() && entry.id !== currentId
+        );
+        if (duplicateEntry) {
+          return "Duplicate address";
+        }
+      }
 
-  const addAddresses = useCallback((role: Role, newAddresses: string[]) => {
-    const newEntries = newAddresses.map(addr => ({
-      id: Math.random().toString(36).substr(2, 9),
-      address: addr,
-    }))
+      return undefined;
+    },
+    [addresses]
+  );
 
-    const updatedAddresses = {
-      ...addresses,
-      [role]: [
-        ...addresses[role],
-        ...newEntries
-      ]
-    }
+  const addAddresses = useCallback(
+    (role: Role, newAddresses: string[]) => {
+      const newEntries = newAddresses.map((addr) => ({
+        id: Math.random().toString(36).substr(2, 9),
+        address: addr,
+      }));
 
-    // Validate all addresses, including the new ones
-    const validatedAddresses = Object.fromEntries(
-      Object.entries(updatedAddresses).map(([role, entries]) => [
-        role,
-        entries.map(entry => ({
-          ...entry,
-          error: isAddressInvalid(entry.address, role as Role, entry.id, updatedAddresses)
-        }))
-      ])
-    ) as unknown as AddressRoles
+      const updatedAddresses = {
+        ...addresses,
+        [role]: [...addresses[role], ...newEntries],
+      };
 
-    onUpdateAllowlist(validatedAddresses)
-  }, [addresses, isAddressInvalid, onUpdateAllowlist])
+      // Validate all addresses, including the new ones
+      const validatedAddresses = Object.fromEntries(
+        Object.entries(updatedAddresses).map(([role, entries]) => [
+          role,
+          entries.map((entry) => ({
+            ...entry,
+            error: isAddressInvalid(entry.address, role as Role, entry.id, updatedAddresses),
+          })),
+        ])
+      ) as unknown as AddressRoles;
 
-  const deleteAddress = useCallback((role: Role, id: string) => {
-    const updatedAddresses = { ...addresses }
-    updatedAddresses[role] = updatedAddresses[role].filter(entry => entry.id !== id || entry.requiredReason)
+      onUpdateAllowlist(validatedAddresses);
+    },
+    [addresses, isAddressInvalid, onUpdateAllowlist]
+  );
 
-    // Re-validate all remaining addresses
-    const validatedAddresses = Object.fromEntries(
-      Object.entries(updatedAddresses).map(([currentRole, entries]) => [
-        currentRole,
-        entries.map(entry => ({
-          ...entry,
-          error: isAddressInvalid(entry.address, currentRole as Role, entry.id, updatedAddresses)
-        }))
-      ])
-    ) as unknown as AddressRoles
+  const deleteAddress = useCallback(
+    (role: Role, id: string) => {
+      const updatedAddresses = { ...addresses };
+      updatedAddresses[role] = updatedAddresses[role].filter(
+        (entry) => entry.id !== id || entry.requiredReason
+      );
 
-    onUpdateAllowlist(validatedAddresses)
-  }, [addresses, isAddressInvalid, onUpdateAllowlist])
+      // Re-validate all remaining addresses
+      const validatedAddresses = Object.fromEntries(
+        Object.entries(updatedAddresses).map(([currentRole, entries]) => [
+          currentRole,
+          entries.map((entry) => ({
+            ...entry,
+            error: isAddressInvalid(entry.address, currentRole as Role, entry.id, updatedAddresses),
+          })),
+        ])
+      ) as unknown as AddressRoles;
+
+      onUpdateAllowlist(validatedAddresses);
+    },
+    [addresses, isAddressInvalid, onUpdateAllowlist]
+  );
 
   return (
     <div className="space-y-2">
-      {(['Admin', 'Manager', 'Enabled'] as Role[]).map(role => (
+      {(["Admin", "Manager", "Enabled"] as Role[]).map((role) => (
         <EthereumAddressList
           key={role}
           role={role}
@@ -91,16 +104,13 @@ export default function AllowList({
           onDeleteAddress={(id) => deleteAddress(role, id)}
           precompileAction={precompileAction}
           checkDuplicate={(address) => {
-            const roles: Role[] = ['Admin', 'Manager', 'Enabled'];
-            return roles.some(r => 
-              addresses[r].some(entry => 
-                entry.address.toLowerCase() === address.toLowerCase()
-              )
+            const roles: Role[] = ["Admin", "Manager", "Enabled"];
+            return roles.some((r) =>
+              addresses[r].some((entry) => entry.address.toLowerCase() === address.toLowerCase())
             );
           }}
         />
       ))}
     </div>
-  )
+  );
 }
-

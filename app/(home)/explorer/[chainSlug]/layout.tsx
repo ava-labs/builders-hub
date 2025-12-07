@@ -9,16 +9,13 @@ interface ChainExplorerLayoutProps {
   params: Promise<{ chainSlug: string }>;
 }
 
-export default async function ChainExplorerLayout({ 
-  children, 
-  params 
-}: ChainExplorerLayoutProps) {
+export default async function ChainExplorerLayout({ children, params }: ChainExplorerLayoutProps) {
   const resolvedParams = await params;
   const { chainSlug } = resolvedParams;
-  
+
   // Find chain in static data
   const chain = l1ChainsData.find((c) => c.slug === chainSlug) as L1Chain | undefined;
-  
+
   // If chain found in static data, render with server-known props
   if (chain) {
     return (
@@ -40,7 +37,7 @@ export default async function ChainExplorerLayout({
       </ChainExplorerLayoutClient>
     );
   }
-  
+
   // For custom chains (not in static data), render client-side loader
   // The client component will look up the chain from localStorage
   return (
@@ -49,4 +46,3 @@ export default async function ChainExplorerLayout({
     </ChainExplorerLayoutClient>
   );
 }
-

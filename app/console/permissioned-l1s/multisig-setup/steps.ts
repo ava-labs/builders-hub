@@ -5,8 +5,23 @@ import ReadContract from "@/components/toolbox/console/permissioned-l1s/validato
 import ReadPoAManager from "@/components/toolbox/console/permissioned-l1s/multisig-setup/ReadPoAManager";
 
 export const steps: StepDefinition[] = [
-    { type: "single", key: "deploy-poa-manager", title: "Deploy POA Manager", component: DeployPoAManager },
-    { type: "single", key: "read-poa-manager", title: "Read PoA Manager", component: ReadPoAManager },
-    { type: "single", key: "transfer-ownership", title: "Transfer Ownership", component: TransferOwnership },
-    { type: "single", key: "read-validator-manager", title: "Read Validator Manager", component: ReadContract },
+  {
+    type: "single",
+    key: "deploy-poa-manager",
+    title: "Deploy POA Manager",
+    component: DeployPoAManager,
+  },
+  { type: "single", key: "read-poa-manager", title: "Read PoA Manager", component: ReadPoAManager },
+  {
+    type: "single",
+    key: "transfer-ownership",
+    title: "Transfer Ownership",
+    component: TransferOwnership,
+  },
+  {
+    type: "single",
+    key: "read-validator-manager",
+    title: "Read Validator Manager",
+    component: ReadContract,
+  },
 ];

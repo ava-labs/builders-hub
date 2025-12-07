@@ -1,14 +1,14 @@
-import { DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
-import { NetworkMenuItem } from './NetworkMenuItem'
-import { L1ListItem } from '@/components/toolbox/stores/l1ListStore'
+import { DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { NetworkMenuItem } from "./NetworkMenuItem";
+import { L1ListItem } from "@/components/toolbox/stores/l1ListStore";
 
 interface NetworkListProps {
-  availableNetworks: L1ListItem[]
-  getNetworkBalance: (network: L1ListItem) => number | string
-  isNetworkActive: (network: L1ListItem) => boolean
-  onNetworkSelect: (network: L1ListItem) => void
-  onNetworkRemove?: (network: L1ListItem) => void
-  isEditMode: boolean
+  availableNetworks: L1ListItem[];
+  getNetworkBalance: (network: L1ListItem) => number | string;
+  isNetworkActive: (network: L1ListItem) => boolean;
+  onNetworkSelect: (network: L1ListItem) => void;
+  onNetworkRemove?: (network: L1ListItem) => void;
+  isEditMode: boolean;
 }
 
 export function NetworkList({
@@ -17,7 +17,7 @@ export function NetworkList({
   isNetworkActive,
   onNetworkSelect,
   onNetworkRemove,
-  isEditMode
+  isEditMode,
 }: NetworkListProps) {
   return (
     <>
@@ -38,5 +38,5 @@ export function NetworkList({
         />
       ))}
     </>
-  )
+  );
 }

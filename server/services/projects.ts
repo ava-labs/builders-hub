@@ -24,13 +24,10 @@ export class ValidationError extends Error {
 }
 
 export const getFilteredProjects = async (options: GetProjectOptions) => {
-  if (
-    (options.page && options.page < 1) ||
-    (options.pageSize && options.pageSize < 1)
-  )
+  if ((options.page && options.page < 1) || (options.pageSize && options.pageSize < 1)) {
     throw new Error("Pagination params invalid", { cause: "BadRequest" });
+  }
 
-  console.log("GET projects with options:", options);
   const page = options.page ?? 1;
   const pageSize = options.pageSize ?? 12;
   const offset = (page - 1) * pageSize;
@@ -81,7 +78,6 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
       OR: searchFilters,
     };
   }
-  console.log("Filters: ", filters);
 
   const projects = await prisma.project.findMany({
     include: {
@@ -145,16 +141,11 @@ export async function getProject(id: string) {
     } as Hackathon,
   };
 
-  console.log("GET project:", project);
-
   return project;
 }
 
-export async function createProject(
-  projectData: Partial<Project>
-): Promise<Project> {
+export async function createProject(projectData: Partial<Project>): Promise<Project> {
   const errors = validateProject(projectData);
-  console.log(errors);
   if (errors.length > 0) {
     throw new ValidationError("Validation failed", errors);
   }
@@ -195,12 +186,8 @@ export async function createProject(
   return projectData as Project;
 }
 
-export async function updateProject(
-  id: string,
-  projectData: Partial<Project>
-): Promise<Project> {
+export async function updateProject(id: string, projectData: Partial<Project>): Promise<Project> {
   const errors = validateProject(projectData);
-  console.log(errors);
   if (errors.length > 0) {
     throw new ValidationError("Validation failed", errors);
   }
@@ -285,9 +272,7 @@ export async function CheckInvitation(invitationId: string, user_id: string) {
     },
   });
 
-  const isValid =
-    existingConfirmedProject === null &&
-    member?.status === "Pending Confirmation";
+  const isValid = existingConfirmedProject === null && member?.status === "Pending Confirmation";
 
   return {
     invitation: {
@@ -298,8 +283,7 @@ export async function CheckInvitation(invitationId: string, user_id: string) {
     },
     project: {
       project_id: member?.project?.id,
-      project_name:
-        existingConfirmedProject?.project_name ?? member?.project?.project_name,
+      project_name: existingConfirmedProject?.project_name ?? member?.project?.project_name,
       confirmed_project_name: existingConfirmedProject?.project_name ?? "",
     },
   };
@@ -329,10 +313,10 @@ export async function GetProjectByHackathonAndUser(
       where: { id: invitation_id },
     });
 
-    project_id = invitation?.project_id??"";
+    project_id = invitation?.project_id ?? "";
   }
 
-  if(project_id!==""){
+  if (project_id !== "") {
     const project = await prisma.project.findFirst({
       where: { id: project_id },
     });
@@ -358,7 +342,6 @@ export async function GetProjectByHackathonAndUser(
   }
   return project;
 }
-
 
 export type GetProjectOptions = {
   page?: number;

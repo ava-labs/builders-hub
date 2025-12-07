@@ -92,36 +92,43 @@ export type TimeRange = "30d" | "90d" | "1y" | "all";
 // shareable config constants
 export const STATS_CONFIG = {
   CACHE: {
-    LONG_DURATION: 24 * 60 * 60 * 1000,  // 24 hours - for validator data
-    SHORT_DURATION: 4 * 60 * 60 * 1000,  // 4 hours - for overview/aggregated data
+    LONG_DURATION: 24 * 60 * 60 * 1000, // 24 hours - for validator data
+    SHORT_DURATION: 4 * 60 * 60 * 1000, // 4 hours - for overview/aggregated data
   },
   TIME_RANGES: {
-    '30d': { days: 30, pageSize: 365, fetchAllPages: false },
-    '90d': { days: 90, pageSize: 500, fetchAllPages: true },
-    '1y': { days: 365, pageSize: 1000, fetchAllPages: true },
-    'all': { startTimestamp: 1600646400, pageSize: 2000, fetchAllPages: true }
+    "30d": { days: 30, pageSize: 365, fetchAllPages: false },
+    "90d": { days: 90, pageSize: 500, fetchAllPages: true },
+    "1y": { days: 365, pageSize: 1000, fetchAllPages: true },
+    all: { startTimestamp: 1600646400, pageSize: 2000, fetchAllPages: true },
   },
   ACTIVE_ADDRESSES_INTERVALS: {
-    'day': 'day',
-    'week': 'week', 
-    'month': 'month'
+    day: "day",
+    week: "week",
+    month: "month",
   }, // active addresses intervals for different views
   AVALANCHE_GENESIS_TIMESTAMP: 1600646400,
   DATA_OFFSET_DAYS: 1,
 } as const;
 
 // shared timestamp calc - used across all stats APIs
-export function getTimestampsFromTimeRange(timeRange: string): { startTimestamp: number; endTimestamp: number } {
+export function getTimestampsFromTimeRange(timeRange: string): {
+  startTimestamp: number;
+  endTimestamp: number;
+} {
   const now = Math.floor(Date.now() / 1000);
-  const yesterday = now - (STATS_CONFIG.DATA_OFFSET_DAYS * 24 * 60 * 60); // End at yesterday for finalized data
+  const yesterday = now - STATS_CONFIG.DATA_OFFSET_DAYS * 24 * 60 * 60; // End at yesterday for finalized data
   const config = STATS_CONFIG.TIME_RANGES[timeRange as keyof typeof STATS_CONFIG.TIME_RANGES];
-  
+
   let startTimestamp: number;
 
-  if (config && 'startTimestamp' in config) { startTimestamp = config.startTimestamp; } 
-  else if (config && 'days' in config) { startTimestamp = yesterday - (config.days * 24 * 60 * 60); } 
-  else { startTimestamp = yesterday - (30 * 24 * 60 * 60); }
-  
+  if (config && "startTimestamp" in config) {
+    startTimestamp = config.startTimestamp;
+  } else if (config && "days" in config) {
+    startTimestamp = yesterday - config.days * 24 * 60 * 60;
+  } else {
+    startTimestamp = yesterday - 30 * 24 * 60 * 60;
+  }
+
   return { startTimestamp, endTimestamp: yesterday };
 }
 
@@ -129,9 +136,9 @@ export function createTimeSeriesMetric(data: TimeSeriesDataPoint[]): TimeSeriesM
   if (data.length === 0) {
     return {
       data: [],
-      current_value: 'N/A',
+      current_value: "N/A",
       change_24h: 0,
-      change_percentage_24h: 0
+      change_percentage_24h: 0,
     };
   }
 
@@ -139,18 +146,19 @@ export function createTimeSeriesMetric(data: TimeSeriesDataPoint[]): TimeSeriesM
   const currentValue = sortedData[0].value;
   const current = sortedData[0]; // Yesterday (most recent)
   const previous = sortedData.length > 1 ? sortedData[1] : current; // Day before yesterday
-  
-  const currentVal = typeof current.value === 'string' ? parseFloat(current.value) : current.value;
-  const previousVal = typeof previous.value === 'string' ? parseFloat(previous.value) : previous.value;
-  
-  const change = currentVal - previousVal; 
+
+  const currentVal = typeof current.value === "string" ? parseFloat(current.value) : current.value;
+  const previousVal =
+    typeof previous.value === "string" ? parseFloat(previous.value) : previous.value;
+
+  const change = currentVal - previousVal;
   const changePercentage = previousVal !== 0 ? (change / previousVal) * 100 : 0;
 
   return {
     data: sortedData,
     current_value: currentValue,
     change_24h: change,
-    change_percentage_24h: changePercentage
+    change_percentage_24h: changePercentage,
   };
 }
 
@@ -159,27 +167,28 @@ export function createTimeSeriesMetricWithPeriodSum(data: TimeSeriesDataPoint[])
   if (data.length === 0) {
     return {
       data: [],
-      current_value: 'N/A',
+      current_value: "N/A",
       change_24h: 0,
-      change_percentage_24h: 0
+      change_percentage_24h: 0,
     };
   }
 
   const sortedData = data.sort((a, b) => b.timestamp - a.timestamp);
-  
+
   // Sum all values in the period for overview totals
   const periodTotal = sortedData.reduce((sum, point) => {
-    const value = typeof point.value === 'string' ? parseFloat(point.value) : point.value;
+    const value = typeof point.value === "string" ? parseFloat(point.value) : point.value;
     return sum + (isNaN(value) ? 0 : value);
   }, 0);
 
   // For change comparison
   const current = sortedData[0];
   const previous = sortedData.length > 1 ? sortedData[1] : current;
-  
-  const currentVal = typeof current.value === 'string' ? parseFloat(current.value) : current.value;
-  const previousVal = typeof previous.value === 'string' ? parseFloat(previous.value) : previous.value;
-  
+
+  const currentVal = typeof current.value === "string" ? parseFloat(current.value) : current.value;
+  const previousVal =
+    typeof previous.value === "string" ? parseFloat(previous.value) : previous.value;
+
   const change = currentVal - previousVal;
   const changePercentage = previousVal !== 0 ? (change / previousVal) * 100 : 0;
 
@@ -187,18 +196,18 @@ export function createTimeSeriesMetricWithPeriodSum(data: TimeSeriesDataPoint[])
     data: sortedData,
     current_value: periodTotal,
     change_24h: change,
-    change_percentage_24h: changePercentage
+    change_percentage_24h: changePercentage,
   };
 }
 
-// Standard ICM metric creation 
+// Standard ICM metric creation
 export function createICMMetric(data: ICMDataPoint[]): ICMMetric {
   if (data.length === 0) {
     return {
       data: [],
       current_value: 0,
       change_24h: 0,
-      change_percentage_24h: 0
+      change_percentage_24h: 0,
     };
   }
 
@@ -213,7 +222,7 @@ export function createICMMetric(data: ICMDataPoint[]): ICMMetric {
     data: sortedData,
     current_value: currentValue,
     change_24h: change,
-    change_percentage_24h: changePercentage
+    change_percentage_24h: changePercentage,
   };
 }
 
@@ -224,7 +233,7 @@ export function createICMMetricWithPeriodSum(data: ICMDataPoint[]): ICMMetric {
       data: [],
       current_value: 0,
       change_24h: 0,
-      change_percentage_24h: 0
+      change_percentage_24h: 0,
     };
   }
 
@@ -239,6 +248,6 @@ export function createICMMetricWithPeriodSum(data: ICMDataPoint[]): ICMMetric {
     data: sortedData,
     current_value: periodTotal,
     change_24h: change,
-    change_percentage_24h: changePercentage
+    change_percentage_24h: changePercentage,
   };
 }

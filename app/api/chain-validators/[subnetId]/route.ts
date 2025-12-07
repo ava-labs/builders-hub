@@ -35,14 +35,17 @@ interface ValidatorVersion {
   version: string;
 }
 
-const cacheStore = new Map<string, {data: ValidatorData[]; timestamp: number; versionBreakdown?: any}>();
-const versionCacheStore = new Map<string, {data: Map<string, string>; timestamp: number}>();
+const cacheStore = new Map<
+  string,
+  { data: ValidatorData[]; timestamp: number; versionBreakdown?: any }
+>();
+const versionCacheStore = new Map<string, { data: Map<string, string>; timestamp: number }>();
 
 async function fetchValidatorVersions(): Promise<Map<string, string>> {
   const now = Date.now();
-  const cached = versionCacheStore.get('mainnet');
-  
-  if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+  const cached = versionCacheStore.get("mainnet");
+
+  if (cached && now - cached.timestamp < CACHE_DURATION) {
     return cached.data;
   }
 
@@ -52,9 +55,9 @@ async function fetchValidatorVersions(): Promise<Map<string, string>> {
 
     const response = await fetch(MAINNET_VALIDATOR_DISCOVERY_URL, {
       signal: controller.signal,
-      headers: { 'Accept': 'application/json' },
+      headers: { Accept: "application/json" },
     });
-    
+
     clearTimeout(timeoutId);
 
     if (!response.ok) {
@@ -68,21 +71,24 @@ async function fetchValidatorVersions(): Promise<Map<string, string>> {
       versionMap.set(validator.nodeId, validator.version?.replace("avalanchego/", "") || "Unknown");
     }
 
-    versionCacheStore.set('mainnet', { data: versionMap, timestamp: now });
+    versionCacheStore.set("mainnet", { data: versionMap, timestamp: now });
     return versionMap;
   } catch (error) {
-    console.error('Error fetching validator versions:', error);
+    console.error("Error fetching validator versions:", error);
     return cached?.data || new Map<string, string>();
   }
 }
 
-async function fetchAllValidators(subnetId: string, versionMap: Map<string, string>): Promise<ValidatorData[]> {
+async function fetchAllValidators(
+  subnetId: string,
+  versionMap: Map<string, string>
+): Promise<ValidatorData[]> {
   const avalanche = new Avalanche({ network: "mainnet" });
   const validators: ValidatorData[] = [];
-  
+
   try {
     const isPrimaryNetwork = subnetId === "11111111111111111111111111111111LpoYY";
-    
+
     let result;
     if (isPrimaryNetwork) {
       // Use listValidators for Primary Network
@@ -104,28 +110,28 @@ async function fetchAllValidators(subnetId: string, versionMap: Map<string, stri
 
     let pageCount = 0;
     const maxPages = 50;
-    
+
     for await (const page of result) {
       pageCount++;
-      
+
       // Handle different response structures
       // Both Primary Network and L1 validators use page.result.validators
       let pageData: any[] = page.result?.validators || [];
-      
+
       // For L1 validators, filter by remainingBalance > 0
       if (!isPrimaryNetwork) {
         pageData = pageData.filter((v: any) => v.remainingBalance > 0);
       }
-      
-      if (!Array.isArray(pageData)) { 
+
+      if (!Array.isArray(pageData)) {
         console.warn(`Page ${pageCount}: pageData is not an array`, typeof pageData);
         console.warn(`Available keys:`, Object.keys(page));
-        continue; 
+        continue;
       }
-      
+
       const pageValidators = pageData.map((v: any) => {
         const version = versionMap.get(v.nodeId) || "Unknown";
-        
+
         if (isPrimaryNetwork) {
           // Primary Network validator structure
           return {
@@ -157,15 +163,19 @@ async function fetchAllValidators(subnetId: string, versionMap: Map<string, stri
           };
         }
       });
-      
-      validators.push(...pageValidators);     
-      if (pageCount >= maxPages) { break; }   
-      if (pageValidators.length < PAGE_SIZE) { break; }
+
+      validators.push(...pageValidators);
+      if (pageCount >= maxPages) {
+        break;
+      }
+      if (pageValidators.length < PAGE_SIZE) {
+        break;
+      }
     }
-    
+
     return validators;
   } catch (error: any) {
-    console.error('Error fetching validators for subnet:', subnetId, error);
+    console.error("Error fetching validators for subnet:", subnetId, error);
     throw error;
   }
 }
@@ -177,11 +187,11 @@ function calculateVersionBreakdown(validators: ValidatorData[]) {
   for (const validator of validators) {
     const version = validator.version || "Unknown";
     const stake = BigInt(validator.amountStaked || validator.weight || 0);
-    
+
     if (!breakdown[version]) {
       breakdown[version] = { nodes: 0, stake: 0n };
     }
-    
+
     breakdown[version].nodes += 1;
     breakdown[version].stake += stake;
     totalStake += stake;
@@ -208,18 +218,15 @@ export async function GET(
 ) {
   try {
     const { subnetId } = await params;
-    
+
     if (!subnetId) {
-      return NextResponse.json(
-        { error: "Subnet ID is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Subnet ID is required" }, { status: 400 });
     }
 
     const now = Date.now();
     const cachedData = cacheStore.get(subnetId);
 
-    if (cachedData && (now - cachedData.timestamp) < CACHE_DURATION) {
+    if (cachedData && now - cachedData.timestamp < CACHE_DURATION) {
       return NextResponse.json(
         {
           validators: cachedData.data,
@@ -230,23 +237,23 @@ export async function GET(
         },
         {
           headers: {
-            'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
-          }
+            "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
+          },
         }
       );
     }
 
     const versionMap = await fetchValidatorVersions();
-    
+
     const validators = await Promise.race([
       fetchAllValidators(subnetId, versionMap),
-      new Promise<ValidatorData[]>((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), FETCH_TIMEOUT)
-      )
+      new Promise<ValidatorData[]>((_, reject) =>
+        setTimeout(() => reject(new Error("Request timeout")), FETCH_TIMEOUT)
+      ),
     ]);
-    
+
     const versionBreakdown = calculateVersionBreakdown(validators);
-    
+
     cacheStore.set(subnetId, {
       data: validators,
       timestamp: now,
@@ -263,16 +270,15 @@ export async function GET(
       },
       {
         headers: {
-          'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
-        }
+          "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
+        },
       }
     );
   } catch (error: any) {
-    console.error('Error fetching validators:', error);
+    console.error("Error fetching validators:", error);
     return NextResponse.json(
-      { error: error?.message || 'Failed to fetch validators' },
+      { error: error?.message || "Failed to fetch validators" },
       { status: 500 }
     );
   }
 }
-

@@ -2,33 +2,22 @@
 
 import React from "react";
 import { useFormContext } from "react-hook-form";
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-} from "@/components/ui/form";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
 import { SubmissionForm } from "../hooks/useSubmissionFormSecure";
-import { MultiLinkInput } from './MultiLinkInput';
-
-
+import { MultiLinkInput } from "./MultiLinkInput";
 
 export default function SubmitStep2() {
-  const form =  useFormContext<SubmissionForm>();
+  const form = useFormContext<SubmissionForm>();
   return (
     <div className="space-y-8">
       {/* Sección: Technical Details */}
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold text-foreground">
-          Technical Details
-        </h2>
+        <h2 className="text-xl font-semibold text-foreground">Technical Details</h2>
         <p className="text-sm text-muted-foreground">
-          Explain how your project works under the hood: tech stack,
-          integrations, and architecture.
+          Explain how your project works under the hood: tech stack, integrations, and architecture.
         </p>
 
         {/* Campo: How It's Made */}
@@ -37,10 +26,7 @@ export default function SubmitStep2() {
           name="tech_stack"
           render={({ field }) => (
             <FormItem>
-              <FormLabelWithCheck
-                label="How it's made"
-                checked={!!field.value}
-              />
+              <FormLabelWithCheck label="How it's made" checked={!!field.value} />
               <FormControl>
                 <Textarea
                   placeholder="Describe the tech stack, APIs, and integrations used."
@@ -49,8 +35,7 @@ export default function SubmitStep2() {
                 />
               </FormControl>
               <p className="text-zinc-400 text-[14px] leading-[100%] tracking-[0%] font-aeonik">
-                Mention any innovative solutions or "hacky" parts worth
-                highlighting.
+                Mention any innovative solutions or &quot;hacky&quot; parts worth highlighting.
               </p>
               <FormMessage />
             </FormItem>
@@ -76,12 +61,10 @@ export default function SubmitStep2() {
 
       {/* Sección: Project Continuity & Development */}
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold text-foreground">
-          Project Continuity & Development
-        </h2>
+        <h2 className="text-xl font-semibold text-foreground">Project Continuity & Development</h2>
         <p className="text-sm text-muted-foreground pt-0 mt-0">
-          Indicate if your project builds upon a pre-existing idea and clarify
-          your contributions during the hackathon.
+          Indicate if your project builds upon a pre-existing idea and clarify your contributions
+          during the hackathon.
         </p>
 
         {/* Toggle: isPreExisting */}
@@ -91,30 +74,21 @@ export default function SubmitStep2() {
           render={({ field }) => (
             <FormItem className="flex items-center justify-between p-4 border rounded">
               <div className="space-y-1">
-                <FormLabel>
-                  Is this project based on a pre-existing idea?
-                </FormLabel>
+                <FormLabel>Is this project based on a pre-existing idea?</FormLabel>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-line italic">
-                  If your project is built upon an existing idea, you must
-                  disclose which components were developed specifically during
-                  the      {"\n"}
-                  hackathon.      {"\n"}
-          
+                  If your project is built upon an existing idea, you must disclose which components
+                  were developed specifically during the {"\n"}
+                  hackathon. {"\n"}
                 </p>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-line ">
-            
-                   Judges may not have enough time to fully verify
-                  the implementation during evaluation, but prize distribution
-                  may be
+                  Judges may not have enough time to fully verify the implementation during
+                  evaluation, but prize distribution may be
                   {"\n"}
-                   subject to further review.
+                  subject to further review.
                 </p>
               </div>
               <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
+                <Switch checked={field.value} onCheckedChange={field.onChange} />
               </FormControl>
             </FormItem>
           )}

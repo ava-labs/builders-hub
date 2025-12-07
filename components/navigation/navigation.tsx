@@ -41,9 +41,7 @@ interface DocsDropdownProps {
   buttonStyle?: "Docs" | "currentElement";
 }
 
-export function DocsDropdown({
-  buttonStyle = "Docs",
-}: DocsDropdownProps): React.ReactElement {
+export function DocsDropdown({ buttonStyle = "Docs" }: DocsDropdownProps): React.ReactElement {
   const options: Option[] = [
     ...(buttonStyle === "Docs"
       ? [
@@ -190,22 +188,19 @@ export function GrantsDropdown() {
     },
     {
       title: "infraBUIDL()",
-      description:
-        "Infrastructure projects that enhance user and developer experience",
+      description: "Infrastructure projects that enhance user and developer experience",
       icon: <Server className="w-5 h-5" />,
       url: "https://www.avax.network/infrabuidl-program",
     },
     {
       title: "Codebase",
-      description:
-        "Transforming ambitious builders into extraordinary founders",
+      description: "Transforming ambitious builders into extraordinary founders",
       icon: <Code className="w-5 h-5" />,
       url: "https://codebase.avax.network/",
     },
     {
       title: "Blizzard Fund",
-      description:
-        "VC fund investing in innovative entrepreneurs driving growth on Avalanche",
+      description: "VC fund investing in innovative entrepreneurs driving growth on Avalanche",
       icon: <TrendingUp className="w-5 h-5" />,
       url: "https://www.blizzard.fund/",
     },

@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import l1ChainsData from '@/constants/l1-chains.json';
+import { NextResponse } from "next/server";
+import l1ChainsData from "@/constants/l1-chains.json";
 
 interface RpcTransaction {
   hash: string;
@@ -51,16 +51,20 @@ interface RpcBlock {
   number: string;
 }
 
-async function fetchFromRPC(rpcUrl: string, method: string, params: unknown[] = []): Promise<unknown> {
+async function fetchFromRPC(
+  rpcUrl: string,
+  method: string,
+  params: unknown[] = []
+): Promise<unknown> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15000);
 
   try {
     const response = await fetch(rpcUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        jsonrpc: '2.0',
+        jsonrpc: "2.0",
         id: 1,
         method,
         params,
@@ -76,7 +80,7 @@ async function fetchFromRPC(rpcUrl: string, method: string, params: unknown[] = 
 
     const data = await response.json();
     if (data.error) {
-      throw new Error(data.error.message || 'RPC error');
+      throw new Error(data.error.message || "RPC error");
     }
 
     return data.result;
@@ -95,7 +99,7 @@ function formatWeiToEther(wei: string): string {
   const divisor = BigInt(10 ** 18);
   const intPart = weiValue / divisor;
   const fracPart = weiValue % divisor;
-  const fracStr = fracPart.toString().padStart(18, '0');
+  const fracStr = fracPart.toString().padStart(18, "0");
   return `${intPart}.${fracStr}`;
 }
 
@@ -110,7 +114,6 @@ function hexToTimestamp(hex: string): string {
   return new Date(timestamp).toISOString();
 }
 
-
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ chainId: string; txHash: string }> }
@@ -119,33 +122,42 @@ export async function GET(
 
   // Get query params for custom chains
   const { searchParams } = new URL(request.url);
-  const customRpcUrl = searchParams.get('rpcUrl');
+  const customRpcUrl = searchParams.get("rpcUrl");
 
-  const chain = l1ChainsData.find(c => c.chainId === chainId);
+  const chain = l1ChainsData.find((c) => c.chainId === chainId);
   const rpcUrl = chain?.rpcUrl || customRpcUrl;
-  
+
   if (!rpcUrl) {
-    return NextResponse.json({ error: 'Chain not found or RPC URL missing. Provide rpcUrl query parameter for custom chains.' }, { status: 404 });
+    return NextResponse.json(
+      {
+        error:
+          "Chain not found or RPC URL missing. Provide rpcUrl query parameter for custom chains.",
+      },
+      { status: 404 }
+    );
   }
 
   try {
-
     // Fetch receipt and transaction in parallel for better performance
     const [receiptResult, txResult] = await Promise.allSettled([
-      fetchFromRPC(rpcUrl, 'eth_getTransactionReceipt', [txHash]),
-      fetchFromRPC(rpcUrl, 'eth_getTransactionByHash', [txHash]),
+      fetchFromRPC(rpcUrl, "eth_getTransactionReceipt", [txHash]),
+      fetchFromRPC(rpcUrl, "eth_getTransactionByHash", [txHash]),
     ]);
 
-    const receipt = receiptResult.status === 'fulfilled' ? receiptResult.value as RpcReceipt | null : null;
-    const tx = txResult.status === 'fulfilled' ? txResult.value as RpcTransaction | null : null;
+    const receipt =
+      receiptResult.status === "fulfilled" ? (receiptResult.value as RpcReceipt | null) : null;
+    const tx = txResult.status === "fulfilled" ? (txResult.value as RpcTransaction | null) : null;
 
     if (!receipt) {
-      return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
+      return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
     }
 
     // Log if transaction fetch failed but continue with receipt
-    if (txResult.status === 'rejected') {
-      console.log(`eth_getTransactionByHash failed for ${txHash}, using receipt only:`, txResult.reason);
+    if (txResult.status === "rejected") {
+      console.log(
+        `eth_getTransactionByHash failed for ${txHash}, using receipt only:`,
+        txResult.reason
+      );
     }
 
     // Fetch block for timestamp (use tx blockNumber if receipt doesn't have it, though receipt should always have it)
@@ -153,7 +165,10 @@ export async function GET(
     const blockNumberForTimestamp = receipt.blockNumber || tx?.blockNumber;
     if (blockNumberForTimestamp) {
       try {
-        const block = await fetchFromRPC(rpcUrl, 'eth_getBlockByNumber', [blockNumberForTimestamp, false]) as RpcBlock | null;
+        const block = (await fetchFromRPC(rpcUrl, "eth_getBlockByNumber", [
+          blockNumberForTimestamp,
+          false,
+        ])) as RpcBlock | null;
         if (block) {
           timestamp = hexToTimestamp(block.timestamp);
         }
@@ -165,7 +180,7 @@ export async function GET(
     // Get current block for confirmations
     let confirmations = 0;
     try {
-      const latestBlock = await fetchFromRPC(rpcUrl, 'eth_blockNumber', []) as string;
+      const latestBlock = (await fetchFromRPC(rpcUrl, "eth_blockNumber", [])) as string;
       const txBlockNumber = receipt.blockNumber || tx?.blockNumber;
       if (txBlockNumber) {
         confirmations = Math.max(0, parseInt(latestBlock, 16) - parseInt(txBlockNumber, 16));
@@ -177,25 +192,26 @@ export async function GET(
     // Calculate transaction fee using receipt data
     const gasUsed = formatHexToNumber(receipt.gasUsed);
     // Prefer effectiveGasPrice from receipt (more accurate for EIP-1559), fallback to tx gasPrice
-    const effectiveGasPrice = receipt.effectiveGasPrice || tx?.gasPrice || '0x0';
-    const txFee = effectiveGasPrice !== '0x0'
-      ? (BigInt(receipt.gasUsed) * BigInt(effectiveGasPrice)).toString()
-      : '0';
+    const effectiveGasPrice = receipt.effectiveGasPrice || tx?.gasPrice || "0x0";
+    const txFee =
+      effectiveGasPrice !== "0x0"
+        ? (BigInt(receipt.gasUsed) * BigInt(effectiveGasPrice)).toString()
+        : "0";
 
     // Use transaction fields when available, fallback to receipt fields
     // Transaction object has more complete data, so prefer it when available
-    const transactionIndex = tx?.transactionIndex 
-      ? formatHexToNumber(tx.transactionIndex) 
-      : receipt.transactionIndex 
-        ? formatHexToNumber(receipt.transactionIndex) 
+    const transactionIndex = tx?.transactionIndex
+      ? formatHexToNumber(tx.transactionIndex)
+      : receipt.transactionIndex
+        ? formatHexToNumber(receipt.transactionIndex)
         : null;
-    
-    const blockNumber = tx?.blockNumber 
-      ? formatHexToNumber(tx.blockNumber) 
-      : receipt.blockNumber 
-        ? formatHexToNumber(receipt.blockNumber) 
+
+    const blockNumber = tx?.blockNumber
+      ? formatHexToNumber(tx.blockNumber)
+      : receipt.blockNumber
+        ? formatHexToNumber(receipt.blockNumber)
         : null;
-    
+
     const blockHash = tx?.blockHash || receipt.blockHash || null;
     const from = tx?.from || receipt.from;
     const to = tx?.to !== undefined ? tx.to : receipt.to;
@@ -203,7 +219,7 @@ export async function GET(
     // Build response using transaction data when available, supplement with receipt data
     const formattedTx = {
       hash: tx?.hash || receipt.transactionHash,
-      status: receipt.status === '0x1' ? 'success' : 'failed',
+      status: receipt.status === "0x1" ? "success" : "failed",
       blockNumber,
       blockHash,
       timestamp,
@@ -212,23 +228,23 @@ export async function GET(
       to,
       contractAddress: receipt.contractAddress || null,
       // Value only available from tx, default to 0 if not available
-      value: tx?.value ? formatWeiToEther(tx.value) : '0',
-      valueWei: tx?.value || '0x0',
+      value: tx?.value ? formatWeiToEther(tx.value) : "0",
+      valueWei: tx?.value || "0x0",
       // Gas price: prefer receipt's effectiveGasPrice (accurate for EIP-1559), fallback to tx's gasPrice
-      gasPrice: effectiveGasPrice !== '0x0' ? formatGwei(effectiveGasPrice) : 'N/A',
+      gasPrice: effectiveGasPrice !== "0x0" ? formatGwei(effectiveGasPrice) : "N/A",
       gasPriceWei: effectiveGasPrice,
       // Gas limit only from tx
-      gasLimit: tx?.gas ? formatHexToNumber(tx.gas) : 'N/A',
+      gasLimit: tx?.gas ? formatHexToNumber(tx.gas) : "N/A",
       gasUsed,
-      txFee: txFee !== '0' ? formatWeiToEther(txFee) : '0',
+      txFee: txFee !== "0" ? formatWeiToEther(txFee) : "0",
       txFeeWei: txFee,
       // Nonce only from tx
-      nonce: tx?.nonce ? formatHexToNumber(tx.nonce) : 'N/A',
+      nonce: tx?.nonce ? formatHexToNumber(tx.nonce) : "N/A",
       transactionIndex,
       // Input only from tx
-      input: tx?.input || '0x',
+      input: tx?.input || "0x",
       // Transaction type: parse hex string to number
-      type: tx?.type ? (typeof tx.type === 'string' ? parseInt(tx.type, 16) : tx.type) : 0,
+      type: tx?.type ? (typeof tx.type === "string" ? parseInt(tx.type, 16) : tx.type) : 0,
       // EIP-1559 fields only from tx
       maxFeePerGas: tx?.maxFeePerGas ? formatGwei(tx.maxFeePerGas) : null,
       maxPriorityFeePerGas: tx?.maxPriorityFeePerGas ? formatGwei(tx.maxPriorityFeePerGas) : null,
@@ -238,7 +254,6 @@ export async function GET(
     return NextResponse.json(formattedTx);
   } catch (error) {
     console.error(`Error fetching transaction ${txHash} on chain ${chainId}:`, error);
-    return NextResponse.json({ error: 'Failed to fetch transaction data' }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch transaction data" }, { status: 500 });
   }
 }
-

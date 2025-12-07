@@ -54,7 +54,6 @@ export async function getBadgeByCourseId(courseId: string): Promise<Badge> {
     },
   });*/
 
-
   if (!badge) {
     throw new Error(`Badge not found for course ID: ${courseId}`);
   }

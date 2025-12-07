@@ -1,33 +1,26 @@
 "use client";
 
-import { useSession } from 'next-auth/react';
+import { useSession } from "next-auth/react";
 
-import { useState, useMemo } from 'react';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import type { ConsoleLog } from '@/types/console-log';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
-import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
-import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
-import { 
-  Search, 
-  ExternalLink,
-  Copy,
-  Check,
-  Download,
-  LogIn
-} from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/cn';
+import { useState, useMemo } from "react";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import type { ConsoleLog } from "@/types/console-log";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
+import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
+import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
+import { Search, ExternalLink, Copy, Check, Download, LogIn } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/cn";
 
 export default function ConsoleHistoryPage() {
   const { data: session, status } = useSession();
   const { logs: fullHistory, getExplorerUrl, loading } = useConsoleNotifications();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  
+
   // Toolbox store data
   const { isTestnet } = useWalletStore();
   const selectedL1 = useSelectedL1()();
@@ -42,46 +35,49 @@ export default function ConsoleHistoryPage() {
       description?: string;
       address: string;
       chainId?: string;
-      type: 'address' | 'tx';
+      type: "address" | "tx";
     }> = [];
 
     // Add items from createChainStore
     if (createChainStore) {
-      if (createChainStore.subnetId && createChainStore.subnetId !== '') {
+      if (createChainStore.subnetId && createChainStore.subnetId !== "") {
         items.push({
-          id: 'cc-subnet',
-          title: 'Subnet ID',
-          description: createChainStore.chainName || 'Chain Configuration',
+          id: "cc-subnet",
+          title: "Subnet ID",
+          description: createChainStore.chainName || "Chain Configuration",
           address: createChainStore.subnetId,
-          type: 'tx'
+          type: "tx",
         });
       }
-      if (createChainStore.chainID && createChainStore.chainID !== '') {
+      if (createChainStore.chainID && createChainStore.chainID !== "") {
         items.push({
-          id: 'cc-chain-id',
-          title: 'Chain ID',
-          description: createChainStore.chainName || 'Blockchain ID',
+          id: "cc-chain-id",
+          title: "Chain ID",
+          description: createChainStore.chainName || "Blockchain ID",
           address: createChainStore.chainID,
-          type: 'tx'
+          type: "tx",
         });
       }
-      if (createChainStore.managerAddress && createChainStore.managerAddress !== '0xfacade0000000000000000000000000000000000') {
+      if (
+        createChainStore.managerAddress &&
+        createChainStore.managerAddress !== "0xfacade0000000000000000000000000000000000"
+      ) {
         items.push({
-          id: 'cc-manager',
-          title: 'Manager Address',
-          description: 'Chain Manager Contract',
+          id: "cc-manager",
+          title: "Manager Address",
+          description: "Chain Manager Contract",
           address: createChainStore.managerAddress,
           chainId: createChainStore.evmChainId?.toString(),
-          type: 'address'
+          type: "address",
         });
       }
-      if (createChainStore.convertToL1TxId && createChainStore.convertToL1TxId !== '') {
+      if (createChainStore.convertToL1TxId && createChainStore.convertToL1TxId !== "") {
         items.push({
-          id: 'cc-l1-tx',
-          title: 'Convert to L1 Transaction',
-          description: 'L1 Conversion',
+          id: "cc-l1-tx",
+          title: "Convert to L1 Transaction",
+          description: "L1 Conversion",
           address: createChainStore.convertToL1TxId,
-          type: 'tx'
+          type: "tx",
         });
       }
     }
@@ -89,86 +85,89 @@ export default function ConsoleHistoryPage() {
     // Add items from toolboxStore
     if (toolboxStore) {
       const chainId = selectedL1?.evmChainId?.toString();
-      
-      if (toolboxStore.validatorManagerAddress && toolboxStore.validatorManagerAddress !== '') {
+
+      if (toolboxStore.validatorManagerAddress && toolboxStore.validatorManagerAddress !== "") {
         items.push({
-          id: 'tb-validator-mgr',
-          title: 'Validator Manager',
-          description: 'Deployed Contract',
+          id: "tb-validator-mgr",
+          title: "Validator Manager",
+          description: "Deployed Contract",
           address: toolboxStore.validatorManagerAddress,
           chainId,
-          type: 'address'
+          type: "address",
         });
       }
-      if (toolboxStore.nativeStakingManagerAddress && toolboxStore.nativeStakingManagerAddress !== '') {
+      if (
+        toolboxStore.nativeStakingManagerAddress &&
+        toolboxStore.nativeStakingManagerAddress !== ""
+      ) {
         items.push({
-          id: 'tb-native-staking-mgr',
-          title: 'Native Token Staking Manager',
-          description: 'Deployed Contract',
+          id: "tb-native-staking-mgr",
+          title: "Native Token Staking Manager",
+          description: "Deployed Contract",
           address: toolboxStore.nativeStakingManagerAddress,
           chainId,
-          type: 'address'
+          type: "address",
         });
       }
-      if (toolboxStore.poaManagerAddress && toolboxStore.poaManagerAddress !== '') {
+      if (toolboxStore.poaManagerAddress && toolboxStore.poaManagerAddress !== "") {
         items.push({
-          id: 'tb-poa-mgr',
-          title: 'POA Manager',
-          description: 'Deployed Contract',
+          id: "tb-poa-mgr",
+          title: "POA Manager",
+          description: "Deployed Contract",
           address: toolboxStore.poaManagerAddress,
           chainId,
-          type: 'address'
+          type: "address",
         });
       }
-      if (toolboxStore.teleporterRegistryAddress && toolboxStore.teleporterRegistryAddress !== '') {
+      if (toolboxStore.teleporterRegistryAddress && toolboxStore.teleporterRegistryAddress !== "") {
         items.push({
-          id: 'tb-teleporter',
-          title: 'Teleporter Registry',
-          description: 'ICM Contract',
+          id: "tb-teleporter",
+          title: "Teleporter Registry",
+          description: "ICM Contract",
           address: toolboxStore.teleporterRegistryAddress,
           chainId,
-          type: 'address'
+          type: "address",
         });
       }
-      if (toolboxStore.icmReceiverAddress && toolboxStore.icmReceiverAddress !== '') {
+      if (toolboxStore.icmReceiverAddress && toolboxStore.icmReceiverAddress !== "") {
         items.push({
-          id: 'tb-icm-receiver',
-          title: 'ICM Receiver',
-          description: 'Deployed Contract',
+          id: "tb-icm-receiver",
+          title: "ICM Receiver",
+          description: "Deployed Contract",
           address: toolboxStore.icmReceiverAddress,
           chainId,
-          type: 'address'
+          type: "address",
         });
       }
       // Get wrapped native token address from L1 store
-      if (selectedL1?.wrappedTokenAddress && selectedL1.wrappedTokenAddress !== '') {
+      if (selectedL1?.wrappedTokenAddress && selectedL1.wrappedTokenAddress !== "") {
         items.push({
-          id: 'tb-wrapped-native',
-          title: 'Wrapped Native Token',
-          description: 'Token Contract',
+          id: "tb-wrapped-native",
+          title: "Wrapped Native Token",
+          description: "Token Contract",
           address: selectedL1.wrappedTokenAddress,
           chainId,
-          type: 'address'
+          type: "address",
         });
       }
-      if (toolboxStore.erc20TokenHomeAddress && toolboxStore.erc20TokenHomeAddress !== '') {
+      if (toolboxStore.erc20TokenHomeAddress && toolboxStore.erc20TokenHomeAddress !== "") {
         items.push({
-          id: 'tb-erc20-home',
-          title: 'ERC20 Token Home',
-          description: 'Token Contract',
+          id: "tb-erc20-home",
+          title: "ERC20 Token Home",
+          description: "Token Contract",
           address: toolboxStore.erc20TokenHomeAddress,
           chainId,
-          type: 'address'
+          type: "address",
         });
       }
-      if (toolboxStore.nativeTokenHomeAddress && toolboxStore.nativeTokenHomeAddress !== '') {
+      if (toolboxStore.nativeTokenHomeAddress && toolboxStore.nativeTokenHomeAddress !== "") {
         items.push({
-          id: 'tb-native-home',
-          title: 'Native Token Home',
-          description: 'Token Contract',
+          id: "tb-native-home",
+          title: "Native Token Home",
+          description: "Token Contract",
           address: toolboxStore.nativeTokenHomeAddress,
           chainId,
-          type: 'address'
+          type: "address",
         });
       }
     }
@@ -179,23 +178,25 @@ export default function ConsoleHistoryPage() {
   // Filter history based on search
   const filteredHistory = useMemo(() => {
     if (!searchTerm) return fullHistory;
-    
+
     const search = searchTerm.toLowerCase();
-    return fullHistory.filter(notification => 
-      notification.actionPath?.toLowerCase().includes(search) ||
-      JSON.stringify(notification.data).toLowerCase().includes(search)
+    return fullHistory.filter(
+      (notification) =>
+        notification.actionPath?.toLowerCase().includes(search) ||
+        JSON.stringify(notification.data).toLowerCase().includes(search)
     );
   }, [fullHistory, searchTerm]);
 
   // Filter store items based on search
   const filteredStoreItems = useMemo(() => {
     if (!searchTerm) return storeItems;
-    
+
     const search = searchTerm.toLowerCase();
-    return storeItems.filter(item => 
-      item.title.toLowerCase().includes(search) ||
-      item.description?.toLowerCase().includes(search) ||
-      item.address.toLowerCase().includes(search)
+    return storeItems.filter(
+      (item) =>
+        item.title.toLowerCase().includes(search) ||
+        item.description?.toLowerCase().includes(search) ||
+        item.address.toLowerCase().includes(search)
     );
   }, [storeItems, searchTerm]);
 
@@ -208,96 +209,96 @@ export default function ConsoleHistoryPage() {
   const handleExport = () => {
     const exportData = {
       history: filteredHistory,
-      configuration: filteredStoreItems
+      configuration: filteredStoreItems,
     };
     const dataStr = JSON.stringify(exportData, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = `console-history-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.json`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
+    const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
+
+    const exportFileDefaultName = `console-history-${format(new Date(), "yyyy-MM-dd-HHmmss")}.json`;
+
+    const linkElement = document.createElement("a");
+    linkElement.setAttribute("href", dataUri);
+    linkElement.setAttribute("download", exportFileDefaultName);
     linkElement.click();
   };
 
   const getExplorerLink = (notification: ConsoleLog): string | null => {
     const data = notification.data as any;
-    const network = data.network || 'testnet';
-    
+    const network = data.network || "testnet";
+
     // Helper to convert chain ID to chain identifier
     const getChainIdentifier = (chainId: string | undefined): string => {
-      if (!chainId) return 'C';
+      if (!chainId) return "C";
       // C-Chain IDs: 43114 (mainnet), 43113 (testnet/fuji)
-      if (chainId === '43114' || chainId === '43113') return 'C';
+      if (chainId === "43114" || chainId === "43113") return "C";
       // For other chains, return the chain ID itself
       return chainId;
     };
-    
+
     // Check for transaction IDs/hashes
     if (data.txID) {
-      return getExplorerUrl(data.txID, 'tx', network, 'P');
+      return getExplorerUrl(data.txID, "tx", network, "P");
     }
     if (data.txHash) {
       const chain = getChainIdentifier(data.chainID);
-      return getExplorerUrl(data.txHash, 'tx', network, chain);
+      return getExplorerUrl(data.txHash, "tx", network, chain);
     }
-    
+
     // Check for contract addresses
     if (data.contractAddress) {
       const chain = getChainIdentifier(data.chainID);
-      return getExplorerUrl(data.contractAddress, 'address', network, chain);
+      return getExplorerUrl(data.contractAddress, "address", network, chain);
     }
-    
+
     // For subnet/chain creation, use the ID as transaction ID
-    if (data.subnetID && notification.actionPath?.includes('subnet_created')) {
-      return getExplorerUrl(data.subnetID, 'tx', network, 'P');
+    if (data.subnetID && notification.actionPath?.includes("subnet_created")) {
+      return getExplorerUrl(data.subnetID, "tx", network, "P");
     }
-    if (data.blockchainID && notification.actionPath?.includes('chain_created')) {
-      return getExplorerUrl(data.blockchainID, 'tx', network, 'P');
+    if (data.blockchainID && notification.actionPath?.includes("chain_created")) {
+      return getExplorerUrl(data.blockchainID, "tx", network, "P");
     }
-    if (data.txID && notification.actionPath?.includes('l1_conversion')) {
-      return getExplorerUrl(data.txID, 'tx', network, 'P');
+    if (data.txID && notification.actionPath?.includes("l1_conversion")) {
+      return getExplorerUrl(data.txID, "tx", network, "P");
     }
-    
+
     return null;
   };
 
   const getDisplayInfo = (log: ConsoleLog) => {
     const { actionPath, status, data } = log;
-    let title = '';
-    let description = '';
+    let title = "";
+    let description = "";
 
-    const network = data.network ? ` (${data.network})` : '';
+    const network = data.network ? ` (${data.network})` : "";
 
     // Parse the action path to extract context
     // Format: "section/subsection/.../action_type/action_name"
-    const pathParts = actionPath?.split('/') || [];
-    
+    const pathParts = actionPath?.split("/") || [];
+
     if (pathParts.length >= 2) {
       // Get the last two parts: action_type and action_name
-      const actionName = pathParts[pathParts.length - 1] || '';
-      const actionType = pathParts[pathParts.length - 2] || '';
-      
+      const actionName = pathParts[pathParts.length - 1] || "";
+      const actionType = pathParts[pathParts.length - 2] || "";
+
       // Format the action name for display
       const formattedName = actionName
-        .replace(/_/g, ' ')
-        .replace(/\b\w/g, char => char.toUpperCase());
-      
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+
       // Generate title based on action type and status
-      const statusText = status === 'success' ? 'Success' : 'Failed';
-      
+      const statusText = status === "success" ? "Success" : "Failed";
+
       switch (actionType) {
-        case 'deploy':
+        case "deploy":
           title = `Deploy ${formattedName} - ${statusText}`;
           break;
-        case 'call':
+        case "call":
           title = `${formattedName} - ${statusText}`;
           break;
-        case 'transfer':
+        case "transfer":
           title = `Transfer ${formattedName} - ${statusText}`;
           break;
-        case 'local':
+        case "local":
           title = `${formattedName} - ${statusText}`;
           break;
         default:
@@ -307,20 +308,20 @@ export default function ConsoleHistoryPage() {
     } else if (actionPath) {
       // Fallback for simple action paths
       const formattedAction = actionPath
-        .replace(/_/g, ' ')
-        .replace(/\b\w/g, char => char.toUpperCase());
-      title = `${formattedAction} - ${status === 'success' ? 'Success' : 'Failed'}`;
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+      title = `${formattedAction} - ${status === "success" ? "Success" : "Failed"}`;
     } else {
       // No action path provided
       title = `Event ${status.toUpperCase()}`;
     }
 
     // Generate description based on available data fields
-    if (status === 'error') {
-      description = data.error || 'Unknown error occurred';
+    if (status === "error") {
+      description = data.error || "Unknown error occurred";
     } else {
       const details = [];
-      
+
       // Add relevant data fields to description
       if (data.txHash) {
         details.push(`Transaction: ${data.txHash.slice(0, 10)}...`);
@@ -340,18 +341,19 @@ export default function ConsoleHistoryPage() {
       if (data.chainId) {
         details.push(`Chain ID: ${data.chainId}`);
       }
-      if (data.result && typeof data.result === 'string') {
+      if (data.result && typeof data.result === "string") {
         const preview = data.result.length > 30 ? `${data.result.slice(0, 30)}...` : data.result;
         details.push(`Result: ${preview}`);
       }
-      
+
       if (details.length > 0) {
-        description = details.join('\n') + network;
+        description = details.join("\n") + network;
       } else {
         // If no specific fields, show a generic success message or stringify the data
-        description = Object.keys(data).length > 1 
-          ? `Details: ${JSON.stringify(data).slice(0, 100)}...` 
-          : `Operation completed successfully${network}`;
+        description =
+          Object.keys(data).length > 1
+            ? `Details: ${JSON.stringify(data).slice(0, 100)}...`
+            : `Operation completed successfully${network}`;
       }
     }
 
@@ -362,9 +364,7 @@ export default function ConsoleHistoryPage() {
     <div className="container mx-auto py-8 px-4 max-w-5xl">
       {/* Simple Header */}
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-semibold">
-          History
-        </h1>
+        <h1 className="text-2xl font-semibold">History</h1>
         {(fullHistory.length > 0 || storeItems.length > 0) && (
           <Button
             variant="ghost"
@@ -393,7 +393,7 @@ export default function ConsoleHistoryPage() {
       </div>
 
       {/* History List */}
-      {status === 'loading' || loading ? (
+      {status === "loading" || loading ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground">Loading...</p>
         </div>
@@ -412,7 +412,9 @@ export default function ConsoleHistoryPage() {
             <div>
               <div className="mb-4">
                 <h2 className="text-lg font-semibold">Transaction History</h2>
-                <p className="text-sm text-muted-foreground mt-1">Your recent transactions and operations</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Your recent transactions and operations
+                </p>
               </div>
               <div className="space-y-2">
                 {/* Login prompt if not signed in */}
@@ -425,7 +427,7 @@ export default function ConsoleHistoryPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => window.location.href = '/login'}
+                        onClick={() => (window.location.href = "/login")}
                         className="gap-2"
                       >
                         <LogIn className="h-4 w-4" />
@@ -434,48 +436,65 @@ export default function ConsoleHistoryPage() {
                     </div>
                   </div>
                 )}
-                
+
                 {filteredHistory.map((notification) => {
                   const { title, description } = getDisplayInfo(notification);
                   const explorerUrl = getExplorerLink(notification);
                   const data = notification.data as any;
-                  
+
                   // Extract the main identifier (tx hash, address, etc)
                   const mainId = data.txHash || data.txID || data.address || data.signedMessage;
-                  const mainIdStr = mainId ? String(mainId) : '';
-                  const shortId = mainIdStr.length > 14 ? `${mainIdStr.slice(0, 8)}...${mainIdStr.slice(-6)}` : mainIdStr;
-                  
+                  const mainIdStr = mainId ? String(mainId) : "";
+                  const shortId =
+                    mainIdStr.length > 14
+                      ? `${mainIdStr.slice(0, 8)}...${mainIdStr.slice(-6)}`
+                      : mainIdStr;
+
                   return (
                     <div
                       key={notification.id}
                       className={cn(
                         "p-4 rounded-lg border bg-card/50 transition-all",
                         explorerUrl && "hover:bg-card cursor-pointer",
-                        notification.status === 'error' && "border-destructive/20"
+                        notification.status === "error" && "border-destructive/20"
                       )}
                       onClick={(e) => {
-                        if (explorerUrl && !(e.target as HTMLElement)?.closest('button')) {
-                          window.open(explorerUrl, '_blank');
+                        if (explorerUrl && !(e.target as HTMLElement)?.closest("button")) {
+                          window.open(explorerUrl, "_blank");
                         }
                       }}
+                      onKeyDown={(e) => {
+                        if (explorerUrl && (e.key === "Enter" || e.key === " ")) {
+                          if (!(e.target as HTMLElement)?.closest("button")) {
+                            e.preventDefault();
+                            window.open(explorerUrl, "_blank");
+                          }
+                        }
+                      }}
+                      role={explorerUrl ? "button" : undefined}
+                      tabIndex={explorerUrl ? 0 : undefined}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3">
-                            <span className={cn(
-                              "text-sm font-medium",
-                              notification.status === 'error' && "text-destructive"
-                            )}>
+                            <span
+                              className={cn(
+                                "text-sm font-medium",
+                                notification.status === "error" && "text-destructive"
+                              )}
+                            >
                               {title}
                             </span>
                             {data.network && (
-                              <span className={cn(
-                                "text-xs px-1.5 py-0.5 rounded-full font-medium",
-                                data.network === 'mainnet' 
-                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
-                                  : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                              )}>
-                                {data.network === 'mainnet' ? 'Mainnet' : 'Testnet'}
+                              <span
+                                className={cn(
+                                  "text-xs px-1.5 py-0.5 rounded-full font-medium",
+                                  data.network === "mainnet"
+                                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                    : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                )}
+                              >
+                                {data.network === "mainnet" ? "Mainnet" : "Testnet"}
                               </span>
                             )}
                             {shortId && (
@@ -488,20 +507,18 @@ export default function ConsoleHistoryPage() {
                           {notification.actionPath && (
                             <div className="text-xs text-muted-foreground mt-1">
                               <span className="font-mono opacity-70">
-                                {notification.actionPath.split('/').slice(0, -1).join(' / ')}
+                                {notification.actionPath.split("/").slice(0, -1).join(" / ")}
                               </span>
                             </div>
                           )}
                           {description && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {description}
-                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">{description}</p>
                           )}
                         </div>
-                        
+
                         <div className="flex items-center gap-3 ml-4">
                           <span className="text-xs text-muted-foreground">
-                            {format(new Date(notification.timestamp), 'HH:mm')}
+                            {format(new Date(notification.timestamp), "HH:mm")}
                           </span>
                           {mainIdStr && (
                             <button
@@ -530,25 +547,31 @@ export default function ConsoleHistoryPage() {
               </div>
             </div>
           )}
-          
+
           {/* Store Items Section */}
           {filteredStoreItems.length > 0 && (
             <div>
               <div className="mb-4">
                 <h2 className="text-lg font-semibold">Console Configuration</h2>
-                <p className="text-sm text-muted-foreground mt-1">Active contracts and chain configuration from your current session</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Active contracts and chain configuration from your current session
+                </p>
               </div>
               <div className="space-y-2">
                 {filteredStoreItems.map((item) => {
-                  const network = isTestnet ? 'testnet' : 'mainnet';
-                  const chainId = item.chainId || (selectedL1?.evmChainId?.toString());
-                  const explorerUrl = item.type === 'tx' 
-                    ? getExplorerUrl(item.address, 'tx', network, 'P')
-                    : chainId 
-                      ? getExplorerUrl(item.address, 'address', network, chainId)
-                      : null;
-                  const shortId = item.address.length > 14 ? `${item.address.slice(0, 8)}...${item.address.slice(-6)}` : item.address;
-                  
+                  const network = isTestnet ? "testnet" : "mainnet";
+                  const chainId = item.chainId || selectedL1?.evmChainId?.toString();
+                  const explorerUrl =
+                    item.type === "tx"
+                      ? getExplorerUrl(item.address, "tx", network, "P")
+                      : chainId
+                        ? getExplorerUrl(item.address, "address", network, chainId)
+                        : null;
+                  const shortId =
+                    item.address.length > 14
+                      ? `${item.address.slice(0, 8)}...${item.address.slice(-6)}`
+                      : item.address;
+
                   return (
                     <div
                       key={item.id}
@@ -557,36 +580,44 @@ export default function ConsoleHistoryPage() {
                         explorerUrl && "hover:bg-card cursor-pointer"
                       )}
                       onClick={(e) => {
-                        if (explorerUrl && !(e.target as HTMLElement)?.closest('button')) {
-                          window.open(explorerUrl, '_blank');
+                        if (explorerUrl && !(e.target as HTMLElement)?.closest("button")) {
+                          window.open(explorerUrl, "_blank");
                         }
                       }}
+                      onKeyDown={(e) => {
+                        if (explorerUrl && (e.key === "Enter" || e.key === " ")) {
+                          if (!(e.target as HTMLElement)?.closest("button")) {
+                            e.preventDefault();
+                            window.open(explorerUrl, "_blank");
+                          }
+                        }
+                      }}
+                      role={explorerUrl ? "button" : undefined}
+                      tabIndex={explorerUrl ? 0 : undefined}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3">
-                            <span className="text-sm font-medium">
-                              {item.title}
-                            </span>
-                            <span className={cn(
-                              "text-xs px-1.5 py-0.5 rounded-full font-medium",
-                              network === 'mainnet' 
-                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
-                                : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                            )}>
-                              {network === 'mainnet' ? 'Mainnet' : 'Testnet'}
+                            <span className="text-sm font-medium">{item.title}</span>
+                            <span
+                              className={cn(
+                                "text-xs px-1.5 py-0.5 rounded-full font-medium",
+                                network === "mainnet"
+                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                  : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                              )}
+                            >
+                              {network === "mainnet" ? "Mainnet" : "Testnet"}
                             </span>
                             <code className="text-xs text-muted-foreground font-mono">
                               {shortId}
                             </code>
                           </div>
                           {item.description && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {item.description}
-                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
                           )}
                         </div>
-                        
+
                         <div className="flex items-center gap-3 ml-4">
                           <button
                             onClick={(e) => {

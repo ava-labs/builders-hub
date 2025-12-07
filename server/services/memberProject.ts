@@ -9,32 +9,27 @@ export async function UpdateStatusMember(
   status: string,
   email: string,
   wasInOtherProject: boolean
-) {  
+) {
   if (!project_id || !status) {
     throw new ValidationError("project_id and status are required", []);
   }
 
   // Buscar el usuario si se proporciona user_id
-  const user = user_id ? await prisma.user.findFirst({
-    where: {
-      OR: [
-        { id: user_id },
-        { email: email }
-      ]
-    }
-  }) : null;
- 
+  const user = user_id
+    ? await prisma.user.findFirst({
+        where: {
+          OR: [{ id: user_id }, { email: email }],
+        },
+      })
+    : null;
+
   const member = await prisma.member.findFirst({
     where: {
-      OR: [
-        { user_id: user_id },
-        { email: user?.email },
-        { email: email }
-      ],
-      project_id: project_id
-    }
+      OR: [{ user_id: user_id }, { email: user?.email }, { email: email }],
+      project_id: project_id,
+    },
   });
-  
+
   if (!member) {
     throw new ValidationError("Member not found", []);
   }
@@ -42,18 +37,17 @@ export async function UpdateStatusMember(
   const updatedMember = await prisma.member.update({
     where: {
       id: member.id,
-      project_id: project_id
+      project_id: project_id,
     },
     data: { status: status },
   });
-  
 
   if (user_id && user_id !== member.user_id) {
     await prisma.member.update({
       where: {
         id: member.id,
       },
-      data: { user_id: user_id }
+      data: { user_id: user_id },
     });
   }
 
@@ -62,8 +56,11 @@ export async function UpdateStatusMember(
   return updatedMember;
 }
 
-async function checkIfUserIsMemberOfOtherProject(wasInOtherProject: boolean, member: any, project_id: string) {
-
+async function checkIfUserIsMemberOfOtherProject(
+  wasInOtherProject: boolean,
+  member: any,
+  project_id: string
+) {
   if (wasInOtherProject) {
     const currentProject = await prisma.project.findUnique({
       where: {
@@ -75,15 +72,15 @@ async function checkIfUserIsMemberOfOtherProject(wasInOtherProject: boolean, mem
       where: {
         hackaton_id: currentProject!.hackaton_id,
         AND: {
-          id: { not: project_id }
-        }
+          id: { not: project_id },
+        },
       },
       select: {
         id: true,
       },
     });
 
-    const projectIds = allProjects.map(p => p.id);
+    const projectIds = allProjects.map((p) => p.id);
 
     await prisma.member.updateMany({
       where: {
@@ -91,13 +88,10 @@ async function checkIfUserIsMemberOfOtherProject(wasInOtherProject: boolean, mem
           in: projectIds,
         },
         AND: {
-          OR: [
-            { user_id: member.user_id },
-            { email: member.email }
-          ]
-        }
+          OR: [{ user_id: member.user_id }, { email: member.email }],
+        },
       },
-      data: { status: MemberStatus.REMOVED }
+      data: { status: MemberStatus.REMOVED },
     });
 
     for (const projectId of projectIds) {
@@ -109,16 +103,16 @@ async function checkIfUserIsMemberOfOtherProject(wasInOtherProject: boolean, mem
 async function deleteProjectIfNoMembers(projectId: string) {
   const remainingMembers = await prisma.member.findMany({
     where: {
-      project_id: projectId,    
-      status: { not: MemberStatus.REMOVED }
-    }
+      project_id: projectId,
+      status: { not: MemberStatus.REMOVED },
+    },
   });
 
   if (remainingMembers.length === 0) {
     await prisma.project.delete({
       where: {
-        id: projectId
-      }
+        id: projectId,
+      },
     });
   }
 }

@@ -8,10 +8,9 @@ import { Pill, Pills } from "@/components/ui/pills";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import { Feedback } from "@/components/ui/feedback";
 import posthog from "posthog-js";
+import Image from "next/image";
 
-export default async function Page(props: {
-  params: Promise<{ slug: string[] }>;
-}) {
+export default async function Page(props: { params: Promise<{ slug: string[] }> }) {
   const params = await props.params;
   const page = integration.getPage(params.slug);
   if (!page) notFound();
@@ -22,7 +21,7 @@ export default async function Page(props: {
     : "Update Integration Information";
 
   const { body: MDX } = await page.data.load();
-  const path = `content/integrations${page.url.replace('/integrations/', '/')}.mdx`;
+  const path = `content/integrations${page.url.replace("/integrations/", "/")}.mdx`;
 
   return (
     <div className="integration-detail-page">
@@ -40,9 +39,11 @@ export default async function Page(props: {
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <img
+            <Image
               src={page.data.logo as string}
               alt={(page.data.title as string) || "Integration"}
+              width={48}
+              height={48}
               className="w-12 h-12 object-contain mr-4"
             />
             <h1 className="mb-2 text-3xl font-bold text-white">
@@ -50,13 +51,8 @@ export default async function Page(props: {
             </h1>
           </div>
         </div>
-        <p className="mb-4 text-white/80">
-          {(page.data.description as string) || ""}
-        </p>
-        <Link
-          href="/integrations"
-          className={buttonVariants({ size: "sm", variant: "secondary" })}
-        >
+        <p className="mb-4 text-white/80">{(page.data.description as string) || ""}</p>
+        <Link href="/integrations" className={buttonVariants({ size: "sm", variant: "secondary" })}>
           Back
         </Link>
       </div>
@@ -76,9 +72,7 @@ export default async function Page(props: {
         <div className="flex flex-col gap-4 border-l p-4 text-sm">
           <div>
             <p className="mb-1 text-sm text-muted-foreground">Developer:</p>
-            <p className="font-medium">
-              {(page.data.developer as string) || "Unknown"}
-            </p>
+            <p className="font-medium">{(page.data.developer as string) || "Unknown"}</p>
           </div>
           <div>
             <p className="mb-2 text-muted-foreground">Categories:</p>
@@ -92,50 +86,35 @@ export default async function Page(props: {
               />
             </div>
           </div>
-          {(page.data.available as string[]) &&
-            (page.data.available as string[]).length > 0 && (
-              <div>
-                <p className="mb-2 text-muted-foreground">Available For:</p>
-                <div className="flex flex-wrap items-center gap-4 text-xs">
-                  <Pills
-                    items={(page.data.available as string[]).map(
-                      (c: string) => {
-                        return { text: c };
-                      }
-                    )}
-                  />
-                </div>
+          {(page.data.available as string[]) && (page.data.available as string[]).length > 0 && (
+            <div>
+              <p className="mb-2 text-muted-foreground">Available For:</p>
+              <div className="flex flex-wrap items-center gap-4 text-xs">
+                <Pills
+                  items={(page.data.available as string[]).map((c: string) => {
+                    return { text: c };
+                  })}
+                />
               </div>
-            )}
+            </div>
+          )}
           <div>
             <p className="mb-1 text-muted-foreground">Website:</p>
-            <a
-              href={page.data.website as string}
-              target="_blank"
-              rel="noreferrer noopener"
-            >
+            <a href={page.data.website as string} target="_blank" rel="noreferrer noopener">
               {(page.data.website as string) || "N/A"}
             </a>
           </div>
           {(page.data.baas_platform as string) && (
             <div>
               <p className="mb-1 text-muted-foreground">BaaS Platform:</p>
-              <a
-                href={page.data.baas_platform as string}
-                target="_blank"
-                rel="noreferrer noopener"
-              >
+              <a href={page.data.baas_platform as string} target="_blank" rel="noreferrer noopener">
                 {(page.data.baas_platform as string) || "N/A"}
               </a>
             </div>
           )}
           <div>
             <p className="mb-1 text-muted-foreground">Documentation:</p>
-            <a
-              href={page.data.documentation as string}
-              target="_blank"
-              rel="noreferrer noopener"
-            >
+            <a href={page.data.documentation as string} target="_blank" rel="noreferrer noopener">
               {(page.data.documentation as string) || "N/A"}
             </a>
           </div>
@@ -145,7 +124,7 @@ export default async function Page(props: {
   );
 }
 
-export async function generateStaticParams() {
+export function generateStaticParams() {
   return integration.getPages().map((page) => ({
     slug: page.slugs,
   }));

@@ -27,9 +27,7 @@ function ProgramCard({ title, description, icon }: ProgramCardProps) {
   return (
     <div className="p-6 space-y-4 bg-card border border-border rounded-lg hover:shadow-sm transition-shadow duration-200">
       <div className="flex justify-between items-start">
-        <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-          {icon}
-        </div>
+        <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">{icon}</div>
         <ArrowRight className="h-4 w-4 text-muted-foreground" />
       </div>
       <h3 className="text-xl font-semibold">{title}</h3>
@@ -61,12 +59,10 @@ export default function Page() {
               className="hidden dark:block"
             />
           </div>
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-            Grants & Programs
-          </h1>
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight">Grants & Programs</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Empowering innovators to build the future of blockchain technology
-            with scalable and sustainable solutions.
+            Empowering innovators to build the future of blockchain technology with scalable and
+            sustainable solutions.
           </p>
           <Link href="#programs">
             <Button className="mt-8 rounded-lg px-6 py-3">
@@ -85,8 +81,7 @@ export default function Page() {
             </div>
             <h2 className="text-4xl md:text-5xl font-bold">$250M+ in Grants</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Funding innovation across all programs based on project impact and
-              potential.
+              Funding innovation across all programs based on project impact and potential.
             </p>
           </div>
         </section>
@@ -112,10 +107,7 @@ export default function Page() {
                 icon={<Zap className="w-6 h-6 text-foreground" />}
               />
             </a>
-            <a
-              href="https://grants.team1.network/"
-              className="block hover:no-underline"
-            >
+            <a href="https://grants.team1.network/" className="block hover:no-underline">
               <ProgramCard
                 title="Team1 Mini Grants"
                 description="Supporting early stage Avalanche projects with capital, mentorship, and guidance."
@@ -163,8 +155,8 @@ export default function Page() {
           <div className="text-center space-y-4">
             <h2 className="text-3xl md:text-4xl font-bold">Partner Programs</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Exclusive programs in partnership with leading organizations in
-              the Avalanche ecosystem.
+              Exclusive programs in partnership with leading organizations in the Avalanche
+              ecosystem.
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -222,13 +214,10 @@ export default function Page() {
         {/* CTA Section */}
         <section className="mt-24">
           <div className="px-6 py-16 text-center space-y-6 rounded-lg border border-border bg-card">
-            <h2 className="text-2xl md:text-3xl font-bold">
-              Security Bug Bounty
-            </h2>
+            <h2 className="text-2xl md:text-3xl font-bold">Security Bug Bounty</h2>
             <p className="text-muted-foreground max-w-3xl mx-auto">
-              Help secure the Avalanche network. Security researchers who
-              identify critical vulnerabilities can earn bounties up to{" "}
-              <strong>$100,000 USD</strong>.
+              Help secure the Avalanche network. Security researchers who identify critical
+              vulnerabilities can earn bounties up to <strong>$100,000 USD</strong>.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="https://immunefi.com/bug-bounty/avalanche/information/">

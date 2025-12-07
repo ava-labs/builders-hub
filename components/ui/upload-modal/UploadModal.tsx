@@ -1,17 +1,17 @@
-import { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import Modal from '@/components/ui/Modal';
-import { BadgeCheck } from 'lucide-react';
-import { useUploadState } from '@/hooks/useUploadState';
-import { FilePreview } from './FilePreview';
-import { UploadSuccessState } from './UploadSuccessState';
-import { UploadingState } from './UploadingState';
-import { ErrorState } from './ErrorState';
-import { InitialUploadState } from './InitialUploadState';
+import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import Modal from "@/components/ui/Modal";
+import { BadgeCheck } from "lucide-react";
+import { useUploadState } from "@/hooks/useUploadState";
+import { FilePreview } from "./FilePreview";
+import { UploadSuccessState } from "./UploadSuccessState";
+import { UploadingState } from "./UploadingState";
+import { ErrorState } from "./ErrorState";
+import { InitialUploadState } from "./InitialUploadState";
 
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB
-const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/svg+xml'];
+const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png", "image/svg+xml"];
 const MAX_IMAGE_DIMENSION = 2048; // pixels
 
 interface UploadModalProps {
@@ -26,9 +26,7 @@ const validateImageDimensions = (url: string): Promise<boolean> => {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      resolve(
-        img.width <= MAX_IMAGE_DIMENSION && img.height <= MAX_IMAGE_DIMENSION
-      );
+      resolve(img.width <= MAX_IMAGE_DIMENSION && img.height <= MAX_IMAGE_DIMENSION);
     };
     img.onerror = () => resolve(false);
     img.src = url;
@@ -37,11 +35,9 @@ const validateImageDimensions = (url: string): Promise<boolean> => {
 
 const validateMimeType = async (url: string): Promise<string | null> => {
   try {
-    const response = await fetch(url, { method: 'HEAD' });
-    const contentType = response.headers.get('content-type');
-    return contentType && ALLOWED_FILE_TYPES.includes(contentType)
-      ? contentType
-      : null;
+    const response = await fetch(url, { method: "HEAD" });
+    const contentType = response.headers.get("content-type");
+    return contentType && ALLOWED_FILE_TYPES.includes(contentType) ? contentType : null;
   } catch {
     return null;
   }
@@ -53,10 +49,10 @@ const downloadAndValidateImage = async (
   try {
     // Validar URL
     const urlObj = new URL(url);
-    if (!['http:', 'https:'].includes(urlObj.protocol)) {
+    if (!["http:", "https:"].includes(urlObj.protocol)) {
       return {
         valid: false,
-        error: 'Invalid URL protocol. Only HTTP and HTTPS are allowed.',
+        error: "Invalid URL protocol. Only HTTP and HTTPS are allowed.",
       };
     }
 
@@ -64,19 +60,19 @@ const downloadAndValidateImage = async (
     if (!mimeType) {
       return {
         valid: false,
-        error: 'Invalid file type. Only JPG, PNG and SVG are allowed.',
+        error: "Invalid file type. Only JPG, PNG and SVG are allowed.",
       };
     }
 
     const response = await fetch(url);
     if (!response.ok) {
-      return { valid: false, error: 'Failed to download image.' };
+      return { valid: false, error: "Failed to download image." };
     }
 
     const blob = await response.blob();
 
     if (blob.size > MAX_FILE_SIZE) {
-      return { valid: false, error: 'File size exceeds 1MB limit.' };
+      return { valid: false, error: "File size exceeds 1MB limit." };
     }
 
     const imageUrl = URL.createObjectURL(blob);
@@ -92,7 +88,7 @@ const downloadAndValidateImage = async (
 
     return { valid: true, blob };
   } catch (error) {
-    return { valid: false, error: 'Failed to process image.' };
+    return { valid: false, error: "Failed to process image." };
   }
 };
 
@@ -115,16 +111,16 @@ export default function UploadModal({
     handleDelete,
     handleReplace,
     setIsReplacing,
-    setUploadState
+    setUploadState,
   } = useUploadState({ onFileSelect, onUrlUpload });
 
   useEffect(() => {
     if (!isOpen && !isReplacing) {
       setUploadState({
-        status: 'initial',
+        status: "initial",
         source: null,
       });
-      setFileUrl('');
+      setFileUrl("");
     }
   }, [isOpen, isReplacing]);
 
@@ -137,14 +133,16 @@ export default function UploadModal({
     }
   };
 
-  const validateImage = async (file: File): Promise<{ valid: boolean; error?: { message: string; subMessage: string } }> => {
+  const validateImage = (
+    file: File
+  ): { valid: boolean; error?: { message: string; subMessage: string } } => {
     if (!ALLOWED_FILE_TYPES.includes(file.type)) {
       return {
         valid: false,
         error: {
-          message: 'Invalid format.',
-          subMessage: 'Only PNG, JPG, and SVG are supported.'
-        }
+          message: "Invalid format.",
+          subMessage: "Only PNG, JPG, and SVG are supported.",
+        },
       };
     }
 
@@ -152,60 +150,64 @@ export default function UploadModal({
       return {
         valid: false,
         error: {
-          message: 'The file is too large (Max: 1MB).',
-          subMessage: 'Try compressing it.'
-        }
+          message: "The file is too large (Max: 1MB).",
+          subMessage: "Try compressing it.",
+        },
       };
     }
 
     return new Promise((resolve) => {
       const img = new Image();
       const objectUrl = URL.createObjectURL(file);
-      
+
       img.onload = () => {
         URL.revokeObjectURL(objectUrl);
         if (img.width !== img.height) {
           resolve({
             valid: false,
             error: {
-              message: 'The image is not square.',
-              subMessage: 'Recommended size: 512 x 512px.'
-            }
+              message: "The image is not square.",
+              subMessage: "Recommended size: 512 x 512px.",
+            },
           });
         } else {
           resolve({ valid: true });
         }
       };
-      
+
       img.onerror = () => {
         URL.revokeObjectURL(objectUrl);
         resolve({
           valid: false,
           error: {
-            message: 'Invalid image.',
-            subMessage: 'The file could not be loaded as an image.'
-          }
+            message: "Invalid image.",
+            subMessage: "The file could not be loaded as an image.",
+          },
         });
       };
-      
+
       img.src = objectUrl;
     });
   };
 
   const renderContent = () => {
     switch (uploadState.status) {
-      case 'uploading':
+      case "uploading":
         return <UploadingState onCancel={handleCancel} />;
-      case 'success':
-        return <UploadSuccessState onClose={() => {
-          if (handleDone()) {
-            onOpenChange(false);
-          }
-        }} />;
-      case 'error':
+      case "success":
         return (
-          <ErrorState 
-            message={uploadState.error?.message || 'Error uploading image'} 
+          <UploadSuccessState
+            onClose={() => {
+              if (handleDone()) {
+                onOpenChange(false);
+              }
+            }}
+          />
+        );
+      case "error":
+        return (
+          <ErrorState
+            message={uploadState.error?.message || "Error uploading image"}
             subMessage={uploadState.error?.subMessage}
             onReplace={handleReplace}
           />
@@ -216,22 +218,18 @@ export default function UploadModal({
   };
 
   const renderFooter = () => {
-    if (uploadState.fileInfo && uploadState.status !== 'error') {
+    if (uploadState.fileInfo && uploadState.status !== "error") {
       return (
         <div className="w-full">
           <p className="text-sm font-medium text-black dark:text-white mb-2">
-            {uploadState.status === 'success' ? 'Upload Successful!' : 'Current Image'}
+            {uploadState.status === "success" ? "Upload Successful!" : "Current Image"}
           </p>
-          <FilePreview 
-            {...uploadState.fileInfo} 
-            onEdit={handleReplace}
-            onDelete={handleDelete}
-          />
+          <FilePreview {...uploadState.fileInfo} onEdit={handleReplace} onDelete={handleDelete} />
         </div>
       );
     }
 
-    if (uploadState.status !== 'uploading' && uploadState.status !== 'error') {
+    if (uploadState.status !== "uploading" && uploadState.status !== "error") {
       return (
         <div className="w-full space-y-2">
           <p className="text-sm font-medium text-black dark:text-white">Upload from URL</p>
@@ -257,7 +255,7 @@ export default function UploadModal({
               value={fileUrl}
               onChange={(e) => setFileUrl(e.target.value)}
             />
-            <Button 
+            <Button
               className="bg-gray-900 dark:bg-black text-white hover:bg-gray-800 dark:hover:bg-zinc-800 rounded-md px-4 py-1"
               disabled={!fileUrl}
               onClick={handleUrlUpload}
@@ -280,17 +278,17 @@ export default function UploadModal({
           if (isReplacing) {
             setIsReplacing(false);
             if (uploadState.fileInfo) {
-              setUploadState(prev => ({
+              setUploadState((prev) => ({
                 ...prev,
-                status: prev.status === 'error' ? 'error' : 'success'
+                status: prev.status === "error" ? "error" : "success",
               }));
             }
           } else {
             setUploadState({
-              status: 'initial',
+              status: "initial",
               source: null,
             });
-            setFileUrl('');
+            setFileUrl("");
           }
         }
         onOpenChange(open);

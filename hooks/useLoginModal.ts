@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from "react";
 
 interface LoginModalState {
   isOpen: boolean;
@@ -15,7 +15,7 @@ let globalLoginModalState: LoginModalState = {
 const loginModalListeners = new Set<() => void>();
 
 const notifyLoginModalChange = () => {
-  loginModalListeners.forEach(listener => listener());
+  loginModalListeners.forEach((listener) => listener());
 };
 
 // Hook for components that need to trigger the login modal
@@ -61,4 +61,3 @@ export function useLoginModalState() {
     subscribeToChanges,
   };
 }
-

@@ -4,7 +4,10 @@ import { useState, useEffect } from "react";
 import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
 import { AllowlistComponent } from "@/components/toolbox/components/AllowListComponents";
 import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
-import { ConsoleToolMetadata, withConsoleToolMetadata } from '../../../../components/WithConsoleToolMetadata';
+import {
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from "../../../../components/WithConsoleToolMetadata";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { Callout } from "fumadocs-ui/components/callout";
@@ -15,10 +18,8 @@ const DEFAULT_NATIVE_MINTER_ADDRESS = "0x020000000000000000000000000000000000000
 const metadata: ConsoleToolMetadata = {
   title: "Enable Staking Manager Minting",
   description: "Grant the Native Token Staking Manager permission to mint rewards.",
-  toolRequirements: [
-    WalletRequirementsConfigKey.EVMChainBalance,
-  ],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 function EnableStakingManagerMinting() {
@@ -33,25 +34,29 @@ function EnableStakingManagerMinting() {
   }, [nativeStakingManagerAddress]);
 
   return (
-    <CheckPrecompile
-      configKey="contractNativeMinterConfig"
-      precompileName="Native Minter"
-    >
+    <CheckPrecompile configKey="contractNativeMinterConfig" precompileName="Native Minter">
       <div className="space-y-4">
         <Callout type="info">
           <p className="font-semibold mb-2">Why is this needed?</p>
-          <p>The Native Token Staking Manager needs permission to mint native tokens as rewards for validators and delegators.
-            You must add the staking manager address to the Native Minter allowlist.</p>
+          <p>
+            The Native Token Staking Manager needs permission to mint native tokens as rewards for
+            validators and delegators. You must add the staking manager address to the Native Minter
+            allowlist.
+          </p>
           {nativeStakingManagerAddress && (
             <p className="mt-2">
-              <strong>Your Native Token Staking Manager Address:</strong> <code className="text-xs">{nativeStakingManagerAddress}</code>
+              <strong>Your Native Token Staking Manager Address:</strong>{" "}
+              <code className="text-xs">{nativeStakingManagerAddress}</code>
             </p>
           )}
         </Callout>
 
         {!nativeStakingManagerAddress && (
           <Callout>
-            <p>No native staking manager address found. Please deploy and initialize a Native Token Staking Manager first.</p>
+            <p>
+              No native staking manager address found. Please deploy and initialize a Native Token
+              Staking Manager first.
+            </p>
           </Callout>
         )}
 

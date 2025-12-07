@@ -2,13 +2,13 @@ import { prisma } from "@/prisma/prisma";
 
 /**
  * Validates if a user has permissions to delete a file
- * 
+ *
  * Validation rules:
  * 1. If the user has "admin" role in custom_attributes, they can delete any file
  * 2. If not admin:
  *    - If the image belongs to a project, verify that the user is a member of the project
  *    - If it's a profile image, verify that the user is the owner of the profile
- * 
+ *
  * @param fileName - File name or full URL of the file
  * @param userId - ID of the user attempting to delete the file
  * @param customAttributes - Array of user custom attributes (includes roles)
@@ -114,10 +114,7 @@ async function isUserProjectMember(userId: string, projectId: string): Promise<b
   const member = await prisma.member.findFirst({
     where: {
       project_id: projectId,
-      OR: [
-        { user_id: userId },
-        { email: user.email },
-      ],
+      OR: [{ user_id: userId }, { email: user.email }],
       status: {
         not: "Removed",
       },
@@ -137,10 +134,7 @@ async function findProfileByImageUrl(fileIdentifier: string): Promise<{ id: stri
 
   const user = await prisma.user.findFirst({
     where: {
-      OR: [
-        { image: { contains: fileIdentifier } },
-        { image: { contains: fileName } },
-      ],
+      OR: [{ image: { contains: fileIdentifier } }, { image: { contains: fileName } }],
     },
     select: {
       id: true,
@@ -153,22 +147,19 @@ async function findProfileByImageUrl(fileIdentifier: string): Promise<{ id: stri
 /**
  * Validates if a user has permissions to upload a file
  * Reuses the same validation logic as delete: admin check
- * 
+ *
  * Validation rules:
  * 1. If the user has "admin" role in custom_attributes, they can upload any file
  * 2. Otherwise, allow upload (authentication is already handled by withAuth middleware)
- * 
+ *
  * Note: Most uploads don't include hackathon_id, so we only validate admin status.
  * If hackathon-specific validation is needed in the future, it can be added here.
- * 
+ *
  * @param userId - ID of the user attempting to upload the file
  * @param customAttributes - Array of user custom attributes (includes roles)
  * @returns Promise<boolean> - true if has permissions, false otherwise
  */
-export async function canUserUploadFile(
-  userId: string,
-  customAttributes: string[] = []
-): Promise<boolean> {
+export function canUserUploadFile(userId: string, customAttributes: string[] = []): boolean {
   // Check if user is admin (same logic as delete)
   if (customAttributes.includes("admin")) {
     return true;

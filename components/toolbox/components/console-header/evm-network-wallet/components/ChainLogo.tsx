@@ -1,10 +1,12 @@
+import Image from "next/image";
+
 interface ChainLogoProps {
   logoUrl?: string;
   chainName: string;
   className?: string;
 }
 
-export function ChainLogo({ logoUrl, chainName, className = '' }: ChainLogoProps) {
+export function ChainLogo({ logoUrl, chainName, className = "" }: ChainLogoProps) {
   const getInitials = (name: string): string => {
     const words = name.trim().split(/\s+/);
     if (words.length >= 2) {
@@ -16,11 +18,15 @@ export function ChainLogo({ logoUrl, chainName, className = '' }: ChainLogoProps
   };
 
   return (
-    <div className={`w-5 h-5 rounded-md overflow-hidden flex items-center justify-center ${className}`}>
+    <div
+      className={`w-5 h-5 rounded-md overflow-hidden flex items-center justify-center ${className}`}
+    >
       {logoUrl ? (
-        <img
+        <Image
           src={logoUrl}
           alt={`${chainName} logo`}
+          width={20}
+          height={20}
           className="w-full h-full object-cover"
         />
       ) : (

@@ -8,26 +8,35 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 // CourseNode interface definition
 export interface CourseNode {
-    id: string;
-    name: string;
-    description: string;
-    slug: string;
-    category: string;
-    position: { x: number; y: number };
-    dependencies?: string[];
-    mobileOrder: number;
+  id: string;
+  name: string;
+  description: string;
+  slug: string;
+  category: string;
+  position: { x: number; y: number };
+  dependencies?: string[];
+  mobileOrder: number;
 }
 
 // Import configs
-import { avalancheLearningPaths, avalancheCategoryStyles } from './learning-path-configs/avalanche.config';
-import { entrepreneurLearningPaths, entrepreneurCategoryStyles } from './learning-path-configs/entrepreneur.config';
-import { blockchainLearningPaths, blockchainCategoryStyles } from './learning-path-configs/blockchain.config';
+import {
+  avalancheLearningPaths,
+  avalancheCategoryStyles,
+} from "./learning-path-configs/avalanche.config";
+import {
+  entrepreneurLearningPaths,
+  entrepreneurCategoryStyles,
+} from "./learning-path-configs/entrepreneur.config";
+import {
+  blockchainLearningPaths,
+  blockchainCategoryStyles,
+} from "./learning-path-configs/blockchain.config";
 
 interface LearningTreeProps {
-  pathType?: 'avalanche' | 'entrepreneur' | 'blockchain';
+  pathType?: "avalanche" | "entrepreneur" | "blockchain";
 }
 
-export default function LearningTree({ pathType = 'avalanche' }: LearningTreeProps) {
+export default function LearningTree({ pathType = "avalanche" }: LearningTreeProps) {
   const [hoveredNode, setHoveredNode] = React.useState<string | null>(null);
   const [hoveredCategory, setHoveredCategory] = React.useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = React.useState(false);
@@ -36,36 +45,38 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
   // Detect dark mode
   React.useEffect(() => {
     const checkDarkMode = () => {
-      setIsDarkMode(document.documentElement.classList.contains('dark'));
+      setIsDarkMode(document.documentElement.classList.contains("dark"));
     };
-    
+
     checkDarkMode();
-    
+
     // Watch for theme changes
     const observer = new MutationObserver(checkDarkMode);
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['class']
+      attributeFilter: ["class"],
     });
-    
+
     return () => observer.disconnect();
   }, []);
 
   // Select the appropriate learning paths and styles based on pathType
-  const learningPaths = pathType === 'avalanche' 
-    ? avalancheLearningPaths 
-    : pathType === 'blockchain' 
-    ? blockchainLearningPaths 
-    : entrepreneurLearningPaths;
-  const categoryStyles = pathType === 'avalanche' 
-    ? avalancheCategoryStyles 
-    : pathType === 'blockchain' 
-    ? blockchainCategoryStyles 
-    : entrepreneurCategoryStyles;
+  const learningPaths =
+    pathType === "avalanche"
+      ? avalancheLearningPaths
+      : pathType === "blockchain"
+        ? blockchainLearningPaths
+        : entrepreneurLearningPaths;
+  const categoryStyles =
+    pathType === "avalanche"
+      ? avalancheCategoryStyles
+      : pathType === "blockchain"
+        ? blockchainCategoryStyles
+        : entrepreneurCategoryStyles;
 
   const resolveSlug = (slug: string) => {
-    if (pathType === 'entrepreneur') {
-      const cleanSlug = slug.replace(/^entrepreneur\//, '');
+    if (pathType === "entrepreneur") {
+      const cleanSlug = slug.replace(/^entrepreneur\//, "");
       return `/academy/entrepreneur/${cleanSlug}`;
     }
     return `/academy/${slug}`;
@@ -73,10 +84,10 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
 
   // Function to get all ancestor nodes (dependencies) of a given node
   const getAncestors = (nodeId: string, ancestors: Set<string> = new Set()): Set<string> => {
-    const node = learningPaths.find(n => n.id === nodeId);
+    const node = learningPaths.find((n) => n.id === nodeId);
     if (!node || !node.dependencies) return ancestors;
 
-    node.dependencies.forEach(depId => {
+    node.dependencies.forEach((depId) => {
       ancestors.add(depId);
       getAncestors(depId, ancestors);
     });
@@ -93,50 +104,65 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
 
     // Add all ancestors
     const ancestors = getAncestors(hoveredNode);
-    ancestors.forEach(id => highlighted.add(id));
+    ancestors.forEach((id) => highlighted.add(id));
 
     return highlighted;
   }, [hoveredNode]);
 
   // Calculate SVG dimensions based on node positions
-  const maxY = Math.max(...learningPaths.map(node => node.position.y)) + 250;
+  const maxY = Math.max(...learningPaths.map((node) => node.position.y)) + 250;
 
   // Legend component
-  const Legend = ({ isMobile = false, vertical = false }: { isMobile?: boolean; vertical?: boolean }) => (
-    <div className={
-      isMobile 
-        ? "mt-8 grid grid-cols-2 gap-3" 
-        : vertical 
-        ? "flex flex-col gap-10" 
-        : "flex flex-wrap gap-6 justify-center"
-    }>
+  const Legend = ({
+    isMobile = false,
+    vertical = false,
+  }: {
+    isMobile?: boolean;
+    vertical?: boolean;
+  }) => (
+    <div
+      className={
+        isMobile
+          ? "mt-8 grid grid-cols-2 gap-3"
+          : vertical
+            ? "flex flex-col gap-10"
+            : "flex flex-wrap gap-6 justify-center"
+      }
+    >
       {Object.entries(categoryStyles).map(([category, style]) => {
         const Icon = style.icon;
         const isHovered = hoveredCategory === category;
         return (
-          <div 
-            key={category} 
+          <div
+            key={category}
             className={cn(
               "flex items-center gap-2 cursor-pointer transition-all duration-200",
               isHovered && "scale-110"
             )}
             onMouseEnter={() => setHoveredCategory(category)}
             onMouseLeave={() => setHoveredCategory(null)}
+            role="group"
           >
-            <div className={cn(
-              isMobile ? "w-6 h-6" : "w-8 h-8",
-              "rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm transition-all duration-200",
-              isMobile && "flex-shrink-0",
-              style.gradient,
-              isHovered && "shadow-lg scale-110"
-            )}>
+            <div
+              className={cn(
+                isMobile ? "w-6 h-6" : "w-8 h-8",
+                "rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm transition-all duration-200",
+                isMobile && "flex-shrink-0",
+                style.gradient,
+                isHovered && "shadow-lg scale-110"
+              )}
+            >
               <Icon className={isMobile ? "w-3 h-3 text-white" : "w-4 h-4 text-white"} />
             </div>
-            <span className={cn(
-              isMobile ? "text-xs" : "text-sm",
-              "font-medium text-zinc-600 dark:text-zinc-400 transition-colors duration-200",
-              isHovered && "text-zinc-900 dark:text-zinc-100"
-            )}>{style.label || category}</span>
+            <span
+              className={cn(
+                isMobile ? "text-xs" : "text-sm",
+                "font-medium text-zinc-600 dark:text-zinc-400 transition-colors duration-200",
+                isHovered && "text-zinc-900 dark:text-zinc-100"
+              )}
+            >
+              {style.label || category}
+            </span>
           </div>
         );
       })}
@@ -149,7 +175,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
     learningPaths.forEach((node) => {
       if (node.dependencies && node.dependencies.length > 0) {
         node.dependencies.forEach((depId) => {
-          const parentNode = learningPaths.find(n => n.id === depId);
+          const parentNode = learningPaths.find((n) => n.id === depId);
           if (parentNode) {
             // Check if this connection should be highlighted
             const isActive = highlightedNodes.has(node.id) && highlightedNodes.has(depId);
@@ -173,16 +199,28 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
 
             // Create a curved path
             const pathData = `M ${parentCenterX} ${parentBottomY} C ${parentCenterX} ${midY}, ${childCenterX} ${midY}, ${childCenterX} ${adjustedChildTopY}`;
-            
-            const inactiveMarker = isDarkMode ? "url(#arrow-inactive-dark)" : "url(#arrow-inactive-light)";
-            const activeMarker = isDarkMode ? "url(#arrow-active-dark)" : "url(#arrow-active-light)";
-            
+
+            const inactiveMarker = isDarkMode
+              ? "url(#arrow-inactive-dark)"
+              : "url(#arrow-inactive-light)";
+            const activeMarker = isDarkMode
+              ? "url(#arrow-active-dark)"
+              : "url(#arrow-active-light)";
+
             connections.push(
               <path
                 key={`${depId}-${node.id}`}
                 d={pathData}
                 fill="none"
-                stroke={isActive ? (isDarkMode ? "rgb(212, 212, 216)" : "rgb(161, 161, 170)") : isDarkMode ? "rgb(113, 113, 122)" : "rgb(226, 232, 240)"}
+                stroke={
+                  isActive
+                    ? isDarkMode
+                      ? "rgb(212, 212, 216)"
+                      : "rgb(161, 161, 170)"
+                    : isDarkMode
+                      ? "rgb(113, 113, 122)"
+                      : "rgb(226, 232, 240)"
+                }
                 strokeWidth={isActive ? "1.5" : "1"}
                 opacity={isActive ? "1" : isDarkMode ? "0.6" : "0.5"}
                 className="transition-all duration-700 ease-in-out"
@@ -201,7 +239,9 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
 
   // Mobile layout component
   const MobileLayout = () => {
-    const sortedPaths = [...learningPaths].sort((a, b) => (a.mobileOrder || 0) - (b.mobileOrder || 0));
+    const sortedPaths = [...learningPaths].sort(
+      (a, b) => (a.mobileOrder || 0) - (b.mobileOrder || 0)
+    );
 
     return (
       <div className="relative w-full px-4 py-6">
@@ -216,13 +256,13 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
                 {/* Connection line from previous course */}
                 {index > 0 && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <svg width="16" height="16" viewBox="0 0 16 16" className="text-zinc-400 dark:text-zinc-600">
-                      <path
-                        d="M8 2 L8 10"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        fill="none"
-                      />
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      className="text-zinc-400 dark:text-zinc-600"
+                    >
+                      <path d="M8 2 L8 10" stroke="currentColor" strokeWidth="1.5" fill="none" />
                       <path
                         d="M4 8 L8 12 L12 8"
                         stroke="currentColor"
@@ -235,10 +275,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
                   </div>
                 )}
 
-                <Link
-                  href={resolveSlug(node.slug)}
-                  className="block relative group"
-                >
+                <Link href={resolveSlug(node.slug)} className="block relative group">
                   <div
                     className={cn(
                       "relative w-full p-4 rounded-xl transition-all duration-300",
@@ -254,19 +291,21 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
                     style={
                       isCategoryHovered
                         ? {
-                            boxShadow: `0 25px 50px -12px ${style?.gradient.includes('blue') ? 'rgba(59, 130, 246, 0.4)' : style?.gradient.includes('purple') ? 'rgba(168, 85, 247, 0.4)' : style?.gradient.includes('emerald') ? 'rgba(16, 185, 129, 0.4)' : style?.gradient.includes('red') ? 'rgba(239, 68, 68, 0.4)' : style?.gradient.includes('orange') ? 'rgba(249, 115, 22, 0.4)' : style?.gradient.includes('yellow') ? 'rgba(234, 179, 8, 0.4)' : 'rgba(99, 102, 241, 0.4)'}, 0 0 0 4px ${style?.gradient.includes('blue') ? 'rgba(59, 130, 246, 0.15)' : style?.gradient.includes('purple') ? 'rgba(168, 85, 247, 0.15)' : style?.gradient.includes('emerald') ? 'rgba(16, 185, 129, 0.15)' : style?.gradient.includes('red') ? 'rgba(239, 68, 68, 0.15)' : style?.gradient.includes('orange') ? 'rgba(249, 115, 22, 0.15)' : style?.gradient.includes('yellow') ? 'rgba(234, 179, 8, 0.15)' : 'rgba(99, 102, 241, 0.15)'}`
+                            boxShadow: `0 25px 50px -12px ${style?.gradient.includes("blue") ? "rgba(59, 130, 246, 0.4)" : style?.gradient.includes("purple") ? "rgba(168, 85, 247, 0.4)" : style?.gradient.includes("emerald") ? "rgba(16, 185, 129, 0.4)" : style?.gradient.includes("red") ? "rgba(239, 68, 68, 0.4)" : style?.gradient.includes("orange") ? "rgba(249, 115, 22, 0.4)" : style?.gradient.includes("yellow") ? "rgba(234, 179, 8, 0.4)" : "rgba(99, 102, 241, 0.4)"}, 0 0 0 4px ${style?.gradient.includes("blue") ? "rgba(59, 130, 246, 0.15)" : style?.gradient.includes("purple") ? "rgba(168, 85, 247, 0.15)" : style?.gradient.includes("emerald") ? "rgba(16, 185, 129, 0.15)" : style?.gradient.includes("red") ? "rgba(239, 68, 68, 0.15)" : style?.gradient.includes("orange") ? "rgba(249, 115, 22, 0.15)" : style?.gradient.includes("yellow") ? "rgba(234, 179, 8, 0.15)" : "rgba(99, 102, 241, 0.15)"}`,
                           }
                         : undefined
                     }
                   >
                     {/* Category icon */}
-                    <div className={cn(
-                      "absolute -top-2 -right-2 w-8 h-8 rounded-full",
-                      "bg-gradient-to-br shadow-md",
-                      "flex items-center justify-center",
-                      "text-white",
-                      style?.gradient
-                    )}>
+                    <div
+                      className={cn(
+                        "absolute -top-2 -right-2 w-8 h-8 rounded-full",
+                        "bg-gradient-to-br shadow-md",
+                        "flex items-center justify-center",
+                        "text-white",
+                        style?.gradient
+                      )}
+                    >
                       <Icon className="w-4 h-4" />
                     </div>
 
@@ -315,11 +354,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
               markerHeight="5"
               orient="auto"
             >
-              <path
-                d="M 0 0 L 10 5 L 0 10 z"
-                fill="rgb(226, 232, 240)"
-                opacity="0.3"
-              />
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="rgb(226, 232, 240)" opacity="0.3" />
             </marker>
             {/* Dark mode inactive arrow */}
             <marker
@@ -331,11 +366,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
               markerHeight="5"
               orient="auto"
             >
-              <path
-                d="M 0 0 L 10 5 L 0 10 z"
-                fill="rgb(113, 113, 122)"
-                opacity="0.6"
-              />
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="rgb(113, 113, 122)" opacity="0.6" />
             </marker>
             {/* Active arrow for light mode */}
             <marker
@@ -347,10 +378,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
               markerHeight="6"
               orient="auto"
             >
-              <path
-                d="M 0 0 L 10 5 L 0 10 z"
-                fill="rgb(161, 161, 170)"
-              />
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="rgb(161, 161, 170)" />
             </marker>
             {/* Active arrow for dark mode */}
             <marker
@@ -362,10 +390,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
               markerHeight="6"
               orient="auto"
             >
-              <path
-                d="M 0 0 L 10 5 L 0 10 z"
-                fill="rgb(212, 212, 216)"
-              />
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="rgb(212, 212, 216)" />
             </marker>
           </defs>
           {drawConnections()}
@@ -385,17 +410,15 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
               style={{
                 left: `${node.position.x}%`,
                 top: `${node.position.y}px`,
-                transform: 'translateX(-50%)',
-                width: '280px',
-                zIndex: isHighlighted || isCategoryHovered ? 20 : 10
+                transform: "translateX(-50%)",
+                width: "280px",
+                zIndex: isHighlighted || isCategoryHovered ? 20 : 10,
               }}
               onMouseEnter={() => setHoveredNode(node.id)}
               onMouseLeave={() => setHoveredNode(null)}
+              role="group"
             >
-              <Link
-                href={resolveSlug(node.slug)}
-                className="block relative group w-full"
-              >
+              <Link href={resolveSlug(node.slug)} className="block relative group w-full">
                 <div
                   className={cn(
                     "relative w-full p-5 rounded-2xl transition-all duration-300 min-height-[110px]",
@@ -411,19 +434,21 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
                   style={
                     isHighlighted || isCategoryHovered
                       ? {
-                          boxShadow: `0 25px 50px -12px ${style?.gradient.includes('blue') ? 'rgba(59, 130, 246, 0.4)' : style?.gradient.includes('purple') ? 'rgba(168, 85, 247, 0.4)' : style?.gradient.includes('emerald') ? 'rgba(16, 185, 129, 0.4)' : style?.gradient.includes('red') ? 'rgba(239, 68, 68, 0.4)' : style?.gradient.includes('orange') ? 'rgba(249, 115, 22, 0.4)' : style?.gradient.includes('yellow') ? 'rgba(234, 179, 8, 0.4)' : 'rgba(99, 102, 241, 0.4)'}, 0 0 0 4px ${style?.gradient.includes('blue') ? 'rgba(59, 130, 246, 0.15)' : style?.gradient.includes('purple') ? 'rgba(168, 85, 247, 0.15)' : style?.gradient.includes('emerald') ? 'rgba(16, 185, 129, 0.15)' : style?.gradient.includes('red') ? 'rgba(239, 68, 68, 0.15)' : style?.gradient.includes('orange') ? 'rgba(249, 115, 22, 0.15)' : style?.gradient.includes('yellow') ? 'rgba(234, 179, 8, 0.15)' : 'rgba(99, 102, 241, 0.15)'}`
+                          boxShadow: `0 25px 50px -12px ${style?.gradient.includes("blue") ? "rgba(59, 130, 246, 0.4)" : style?.gradient.includes("purple") ? "rgba(168, 85, 247, 0.4)" : style?.gradient.includes("emerald") ? "rgba(16, 185, 129, 0.4)" : style?.gradient.includes("red") ? "rgba(239, 68, 68, 0.4)" : style?.gradient.includes("orange") ? "rgba(249, 115, 22, 0.4)" : style?.gradient.includes("yellow") ? "rgba(234, 179, 8, 0.4)" : "rgba(99, 102, 241, 0.4)"}, 0 0 0 4px ${style?.gradient.includes("blue") ? "rgba(59, 130, 246, 0.15)" : style?.gradient.includes("purple") ? "rgba(168, 85, 247, 0.15)" : style?.gradient.includes("emerald") ? "rgba(16, 185, 129, 0.15)" : style?.gradient.includes("red") ? "rgba(239, 68, 68, 0.15)" : style?.gradient.includes("orange") ? "rgba(249, 115, 22, 0.15)" : style?.gradient.includes("yellow") ? "rgba(234, 179, 8, 0.15)" : "rgba(99, 102, 241, 0.15)"}`,
                         }
                       : undefined
                   }
                 >
                   {/* Category icon */}
-                  <div className={cn(
-                    "absolute -top-3 -right-3 w-10 h-10 rounded-full",
-                    "bg-gradient-to-br shadow-md",
-                    "flex items-center justify-center",
-                    "text-white",
-                    style?.gradient
-                  )}>
+                  <div
+                    className={cn(
+                      "absolute -top-3 -right-3 w-10 h-10 rounded-full",
+                      "bg-gradient-to-br shadow-md",
+                      "flex items-center justify-center",
+                      "text-white",
+                      style?.gradient
+                    )}
+                  >
                     <Icon className="w-5 h-5" />
                   </div>
 
@@ -451,13 +476,13 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
   return (
     <>
       {/* Vertical Legend on far left of screen - positioned absolutely relative to viewport */}
-      <div 
+      <div
         className="hidden lg:block absolute z-10"
         style={{
-          left: '1rem',
-          top: '30%',
-          transform: 'translateY(-50%)',
-          marginLeft: 'calc(-50vw + 50%)'
+          left: "1rem",
+          top: "30%",
+          transform: "translateY(-50%)",
+          marginLeft: "calc(-50vw + 50%)",
         }}
       >
         <Legend isMobile={false} vertical={true} />
@@ -480,4 +505,4 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
       </div>
     </>
   );
-} 
+}

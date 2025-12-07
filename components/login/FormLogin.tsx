@@ -6,13 +6,7 @@ import Image from "next/image";
 import SocialLogin from "./social-login/SocialLogin";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from "../ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "../ui/form";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { useForm } from "react-hook-form";
@@ -75,9 +69,7 @@ function Formlogin({ callbackUrl = "/" }: { callbackUrl?: string }) {
           <div className="justify-between p-10">
             <div className="flex flex-col justify-center items-center gap-2">
               <div className="text-center ">
-                <h3 className="font-medium text-2xl">
-                  Sign in to your account
-                </h3>
+                <h3 className="font-medium text-2xl">Sign in to your account</h3>
                 <p className="text-zinc-400 text-sm pt-2">
                   Enter your email to receive a sign-in code
                 </p>
@@ -115,7 +107,7 @@ function Formlogin({ callbackUrl = "/" }: { callbackUrl?: string }) {
                         isLoading={isLoading}
                         loadingText="Sending..."
                       >
-                         SEND VERIFICATION CODE
+                        SEND VERIFICATION CODE
                       </LoadingButton>
                     </form>
                   </Form>

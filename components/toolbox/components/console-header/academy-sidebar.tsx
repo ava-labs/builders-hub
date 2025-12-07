@@ -241,7 +241,7 @@ const data = {
   navSecondary: [],
 };
 
-interface AcademySidebarProps extends React.ComponentProps<typeof Sidebar> { }
+interface AcademySidebarProps extends React.ComponentProps<typeof Sidebar> {}
 
 export function AcademySidebar({ ...props }: AcademySidebarProps) {
   const pathname = usePathname();
@@ -292,15 +292,13 @@ export function AcademySidebar({ ...props }: AcademySidebarProps) {
               <SidebarMenu>
                 {group.items.map((item) => {
                   const isActive = pathname === item.url;
-                  const isComingSoon =
-                    "comingSoon" in item && (item as any).comingSoon;
+                  const isComingSoon = "comingSoon" in item && (item as any).comingSoon;
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
                         asChild
                         isActive={isActive}
-                        className={`${isComingSoon ? "opacity-50 cursor-not-allowed" : ""
-                          }`}
+                        className={`${isComingSoon ? "opacity-50 cursor-not-allowed" : ""}`}
                         disabled={isComingSoon}
                       >
                         {isComingSoon ? (

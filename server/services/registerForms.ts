@@ -1,9 +1,4 @@
-import {
-  hasAtLeastOne,
-  requiredField,
-  validateEntity,
-  Validation,
-} from "./base";
+import { hasAtLeastOne, requiredField, validateEntity, Validation } from "./base";
 import { revalidatePath } from "next/cache";
 import { ValidationError } from "./hackathons";
 import { Prisma, PrismaClient } from "@prisma/client";
@@ -15,8 +10,7 @@ export const registerValidations: Validation[] = [
   {
     field: "name",
     message: "Name is required.",
-    validation: (registerForm: RegistrationForm) =>
-      requiredField(registerForm, "name"),
+    validation: (registerForm: RegistrationForm) => requiredField(registerForm, "name"),
   },
   {
     field: "email",
@@ -28,14 +22,12 @@ export const registerValidations: Validation[] = [
   {
     field: "city",
     message: "City is required.",
-    validation: (registerForm: RegistrationForm) =>
-      requiredField(registerForm, "city"),
+    validation: (registerForm: RegistrationForm) => requiredField(registerForm, "city"),
   },
   {
     field: "telegram_user",
     message: "Telegram username is required.",
-    validation: (registerForm: RegistrationForm) =>
-      requiredField(registerForm, "telegram_user"),
+    validation: (registerForm: RegistrationForm) => requiredField(registerForm, "telegram_user"),
   },
   // Note: The following fields are now optional in Step 2
   // {
@@ -77,29 +69,28 @@ export const registerValidations: Validation[] = [
   {
     field: "terms_event_conditions",
     message: "You must accept the Event Terms and Conditions to continue.",
-    validation: (registerForm: RegistrationForm) =>
-      registerForm.terms_event_conditions === true,
+    validation: (registerForm: RegistrationForm) => registerForm.terms_event_conditions === true,
   },
   {
     field: "prohibited_items",
     message: "You must agree not to bring prohibited items to continue.",
-    validation: (registerForm: RegistrationForm) =>
-      registerForm.prohibited_items === true,
+    validation: (registerForm: RegistrationForm) => registerForm.prohibited_items === true,
   },
 ];
 
 export const createRegisterValidations = (isOnlineHackathon: boolean): Validation[] => {
-  const baseValidations = registerValidations.filter(validation => validation.field !== "prohibited_items");
-  
+  const baseValidations = registerValidations.filter(
+    (validation) => validation.field !== "prohibited_items"
+  );
+
   if (!isOnlineHackathon) {
     baseValidations.push({
       field: "prohibited_items",
       message: "You must agree not to bring prohibited items to continue.",
-      validation: (registerForm: RegistrationForm) =>
-        registerForm.prohibited_items === true,
+      validation: (registerForm: RegistrationForm) => registerForm.prohibited_items === true,
     });
   }
-  
+
   return baseValidations;
 };
 
@@ -114,9 +105,9 @@ export async function createRegisterForm(
   const hackathon = await prisma.hackathon.findUnique({
     where: { id: registerData.hackathon_id },
   });
-  
+
   const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;
-  
+
   const errors = validateRegisterForm(registerData, isOnlineHackathon);
   if (errors.length > 0) {
     throw new ValidationError("Validation failed", errors);
@@ -175,19 +166,15 @@ export async function createRegisterForm(
     },
   });
   registerData.id = newRegisterFormData.id;
-  
+
   // Send registration data to HubSpot
   try {
     await sendRegistrationToHubSpot(newRegisterFormData, hackathon);
   } catch (error) {
-    console.error('Failed to send registration to HubSpot:', error);
     // Continue with registration even if HubSpot fails
   }
-  
-  await sendConfirmationMail(
-    newRegisterFormData.email,
-    newRegisterFormData.hackathon_id as string
-  );
+
+  await sendConfirmationMail(newRegisterFormData.email, newRegisterFormData.hackathon_id as string);
   revalidatePath("/api/register-form/");
 
   return newRegisterFormData as unknown as RegistrationForm;
@@ -204,10 +191,7 @@ export async function getRegisterForm(email: string, hackathon_id: string) {
 
   return registeredData || null;
 }
-export async function sendConfirmationMail(
-  email: string,
-  hackathon_id: string
-) {
+export async function sendConfirmationMail(email: string, hackathon_id: string) {
   const hackathon = await prisma.hackathon.findUnique({
     where: { id: hackathon_id },
   });
@@ -235,7 +219,7 @@ export async function sendConfirmationMail(
   try {
     await sendMail(email, html, subject, text);
   } catch (error) {
-    console.error("Error sending confirmation email:", error);
+    // Error sending confirmation email - silently fail
   }
 }
 
@@ -249,110 +233,101 @@ export async function sendRegistrationToHubSpot(
   const HUBSPOT_HACKATHON_FORM_GUID = process.env.HUBSPOT_HACKATHON_FORM_GUID;
 
   if (!HUBSPOT_API_KEY || !HUBSPOT_PORTAL_ID || !HUBSPOT_HACKATHON_FORM_GUID) {
-    console.error("[HubSpot] Missing environment variables for hackathon registration", {
-      hasApiKey: Boolean(HUBSPOT_API_KEY),
-      hasPortalId: Boolean(HUBSPOT_PORTAL_ID),
-      hasFormGuid: Boolean(HUBSPOT_HACKATHON_FORM_GUID)
-    });
+    // Missing HubSpot environment variables - skip integration
     return;
   }
 
-  try {
-    // Prepare the data for HubSpot
-    // Using descriptive names for HubSpot properties that you can map to your actual HubSpot field names
-    const hubspotData = {
-      // Standard fields (keep existing)
-      email: registrationData.email,
-      //firstname: registrationData.name?.split(' ')[0] || registrationData.name,
-      //lastname: registrationData.name?.split(' ').slice(1).join(' ') || '',
-      // Hackathon-registration-specific fields
-      'fullname': registrationData.name,
-      'country_dropdown': registrationData.city,
-      'hs_role': registrationData.role || 'Other',
-      'name': registrationData.company_name || '',
-      'telegram_handle': registrationData.telegram_user || '',
-      'github_url': registrationData.github_portfolio || '',
-      //'avalanche_ecosystem_member': registrationData.hackathon_participation || '',
-      'hackathon_interests': registrationData.interests || '',
-      'programming_language_familiarity': registrationData.languages || '',
-      'employment_role_other': registrationData.roles || 'Other',
-      'tooling_familiarity': registrationData.tools || '',
-      'founder_check': registrationData.founder_check ? 'Yes' : 'No',
-      'avalanche_ecosystem_member': registrationData.avalanche_ecosystem_member ? 'Yes' : 'No',
-      //'hackathon_event_id': registrationData.hackathon_id, // TODO: add this to the HS form
-      //'hackathon_event_title': hackathon?.title || '', // TODO: add this to the HS form
-      
-      //'registration_utm_source': registrationData.utm || '', // TODO: add this to the HS form
-      'marketing_consent': registrationData.newsletter_subscription ? 'Yes' : 'No', // TODO: add this to the HS form
-      'gdpr': registrationData.terms_event_conditions ? 'Yes' : 'No' // TODO: add this to the HS form
-    };
+  // Prepare the data for HubSpot
+  // Using descriptive names for HubSpot properties that you can map to your actual HubSpot field names
+  const hubspotData = {
+    // Standard fields (keep existing)
+    email: registrationData.email,
+    //firstname: registrationData.name?.split(' ')[0] || registrationData.name,
+    //lastname: registrationData.name?.split(' ').slice(1).join(' ') || '',
+    // Hackathon-registration-specific fields
+    fullname: registrationData.name,
+    country_dropdown: registrationData.city,
+    hs_role: registrationData.role || "Other",
+    name: registrationData.company_name || "",
+    telegram_handle: registrationData.telegram_user || "",
+    github_url: registrationData.github_portfolio || "",
+    //'avalanche_ecosystem_member': registrationData.hackathon_participation || '',
+    hackathon_interests: registrationData.interests || "",
+    programming_language_familiarity: registrationData.languages || "",
+    employment_role_other: registrationData.roles || "Other",
+    tooling_familiarity: registrationData.tools || "",
+    founder_check: registrationData.founder_check ? "Yes" : "No",
+    avalanche_ecosystem_member: registrationData.avalanche_ecosystem_member ? "Yes" : "No",
+    //'hackathon_event_id': registrationData.hackathon_id, // TODO: add this to the HS form
+    //'hackathon_event_title': hackathon?.title || '', // TODO: add this to the HS form
 
-    // Build HubSpot payload
-    const fields: { name: string; value: string | boolean }[] = [];
-    Object.entries(hubspotData).forEach(([name, value]) => {
-      if (value === undefined || value === null || value === '') {
-        return;
-      }
-      
-      fields.push({
-        name: name,
-        value: value
-      });
+    //'registration_utm_source': registrationData.utm || '', // TODO: add this to the HS form
+    marketing_consent: registrationData.newsletter_subscription ? "Yes" : "No", // TODO: add this to the HS form
+    gdpr: registrationData.terms_event_conditions ? "Yes" : "No", // TODO: add this to the HS form
+  };
+
+  // Build HubSpot payload
+  const fields: { name: string; value: string | boolean }[] = [];
+  Object.entries(hubspotData).forEach(([name, value]) => {
+    if (value === undefined || value === null || value === "") {
+      return;
+    }
+
+    fields.push({
+      name: name,
+      value: value,
     });
+  });
 
-    const hubspotPayload = {
-      fields: fields,
-      context: {
-        pageUri: 'https://build.avax.network/hackathons/registration-form',
-        pageName: 'Hackathon Registration'
+  const hubspotPayload = {
+    fields: fields,
+    context: {
+      pageUri: "https://build.avax.network/hackathons/registration-form",
+      pageName: "Hackathon Registration",
+    },
+    legalConsentOptions: {
+      consent: {
+        consentToProcess: true,
+        text: "I agree to allow Avalanche Foundation to store and process my personal data for hackathon participation purposes.",
+        communications: [
+          {
+            value: registrationData.newsletter_subscription || false,
+            subscriptionTypeId: 999,
+            text: "I would like to receive marketing emails from the Avalanche Foundation.",
+          },
+        ],
       },
-      legalConsentOptions: {
-        consent: {
-          consentToProcess: true,
-          text: "I agree to allow Avalanche Foundation to store and process my personal data for hackathon participation purposes.",
-          communications: [
-            {
-              value: registrationData.newsletter_subscription || false,
-              subscriptionTypeId: 999,
-              text: "I would like to receive marketing emails from the Avalanche Foundation."
-            }
-          ]
-        }
-      }
-    };
+    },
+  };
 
-    // Submit to HubSpot
+  // Submit to HubSpot
+  const response = await fetch(
+    `https://api.hsforms.com/submissions/v3/integration/submit/${HUBSPOT_PORTAL_ID}/${HUBSPOT_HACKATHON_FORM_GUID}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${HUBSPOT_API_KEY}`,
+        "User-Agent": "BuildersHub/1.0 (hackathon-registration)",
+      },
+      body: JSON.stringify(hubspotPayload),
+    }
+  );
 
-    const response = await fetch(
-      `https://api.hsforms.com/submissions/v3/integration/submit/${HUBSPOT_PORTAL_ID}/${HUBSPOT_HACKATHON_FORM_GUID}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${HUBSPOT_API_KEY}`,
-          'User-Agent': 'BuildersHub/1.0 (hackathon-registration)'
-        },
-        body: JSON.stringify(hubspotPayload)
-      }
-    );
-
-    const responseStatus = response.status;
-    let responseBody: any = null;
+  const responseStatus = response.status;
+  let responseBody: unknown = null;
+  try {
+    responseBody = await response.json();
+  } catch (_jsonErr) {
     try {
-      responseBody = await response.json();
-    } catch (jsonErr) {
-      try {
-        responseBody = await response.text();
-      } catch {
-        responseBody = '<unreadable>';
-      }
+      responseBody = await response.text();
+    } catch {
+      responseBody = "<unreadable>";
     }
-    if (!response.ok) {
-      throw new Error(`HubSpot API error: ${responseStatus} - ${typeof responseBody === 'string' ? responseBody : JSON.stringify(responseBody)}`);
-    }
-
-  } catch (error) {
-    console.error('[HubSpot] Error sending registration', error);
-    throw error;
+  }
+  if (!response.ok) {
+    throw new Error(
+      `HubSpot API error: ${responseStatus} - ${typeof responseBody === "string" ? responseBody : JSON.stringify(responseBody)}`
+    );
   }
 }

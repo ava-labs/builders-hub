@@ -3,6 +3,7 @@ import React from "react";
 import { usePathname } from "next/navigation";
 import { AISearchTrigger } from "@/components/ai";
 import { cn } from "@/lib/cn";
+import Image from "next/image";
 
 interface ChatbotProps {
   variant?: "fixed" | "static";
@@ -27,9 +28,11 @@ const Chatbot: React.FC<ChatbotProps> = ({ variant = "fixed", className }) => {
       aria-label="Open AI Assistant"
     >
       <div className="relative">
-        <img
+        <Image
           src="/avax-gpt.png"
           alt="AI Assistant"
+          width={variant === "fixed" ? 64 : 48}
+          height={variant === "fixed" ? 64 : 48}
           className={cn(
             "relative object-contain drop-shadow-lg dark:invert",
             variant === "fixed" ? "h-16 w-16" : "h-12 w-12"

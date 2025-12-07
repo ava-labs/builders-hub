@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import type { ConsoleLog } from '@/types/console-log';
+import { useState, useEffect, useCallback } from "react";
+import type { ConsoleLog } from "@/types/console-log";
 
 /**
  * Hook for managing console log/history
@@ -14,12 +14,12 @@ export const useConsoleLog = (autoFetch: boolean = false) => {
   // Fetch logs from API
   const fetchLogs = useCallback(async () => {
     // Don't load during SSR/SSG
-    if (typeof window === 'undefined') return;
-    
+    if (typeof window === "undefined") return;
+
     setLoading(true);
-    
+
     try {
-      const response = await fetch('/api/console-log');
+      const response = await fetch("/api/console-log");
       if (response.ok) {
         const data = await response.json();
         const transformedLogs = data.map((item: any) => ({
@@ -27,18 +27,18 @@ export const useConsoleLog = (autoFetch: boolean = false) => {
           timestamp: new Date(item.created_at),
           status: item.status,
           actionPath: item.action_path,
-          data: item.data
+          data: item.data,
         }));
         setLogs(transformedLogs);
       } else if (response.status === 401) {
         // User not authenticated - this is expected, don't log error
         setLogs([]);
       } else {
-        console.error('Error loading console logs:', response.statusText);
+        // Error loading console logs
         setLogs([]);
       }
     } catch (error) {
-      console.error('Error loading console logs:', error);
+      // Error loading console logs
       setLogs([]);
     } finally {
       setLoading(false);
@@ -47,26 +47,26 @@ export const useConsoleLog = (autoFetch: boolean = false) => {
 
   // Only load logs on mount if autoFetch is true
   useEffect(() => {
-    if (typeof window === 'undefined' || !autoFetch) return;
+    if (typeof window === "undefined" || !autoFetch) return;
     fetchLogs();
   }, [fetchLogs, autoFetch]);
 
   // Add a new log entry
-  const addLog = async (item: Omit<ConsoleLog, 'id' | 'timestamp'>) => {
+  const addLog = async (item: Omit<ConsoleLog, "id" | "timestamp">) => {
     // Don't add during SSR/SSG
-    if (typeof window === 'undefined') return;
-    
+    if (typeof window === "undefined") return;
+
     try {
-      const response = await fetch('/api/console-log', {
-        method: 'POST',
+      const response = await fetch("/api/console-log", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           status: item.status,
           actionPath: item.actionPath,
-          data: item.data
-        })
+          data: item.data,
+        }),
       });
 
       if (response.ok) {
@@ -76,27 +76,31 @@ export const useConsoleLog = (autoFetch: boolean = false) => {
           timestamp: new Date(savedItem.created_at),
           status: savedItem.status,
           actionPath: savedItem.action_path,
-          data: savedItem.data
+          data: savedItem.data,
         };
-        setLogs(prev => [logItem, ...prev]);
+        setLogs((prev) => [logItem, ...prev]);
       } else if (response.status === 401) {
         // User not authenticated - silently fail
         // History is only available for logged-in users
       } else {
-        console.error('Failed to save log:', response.statusText);
+        // Failed to save log
       }
     } catch (error) {
-      console.error('Error saving log:', error);
+      // Error saving log - silently fail
     }
   };
 
   // Helper function to get explorer URL
-  const getExplorerUrl = (id: string, type: 'tx' | 'address', network: string, chain: string = 'P'): string => {
-    const base = network === 'mainnet' 
-      ? 'https://subnets.avax.network' 
-      : 'https://subnets-test.avax.network';
-    
-    if (chain === 'P') {
+  const getExplorerUrl = (
+    id: string,
+    type: "tx" | "address",
+    network: string,
+    chain: string = "P"
+  ): string => {
+    const base =
+      network === "mainnet" ? "https://subnets.avax.network" : "https://subnets-test.avax.network";
+
+    if (chain === "P") {
       return `${base}/p-chain/${type}/${id}`;
     }
     return `${base}/c-chain/${type}/${id}`;
@@ -107,6 +111,6 @@ export const useConsoleLog = (autoFetch: boolean = false) => {
     loading,
     addLog,
     fetchLogs,
-    getExplorerUrl
+    getExplorerUrl,
   };
 };

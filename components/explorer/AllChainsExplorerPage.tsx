@@ -58,19 +58,19 @@ interface ChainStats {
 // Get chain info from hex blockchain ID
 function getChainFromBlockchainId(hexBlockchainId: string): ChainInfo | null {
   const normalizedHex = hexBlockchainId.toLowerCase();
-  const chain = (l1ChainsData as L1Chain[]).find(c => 
-    (c as any).blockchainId?.toLowerCase() === normalizedHex
+  const chain = (l1ChainsData as L1Chain[]).find(
+    (c) => (c as any).blockchainId?.toLowerCase() === normalizedHex
   );
-  
+
   if (!chain) return null;
-    
+
   return {
     chainId: chain.chainId,
     chainName: chain.chainName,
     chainSlug: chain.slug,
-    chainLogoURI: chain.chainLogoURI || '',
-    color: chain.color || '#6B7280',
-    tokenSymbol: chain.networkToken?.symbol || '',
+    chainLogoURI: chain.chainLogoURI || "",
+    color: chain.color || "#6B7280",
+    tokenSymbol: chain.networkToken?.symbol || "",
   };
 }
 
@@ -86,7 +86,7 @@ function formatTimeAgo(timestamp: string): string {
 }
 
 function shortenAddress(address: string | null): string {
-  if (!address) return '';
+  if (!address) return "";
   if (address.length < 12) return address;
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
@@ -160,7 +160,7 @@ function JumpingDots({ className = "" }: { className?: string }) {
 }
 
 // Get supported chains with RPC URLs
-const supportedChains = (l1ChainsData as L1Chain[]).filter(c => c.rpcUrl && c.isTestnet !== true);
+const supportedChains = (l1ChainsData as L1Chain[]).filter((c) => c.rpcUrl && c.isTestnet !== true);
 
 // Module-level constants - block limit based on active chains for accurate metrics
 const BLOCK_LIMIT = supportedChains.length * 10 * 2;
@@ -177,18 +177,20 @@ const BLOCKS_FOR_CALCULATION = supportedChains.length * 10 * 1;
 export default function AllChainsExplorerPage() {
   const router = useRouter();
   const themeColor = "#E84142"; // Avalanche red for all-chains view
-  
+
   // State for accumulated data from all chains
   const [accumulatedBlocks, setAccumulatedBlocks] = useState<Block[]>([]);
   const [accumulatedTransactions, setAccumulatedTransactions] = useState<Transaction[]>([]);
   const [icmMessages, setIcmMessages] = useState<Transaction[]>([]);
   const [chainStats, setChainStats] = useState<Map<string, ChainStats>>(new Map());
   // Per-chain transaction history (chainId -> history array)
-  const [chainTransactionHistories, setChainTransactionHistories] = useState<Map<string, TransactionHistoryPoint[]>>(new Map());
+  const [chainTransactionHistories, setChainTransactionHistories] = useState<
+    Map<string, TransactionHistoryPoint[]>
+  >(new Map());
   const [loading, setLoading] = useState(true);
   const [newBlockIds, setNewBlockIds] = useState<Set<string>>(new Set());
   const [newTxHashes, setNewTxHashes] = useState<Set<string>>(new Set());
-  
+
   // Refs
   const isMountedRef = useRef(true);
   const fetchingChainsRef = useRef<Set<string>>(new Set());
@@ -197,7 +199,7 @@ export default function AllChainsExplorerPage() {
   const isFirstLoadRef = useRef<Map<string, boolean>>(new Map());
   const retryCountRef = useRef<Map<string, number>>(new Map());
   const passiveChainsRef = useRef<Set<string>>(new Set());
-  
+
   // Track active chains count for UI
   const [activeChainCount, setActiveChainCount] = useState(supportedChains.length);
   // Track how many chains have completed their initial load
@@ -205,7 +207,7 @@ export default function AllChainsExplorerPage() {
 
   // Initialize first load tracking for each chain
   useEffect(() => {
-    supportedChains.forEach(chain => {
+    supportedChains.forEach((chain) => {
       isFirstLoadRef.current.set(chain.chainId, true);
       retryCountRef.current.set(chain.chainId, 0);
     });
@@ -214,169 +216,172 @@ export default function AllChainsExplorerPage() {
   // Fetch data for a single chain
   const fetchChainData = useCallback(async (chain: L1Chain) => {
     const chainId = chain.chainId;
-    
+
     // Skip passive chains (failed 3+ times on initial load)
     if (passiveChainsRef.current.has(chainId)) {
       return;
     }
-    
+
     // Prevent overlapping fetches for the same chain
     if (fetchingChainsRef.current.has(chainId) || !isMountedRef.current) {
       return;
     }
-    
+
     // Clear pending timeout for this chain
     const existingTimeout = refreshTimeoutsRef.current.get(chainId);
     if (existingTimeout) {
       clearTimeout(existingTimeout);
       refreshTimeoutsRef.current.delete(chainId);
     }
-    
+
     fetchingChainsRef.current.add(chainId);
-    
+
     try {
       const params = new URLSearchParams();
       const isFirstLoad = isFirstLoadRef.current.get(chainId) ?? true;
-      
+
       if (isFirstLoad) {
-        params.set('initialLoad', 'true');
+        params.set("initialLoad", "true");
       } else {
         const lastBlock = lastFetchedBlocksRef.current.get(chainId);
         if (lastBlock) {
-          params.set('lastFetchedBlock', lastBlock);
+          params.set("lastFetchedBlock", lastBlock);
         }
       }
-      
-      const url = `/api/explorer/${chainId}${params.toString() ? `?${params.toString()}` : ''}`;
-      
-      const response = await fetch(url, { 
-        signal: AbortSignal.timeout(10000) // 10s timeout
+
+      const url = `/api/explorer/${chainId}${params.toString() ? `?${params.toString()}` : ""}`;
+
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(10000), // 10s timeout
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch ${chain.chainName}`);
       }
-      
+
       const result = await response.json();
 
       // Get tokenSymbol from API response (which may come from CoinGecko) or fall back to static data
-      const tokenSymbol = result.tokenSymbol || chain.networkToken?.symbol || 'N/A';
+      const tokenSymbol = result.tokenSymbol || chain.networkToken?.symbol || "N/A";
 
       const chainInfo: ChainInfo = {
         chainId: chain.chainId,
         chainName: chain.chainName,
         chainSlug: chain.slug,
-        chainLogoURI: chain.chainLogoURI || '',
-        color: chain.color || '#6B7280',
+        chainLogoURI: chain.chainLogoURI || "",
+        color: chain.color || "#6B7280",
         tokenSymbol: tokenSymbol,
       };
-      
+
       // Update last fetched block
       if (result.blocks && result.blocks.length > 0) {
-        const highestBlock = result.blocks.reduce((max: string, b: Block) => 
-          parseInt(b.number) > parseInt(max) ? b.number : max, 
+        const highestBlock = result.blocks.reduce(
+          (max: string, b: Block) => (parseInt(b.number) > parseInt(max) ? b.number : max),
           result.blocks[0].number
         );
         lastFetchedBlocksRef.current.set(chainId, highestBlock);
       }
-      
+
       // Accumulate blocks with chain info
       if (result.blocks && result.blocks.length > 0) {
         const blocksWithChain = result.blocks.map((b: Block) => ({
           ...b,
           chain: chainInfo,
         }));
-        
-        setAccumulatedBlocks(prev => {
+
+        setAccumulatedBlocks((prev) => {
           // Create unique key for each block (chainId + blockNumber)
-          const existingKeys = new Set(prev.map(b => `${b.chain?.chainId}-${b.number}`));
-          const newBlocks = blocksWithChain.filter((b: Block) => 
-            !existingKeys.has(`${b.chain?.chainId}-${b.number}`)
+          const existingKeys = new Set(prev.map((b) => `${b.chain?.chainId}-${b.number}`));
+          const newBlocks = blocksWithChain.filter(
+            (b: Block) => !existingKeys.has(`${b.chain?.chainId}-${b.number}`)
           );
-          
+
           if (newBlocks.length > 0) {
             setNewBlockIds(new Set(newBlocks.map((b: Block) => `${b.chain?.chainId}-${b.number}`)));
             setTimeout(() => setNewBlockIds(new Set()), 1000);
           }
-          
+
           // Merge and sort by timestamp (most recent first)
-          const merged = [...newBlocks, ...prev]
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-          
+          const merged = [...newBlocks, ...prev].sort(
+            (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
+
           return merged.slice(0, BLOCK_LIMIT);
         });
       }
-      
+
       // Accumulate transactions with chain info
       if (result.transactions && result.transactions.length > 0) {
         const txsWithChain = result.transactions.map((tx: Transaction) => ({
           ...tx,
           chain: chainInfo,
         }));
-        
-        setAccumulatedTransactions(prev => {
-          const existingHashes = new Set(prev.map(tx => tx.hash));
+
+        setAccumulatedTransactions((prev) => {
+          const existingHashes = new Set(prev.map((tx) => tx.hash));
           const newTxs = txsWithChain.filter((tx: Transaction) => !existingHashes.has(tx.hash));
-          
+
           if (newTxs.length > 0) {
-            setNewTxHashes(prevHashes => {
+            setNewTxHashes((prevHashes) => {
               const updated = new Set(prevHashes);
               newTxs.forEach((tx: Transaction) => updated.add(tx.hash));
               return updated;
             });
             setTimeout(() => {
-              setNewTxHashes(prevHashes => {
+              setNewTxHashes((prevHashes) => {
                 const updated = new Set(prevHashes);
                 newTxs.forEach((tx: Transaction) => updated.delete(tx.hash));
                 return updated;
               });
             }, 1000);
           }
-          
-          const merged = [...newTxs, ...prev]
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-          
+
+          const merged = [...newTxs, ...prev].sort(
+            (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
+
           return merged.slice(0, TRANSACTION_LIMIT);
         });
       }
-      
+
       // Accumulate ICM messages with chain info
       if (result.icmMessages && result.icmMessages.length > 0) {
         const icmWithChain = result.icmMessages.map((tx: Transaction) => ({
           ...tx,
           chain: chainInfo,
         }));
-        
-        setIcmMessages(prev => {
-          const existingHashes = new Set(prev.map(tx => tx.hash));
+
+        setIcmMessages((prev) => {
+          const existingHashes = new Set(prev.map((tx) => tx.hash));
           const newIcm = icmWithChain.filter((tx: Transaction) => !existingHashes.has(tx.hash));
-          
+
           if (newIcm.length > 0) {
-            setNewTxHashes(prevHashes => {
+            setNewTxHashes((prevHashes) => {
               const updated = new Set(prevHashes);
               newIcm.forEach((tx: Transaction) => updated.add(tx.hash));
               return updated;
             });
             setTimeout(() => {
-              setNewTxHashes(prevHashes => {
+              setNewTxHashes((prevHashes) => {
                 const updated = new Set(prevHashes);
                 newIcm.forEach((tx: Transaction) => updated.delete(tx.hash));
                 return updated;
               });
             }, 1000);
           }
-          
-          const merged = [...newIcm, ...prev]
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-          
+
+          const merged = [...newIcm, ...prev].sort(
+            (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
+
           return merged.slice(0, ICM_MESSAGE_LIMIT);
         });
       }
-      
+
       // Update chain stats - only store totalTransactions on initial load
       // because subsequent fetches don't return the correct total
       if (result.stats) {
-        setChainStats(prev => {
+        setChainStats((prev) => {
           const updated = new Map(prev);
           if (isFirstLoad) {
             // Initial load - store all stats including totalTransactions
@@ -394,43 +399,42 @@ export default function AllChainsExplorerPage() {
           return updated;
         });
       }
-      
+
       // Store/replace transaction history for this chain (not accumulate)
       // Only on initial load since history is static
       if (isFirstLoad && result.transactionHistory && result.transactionHistory.length > 0) {
-        setChainTransactionHistories(prev => {
+        setChainTransactionHistories((prev) => {
           const updated = new Map(prev);
           // Replace this chain's history (don't add to it)
           updated.set(chainId, result.transactionHistory);
           return updated;
         });
       }
-      
+
       // Mark first load complete and reset retry count on success
       if (isFirstLoad) {
         isFirstLoadRef.current.set(chainId, false);
         retryCountRef.current.set(chainId, 0);
-        setCompletedInitialLoads(prev => prev + 1);
+        setCompletedInitialLoads((prev) => prev + 1);
       }
-      
     } catch (error) {
       // Silently handle errors - other chains will continue to work
       console.warn(`Error fetching ${chain.chainName}:`, error);
-      
+
       const isFirstLoad = isFirstLoadRef.current.get(chainId) ?? true;
-      
+
       // Track retry count for initial load failures
       if (isFirstLoad) {
         const currentRetries = retryCountRef.current.get(chainId) || 0;
         const newRetries = currentRetries + 1;
         retryCountRef.current.set(chainId, newRetries);
-        
+
         // After 3 failed attempts on initial load, mark chain as passive
         if (newRetries >= 3) {
           console.warn(`Marking ${chain.chainName} as passive after ${newRetries} failed attempts`);
           passiveChainsRef.current.add(chainId);
           setActiveChainCount(supportedChains.length - passiveChainsRef.current.size);
-          setCompletedInitialLoads(prev => prev + 1); // Count as "completed" even though it failed
+          setCompletedInitialLoads((prev) => prev + 1); // Count as "completed" even though it failed
           fetchingChainsRef.current.delete(chainId);
           setLoading(false);
           return; // Don't schedule retry for passive chains
@@ -439,7 +443,7 @@ export default function AllChainsExplorerPage() {
     } finally {
       fetchingChainsRef.current.delete(chainId);
       setLoading(false);
-      
+
       // Schedule next fetch for this chain (unless passive)
       if (isMountedRef.current && !passiveChainsRef.current.has(chainId)) {
         const timeout = setTimeout(() => {
@@ -455,7 +459,7 @@ export default function AllChainsExplorerPage() {
   // Start fetching data from all chains with staggered delays
   useEffect(() => {
     isMountedRef.current = true;
-    
+
     // Stagger initial fetches to avoid overwhelming APIs
     supportedChains.forEach((chain, index) => {
       setTimeout(() => {
@@ -464,11 +468,11 @@ export default function AllChainsExplorerPage() {
         }
       }, index * STAGGER_DELAY);
     });
-    
+
     return () => {
       isMountedRef.current = false;
       // Clear all timeouts
-      refreshTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+      refreshTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
       refreshTimeoutsRef.current.clear();
       fetchingChainsRef.current.clear();
     };
@@ -477,15 +481,17 @@ export default function AllChainsExplorerPage() {
   // Aggregate stats across all chains (per-chain totals stored in chainStats Map)
   const aggregatedStats = useMemo(() => {
     let totalTransactions = 0;
-    
+
     // Sum totalTransactions from each chain (each chain's value is already stored/replaced, not accumulated)
-    chainStats.forEach(stats => {
+    chainStats.forEach((stats) => {
       totalTransactions += stats.totalTransactions;
     });
-    
+
     // Total chains in l1-chains.json
-    const allChainsCount = (l1ChainsData as L1Chain[]).filter(chain => chain.isTestnet !== true).length;
-    
+    const allChainsCount = (l1ChainsData as L1Chain[]).filter(
+      (chain) => chain.isTestnet !== true
+    ).length;
+
     return {
       chainsWithRpc: supportedChains.length, // Chains with RPC URLs (supported)
       totalChains: allChainsCount, // All chains in l1-chains.json
@@ -500,73 +506,74 @@ export default function AllChainsExplorerPage() {
   // Uses only the most recent BLOCKS_FOR_CALCULATION blocks for accuracy
   const calculatedTps = useMemo(() => {
     if (!hasEnoughBlocksForCalculation || accumulatedBlocks.length < 2) return null;
-    
+
     // Use only the most recent blocks for calculation (smaller window = more accurate)
     const blocksForCalc = accumulatedBlocks.slice(0, BLOCKS_FOR_CALCULATION);
-    
+
     if (blocksForCalc.length < 2) return null;
-    
-    const timestamps = blocksForCalc.map(b => new Date(b.timestamp).getTime() / 1000);
+
+    const timestamps = blocksForCalc.map((b) => new Date(b.timestamp).getTime() / 1000);
     const firstBlockTime = timestamps[0];
     const lastBlockTime = timestamps[timestamps.length - 1];
     const totalTime = firstBlockTime - lastBlockTime;
-    
+
     if (totalTime <= 0) return null;
-    
+
     const totalTxs = blocksForCalc.reduce((sum, b) => sum + b.transactionCount, 0);
     return Math.round((totalTxs / totalTime) * 100) / 100;
   }, [accumulatedBlocks, hasEnoughBlocksForCalculation]);
-  
+
   // Calculate blocks per second (only when we have enough blocks)
   // Uses only the most recent BLOCKS_FOR_CALCULATION blocks for accuracy
   const blocksPerSecond = useMemo(() => {
     if (!hasEnoughBlocksForCalculation || accumulatedBlocks.length < 2) return null;
-    
+
     // Use only the most recent blocks for calculation (smaller window = more accurate)
     const blocksForCalc = accumulatedBlocks.slice(0, BLOCKS_FOR_CALCULATION);
-    
+
     if (blocksForCalc.length < 2) return null;
-    
-    const timestamps = blocksForCalc.map(b => new Date(b.timestamp).getTime() / 1000);
+
+    const timestamps = blocksForCalc.map((b) => new Date(b.timestamp).getTime() / 1000);
     const firstBlockTime = timestamps[0];
     const lastBlockTime = timestamps[timestamps.length - 1];
     const totalTime = firstBlockTime - lastBlockTime;
-    
+
     if (totalTime <= 0) return null;
-    
+
     return Math.round((blocksForCalc.length / totalTime) * 100) / 100;
   }, [accumulatedBlocks, hasEnoughBlocksForCalculation]);
 
   // Calculate ICM messages per second using a rolling 60-second window
   const icmPerSecond = useMemo(() => {
     if (icmMessages.length < 2) return null;
-    
+
     const now = Date.now() / 1000;
     const windowSeconds = 60; // 60 second window for rate calculation
-    
+
     // Count messages within the time window
-    const recentMessages = icmMessages.filter(m => {
+    const recentMessages = icmMessages.filter((m) => {
       const msgTime = new Date(m.timestamp).getTime() / 1000;
-      return (now - msgTime) <= windowSeconds;
+      return now - msgTime <= windowSeconds;
     });
-    
+
     if (recentMessages.length >= 2) {
       // Calculate rate from messages within the window
       return Math.round((recentMessages.length / windowSeconds) * 1000) / 1000;
     }
-    
+
     // Fall back to using the time span between messages if not enough recent ones
-    const timestamps = icmMessages.slice(0, Math.min(50, icmMessages.length))
-      .map(m => new Date(m.timestamp).getTime() / 1000);
-    
+    const timestamps = icmMessages
+      .slice(0, Math.min(50, icmMessages.length))
+      .map((m) => new Date(m.timestamp).getTime() / 1000);
+
     if (timestamps.length < 2) return null;
-    
+
     const newestTime = timestamps[0];
     const oldestTime = timestamps[timestamps.length - 1];
     const timeSpan = newestTime - oldestTime;
-    
+
     if (timeSpan <= 0) return null;
-    
+
     // For N messages over time T, rate = (N-1)/T (intervals, not count)
     // But for display, we use N/T as it's more intuitive
     return Math.round((timestamps.length / timeSpan) * 1000) / 1000;
@@ -575,7 +582,7 @@ export default function AllChainsExplorerPage() {
   // Aggregate transaction history from all chains (sum by date)
   const aggregatedTransactionHistory = useMemo(() => {
     if (chainTransactionHistories.size === 0) return [];
-    
+
     // Merge all chain histories by date
     const historyMap = new Map<string, number>();
     chainTransactionHistories.forEach((history) => {
@@ -584,7 +591,7 @@ export default function AllChainsExplorerPage() {
         historyMap.set(point.date, existing + point.transactions);
       });
     });
-    
+
     // Convert to array and keep last 14 entries
     return Array.from(historyMap.entries())
       .map(([date, transactions]) => ({ date, transactions }))
@@ -593,20 +600,23 @@ export default function AllChainsExplorerPage() {
 
   // Check if we have transaction history data
   const hasIndexedTransactionHistory = useMemo(() => {
-    return aggregatedTransactionHistory.length > 0 && aggregatedTransactionHistory.some(point => point.transactions > 0);
+    return (
+      aggregatedTransactionHistory.length > 0 &&
+      aggregatedTransactionHistory.some((point) => point.transactions > 0)
+    );
   }, [aggregatedTransactionHistory]);
 
   // Generate placeholder history if no data
   const displayTransactionHistory = useMemo(() => {
     if (hasIndexedTransactionHistory) return aggregatedTransactionHistory;
-    
+
     const history: TransactionHistoryPoint[] = [];
     const now = new Date();
     for (let i = 13; i >= 0; i--) {
       const date = new Date(now);
       date.setDate(date.getDate() - i);
       history.push({
-        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
         transactions: 0,
       });
     }
@@ -634,7 +644,10 @@ export default function AllChainsExplorerPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {[1, 2].map((i) => (
-              <div key={i} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+              <div
+                key={i}
+                className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden"
+              >
                 <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
                   <div className="h-5 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
                 </div>
@@ -668,7 +681,7 @@ export default function AllChainsExplorerPage() {
             <div className="lg:col-span-2 grid grid-cols-2 md:grid-cols-3 gap-x-5 gap-y-4">
               {/* Active Chains */}
               <div className="flex items-center gap-2.5">
-                <div 
+                <div
                   className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: `${themeColor}15` }}
                 >
@@ -683,25 +696,27 @@ export default function AllChainsExplorerPage() {
                       <TooltipTrigger asChild>
                         <span className="text-base font-bold text-zinc-900 dark:text-white cursor-help">
                           {activeChainCount}
-                    </span>
+                        </span>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>{activeChainCount} of {supportedChains.length} chains responding</p>
+                        <p>
+                          {activeChainCount} of {supportedChains.length} chains responding
+                        </p>
                         {passiveChainsRef.current.size > 0 && (
-                          <p className="text-zinc-400">{passiveChainsRef.current.size} chains unavailable</p>
+                          <p className="text-zinc-400">
+                            {passiveChainsRef.current.size} chains unavailable
+                          </p>
                         )}
                       </TooltipContent>
                     </Tooltip>
-                    <span className="text-xs text-zinc-500">
-                      / {aggregatedStats.totalChains}
-                    </span>
+                    <span className="text-xs text-zinc-500">/ {aggregatedStats.totalChains}</span>
                   </div>
                 </div>
               </div>
 
               {/* Total Transactions */}
               <div className="flex items-center gap-2.5">
-                <div 
+                <div
                   className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: `${themeColor}15` }}
                 >
@@ -723,7 +738,10 @@ export default function AllChainsExplorerPage() {
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Calculated from last {Math.min(accumulatedBlocks.length, BLOCKS_FOR_CALCULATION)} blocks</p>
+                          <p>
+                            Calculated from last{" "}
+                            {Math.min(accumulatedBlocks.length, BLOCKS_FOR_CALCULATION)} blocks
+                          </p>
                         </TooltipContent>
                       </Tooltip>
                     ) : (
@@ -734,7 +752,10 @@ export default function AllChainsExplorerPage() {
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Warming up: {accumulatedBlocks.length} / {MIN_BLOCKS_FOR_CALCULATION} blocks</p>
+                          <p>
+                            Warming up: {accumulatedBlocks.length} / {MIN_BLOCKS_FOR_CALCULATION}{" "}
+                            blocks
+                          </p>
                         </TooltipContent>
                       </Tooltip>
                     )}
@@ -744,7 +765,7 @@ export default function AllChainsExplorerPage() {
 
               {/* Blocks Per Second */}
               <div className="flex items-center gap-2.5">
-                <div 
+                <div
                   className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: `${themeColor}15` }}
                 >
@@ -763,7 +784,10 @@ export default function AllChainsExplorerPage() {
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Calculated from last {Math.min(accumulatedBlocks.length, BLOCKS_FOR_CALCULATION)} blocks</p>
+                          <p>
+                            Calculated from last{" "}
+                            {Math.min(accumulatedBlocks.length, BLOCKS_FOR_CALCULATION)} blocks
+                          </p>
                         </TooltipContent>
                       </Tooltip>
                     ) : (
@@ -774,7 +798,10 @@ export default function AllChainsExplorerPage() {
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Warming up: {accumulatedBlocks.length} / {MIN_BLOCKS_FOR_CALCULATION} blocks</p>
+                          <p>
+                            Warming up: {accumulatedBlocks.length} / {MIN_BLOCKS_FOR_CALCULATION}{" "}
+                            blocks
+                          </p>
                         </TooltipContent>
                       </Tooltip>
                     )}
@@ -784,7 +811,7 @@ export default function AllChainsExplorerPage() {
 
               {/* ICM Messages Per Second */}
               <div className="flex items-center gap-2.5">
-                <div 
+                <div
                   className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: `${themeColor}15` }}
                 >
@@ -796,16 +823,18 @@ export default function AllChainsExplorerPage() {
                   </div>
                   <div className="flex items-baseline gap-1">
                     {icmPerSecond !== null ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="text-base font-bold text-zinc-900 dark:text-white cursor-help border-b border-dashed border-zinc-400 dark:border-zinc-500">
-                          {icmPerSecond}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                          <p>Calculated from {icmMessages.length} cross-chain messages (60s window)</p>
-                      </TooltipContent>
-                    </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-base font-bold text-zinc-900 dark:text-white cursor-help border-b border-dashed border-zinc-400 dark:border-zinc-500">
+                            {icmPerSecond}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            Calculated from {icmMessages.length} cross-chain messages (60s window)
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
                     ) : (
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -834,24 +863,33 @@ export default function AllChainsExplorerPage() {
                         <Loader2 className="w-3 h-3 animate-spin text-zinc-400" />
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Loading: {completedInitialLoads} / {activeChainCount} chains</p>
+                        <p>
+                          Loading: {completedInitialLoads} / {activeChainCount} chains
+                        </p>
                       </TooltipContent>
                     </Tooltip>
                   )}
                 </span>
               </div>
               <div className="relative">
-                <div className={`h-14 ${!hasIndexedTransactionHistory ? 'blur-[2px] opacity-50' : ''}`}>
+                <div
+                  className={`h-14 ${!hasIndexedTransactionHistory ? "blur-[2px] opacity-50" : ""}`}
+                >
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={displayTransactionHistory}>
-                      <YAxis hide domain={hasIndexedTransactionHistory ? ['dataMin', 'dataMax'] : [0, 100]} />
+                      <YAxis
+                        hide
+                        domain={hasIndexedTransactionHistory ? ["dataMin", "dataMax"] : [0, 100]}
+                      />
                       {hasIndexedTransactionHistory && (
                         <RechartsTooltip
                           content={({ active, payload }) => {
                             if (!active || !payload?.[0]) return null;
                             return (
                               <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1 shadow-lg">
-                                <p className="text-[10px] text-zinc-500">{payload[0].payload.date}</p>
+                                <p className="text-[10px] text-zinc-500">
+                                  {payload[0].payload.date}
+                                </p>
                                 <p className="text-xs font-semibold" style={{ color: themeColor }}>
                                   {payload[0].value?.toLocaleString()} txns
                                 </p>
@@ -863,10 +901,12 @@ export default function AllChainsExplorerPage() {
                       <Line
                         type="monotone"
                         dataKey="transactions"
-                        stroke={hasIndexedTransactionHistory ? themeColor : '#9CA3AF'}
+                        stroke={hasIndexedTransactionHistory ? themeColor : "#9CA3AF"}
                         strokeWidth={1.5}
                         dot={false}
-                        activeDot={hasIndexedTransactionHistory ? { r: 3, fill: themeColor } : false}
+                        activeDot={
+                          hasIndexedTransactionHistory ? { r: 3, fill: themeColor } : false
+                        }
                       />
                     </LineChart>
                   </ResponsiveContainer>
@@ -879,7 +919,9 @@ export default function AllChainsExplorerPage() {
                   </div>
                 )}
               </div>
-              <div className={`flex justify-between text-[11px] text-zinc-400 mt-1.5 ${!hasIndexedTransactionHistory ? 'opacity-50' : ''}`}>
+              <div
+                className={`flex justify-between text-[11px] text-zinc-400 mt-1.5 ${!hasIndexedTransactionHistory ? "opacity-50" : ""}`}
+              >
                 <span>{displayTransactionHistory[0]?.date}</span>
                 <span>{displayTransactionHistory[displayTransactionHistory.length - 1]?.date}</span>
               </div>
@@ -890,7 +932,9 @@ export default function AllChainsExplorerPage() {
 
       {/* Tables */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-        <div className={`grid grid-cols-1 gap-6 ${hasIcmMessages ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
+        <div
+          className={`grid grid-cols-1 gap-6 ${hasIcmMessages ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}
+        >
           {/* Latest Blocks */}
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800">
@@ -905,16 +949,16 @@ export default function AllChainsExplorerPage() {
             </div>
             <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
               {accumulatedBlocks.slice(0, 10).map((block) => (
-                <Link 
+                <Link
                   key={`${block.chain?.chainId}-${block.number}`}
                   href={buildBlockUrl(`/explorer/${block.chain?.chainSlug}`, block.number)}
                   className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
-                    newBlockIds.has(`${block.chain?.chainId}-${block.number}`) ? 'new-item' : ''
+                    newBlockIds.has(`${block.chain?.chainId}-${block.number}`) ? "new-item" : ""
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div 
+                      <div
                         className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                         style={{ backgroundColor: `${block.chain?.color || themeColor}15` }}
                       >
@@ -927,12 +971,18 @@ export default function AllChainsExplorerPage() {
                             className="rounded"
                           />
                         ) : (
-                          <Box className="w-4 h-4" style={{ color: block.chain?.color || themeColor }} />
+                          <Box
+                            className="w-4 h-4"
+                            style={{ color: block.chain?.color || themeColor }}
+                          />
                         )}
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-sm hover:underline" style={{ color: block.chain?.color || themeColor }}>
+                          <span
+                            className="font-medium text-sm hover:underline"
+                            style={{ color: block.chain?.color || themeColor }}
+                          >
                             #{block.number}
                           </span>
                           <span className="text-xs text-zinc-400">
@@ -940,9 +990,17 @@ export default function AllChainsExplorerPage() {
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          {block.chain && <ChainChip chain={block.chain} size="xs" onClick={() => router.push(`/explorer/${block.chain?.chainSlug}`)} />}
+                          {block.chain && (
+                            <ChainChip
+                              chain={block.chain}
+                              size="xs"
+                              onClick={() => router.push(`/explorer/${block.chain?.chainSlug}`)}
+                            />
+                          )}
                           <span className="text-xs text-zinc-500">
-                            <span style={{ color: block.chain?.color || themeColor }}>{block.transactionCount} txns</span>
+                            <span style={{ color: block.chain?.color || themeColor }}>
+                              {block.transactionCount} txns
+                            </span>
                           </span>
                         </div>
                       </div>
@@ -950,7 +1008,7 @@ export default function AllChainsExplorerPage() {
                     {block.gasFee && parseFloat(block.gasFee) > 0 && (
                       <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex-shrink-0">
                         {block.chain?.chainId === "43114" && <span className="mr-1">🔥</span>}
-                        {formatTokenValue(block.gasFee)} {block.chain?.tokenSymbol || ''}
+                        {formatTokenValue(block.gasFee)} {block.chain?.tokenSymbol || ""}
                       </div>
                     )}
                   </div>
@@ -973,16 +1031,18 @@ export default function AllChainsExplorerPage() {
             </div>
             <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
               {accumulatedTransactions.slice(0, 10).map((tx, index) => (
-                <div 
+                <div
                   key={`${tx.hash}-${index}`}
-                  onClick={() => router.push(buildTxUrl(`/explorer/${tx.chain?.chainSlug}`, tx.hash))}
+                  onClick={() =>
+                    router.push(buildTxUrl(`/explorer/${tx.chain?.chainSlug}`, tx.hash))
+                  }
                   className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
-                    newTxHashes.has(tx.hash) ? 'new-item' : ''
+                    newTxHashes.has(tx.hash) ? "new-item" : ""
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div 
+                      <div
                         className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                         style={{ backgroundColor: `${tx.chain?.color || themeColor}15` }}
                       >
@@ -995,12 +1055,18 @@ export default function AllChainsExplorerPage() {
                             className="rounded"
                           />
                         ) : (
-                          <ArrowRightLeft className="w-4 h-4" style={{ color: tx.chain?.color || themeColor }} />
+                          <ArrowRightLeft
+                            className="w-4 h-4"
+                            style={{ color: tx.chain?.color || themeColor }}
+                          />
                         )}
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-mono text-xs hover:underline" style={{ color: tx.chain?.color || themeColor }}>
+                          <span
+                            className="font-mono text-xs hover:underline"
+                            style={{ color: tx.chain?.color || themeColor }}
+                          >
                             {tx.hash.slice(0, 14)}...
                           </span>
                           <span className="text-xs text-zinc-400">
@@ -1008,13 +1074,19 @@ export default function AllChainsExplorerPage() {
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          {tx.chain && <ChainChip chain={tx.chain} size="xs" onClick={() => router.push(`/explorer/${tx.chain?.chainSlug}`)} />}
+                          {tx.chain && (
+                            <ChainChip
+                              chain={tx.chain}
+                              size="xs"
+                              onClick={() => router.push(`/explorer/${tx.chain?.chainSlug}`)}
+                            />
+                          )}
                         </div>
                         <div className="text-xs text-zinc-500 mt-0.5">
                           <span className="text-zinc-400">From </span>
-                          <Link 
-                            href={buildAddressUrl(`/explorer/${tx.chain?.chainSlug}`, tx.from)} 
-                            className="font-mono hover:underline cursor-pointer" 
+                          <Link
+                            href={buildAddressUrl(`/explorer/${tx.chain?.chainSlug}`, tx.from)}
+                            className="font-mono hover:underline cursor-pointer"
                             style={{ color: tx.chain?.color || themeColor }}
                             onClick={(e) => e.stopPropagation()}
                           >
@@ -1022,9 +1094,9 @@ export default function AllChainsExplorerPage() {
                           </Link>
                           <span className="text-zinc-400"> → </span>
                           {tx.to ? (
-                            <Link 
-                              href={buildAddressUrl(`/explorer/${tx.chain?.chainSlug}`, tx.to)} 
-                              className="font-mono hover:underline cursor-pointer" 
+                            <Link
+                              href={buildAddressUrl(`/explorer/${tx.chain?.chainSlug}`, tx.to)}
+                              className="font-mono hover:underline cursor-pointer"
                               style={{ color: tx.chain?.color || themeColor }}
                               onClick={(e) => e.stopPropagation()}
                             >
@@ -1037,7 +1109,7 @@ export default function AllChainsExplorerPage() {
                       </div>
                     </div>
                     <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 flex-shrink-0">
-                      {formatTokenValue(tx.value)} {tx.chain?.tokenSymbol || ''}
+                      {formatTokenValue(tx.value)} {tx.chain?.tokenSymbol || ""}
                     </div>
                   </div>
                 </div>
@@ -1060,21 +1132,27 @@ export default function AllChainsExplorerPage() {
               </div>
               <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
                 {icmMessages.slice(0, 10).map((tx, index) => {
-                  const sourceChain = tx.sourceBlockchainId ? getChainFromBlockchainId(tx.sourceBlockchainId) : null;
-                  const destChain = tx.destinationBlockchainId ? getChainFromBlockchainId(tx.destinationBlockchainId) : null;
+                  const sourceChain = tx.sourceBlockchainId
+                    ? getChainFromBlockchainId(tx.sourceBlockchainId)
+                    : null;
+                  const destChain = tx.destinationBlockchainId
+                    ? getChainFromBlockchainId(tx.destinationBlockchainId)
+                    : null;
                   const iconColor = sourceChain?.color || tx.chain?.color || themeColor;
-                  
+
                   return (
-                    <div 
+                    <div
                       key={`icm-${tx.hash}-${index}`}
-                      onClick={() => router.push(buildTxUrl(`/explorer/${tx.chain?.chainSlug}`, tx.hash))}
+                      onClick={() =>
+                        router.push(buildTxUrl(`/explorer/${tx.chain?.chainSlug}`, tx.hash))
+                      }
                       className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
-                        newTxHashes.has(tx.hash) ? 'new-item' : ''
+                        newTxHashes.has(tx.hash) ? "new-item" : ""
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
-                          <div 
+                          <div
                             className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                             style={{ backgroundColor: `${iconColor}15` }}
                           >
@@ -1082,7 +1160,10 @@ export default function AllChainsExplorerPage() {
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-mono text-xs hover:underline" style={{ color: iconColor }}>
+                              <span
+                                className="font-mono text-xs hover:underline"
+                                style={{ color: iconColor }}
+                              >
                                 {tx.hash.slice(0, 14)}...
                               </span>
                               <span className="text-xs text-zinc-400">
@@ -1092,7 +1173,11 @@ export default function AllChainsExplorerPage() {
                             {/* Cross-chain chips */}
                             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                               {sourceChain ? (
-                                <ChainChip chain={sourceChain} size="xs" onClick={() => router.push(`/explorer/${sourceChain.chainSlug}`)} />
+                                <ChainChip
+                                  chain={sourceChain}
+                                  size="xs"
+                                  onClick={() => router.push(`/explorer/${sourceChain.chainSlug}`)}
+                                />
                               ) : (
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500">
                                   Unknown
@@ -1100,7 +1185,11 @@ export default function AllChainsExplorerPage() {
                               )}
                               <span className="text-zinc-400">→</span>
                               {destChain ? (
-                                <ChainChip chain={destChain} size="xs" onClick={() => router.push(`/explorer/${destChain.chainSlug}`)} />
+                                <ChainChip
+                                  chain={destChain}
+                                  size="xs"
+                                  onClick={() => router.push(`/explorer/${destChain.chainSlug}`)}
+                                />
                               ) : (
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500">
                                   Unknown
@@ -1110,7 +1199,7 @@ export default function AllChainsExplorerPage() {
                           </div>
                         </div>
                         <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 flex-shrink-0">
-                          {formatTokenValue(tx.value)} {tx.chain?.tokenSymbol || ''}
+                          {formatTokenValue(tx.value)} {tx.chain?.tokenSymbol || ""}
                         </div>
                       </div>
                     </div>
@@ -1124,4 +1213,3 @@ export default function AllChainsExplorerPage() {
     </>
   );
 }
-

@@ -41,7 +41,9 @@ export default function ChainListPage() {
   const { resolvedTheme } = useTheme();
   const [isMounted, setIsMounted] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedNetwork, setSelectedNetwork] = useState<"mainnet" | "testnet" | "console">("mainnet");
+  const [selectedNetwork, setSelectedNetwork] = useState<"mainnet" | "testnet" | "console">(
+    "mainnet"
+  );
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -51,39 +53,41 @@ export default function ChainListPage() {
 
   // Load custom chains from localStorage
   const [customChains, setCustomChains] = useState<L1Chain[]>([]);
-  
+
   // Track Glacier support for each chain
   const [glacierSupportMap, setGlacierSupportMap] = useState<Map<string, boolean>>(new Map());
 
   useEffect(() => {
     setIsMounted(true);
-    
+
     // Load custom chains from console (filter out chains that already exist in static data)
     try {
       const testnetStore = getL1ListStore(true);
       const mainnetStore = getL1ListStore(false);
-      
+
       const testnetChains: L1ListItem[] = testnetStore.getState().l1List;
       const mainnetChains: L1ListItem[] = mainnetStore.getState().l1List;
-      
+
       // Get all static blockchainIds (hex format, lowercase) for deduplication
       const staticBlockchainIds = new Set(
-        (l1ChainsData as L1Chain[])
-          .map(c => c.blockchainId?.toLowerCase())
-          .filter(Boolean)
+        (l1ChainsData as L1Chain[]).map((c) => c.blockchainId?.toLowerCase()).filter(Boolean)
       );
-      
+
       // Convert chains and set isTestnet based on which store they came from
-      const testnetConverted = testnetChains
-        .map(item => ({ ...convertL1ListItemToL1Chain(item), isTestnet: true }));
-      const mainnetConverted = mainnetChains
-        .map(item => ({ ...convertL1ListItemToL1Chain(item), isTestnet: false }));
-      
+      const testnetConverted = testnetChains.map((item) => ({
+        ...convertL1ListItemToL1Chain(item),
+        isTestnet: true,
+      }));
+      const mainnetConverted = mainnetChains.map((item) => ({
+        ...convertL1ListItemToL1Chain(item),
+        isTestnet: false,
+      }));
+
       // Filter out chains that already exist in static data (by blockchainId)
       const allCustomChains = [...testnetConverted, ...mainnetConverted]
-        .filter(chain => !staticBlockchainIds.has(chain.blockchainId?.toLowerCase()))
-        .map(chain => ({ ...chain, isCustom: true }));
-      
+        .filter((chain) => !staticBlockchainIds.has(chain.blockchainId?.toLowerCase()))
+        .map((chain) => ({ ...chain, isCustom: true }));
+
       setCustomChains(allCustomChains);
     } catch (e) {
       console.warn("Failed to load custom chains:", e);
@@ -92,7 +96,7 @@ export default function ChainListPage() {
 
   // Combine static and custom chains
   const allChains: ChainListItem[] = useMemo(() => {
-    const staticChains = (l1ChainsData as L1Chain[]).map(chain => ({
+    const staticChains = (l1ChainsData as L1Chain[]).map((chain) => ({
       ...chain,
       isCustom: false,
     }));
@@ -109,7 +113,8 @@ export default function ChainListPage() {
       if (chain.isCustom) {
         console++;
       } else {
-        const isTestnet = chain.chainId === "43113" || chain.category === "Testnet" || chain.isTestnet;
+        const isTestnet =
+          chain.chainId === "43113" || chain.category === "Testnet" || chain.isTestnet;
         if (isTestnet) {
           testnet++;
         } else {
@@ -125,14 +130,14 @@ export default function ChainListPage() {
   useEffect(() => {
     const fetchGlacierSupport = async () => {
       const supportMap = new Map<string, boolean>();
-      
+
       // Fetch support for all chains in parallel (with batching to avoid overwhelming the API)
-      const chainsToCheck = allChains.filter(chain => chain.chainId);
+      const chainsToCheck = allChains.filter((chain) => chain.chainId);
       const batchSize = 10;
-      
+
       for (let i = 0; i < chainsToCheck.length; i += batchSize) {
         const batch = chainsToCheck.slice(i, i + batchSize);
-        
+
         await Promise.all(
           batch.map(async (chain) => {
             try {
@@ -150,7 +155,7 @@ export default function ChainListPage() {
           })
         );
       }
-      
+
       setGlacierSupportMap(supportMap);
     };
 
@@ -162,20 +167,20 @@ export default function ChainListPage() {
   // Extract unique categories
   const { sortedCategories, visibleCategories, overflowCategories } = useMemo(() => {
     const catCounts = new Map<string, number>();
-    allChains.forEach(chain => {
+    allChains.forEach((chain) => {
       const category = chain.category || "General";
       catCounts.set(category, (catCounts.get(category) || 0) + 1);
     });
-    
+
     // Sort by count
     const sorted = Array.from(catCounts.entries())
       .sort((a, b) => b[1] - a[1])
       .map(([cat]) => cat);
-    
+
     const MAX_VISIBLE = 4;
     const visible = ["All", ...sorted.slice(0, MAX_VISIBLE)];
     const overflow = sorted.slice(MAX_VISIBLE);
-    
+
     return {
       sortedCategories: ["All", ...sorted],
       visibleCategories: visible,
@@ -186,23 +191,27 @@ export default function ChainListPage() {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+      if (
+        categoryDropdownRef.current &&
+        !categoryDropdownRef.current.contains(event.target as Node)
+      ) {
         setCategoryDropdownOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Filter chains
   const filteredChains = useMemo(() => {
     return allChains.filter((chain) => {
       // Network filter
-      const isTestnet = chain.chainId === "43113" || chain.chainId === "43114" 
-        ? chain.chainId === "43113"
-        : chain.category === "Testnet" || (chain as any).isTestnet;
+      const isTestnet =
+        chain.chainId === "43113" || chain.chainId === "43114"
+          ? chain.chainId === "43113"
+          : chain.category === "Testnet" || (chain as any).isTestnet;
       const isConsoleChain = chain.isCustom === true;
-      const matchesNetwork = 
+      const matchesNetwork =
         (selectedNetwork === "console" && isConsoleChain) ||
         (selectedNetwork === "testnet" && isTestnet && !isConsoleChain) ||
         (selectedNetwork === "mainnet" && !isTestnet && !isConsoleChain);
@@ -212,7 +221,7 @@ export default function ChainListPage() {
       const matchesCategory = selectedCategory === "All" || chainCategory === selectedCategory;
 
       // Search filter
-      const matchesSearch = 
+      const matchesSearch =
         chain.chainName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         chain.chainId.toLowerCase().includes(searchTerm.toLowerCase()) ||
         chain.networkToken?.symbol?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -257,13 +266,12 @@ export default function ChainListPage() {
     return `0x${num.toString(16)}`;
   };
 
-
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Hero Section */}
       <div className="relative overflow-hidden border-b border-zinc-200 dark:border-zinc-800">
         {/* Avalanche gradient decoration */}
-        <div 
+        <div
           className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
           style={{
             background: `linear-gradient(to left, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.12) 40%, rgba(239, 68, 68, 0.04) 70%, transparent 100%)`,
@@ -296,7 +304,8 @@ export default function ChainListPage() {
                   Chain List
                 </h1>
                 <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 mt-2 max-w-2xl">
-                  Discover and connect to Avalanche L1 chains. Add networks to your wallet with one click.
+                  Discover and connect to Avalanche L1 chains. Add networks to your wallet with one
+                  click.
                 </p>
               </div>
 
@@ -342,7 +351,12 @@ export default function ChainListPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open("https://github.com/ava-labs/builders-hub/blob/master/constants/l1-chains.json", "_blank")}
+              onClick={() =>
+                window.open(
+                  "https://github.com/ava-labs/builders-hub/blob/master/constants/l1-chains.json",
+                  "_blank"
+                )
+              }
               className="w-full sm:w-auto mt-2 gap-2 text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600"
             >
               Submit L1
@@ -357,8 +371,12 @@ export default function ChainListPage() {
         {/* Header with chain count */}
         <div className="mb-4">
           <div className="flex items-baseline gap-2 sm:gap-3 mb-4">
-            <h2 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-white">All Chains</h2>
-            <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">{filteredChains.length} tracked</span>
+            <h2 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-white">
+              All Chains
+            </h2>
+            <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+              {filteredChains.length} tracked
+            </span>
           </div>
         </div>
 
@@ -384,7 +402,7 @@ export default function ChainListPage() {
                 ))}
               </div>
             </div>
-            
+
             {/* RPC Filter Checkbox */}
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
@@ -403,11 +421,12 @@ export default function ChainListPage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 sm:gap-4">
             {/* Category filter badges */}
             <div className="flex flex-wrap items-center gap-2 flex-1">
-              {visibleCategories.map(category => {
-                const count = category === "All" 
-                  ? filteredChains.length 
-                  : filteredChains.filter(c => (c.category || "General") === category).length;
-                
+              {visibleCategories.map((category) => {
+                const count =
+                  category === "All"
+                    ? filteredChains.length
+                    : filteredChains.filter((c) => (c.category || "General") === category).length;
+
                 return (
                   <CategoryChip
                     key={category}
@@ -418,7 +437,7 @@ export default function ChainListPage() {
                   />
                 );
               })}
-              
+
               {/* More dropdown for overflow categories */}
               {overflowCategories.length > 0 && (
                 <div className="relative" ref={categoryDropdownRef}>
@@ -431,15 +450,19 @@ export default function ChainListPage() {
                     }`}
                   >
                     {overflowCategories.includes(selectedCategory) ? selectedCategory : "More"}
-                    <ChevronDown className={`h-3 w-3 transition-transform ${categoryDropdownOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown
+                      className={`h-3 w-3 transition-transform ${categoryDropdownOpen ? "rotate-180" : ""}`}
+                    />
                   </button>
-                  
+
                   {categoryDropdownOpen && (
                     <div className="absolute top-full left-0 mt-1 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg z-50 min-w-[160px]">
-                      {overflowCategories.map(category => {
+                      {overflowCategories.map((category) => {
                         const isSelected = selectedCategory === category;
-                        const count = filteredChains.filter(c => (c.category || "General") === category).length;
-                        
+                        const count = filteredChains.filter(
+                          (c) => (c.category || "General") === category
+                        ).length;
+
                         return (
                           <button
                             key={category}
@@ -465,7 +488,7 @@ export default function ChainListPage() {
                 </div>
               )}
             </div>
-            
+
             {/* Search bar */}
             <div className="relative w-full sm:w-auto sm:flex-shrink-0 sm:max-w-sm">
               <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 pointer-events-none z-10" />
@@ -498,7 +521,7 @@ export default function ChainListPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredChains.map((chain) => {
               const chainIdHex = formatChainIdHex(chain.chainId);
-              
+
               return (
                 <Card
                   key={`${chain.chainId}-${chain.slug}`}
@@ -507,190 +530,204 @@ export default function ChainListPage() {
                   {/* Card Content */}
                   <div className="p-4 relative flex-1 flex flex-col">
                     {/* Gradient Background */}
-                    <div 
+                    <div
                       className="absolute top-0 right-0 w-2/3 h-full pointer-events-none rounded-t-xl"
                       style={{
-                        background: `linear-gradient(to left, ${chain.color || '#3B82F6'}15 0%, ${chain.color || '#3B82F6'}08 40%, transparent 70%)`,
+                        background: `linear-gradient(to left, ${chain.color || "#3B82F6"}15 0%, ${chain.color || "#3B82F6"}08 40%, transparent 70%)`,
                       }}
                     />
                     <div className="relative flex-1 flex flex-col">
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="relative h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
-                          {chain.chainLogoURI ? (
-                            <Image
-                              src={getThemedLogoUrl(chain.chainLogoURI) || "/placeholder.svg"}
-                              alt={chain.chainName}
-                              width={48}
-                              height={48}
-                              className="h-full w-full rounded-full object-cover shadow-sm"
-                              onError={(e) => { e.currentTarget.style.display = "none"; }}
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 shadow-sm">
-                              <span className="text-lg font-bold text-white">
-                                {chain.chainName.charAt(0)}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <h3 className="font-semibold text-base sm:text-lg text-zinc-900 dark:text-white truncate">
-                            {chain.chainName}
-                          </h3>
-                          <div className="flex items-center gap-2 mt-1">
-                            {/* Testnet chip */}
-                            {(chain.isTestnet || chain.chainId === "43113") && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400">
-                                Testnet
-                              </span>
-                            )}
-                            {/* Social Links */}
-                            {(chain.socials?.twitter || chain.socials?.linkedin || chain.website) && (
-                              <div className="flex items-center gap-1.5">
-                                {chain.website && (
-                                  <a
-                                    href={chain.website}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
-                                    title="Website"
-                                  >
-                                    <Globe className="w-3 h-3" />
-                                  </a>
-                                )}
-                                {chain.socials?.twitter && (
-                                  <a
-                                    href={`https://x.com/${chain.socials.twitter}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
-                                    title="Twitter"
-                                  >
-                                    <Twitter className="w-3 h-3" />
-                                  </a>
-                                )}
-                                {chain.socials?.linkedin && (
-                                  <a
-                                    href={`https://linkedin.com/company/${chain.socials.linkedin}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
-                                    title="LinkedIn"
-                                  >
-                                    <Linkedin className="w-3 h-3" />
-                                  </a>
-                                )}
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="relative h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
+                            {chain.chainLogoURI ? (
+                              <Image
+                                src={getThemedLogoUrl(chain.chainLogoURI) || "/placeholder.svg"}
+                                alt={chain.chainName}
+                                width={48}
+                                height={48}
+                                className="h-full w-full rounded-full object-cover shadow-sm"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none";
+                                }}
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 shadow-sm">
+                                <span className="text-lg font-bold text-white">
+                                  {chain.chainName.charAt(0)}
+                                </span>
                               </div>
                             )}
                           </div>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-semibold text-base sm:text-lg text-zinc-900 dark:text-white truncate">
+                              {chain.chainName}
+                            </h3>
+                            <div className="flex items-center gap-2 mt-1">
+                              {/* Testnet chip */}
+                              {(chain.isTestnet || chain.chainId === "43113") && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400">
+                                  Testnet
+                                </span>
+                              )}
+                              {/* Social Links */}
+                              {(chain.socials?.twitter ||
+                                chain.socials?.linkedin ||
+                                chain.website) && (
+                                <div className="flex items-center gap-1.5">
+                                  {chain.website && (
+                                    <a
+                                      href={chain.website}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                                      title="Website"
+                                    >
+                                      <Globe className="w-3 h-3" />
+                                    </a>
+                                  )}
+                                  {chain.socials?.twitter && (
+                                    <a
+                                      href={`https://x.com/${chain.socials.twitter}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                                      title="Twitter"
+                                    >
+                                      <Twitter className="w-3 h-3" />
+                                    </a>
+                                  )}
+                                  {chain.socials?.linkedin && (
+                                    <a
+                                      href={`https://linkedin.com/company/${chain.socials.linkedin}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                                      title="LinkedIn"
+                                    >
+                                      <Linkedin className="w-3 h-3" />
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Description */}
-                    {chain.description && (
-                      <div className="mb-3">
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                          {expandedDescriptions.has(chain.chainId) || chain.description.length <= 60
-                            ? chain.description
-                            : `${chain.description.substring(0, 60)}...`}
-                        </p>
-                        {chain.description.length > 60 && (
+                      {/* Description */}
+                      {chain.description && (
+                        <div className="mb-3">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            {expandedDescriptions.has(chain.chainId) ||
+                            chain.description.length <= 60
+                              ? chain.description
+                              : `${chain.description.substring(0, 60)}...`}
+                          </p>
+                          {chain.description.length > 60 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandedDescriptions((prev) => {
+                                  const newSet = new Set(prev);
+                                  if (newSet.has(chain.chainId)) {
+                                    newSet.delete(chain.chainId);
+                                  } else {
+                                    newSet.add(chain.chainId);
+                                  }
+                                  return newSet;
+                                });
+                              }}
+                              className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mt-1 font-medium transition-colors"
+                            >
+                              {expandedDescriptions.has(chain.chainId) ? "Show less" : "Show more"}
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Chain ID and Currency */}
+                      <div className="space-y-2 mb-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-zinc-500 dark:text-zinc-400">ChainID</span>
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setExpandedDescriptions(prev => {
-                                const newSet = new Set(prev);
-                                if (newSet.has(chain.chainId)) {
-                                  newSet.delete(chain.chainId);
-                                } else {
-                                  newSet.add(chain.chainId);
-                                }
-                                return newSet;
-                              });
-                            }}
-                            className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mt-1 font-medium transition-colors"
+                            onClick={() =>
+                              copyToClipboard(chain.chainId, `chainId-${chain.chainId}`)
+                            }
+                            className="flex items-center gap-1.5 group"
                           >
-                            {expandedDescriptions.has(chain.chainId) ? "Show less" : "Show more"}
+                            <span className="font-mono text-sm text-zinc-900 dark:text-zinc-100">
+                              {formatChainId(chain.chainId)} ({chainIdHex})
+                            </span>
+                            {copiedId === `chainId-${chain.chainId}` ? (
+                              <Check className="w-3 h-3 text-green-500" />
+                            ) : (
+                              <Copy className="w-3 h-3 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors" />
+                            )}
                           </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-zinc-500 dark:text-zinc-400">Currency</span>
+                          <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                            {chain.networkToken?.symbol || "N/A"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons - pushed to bottom */}
+                      <div className="space-y-2.5 mt-auto">
+                        {/* Connect Wallet Button */}
+                        {chain.rpcUrl ? (
+                          <AddToWalletButton
+                            rpcUrl={chain.rpcUrl}
+                            chainName={chain.chainName}
+                            chainId={parseInt(chain.chainId)}
+                            tokenSymbol={chain.networkToken?.symbol}
+                            variant="default"
+                            className="w-full h-10 text-sm font-semibold shadow-sm hover:shadow-md transition-all"
+                          />
+                        ) : (
+                          <div className="w-full h-10 flex items-center justify-center text-xs text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded-md">
+                            No RPC URL available
+                          </div>
+                        )}
+
+                        {/* Stats and Explorer Buttons */}
+                        {chain.slug && (
+                          <div className="grid grid-cols-2 gap-2.5">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                glacierSupportMap.get(chain.chainId) &&
+                                (window.location.href = `/stats/l1/${chain.slug}`)
+                              }
+                              disabled={
+                                glacierSupportMap.size > 0 && !glacierSupportMap.get(chain.chainId)
+                              }
+                              className="h-10 gap-2 font-medium border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all shadow-sm hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-zinc-900 disabled:hover:border-zinc-200 dark:disabled:hover:border-zinc-800"
+                            >
+                              <BarChart3 className="w-4 h-4" />
+                              <span className="text-sm">Stats</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                chain.rpcUrl && (window.location.href = `/explorer/${chain.slug}`)
+                              }
+                              disabled={!chain.rpcUrl}
+                              className="h-10 gap-2 font-medium border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all shadow-sm hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-zinc-900 disabled:hover:border-zinc-200 dark:disabled:hover:border-zinc-800"
+                            >
+                              <Eye className="w-4 h-4" />
+                              <span className="text-sm">Explorer</span>
+                            </Button>
+                          </div>
                         )}
                       </div>
-                    )}
-
-                    {/* Chain ID and Currency */}
-                    <div className="space-y-2 mb-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-zinc-500 dark:text-zinc-400">ChainID</span>
-                        <button
-                          onClick={() => copyToClipboard(chain.chainId, `chainId-${chain.chainId}`)}
-                          className="flex items-center gap-1.5 group"
-                        >
-                          <span className="font-mono text-sm text-zinc-900 dark:text-zinc-100">
-                            {formatChainId(chain.chainId)} ({chainIdHex})
-                          </span>
-                          {copiedId === `chainId-${chain.chainId}` ? (
-                            <Check className="w-3 h-3 text-green-500" />
-                          ) : (
-                            <Copy className="w-3 h-3 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors" />
-                          )}
-                        </button>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-zinc-500 dark:text-zinc-400">Currency</span>
-                        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                          {chain.networkToken?.symbol || "N/A"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons - pushed to bottom */}
-                    <div className="space-y-2.5 mt-auto">
-                      {/* Connect Wallet Button */}
-                      {chain.rpcUrl ? (
-                        <AddToWalletButton
-                          rpcUrl={chain.rpcUrl}
-                          chainName={chain.chainName}
-                          chainId={parseInt(chain.chainId)}
-                          tokenSymbol={chain.networkToken?.symbol}
-                          variant="default"
-                          className="w-full h-10 text-sm font-semibold shadow-sm hover:shadow-md transition-all"
-                        />
-                      ) : (
-                        <div className="w-full h-10 flex items-center justify-center text-xs text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded-md">
-                          No RPC URL available
-                        </div>
-                      )}
-
-                      {/* Stats and Explorer Buttons */}
-                      {chain.slug && (
-                        <div className="grid grid-cols-2 gap-2.5">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => glacierSupportMap.get(chain.chainId) && (window.location.href = `/stats/l1/${chain.slug}`)}
-                            disabled={glacierSupportMap.size > 0 && !glacierSupportMap.get(chain.chainId)}
-                            className="h-10 gap-2 font-medium border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all shadow-sm hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-zinc-900 disabled:hover:border-zinc-200 dark:disabled:hover:border-zinc-800"
-                          >
-                            <BarChart3 className="w-4 h-4" />
-                            <span className="text-sm">Stats</span>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => chain.rpcUrl && (window.location.href = `/explorer/${chain.slug}`)}
-                            disabled={!chain.rpcUrl}
-                            className="h-10 gap-2 font-medium border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all shadow-sm hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-zinc-900 disabled:hover:border-zinc-200 dark:disabled:hover:border-zinc-800"
-                          >
-                            <Eye className="w-4 h-4" />
-                            <span className="text-sm">Explorer</span>
-                          </Button>
-                        </div>
-                      )}
-                    </div>
                     </div>
                   </div>
                 </Card>
@@ -710,4 +747,3 @@ export default function ChainListPage() {
     </div>
   );
 }
-

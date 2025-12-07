@@ -1,10 +1,40 @@
 "use client";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Brush,
+  ResponsiveContainer,
+  ComposedChart,
+} from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin } from "lucide-react";
+import {
+  Users,
+  Activity,
+  FileText,
+  MessageSquare,
+  TrendingUp,
+  UserPlus,
+  Hash,
+  Code2,
+  Gauge,
+  DollarSign,
+  Clock,
+  Fuel,
+  ArrowUpRight,
+  Twitter,
+  Linkedin,
+} from "lucide-react";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import Link from "next/link";
@@ -106,7 +136,7 @@ export default function ChainMetricsPage({
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  
+
   const [metrics, setMetrics] = useState<CChainMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -114,75 +144,76 @@ export default function ChainMetricsPage({
 
   // Cache for "all chains" data - fetched once and reused for filtering
   const [cachedAllData, setCachedAllData] = useState<CChainMetrics | null>(null);
-  
+
   // Filtering state (only for "all chains" view)
-  const isAllChainsView = chainSlug === 'all' || chainSlug === 'all-chains' || chainSlug === 'network-metrics';
-  
+  const isAllChainsView =
+    chainSlug === "all" || chainSlug === "all-chains" || chainSlug === "network-metrics";
+
   // Initialize selectedChainIds from URL params (only for all chains view)
   const getInitialSelectedChainIds = useCallback(() => {
     // Only read from URL params if we're on the "all" page
     if (isAllChainsView) {
-      const excludedParam = searchParams.get('excludedChainIds');
+      const excludedParam = searchParams.get("excludedChainIds");
       if (excludedParam) {
-        const excludedIds = new Set(excludedParam.split(',').filter(Boolean));
+        const excludedIds = new Set(excludedParam.split(",").filter(Boolean));
         // Return all chains except excluded ones
-        return new Set(allChains.map(c => c.chainId).filter(id => !excludedIds.has(id)));
+        return new Set(allChains.map((c) => c.chainId).filter((id) => !excludedIds.has(id)));
       }
     }
     // Default: all chains selected
-    return new Set(allChains.map(c => c.chainId));
+    return new Set(allChains.map((c) => c.chainId));
   }, [searchParams, isAllChainsView]);
-  
+
   const [selectedChainIds, setSelectedChainIds] = useState<Set<string>>(getInitialSelectedChainIds);
-  
+
   // Track if this is user-initiated change (not from URL sync)
   const [urlSyncNeeded, setUrlSyncNeeded] = useState(false);
-  
+
   // Update URL when selection changes (only for all chains view) - via useEffect to avoid setState during render
   useEffect(() => {
     if (!isAllChainsView || !urlSyncNeeded) return;
-    
+
     const excludedIds = allChains
-      .filter(c => !selectedChainIds.has(c.chainId))
-      .map(c => c.chainId);
-    
+      .filter((c) => !selectedChainIds.has(c.chainId))
+      .map((c) => c.chainId);
+
     const params = new URLSearchParams(searchParams.toString());
-    
+
     if (excludedIds.length === 0) {
       // All selected, remove param
-      params.delete('excludedChainIds');
+      params.delete("excludedChainIds");
     } else {
-      params.set('excludedChainIds', excludedIds.join(','));
+      params.set("excludedChainIds", excludedIds.join(","));
     }
-    
+
     const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
     router.replace(newUrl, { scroll: false });
     setUrlSyncNeeded(false);
   }, [isAllChainsView, pathname, router, searchParams, selectedChainIds, urlSyncNeeded]);
-  
+
   // Sync state from URL params on initial load and when URL changes externally (only for all chains view)
   useEffect(() => {
     if (isAllChainsView) {
       const initialSelected = getInitialSelectedChainIds();
       setSelectedChainIds(initialSelected);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, isAllChainsView]);
-  
+
   // Handle selection change from filter component
   const handleSelectionChange = useCallback((newSelection: Set<string>) => {
     setSelectedChainIds(newSelection);
     setUrlSyncNeeded(true);
   }, []);
-  
+
   // Look up chain data to get category, explorers, blockchainId, subnetId if not provided
-  const chainData = chainSlug 
-    ? (l1ChainsData as L1Chain[]).find(c => c.slug === chainSlug) 
+  const chainData = chainSlug
+    ? (l1ChainsData as L1Chain[]).find((c) => c.slug === chainSlug)
     : null;
   const category = categoryProp || chainData?.category;
   const blockchainId = blockchainIdProp || (chainData as any)?.blockchainId;
   const subnetId = subnetIdProp || chainData?.subnetId;
-  
+
   // Build explorers list - add BuilderHub explorer first if rpcUrl is provided
   const baseExplorers = explorersProp || chainData?.explorers || [];
   const explorers = useMemo(() => {
@@ -191,97 +222,112 @@ export default function ChainMetricsPage({
       // Prepend BuilderHub explorer if chain has RPC URL
       return [
         { name: "BuilderHub", link: `/explorer/${chainSlug}` },
-        ...baseExplorers.filter(e => e.name !== "BuilderHub"), // Avoid duplicates
+        ...baseExplorers.filter((e) => e.name !== "BuilderHub"), // Avoid duplicates
       ];
     }
     return baseExplorers;
   }, [rpcUrl, chainData?.rpcUrl, chainSlug, baseExplorers]);
-  
+
   // Determine which chainIds are EXCLUDED (not selected)
   const excludedChainIds = useMemo(() => {
     if (!isAllChainsView) return [];
     if (selectedChainIds.size === allChains.length) return []; // All selected, no exclusions
-    if (selectedChainIds.size === 0) return allChains.map(c => c.chainId); // None selected, all excluded
-    return allChains.filter(c => !selectedChainIds.has(c.chainId)).map(c => c.chainId);
+    if (selectedChainIds.size === 0) return allChains.map((c) => c.chainId); // None selected, all excluded
+    return allChains.filter((c) => !selectedChainIds.has(c.chainId)).map((c) => c.chainId);
   }, [isAllChainsView, selectedChainIds]);
 
   // Helper function to subtract metric values
-  const subtractMetricValues = (allData: CChainMetrics, excludedData: CChainMetrics[]): CChainMetrics => {
+  const subtractMetricValues = (
+    allData: CChainMetrics,
+    excludedData: CChainMetrics[]
+  ): CChainMetrics => {
     const result = JSON.parse(JSON.stringify(allData)) as CChainMetrics;
-    
+
     // Helper to subtract time series data
     const subtractTimeSeries = (allSeries: any, excludedSeries: any[]) => {
       if (!allSeries?.data) return allSeries;
-      
+
       const subtracted = { ...allSeries };
       subtracted.data = allSeries.data.map((point: any) => {
-        let value = typeof point.value === 'number' ? point.value : parseFloat(point.value) || 0;
-        
-        excludedSeries.forEach(excluded => {
+        let value = typeof point.value === "number" ? point.value : parseFloat(point.value) || 0;
+
+        excludedSeries.forEach((excluded) => {
           if (excluded?.data) {
             const matchingPoint = excluded.data.find((p: any) => p.date === point.date);
             if (matchingPoint) {
-              const excludedValue = typeof matchingPoint.value === 'number' ? matchingPoint.value : parseFloat(matchingPoint.value) || 0;
+              const excludedValue =
+                typeof matchingPoint.value === "number"
+                  ? matchingPoint.value
+                  : parseFloat(matchingPoint.value) || 0;
               value = Math.max(0, value - excludedValue);
             }
           }
         });
-        
+
         return { ...point, value };
       });
-      
+
       // Update current value
       if (subtracted.data.length > 0) {
         subtracted.current_value = subtracted.data[0].value;
       }
-      
+
       return subtracted;
     };
-    
+
     // Subtract each metric type
     const metricKeys = [
-      'activeSenders', 'cumulativeAddresses', 'cumulativeDeployers', 
-      'txCount', 'cumulativeTxCount', 'cumulativeContracts', 'contracts', 
-      'deployers', 'gasUsed', 'feesPaid'
+      "activeSenders",
+      "cumulativeAddresses",
+      "cumulativeDeployers",
+      "txCount",
+      "cumulativeTxCount",
+      "cumulativeContracts",
+      "contracts",
+      "deployers",
+      "gasUsed",
+      "feesPaid",
     ] as const;
-    
-    metricKeys.forEach(key => {
+
+    metricKeys.forEach((key) => {
       if (result[key]) {
         result[key] = subtractTimeSeries(
-          result[key], 
-          excludedData.map(d => d[key]).filter(Boolean)
+          result[key],
+          excludedData.map((d) => d[key]).filter(Boolean)
         );
       }
     });
-    
+
     // Handle activeAddresses (nested structure)
     if (result.activeAddresses) {
-      ['daily', 'weekly', 'monthly'].forEach(period => {
+      ["daily", "weekly", "monthly"].forEach((period) => {
         if ((result.activeAddresses as any)[period]) {
           (result.activeAddresses as any)[period] = subtractTimeSeries(
             (result.activeAddresses as any)[period],
-            excludedData.map(d => (d.activeAddresses as any)?.[period]).filter(Boolean)
+            excludedData.map((d) => (d.activeAddresses as any)?.[period]).filter(Boolean)
           );
         }
       });
     }
-    
+
     // Handle ICM messages
     if (result.icmMessages?.data) {
       result.icmMessages = {
         ...result.icmMessages,
         data: result.icmMessages.data.map((point: any) => {
           let messageCount = point.messageCount || 0;
-          
-          excludedData.forEach(excluded => {
+
+          excludedData.forEach((excluded) => {
             if (excluded?.icmMessages?.data) {
-              const matchingPoint = excluded.icmMessages.data.find((p: any) => p.date === point.date);
+              const matchingPoint = excluded.icmMessages.data.find(
+                (p: any) => p.date === point.date
+              );
               if (matchingPoint) {
                 messageCount = Math.max(0, messageCount - (matchingPoint.messageCount || 0));
               }
             }
           });
-          
+
           return { ...point, messageCount };
         }),
         current_value: 0,
@@ -290,20 +336,20 @@ export default function ChainMetricsPage({
         result.icmMessages.current_value = result.icmMessages.data[0].messageCount || 0;
       }
     }
-    
+
     return result;
   };
 
   const fetchData = async () => {
     // If not all chains view, use regular single chain fetch
     if (!isAllChainsView) {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch(`/api/chain-stats/${chainId}?timeRange=all`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch(`/api/chain-stats/${chainId}?timeRange=all`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         setMetrics(data);
         setIsInitialLoad(false);
@@ -314,14 +360,14 @@ export default function ChainMetricsPage({
       }
       return;
     }
-    
+
     // If no chains selected, show empty state
     if (selectedChainIds.size === 0) {
       setMetrics(null);
       setLoading(false);
       return;
     }
-    
+
     try {
       setLoading(true);
       setError(null);
@@ -355,9 +401,9 @@ export default function ChainMetricsPage({
             }
           })
         );
-        
-        const validExcluded = excludedResults.filter(r => r !== null) as CChainMetrics[];
-        
+
+        const validExcluded = excludedResults.filter((r) => r !== null) as CChainMetrics[];
+
         // Subtract excluded data from all data
         const filteredMetrics = subtractMetricValues(allData, validExcluded);
         setMetrics(filteredMetrics);
@@ -372,7 +418,7 @@ export default function ChainMetricsPage({
 
   useEffect(() => {
     fetchData();
-  }, [isAllChainsView, chainId, selectedChainIds.size, excludedChainIds.join(',')]);
+  }, [isAllChainsView, chainId, selectedChainIds.size, excludedChainIds.join(",")]);
 
   const formatNumber = (num: number | string): string => {
     if (num === "N/A" || num === "") return "N/A";
@@ -393,8 +439,7 @@ export default function ChainMetricsPage({
 
   const formatGasPrice = (price: number | string): string => {
     if (price === "N/A" || price === "") return "N/A";
-    const priceValue =
-      typeof price === "string" ? Number.parseFloat(price) : price;
+    const priceValue = typeof price === "string" ? Number.parseFloat(price) : price;
     if (isNaN(priceValue)) return "N/A";
 
     // values are already in nano terms, no conversion needed
@@ -456,7 +501,9 @@ export default function ChainMetricsPage({
   };
 
   const getChartData = (
-    metricKey: keyof Omit<CChainMetrics, "last_updated" | "icmMessages" | "activeAddresses"> | "activeAddresses",
+    metricKey:
+      | keyof Omit<CChainMetrics, "last_updated" | "icmMessages" | "activeAddresses">
+      | "activeAddresses",
     period?: "D" | "W" | "M" | "Q" | "Y"
   ) => {
     if (!metrics) return [];
@@ -487,16 +534,16 @@ export default function ChainMetricsPage({
     }
 
     // Handle other metrics normally
-    const metric = metrics[metricKey as keyof Omit<CChainMetrics, "last_updated" | "icmMessages" | "activeAddresses">];
+    const metric =
+      metrics[
+        metricKey as keyof Omit<CChainMetrics, "last_updated" | "icmMessages" | "activeAddresses">
+      ];
     if (!metric?.data) return [];
 
     return metric.data
       .map((point: TimeSeriesDataPoint) => ({
         day: point.date,
-        value:
-          typeof point.value === "string"
-            ? Number.parseFloat(point.value)
-            : point.value,
+        value: typeof point.value === "string" ? Number.parseFloat(point.value) : point.value,
       }))
       .reverse();
   };
@@ -523,8 +570,10 @@ export default function ChainMetricsPage({
       "cumulativeContracts",
       "contracts",
       "deployers",
-      "icmMessages"
-    ].includes(metricKey) ? Math.round(value) : value;
+      "icmMessages",
+    ].includes(metricKey)
+      ? Math.round(value)
+      : value;
 
     switch (metricKey) {
       case "activeAddresses":
@@ -588,7 +637,7 @@ export default function ChainMetricsPage({
 
     // For other periods, aggregate the data to get the latest period's value
     const grouped = new Map<string, { sum: number; count: number; date: string }>();
-    
+
     rawData.forEach((point) => {
       const date = new Date(point.day);
       let key: string;
@@ -617,9 +666,8 @@ export default function ChainMetricsPage({
     });
 
     // Get the latest aggregated value
-    const aggregated = Array.from(grouped.values())
-      .sort((a, b) => a.date.localeCompare(b.date));
-    
+    const aggregated = Array.from(grouped.values()).sort((a, b) => a.date.localeCompare(b.date));
+
     return aggregated.length > 0 ? aggregated[aggregated.length - 1].sum : "N/A";
   };
 
@@ -643,7 +691,8 @@ export default function ChainMetricsPage({
       }
     }
 
-    const metric = metrics[metricKey as keyof Omit<CChainMetrics, "last_updated" | "activeAddresses">];
+    const metric =
+      metrics[metricKey as keyof Omit<CChainMetrics, "last_updated" | "activeAddresses">];
     if (!metric) return "N/A";
     return metric.current_value;
   };
@@ -758,9 +807,9 @@ export default function ChainMetricsPage({
     },
   ];
 
-  const [chartPeriods, setChartPeriods] = useState<
-    Record<string, "D" | "W" | "M" | "Q" | "Y">
-  >(Object.fromEntries(chartConfigs.map((config) => [config.metricKey, "D"])));
+  const [chartPeriods, setChartPeriods] = useState<Record<string, "D" | "W" | "M" | "Q" | "Y">>(
+    Object.fromEntries(chartConfigs.map((config) => [config.metricKey, "D"]))
+  );
 
   // Active section tracking
   const [activeSection, setActiveSection] = useState<string>("overview");
@@ -768,9 +817,17 @@ export default function ChainMetricsPage({
   // Chart categories for navigation
   const chartCategories = [
     { id: "overview", label: "Overview" },
-    { id: "activity", label: "Activity", metricKeys: ["activeAddresses", "activeSenders", "txCount"] },
+    {
+      id: "activity",
+      label: "Activity",
+      metricKeys: ["activeAddresses", "activeSenders", "txCount"],
+    },
     { id: "contracts", label: "Contracts", metricKeys: ["contracts", "deployers"] },
-    { id: "performance", label: "Performance", metricKeys: ["gasUsed", "avgGps", "avgTps", "avgGasPrice"] },
+    {
+      id: "performance",
+      label: "Performance",
+      metricKeys: ["gasUsed", "avgGps", "avgTps", "avgGasPrice"],
+    },
     { id: "fees", label: "Fees", metricKeys: ["feesPaid"] },
     { id: "interchain", label: "Interchain", metricKeys: ["icmMessages"] },
   ];
@@ -778,7 +835,7 @@ export default function ChainMetricsPage({
   // Track active section on scroll
   useEffect(() => {
     const handleScroll = () => {
-      const sections = chartCategories.map(cat => document.getElementById(cat.id));
+      const sections = chartCategories.map((cat) => document.getElementById(cat.id));
       const scrollPosition = window.scrollY + 180; // Account for navbar height
 
       for (let i = sections.length - 1; i >= 0; i--) {
@@ -790,9 +847,9 @@ export default function ChainMetricsPage({
       }
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll(); // Set initial state
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   // Smooth scroll to section
@@ -803,7 +860,7 @@ export default function ChainMetricsPage({
       const elementPosition = element.getBoundingClientRect().top + window.scrollY;
       window.scrollTo({
         top: elementPosition - offset,
-        behavior: 'smooth'
+        behavior: "smooth",
       });
     }
   };
@@ -820,13 +877,13 @@ export default function ChainMetricsPage({
         {/* Hero Skeleton with gradient */}
         <div className="relative overflow-hidden">
           {/* Gradient decoration skeleton */}
-          <div 
+          <div
             className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
             style={{
               background: `linear-gradient(to left, ${themeColor}35 0%, ${themeColor}20 40%, ${themeColor}08 70%, transparent 100%)`,
             }}
           />
-          
+
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
             {/* Breadcrumb Skeleton */}
             <div className="flex items-center gap-1.5 mb-3">
@@ -864,7 +921,10 @@ export default function ChainMetricsPage({
           <div className="w-full">
             <div className="flex items-center gap-2 overflow-x-auto py-3 px-4 sm:px-6 max-w-7xl mx-auto">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="h-7 sm:h-8 w-20 sm:w-24 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse flex-shrink-0" />
+                <div
+                  key={i}
+                  className="h-7 sm:h-8 w-20 sm:w-24 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse flex-shrink-0"
+                />
               ))}
             </div>
           </div>
@@ -878,7 +938,10 @@ export default function ChainMetricsPage({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-gray-200 dark:border-gray-800 p-4 rounded-lg">
+                <div
+                  key={i}
+                  className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-gray-200 dark:border-gray-800 p-4 rounded-lg"
+                >
                   <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm mb-2">
                     <div className="w-4 h-4 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
                     <div className="h-4 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
@@ -897,7 +960,10 @@ export default function ChainMetricsPage({
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+                <div
+                  key={i}
+                  className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden"
+                >
                   <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-800">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 sm:gap-3">
@@ -909,7 +975,10 @@ export default function ChainMetricsPage({
                       </div>
                       <div className="flex gap-1">
                         {[1, 2, 3, 4, 5].map((j) => (
-                          <div key={j} className="h-7 w-8 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                          <div
+                            key={j}
+                            className="h-7 w-8 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse"
+                          />
                         ))}
                       </div>
                     </div>
@@ -928,7 +997,12 @@ export default function ChainMetricsPage({
           </section>
         </div>
         {chainSlug && !isAllChainsView ? (
-          <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} isCustomChain={!chainData} />
+          <L1BubbleNav
+            chainSlug={chainSlug}
+            themeColor={themeColor}
+            rpcUrl={rpcUrl}
+            isCustomChain={!chainData}
+          />
         ) : (
           <StatsBubbleNav />
         )}
@@ -942,15 +1016,18 @@ export default function ChainMetricsPage({
         <div className="container mx-auto p-6 pb-24">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
-              <p className="text-destructive text-lg mb-4">
-                Error loading data: {error}
-              </p>
+              <p className="text-destructive text-lg mb-4">Error loading data: {error}</p>
               <Button onClick={fetchData}>Retry</Button>
             </div>
           </div>
         </div>
         {chainSlug && !isAllChainsView ? (
-          <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} isCustomChain={!chainData} />
+          <L1BubbleNav
+            chainSlug={chainSlug}
+            themeColor={themeColor}
+            rpcUrl={rpcUrl}
+            isCustomChain={!chainData}
+          />
         ) : (
           <StatsBubbleNav />
         )}
@@ -964,7 +1041,7 @@ export default function ChainMetricsPage({
       <div className="relative overflow-hidden">
         {/* Gradient decoration on the right */}
         {chainLogoURI && (
-          <div 
+          <div
             className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
             style={{
               background: `linear-gradient(to left, ${themeColor}35 0%, ${themeColor}20 40%, ${themeColor}08 70%, transparent 100%)`,
@@ -972,14 +1049,14 @@ export default function ChainMetricsPage({
           />
         )}
         {!chainLogoURI && (
-          <div 
+          <div
             className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
             style={{
               background: `linear-gradient(to left, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.12) 40%, rgba(239, 68, 68, 0.04) 70%, transparent 100%)`,
             }}
           />
         )}
-        
+
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
           {/* Breadcrumb */}
           {chainSlug && (
@@ -1008,18 +1085,16 @@ export default function ChainMetricsPage({
                       alt={`${chainName} logo`}
                       className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain rounded-xl"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
+                        (e.target as HTMLImageElement).style.display = "none";
                       }}
                     />
                   )}
                   <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                    {chainName.includes("C-Chain")
-                      ? "C-Chain Metrics"
-                      : `${chainName} Metrics`}
+                    {chainName.includes("C-Chain") ? "C-Chain Metrics" : `${chainName} Metrics`}
                   </h1>
                 </div>
                 {/* Blockchain ID and Subnet ID chips + Add to Wallet */}
-                {(subnetId || blockchainId || (rpcUrl || chainData?.rpcUrl)) && (
+                {(subnetId || blockchainId || rpcUrl || chainData?.rpcUrl) && (
                   <div className="mt-3 -mx-4 px-4 sm:mx-0 sm:px-0">
                     <div className="flex flex-row items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
                       <div className="flex items-center gap-2 flex-shrink-0">
@@ -1027,7 +1102,7 @@ export default function ChainMetricsPage({
                       </div>
                       {(rpcUrl || chainData?.rpcUrl) && !isAllChainsView && (
                         <div className="flex-shrink-0">
-                          <AddToWalletButton 
+                          <AddToWalletButton
                             rpcUrl={(rpcUrl || chainData?.rpcUrl)!}
                             chainName={chainName}
                             chainId={chainId ? parseInt(chainId) : undefined}
@@ -1053,7 +1128,12 @@ export default function ChainMetricsPage({
                         asChild
                         className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
                       >
-                        <a href={website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                        <a
+                          href={website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2"
+                        >
                           Website
                           <ArrowUpRight className="h-4 w-4" />
                         </a>
@@ -1068,9 +1148,9 @@ export default function ChainMetricsPage({
                             asChild
                             className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
                           >
-                            <a 
-                              href={`https://x.com/${socials.twitter}`} 
-                              target="_blank" 
+                            <a
+                              href={`https://x.com/${socials.twitter}`}
+                              target="_blank"
                               rel="noopener noreferrer"
                               aria-label="Twitter"
                             >
@@ -1085,9 +1165,9 @@ export default function ChainMetricsPage({
                             asChild
                             className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
                           >
-                            <a 
-                              href={`https://linkedin.com/company/${socials.linkedin}`} 
-                              target="_blank" 
+                            <a
+                              href={`https://linkedin.com/company/${socials.linkedin}`}
+                              target="_blank"
                               rel="noopener noreferrer"
                               aria-label="LinkedIn"
                             >
@@ -1099,18 +1179,14 @@ export default function ChainMetricsPage({
                     )}
                     {explorers && (
                       <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
-                        <ExplorerDropdown
-                          explorers={explorers}
-                          variant="outline"
-                          size="sm"
-                        />
+                        <ExplorerDropdown explorers={explorers} variant="outline" size="sm" />
                       </div>
                     )}
                   </div>
                 )}
                 {category && (
                   <div className="mt-3">
-                    <span 
+                    <span
                       className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
                       style={{
                         backgroundColor: `${themeColor}15`,
@@ -1121,7 +1197,7 @@ export default function ChainMetricsPage({
                     </span>
                   </div>
                 )}
-                
+
                 {/* Chain Filters - inline in hero for "all chains" view */}
                 {isAllChainsView && (
                   <div className="mt-6">
@@ -1145,13 +1221,18 @@ export default function ChainMetricsPage({
                     asChild
                     className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
                   >
-                    <a href={website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                    <a
+                      href={website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2"
+                    >
                       Website
                       <ArrowUpRight className="h-4 w-4" />
                     </a>
                   </Button>
                 )}
-                
+
                 {/* Social buttons */}
                 {socials && (socials.twitter || socials.linkedin) && (
                   <>
@@ -1162,9 +1243,9 @@ export default function ChainMetricsPage({
                         asChild
                         className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
                       >
-                        <a 
-                          href={`https://x.com/${socials.twitter}`} 
-                          target="_blank" 
+                        <a
+                          href={`https://x.com/${socials.twitter}`}
+                          target="_blank"
                           rel="noopener noreferrer"
                           aria-label="Twitter"
                         >
@@ -1179,9 +1260,9 @@ export default function ChainMetricsPage({
                         asChild
                         className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
                       >
-                        <a 
-                          href={`https://linkedin.com/company/${socials.linkedin}`} 
-                          target="_blank" 
+                        <a
+                          href={`https://linkedin.com/company/${socials.linkedin}`}
+                          target="_blank"
                           rel="noopener noreferrer"
                           aria-label="LinkedIn"
                         >
@@ -1191,14 +1272,10 @@ export default function ChainMetricsPage({
                     )}
                   </>
                 )}
-                
+
                 {explorers && (
                   <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
-                    <ExplorerDropdown
-                      explorers={explorers}
-                      variant="outline"
-                      size="sm"
-                    />
+                    <ExplorerDropdown explorers={explorers} variant="outline" size="sm" />
                   </div>
                 )}
               </div>
@@ -1210,12 +1287,12 @@ export default function ChainMetricsPage({
       {/* Sticky Navigation Bar - full width, positioned below main navbar */}
       <div className="sticky top-14 z-30 w-full bg-zinc-50/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b border-t border-zinc-200 dark:border-zinc-800">
         <div className="w-full">
-          <div 
+          <div
             className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-3 px-4 sm:px-6 max-w-7xl mx-auto"
-            style={{ 
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-              WebkitOverflowScrolling: 'touch',
+            style={{
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+              WebkitOverflowScrolling: "touch",
             }}
           >
             {chartCategories.map((category) => (
@@ -1236,7 +1313,6 @@ export default function ChainMetricsPage({
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16">
-
         {/* Loading skeleton for filter changes (not initial load) */}
         {loading && !isInitialLoad && (
           <div className="space-y-12 sm:space-y-16">
@@ -1245,7 +1321,10 @@ export default function ChainMetricsPage({
               <div className="h-6 sm:h-8 w-48 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-gray-200 dark:border-gray-800 p-4 rounded-lg">
+                  <div
+                    key={i}
+                    className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-gray-200 dark:border-gray-800 p-4 rounded-lg"
+                  >
                     <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm mb-2">
                       <div className="w-4 h-4 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
                       <div className="h-4 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
@@ -1264,7 +1343,10 @@ export default function ChainMetricsPage({
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+                  <div
+                    key={i}
+                    className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden"
+                  >
                     <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-800">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 sm:gap-3">
@@ -1276,7 +1358,10 @@ export default function ChainMetricsPage({
                         </div>
                         <div className="flex gap-1">
                           {[1, 2, 3, 4, 5].map((j) => (
-                            <div key={j} className="h-7 w-8 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                            <div
+                              key={j}
+                              className="h-7 w-8 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse"
+                            />
                           ))}
                         </div>
                       </div>
@@ -1299,305 +1384,332 @@ export default function ChainMetricsPage({
         {/* Actual content - hidden during filter loading */}
         {(!loading || isInitialLoad) && (
           <>
-        {/* Network Overview */}
-        <section id="overview" className="space-y-4 sm:space-y-6 scroll-mt-32">
-          <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
-              Network Overview
-            </h2>
-          </div>
+            {/* Network Overview */}
+            <section id="overview" className="space-y-4 sm:space-y-6 scroll-mt-32">
+              <div className="space-y-2">
+                <h2 className="text-lg sm:text-2xl font-medium text-left">Network Overview</h2>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              {
-                key: "activeAddresses",
-                icon: Users,
-                label: "Daily Active Addresses",
-              },
-              {
-                key: "txCount",
-                icon: Activity,
-                label: "Daily Transactions",
-              },
-              {
-                key: "cumulativeContracts",
-                icon: FileText,
-                label: "Total Contracts Deployed",
-              },
-              {
-                key: "icmMessages",
-                icon: MessageSquare,
-                label: "Daily Interchain Messages",
-              },
-            ].map((item) => {
-              const currentValue = getCurrentValue(
-                item.key as keyof Omit<CChainMetrics, "last_updated">,
-                "D" // Always use daily for overview cards
-              );
-              const Icon = item.icon;
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  {
+                    key: "activeAddresses",
+                    icon: Users,
+                    label: "Daily Active Addresses",
+                  },
+                  {
+                    key: "txCount",
+                    icon: Activity,
+                    label: "Daily Transactions",
+                  },
+                  {
+                    key: "cumulativeContracts",
+                    icon: FileText,
+                    label: "Total Contracts Deployed",
+                  },
+                  {
+                    key: "icmMessages",
+                    icon: MessageSquare,
+                    label: "Daily Interchain Messages",
+                  },
+                ].map((item) => {
+                  const currentValue = getCurrentValue(
+                    item.key as keyof Omit<CChainMetrics, "last_updated">,
+                    "D" // Always use daily for overview cards
+                  );
+                  const Icon = item.icon;
 
-              return (
-                <Card
-                  key={item.key}
-                  className="relative overflow-hidden bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-800 p-4"
-                >
-                  <div className="relative">
-                    <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm mb-2">
-                      <Icon className="w-4 h-4" />
-                      {item.label}
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {loading ? (
-                        <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-                      ) : (
-                        formatNumber(currentValue)
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        </section>
+                  return (
+                    <Card
+                      key={item.key}
+                      className="relative overflow-hidden bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-800 p-4"
+                    >
+                      <div className="relative">
+                        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm mb-2">
+                          <Icon className="w-4 h-4" />
+                          {item.label}
+                        </div>
+                        <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {loading ? (
+                            <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                          ) : (
+                            formatNumber(currentValue)
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </section>
 
-        {/* Activity Section */}
-        <section id="activity" className="space-y-4 sm:space-y-6 scroll-mt-32">
-          <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
-              Activity
-            </h2>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
-              Address and transaction activity over time
-            </p>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {getChartsByCategory(["activeAddresses", "activeSenders", "txCount"])
-              .map((config) => {
-                const period = chartPeriods[config.metricKey];
-                
-                const rawData = config.metricKey === "icmMessages" ? getICMChartData() : getChartData(config.metricKey, period);
-                if (rawData.length === 0) return null;
-                
-                // Get current value from aggregated data based on selected period
-                const currentValue = getCurrentValueFromData(rawData, period, config.metricKey);
-                let cumulativeData = null;
-                if (config.metricKey === "txCount") cumulativeData = getChartData("cumulativeTxCount");
-                else if (config.metricKey === "activeAddresses") cumulativeData = getChartData("cumulativeAddresses");
-                let secondaryData = null;
-                let secondaryCurrentValue = null;
-                if (config.chartType === "dual" && config.secondaryMetricKey) {
-                  secondaryData = getChartData(config.secondaryMetricKey);
-                  secondaryCurrentValue = getCurrentValue(config.secondaryMetricKey);
-                }
+            {/* Activity Section */}
+            <section id="activity" className="space-y-4 sm:space-y-6 scroll-mt-32">
+              <div className="space-y-2">
+                <h2 className="text-lg sm:text-2xl font-medium text-left">Activity</h2>
+                <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+                  Address and transaction activity over time
+                </p>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {getChartsByCategory(["activeAddresses", "activeSenders", "txCount"]).map(
+                  (config) => {
+                    const period = chartPeriods[config.metricKey];
 
-                // Determine allowed periods based on metric type
-                let allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = ["D", "W", "M", "Q", "Y"];
-                // Active addresses only supports D, W, M (data fetched from API with those intervals)
-                if (config.metricKey === "activeAddresses") {
-                  allowedPeriods = ["D", "W", "M"];
-                }
-                
-                return (
-                  <ChartCard
-                    key={config.metricKey}
-                    config={config}
-                    rawData={rawData}
-                    cumulativeData={cumulativeData}
-                    secondaryData={secondaryData}
-                    period={period}
-                    currentValue={currentValue}
-                    secondaryCurrentValue={secondaryCurrentValue}
-                    onPeriodChange={(newPeriod) => setChartPeriods((prev) => ({ ...prev, [config.metricKey]: newPeriod }))}
-                    formatTooltipValue={(value) => formatTooltipValue(value, config.metricKey)}
-                    formatYAxisValue={formatNumber}
-                    allowedPeriods={allowedPeriods}
-                  />
-                );
-              })}
-          </div>
-        </section>
+                    const rawData =
+                      config.metricKey === "icmMessages"
+                        ? getICMChartData()
+                        : getChartData(config.metricKey, period);
+                    if (rawData.length === 0) return null;
 
-        {/* Contracts Section */}
-        <section id="contracts" className="space-y-4 sm:space-y-6 scroll-mt-32">
-          <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
-              Contracts
-            </h2>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
-              Smart contract deployment activity
-            </p>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {getChartsByCategory(["contracts", "deployers"])
-              .map((config) => {
-                const period = chartPeriods[config.metricKey];
-                const rawData = getChartData(config.metricKey as keyof Omit<CChainMetrics, "last_updated" | "icmMessages">, period);
-                if (rawData.length === 0) return null;
-                // Get current value from aggregated data based on selected period
-                const currentValue = getCurrentValueFromData(rawData, period, config.metricKey);
-                let cumulativeData = null;
-                if (config.metricKey === "contracts") cumulativeData = getChartData("cumulativeContracts");
-                else if (config.metricKey === "deployers") cumulativeData = getChartData("cumulativeDeployers");
+                    // Get current value from aggregated data based on selected period
+                    const currentValue = getCurrentValueFromData(rawData, period, config.metricKey);
+                    let cumulativeData = null;
+                    if (config.metricKey === "txCount") {
+                      cumulativeData = getChartData("cumulativeTxCount");
+                    } else if (config.metricKey === "activeAddresses") {
+                      cumulativeData = getChartData("cumulativeAddresses");
+                    }
+                    let secondaryData = null;
+                    let secondaryCurrentValue = null;
+                    if (config.chartType === "dual" && config.secondaryMetricKey) {
+                      secondaryData = getChartData(config.secondaryMetricKey);
+                      secondaryCurrentValue = getCurrentValue(config.secondaryMetricKey);
+                    }
 
-                // All periods allowed for contracts and deployers
-                const allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = ["D", "W", "M", "Q", "Y"];
-                
-                return (
-                  <ChartCard
-                    key={config.metricKey}
-                    config={config}
-                    rawData={rawData}
-                    cumulativeData={cumulativeData}
-                    secondaryData={null}
-                    period={period}
-                    currentValue={currentValue}
-                    secondaryCurrentValue={null}
-                    onPeriodChange={(newPeriod) => setChartPeriods((prev) => ({ ...prev, [config.metricKey]: newPeriod }))}
-                    formatTooltipValue={(value) => formatTooltipValue(value, config.metricKey)}
-                    formatYAxisValue={formatNumber}
-                    allowedPeriods={allowedPeriods}
-                  />
-                );
-              })}
-          </div>
-        </section>
+                    // Determine allowed periods based on metric type
+                    let allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = ["D", "W", "M", "Q", "Y"];
+                    // Active addresses only supports D, W, M (data fetched from API with those intervals)
+                    if (config.metricKey === "activeAddresses") {
+                      allowedPeriods = ["D", "W", "M"];
+                    }
 
-        {/* Performance Section */}
-        <section id="performance" className="space-y-4 sm:space-y-6 scroll-mt-32">
-          <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
-              Performance
-            </h2>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
-              Network throughput and gas metrics
-            </p>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {getChartsByCategory(["gasUsed", "avgGps", "avgTps", "avgGasPrice"])
-              .map((config) => {
-                const period = chartPeriods[config.metricKey];
-                const rawData = getChartData(config.metricKey as keyof Omit<CChainMetrics, "last_updated" | "icmMessages">, period);
-                if (rawData.length === 0) return null;
-                // Get current value from aggregated data based on selected period
-                const currentValue = getCurrentValueFromData(rawData, period, config.metricKey);
-                let secondaryData = null;
-                let secondaryCurrentValue = null;
-                if (config.chartType === "dual" && config.secondaryMetricKey) {
-                  secondaryData = getChartData(config.secondaryMetricKey);
-                  secondaryCurrentValue = getCurrentValue(config.secondaryMetricKey);
-                }
+                    return (
+                      <ChartCard
+                        key={config.metricKey}
+                        config={config}
+                        rawData={rawData}
+                        cumulativeData={cumulativeData}
+                        secondaryData={secondaryData}
+                        period={period}
+                        currentValue={currentValue}
+                        secondaryCurrentValue={secondaryCurrentValue}
+                        onPeriodChange={(newPeriod) =>
+                          setChartPeriods((prev) => ({ ...prev, [config.metricKey]: newPeriod }))
+                        }
+                        formatTooltipValue={(value) => formatTooltipValue(value, config.metricKey)}
+                        formatYAxisValue={formatNumber}
+                        allowedPeriods={allowedPeriods}
+                      />
+                    );
+                  }
+                )}
+              </div>
+            </section>
 
-                // Determine allowed periods based on metric type
-                let allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = ["D", "W", "M", "Q", "Y"];
-                // GPS, TPS, and Gas Price are only available on Daily
-                if (["avgGps", "maxGps", "avgTps", "maxTps", "avgGasPrice", "maxGasPrice"].includes(config.metricKey)) {
-                  allowedPeriods = ["D"];
-                }
-                
-                return (
-                  <ChartCard
-                    key={config.metricKey}
-                    config={config}
-                    rawData={rawData}
-                    cumulativeData={null}
-                    secondaryData={secondaryData}
-                    period={period}
-                    currentValue={currentValue}
-                    secondaryCurrentValue={secondaryCurrentValue}
-                    onPeriodChange={(newPeriod) => setChartPeriods((prev) => ({ ...prev, [config.metricKey]: newPeriod }))}
-                    formatTooltipValue={(value) => formatTooltipValue(value, config.metricKey)}
-                    formatYAxisValue={formatNumber}
-                    allowedPeriods={allowedPeriods}
-                  />
-                );
-              })}
-          </div>
-        </section>
+            {/* Contracts Section */}
+            <section id="contracts" className="space-y-4 sm:space-y-6 scroll-mt-32">
+              <div className="space-y-2">
+                <h2 className="text-lg sm:text-2xl font-medium text-left">Contracts</h2>
+                <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+                  Smart contract deployment activity
+                </p>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {getChartsByCategory(["contracts", "deployers"]).map((config) => {
+                  const period = chartPeriods[config.metricKey];
+                  const rawData = getChartData(
+                    config.metricKey as keyof Omit<CChainMetrics, "last_updated" | "icmMessages">,
+                    period
+                  );
+                  if (rawData.length === 0) return null;
+                  // Get current value from aggregated data based on selected period
+                  const currentValue = getCurrentValueFromData(rawData, period, config.metricKey);
+                  let cumulativeData = null;
+                  if (config.metricKey === "contracts") {
+                    cumulativeData = getChartData("cumulativeContracts");
+                  } else if (config.metricKey === "deployers") {
+                    cumulativeData = getChartData("cumulativeDeployers");
+                  }
 
-        {/* Fees Section */}
-        <section id="fees" className="space-y-4 sm:space-y-6 scroll-mt-32">
-          <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
-              Fees
-            </h2>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
-              Transaction fee metrics
-            </p>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {getChartsByCategory(["feesPaid"])
-              .map((config) => {
-                const period = chartPeriods[config.metricKey];
-                const rawData = getChartData(config.metricKey as keyof Omit<CChainMetrics, "last_updated" | "icmMessages">, period);
-                if (rawData.length === 0) return null;
-                // Get current value from aggregated data based on selected period
-                const currentValue = getCurrentValueFromData(rawData, period, config.metricKey);
+                  // All periods allowed for contracts and deployers
+                  const allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = ["D", "W", "M", "Q", "Y"];
 
-                // All periods allowed for fees
-                const allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = ["D", "W", "M", "Q", "Y"];
-                
-                return (
-                  <ChartCard
-                    key={config.metricKey}
-                    config={config}
-                    rawData={rawData}
-                    cumulativeData={null}
-                    secondaryData={null}
-                    period={period}
-                    currentValue={currentValue}
-                    secondaryCurrentValue={null}
-                    onPeriodChange={(newPeriod) => setChartPeriods((prev) => ({ ...prev, [config.metricKey]: newPeriod }))}
-                    formatTooltipValue={(value) => formatTooltipValue(value, config.metricKey)}
-                    formatYAxisValue={formatNumber}
-                    allowedPeriods={allowedPeriods}
-                  />
-                );
-              })}
-          </div>
-        </section>
+                  return (
+                    <ChartCard
+                      key={config.metricKey}
+                      config={config}
+                      rawData={rawData}
+                      cumulativeData={cumulativeData}
+                      secondaryData={null}
+                      period={period}
+                      currentValue={currentValue}
+                      secondaryCurrentValue={null}
+                      onPeriodChange={(newPeriod) =>
+                        setChartPeriods((prev) => ({ ...prev, [config.metricKey]: newPeriod }))
+                      }
+                      formatTooltipValue={(value) => formatTooltipValue(value, config.metricKey)}
+                      formatYAxisValue={formatNumber}
+                      allowedPeriods={allowedPeriods}
+                    />
+                  );
+                })}
+              </div>
+            </section>
 
-        {/* Interchain Section */}
-        <section id="interchain" className="space-y-4 sm:space-y-6 scroll-mt-32">
-          <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
-              Interchain
-            </h2>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
-              Cross-chain messaging activity
-            </p>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {getChartsByCategory(["icmMessages"])
-              .map((config) => {
-                const rawData = getICMChartData();
-                if (rawData.length === 0) return null;
-                const period = chartPeriods[config.metricKey];
-                const currentValue = getCurrentValue(config.metricKey);
-                return (
-                  <ChartCard
-                    key={config.metricKey}
-                    config={config}
-                    rawData={rawData}
-                    cumulativeData={null}
-                    secondaryData={null}
-                    period={period}
-                    currentValue={currentValue}
-                    secondaryCurrentValue={null}
-                    onPeriodChange={(newPeriod) => setChartPeriods((prev) => ({ ...prev, [config.metricKey]: newPeriod }))}
-                    formatTooltipValue={(value) => formatTooltipValue(value, config.metricKey)}
-                    formatYAxisValue={formatNumber}
-                  />
-                );
-              })}
-          </div>
-        </section>
+            {/* Performance Section */}
+            <section id="performance" className="space-y-4 sm:space-y-6 scroll-mt-32">
+              <div className="space-y-2">
+                <h2 className="text-lg sm:text-2xl font-medium text-left">Performance</h2>
+                <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+                  Network throughput and gas metrics
+                </p>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {getChartsByCategory(["gasUsed", "avgGps", "avgTps", "avgGasPrice"]).map(
+                  (config) => {
+                    const period = chartPeriods[config.metricKey];
+                    const rawData = getChartData(
+                      config.metricKey as keyof Omit<CChainMetrics, "last_updated" | "icmMessages">,
+                      period
+                    );
+                    if (rawData.length === 0) return null;
+                    // Get current value from aggregated data based on selected period
+                    const currentValue = getCurrentValueFromData(rawData, period, config.metricKey);
+                    let secondaryData = null;
+                    let secondaryCurrentValue = null;
+                    if (config.chartType === "dual" && config.secondaryMetricKey) {
+                      secondaryData = getChartData(config.secondaryMetricKey);
+                      secondaryCurrentValue = getCurrentValue(config.secondaryMetricKey);
+                    }
+
+                    // Determine allowed periods based on metric type
+                    let allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = ["D", "W", "M", "Q", "Y"];
+                    // GPS, TPS, and Gas Price are only available on Daily
+                    if (
+                      [
+                        "avgGps",
+                        "maxGps",
+                        "avgTps",
+                        "maxTps",
+                        "avgGasPrice",
+                        "maxGasPrice",
+                      ].includes(config.metricKey)
+                    ) {
+                      allowedPeriods = ["D"];
+                    }
+
+                    return (
+                      <ChartCard
+                        key={config.metricKey}
+                        config={config}
+                        rawData={rawData}
+                        cumulativeData={null}
+                        secondaryData={secondaryData}
+                        period={period}
+                        currentValue={currentValue}
+                        secondaryCurrentValue={secondaryCurrentValue}
+                        onPeriodChange={(newPeriod) =>
+                          setChartPeriods((prev) => ({ ...prev, [config.metricKey]: newPeriod }))
+                        }
+                        formatTooltipValue={(value) => formatTooltipValue(value, config.metricKey)}
+                        formatYAxisValue={formatNumber}
+                        allowedPeriods={allowedPeriods}
+                      />
+                    );
+                  }
+                )}
+              </div>
+            </section>
+
+            {/* Fees Section */}
+            <section id="fees" className="space-y-4 sm:space-y-6 scroll-mt-32">
+              <div className="space-y-2">
+                <h2 className="text-lg sm:text-2xl font-medium text-left">Fees</h2>
+                <p className="text-zinc-500 dark:text-zinc-400 text-sm">Transaction fee metrics</p>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {getChartsByCategory(["feesPaid"]).map((config) => {
+                  const period = chartPeriods[config.metricKey];
+                  const rawData = getChartData(
+                    config.metricKey as keyof Omit<CChainMetrics, "last_updated" | "icmMessages">,
+                    period
+                  );
+                  if (rawData.length === 0) return null;
+                  // Get current value from aggregated data based on selected period
+                  const currentValue = getCurrentValueFromData(rawData, period, config.metricKey);
+
+                  // All periods allowed for fees
+                  const allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = ["D", "W", "M", "Q", "Y"];
+
+                  return (
+                    <ChartCard
+                      key={config.metricKey}
+                      config={config}
+                      rawData={rawData}
+                      cumulativeData={null}
+                      secondaryData={null}
+                      period={period}
+                      currentValue={currentValue}
+                      secondaryCurrentValue={null}
+                      onPeriodChange={(newPeriod) =>
+                        setChartPeriods((prev) => ({ ...prev, [config.metricKey]: newPeriod }))
+                      }
+                      formatTooltipValue={(value) => formatTooltipValue(value, config.metricKey)}
+                      formatYAxisValue={formatNumber}
+                      allowedPeriods={allowedPeriods}
+                    />
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Interchain Section */}
+            <section id="interchain" className="space-y-4 sm:space-y-6 scroll-mt-32">
+              <div className="space-y-2">
+                <h2 className="text-lg sm:text-2xl font-medium text-left">Interchain</h2>
+                <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+                  Cross-chain messaging activity
+                </p>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {getChartsByCategory(["icmMessages"]).map((config) => {
+                  const rawData = getICMChartData();
+                  if (rawData.length === 0) return null;
+                  const period = chartPeriods[config.metricKey];
+                  const currentValue = getCurrentValue(config.metricKey);
+                  return (
+                    <ChartCard
+                      key={config.metricKey}
+                      config={config}
+                      rawData={rawData}
+                      cumulativeData={null}
+                      secondaryData={null}
+                      period={period}
+                      currentValue={currentValue}
+                      secondaryCurrentValue={null}
+                      onPeriodChange={(newPeriod) =>
+                        setChartPeriods((prev) => ({ ...prev, [config.metricKey]: newPeriod }))
+                      }
+                      formatTooltipValue={(value) => formatTooltipValue(value, config.metricKey)}
+                      formatYAxisValue={formatNumber}
+                    />
+                  );
+                })}
+              </div>
+            </section>
           </>
         )}
       </div>
 
       {/* Bubble Navigation */}
       {chainSlug && !isAllChainsView ? (
-        <L1BubbleNav chainSlug={chainSlug} themeColor={themeColor} rpcUrl={rpcUrl} isCustomChain={!chainData} />
+        <L1BubbleNav
+          chainSlug={chainSlug}
+          themeColor={themeColor}
+          rpcUrl={rpcUrl}
+          isCustomChain={!chainData}
+        />
       ) : (
         <StatsBubbleNav />
       )}
@@ -1640,17 +1752,11 @@ function ChartCard({
     if (period === "D") return rawData;
 
     // For active addresses, don't aggregate since data is already fetched with proper interval
-    if (
-      config.metricKey === "activeAddresses" &&
-      (period === "W" || period === "M")
-    ) {
+    if (config.metricKey === "activeAddresses" && (period === "W" || period === "M")) {
       return rawData;
     }
 
-    const grouped = new Map<
-      string,
-      { sum: number; count: number; date: string }
-    >();
+    const grouped = new Map<string, { sum: number; count: number; date: string }>();
 
     rawData.forEach((point) => {
       const date = new Date(point.day);
@@ -1661,10 +1767,7 @@ function ChartCard({
         weekStart.setDate(date.getDate() - date.getDay());
         key = weekStart.toISOString().split("T")[0];
       } else if (period === "M") {
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}`;
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       } else if (period === "Q") {
         const quarter = Math.floor(date.getMonth() / 3) + 1;
         key = `${date.getFullYear()}-Q${quarter}`;
@@ -1705,10 +1808,7 @@ function ChartCard({
         weekStart.setDate(date.getDate() - date.getDay());
         key = weekStart.toISOString().split("T")[0];
       } else if (period === "M") {
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}`;
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       } else if (period === "Q") {
         const quarter = Math.floor(date.getMonth() / 3) + 1;
         key = `${date.getFullYear()}-Q${quarter}`;
@@ -1737,10 +1837,7 @@ function ChartCard({
   const aggregatedSecondaryData = useMemo(() => {
     if (!secondaryData || period === "D") return secondaryData;
 
-    const grouped = new Map<
-      string,
-      { sum: number; count: number; date: string }
-    >();
+    const grouped = new Map<string, { sum: number; count: number; date: string }>();
 
     secondaryData.forEach((point) => {
       const date = new Date(point.day);
@@ -1751,10 +1848,7 @@ function ChartCard({
         weekStart.setDate(date.getDate() - date.getDay());
         key = weekStart.toISOString().split("T")[0];
       } else if (period === "M") {
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}`;
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       } else if (period === "Q") {
         const quarter = Math.floor(date.getMonth() / 3) + 1;
         key = `${date.getFullYear()}-Q${quarter}`;
@@ -1863,7 +1957,9 @@ function ChartCard({
   const formatXAxis = (value: string) => {
     if (period === "Q") {
       const parts = value.split("-");
-      if (parts.length === 2) { return `${parts[1]} '${parts[0].slice(-2)}` }
+      if (parts.length === 2) {
+        return `${parts[1]} '${parts[0].slice(-2)}`;
+      }
       return value;
     }
     if (period === "Y") return value;
@@ -1880,7 +1976,9 @@ function ChartCard({
   const formatBrushXAxis = (value: string) => {
     if (period === "Q") {
       const parts = value.split("-");
-      if (parts.length === 2) { return `${parts[1]} ${parts[0]}` }
+      if (parts.length === 2) {
+        return `${parts[1]} ${parts[0]}`;
+      }
       return value;
     }
     if (period === "Y") return value;
@@ -1892,8 +1990,10 @@ function ChartCard({
   };
 
   const formatTooltipDate = (value: string) => {
-    if (period === "Y") { return value }
-    
+    if (period === "Y") {
+      return value;
+    }
+
     if (period === "Q") {
       const parts = value.split("-");
       if (parts.length === 2) {
@@ -1901,33 +2001,33 @@ function ChartCard({
       }
       return value;
     }
-    
+
     const date = new Date(value);
-    
+
     if (period === "M") {
       return date.toLocaleDateString("en-US", {
         month: "long",
         year: "numeric",
       });
     }
-    
+
     if (period === "W") {
       const endDate = new Date(date);
       endDate.setDate(date.getDate() + 6);
-      
+
       const startMonth = date.toLocaleDateString("en-US", { month: "long" });
       const endMonth = endDate.toLocaleDateString("en-US", { month: "long" });
       const startDay = date.getDate();
       const endDay = endDate.getDate();
       const year = endDate.getFullYear();
-      
+
       if (startMonth === endMonth) {
         return `${startMonth} ${startDay}-${endDay}, ${year}`;
       } else {
         return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
       }
     }
-    
+
     return date.toLocaleDateString("en-US", {
       day: "numeric",
       month: "long",
@@ -1946,15 +2046,10 @@ function ChartCard({
               className="rounded-full p-2 sm:p-3 flex items-center justify-center"
               style={{ backgroundColor: `${config.color}20` }}
             >
-              <Icon
-                className="h-5 w-5 sm:h-6 sm:w-6"
-                style={{ color: config.color }}
-              />
+              <Icon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: config.color }} />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-normal">
-                {config.title}
-              </h3>
+              <h3 className="text-base sm:text-lg font-normal">{config.title}</h3>
               <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
                 {config.description}
               </p>
@@ -1972,11 +2067,7 @@ function ChartCard({
                       ? "text-white dark:text-white"
                       : "text-muted-foreground hover:bg-muted"
                   }`}
-                  style={
-                    period === p
-                      ? { backgroundColor: `${config.color}`, opacity: 0.9 }
-                      : {}
-                  }
+                  style={period === p ? { backgroundColor: `${config.color}`, opacity: 0.9 } : {}}
                 >
                   {p}
                 </button>
@@ -1993,9 +2084,7 @@ function ChartCard({
               <div className="text-md sm:text-base font-mono">
                 Avg:{" "}
                 {formatTooltipValue(
-                  typeof currentValue === "string"
-                    ? parseFloat(currentValue)
-                    : currentValue
+                  typeof currentValue === "string" ? parseFloat(currentValue) : currentValue
                 )}{" "}
                 / Max:{" "}
                 {formatTooltipValue(
@@ -2007,9 +2096,7 @@ function ChartCard({
             ) : (
               <div className="text-md sm:text-base font-mono break-all">
                 {formatTooltipValue(
-                  typeof currentValue === "string"
-                    ? parseFloat(currentValue)
-                    : currentValue
+                  typeof currentValue === "string" ? parseFloat(currentValue) : currentValue
                 )}
               </div>
             )}
@@ -2029,19 +2116,28 @@ function ChartCard({
               </div>
             )}
             {/* for cumulative charts */}
-            {config.chartType === "bar" && (config.metricKey === "txCount" || config.metricKey === "activeAddresses" || config.metricKey === "contracts" || config.metricKey === "deployers") && (
+            {config.chartType === "bar" &&
+              (config.metricKey === "txCount" ||
+                config.metricKey === "activeAddresses" ||
+                config.metricKey === "contracts" ||
+                config.metricKey === "deployers") && (
                 <div className="flex items-center gap-3 ml-auto text-xs">
                   <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded" style={{ backgroundColor: config.color }}/>
+                    <div className="w-3 h-3 rounded" style={{ backgroundColor: config.color }} />
                     <span className="text-muted-foreground">
-                      {period === "D" ? "Daily": period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
+                      {period === "D"
+                        ? "Daily"
+                        : period === "W"
+                          ? "Weekly"
+                          : period === "M"
+                            ? "Monthly"
+                            : period === "Q"
+                              ? "Quarterly"
+                              : "Yearly"}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <div
-                      className="w-3 h-0.5"
-                      style={{ backgroundColor: "#a855f7" }}
-                    />
+                    <div className="w-3 h-0.5" style={{ backgroundColor: "#a855f7" }} />
                     <span style={{ color: "#a855f7" }}>Total</span>
                   </div>
                 </div>
@@ -2050,17 +2146,11 @@ function ChartCard({
             {config.chartType === "dual" && (
               <div className="flex items-center gap-3 ml-auto text-xs">
                 <div className="flex items-center gap-1.5">
-                  <div
-                    className="w-3 h-3 rounded"
-                    style={{ backgroundColor: config.color }}
-                  />
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: config.color }} />
                   <span className="text-muted-foreground">Avg</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div
-                    className="w-3 h-3 rounded"
-                    style={{ backgroundColor: "#a855f7" }}
-                  />
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: "#a855f7" }} />
                   <span style={{ color: "#a855f7" }}>Max</span>
                 </div>
               </div>
@@ -2108,24 +2198,17 @@ function ChartCard({
                     cursor={{ fill: `${config.color}20` }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.[0]) return null;
-                      const formattedDate = formatTooltipDate(
-                        payload[0].payload.day
-                      );
+                      const formattedDate = formatTooltipDate(payload[0].payload.day);
                       return (
                         <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                           <div className="grid gap-2">
-                            <div className="font-medium text-sm">
-                              {formattedDate}
-                            </div>
+                            <div className="font-medium text-sm">{formattedDate}</div>
                             <div className="text-xs">
                               {formatTooltipValue(payload[0].value as number)}
                             </div>
                             {payload[0].payload.cumulative && (
                               <div className="text-xs text-muted-foreground">
-                                Total:{" "}
-                                {formatYAxisValue(
-                                  payload[0].payload.cumulative
-                                )}
+                                Total: {formatYAxisValue(payload[0].payload.cumulative)}
                               </div>
                             )}
                           </div>
@@ -2198,9 +2281,7 @@ function ChartCard({
                       return (
                         <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                           <div className="grid gap-2">
-                            <div className="font-medium text-xs">
-                              {formattedDate}
-                            </div>
+                            <div className="font-medium text-xs">{formattedDate}</div>
                             <div className="text-xs">
                               {formatTooltipValue(payload[0].value as number)}
                             </div>
@@ -2209,11 +2290,7 @@ function ChartCard({
                       );
                     }}
                   />
-                  <Bar
-                    dataKey="value"
-                    fill={config.color}
-                    radius={[4, 4, 0, 0]}
-                  />
+                  <Bar dataKey="value" fill={config.color} radius={[4, 4, 0, 0]} />
                 </BarChart>
               ) : config.chartType === "area" ? (
                 <AreaChart
@@ -2221,23 +2298,9 @@ function ChartCard({
                   margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                 >
                   <defs>
-                    <linearGradient
-                      id={`gradient-${config.metricKey}`}
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="5%"
-                        stopColor={config.color}
-                        stopOpacity={0.3}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor={config.color}
-                        stopOpacity={0}
-                      />
+                    <linearGradient id={`gradient-${config.metricKey}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={config.color} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={config.color} stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid
@@ -2266,9 +2329,7 @@ function ChartCard({
                       return (
                         <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                           <div className="grid gap-2">
-                            <div className="font-medium text-xs">
-                              {formattedDate}
-                            </div>
+                            <div className="font-medium text-xs">{formattedDate}</div>
                             <div className="text-xs">
                               {formatTooltipValue(payload[0].value as number)}
                             </div>
@@ -2312,15 +2373,11 @@ function ChartCard({
                     cursor={{ fill: `${config.color}20` }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.[0]) return null;
-                      const formattedDate = formatTooltipDate(
-                        payload[0].payload.day
-                      );
+                      const formattedDate = formatTooltipDate(payload[0].payload.day);
                       return (
                         <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                           <div className="grid gap-2">
-                            <div className="font-medium text-sm">
-                              {formattedDate}
-                            </div>
+                            <div className="font-medium text-sm">{formattedDate}</div>
                             {payload[0].payload.secondary && (
                               <div className="text-xs flex items-center gap-1.5">
                                 <div
@@ -2328,10 +2385,7 @@ function ChartCard({
                                   style={{ backgroundColor: "#a855f7" }}
                                 />
                                 <span style={{ color: "#a855f7" }}>
-                                  Max:{" "}
-                                  {formatTooltipValue(
-                                    payload[0].payload.secondary
-                                  )}
+                                  Max: {formatTooltipValue(payload[0].payload.secondary)}
                                 </span>
                               </div>
                             )}
@@ -2341,8 +2395,7 @@ function ChartCard({
                                 style={{ backgroundColor: config.color }}
                               />
                               <span style={{ color: config.color }}>
-                                Avg:{" "}
-                                {formatTooltipValue(payload[0].payload.value)}
+                                Avg: {formatTooltipValue(payload[0].payload.value)}
                               </span>
                             </div>
                           </div>
@@ -2400,9 +2453,7 @@ function ChartCard({
                       return (
                         <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                           <div className="grid gap-2">
-                            <div className="font-medium text-xs">
-                              {formattedDate}
-                            </div>
+                            <div className="font-medium text-xs">{formattedDate}</div>
                             <div className="text-xs">
                               {formatTooltipValue(payload[0].value as number)}
                             </div>
@@ -2426,10 +2477,7 @@ function ChartCard({
           {/* Brush Slider */}
           <div className="mt-4 bg-white dark:bg-black pl-[60px]">
             <ResponsiveContainer width="100%" height={80}>
-              <LineChart
-                data={aggregatedData}
-                margin={{ top: 0, right: 30, left: 0, bottom: 5 }}
-              >
+              <LineChart data={aggregatedData} margin={{ top: 0, right: 30, left: 0, bottom: 5 }}>
                 <Brush
                   dataKey="day"
                   height={80}
@@ -2439,10 +2487,7 @@ function ChartCard({
                   startIndex={brushIndexes?.startIndex ?? 0}
                   endIndex={brushIndexes?.endIndex ?? aggregatedData.length - 1}
                   onChange={(e: any) => {
-                    if (
-                      e.startIndex !== undefined &&
-                      e.endIndex !== undefined
-                    ) {
+                    if (e.startIndex !== undefined && e.endIndex !== undefined) {
                       setBrushIndexes({
                         startIndex: e.startIndex,
                         endIndex: e.endIndex,

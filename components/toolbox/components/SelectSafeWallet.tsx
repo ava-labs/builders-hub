@@ -8,27 +8,27 @@ export type SafeSelection = {
   safeAddress: string;
   threshold: number;
   owners: string[];
-}
+};
 
 /**
  * SelectSafeWallet Component
- * 
+ *
  * A component for selecting an Ash Wallet (Safe) address with integrated suggestions.
  * Automatically fetches Ash Wallet accounts owned by the current wallet address.
- * 
+ *
  * @example
  * // Basic usage
- * const [selection, setSelection] = useState<SafeSelection>({ 
- *   safeAddress: '', 
- *   threshold: 0, 
- *   owners: [] 
+ * const [selection, setSelection] = useState<SafeSelection>({
+ *   safeAddress: '',
+ *   threshold: 0,
+ *   owners: []
  * });
- * 
- * <SelectSafeWallet 
+ *
+ * <SelectSafeWallet
  *   value={selection.safeAddress}
  *   onChange={setSelection}
  * />
- * 
+ *
  * @example
  * // With error handling
  * <SelectSafeWallet
@@ -36,7 +36,7 @@ export type SafeSelection = {
  *   onChange={setSelection}
  *   error={safeAddressError}
  * />
- * 
+ *
  * @param props
  * @param props.value - Current Ash Wallet address value
  * @param props.onChange - Callback function that receives an object with safeAddress, threshold, and owners
@@ -45,11 +45,11 @@ export type SafeSelection = {
 export default function SelectSafeWallet({
   value,
   onChange,
-  error
+  error,
 }: {
-  value: string,
-  onChange: (selection: SafeSelection) => void,
-  error?: string | null
+  value: string;
+  onChange: (selection: SafeSelection) => void;
+  error?: string | null;
 }) {
   const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
@@ -67,9 +67,9 @@ export default function SelectSafeWallet({
       setIsLoading(true);
       try {
         // Get Ash Wallet accounts owned by the current address
-        const safesByOwner = await callSafeAPI<SafesByOwnerResponse>('getSafesByOwner', {
+        const safesByOwner = await callSafeAPI<SafesByOwnerResponse>("getSafesByOwner", {
           chainId: viemChain.id.toString(),
-          ownerAddress: walletEVMAddress
+          ownerAddress: walletEVMAddress,
         });
 
         const safeAddresses = safesByOwner.safes || [];
@@ -77,9 +77,9 @@ export default function SelectSafeWallet({
 
         // Fetch details for all Ash Wallets in a single call
         if (safeAddresses.length > 0) {
-          const allSafesInfo = await callSafeAPI<AllSafesInfoResponse>('getAllSafesInfo', {
+          const allSafesInfo = await callSafeAPI<AllSafesInfoResponse>("getAllSafesInfo", {
             chainId: viemChain.id.toString(),
-            safeAddresses: safeAddresses
+            safeAddresses: safeAddresses,
           });
 
           const details: Record<string, SafeSelection> = {};
@@ -89,15 +89,17 @@ export default function SelectSafeWallet({
               details[safeAddress] = {
                 safeAddress,
                 threshold: safeInfo.threshold,
-                owners: safeInfo.owners
+                owners: safeInfo.owners,
               };
             } else if (allSafesInfo.errors?.[safeAddress]) {
-              console.warn(`Failed to fetch details for Ash Wallet ${safeAddress}:`, allSafesInfo.errors[safeAddress]);
+              console.warn(
+                `Failed to fetch details for Ash Wallet ${safeAddress}:`,
+                allSafesInfo.errors[safeAddress]
+              );
             }
           }
           setSafeDetails(details);
         }
-
       } catch (error) {
         console.error("Error fetching Ash Wallet accounts:", error);
         setSafes([]);
@@ -119,33 +121,36 @@ export default function SelectSafeWallet({
       // 3. We don't already have details for this address
       // 4. We're not currently loading the owned safes
       if (!value || !viemChain || safeDetails[value] || isLoading) return;
-      if (!value.startsWith('0x') || value.length !== 42) return;
+      if (!value.startsWith("0x") || value.length !== 42) return;
 
       setIsFetchingManualAddress(true);
       try {
-        const allSafesInfo = await callSafeAPI<AllSafesInfoResponse>('getAllSafesInfo', {
+        const allSafesInfo = await callSafeAPI<AllSafesInfoResponse>("getAllSafesInfo", {
           chainId: viemChain.id.toString(),
-          safeAddresses: [value]
+          safeAddresses: [value],
         });
 
         const safeInfo = allSafesInfo.safeInfos[value];
         if (safeInfo) {
-          setSafeDetails(prev => ({
+          setSafeDetails((prev) => ({
             ...prev,
             [value]: {
               safeAddress: value,
               threshold: safeInfo.threshold,
-              owners: safeInfo.owners
-            }
+              owners: safeInfo.owners,
+            },
           }));
           // Trigger onChange with the fetched details
           onChange({
             safeAddress: value,
             threshold: safeInfo.threshold,
-            owners: safeInfo.owners
+            owners: safeInfo.owners,
           });
         } else if (allSafesInfo.errors?.[value]) {
-          console.warn(`Failed to fetch details for manually entered Ash Wallet ${value}:`, allSafesInfo.errors[value]);
+          console.warn(
+            `Failed to fetch details for manually entered Ash Wallet ${value}:`,
+            allSafesInfo.errors[value]
+          );
         }
       } catch (error) {
         console.error("Error fetching manually entered Ash Wallet details:", error);
@@ -170,14 +175,14 @@ export default function SelectSafeWallet({
         result.push({
           title: `${safeAddress}${isSelected ? " ✓" : ""}`,
           value: safeAddress,
-          description: `${threshold}/${ownersCount} multisig${isSelected ? " (Selected)" : ""}`
+          description: `${threshold}/${ownersCount} multisig${isSelected ? " (Selected)" : ""}`,
         });
       } else {
         // Fallback if details aren't loaded yet
         result.push({
           title: safeAddress,
           value: safeAddress,
-          description: "Loading details..."
+          description: "Loading details...",
         });
       }
     }
@@ -195,23 +200,25 @@ export default function SelectSafeWallet({
       onChange({
         safeAddress: newValue,
         threshold: 0,
-        owners: []
+        owners: [],
       });
     }
   };
 
-  return <Input
-    label="Ash Wallet Address"
-    value={value}
-    onChange={handleValueChange}
-    suggestions={safeSuggestions}
-    error={error}
-    placeholder={
-      isLoading 
-        ? "Loading Ash Wallet accounts..." 
-        : isFetchingManualAddress 
-        ? "Loading Safe details..." 
-        : "Enter Ash Wallet address or select from your accounts"
-    }
-  />
-} 
+  return (
+    <Input
+      label="Ash Wallet Address"
+      value={value}
+      onChange={handleValueChange}
+      suggestions={safeSuggestions}
+      error={error}
+      placeholder={
+        isLoading
+          ? "Loading Ash Wallet accounts..."
+          : isFetchingManualAddress
+            ? "Loading Safe details..."
+            : "Enter Ash Wallet address or select from your accounts"
+      }
+    />
+  );
+}

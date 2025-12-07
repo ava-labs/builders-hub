@@ -1,4 +1,4 @@
-import { ImageResponse } from 'next/og';
+import { ImageResponse } from "next/og";
 
 type OGProps = {
   title: string;
@@ -6,90 +6,86 @@ type OGProps = {
   path: string;
 };
 
-export function generateOGImage({
-  title,
-  description,
-  path
-}: OGProps): React.ReactElement {
+export function generateOGImage({ title, description, path }: OGProps): React.ReactElement {
   const truncateText: React.CSSProperties = {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    display: '-webkit-box',
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    display: "-webkit-box",
     WebkitLineClamp: 2,
-    WebkitBoxOrient: 'vertical',
+    WebkitBoxOrient: "vertical",
   };
 
   return (
     <div
       style={{
-        display: 'flex',
-        height: '100%',
-        width: '100%',
-        position: 'relative',
-        backgroundColor: '#fafafa',
-        overflow: 'hidden',
-        alignItems: 'center',
+        display: "flex",
+        height: "100%",
+        width: "100%",
+        position: "relative",
+        backgroundColor: "#fafafa",
+        overflow: "hidden",
+        alignItems: "center",
         backgroundImage: "url('https://build.avax.network/og.png')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
       }}
     >
       <div
         style={{
-          maxWidth: '56rem',
-          display: 'flex',
-          flexDirection: 'column',
-          padding: '0 70px',
-          width: '100%',
+          maxWidth: "56rem",
+          display: "flex",
+          flexDirection: "column",
+          padding: "0 70px",
+          width: "100%",
         }}
       >
         <h1
           style={{
-            fontSize: '5.35rem',
+            fontSize: "5.35rem",
             fontFamily: "Geist-Medium",
-            lineHeight: '1.3',
-            letterSpacing: '-0.015em',
-            margin: '0 0 30px 0',
-            color: 'black',
+            lineHeight: "1.3",
+            letterSpacing: "-0.015em",
+            margin: "0 0 30px 0",
+            color: "black",
           }}
         >
           <span style={{ ...truncateText }}>{title}</span>
         </h1>
-        
+
         <p
           style={{
-            fontSize: '2.35rem',
-            color: '#4b5563',
-            maxWidth: '110%',
-            margin: '0 0 30px 0',
+            fontSize: "2.35rem",
+            color: "#4b5563",
+            maxWidth: "110%",
+            margin: "0 0 30px 0",
             lineHeight: 1.4,
-            letterSpacing: '-0.01em',
-            fontFamily: "Geist-Light" 
+            letterSpacing: "-0.01em",
+            fontFamily: "Geist-Light",
           }}
         >
           <span style={{ ...truncateText, WebkitLineClamp: 3 }}>{description}</span>
         </p>
-        
+
         <div
           style={{
-            marginTop: '4.5rem',
-            display: 'flex',
-            alignItems: 'center'
+            marginTop: "4.5rem",
+            display: "flex",
+            alignItems: "center",
           }}
         >
           <div
             style={{
-              borderRadius: '0.375rem',
-              fontSize: '2rem',
-              border: '1.25px solid #71dbff',
-              backgroundColor: 'white',
+              borderRadius: "0.375rem",
+              fontSize: "2rem",
+              border: "1.25px solid #71dbff",
+              backgroundColor: "white",
               fontFamily: "Geist-Mono",
-              color: 'black',
-              padding: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              color: "black",
+              padding: "12px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             <svg
@@ -110,7 +106,9 @@ export function generateOGImage({
                 />
               </g>
             </svg>
-            <span style={{paddingLeft: "10px"}}>build.avax.network/<span style={{color: "red"}}>{path}</span></span>
+            <span style={{ paddingLeft: "10px" }}>
+              build.avax.network/<span style={{ color: "red" }}>{path}</span>
+            </span>
           </div>
         </div>
       </div>
@@ -120,46 +118,48 @@ export function generateOGImage({
 
 // Helper function to load fonts
 export async function loadFonts() {
-  const medium = fetch(new URL('../app/api/og/Geist-Medium.ttf', import.meta.url)).then((res) =>
-    res.arrayBuffer(),
+  const medium = fetch(new URL("../app/api/og/Geist-Medium.ttf", import.meta.url)).then((res) =>
+    res.arrayBuffer()
   );
 
-  const light = fetch(new URL('../app/api/og/Geist-Light.ttf', import.meta.url)).then((res) =>
-    res.arrayBuffer(),
+  const light = fetch(new URL("../app/api/og/Geist-Light.ttf", import.meta.url)).then((res) =>
+    res.arrayBuffer()
   );
 
-  const regular = fetch(new URL('../app/api/og/GeistMono-Light.ttf', import.meta.url)).then((res) =>
-    res.arrayBuffer(),
+  const regular = fetch(new URL("../app/api/og/GeistMono-Light.ttf", import.meta.url)).then((res) =>
+    res.arrayBuffer()
   );
 
   return {
     medium: await medium,
     light: await light,
-    regular: await regular
+    regular: await regular,
   };
 }
 
 // Create OG image response
-export async function createOGResponse({
+export function createOGResponse({
   title,
   description,
   path,
-  fonts
-}: OGProps & { fonts: { medium: ArrayBuffer, light: ArrayBuffer, regular: ArrayBuffer } }): Promise<ImageResponse> {
+  fonts,
+}: OGProps & {
+  fonts: { medium: ArrayBuffer; light: ArrayBuffer; regular: ArrayBuffer };
+}): ImageResponse {
   return new ImageResponse(
     generateOGImage({
       title,
       description,
-      path
+      path,
     }),
     {
       width: 1280,
       height: 720,
       fonts: [
-        { name: 'Geist-Medium', data: fonts.medium, weight: 600 },
-        { name: 'Geist-Mono', data: fonts.regular, weight: 500 },
-        { name: 'Geist-Light', data: fonts.light, weight: 300 }
+        { name: "Geist-Medium", data: fonts.medium, weight: 600 },
+        { name: "Geist-Mono", data: fonts.regular, weight: 500 },
+        { name: "Geist-Light", data: fonts.light, weight: 300 },
       ],
-    },
+    }
   );
-} 
+}

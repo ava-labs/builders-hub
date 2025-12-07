@@ -9,9 +9,7 @@ interface ProcessCompletedDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
-export default function ProcessCompletedDialog(
-  params: ProcessCompletedDialogProps
-) {
+export default function ProcessCompletedDialog(params: ProcessCompletedDialogProps) {
   const router = useRouter();
   const content = (
     <Card
@@ -21,17 +19,20 @@ export default function ProcessCompletedDialog(
                         border border-red-500"
     >
       <CardContent className="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto p-4">
-        Your application has been Approved. Join the <a href="https://t.me/avalancheacademy" target="_blank" className="text-blue-500">Telegram group</a> to get all the support you need.
-      
+        Your application has been Approved. Join the{" "}
+        <a href="https://t.me/avalancheacademy" target="_blank" className="text-blue-500">
+          Telegram group
+        </a>{" "}
+        to get all the support you need.
         <CardFooter className="flex flex-col gap-2 w-full sm:flex-row sm:gap-4 sm:justify-center">
-        <Button
-          onClick={() => {
-            router.push(`/hackathons/${params.hackathon_id}`);
-          }}
-          className="mt-4"
-        >
-          OK
-        </Button>
+          <Button
+            onClick={() => {
+              router.push(`/hackathons/${params.hackathon_id}`);
+            }}
+            className="mt-4"
+          >
+            OK
+          </Button>
         </CardFooter>
       </CardContent>
     </Card>

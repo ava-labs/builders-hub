@@ -19,9 +19,8 @@ export default function JoinBannerLink({
   customLink,
   bannerSrc,
   altText = "Hackathon background",
-  utm = ""
+  utm = "",
 }: JoinBannerLinkProps) {
-  
   const getHref = () => {
     // Always allow navigation to registration form (even if registered, so they can modify)
     if (customLink) {
@@ -36,10 +35,7 @@ export default function JoinBannerLink({
   };
 
   return (
-    <Link
-      href={getHref()}
-      target={getTarget()}
-    >
+    <Link href={getHref()} target={getTarget()}>
       <Image
         src={bannerSrc}
         alt={altText}
@@ -50,4 +46,4 @@ export default function JoinBannerLink({
       />
     </Link>
   );
-} 
+}

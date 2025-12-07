@@ -69,9 +69,7 @@ export default function UnitConverter() {
           baseAmount = BigInt(inputAmount) * sourceUnit.factor;
         }
       } catch (error) {
-        throw new Error(
-          "Error converting: please verify that the number is valid"
-        );
+        throw new Error("Error converting: please verify that the number is valid");
       }
 
       const results: Record<string, string> = {};
@@ -87,9 +85,7 @@ export default function UnitConverter() {
         if (remainder === BigInt(0)) {
           results[unit.id] = quotient.toString();
         } else {
-          const decimalPart = remainder
-            .toString()
-            .padStart(unit.factor.toString().length - 1, "0");
+          const decimalPart = remainder.toString().padStart(unit.factor.toString().length - 1, "0");
           const trimmedDecimal = decimalPart.replace(/0+$/, "");
           results[unit.id] = `${quotient}.${trimmedDecimal}`;
         }
@@ -100,9 +96,7 @@ export default function UnitConverter() {
       // Critical conversion error - wrong values could lead to financial loss
       // This will crash the component on next render
       const err = new Error(
-        `Unit conversion failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Unit conversion failed: ${error instanceof Error ? error.message : String(error)}`
       );
       setCriticalError(err);
       return {};
@@ -138,8 +132,7 @@ export default function UnitConverter() {
       <div className="space-y-4">
         <div className="p-4 bg-gray-50 dark:bg-zinc-800 rounded-lg space-y-2 border border-gray-100 dark:border-zinc-700">
           <p className="text-sm text-gray-700 dark:text-zinc-300">
-            Avalanche has different chains that use different base units for
-            AVAX:
+            Avalanche has different chains that use different base units for AVAX:
           </p>
           <ul className="text-sm text-gray-700 dark:text-zinc-300 list-disc pl-5 space-y-1">
             <li>
@@ -156,8 +149,8 @@ export default function UnitConverter() {
             </li>
           </ul>
           <p className="text-sm text-gray-700 dark:text-zinc-300 mt-2">
-            This converter helps you translate between these different
-            denominations when working across chains.
+            This converter helps you translate between these different denominations when working
+            across chains.
           </p>
         </div>
 
@@ -170,8 +163,8 @@ export default function UnitConverter() {
                     unit.id === "nAVAX"
                       ? "text-red-600 dark:text-red-400"
                       : unit.id === "wei"
-                      ? "text-blue-600 dark:text-blue-400"
-                      : ""
+                        ? "text-blue-600 dark:text-blue-400"
+                        : ""
                   }`}
                 >
                   {unit.label}
@@ -180,9 +173,7 @@ export default function UnitConverter() {
               <div className="relative flex-grow flex">
                 <input
                   type="number"
-                  value={
-                    unit.id === selectedUnit ? amount : results[unit.id] || ""
-                  }
+                  value={unit.id === selectedUnit ? amount : results[unit.id] || ""}
                   onChange={(e) => handleInputChange(e.target.value, unit.id)}
                   placeholder="0"
                   step={unit.exponent < 0 ? 0.000000001 : 0.01}
@@ -191,8 +182,8 @@ export default function UnitConverter() {
                                           unit.id === "nAVAX"
                                             ? "border-red-300 dark:border-red-700"
                                             : unit.id === "wei"
-                                            ? "border-blue-300 dark:border-blue-700"
-                                            : "border-zinc-300 dark:border-zinc-700"
+                                              ? "border-blue-300 dark:border-blue-700"
+                                              : "border-zinc-300 dark:border-zinc-700"
                                         } 
                                         text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 
                                         focus:ring-primary/30 focus:border-primary shadow-sm transition-colors 
@@ -200,20 +191,15 @@ export default function UnitConverter() {
                 />
                 <button
                   onClick={() =>
-                    handleCopy(
-                      unit.id === selectedUnit
-                        ? amount
-                        : results[unit.id] || "",
-                      unit.id
-                    )
+                    handleCopy(unit.id === selectedUnit ? amount : results[unit.id] || "", unit.id)
                   }
                   className={`flex items-center justify-center px-2 bg-white dark:bg-zinc-900 border 
                                         ${
                                           unit.id === "nAVAX"
                                             ? "border-red-300 dark:border-red-700"
                                             : unit.id === "wei"
-                                            ? "border-blue-300 dark:border-blue-700"
-                                            : "border-zinc-300 dark:border-zinc-700"
+                                              ? "border-blue-300 dark:border-blue-700"
+                                              : "border-zinc-300 dark:border-zinc-700"
                                         } 
                                         rounded-r-md hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors`}
                 >

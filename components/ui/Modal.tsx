@@ -6,8 +6,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import React, { ReactNode } from 'react';
+} from "@/components/ui/dialog";
+import React, { ReactNode } from "react";
 
 interface ModalProps {
   isOpen: boolean;
@@ -27,8 +27,8 @@ export default function Modal({
   description,
   content,
   footer,
-  className = '',
-  contentClassName = '',
+  className = "",
+  contentClassName = "",
 }: ModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -43,15 +43,13 @@ export default function Modal({
           ${className}
         `}
       >
-        <DialogHeader className='gap-0'>
-          <DialogTitle className='text-center font-bold text-lg sm:text-left'>
-            {title}
-          </DialogTitle>
+        <DialogHeader className="gap-0">
+          <DialogTitle className="text-center font-bold text-lg sm:text-left">{title}</DialogTitle>
           <DialogClose />
         </DialogHeader>
 
         {description && (
-          <DialogDescription className='text-center sm:text-left text-base sm:text-lg'>
+          <DialogDescription className="text-center sm:text-left text-base sm:text-lg">
             {description}
           </DialogDescription>
         )}
@@ -59,7 +57,7 @@ export default function Modal({
         {content}
 
         {footer && (
-          <DialogFooter className='flex flex-col gap-2 w-full sm:flex-row sm:gap-4 sm:justify-center'>
+          <DialogFooter className="flex flex-col gap-2 w-full sm:flex-row sm:gap-4 sm:justify-center">
             {footer}
           </DialogFooter>
         )}

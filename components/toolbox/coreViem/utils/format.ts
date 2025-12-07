@@ -4,11 +4,11 @@
  * @returns Formatted balance string with AVAX denomination
  */
 export function formatAvaxBalance(balance: number | bigint): string {
-    const balanceNum = typeof balance === 'bigint' ? Number(balance) : balance;
-    return (
-        (balanceNum / 1_000_000_000).toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }) + " AVAX"
-    );
-} 
+  const balanceNum = typeof balance === "bigint" ? Number(balance) : balance;
+  return (
+    (balanceNum / 1_000_000_000).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }) + " AVAX"
+  );
+}

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { cn } from '@/lib/cn';
-import { Info } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { cn } from "@/lib/cn";
+import { Info } from "lucide-react";
 
 interface GasSliderProps {
   label: string;
@@ -39,7 +39,7 @@ export function GasSlider({
   onFocus,
   onBlur,
   showInput = true,
-  logarithmic = false
+  logarithmic = false,
 }: GasSliderProps) {
   const [localValue, setLocalValue] = useState(value.toString());
   const [isDragging, setIsDragging] = useState(false);
@@ -56,7 +56,7 @@ export function GasSlider({
     if (val <= 0) return min;
     const minLog = Math.log(min || 1);
     const maxLog = Math.log(max);
-    return (Math.log(val) - minLog) / (maxLog - minLog) * (max - min) + min;
+    return ((Math.log(val) - minLog) / (maxLog - minLog)) * (max - min) + min;
   };
 
   const fromSliderValue = (sliderVal: number) => {
@@ -77,7 +77,7 @@ export function GasSlider({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setLocalValue(val);
-    
+
     const numVal = parseFloat(val);
     if (!isNaN(numVal) && numVal >= min && numVal <= max) {
       onChange(numVal);
@@ -98,7 +98,7 @@ export function GasSlider({
     onBlur?.();
   };
 
-  const percentage = ((logarithmic ? toSliderValue(value) : value) - min) / (max - min) * 100;
+  const percentage = (((logarithmic ? toSliderValue(value) : value) - min) / (max - min)) * 100;
   const displayValue = formatValue ? formatValue(value) : value.toLocaleString();
 
   return (
@@ -138,9 +138,7 @@ export function GasSlider({
               {displayValue}
             </span>
           )}
-          {unit && (
-            <span className="text-[11px] text-zinc-500 dark:text-zinc-400">{unit}</span>
-          )}
+          {unit && <span className="text-[11px] text-zinc-500 dark:text-zinc-400">{unit}</span>}
         </div>
       </div>
 
@@ -152,7 +150,7 @@ export function GasSlider({
             className="absolute h-full bg-blue-500 dark:bg-blue-400 rounded-full transition-all duration-150"
             style={{ width: `${percentage}%` }}
           />
-          
+
           {/* Slider Input */}
           <input
             type="range"

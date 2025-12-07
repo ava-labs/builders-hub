@@ -1,19 +1,15 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useSession } from 'next-auth/react';
-import { HackathonHeader } from '@/types/hackathons';
-import { useCountdown } from './Count-down';
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { useSession } from "next-auth/react";
+import { HackathonHeader } from "@/types/hackathons";
+import { useCountdown } from "./Count-down";
 
-
-
-export const useHackathonProject = (hackathonId: string,invitationid:string) => {
+export const useHackathonProject = (hackathonId: string, invitationid: string) => {
   const { data: session } = useSession();
   const [hackathon, setHackathon] = useState<HackathonHeader | null>(null);
   const [project, setProject] = useState<any>(null);
-  
-  const [deadline, setDeadline] = useState<number>(
-    new Date().getTime() + 12 * 60 * 60 * 1000
-  );
+
+  const [deadline, setDeadline] = useState<number>(new Date().getTime() + 12 * 60 * 60 * 1000);
   const [loadData, setLoadData] = useState<boolean>(true);
   const timeLeft = useCountdown(deadline);
 
@@ -34,13 +30,13 @@ export const useHackathonProject = (hackathonId: string,invitationid:string) => 
     try {
       const response = await axios.get(`/api/project`, {
         params: {
-          hackathon_id: hackathonId,        
-          user_id: session?.user?.id,       
-          invitation_id: invitationid,      
+          hackathon_id: hackathonId,
+          user_id: session?.user?.id,
+          invitation_id: invitationid,
         },
       });
       if (response.data.project) {
-        setProject(response.data.project);  
+        setProject(response.data.project);
       }
     } catch (err) {
       console.error("Error fetching project:", err);
@@ -55,7 +51,7 @@ export const useHackathonProject = (hackathonId: string,invitationid:string) => 
     if (hackathonId && session?.user?.id && loadData) {
       getProject();
     }
-  }, [hackathonId, session?.user?.id, loadData,invitationid]);
+  }, [hackathonId, session?.user?.id, loadData, invitationid]);
 
   return {
     hackathon,
@@ -65,4 +61,4 @@ export const useHackathonProject = (hackathonId: string,invitationid:string) => 
     setLoadData,
     getProject,
   };
-}; 
+};

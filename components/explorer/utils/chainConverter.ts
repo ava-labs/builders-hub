@@ -9,9 +9,9 @@ export function convertL1ListItemToL1Chain(item: L1ListItem): L1Chain {
   // Use blockchain ID (item.id) as slug for custom chains - it's unique
   // This ensures custom chains have stable, unique URLs
   const slug = item.id;
-  
+
   const symbol = item.nativeCurrency?.symbol || item.coinName || "N/A";
-  
+
   return {
     chainId: String(item.evmChainId),
     chainName: item.name,
@@ -27,9 +27,7 @@ export function convertL1ListItemToL1Chain(item: L1ListItem): L1Chain {
       symbol,
       decimals: item.nativeCurrency?.decimals || 18,
     },
-    explorers: item.explorerUrl 
-      ? [{ name: "Explorer", link: item.explorerUrl }] 
-      : [],
+    explorers: item.explorerUrl ? [{ name: "Explorer", link: item.explorerUrl }] : [],
     isTestnet: item.isTestnet,
   };
 }
@@ -51,17 +49,9 @@ export function generateSlug(name: string): string {
  * - evmChainId (as string)
  * - blockchain ID (the 'id' field)
  */
-export function findCustomChainBySlug(
-  items: L1ListItem[],
-  slug: string
-): L1ListItem | undefined {
+export function findCustomChainBySlug(items: L1ListItem[], slug: string): L1ListItem | undefined {
   return items.find((item) => {
     const generatedSlug = generateSlug(item.name);
-    return (
-      generatedSlug === slug ||
-      String(item.evmChainId) === slug ||
-      item.id === slug
-    );
+    return generatedSlug === slug || String(item.evmChainId) === slug || item.id === slug;
   });
 }
-

@@ -6,7 +6,6 @@ export default async function RegisterPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-
   const resolvedSearchParams = await searchParams;
 
   return (

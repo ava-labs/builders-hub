@@ -1,29 +1,26 @@
-'use client';
-import { cn } from '@/utils/cn';
-import { buttonVariants } from 'fumadocs-ui/components/ui/button';
-import { ThumbsDown, ThumbsUp, Copy, Check } from 'lucide-react';
-import { type SyntheticEvent, useEffect, useState } from 'react';
-import {
-  Collapsible,
-  CollapsibleContent,
-} from 'fumadocs-ui/components/ui/collapsible';
-import { cva } from 'class-variance-authority';
-import { usePathname } from 'next/navigation';
+"use client";
+import { cn } from "@/utils/cn";
+import { buttonVariants } from "fumadocs-ui/components/ui/button";
+import { ThumbsDown, ThumbsUp, Copy, Check } from "lucide-react";
+import { type SyntheticEvent, useEffect, useState } from "react";
+import { Collapsible, CollapsibleContent } from "fumadocs-ui/components/ui/collapsible";
+import { cva } from "class-variance-authority";
+import { usePathname } from "next/navigation";
 
 const rateButtonVariants = cva(
-  'inline-flex items-center gap-2 px-3 py-2 rounded-full font-medium border text-sm [&_svg]:size-4 disabled:cursor-not-allowed transition-colors hover:bg-fd-accent/80 hover:text-fd-accent-foreground',
+  "inline-flex items-center gap-2 px-3 py-2 rounded-full font-medium border text-sm [&_svg]:size-4 disabled:cursor-not-allowed transition-colors hover:bg-fd-accent/80 hover:text-fd-accent-foreground",
   {
     variants: {
       active: {
-        true: 'bg-fd-accent text-fd-accent-foreground [&_svg]:fill-current',
-        false: 'text-fd-muted-foreground',
+        true: "bg-fd-accent text-fd-accent-foreground [&_svg]:fill-current",
+        false: "text-fd-muted-foreground",
       },
     },
-  },
+  }
 );
 
 export interface Feedback {
-  opinion: 'yes' | 'no';
+  opinion: "yes" | "no";
   message: string;
 }
 
@@ -47,16 +44,11 @@ export interface UnifiedFeedbackProps {
   pagePath: string;
 }
 
-export function Feedback({
-  onRateAction,
-  path,
-  title,
-  pagePath,
-}: UnifiedFeedbackProps) {
+export function Feedback({ onRateAction, path, title, pagePath }: UnifiedFeedbackProps) {
   const pathname = usePathname();
   const [previous, setPrevious] = useState<Feedback | null>(null);
-  const [opinion, setOpinion] = useState<'yes' | 'no' | null>(null);
-  const [message, setMessage] = useState('');
+  const [opinion, setOpinion] = useState<"yes" | "no" | null>(null);
+  const [message, setMessage] = useState("");
   const [isCopyingMarkdown, setIsCopyingMarkdown] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
@@ -77,7 +69,7 @@ export function Feedback({
 
     set(pathname, feedback);
     setPrevious(feedback);
-    setMessage('');
+    setMessage("");
     setOpinion(null);
   }
 
@@ -89,20 +81,20 @@ export function Feedback({
       // Fetch the markdown content
       const response = await fetch(markdownUrl);
       if (!response.ok) {
-        throw new Error('Failed to fetch markdown content');
+        throw new Error("Failed to fetch markdown content");
       }
       const markdownContent = await response.text();
-      
+
       // Copy the content to clipboard
       await navigator.clipboard.writeText(markdownContent);
       setIsCopied(true);
-      
+
       // Reset the copied state after 2 seconds
       setTimeout(() => {
         setIsCopied(false);
       }, 2000);
     } catch (err) {
-      console.error('Failed to copy markdown:', err);
+      console.error("Failed to copy markdown:", err);
       // Fallback to copying just the URL if fetching fails
       try {
         await navigator.clipboard.writeText(markdownUrl);
@@ -111,13 +103,12 @@ export function Feedback({
           setIsCopied(false);
         }, 2000);
       } catch (clipboardErr) {
-        console.error('Failed to copy URL:', clipboardErr);
+        console.error("Failed to copy URL:", clipboardErr);
       }
     } finally {
       setIsCopyingMarkdown(false);
     }
   };
-
 
   return (
     <Collapsible
@@ -134,11 +125,11 @@ export function Feedback({
             disabled={previous !== null}
             className={cn(
               rateButtonVariants({
-                active: (previous?.opinion ?? opinion) === 'yes',
-              }),
+                active: (previous?.opinion ?? opinion) === "yes",
+              })
             )}
             onClick={() => {
-              setOpinion('yes');
+              setOpinion("yes");
             }}
           >
             <ThumbsUp />
@@ -148,11 +139,11 @@ export function Feedback({
             disabled={previous !== null}
             className={cn(
               rateButtonVariants({
-                active: (previous?.opinion ?? opinion) === 'no',
-              }),
+                active: (previous?.opinion ?? opinion) === "no",
+              })
             )}
             onClick={() => {
-              setOpinion('no');
+              setOpinion("no");
             }}
           >
             <ThumbsDown />
@@ -183,7 +174,6 @@ export function Feedback({
               </>
             )}
           </button>
-
         </div>
       </div>
 
@@ -194,9 +184,9 @@ export function Feedback({
             <button
               className={cn(
                 buttonVariants({
-                  color: 'secondary',
+                  color: "secondary",
                 }),
-                'text-xs',
+                "text-xs"
               )}
               onClick={() => {
                 setOpinion(previous?.opinion);
@@ -216,14 +206,14 @@ export function Feedback({
               className="border rounded-lg bg-fd-secondary text-fd-secondary-foreground p-3 resize-none focus-visible:outline-none placeholder:text-fd-muted-foreground"
               placeholder="Leave your feedback..."
               onKeyDown={(e) => {
-                if (!e.shiftKey && e.key === 'Enter') {
+                if (!e.shiftKey && e.key === "Enter") {
                   submit(e);
                 }
               }}
             />
             <button
               type="submit"
-              className={cn(buttonVariants({ color: 'outline' }), 'w-fit px-3')}
+              className={cn(buttonVariants({ color: "outline" }), "w-fit px-3")}
             >
               Submit
             </button>

@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect } from 'react'
-import { RawInput } from "../Input"
-import { Trash2, AlertCircle, Plus, Lock, Info } from 'lucide-react'
-import { AddressEntry, Role, AddressRoles } from './types'
-import { isAddress } from 'viem'
-import { AddConnectedWalletButtonSimple } from '@/components/toolbox/components/ConnectWallet/AddConnectedWalletButton'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useState, useRef, useEffect } from "react";
+import { RawInput } from "../Input";
+import { Trash2, AlertCircle, Plus, Lock, Info } from "lucide-react";
+import { AddressEntry, Role, AddressRoles } from "./types";
+import { isAddress } from "viem";
+import { AddConnectedWalletButtonSimple } from "@/components/toolbox/components/ConnectWallet/AddConnectedWalletButton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface EthereumAddressListProps {
   role: Role;
@@ -18,20 +18,22 @@ interface EthereumAddressListProps {
 }
 
 const isValidInput = (input: string): boolean => {
-  const addresses = input.split(/[\s,]+/).filter(addr => addr.trim() !== '');
-  return addresses.length > 0 && addresses.every(address => isAddress(address, { strict: false }));
-}
+  const addresses = input.split(/[\s,]+/).filter((addr) => addr.trim() !== "");
+  return (
+    addresses.length > 0 && addresses.every((address) => isAddress(address, { strict: false }))
+  );
+};
 
 const getRoleDescription = (role: Role, precompileAction: string) => {
   switch (role) {
-    case 'Admin':
+    case "Admin":
       return `Can ${precompileAction} and have full control over the allowlist, including the ability to add or remove Admins, Managers, and Enabled addresses via contract calls to the precompile.`;
-    case 'Manager':
+    case "Manager":
       return `Can ${precompileAction}, add or remove Enabled addresses via contract calls to the precompile but cannot modify Admins or Managers.`;
-    case 'Enabled':
+    case "Enabled":
       return `Can ${precompileAction} but cannot modify the allow list.`;
     default:
-      return '';
+      return "";
   }
 };
 
@@ -41,29 +43,29 @@ export default function EthereumAddressList({
   onAddAddresses,
   onDeleteAddress,
   precompileAction,
-  checkDuplicate
+  checkDuplicate,
 }: EthereumAddressListProps) {
-  const [newAddress, setNewAddress] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [newAddress, setNewAddress] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleInputChange = (inputValue: string) => {
     setNewAddress(inputValue);
-  }
+  };
 
   const handleAddAddress = () => {
     if (isValidInput(newAddress)) {
-      const newAddresses = newAddress.split(/[\s,]+/).filter(addr => addr.trim() !== '');
+      const newAddresses = newAddress.split(/[\s,]+/).filter((addr) => addr.trim() !== "");
       onAddAddresses(newAddresses);
-      setNewAddress('');
+      setNewAddress("");
     }
-  }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       handleAddAddress();
     }
-  }
+  };
 
   useEffect(() => {
     if (inputRef.current) {
@@ -90,18 +92,30 @@ export default function EthereumAddressList({
 
         <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
           {addresses.map((entry) => (
-            <div key={entry.id} className="flex justify-between items-center px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors">
-              <div className={`font-mono text-[12px] ${entry.error ? 'text-red-500 dark:text-red-400' : 'text-zinc-700 dark:text-zinc-300'}`}>
+            <div
+              key={entry.id}
+              className="flex justify-between items-center px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors"
+            >
+              <div
+                className={`font-mono text-[12px] ${entry.error ? "text-red-500 dark:text-red-400" : "text-zinc-700 dark:text-zinc-300"}`}
+              >
                 <span className="inline-flex items-center">
                   {entry.address}
                   {entry.error && <AlertCircle className="h-4 w-4 ml-2 flex-shrink-0" />}
                 </span>
-                {entry.error && <p className="text-[11px] text-red-500 dark:text-red-400 mt-1">{entry.error}</p>}
-                {entry.requiredReason && <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 italic">{entry.requiredReason}</p>}
+                {entry.error && (
+                  <p className="text-[11px] text-red-500 dark:text-red-400 mt-1">{entry.error}</p>
+                )}
+                {entry.requiredReason && (
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 italic">
+                    {entry.requiredReason}
+                  </p>
+                )}
               </div>
               <div>
-                {entry.requiredReason ?
-                  <Lock className="h-4 w-4 text-zinc-400" /> :
+                {entry.requiredReason ? (
+                  <Lock className="h-4 w-4 text-zinc-400" />
+                ) : (
                   <button
                     onClick={() => onDeleteAddress(entry.id)}
                     className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
@@ -109,7 +123,7 @@ export default function EthereumAddressList({
                   >
                     <Trash2 className="h-4 w-4 text-zinc-500 dark:text-zinc-400 hover:text-red-500 transition-colors" />
                   </button>
-                }
+                )}
               </div>
             </div>
           ))}
@@ -131,8 +145,8 @@ export default function EthereumAddressList({
             >
               Add
             </button>
-            <AddConnectedWalletButtonSimple 
-              onAddAddress={(address) => onAddAddresses([address])} 
+            <AddConnectedWalletButtonSimple
+              onAddAddress={(address) => onAddAddresses([address])}
               checkDuplicate={checkDuplicate}
               addressSource={!checkDuplicate ? addresses : undefined}
             />
@@ -140,6 +154,5 @@ export default function EthereumAddressList({
         </div>
       </div>
     </div>
-  )
+  );
 }
-

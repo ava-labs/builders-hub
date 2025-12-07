@@ -1,4 +1,4 @@
-import { LucideIcon } from 'lucide-react';
+import { LucideIcon } from "lucide-react";
 
 export interface StepWizardState {
   currentStep: keyof StepListType;
@@ -10,16 +10,16 @@ export interface StepWizardState {
 }
 
 export type StepType<StepGroupListType> = {
-    title: string;
-    component: React.ReactNode;
-    group: keyof StepGroupListType;
-}
+  title: string;
+  component: React.ReactNode;
+  group: keyof StepGroupListType;
+};
 
 export type StepListType = Record<string, StepType<StepGroupListType>>;
 
 export interface StepGroupType {
-    title: string;
-    icon: LucideIcon;
-  }
+  title: string;
+  icon: LucideIcon;
+}
 
 export type StepGroupListType = Record<string, StepGroupType>;

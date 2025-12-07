@@ -16,7 +16,9 @@ export function UserButtonWrapper() {
     return null;
   }
 
-  return <SessionProvider>
-    <UserButton />
-  </SessionProvider>;
+  return (
+    <SessionProvider>
+      <UserButton />
+    </SessionProvider>
+  );
 }

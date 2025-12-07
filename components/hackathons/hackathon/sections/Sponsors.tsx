@@ -1,10 +1,6 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-} from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
 import { HackathonHeader } from "@/types/hackathons";
 import AutoScroll from "embla-carousel-auto-scroll";
@@ -62,9 +58,7 @@ function Sponsors({ hackathon }: { hackathon: HackathonHeader }) {
             variant={"secondary"}
             className="w-3/4 sm:w-1/2 lg:w-1/3 bg-red-500 rounded-md text-zinc-100"
           >
-            <Link href={hackathon.content.become_sponsor_link}>
-              BECOME A SPONSOR
-            </Link>
+            <Link href={hackathon.content.become_sponsor_link}>BECOME A SPONSOR</Link>
           </Button>
         )}
       </div>

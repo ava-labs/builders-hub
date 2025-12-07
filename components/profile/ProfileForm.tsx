@@ -70,10 +70,10 @@ export default function ProfileForm({
 }) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Detect if it's the first time (notifications is null)
   const isFirstTime = initialData.notifications === null;
-  
+
   // Create dynamic schema based on whether it's first time
   const dynamicSchema = z.object({
     name: z.string().min(1, "Full name is required"),
@@ -82,10 +82,13 @@ export default function ProfileForm({
     notification_email: z.string().email("Invalid email"),
     image: z.string().optional(),
     social_media: z.array(z.string()).default([]),
-    notifications: isFirstTime 
-      ? z.boolean().default(false).refine((val) => val === true, {
-          message: "You must agree to receive notifications to continue",
-        })
+    notifications: isFirstTime
+      ? z
+          .boolean()
+          .default(false)
+          .refine((val) => val === true, {
+            message: "You must agree to receive notifications to continue",
+          })
       : z.boolean().default(false),
     profile_privacy: z.string().default("public"),
     telegram_user: z.string().optional(),
@@ -138,12 +141,11 @@ export default function ProfileForm({
         throw new Error(`Error while saving profile: ${error.message}`);
       });
       await update();
-      
+
       // Check for stored redirect URL and navigate there, otherwise go to home
-      const redirectUrl = typeof window !== "undefined" 
-        ? localStorage.getItem("redirectAfterProfile") 
-        : null;
-      
+      const redirectUrl =
+        typeof window !== "undefined" ? localStorage.getItem("redirectAfterProfile") : null;
+
       if (redirectUrl) {
         localStorage.removeItem("redirectAfterProfile");
         router.push(redirectUrl);
@@ -216,20 +218,17 @@ export default function ProfileForm({
       toast({
         title: "Error",
         description:
-          error instanceof Error
-            ? error.message
-            : "An error occurred while saving the profile.",
+          error instanceof Error ? error.message : "An error occurred while saving the profile.",
         variant: "destructive",
       });
     } finally {
-      await update();      
+      await update();
       setIsSaving(false);
-      
+
       // Check for stored redirect URL and navigate there, otherwise go to home
-      const redirectUrl = typeof window !== "undefined" 
-        ? localStorage.getItem("redirectAfterProfile") 
-        : null;
-      
+      const redirectUrl =
+        typeof window !== "undefined" ? localStorage.getItem("redirectAfterProfile") : null;
+
       if (redirectUrl) {
         localStorage.removeItem("redirectAfterProfile");
         router.push(redirectUrl);
@@ -311,11 +310,7 @@ export default function ProfileForm({
                   </svg>
                 )}
               </div>
-              <Button
-                className="w-fit"
-                type="button"
-                onClick={() => setIsUploadModalOpen(true)}
-              >
+              <Button className="w-fit" type="button" onClick={() => setIsUploadModalOpen(true)}>
                 Upload or update your profile image
               </Button>
             </div>
@@ -350,8 +345,7 @@ export default function ProfileForm({
                   />
                 </FormControl>
                 <FormDescription>
-                  250 characters. Highlight your background, interests, and
-                  experience.
+                  250 characters. Highlight your background, interests, and experience.
                 </FormDescription>
               </FormItem>
             )}
@@ -373,12 +367,7 @@ export default function ProfileForm({
               <FormItem>
                 <FormLabel>Account Email Address</FormLabel>
                 <FormControl>
-                  <Input
-                    placeholder="your@email.com"
-                    disabled={true}
-                    type="email"
-                    {...field}
-                  />
+                  <Input placeholder="your@email.com" disabled={true} type="email" {...field} />
                 </FormControl>
               </FormItem>
             )}
@@ -413,9 +402,7 @@ export default function ProfileForm({
             render={({ field }) => (
               <FormItem>
                 <div>
-                  <h4 className="text-sm font-medium mb-2">
-                    Connect Your Accounts
-                  </h4>
+                  <h4 className="text-sm font-medium mb-2">Connect Your Accounts</h4>
                   <p className="text-sm text-muted-foreground mb-4">
                     Add your social media or professional links
                   </p>
@@ -462,8 +449,7 @@ export default function ProfileForm({
                               onClick={(e) => {
                                 e.preventDefault();
                                 const newAccounts =
-                                  field.value?.filter((_, i) => i !== index) ||
-                                  [];
+                                  field.value?.filter((_, i) => i !== index) || [];
                                 field.onChange(newAccounts, {
                                   shouldDirty: true,
                                 });
@@ -523,9 +509,7 @@ export default function ProfileForm({
                     }}
                   />
                 </FormControl>
-                <FormDescription>
-                  We can be in touch through telegram.
-                </FormDescription>
+                <FormDescription>We can be in touch through telegram.</FormDescription>
               </FormItem>
             )}
           />
@@ -544,17 +528,13 @@ export default function ProfileForm({
                       <SelectValue placeholder="Select privacy setting" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="public">
-                        Public (Visible to everyone)
-                      </SelectItem>
+                      <SelectItem value="public">Public (Visible to everyone)</SelectItem>
                       <SelectItem value="private">Private</SelectItem>
                       <SelectItem value="community">Community-only</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormControl>
-                <FormDescription>
-                  Choose who can see your profile
-                </FormDescription>
+                <FormDescription>Choose who can see your profile</FormDescription>
               </FormItem>
             )}
           />
@@ -577,10 +557,9 @@ export default function ProfileForm({
                   <div className="space-y-1">
                     <FormLabel>Email Notifications</FormLabel>
                     <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-line italic">
-                      I wish to stay informed about Avalanche news and events and
-                      agree to receive newsletters and other promotional materials
-                      at the email address I provided. {"\n"}I know that I
-                      may opt-out at any time. I have read and agree to the{" "}
+                      I wish to stay informed about Avalanche news and events and agree to receive
+                      newsletters and other promotional materials at the email address I provided.{" "}
+                      {"\n"}I know that I may opt-out at any time. I have read and agree to the{" "}
                       <a
                         href="https://www.avax.network/privacy-policy"
                         className="text-primary hover:text-primary/80 dark:text-primary/90 dark:hover:text-primary/70"
@@ -591,10 +570,7 @@ export default function ProfileForm({
                     </p>
                   </div>
                   <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
                 </div>
                 <FormMessage />
@@ -605,12 +581,7 @@ export default function ProfileForm({
           <Separator className="mb-6" />
 
           <div className="flex justify-start items-center gap-4 pt-6">
-            <Button
-              type="submit"
-              className="py-2 px-4"
-              variant="red"
-              disabled={isSaving}
-            >
+            <Button type="submit" className="py-2 px-4" variant="red" disabled={isSaving}>
               {isSaving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

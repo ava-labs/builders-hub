@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import l1ChainsData from '@/constants/l1-chains.json';
+import { NextResponse } from "next/server";
+import l1ChainsData from "@/constants/l1-chains.json";
 
 interface RpcTransaction {
   hash: string;
@@ -49,16 +49,20 @@ interface RpcBlock {
   mixHash?: string;
 }
 
-async function fetchFromRPC(rpcUrl: string, method: string, params: unknown[] = []): Promise<unknown> {
+async function fetchFromRPC(
+  rpcUrl: string,
+  method: string,
+  params: unknown[] = []
+): Promise<unknown> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
     const response = await fetch(rpcUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        jsonrpc: '2.0',
+        jsonrpc: "2.0",
         id: 1,
         method,
         params,
@@ -74,7 +78,7 @@ async function fetchFromRPC(rpcUrl: string, method: string, params: unknown[] = 
 
     const data = await response.json();
     if (data.error) {
-      throw new Error(data.error.message || 'RPC error');
+      throw new Error(data.error.message || "RPC error");
     }
 
     return data.result;
@@ -107,30 +111,38 @@ export async function GET(
 
   // Get query params for custom chains
   const { searchParams } = new URL(request.url);
-  const customRpcUrl = searchParams.get('rpcUrl');
+  const customRpcUrl = searchParams.get("rpcUrl");
 
-  const chain = l1ChainsData.find(c => c.chainId === chainId);
+  const chain = l1ChainsData.find((c) => c.chainId === chainId);
   const rpcUrl = chain?.rpcUrl || customRpcUrl;
-  
+
   if (!rpcUrl) {
-    return NextResponse.json({ error: 'Chain not found or RPC URL missing. Provide rpcUrl query parameter for custom chains.' }, { status: 404 });
+    return NextResponse.json(
+      {
+        error:
+          "Chain not found or RPC URL missing. Provide rpcUrl query parameter for custom chains.",
+      },
+      { status: 404 }
+    );
   }
 
   try {
-
     // Determine if blockNumber is a number or hash
     let blockParam: string | number;
-    if (blockNumber.startsWith('0x')) {
+    if (blockNumber.startsWith("0x")) {
       blockParam = blockNumber;
     } else {
       blockParam = `0x${parseInt(blockNumber).toString(16)}`;
     }
 
     // Fetch block with full transaction objects (using true parameter)
-    const block = await fetchFromRPC(rpcUrl, 'eth_getBlockByNumber', [blockParam, true]) as RpcBlock | null;
+    const block = (await fetchFromRPC(rpcUrl, "eth_getBlockByNumber", [
+      blockParam,
+      true,
+    ])) as RpcBlock | null;
 
     if (!block) {
-      return NextResponse.json({ error: 'Block not found' }, { status: 404 });
+      return NextResponse.json({ error: "Block not found" }, { status: 404 });
     }
 
     // Calculate total gas fee by fetching receipts and summing all transaction fees
@@ -139,12 +151,15 @@ export async function GET(
 
     if (block.transactions && block.transactions.length > 0) {
       // Fetch all transaction receipts in parallel
-      const receiptPromises = block.transactions.map(tx => 
-        fetchFromRPC(rpcUrl, 'eth_getTransactionReceipt', [tx.hash]) as Promise<RpcTransactionReceipt | null>
+      const receiptPromises = block.transactions.map(
+        (tx) =>
+          fetchFromRPC(rpcUrl, "eth_getTransactionReceipt", [
+            tx.hash,
+          ]) as Promise<RpcTransactionReceipt | null>
       );
-      
+
       const receipts = await Promise.all(receiptPromises);
-      
+
       // Sum up all transaction fees: gasUsed * effectiveGasPrice
       for (const receipt of receipts) {
         if (receipt && receipt.gasUsed && receipt.effectiveGasPrice) {
@@ -153,17 +168,17 @@ export async function GET(
           totalGasFeeWei += gasUsed * effectiveGasPrice;
         }
       }
-      
+
       // Convert from wei to native token (divide by 1e18)
       gasFee = (Number(totalGasFeeWei) / 1e18).toFixed(6);
     }
 
     // Extract transaction hashes for the response
-    const transactionHashes = block.transactions.map(tx => tx.hash);
+    const transactionHashes = block.transactions.map((tx) => tx.hash);
 
     // Parse timestampMilliseconds for Avalanche (hex string to number)
-    const timestampMilliseconds = block.timestampMilliseconds 
-      ? parseInt(block.timestampMilliseconds, 16) 
+    const timestampMilliseconds = block.timestampMilliseconds
+      ? parseInt(block.timestampMilliseconds, 16)
       : undefined;
 
     // Format the response
@@ -192,7 +207,6 @@ export async function GET(
     return NextResponse.json(formattedBlock);
   } catch (error) {
     console.error(`Error fetching block ${blockNumber} for chain ${chainId}:`, error);
-    return NextResponse.json({ error: 'Failed to fetch block data' }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch block data" }, { status: 500 });
   }
 }
-

@@ -21,10 +21,7 @@ export const categoryColors: Record<string, string> = {
 };
 
 // Get category-specific badge styles for selected/unselected states
-export function getCategoryBadgeStyle(
-  category: string,
-  selected: boolean
-): string {
+export function getCategoryBadgeStyle(category: string, selected: boolean): string {
   if (category === "All") {
     return selected
       ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent"
@@ -162,8 +159,7 @@ export function CategoryChip({
   onClick,
   size = "md",
 }: CategoryChipProps) {
-  const sizeClasses =
-    size === "sm" ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-xs sm:text-sm";
+  const sizeClasses = size === "sm" ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-xs sm:text-sm";
 
   return (
     <button
@@ -174,9 +170,7 @@ export function CategoryChip({
       )}`}
     >
       {category}
-      {count !== undefined && (
-        <span className="opacity-70 ml-1">({count})</span>
-      )}
+      {count !== undefined && <span className="opacity-70 ml-1">({count})</span>}
     </button>
   );
 }

@@ -4,10 +4,12 @@ import { AllChainsExplorerLayout } from "@/components/explorer/AllChainsExplorer
 
 export const metadata: Metadata = {
   title: "All Chains Explorer | Avalanche Ecosystem",
-  description: "Explore all Avalanche L1 chains in real-time - blocks, transactions, and cross-chain messages across the entire ecosystem.",
+  description:
+    "Explore all Avalanche L1 chains in real-time - blocks, transactions, and cross-chain messages across the entire ecosystem.",
   openGraph: {
     title: "All Chains Explorer | Avalanche Ecosystem",
-    description: "Explore all Avalanche L1 chains in real-time - blocks, transactions, and cross-chain messages across the entire ecosystem.",
+    description:
+      "Explore all Avalanche L1 chains in real-time - blocks, transactions, and cross-chain messages across the entire ecosystem.",
   },
 };
 
@@ -18,4 +20,3 @@ export default function ExplorerIndexPage() {
     </AllChainsExplorerLayout>
   );
 }
-

@@ -20,11 +20,8 @@ export default function SignOutComponent({
   const handleConfirm = async () => {
     setIsConfirm(true);
     try {
-      await Promise.all([
-        onConfirm(),
-        new Promise((resolve) => setTimeout(resolve, 300)), 
-      ]);
-      onOpenChange(false); 
+      await Promise.all([onConfirm(), new Promise((resolve) => setTimeout(resolve, 300))]);
+      onOpenChange(false);
     } finally {
       setIsConfirm(false);
     }
@@ -46,10 +43,10 @@ export default function SignOutComponent({
       </CardContent>
       <CardFooter className="flex flex-col gap-2 w-full sm:flex-row sm:gap-4 sm:justify-center">
         <LoadingButton
-        isLoading={isConfirm}
-        onClick={handleConfirm}
-        loadingText="Signing Out..."
-         className="w-full sm:w-auto px-4 py-2 cursor-pointer"
+          isLoading={isConfirm}
+          onClick={handleConfirm}
+          loadingText="Signing Out..."
+          className="w-full sm:w-auto px-4 py-2 cursor-pointer"
         >
           Yes, Sign Out
         </LoadingButton>

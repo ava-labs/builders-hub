@@ -2,10 +2,6 @@
 
 import Formlogin from "./FormLogin";
 
-export default function FormLoginWrapper({
-  callbackUrl = "/",
-}: {
-  callbackUrl?: string;
-}) {
+export default function FormLoginWrapper({ callbackUrl = "/" }: { callbackUrl?: string }) {
   return <Formlogin callbackUrl={callbackUrl} />;
 }

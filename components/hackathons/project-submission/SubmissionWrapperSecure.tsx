@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { ProjectSubmissionProvider } from './context/ProjectSubmissionContext';
-import GeneralSecureComponent from './components/GeneralSecure';
+import React from "react";
+import { ProjectSubmissionProvider } from "./context/ProjectSubmissionContext";
+import GeneralSecureComponent from "./components/GeneralSecure";
 
 export function SubmissionWrapperSecure({
   searchParams,
@@ -14,4 +14,4 @@ export function SubmissionWrapperSecure({
       <GeneralSecureComponent searchParams={searchParams} />
     </ProjectSubmissionProvider>
   );
-} 
+}

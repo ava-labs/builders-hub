@@ -1,115 +1,110 @@
-import { ImageResponse } from 'next/og';
-import type { NextRequest } from 'next/server';
+import { ImageResponse } from "next/og";
+import type { NextRequest } from "next/server";
 
-export const runtime = 'edge';
+export const runtime = "edge";
 
-const medium = fetch(new URL('../Geist-Medium.ttf', import.meta.url)).then((res) =>
-  res.arrayBuffer(),
+const medium = fetch(new URL("../Geist-Medium.ttf", import.meta.url)).then((res) =>
+  res.arrayBuffer()
 );
 
-const light = fetch(new URL('../Geist-Light.ttf', import.meta.url)).then((res) =>
-  res.arrayBuffer(),
+const light = fetch(new URL("../Geist-Light.ttf", import.meta.url)).then((res) =>
+  res.arrayBuffer()
 );
 
-const regular = fetch(new URL('../GeistMono-Light.ttf', import.meta.url)).then((res) =>
-  res.arrayBuffer(),
+const regular = fetch(new URL("../GeistMono-Light.ttf", import.meta.url)).then((res) =>
+  res.arrayBuffer()
 );
 
-export async function GET(
-  request: NextRequest,
-): Promise<ImageResponse> {
-
+export async function GET(request: NextRequest): Promise<ImageResponse> {
   return new ImageResponse(
     OG({
-      title: 'Integrations',
-      description: 'Discover best-in-class integrations for your Avalanche L1'
+      title: "Integrations",
+      description: "Discover best-in-class integrations for your Avalanche L1",
     }),
     {
       width: 1280,
       height: 720,
-      fonts: [{ name: 'Geist-Medium', data: await medium, weight: 600 }, { name: 'Geist-Mono', data: await regular, weight: 500 }, { name: 'Geist-Light', data: await light, weight: 300 }],
-    },
+      fonts: [
+        { name: "Geist-Medium", data: await medium, weight: 600 },
+        { name: "Geist-Mono", data: await regular, weight: 500 },
+        { name: "Geist-Light", data: await light, weight: 300 },
+      ],
+    }
   );
 }
 
-function OG({
-  title,
-  description
-}: {
-  title: string;
-  description: string;
-}): React.ReactElement {  
+function OG({ title, description }: { title: string; description: string }): React.ReactElement {
   return (
     <div
       style={{
-        display: 'flex',
-        height: '100%',
-        width: '100%',
-        position: 'relative',
-        backgroundColor: '#fafafa',
-        overflow: 'hidden',
-        alignItems: 'center',
+        display: "flex",
+        height: "100%",
+        width: "100%",
+        position: "relative",
+        backgroundColor: "#fafafa",
+        overflow: "hidden",
+        alignItems: "center",
         backgroundImage: "url('https://build.avax.network/og.png')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
       }}
     >
       <div
         style={{
-          maxWidth: '56rem',
-          display: 'flex',
-          flexDirection: 'column',
-          padding: '0 70px',
-          width: '100%',
+          maxWidth: "56rem",
+          display: "flex",
+          flexDirection: "column",
+          padding: "0 70px",
+          width: "100%",
         }}
       >
         <h1
           style={{
-            fontSize: '5.35rem',
+            fontSize: "5.35rem",
             fontFamily: "Geist-Medium",
-            lineHeight: '1.3',
-            letterSpacing: '-0.015em',
-            margin: '0 0 30px 0',
-            color: 'black',
+            lineHeight: "1.3",
+            letterSpacing: "-0.015em",
+            margin: "0 0 30px 0",
+            color: "black",
           }}
         >
           {title}
         </h1>
-        
+
         <p
           style={{
-            fontSize: '2.35rem',
-            color: '#4b5563',
-            maxWidth: '110%',
-            margin: '0 0 30px 0',
+            fontSize: "2.35rem",
+            color: "#4b5563",
+            maxWidth: "110%",
+            margin: "0 0 30px 0",
             lineHeight: 1.4,
-            letterSpacing: '-0.01em',
-            fontFamily: "Geist-Light" 
+            letterSpacing: "-0.01em",
+            fontFamily: "Geist-Light",
           }}
         >
           {description}
         </p>
-        
+
         <div
           style={{
-            marginTop: '4.5rem',
-            display: 'flex',
-            alignItems: 'center'
+            marginTop: "4.5rem",
+            display: "flex",
+            alignItems: "center",
           }}
         >
           <div
             style={{
-              borderRadius: '0.375rem',
-              fontSize: '2rem',
-              border: '1.25px solid #71dbff',
-              backgroundColor: 'white',
+              borderRadius: "0.375rem",
+              fontSize: "2rem",
+              border: "1.25px solid #71dbff",
+              backgroundColor: "white",
               fontFamily: "Geist-Mono",
-              color: 'black',
-              padding: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              color: "black",
+              padding: "12px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             <svg
@@ -130,10 +125,12 @@ function OG({
                 />
               </g>
             </svg>
-            <span style={{paddingLeft: "10px"}}>build.avax.network/<span style={{color: "red"}}>integrations</span></span>
+            <span style={{ paddingLeft: "10px" }}>
+              build.avax.network/<span style={{ color: "red" }}>integrations</span>
+            </span>
           </div>
         </div>
       </div>
     </div>
   );
-} 
+}

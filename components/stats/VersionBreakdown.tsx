@@ -67,8 +67,8 @@ export function calculateVersionStats(
     };
   }
 
-  const totalStake = versionBreakdown.totalStakeString 
-    ? BigInt(versionBreakdown.totalStakeString) 
+  const totalStake = versionBreakdown.totalStakeString
+    ? BigInt(versionBreakdown.totalStakeString)
     : 0n;
   let aboveTargetNodes = 0;
   let belowTargetNodes = 0;
@@ -88,9 +88,8 @@ export function calculateVersionStats(
 
   const totalNodes = aboveTargetNodes + belowTargetNodes;
   const nodesPercentAbove = totalNodes > 0 ? (aboveTargetNodes / totalNodes) * 100 : 0;
-  const stakePercentAbove = totalStake > 0n
-    ? Number((aboveTargetStake * 10000n) / totalStake) / 100
-    : 0;
+  const stakePercentAbove =
+    totalStake > 0n ? Number((aboveTargetStake * 10000n) / totalStake) / 100 : 0;
 
   return {
     totalNodes,
@@ -112,14 +111,16 @@ interface VersionBarChartProps {
 /**
  * Horizontal bar chart showing version distribution
  */
-export function VersionBarChart({ 
-  versionBreakdown, 
-  minVersion, 
+export function VersionBarChart({
+  versionBreakdown,
+  minVersion,
   totalNodes,
   height = "h-6",
 }: VersionBarChartProps) {
   return (
-    <div className={`flex ${height} w-full rounded overflow-hidden bg-neutral-100 dark:bg-neutral-800`}>
+    <div
+      className={`flex ${height} w-full rounded overflow-hidden bg-neutral-100 dark:bg-neutral-800`}
+    >
       {Object.entries(versionBreakdown.byClientVersion)
         .sort(([v1], [v2]) => compareVersions(v2, v1))
         .map(([version, data]) => {
@@ -129,9 +130,7 @@ export function VersionBarChart({
             <div
               key={version}
               className={`h-full transition-all ${
-                isAboveTarget
-                  ? "bg-green-700 dark:bg-green-800"
-                  : "bg-gray-200 dark:bg-gray-500"
+                isAboveTarget ? "bg-green-700 dark:bg-green-800" : "bg-gray-200 dark:bg-gray-500"
               }`}
               style={{ width: `${percentage}%` }}
               title={`${version}: ${data.nodes} nodes (${percentage.toFixed(1)}%)`}
@@ -153,16 +152,16 @@ interface VersionLabelsProps {
 /**
  * Version labels with colored dots
  */
-export function VersionLabels({ 
-  versionBreakdown, 
-  minVersion, 
+export function VersionLabels({
+  versionBreakdown,
+  minVersion,
   totalNodes,
   showPercentage = true,
   size = "sm",
 }: VersionLabelsProps) {
   const textSize = size === "sm" ? "text-xs" : "text-sm";
   const dotSize = size === "sm" ? "h-2 w-2" : "h-3 w-3";
-  
+
   return (
     <div className={`flex flex-wrap gap-x-2 gap-y-1 ${textSize}`}>
       {Object.entries(versionBreakdown.byClientVersion)
@@ -174,9 +173,7 @@ export function VersionLabels({
             <div key={version} className="flex items-center gap-1">
               <div
                 className={`${dotSize} rounded-full flex-shrink-0 ${
-                  isAboveTarget
-                    ? "bg-green-700 dark:bg-green-800"
-                    : "bg-gray-200 dark:bg-gray-500"
+                  isAboveTarget ? "bg-green-700 dark:bg-green-800" : "bg-gray-200 dark:bg-gray-500"
                 }`}
               />
               <span
@@ -189,7 +186,8 @@ export function VersionLabels({
                 {version}
               </span>
               <span className="text-neutral-500 dark:text-neutral-500">
-                ({data.nodes}{showPercentage ? ` - ${percentage.toFixed(1)}%` : ''})
+                ({data.nodes}
+                {showPercentage ? ` - ${percentage.toFixed(1)}%` : ""})
               </span>
             </div>
           );
@@ -225,12 +223,8 @@ export function VersionBreakdownCard({
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-semibold text-black dark:text-white">
-              {title}
-            </h3>
-            <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-              {description}
-            </p>
+            <h3 className="text-lg font-semibold text-black dark:text-white">{title}</h3>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">{description}</p>
           </div>
           <div className="flex items-center gap-2">
             <label
@@ -299,9 +293,7 @@ export function VersionBreakdownInline({
         .slice(0, limit)
         .map(([version, data], index) => (
           <div key={version} className="flex items-center gap-1.5">
-            <div
-              className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${getVersionColor(index)}`}
-            />
+            <div className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${getVersionColor(index)}`} />
             <span className="text-xs sm:text-sm font-mono text-zinc-700 dark:text-zinc-300">
               {version}
             </span>
@@ -313,4 +305,3 @@ export function VersionBreakdownInline({
     </div>
   );
 }
-

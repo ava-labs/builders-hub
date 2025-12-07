@@ -29,7 +29,7 @@ export const JoinTeamDialog = ({
   projectId,
   hackathonId,
   currentUserId,
-  setLoadData
+  setLoadData,
 }: JoinTeamDialogProps) => {
   const router = useRouter();
   const { toast } = useToast();
@@ -49,18 +49,16 @@ export const JoinTeamDialog = ({
         user_id: currentUserId,
         status: "Confirmed",
       });
-      
-      if (response.status === 200) {
 
+      if (response.status === 200) {
         if (setLoadData) {
           const params = new URLSearchParams(searchParams.toString());
           params.delete("invitation");
           setLoadData(true);
         }
       }
-      
+
       onOpenChange(false);
-      
     } catch (error) {
       console.error("Error updating status:", error);
       // Reset the flag if there was an error so the toast can still show
@@ -76,13 +74,13 @@ export const JoinTeamDialog = ({
         description: "You will be redirected to hackathon",
         duration: 3000,
       });
-      
+
       // Small delay to show the toast before redirecting
       setTimeout(() => {
         router.push(`/hackathons/${hackathonId}`);
       }, 1000);
     }
-    
+
     onOpenChange(open);
   };
 
@@ -106,9 +104,7 @@ export const JoinTeamDialog = ({
           </Button>
         </DialogClose>
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold">
-            Join Your Team
-          </DialogTitle>
+          <DialogTitle className="text-lg font-semibold">Join Your Team</DialogTitle>
         </DialogHeader>
         <Card className="border border-red-500 dark:bg-zinc-800 rounded-md">
           <div className="flex flex-col px-4">
@@ -118,10 +114,7 @@ export const JoinTeamDialog = ({
           </div>
 
           <div className="flex flex-col items-center justify-center gap-4 py-4">
-            <Button
-              onClick={handleAcceptJoinTeam}
-              className="dark:bg-white dark:text-black"
-            >
+            <Button onClick={handleAcceptJoinTeam} className="dark:bg-white dark:text-black">
               Accept &amp; Join Team
             </Button>
           </div>
@@ -129,4 +122,4 @@ export const JoinTeamDialog = ({
       </DialogContent>
     </Dialog>
   );
-}; 
+};

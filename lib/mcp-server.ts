@@ -5,8 +5,8 @@
  * that enables AI assistants to search and fetch Avalanche documentation.
  */
 
-import { documentation, academy, integration, blog } from '@/lib/source';
-import { getLLMText } from '@/lib/llm-utils';
+import { documentation, academy, integration, blog } from "@/lib/source";
+import { getLLMText } from "@/lib/llm-utils";
 
 // Cache for documentation content
 const docsCache: Map<string, { content: string; timestamp: number }> = new Map();
@@ -36,7 +36,7 @@ export async function getPageContent(url: string): Promise<string | null> {
     docsCache.set(url, { content, timestamp: Date.now() });
     return content;
   } catch (error) {
-    console.error(`Error getting content for ${url}:`, error);
+    // Error getting content for URL - return null to handle gracefully
     return null;
   }
 }
@@ -70,23 +70,23 @@ export function searchDocs(
     pages: Array<{ url: string; data: { title: string; description?: string } }>;
   }> = [];
 
-  if (!source || source === 'docs') {
-    sources.push({ name: 'docs', pages: documentation.getPages() });
+  if (!source || source === "docs") {
+    sources.push({ name: "docs", pages: documentation.getPages() });
   }
-  if (!source || source === 'academy') {
-    sources.push({ name: 'academy', pages: academy.getPages() });
+  if (!source || source === "academy") {
+    sources.push({ name: "academy", pages: academy.getPages() });
   }
-  if (!source || source === 'integrations') {
-    sources.push({ name: 'integrations', pages: integration.getPages() });
+  if (!source || source === "integrations") {
+    sources.push({ name: "integrations", pages: integration.getPages() });
   }
-  if (!source || source === 'blog') {
-    sources.push({ name: 'blog', pages: blog.getPages() });
+  if (!source || source === "blog") {
+    sources.push({ name: "blog", pages: blog.getPages() });
   }
 
   for (const { name, pages } of sources) {
     for (const page of pages) {
-      const titleLower = page.data.title?.toLowerCase() || '';
-      const descLower = page.data.description?.toLowerCase() || '';
+      const titleLower = page.data.title?.toLowerCase() || "";
+      const descLower = page.data.description?.toLowerCase() || "";
       const urlLower = page.url.toLowerCase();
 
       let score = 0;
@@ -103,7 +103,7 @@ export function searchDocs(
       if (score > 0) {
         results.push({
           url: page.url,
-          title: page.data.title || 'Untitled',
+          title: page.data.title || "Untitled",
           description: page.data.description,
           source: name,
           score,
@@ -126,7 +126,7 @@ export function getDocStats() {
 
   const docSections: Record<string, number> = {};
   for (const page of docPages) {
-    const parts = page.url.split('/').filter(Boolean);
+    const parts = page.url.split("/").filter(Boolean);
     if (parts.length >= 2) {
       const section = parts[1];
       docSections[section] = (docSections[section] || 0) + 1;
@@ -135,7 +135,7 @@ export function getDocStats() {
 
   const academySections: Record<string, number> = {};
   for (const page of academyPages) {
-    const parts = page.url.split('/').filter(Boolean);
+    const parts = page.url.split("/").filter(Boolean);
     if (parts.length >= 2) {
       const section = parts[1];
       academySections[section] = (academySections[section] || 0) + 1;
@@ -172,9 +172,9 @@ export function clearCache() {
  * MCP Server configuration
  */
 export const MCP_SERVER_CONFIG = {
-  name: 'avalanche-docs',
-  version: '1.0.0',
-  protocolVersion: '2024-11-05',
-  description: 'MCP server for Avalanche documentation',
-  baseUrl: 'https://build.avax.network',
+  name: "avalanche-docs",
+  version: "1.0.0",
+  protocolVersion: "2024-11-05",
+  description: "MCP server for Avalanche documentation",
+  baseUrl: "https://build.avax.network",
 };

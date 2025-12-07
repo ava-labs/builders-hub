@@ -24,11 +24,6 @@ export const metadata: Metadata = createMetadata({
   },
 });
 
-export default function ValidatorStatsLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function ValidatorStatsLayout({ children }: { children: React.ReactNode }) {
   return children;
 }
-

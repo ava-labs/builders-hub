@@ -1,7 +1,21 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Box, Clock, Fuel, Hash, ArrowLeft, ArrowRight, ChevronUp, ChevronDown, Layers, FileText, ArrowRightLeft, Info, ExternalLink } from "lucide-react";
+import {
+  Box,
+  Clock,
+  Fuel,
+  Hash,
+  ArrowLeft,
+  ArrowRight,
+  ChevronUp,
+  ChevronDown,
+  Layers,
+  FileText,
+  ArrowRightLeft,
+  Info,
+  ExternalLink,
+} from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { DetailRow, CopyButton } from "@/components/explorer/DetailRow";
@@ -79,15 +93,15 @@ function formatTimestamp(timestamp: string): string {
   const date = new Date(timestamp);
   const timeAgo = formatTimeAgo(date);
 
-  const formatted = date.toLocaleString('en-US', {
-    month: 'short',
-    day: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+  const formatted = date.toLocaleString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
     hour12: true,
-    timeZoneName: 'short'
+    timeZoneName: "short",
   });
 
   return `${timeAgo} (${formatted})`;
@@ -97,17 +111,17 @@ function formatTimestamp(timestamp: string): string {
 function formatTimestampWithMs(timestampMs: number): string {
   const date = new Date(timestampMs);
   const timeAgo = formatTimeAgo(date);
-  const ms = date.getMilliseconds().toString().padStart(3, '0');
+  const ms = date.getMilliseconds().toString().padStart(3, "0");
 
-  const formatted = date.toLocaleString('en-US', {
-    month: 'short',
-    day: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+  const formatted = date.toLocaleString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
     hour12: true,
-    timeZoneName: 'short'
+    timeZoneName: "short",
   });
 
   // Insert milliseconds after seconds (e.g., "09:44:04" -> "09:44:04.227")
@@ -119,17 +133,17 @@ function formatTimestampWithMs(timestampMs: number): string {
 function formatGasUsedPercentage(gasUsed: string, gasLimit: string): string {
   const used = parseInt(gasUsed);
   const limit = parseInt(gasLimit);
-  const percentage = limit > 0 ? ((used / limit) * 100).toFixed(2) : '0';
+  const percentage = limit > 0 ? ((used / limit) * 100).toFixed(2) : "0";
   return `${used.toLocaleString()} (${percentage}%)`;
 }
 
 function formatAddress(address: string): string {
-  if (!address) return '-';
+  if (!address) return "-";
   return `${address.slice(0, 10)}...${address.slice(-8)}`;
 }
 
 function formatValue(value: string): string {
-  if (!value) return '0';
+  if (!value) return "0";
   const wei = BigInt(value);
   const eth = Number(wei) / 1e18;
   return formatTokenValue(eth);
@@ -145,60 +159,65 @@ function TokenDisplay({ symbol }: { symbol?: string }) {
 
 export default function BlockDetailPage({
   chainId,
-  chainName,
+  chainName: _chainName,
   chainSlug,
   blockNumber,
   themeColor = "#E57373",
-  chainLogoURI,
-  nativeToken,
-  description,
-  website,
-  socials,
-  rpcUrl,
+  chainLogoURI: _chainLogoURI,
+  nativeToken: _nativeToken,
+  description: _description,
+  website: _website,
+  socials: _socials,
+  rpcUrl: _rpcUrl,
 }: BlockDetailPageProps) {
   // Get token data from shared context
-  const { tokenSymbol, tokenPrice, glacierSupported, buildApiUrl } = useExplorer();
-  
+  const {
+    tokenSymbol,
+    tokenPrice,
+    glacierSupported: _glacierSupported,
+    buildApiUrl,
+  } = useExplorer();
+
   const [block, setBlock] = useState<BlockDetail | null>(null);
   const [transactions, setTransactions] = useState<TransactionDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [txLoading, setTxLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showMore, setShowMore] = useState(false);
-  
+
   // Read initial tab from URL hash
-  const getInitialTab = (): 'overview' | 'transactions' => {
-    if (typeof window !== 'undefined') {
+  const getInitialTab = (): "overview" | "transactions" => {
+    if (typeof window !== "undefined") {
       const hash = window.location.hash.slice(1);
-      return hash === 'transactions' ? 'transactions' : 'overview';
+      return hash === "transactions" ? "transactions" : "overview";
     }
-    return 'overview';
+    return "overview";
   };
-  
-  const [activeTab, setActiveTab] = useState<'overview' | 'transactions'>(getInitialTab);
-  
+
+  const [activeTab, setActiveTab] = useState<"overview" | "transactions">(getInitialTab);
+
   // Update URL hash when tab changes
-  const handleTabChange = (tab: 'overview' | 'transactions') => {
+  const handleTabChange = (tab: "overview" | "transactions") => {
     setActiveTab(tab);
-    if (typeof window !== 'undefined') {
-      const hash = tab === 'overview' ? '' : `#${tab}`;
-      window.history.replaceState(null, '', `${window.location.pathname}${hash}`);
+    if (typeof window !== "undefined") {
+      const hash = tab === "overview" ? "" : `#${tab}`;
+      window.history.replaceState(null, "", `${window.location.pathname}${hash}`);
     }
   };
-  
+
   // Listen for hash changes (back/forward navigation)
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1);
-      if (hash === 'transactions') {
-        setActiveTab('transactions');
+      if (hash === "transactions") {
+        setActiveTab("transactions");
       } else {
-        setActiveTab('overview');
+        setActiveTab("overview");
       }
     };
-    
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
   const fetchBlock = useCallback(async () => {
@@ -222,7 +241,7 @@ export default function BlockDetailPage({
 
   const fetchTransactions = useCallback(async () => {
     if (!block?.transactions || block.transactions.length === 0) return;
-    
+
     try {
       setTxLoading(true);
       const url = buildApiUrl(`/api/explorer/${chainId}/block/${blockNumber}/transactions`);
@@ -243,7 +262,7 @@ export default function BlockDetailPage({
   }, [fetchBlock]);
 
   useEffect(() => {
-    if (activeTab === 'transactions' && block && transactions.length === 0) {
+    if (activeTab === "transactions" && block && transactions.length === 0) {
       fetchTransactions();
     }
   }, [activeTab, block, transactions.length, fetchTransactions]);
@@ -279,10 +298,12 @@ export default function BlockDetailPage({
 
   if (error) {
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-          <div className="text-center">
-            <p className="text-red-500 mb-4">{error}</p>
-          <Button onClick={fetchBlock} className="cursor-pointer">Retry</Button>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <Button onClick={fetchBlock} className="cursor-pointer">
+            Retry
+          </Button>
         </div>
       </div>
     );
@@ -304,12 +325,12 @@ export default function BlockDetailPage({
             href={`#overview`}
             onClick={(e) => {
               e.preventDefault();
-              handleTabChange('overview');
+              handleTabChange("overview");
             }}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
-              activeTab === 'overview'
-                ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
-                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+              activeTab === "overview"
+                ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900"
+                : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
             }`}
           >
             Overview
@@ -318,12 +339,12 @@ export default function BlockDetailPage({
             href={`#transactions`}
             onClick={(e) => {
               e.preventDefault();
-              handleTabChange('transactions');
+              handleTabChange("transactions");
             }}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
-              activeTab === 'transactions'
-                ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
-                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+              activeTab === "transactions"
+                ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900"
+                : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
             }`}
           >
             Transactions ({block?.transactionCount || 0})
@@ -334,7 +355,7 @@ export default function BlockDetailPage({
       {/* Block Details */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
-          {activeTab === 'overview' ? (
+          {activeTab === "overview" ? (
             <div className="p-4 sm:p-6 space-y-5">
               {/* Block Height */}
               <DetailRow
@@ -405,8 +426,10 @@ export default function BlockDetailPage({
                 label={block?.timestampMilliseconds ? "Timestamp (legacy)" : "Timestamp"}
                 themeColor={themeColor}
                 value={
-                  <span className={`text-sm ${block?.timestampMilliseconds ? 'line-through text-zinc-400 dark:text-zinc-500' : 'text-zinc-900 dark:text-white'}`}>
-                    {block?.timestamp ? formatTimestamp(block.timestamp) : '-'}
+                  <span
+                    className={`text-sm ${block?.timestampMilliseconds ? "line-through text-zinc-400 dark:text-zinc-500" : "text-zinc-900 dark:text-white"}`}
+                  >
+                    {block?.timestamp ? formatTimestamp(block.timestamp) : "-"}
                   </span>
                 }
               />
@@ -418,11 +441,12 @@ export default function BlockDetailPage({
                 themeColor={themeColor}
                 value={
                   <button
-                    onClick={() => handleTabChange('transactions')}
+                    onClick={() => handleTabChange("transactions")}
                     className="inline-flex items-center px-3 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                     style={{ color: themeColor }}
                   >
-                    {block?.transactionCount || 0} transaction{(block?.transactionCount || 0) !== 1 ? 's' : ''}
+                    {block?.transactionCount || 0} transaction
+                    {(block?.transactionCount || 0) !== 1 ? "s" : ""}
                   </button>
                 }
               />
@@ -434,7 +458,7 @@ export default function BlockDetailPage({
                 themeColor={themeColor}
                 value={
                   <span className="text-sm text-zinc-900 dark:text-white">
-                    {block ? formatGasUsedPercentage(block.gasUsed, block.gasLimit) : '-'}
+                    {block ? formatGasUsedPercentage(block.gasUsed, block.gasLimit) : "-"}
                   </span>
                 }
               />
@@ -447,9 +471,9 @@ export default function BlockDetailPage({
                   themeColor={themeColor}
                   value={
                     <div className="flex flex-col gap-1">
-                    <span className="text-sm text-zinc-900 dark:text-white">
-                      {chainId === "43114" && <span className="mr-1">🔥</span>}
-                      {formatTokenValue(block.gasFee)} <TokenDisplay symbol={tokenSymbol} />
+                      <span className="text-sm text-zinc-900 dark:text-white">
+                        {chainId === "43114" && <span className="mr-1">🔥</span>}
+                        {formatTokenValue(block.gasFee)} <TokenDisplay symbol={tokenSymbol} />
                       </span>
                       {tokenPrice && (
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -468,7 +492,7 @@ export default function BlockDetailPage({
                 themeColor={themeColor}
                 value={
                   <span className="text-sm text-zinc-900 dark:text-white">
-                    {block?.gasLimit ? parseInt(block.gasLimit).toLocaleString() : '-'}
+                    {block?.gasLimit ? parseInt(block.gasLimit).toLocaleString() : "-"}
                   </span>
                 }
               />
@@ -493,7 +517,7 @@ export default function BlockDetailPage({
                 className="flex items-center gap-1 text-sm font-medium transition-colors cursor-pointer"
                 style={{ color: themeColor }}
               >
-                {showMore ? 'Click to see Less' : 'Click to see More'}
+                {showMore ? "Click to see Less" : "Click to see More"}
                 {showMore ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
 
@@ -506,7 +530,7 @@ export default function BlockDetailPage({
                     themeColor={themeColor}
                     value={
                       <span className="text-sm font-mono text-zinc-900 dark:text-white break-all">
-                        {block?.hash || '-'}
+                        {block?.hash || "-"}
                       </span>
                     }
                     copyValue={block?.hash}
@@ -523,7 +547,7 @@ export default function BlockDetailPage({
                         className="text-sm font-mono break-all hover:underline cursor-pointer"
                         style={{ color: themeColor }}
                       >
-                        {block?.parentHash || '-'}
+                        {block?.parentHash || "-"}
                       </Link>
                     }
                     copyValue={block?.parentHash}
@@ -600,7 +624,10 @@ export default function BlockDetailPage({
             <div className="overflow-x-auto">
               {txLoading ? (
                 <div className="p-8 text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto" style={{ borderColor: themeColor }}></div>
+                  <div
+                    className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto"
+                    style={{ borderColor: themeColor }}
+                  ></div>
                   <p className="text-zinc-500 dark:text-zinc-400 mt-4">Loading transactions...</p>
                 </div>
               ) : transactions.length > 0 ? (
@@ -623,9 +650,7 @@ export default function BlockDetailPage({
                         </span>
                       </th>
                       <th className="px-4 py-2 text-center">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
-                          
-                        </span>
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300"></span>
                       </th>
                       <th className="px-4 py-2 text-left">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
@@ -647,72 +672,83 @@ export default function BlockDetailPage({
                   <tbody className="bg-white dark:bg-neutral-950">
                     {transactions.map((tx, index) => {
                       const decoded = tx.input ? decodeFunctionInput(tx.input) : null;
-                      const methodName = decoded?.name || (tx.input === '0x' || !tx.input ? 'Transfer' : tx.input.slice(0, 10));
-                      const truncatedMethod = methodName.length > 12 ? methodName.slice(0, 12) + '...' : methodName;
+                      const methodName =
+                        decoded?.name ||
+                        (tx.input === "0x" || !tx.input ? "Transfer" : tx.input.slice(0, 10));
+                      const truncatedMethod =
+                        methodName.length > 12 ? methodName.slice(0, 12) + "..." : methodName;
                       return (
-                      <tr
-                        key={tx.hash || index}
-                        className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
-                      >
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                          <div className="flex items-center gap-1.5">
-                            <Link
-                              href={buildTxUrl(`/explorer/${chainSlug}`, tx.hash)}
-                              className="font-mono text-sm hover:underline cursor-pointer"
-                              style={{ color: themeColor }}
-                            >
-                              {formatAddress(tx.hash)}
-                            </Link>
-                            <CopyButton text={tx.hash} />
-                          </div>
-                        </td>
+                        <tr
+                          key={tx.hash || index}
+                          className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
+                        >
                           <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                            <span className="px-2 py-1 text-xs font-mono rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700" title={decoded?.signature || methodName}>{truncatedMethod}</span>
-                        </td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                          <div className="flex items-center gap-1.5">
-                            <Link
-                              href={buildAddressUrl(`/explorer/${chainSlug}`, tx.from)}
-                                className="font-mono text-sm hover:underline cursor-pointer"
-                              style={{ color: themeColor }}
-                            >
-                              {formatAddress(tx.from)}
-                            </Link>
-                            <CopyButton text={tx.from} />
-                          </div>
-                        </td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-center">
-                          <ArrowRightLeft className="w-4 h-4 text-neutral-400 dark:text-neutral-500 inline-block" />
-                        </td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                          <div className="flex items-center gap-1.5">
-                            {tx.to ? (
+                            <div className="flex items-center gap-1.5">
                               <Link
-                                href={buildAddressUrl(`/explorer/${chainSlug}`, tx.to)}
-                                  className="font-mono text-sm hover:underline cursor-pointer"
+                                href={buildTxUrl(`/explorer/${chainSlug}`, tx.hash)}
+                                className="font-mono text-sm hover:underline cursor-pointer"
                                 style={{ color: themeColor }}
                               >
-                                {formatAddress(tx.to)}
+                                {formatAddress(tx.hash)}
                               </Link>
-                            ) : (
-                              <span className="font-mono text-sm text-neutral-400">Contract Creation</span>
-                            )}
-                            {tx.to && <CopyButton text={tx.to} />}
-                          </div>
-                        </td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right">
-                          <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                            {formatValue(tx.value)} <TokenDisplay symbol={tokenSymbol} />
-                          </span>
-                        </td>
-                        <td className="px-4 py-2 text-right">
-                          <span className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                            {formatValue(
-                              (BigInt(tx.gasPrice || '0') * BigInt(tx.gas || '0')).toString()
-                            )} <TokenDisplay symbol={tokenSymbol} />
-                          </span>
-                        </td>
-                      </tr>
+                              <CopyButton text={tx.hash} />
+                            </div>
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <span
+                              className="px-2 py-1 text-xs font-mono rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700"
+                              title={decoded?.signature || methodName}
+                            >
+                              {truncatedMethod}
+                            </span>
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <div className="flex items-center gap-1.5">
+                              <Link
+                                href={buildAddressUrl(`/explorer/${chainSlug}`, tx.from)}
+                                className="font-mono text-sm hover:underline cursor-pointer"
+                                style={{ color: themeColor }}
+                              >
+                                {formatAddress(tx.from)}
+                              </Link>
+                              <CopyButton text={tx.from} />
+                            </div>
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-center">
+                            <ArrowRightLeft className="w-4 h-4 text-neutral-400 dark:text-neutral-500 inline-block" />
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <div className="flex items-center gap-1.5">
+                              {tx.to ? (
+                                <Link
+                                  href={buildAddressUrl(`/explorer/${chainSlug}`, tx.to)}
+                                  className="font-mono text-sm hover:underline cursor-pointer"
+                                  style={{ color: themeColor }}
+                                >
+                                  {formatAddress(tx.to)}
+                                </Link>
+                              ) : (
+                                <span className="font-mono text-sm text-neutral-400">
+                                  Contract Creation
+                                </span>
+                              )}
+                              {tx.to && <CopyButton text={tx.to} />}
+                            </div>
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right">
+                            <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                              {formatValue(tx.value)} <TokenDisplay symbol={tokenSymbol} />
+                            </span>
+                          </td>
+                          <td className="px-4 py-2 text-right">
+                            <span className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
+                              {formatValue(
+                                (BigInt(tx.gasPrice || "0") * BigInt(tx.gas || "0")).toString()
+                              )}{" "}
+                              <TokenDisplay symbol={tokenSymbol} />
+                            </span>
+                          </td>
+                        </tr>
                       );
                     })}
                   </tbody>

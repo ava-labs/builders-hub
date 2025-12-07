@@ -16,8 +16,7 @@ export const metadata = createMetadata({
     template: "%s | Avalanche Builder Hub",
     default: "Avalanche Builder Hub",
   },
-  description:
-    "Build your Fast & Interoperable Layer 1 Blockchain with Avalanche.",
+  description: "Build your Fast & Interoperable Layer 1 Blockchain with Avalanche.",
   metadataBase: baseUrl,
 });
 

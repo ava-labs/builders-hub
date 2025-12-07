@@ -19,19 +19,13 @@ export const EVMFaucetButton = ({
   buttonProps,
   children,
 }: EVMFaucetButtonProps) => {
-  const {
-    walletEVMAddress,
-    isTestnet,
-    cChainBalance,
-    updateL1Balance,
-    updateCChainBalance,
-  } = useWalletStore();
+  const { walletEVMAddress, isTestnet, cChainBalance, updateL1Balance, updateCChainBalance } =
+    useWalletStore();
   const l1List = useL1List();
   const { claimEVMTokens, isClaimingEVM } = useTestnetFaucet();
 
   const chainConfig = l1List.find(
-    (chain: L1ListItem) =>
-      chain.evmChainId === chainId && chain.hasBuilderHubFaucet
+    (chain: L1ListItem) => chain.evmChainId === chainId && chain.hasBuilderHubFaucet
   );
 
   if (!isTestnet || !chainConfig) {
@@ -64,9 +58,7 @@ export const EVMFaucetButton = ({
       className={className || defaultClassName}
       title={`Get free ${chainConfig.coinName} tokens`}
     >
-      {isRequestingTokens
-        ? "Requesting..."
-        : children || `${chainConfig.coinName} Faucet`}
+      {isRequestingTokens ? "Requesting..." : children || `${chainConfig.coinName} Faucet`}
     </button>
   );
 };

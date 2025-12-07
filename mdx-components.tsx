@@ -7,11 +7,7 @@ import { Cards, Card } from "fumadocs-ui/components/card";
 import { TypeTable } from "fumadocs-ui/components/type-table";
 import { Heading } from "fumadocs-ui/components/heading";
 import defaultComponents from "fumadocs-ui/mdx";
-import {
-  CodeBlock,
-  type CodeBlockProps,
-  Pre,
-} from "fumadocs-ui/components/codeblock";
+import { CodeBlock, type CodeBlockProps, Pre } from "fumadocs-ui/components/codeblock";
 import type { ReactNode } from "react";
 import "fumadocs-twoslash/twoslash.css";
 import { Popup, PopupContent, PopupTrigger } from "fumadocs-twoslash/ui";
@@ -29,7 +25,7 @@ const Mermaid = dynamic(() => import("@/components/content-design/mermaid"), {
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   // Exclude heading and img components from defaultComponents to avoid conflicts
   const { h1, h2, h3, h4, h5, h6, img, ...restDefaultComponents } = defaultComponents;
-  
+
   return {
     ...restDefaultComponents,
     h1: (props) => <Heading as="h1" {...props} />,
@@ -63,9 +59,9 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     Steps,
     APIPage: (props: any) => {
       // Determine which API instance to use based on the document path
-      const document = props.document || '';
-      const isMetricsApi = document.includes('popsicle.json');
-      
+      const document = props.document || "";
+      const isMetricsApi = document.includes("popsicle.json");
+
       return isMetricsApi ? <MetricsAPIPage {...props} /> : <DataAPIPage {...props} />;
     },
     Accordion,
@@ -73,13 +69,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     YouTube,
     Gallery,
     Mermaid,
-    InstallTabs: ({
-      items,
-      children,
-    }: {
-      items: string[];
-      children: ReactNode;
-    }) => (
+    InstallTabs: ({ items, children }: { items: string[]; children: ReactNode }) => (
       <Tabs items={items} id="package-manager">
         {children}
       </Tabs>

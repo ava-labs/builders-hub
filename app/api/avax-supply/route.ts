@@ -32,7 +32,7 @@ export async function GET() {
     }
 
     const supplyData = await supplyResponse.json();
-    
+
     let priceData = {
       price: 0,
       change24h: 0,
@@ -59,10 +59,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Error fetching AVAX supply:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch AVAX supply data" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch AVAX supply data" }, { status: 500 });
   }
 }
-

@@ -7,4 +7,3 @@ export interface AllocationEntry {
   error?: string;
   requiredReason?: string;
 }
-

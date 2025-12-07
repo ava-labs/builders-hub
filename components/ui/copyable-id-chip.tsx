@@ -23,14 +23,14 @@ export function CopyableIdChip({ label, value, className = "" }: CopyableIdChipP
   };
 
   return (
-    <div 
+    <div
       className={`group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors ${className}`}
     >
       <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
         {label}
       </span>
-      <code 
-        className="text-xs font-mono text-zinc-600 dark:text-zinc-400 truncate max-w-[100px] sm:max-w-[160px]" 
+      <code
+        className="text-xs font-mono text-zinc-600 dark:text-zinc-400 truncate max-w-[100px] sm:max-w-[160px]"
         title={value}
       >
         {value}
@@ -61,13 +61,8 @@ export function ChainIdChips({ subnetId, blockchainId, className = "" }: ChainId
 
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`}>
-      {subnetId && (
-        <CopyableIdChip label="Subnet" value={subnetId} />
-      )}
-      {blockchainId && (
-        <CopyableIdChip label="Chain" value={blockchainId} />
-      )}
+      {subnetId && <CopyableIdChip label="Subnet" value={subnetId} />}
+      {blockchainId && <CopyableIdChip label="Chain" value={blockchainId} />}
     </div>
   );
 }
-

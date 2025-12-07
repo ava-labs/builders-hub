@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { HomeLayout } from 'fumadocs-ui/layouts/home';
-import type { ReactNode } from 'react';
-import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
-import { ActiveNavHighlighter } from '@/components/navigation/active-nav-highlighter';
-import { useDynamicBlogMenu } from '@/components/navigation/dynamic-blog-menu';
+import { HomeLayout } from "fumadocs-ui/layouts/home";
+import type { ReactNode } from "react";
+import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
+import { ActiveNavHighlighter } from "@/components/navigation/active-nav-highlighter";
+import { useDynamicBlogMenu } from "@/components/navigation/dynamic-blog-menu";
 
 interface LayoutWrapperProps {
   children: ReactNode;
@@ -13,12 +13,12 @@ interface LayoutWrapperProps {
 
 export function LayoutWrapper({ children, baseOptions }: LayoutWrapperProps) {
   const dynamicBlogMenu = useDynamicBlogMenu();
-  
+
   // Replace the blog menu with the dynamic one
   const updatedOptions = {
     ...baseOptions,
-    links: baseOptions.links?.map(link => {
-      if (link && typeof link === 'object' && 'text' in link && link.text === 'Blog') {
+    links: baseOptions.links?.map((link) => {
+      if (link && typeof link === "object" && "text" in link && link.text === "Blog") {
         return dynamicBlogMenu;
       }
       return link;
@@ -32,4 +32,3 @@ export function LayoutWrapper({ children, baseOptions }: LayoutWrapperProps) {
     </>
   );
 }
-

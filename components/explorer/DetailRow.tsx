@@ -35,7 +35,13 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-export function DetailRow({ icon, label, value, themeColor = "#E57373", copyValue }: DetailRowProps) {
+export function DetailRow({
+  icon,
+  label,
+  value,
+  themeColor = "#E57373",
+  copyValue,
+}: DetailRowProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-8">
       <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 sm:w-48 flex-shrink-0">
@@ -51,4 +57,3 @@ export function DetailRow({ icon, label, value, themeColor = "#E57373", copyValu
 }
 
 export { CopyButton };
-

@@ -10,11 +10,7 @@ import { LayoutWrapper } from "@/app/layout-wrapper.client";
 import { NavbarDropdownInjector } from "@/components/navigation/navbar-dropdown-injector";
 import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";
 
-export default function Layout({
-  children,
-}: {
-  children: ReactNode;
-}): React.ReactElement {
+export default function Layout({ children }: { children: ReactNode }): React.ReactElement {
   return (
     <SessionProvider>
       <Suspense fallback={null}>
@@ -38,13 +34,9 @@ function RedirectIfNewUser() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (
-      status === "authenticated" &&
-      session.user.is_new_user &&
-      pathname !== "/profile"
-    ) {
+    if (status === "authenticated" && session.user.is_new_user && pathname !== "/profile") {
       // Store the original URL with search params (including UTM) in localStorage
-      const originalUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+      const originalUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
       if (typeof window !== "undefined") {
         localStorage.setItem("redirectAfterProfile", originalUrl);
       }

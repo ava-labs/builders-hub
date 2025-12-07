@@ -26,18 +26,9 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import {
-  formSchema,
-  jobRoles,
-  continents,
-  countries,
-} from "@/types/infrabuidlForm";
+import { formSchema, jobRoles, continents, countries } from "@/types/infrabuidlForm";
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -51,24 +42,17 @@ export default function GrantApplicationForm({
   headerComponent,
 }: GrantApplicationFormProps) {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [submissionStatus, setSubmissionStatus] = useState<
-    "idle" | "success" | "error"
-  >("idle");
+  const [submissionStatus, setSubmissionStatus] = useState<"idle" | "success" | "error">("idle");
   const [showTeamMembers, setShowTeamMembers] = useState<boolean>(false);
-  const [showProjectTypeOther, setShowProjectTypeOther] =
-    useState<boolean>(false);
+  const [showProjectTypeOther, setShowProjectTypeOther] = useState<boolean>(false);
   const [showJobRoleOther, setShowJobRoleOther] = useState<boolean>(false);
   const [showFundingDetails, setShowFundingDetails] = useState<boolean>(false);
-  const [showMultichainDetails, setShowMultichainDetails] =
-    useState<boolean>(false);
-  const [showPreviousProjectDetails, setShowPreviousProjectDetails] =
-    useState<boolean>(false);
+  const [showMultichainDetails, setShowMultichainDetails] = useState<boolean>(false);
+  const [showPreviousProjectDetails, setShowPreviousProjectDetails] = useState<boolean>(false);
   const [showBenefitDetails, setShowBenefitDetails] = useState<boolean>(false);
-  const [showSimilarProjects, setShowSimilarProjects] =
-    useState<boolean>(false);
+  const [showSimilarProjects, setShowSimilarProjects] = useState<boolean>(false);
   const [showCompetitors, setShowCompetitors] = useState<boolean>(false);
-  const [showTokenLaunchDetails, setShowTokenLaunchDetails] =
-    useState<boolean>(false);
+  const [showTokenLaunchDetails, setShowTokenLaunchDetails] = useState<boolean>(false);
   const [showReferrer, setShowReferrer] = useState<boolean>(false);
   const [showGrantSource, setShowGrantSource] = useState<boolean>(false);
 
@@ -220,9 +204,7 @@ export default function GrantApplicationForm({
   const watchProjectType = form.watch("project_type");
   const watchApplicantJobRole = form.watch("applicant_job_role");
   const watchPreviousFunding = form.watch("previous_funding");
-  const watchPreviousAvalancheFunding = form.watch(
-    "previous_avalanche_funding_grants"
-  );
+  const watchPreviousAvalancheFunding = form.watch("previous_avalanche_funding_grants");
   const watchMultichainCheck = form.watch("multichain_check");
   const watchFirstBuildAvalanche = form.watch("first_build_avalanche");
   const watchAvalancheBenefitCheck = form.watch("avalanche_benefit_check");
@@ -238,16 +220,8 @@ export default function GrantApplicationForm({
     setShowJobRoleOther(watchApplicantJobRole === "Other");
     setShowGrantSource(watchGrantSource === "Other");
 
-    const fundingTypes = [
-      "Grant",
-      "Angel Investment",
-      "Pre-Seed",
-      "Seed",
-      "Series A",
-    ];
-    setShowFundingDetails(
-      watchPreviousFunding.some((type) => fundingTypes.includes(type))
-    );
+    const fundingTypes = ["Grant", "Angel Investment", "Pre-Seed", "Seed", "Series A"];
+    setShowFundingDetails(watchPreviousFunding.some((type) => fundingTypes.includes(type)));
 
     setShowMultichainDetails(watchMultichainCheck === "Yes");
     setShowPreviousProjectDetails(watchFirstBuildAvalanche === "No");
@@ -324,14 +298,17 @@ export default function GrantApplicationForm({
       }
 
       setSubmissionStatus("success");
-      alert("Your grant application has been successfully submitted!");
+      // Success state is already shown in UI
       form.reset();
       form.setValue("grant_program", programType);
     } catch (error) {
       setSubmissionStatus("error");
-      alert(
-        `Error submitting application: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
+      console.error("Error submitting application:", error);
+      // Show error in UI instead of alert
+      form.setError("root", {
+        type: "manual",
+        message: `Error submitting application: ${error instanceof Error ? error.message : "Unknown error"}`,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -347,8 +324,8 @@ export default function GrantApplicationForm({
             Application Submitted Successfully!
           </h2>
           <p className="text-green-700 mb-6">
-            Thank you for applying to the {programType} grant program. We will
-            review your application and get back to you soon.
+            Thank you for applying to the {programType} grant program. We will review your
+            application and get back to you soon.
           </p>
           <Button
             onClick={() => {
@@ -367,9 +344,7 @@ export default function GrantApplicationForm({
             {/* Project Overview */}
             <div className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8 mb-8">
               <div className="space-y-1 mb-6">
-                <h2 className="text-2xl text-gray-900 dark:text-gray-100">
-                  Project Overview
-                </h2>
+                <h2 className="text-2xl text-gray-900 dark:text-gray-100">Project Overview</h2>
               </div>
 
               <div className="space-y-6">
@@ -380,8 +355,7 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Project/Company Name{" "}
-                        <span className="text-red-500">*</span>
+                        Project/Company Name <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -424,13 +398,8 @@ export default function GrantApplicationForm({
                                 </label>
                               </div>
                               <div className="flex items-center space-x-2">
-                                <RadioGroupItem
-                                  value="Virtual Machines"
-                                  id="virtual-machines"
-                                />
-                                <label htmlFor="virtual-machines">
-                                  Virtual Machines
-                                </label>
+                                <RadioGroupItem value="Virtual Machines" id="virtual-machines" />
+                                <label htmlFor="virtual-machines">Virtual Machines</label>
                               </div>
                               <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="Wallets" id="wallets" />
@@ -450,23 +419,15 @@ export default function GrantApplicationForm({
                                 </label>
                               </div>
                               <div className="flex items-center space-x-2">
-                                <RadioGroupItem
-                                  value="Cryptography"
-                                  id="cryptography"
-                                />
-                                <label htmlFor="cryptography">
-                                  Cryptography
-                                </label>
+                                <RadioGroupItem value="Cryptography" id="cryptography" />
+                                <label htmlFor="cryptography">Cryptography</label>
                               </div>
                               <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="Bridges" id="bridges" />
                                 <label htmlFor="bridges">Bridges</label>
                               </div>
                               <div className="flex items-center space-x-2">
-                                <RadioGroupItem
-                                  value="Explorers"
-                                  id="explorers"
-                                />
+                                <RadioGroupItem value="Explorers" id="explorers" />
                                 <label htmlFor="explorers">Explorers</label>
                               </div>
                               <div className="flex items-center space-x-2">
@@ -474,38 +435,20 @@ export default function GrantApplicationForm({
                                 <label htmlFor="rpcs">RPCs</label>
                               </div>
                               <div className="flex items-center space-x-2">
-                                <RadioGroupItem
-                                  value="Data Storage"
-                                  id="data-storage"
-                                />
-                                <label htmlFor="data-storage">
-                                  Data Storage
-                                </label>
+                                <RadioGroupItem value="Data Storage" id="data-storage" />
+                                <label htmlFor="data-storage">Data Storage</label>
                               </div>
                               <div className="flex items-center space-x-2">
-                                <RadioGroupItem
-                                  value="Indexers"
-                                  id="indexers"
-                                />
+                                <RadioGroupItem value="Indexers" id="indexers" />
                                 <label htmlFor="indexers">Indexers</label>
                               </div>
                               <div className="flex items-center space-x-2">
-                                <RadioGroupItem
-                                  value="Token Engineering"
-                                  id="token-engineering"
-                                />
-                                <label htmlFor="token-engineering">
-                                  Token Engineering
-                                </label>
+                                <RadioGroupItem value="Token Engineering" id="token-engineering" />
+                                <label htmlFor="token-engineering">Token Engineering</label>
                               </div>
                               <div className="flex items-center space-x-2">
-                                <RadioGroupItem
-                                  value="On & Offramps"
-                                  id="on-offramps"
-                                />
-                                <label htmlFor="on-offramps">
-                                  On & Offramps
-                                </label>
+                                <RadioGroupItem value="On & Offramps" id="on-offramps" />
+                                <label htmlFor="on-offramps">On & Offramps</label>
                               </div>
                               <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="Other" id="other" />
@@ -524,10 +467,7 @@ export default function GrantApplicationForm({
                                 </label>
                               </div>
                               <div className="flex items-center space-x-2">
-                                <RadioGroupItem
-                                  value="Meme Agents"
-                                  id="meme-agents"
-                                />
+                                <RadioGroupItem value="Meme Agents" id="meme-agents" />
                                 <label htmlFor="meme-agents">Meme Agents</label>
                               </div>
                               <div className="flex items-center space-x-2">
@@ -540,38 +480,23 @@ export default function GrantApplicationForm({
                                 </label>
                               </div>
                               <div className="flex items-center space-x-2">
-                                <RadioGroupItem
-                                  value="Agents Infra"
-                                  id="agents-infra"
-                                />
-                                <label htmlFor="agents-infra">
-                                  Agents Infra
-                                </label>
+                                <RadioGroupItem value="Agents Infra" id="agents-infra" />
+                                <label htmlFor="agents-infra">Agents Infra</label>
                               </div>
                               <div className="flex items-center space-x-2">
                                 <RadioGroupItem
                                   value="Agent Token Tooling"
                                   id="agent-token-tooling"
                                 />
-                                <label htmlFor="agent-token-tooling">
-                                  Agent Token Tooling
-                                </label>
+                                <label htmlFor="agent-token-tooling">Agent Token Tooling</label>
                               </div>
                               <div className="flex items-center space-x-2">
-                                <RadioGroupItem
-                                  value="DeFi Agents"
-                                  id="defi-agents"
-                                />
+                                <RadioGroupItem value="DeFi Agents" id="defi-agents" />
                                 <label htmlFor="defi-agents">DeFi Agents</label>
                               </div>
                               <div className="flex items-center space-x-2">
-                                <RadioGroupItem
-                                  value="Trading Agents"
-                                  id="trading-agents"
-                                />
-                                <label htmlFor="trading-agents">
-                                  Trading Agents
-                                </label>
+                                <RadioGroupItem value="Trading Agents" id="trading-agents" />
+                                <label htmlFor="trading-agents">Trading Agents</label>
                               </div>
                               <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="Other" id="other" />
@@ -594,7 +519,7 @@ export default function GrantApplicationForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="dark:text-gray-200 text-md">
-                          If you chose "Other," please share your project's type
+                          If you chose &quot;Other,&quot; please share your project&apos;s type
                           below <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormControl>
@@ -617,14 +542,13 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Project Abstract and Objective{" "}
-                        <span className="text-red-500">*</span>
+                        Project Abstract and Objective <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormDescription>
-                        Please tell us more about the project and clearly state
-                        its primary objectives and key use cases. Explain how
-                        the solution enhances Avalanche's capabilities and why
-                        it's well-suited for emerging market conditions.
+                        Please tell us more about the project and clearly state its primary
+                        objectives and key use cases. Explain how the solution enhances
+                        Avalanche&apos;s capabilities and why it&apos;s well-suited for emerging
+                        market conditions.
                       </FormDescription>
                       <FormControl>
                         <Textarea
@@ -645,16 +569,13 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Technical Roadmap{" "}
-                        <span className="text-red-500">*</span>
+                        Technical Roadmap <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormDescription>
-                        Please include a technical roadmap to outline the
-                        various development stages involved in the project. This
-                        roadmap should provide a clear timeline, specifying the
-                        expected start and end dates for each stage, as well as
-                        the key activities that will be undertaken during each
-                        phase.
+                        Please include a technical roadmap to outline the various development stages
+                        involved in the project. This roadmap should provide a clear timeline,
+                        specifying the expected start and end dates for each stage, as well as the
+                        key activities that will be undertaken during each phase.
                       </FormDescription>
                       <FormControl>
                         <Textarea
@@ -675,13 +596,11 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Repositories and Achievements{" "}
-                        <span className="text-red-500">*</span>
+                        Repositories and Achievements <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormDescription>
-                        Provide evidence of prior accomplishments in blockchain
-                        infrastructure and tooling, blockchain software, AI
-                        tooling or related fields.
+                        Provide evidence of prior accomplishments in blockchain infrastructure and
+                        tooling, blockchain software, AI tooling or related fields.
                       </FormDescription>
                       <FormControl>
                         <Textarea
@@ -702,12 +621,11 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Risks and Challenges{" "}
-                        <span className="text-red-500">*</span>
+                        Risks and Challenges <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormDescription>
-                        Please provide key risks (technical, regulatory, market,
-                        etc.), potential roadblocks and contingency plans.
+                        Please provide key risks (technical, regulatory, market, etc.), potential
+                        roadblocks and contingency plans.
                       </FormDescription>
                       <FormControl>
                         <Textarea
@@ -770,8 +688,7 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Project/Company GitHub{" "}
-                        <span className="text-red-500">*</span>
+                        Project/Company GitHub <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -805,18 +722,11 @@ export default function GrantApplicationForm({
                               value="No Registered Entity"
                               id="no-registered-entity"
                             />
-                            <label htmlFor="no-registered-entity">
-                              No Registered Entity
-                            </label>
+                            <label htmlFor="no-registered-entity">No Registered Entity</label>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="Solo Developer"
-                              id="solo-developer"
-                            />
-                            <label htmlFor="solo-developer">
-                              Solo Developer
-                            </label>
+                            <RadioGroupItem value="Solo Developer" id="solo-developer" />
+                            <label htmlFor="solo-developer">Solo Developer</label>
                           </div>
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem
@@ -832,37 +742,19 @@ export default function GrantApplicationForm({
                             <label htmlFor="dao">DAO</label>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="Private Company"
-                              id="private-company"
-                            />
-                            <label htmlFor="private-company">
-                              Private Company
-                            </label>
+                            <RadioGroupItem value="Private Company" id="private-company" />
+                            <label htmlFor="private-company">Private Company</label>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="Public Company"
-                              id="public-company"
-                            />
-                            <label htmlFor="public-company">
-                              Public Company
-                            </label>
+                            <RadioGroupItem value="Public Company" id="public-company" />
+                            <label htmlFor="public-company">Public Company</label>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="Not for Profit"
-                              id="not-for-profit"
-                            />
-                            <label htmlFor="not-for-profit">
-                              Not for Profit
-                            </label>
+                            <RadioGroupItem value="Not for Profit" id="not-for-profit" />
+                            <label htmlFor="not-for-profit">Not for Profit</label>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="Other"
-                              id="company-type-other"
-                            />
+                            <RadioGroupItem value="Other" id="company-type-other" />
                             <label htmlFor="company-type-other">Other</label>
                           </div>
                         </RadioGroup>
@@ -879,13 +771,9 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Project/Company HQ{" "}
-                        <span className="text-red-500">*</span>
+                        Project/Company HQ <span className="text-red-500">*</span>
                       </FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100">
                             <SelectValue placeholder="Select country" />
@@ -915,13 +803,9 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Project/Company Continent{" "}
-                        <span className="text-red-500">*</span>
+                        Project/Company Continent <span className="text-red-500">*</span>
                       </FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100">
                             <SelectValue placeholder="Select continent" />
@@ -948,11 +832,7 @@ export default function GrantApplicationForm({
                 <input type="hidden" name="project_company_logo" value="N/A" />
 
                 {/* Project/Company Banner - HIDDEN FOR NOW */}
-                <input
-                  type="hidden"
-                  name="project_company_banner"
-                  value="N/A"
-                />
+                <input type="hidden" name="project_company_banner" value="N/A" />
 
                 {/* Media Kit */}
                 <FormField
@@ -964,10 +844,9 @@ export default function GrantApplicationForm({
                         Media Kit <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormDescription>
-                        Please share a Google Drive folder link for your brand
-                        guidelines, logos, and video/static assets that can be
-                        used in social content. Ensure the folder is accessible
-                        to anyone with the link.
+                        Please share a Google Drive folder link for your brand guidelines, logos,
+                        and video/static assets that can be used in social content. Ensure the
+                        folder is accessible to anyone with the link.
                       </FormDescription>
                       <FormControl>
                         <Input
@@ -986,9 +865,7 @@ export default function GrantApplicationForm({
             {/* Financial Overview */}
             <div className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8 mb-8">
               <div className="space-y-1 mb-6">
-                <h2 className="text-2xl text-gray-900 dark:text-gray-100">
-                  Financial Overview
-                </h2>
+                <h2 className="text-2xl text-gray-900 dark:text-gray-100">Financial Overview</h2>
               </div>
 
               <div className="space-y-6">
@@ -1002,9 +879,9 @@ export default function GrantApplicationForm({
                         Previous Funding <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormDescription>
-                        If you choose 'Grant,' 'Angel Investment,' 'Pre-Seed,'
-                        'Seed,' or 'Series A,' you will be prompted to provide
-                        details about your funding.
+                        If you choose &apos;Grant,&apos; &apos;Angel Investment,&apos;
+                        &apos;Pre-Seed,&apos; &apos;Seed,&apos; or &apos;Series A,&apos; you will be
+                        prompted to provide details about your funding.
                       </FormDescription>
                       <div className="flex flex-col space-y-2">
                         <div className="flex items-center space-x-2">
@@ -1019,10 +896,7 @@ export default function GrantApplicationForm({
                             }}
                             className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800"
                           />
-                          <label
-                            htmlFor="no-funding"
-                            className="text-sm font-medium leading-none"
-                          >
+                          <label htmlFor="no-funding" className="text-sm font-medium leading-none">
                             No Funding
                           </label>
                         </div>
@@ -1033,9 +907,7 @@ export default function GrantApplicationForm({
                             onCheckedChange={(checked) => {
                               const newValue = checked
                                 ? [...field.value, "Self-Funding"]
-                                : field.value.filter(
-                                    (v) => v !== "Self-Funding"
-                                  );
+                                : field.value.filter((v) => v !== "Self-Funding");
                               field.onChange(newValue);
                             }}
                             className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800"
@@ -1054,9 +926,7 @@ export default function GrantApplicationForm({
                             onCheckedChange={(checked) => {
                               const newValue = checked
                                 ? [...field.value, "Family & Friends"]
-                                : field.value.filter(
-                                    (v) => v !== "Family & Friends"
-                                  );
+                                : field.value.filter((v) => v !== "Family & Friends");
                               field.onChange(newValue);
                             }}
                             className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800"
@@ -1080,10 +950,7 @@ export default function GrantApplicationForm({
                             }}
                             className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800"
                           />
-                          <label
-                            htmlFor="grant"
-                            className="text-sm font-medium leading-none"
-                          >
+                          <label htmlFor="grant" className="text-sm font-medium leading-none">
                             Grant
                           </label>
                         </div>
@@ -1094,9 +961,7 @@ export default function GrantApplicationForm({
                             onCheckedChange={(checked) => {
                               const newValue = checked
                                 ? [...field.value, "Angel Investment"]
-                                : field.value.filter(
-                                    (v) => v !== "Angel Investment"
-                                  );
+                                : field.value.filter((v) => v !== "Angel Investment");
                               field.onChange(newValue);
                             }}
                             className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800"
@@ -1120,10 +985,7 @@ export default function GrantApplicationForm({
                             }}
                             className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800"
                           />
-                          <label
-                            htmlFor="pre-seed"
-                            className="text-sm font-medium leading-none"
-                          >
+                          <label htmlFor="pre-seed" className="text-sm font-medium leading-none">
                             Pre-Seed
                           </label>
                         </div>
@@ -1139,10 +1001,7 @@ export default function GrantApplicationForm({
                             }}
                             className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800"
                           />
-                          <label
-                            htmlFor="seed"
-                            className="text-sm font-medium leading-none"
-                          >
+                          <label htmlFor="seed" className="text-sm font-medium leading-none">
                             Seed
                           </label>
                         </div>
@@ -1158,10 +1017,7 @@ export default function GrantApplicationForm({
                             }}
                             className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800"
                           />
-                          <label
-                            htmlFor="series-a"
-                            className="text-sm font-medium leading-none"
-                          >
+                          <label htmlFor="series-a" className="text-sm font-medium leading-none">
                             Series A
                           </label>
                         </div>
@@ -1180,12 +1036,11 @@ export default function GrantApplicationForm({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="dark:text-gray-200 text-md">
-                            Funding Details{" "}
-                            <span className="text-red-500">*</span>
+                            Funding Details <span className="text-red-500">*</span>
                           </FormLabel>
                           <FormDescription>
-                            Please provide details about your funding including
-                            entity name, amount, and round type.
+                            Please provide details about your funding including entity name, amount,
+                            and round type.
                           </FormDescription>
                           <FormControl>
                             <Textarea
@@ -1208,22 +1063,17 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Previous Avalanche Funding/Grants{" "}
-                        <span className="text-red-500">*</span>
+                        Previous Avalanche Funding/Grants <span className="text-red-500">*</span>
                       </FormLabel>
                       <div className="flex flex-col space-y-2">
                         <div className="flex items-center space-x-2">
                           <Checkbox
                             id="no-previous-funding"
-                            checked={field.value.includes(
-                              "No previous funding"
-                            )}
+                            checked={field.value.includes("No previous funding")}
                             onCheckedChange={(checked) => {
                               const newValue = checked
                                 ? [...field.value, "No previous funding"]
-                                : field.value.filter(
-                                    (v) => v !== "No previous funding"
-                                  );
+                                : field.value.filter((v) => v !== "No previous funding");
                               field.onChange(newValue);
                             }}
                             className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800"
@@ -1247,10 +1097,7 @@ export default function GrantApplicationForm({
                             }}
                             className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800"
                           />
-                          <label
-                            htmlFor="codebase"
-                            className="text-sm font-medium leading-none"
-                          >
+                          <label htmlFor="codebase" className="text-sm font-medium leading-none">
                             Codebase
                           </label>
                         </div>
@@ -1261,17 +1108,12 @@ export default function GrantApplicationForm({
                             onCheckedChange={(checked) => {
                               const newValue = checked
                                 ? [...field.value, "infraBUIDL()"]
-                                : field.value.filter(
-                                    (v) => v !== "infraBUIDL()"
-                                  );
+                                : field.value.filter((v) => v !== "infraBUIDL()");
                               field.onChange(newValue);
                             }}
                             className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800"
                           />
-                          <label
-                            htmlFor="infrabuildl"
-                            className="text-sm font-medium leading-none"
-                          >
+                          <label htmlFor="infrabuildl" className="text-sm font-medium leading-none">
                             infraBUIDL()
                           </label>
                         </div>
@@ -1282,9 +1124,7 @@ export default function GrantApplicationForm({
                             onCheckedChange={(checked) => {
                               const newValue = checked
                                 ? [...field.value, "infraBUIDL(AI)"]
-                                : field.value.filter(
-                                    (v) => v !== "infraBUIDL(AI)"
-                                  );
+                                : field.value.filter((v) => v !== "infraBUIDL(AI)");
                               field.onChange(newValue);
                             }}
                             className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800"
@@ -1308,10 +1148,7 @@ export default function GrantApplicationForm({
                             }}
                             className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800"
                           />
-                          <label
-                            htmlFor="retro9000"
-                            className="text-sm font-medium leading-none"
-                          >
+                          <label htmlFor="retro9000" className="text-sm font-medium leading-none">
                             Retro9000
                           </label>
                         </div>
@@ -1327,25 +1164,18 @@ export default function GrantApplicationForm({
                             }}
                             className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800"
                           />
-                          <label
-                            htmlFor="blizzard"
-                            className="text-sm font-medium leading-none"
-                          >
+                          <label htmlFor="blizzard" className="text-sm font-medium leading-none">
                             Blizzard
                           </label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Checkbox
                             id="ava-labs-investment"
-                            checked={field.value.includes(
-                              "Ava Labs Investment"
-                            )}
+                            checked={field.value.includes("Ava Labs Investment")}
                             onCheckedChange={(checked) => {
                               const newValue = checked
                                 ? [...field.value, "Ava Labs Investment"]
-                                : field.value.filter(
-                                    (v) => v !== "Ava Labs Investment"
-                                  );
+                                : field.value.filter((v) => v !== "Ava Labs Investment");
                               field.onChange(newValue);
                             }}
                             className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800"
@@ -1443,9 +1273,7 @@ export default function GrantApplicationForm({
                       />
                     )}
 
-                    {watchPreviousAvalancheFunding.includes(
-                      "infraBUIDL(AI)"
-                    ) && (
+                    {watchPreviousAvalancheFunding.includes("infraBUIDL(AI)") && (
                       <FormField
                         control={form.control}
                         name="funding_amount_infrabuidl_ai"
@@ -1511,9 +1339,7 @@ export default function GrantApplicationForm({
                       />
                     )}
 
-                    {watchPreviousAvalancheFunding.includes(
-                      "Ava Labs Investment"
-                    ) && (
+                    {watchPreviousAvalancheFunding.includes("Ava Labs Investment") && (
                       <FormField
                         control={form.control}
                         name="funding_amount_ava_labs"
@@ -1568,19 +1394,16 @@ export default function GrantApplicationForm({
                   Grant Budget Structure & Milestones
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Each project must present a structured grant budget and define
-                  four (4) key milestones, each with clear deliverables,
-                  measurable success criteria, and an allocated budget. This
-                  ensures transparency, accountability, and effective resource
-                  allocation. A typical grant structure includes an upfront
-                  payment of up to 20%, provided at the start of the project to
-                  cover initial development costs, while the remaining grant
-                  amount is tied to the successful completion of quantifiable
-                  milestones with well- defined KPIs and deliverables. Success
-                  metrics may include user adoption, performance improvements,
-                  developer engagement, or technical development milestones,
-                  depending on the project's stage. By aligning payments with
-                  measurable outcomes, this structure ensures efficient fund
+                  Each project must present a structured grant budget and define four (4) key
+                  milestones, each with clear deliverables, measurable success criteria, and an
+                  allocated budget. This ensures transparency, accountability, and effective
+                  resource allocation. A typical grant structure includes an upfront payment of up
+                  to 20%, provided at the start of the project to cover initial development costs,
+                  while the remaining grant amount is tied to the successful completion of
+                  quantifiable milestones with well- defined KPIs and deliverables. Success metrics
+                  may include user adoption, performance improvements, developer engagement, or
+                  technical development milestones, depending on the project's stage. By aligning
+                  payments with measurable outcomes, this structure ensures efficient fund
                   distribution, project accountability, and long-term success.
                 </p>
                 <div className="mt-6">
@@ -1589,31 +1412,26 @@ export default function GrantApplicationForm({
                   </h3>
                   <ul className="list-disc pl-6 mt-2 space-y-2">
                     <li>
-                      <span className="font-medium">Milestone Name:</span> A
-                      short, clear title describing the milestone's focus (e.g.
-                      Smart Contract Development & Initial Audit).
+                      <span className="font-medium">Milestone Name:</span> A short, clear title
+                      describing the milestone&apos;s focus (e.g. Smart Contract Development &
+                      Initial Audit).
                     </li>
                     <li>
-                      <span className="font-medium">Description:</span> A
-                      summary of the key activities and goals for the milestone
-                      (e.g. Develop, test, and audit).
+                      <span className="font-medium">Description:</span> A summary of the key
+                      activities and goals for the milestone (e.g. Develop, test, and audit).
                     </li>
                     <li>
-                      <span className="font-medium">
-                        Deliverables & Success Metrics/KPIs:
-                      </span>{" "}
-                      Tangible outputs that demonstrate milestone completion and
-                      measurable indicators that define a successful milestone.
+                      <span className="font-medium">Deliverables & Success Metrics/KPIs:</span>{" "}
+                      Tangible outputs that demonstrate milestone completion and measurable
+                      indicators that define a successful milestone.
                     </li>
                     <li>
-                      <span className="font-medium">
-                        Estimated Completion Date:
-                      </span>{" "}
-                      The expected completion date for the milestone.
+                      <span className="font-medium">Estimated Completion Date:</span> The expected
+                      completion date for the milestone.
                     </li>
                     <li>
-                      <span className="font-medium">Amount Requested:</span> The
-                      grant amount that is needed to for this milestone.
+                      <span className="font-medium">Amount Requested:</span> The grant amount that
+                      is needed to for this milestone.
                     </li>
                   </ul>
                 </div>
@@ -1627,35 +1445,22 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Requested Funding Range{" "}
-                        <span className="text-red-500">*</span>
+                        Requested Funding Range <span className="text-red-500">*</span>
                       </FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100">
                             <SelectValue placeholder="Select funding range" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
-                          <SelectItem
-                            value="$1-$50K"
-                            className="dark:text-gray-200"
-                          >
+                          <SelectItem value="$1-$50K" className="dark:text-gray-200">
                             $1-$50K
                           </SelectItem>
-                          <SelectItem
-                            value="$50K-$100K"
-                            className="dark:text-gray-200"
-                          >
+                          <SelectItem value="$50K-$100K" className="dark:text-gray-200">
                             $50K-$100K
                           </SelectItem>
-                          <SelectItem
-                            value="$100K+"
-                            className="dark:text-gray-200"
-                          >
+                          <SelectItem value="$100K+" className="dark:text-gray-200">
                             $100K+
                           </SelectItem>
                         </SelectContent>
@@ -1678,8 +1483,7 @@ export default function GrantApplicationForm({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="dark:text-gray-200 text-md">
-                            Milestone Name{" "}
-                            <span className="text-red-500">*</span>
+                            Milestone Name <span className="text-red-500">*</span>
                           </FormLabel>
                           <FormControl>
                             <Input
@@ -1699,8 +1503,7 @@ export default function GrantApplicationForm({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="dark:text-gray-200 text-md">
-                            Milestone Description{" "}
-                            <span className="text-red-500">*</span>
+                            Milestone Description <span className="text-red-500">*</span>
                           </FormLabel>
                           <FormControl>
                             <Textarea
@@ -1741,8 +1544,7 @@ export default function GrantApplicationForm({
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
                           <FormLabel className="dark:text-gray-200 text-md">
-                            Estimated Completion Date{" "}
-                            <span className="text-red-500">*</span>
+                            Estimated Completion Date <span className="text-red-500">*</span>
                           </FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
@@ -1783,8 +1585,7 @@ export default function GrantApplicationForm({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="dark:text-gray-200 text-md">
-                            Amount Requested{" "}
-                            <span className="text-red-500">*</span>
+                            Amount Requested <span className="text-red-500">*</span>
                           </FormLabel>
                           <FormControl>
                             <Input
@@ -1795,9 +1596,7 @@ export default function GrantApplicationForm({
                               value={field.value === 0 ? "" : field.value}
                               onChange={(e) => {
                                 const value =
-                                  e.target.value === ""
-                                    ? 0
-                                    : parseFloat(e.target.value);
+                                  e.target.value === "" ? 0 : parseFloat(e.target.value);
                                 field.onChange(value);
                               }}
                             />
@@ -1822,8 +1621,7 @@ export default function GrantApplicationForm({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="dark:text-gray-200 text-md">
-                            Milestone Name{" "}
-                            <span className="text-red-500">*</span>
+                            Milestone Name <span className="text-red-500">*</span>
                           </FormLabel>
                           <FormControl>
                             <Input
@@ -1843,8 +1641,7 @@ export default function GrantApplicationForm({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="dark:text-gray-200 text-md">
-                            Milestone Description{" "}
-                            <span className="text-red-500">*</span>
+                            Milestone Description <span className="text-red-500">*</span>
                           </FormLabel>
                           <FormControl>
                             <Textarea
@@ -1885,8 +1682,7 @@ export default function GrantApplicationForm({
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
                           <FormLabel className="dark:text-gray-200 text-md">
-                            Estimated Completion Date{" "}
-                            <span className="text-red-500">*</span>
+                            Estimated Completion Date <span className="text-red-500">*</span>
                           </FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
@@ -1927,8 +1723,7 @@ export default function GrantApplicationForm({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="dark:text-gray-200 text-md">
-                            Amount Requested{" "}
-                            <span className="text-red-500">*</span>
+                            Amount Requested <span className="text-red-500">*</span>
                           </FormLabel>
                           <FormControl>
                             <Input
@@ -1939,9 +1734,7 @@ export default function GrantApplicationForm({
                               value={field.value === 0 ? "" : field.value}
                               onChange={(e) => {
                                 const value =
-                                  e.target.value === ""
-                                    ? 0
-                                    : parseFloat(e.target.value);
+                                  e.target.value === "" ? 0 : parseFloat(e.target.value);
                                 field.onChange(value);
                               }}
                             />
@@ -2078,9 +1871,7 @@ export default function GrantApplicationForm({
                               value={field.value === 0 ? "" : field.value}
                               onChange={(e) => {
                                 const value =
-                                  e.target.value === ""
-                                    ? 0
-                                    : parseFloat(e.target.value);
+                                  e.target.value === "" ? 0 : parseFloat(e.target.value);
                                 field.onChange(value);
                               }}
                             />
@@ -2217,9 +2008,7 @@ export default function GrantApplicationForm({
                               value={field.value === 0 ? "" : field.value}
                               onChange={(e) => {
                                 const value =
-                                  e.target.value === ""
-                                    ? undefined
-                                    : parseFloat(e.target.value);
+                                  e.target.value === "" ? undefined : parseFloat(e.target.value);
                                 field.onChange(value);
                               }}
                             />
@@ -2243,29 +2032,19 @@ export default function GrantApplicationForm({
                           <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormDescription>
-                          Please indicate if you require assistance with venture
-                          capital fundraising
+                          Please indicate if you require assistance with venture capital fundraising
                         </FormDescription>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100">
                               <SelectValue placeholder="Select an option" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
-                            <SelectItem
-                              value="Yes"
-                              className="dark:text-gray-200"
-                            >
+                            <SelectItem value="Yes" className="dark:text-gray-200">
                               Yes
                             </SelectItem>
-                            <SelectItem
-                              value="No"
-                              className="dark:text-gray-200"
-                            >
+                            <SelectItem value="No" className="dark:text-gray-200">
                               No
                             </SelectItem>
                           </SelectContent>
@@ -2281,14 +2060,13 @@ export default function GrantApplicationForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="dark:text-gray-200 text-md">
-                          Support through Aethir's Ecosystem Fund for AI and
-                          gaming innovators?{" "}
+                          Support through Aethir&apos;s Ecosystem Fund for AI and gaming innovators?{" "}
                           <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormDescription>
-                          Would you like to be considered for computational
-                          resource support through Aethir's Ecosystem Fund for
-                          AI and gaming innovators? More information:{" "}
+                          Would you like to be considered for computational resource support through
+                          Aethir&apos;s Ecosystem Fund for AI and gaming innovators? More
+                          information:{" "}
                           <a
                             href="https://www.avax.network/blog/avalanche-foundation-partners-with-aethir-to-fast-track-infrabuidl-ai-grantees-into-100m-ecosystem-fund"
                             className="text-blue-500 hover:underline"
@@ -2298,26 +2076,17 @@ export default function GrantApplicationForm({
                             https://www.avax.network/blog/avalanche-foundation-partners-with-aethir-to-fast-track-infrabuidl-ai-grantees-into-100m-ecosystem-fund
                           </a>
                         </FormDescription>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100">
                               <SelectValue placeholder="Select an option" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
-                            <SelectItem
-                              value="Yes"
-                              className="dark:text-gray-200"
-                            >
+                            <SelectItem value="Yes" className="dark:text-gray-200">
                               Yes
                             </SelectItem>
-                            <SelectItem
-                              value="No"
-                              className="dark:text-gray-200"
-                            >
+                            <SelectItem value="No" className="dark:text-gray-200">
                               No
                             </SelectItem>
                           </SelectContent>
@@ -2346,8 +2115,7 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Current Development Stage{" "}
-                        <span className="text-red-500">*</span>
+                        Current Development Stage <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormDescription>
                         Please share where you are in the development process.
@@ -2364,8 +2132,7 @@ export default function GrantApplicationForm({
                               id="early-stage"
                             />
                             <label htmlFor="early-stage">
-                              Early-Stage (idea, Proof of Concept, prototype
-                              development)
+                              Early-Stage (idea, Proof of Concept, prototype development)
                             </label>
                           </div>
                           <div className="flex items-center space-x-2">
@@ -2400,8 +2167,7 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Duration working on the project{" "}
-                        <span className="text-red-500">*</span>
+                        Duration working on the project <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
                         <RadioGroup
@@ -2410,24 +2176,15 @@ export default function GrantApplicationForm({
                           className="flex flex-col space-y-1"
                         >
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="0-3 months"
-                              id="0-3-months"
-                            />
+                            <RadioGroupItem value="0-3 months" id="0-3-months" />
                             <label htmlFor="0-3-months">0-3 months</label>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="4-6 months"
-                              id="4-6-months"
-                            />
+                            <RadioGroupItem value="4-6 months" id="4-6-months" />
                             <label htmlFor="4-6-months">4-6 months</label>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="7-12 months"
-                              id="7-12-months"
-                            />
+                            <RadioGroupItem value="7-12 months" id="7-12-months" />
                             <label htmlFor="7-12-months">7-12 months</label>
                           </div>
                           <div className="flex items-center space-x-2">
@@ -2435,10 +2192,7 @@ export default function GrantApplicationForm({
                             <label htmlFor="1-2-years">1-2 years</label>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="2+ years"
-                              id="2-plus-years"
-                            />
+                            <RadioGroupItem value="2+ years" id="2-plus-years" />
                             <label htmlFor="2-plus-years">2+ years</label>
                           </div>
                         </RadioGroup>
@@ -2455,8 +2209,7 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Project live status{" "}
-                        <span className="text-red-500">*</span>
+                        Project live status <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
                         <RadioGroup
@@ -2469,22 +2222,12 @@ export default function GrantApplicationForm({
                             <label htmlFor="not-live">Not Live</label>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="Live on Testnet"
-                              id="live-testnet"
-                            />
-                            <label htmlFor="live-testnet">
-                              Live on Testnet
-                            </label>
+                            <RadioGroupItem value="Live on Testnet" id="live-testnet" />
+                            <label htmlFor="live-testnet">Live on Testnet</label>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="Live on Mainnet"
-                              id="live-mainnet"
-                            />
-                            <label htmlFor="live-mainnet">
-                              Live on Mainnet
-                            </label>
+                            <RadioGroupItem value="Live on Mainnet" id="live-mainnet" />
+                            <label htmlFor="live-mainnet">Live on Mainnet</label>
                           </div>
                         </RadioGroup>
                       </FormControl>
@@ -2500,8 +2243,7 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Is your project multichain?{" "}
-                        <span className="text-red-500">*</span>
+                        Is your project multichain? <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
                         <RadioGroup
@@ -2535,8 +2277,7 @@ export default function GrantApplicationForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="dark:text-gray-200 text-md">
-                          Share which chain(s):{" "}
-                          <span className="text-red-500">*</span>
+                          Share which chain(s): <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormControl>
                           <Textarea
@@ -2558,8 +2299,8 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Will this be your first time building in the Avalanche
-                        Ecosystem? <span className="text-red-500">*</span>
+                        Will this be your first time building in the Avalanche Ecosystem?{" "}
+                        <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
                         <RadioGroup
@@ -2620,10 +2361,9 @@ export default function GrantApplicationForm({
                         <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormDescription>
-                        Please explain how your project contributes to Avalanche
-                        and your expected outcomes. Be specific about the
-                        outcomes you expect to see on the Avalanche Network as a
-                        result of you potentially receiving this grant.
+                        Please explain how your project contributes to Avalanche and your expected
+                        outcomes. Be specific about the outcomes you expect to see on the Avalanche
+                        Network as a result of you potentially receiving this grant.
                       </FormDescription>
                       <FormControl>
                         <Textarea
@@ -2644,9 +2384,8 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Would any existing Avalanche projects/L1s benefit from
-                        your proposal being implemented?{" "}
-                        <span className="text-red-500">*</span>
+                        Would any existing Avalanche projects/L1s benefit from your proposal being
+                        implemented? <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
                         <RadioGroup
@@ -2658,17 +2397,11 @@ export default function GrantApplicationForm({
                           className="flex flex-col space-y-1"
                         >
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="Yes"
-                              id="avalanche-benefit-yes"
-                            />
+                            <RadioGroupItem value="Yes" id="avalanche-benefit-yes" />
                             <label htmlFor="avalanche-benefit-yes">Yes</label>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="No"
-                              id="avalanche-benefit-no"
-                            />
+                            <RadioGroupItem value="No" id="avalanche-benefit-no" />
                             <label htmlFor="avalanche-benefit-no">No</label>
                           </div>
                         </RadioGroup>
@@ -2709,8 +2442,7 @@ export default function GrantApplicationForm({
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="dark:text-gray-200 text-md">
-                              First Project/L1: Website{" "}
-                              <span className="text-red-500">*</span>
+                              First Project/L1: Website <span className="text-red-500">*</span>
                             </FormLabel>
                             <FormControl>
                               <Input
@@ -2774,8 +2506,8 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Are there any Web2 or Web3 projects that are similar to
-                        yours? <span className="text-red-500">*</span>
+                        Are there any Web2 or Web3 projects that are similar to yours?{" "}
+                        <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
                         <RadioGroup
@@ -2787,17 +2519,11 @@ export default function GrantApplicationForm({
                           className="flex flex-col space-y-1"
                         >
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="Yes"
-                              id="similar-project-yes"
-                            />
+                            <RadioGroupItem value="Yes" id="similar-project-yes" />
                             <label htmlFor="similar-project-yes">Yes</label>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="No"
-                              id="similar-project-no"
-                            />
+                            <RadioGroupItem value="No" id="similar-project-no" />
                             <label htmlFor="similar-project-no">No</label>
                           </div>
                         </RadioGroup>
@@ -2912,17 +2638,11 @@ export default function GrantApplicationForm({
                           className="flex flex-col space-y-1"
                         >
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="Yes"
-                              id="direct-competitor-yes"
-                            />
+                            <RadioGroupItem value="Yes" id="direct-competitor-yes" />
                             <label htmlFor="direct-competitor-yes">Yes</label>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="No"
-                              id="direct-competitor-no"
-                            />
+                            <RadioGroupItem value="No" id="direct-competitor-no" />
                             <label htmlFor="direct-competitor-no">No</label>
                           </div>
                         </RadioGroup>
@@ -2941,8 +2661,7 @@ export default function GrantApplicationForm({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="dark:text-gray-200 text-md">
-                            Direct Competitor 1{" "}
-                            <span className="text-red-500">*</span>
+                            Direct Competitor 1 <span className="text-red-500">*</span>
                           </FormLabel>
                           <FormControl>
                             <Textarea
@@ -2962,8 +2681,7 @@ export default function GrantApplicationForm({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="dark:text-gray-200 text-md">
-                            Direct Competitor 1 Website{" "}
-                            <span className="text-red-500">*</span>
+                            Direct Competitor 1 Website <span className="text-red-500">*</span>
                           </FormLabel>
                           <FormControl>
                             <Input
@@ -3026,8 +2744,8 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Do you plan on launching your project's token on
-                        Avalanche? <span className="text-red-500">*</span>
+                        Do you plan on launching your project&apos;s token on Avalanche?{" "}
+                        <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
                         <RadioGroup
@@ -3083,32 +2801,22 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Is your project open source?{" "}
-                        <span className="text-red-500">*</span>
+                        Is your project open source? <span className="text-red-500">*</span>
                       </FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100">
                             <SelectValue placeholder="Select an option" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
-                          <SelectItem
-                            value="Yes"
-                            className="dark:text-gray-200"
-                          >
+                          <SelectItem value="Yes" className="dark:text-gray-200">
                             Yes
                           </SelectItem>
                           <SelectItem value="No" className="dark:text-gray-200">
                             No
                           </SelectItem>
-                          <SelectItem
-                            value="Partially"
-                            className="dark:text-gray-200"
-                          >
+                          <SelectItem value="Partially" className="dark:text-gray-200">
                             Partially
                           </SelectItem>
                         </SelectContent>
@@ -3123,9 +2831,7 @@ export default function GrantApplicationForm({
             {/* Applicant Information */}
             <div className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8 mb-8">
               <div className="space-y-1 mb-6">
-                <h2 className="text-2xl text-gray-900 dark:text-gray-100">
-                  Applicant Information
-                </h2>
+                <h2 className="text-2xl text-gray-900 dark:text-gray-100">Applicant Information</h2>
               </div>
 
               <div className="space-y-6">
@@ -3136,8 +2842,7 @@ export default function GrantApplicationForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="dark:text-gray-200 text-md">
-                          Applicant First Name{" "}
-                          <span className="text-red-500">*</span>
+                          Applicant First Name <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormControl>
                           <Input
@@ -3157,8 +2862,7 @@ export default function GrantApplicationForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="dark:text-gray-200 text-md">
-                          Applicant Last Name{" "}
-                          <span className="text-red-500">*</span>
+                          Applicant Last Name <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormControl>
                           <Input
@@ -3200,8 +2904,7 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Applicant Job Title{" "}
-                        <span className="text-red-500">*</span>
+                        Applicant Job Title <span className="text-red-500">*</span>
                       </FormLabel>
                       <Select
                         onValueChange={(value) => {
@@ -3217,11 +2920,7 @@ export default function GrantApplicationForm({
                         </FormControl>
                         <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
                           {jobRoles.map((role) => (
-                            <SelectItem
-                              key={role}
-                              value={role}
-                              className="dark:text-gray-200"
-                            >
+                            <SelectItem key={role} value={role} className="dark:text-gray-200">
                               {role}
                             </SelectItem>
                           ))}
@@ -3240,8 +2939,7 @@ export default function GrantApplicationForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="dark:text-gray-200 text-md">
-                          Please specify your job title{" "}
-                          <span className="text-red-500">*</span>
+                          Please specify your job title <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormControl>
                           <Input
@@ -3284,10 +2982,7 @@ export default function GrantApplicationForm({
                       <FormLabel className="dark:text-gray-200 text-md">
                         Country of Residence
                       </FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100">
                             <SelectValue placeholder="Select your country" />
@@ -3328,17 +3023,13 @@ export default function GrantApplicationForm({
                           <FormControl>
                             <RadioGroupItem value="Yes" />
                           </FormControl>
-                          <FormLabel className="font-normal dark:text-gray-200">
-                            Yes
-                          </FormLabel>
+                          <FormLabel className="font-normal dark:text-gray-200">Yes</FormLabel>
                         </FormItem>
                         <FormItem className="flex items-center space-x-3 space-y-0">
                           <FormControl>
                             <RadioGroupItem value="No" />
                           </FormControl>
-                          <FormLabel className="font-normal dark:text-gray-200">
-                            No
-                          </FormLabel>
+                          <FormLabel className="font-normal dark:text-gray-200">No</FormLabel>
                         </FormItem>
                       </RadioGroup>
                       <FormMessage className="dark:text-red-400" />
@@ -3354,9 +3045,7 @@ export default function GrantApplicationForm({
                       <FormLabel className="dark:text-gray-200 text-md">
                         X Account <span className="text-red-500">*</span>
                       </FormLabel>
-                      <FormDescription>
-                        Share the link to your X account.
-                      </FormDescription>
+                      <FormDescription>Share the link to your X account.</FormDescription>
                       <FormControl>
                         <Input
                           className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100"
@@ -3377,9 +3066,7 @@ export default function GrantApplicationForm({
                       <FormLabel className="dark:text-gray-200 text-md">
                         Telegram <span className="text-red-500">*</span>
                       </FormLabel>
-                      <FormDescription>
-                        Share the link to your Telegram account.
-                      </FormDescription>
+                      <FormDescription>Share the link to your Telegram account.</FormDescription>
                       <FormControl>
                         <Input
                           className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100"
@@ -3397,12 +3084,8 @@ export default function GrantApplicationForm({
                   name="linkedin"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="dark:text-gray-200 text-md">
-                        LinkedIn
-                      </FormLabel>
-                      <FormDescription>
-                        Share the link to your LinkedIn account.
-                      </FormDescription>
+                      <FormLabel className="dark:text-gray-200 text-md">LinkedIn</FormLabel>
+                      <FormDescription>Share the link to your LinkedIn account.</FormDescription>
                       <FormControl>
                         <Input
                           className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100"
@@ -3420,12 +3103,8 @@ export default function GrantApplicationForm({
                   name="github"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="dark:text-gray-200 text-md">
-                        GitHub
-                      </FormLabel>
-                      <FormDescription>
-                        Share the link to your GitHub account.
-                      </FormDescription>
+                      <FormLabel className="dark:text-gray-200 text-md">GitHub</FormLabel>
+                      <FormDescription>Share the link to your GitHub account.</FormDescription>
                       <FormControl>
                         <Input
                           className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100"
@@ -3447,9 +3126,8 @@ export default function GrantApplicationForm({
                         Other Resource(s)
                       </FormLabel>
                       <FormDescription>
-                        Share any additional links that support your
-                        application. This could include portfolios, websites,
-                        media coverage, case studies, or anything else that
+                        Share any additional links that support your application. This could include
+                        portfolios, websites, media coverage, case studies, or anything else that
                         helps illustrate your work or impact.
                       </FormDescription>
                       <FormControl>
@@ -3469,9 +3147,7 @@ export default function GrantApplicationForm({
             {/* Team Details */}
             <div className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8 mb-8">
               <div className="space-y-1 mb-6">
-                <h2 className="text-2xl text-gray-900 dark:text-gray-100">
-                  Team Details
-                </h2>
+                <h2 className="text-2xl text-gray-900 dark:text-gray-100">Team Details</h2>
               </div>
 
               <div className="space-y-6">
@@ -3505,10 +3181,7 @@ export default function GrantApplicationForm({
                             <label htmlFor="team-size-6-10">6-10</label>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="10+"
-                              id="team-size-10-plus"
-                            />
+                            <RadioGroupItem value="10+" id="team-size-10-plus" />
                             <label htmlFor="team-size-10-plus">10+</label>
                           </div>
                         </RadioGroup>
@@ -3526,10 +3199,9 @@ export default function GrantApplicationForm({
                         Team Members
                       </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                        If applicable, you will be prompted to add two more team
-                        members other than the main applicant. Demonstrate the
-                        team's technical prowess and track record, ensuring they
-                        can deliver on their vision.
+                        If applicable, you will be prompted to add two more team members other than
+                        the main applicant. Demonstrate the team&apos;s technical prowess and track
+                        record, ensuring they can deliver on their vision.
                       </p>
                     </div>
 
@@ -3587,9 +3259,7 @@ export default function GrantApplicationForm({
                           name="team_member_1_email"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="dark:text-gray-200 text-md">
-                                Email
-                              </FormLabel>
+                              <FormLabel className="dark:text-gray-200 text-md">Email</FormLabel>
                               <FormControl>
                                 <Input
                                   className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100"
@@ -3608,13 +3278,8 @@ export default function GrantApplicationForm({
                           name="job_role_team_member_1"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="dark:text-gray-200 text-md">
-                                Job Role
-                              </FormLabel>
-                              <Select
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                              >
+                              <FormLabel className="dark:text-gray-200 text-md">Job Role</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                   <SelectTrigger className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100">
                                     <SelectValue placeholder="Select job role" />
@@ -3642,9 +3307,7 @@ export default function GrantApplicationForm({
                           name="team_member_1_bio"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="dark:text-gray-200 text-md">
-                                Bio
-                              </FormLabel>
+                              <FormLabel className="dark:text-gray-200 text-md">Bio</FormLabel>
                               <FormControl>
                                 <Textarea
                                   className="min-h-[100px] border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100"
@@ -3682,9 +3345,7 @@ export default function GrantApplicationForm({
                           name="team_member_1_telegram"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="dark:text-gray-200 text-md">
-                                Telegram
-                              </FormLabel>
+                              <FormLabel className="dark:text-gray-200 text-md">Telegram</FormLabel>
                               <FormControl>
                                 <Input
                                   className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100"
@@ -3702,9 +3363,7 @@ export default function GrantApplicationForm({
                           name="team_member_1_linkedin"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="dark:text-gray-200 text-md">
-                                LinkedIn
-                              </FormLabel>
+                              <FormLabel className="dark:text-gray-200 text-md">LinkedIn</FormLabel>
                               <FormControl>
                                 <Input
                                   className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100"
@@ -3722,9 +3381,7 @@ export default function GrantApplicationForm({
                           name="team_member_1_github"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="dark:text-gray-200 text-md">
-                                GitHub
-                              </FormLabel>
+                              <FormLabel className="dark:text-gray-200 text-md">GitHub</FormLabel>
                               <FormControl>
                                 <Input
                                   className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100"
@@ -3742,13 +3399,8 @@ export default function GrantApplicationForm({
                           name="team_member_1_country"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="dark:text-gray-200 text-md">
-                                Country
-                              </FormLabel>
-                              <Select
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                              >
+                              <FormLabel className="dark:text-gray-200 text-md">Country</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                   <SelectTrigger className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100">
                                     <SelectValue placeholder="Select country" />
@@ -3780,11 +3432,9 @@ export default function GrantApplicationForm({
                                 Other Resource(s)
                               </FormLabel>
                               <FormDescription>
-                                Share any additional links that support your
-                                application. This could include portfolios,
-                                websites, media coverage, case studies, or
-                                anything else that helps illustrate your work or
-                                impact.
+                                Share any additional links that support your application. This could
+                                include portfolios, websites, media coverage, case studies, or
+                                anything else that helps illustrate your work or impact.
                               </FormDescription>
                               <FormControl>
                                 <Textarea
@@ -3854,9 +3504,7 @@ export default function GrantApplicationForm({
                           name="team_member_2_email"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="dark:text-gray-200 text-md">
-                                Email
-                              </FormLabel>
+                              <FormLabel className="dark:text-gray-200 text-md">Email</FormLabel>
                               <FormControl>
                                 <Input
                                   className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100"
@@ -3875,13 +3523,8 @@ export default function GrantApplicationForm({
                           name="job_role_team_member_2"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="dark:text-gray-200 text-md">
-                                Job Role
-                              </FormLabel>
-                              <Select
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                              >
+                              <FormLabel className="dark:text-gray-200 text-md">Job Role</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                   <SelectTrigger className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100">
                                     <SelectValue placeholder="Select job role" />
@@ -3911,9 +3554,7 @@ export default function GrantApplicationForm({
                           name="team_member_2_bio"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="dark:text-gray-200 text-md">
-                                Bio
-                              </FormLabel>
+                              <FormLabel className="dark:text-gray-200 text-md">Bio</FormLabel>
                               <FormControl>
                                 <Textarea
                                   className="min-h-[100px] border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100"
@@ -3951,9 +3592,7 @@ export default function GrantApplicationForm({
                           name="team_member_2_telegram"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="dark:text-gray-200 text-md">
-                                Telegram
-                              </FormLabel>
+                              <FormLabel className="dark:text-gray-200 text-md">Telegram</FormLabel>
                               <FormControl>
                                 <Input
                                   className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100"
@@ -3971,9 +3610,7 @@ export default function GrantApplicationForm({
                           name="team_member_2_linkedin"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="dark:text-gray-200 text-md">
-                                LinkedIn
-                              </FormLabel>
+                              <FormLabel className="dark:text-gray-200 text-md">LinkedIn</FormLabel>
                               <FormControl>
                                 <Input
                                   className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100"
@@ -3991,9 +3628,7 @@ export default function GrantApplicationForm({
                           name="team_member_2_github"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="dark:text-gray-200 text-md">
-                                GitHub
-                              </FormLabel>
+                              <FormLabel className="dark:text-gray-200 text-md">GitHub</FormLabel>
                               <FormControl>
                                 <Input
                                   className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100"
@@ -4011,13 +3646,8 @@ export default function GrantApplicationForm({
                           name="team_member_2_country"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="dark:text-gray-200 text-md">
-                                Country
-                              </FormLabel>
-                              <Select
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                              >
+                              <FormLabel className="dark:text-gray-200 text-md">Country</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                   <SelectTrigger className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100">
                                     <SelectValue placeholder="Select country" />
@@ -4049,11 +3679,9 @@ export default function GrantApplicationForm({
                                 Other Resource(s)
                               </FormLabel>
                               <FormDescription>
-                                Share any additional links that support your
-                                application. This could include portfolios,
-                                websites, media coverage, case studies, or
-                                anything else that helps illustrate your work or
-                                impact.
+                                Share any additional links that support your application. This could
+                                include portfolios, websites, media coverage, case studies, or
+                                anything else that helps illustrate your work or impact.
                               </FormDescription>
                               <FormControl>
                                 <Textarea
@@ -4076,9 +3704,7 @@ export default function GrantApplicationForm({
             {/* Other */}
             <div className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8 mb-8">
               <div className="space-y-1 mb-6">
-                <h2 className="text-2xl text-gray-900 dark:text-gray-100">
-                  Other
-                </h2>
+                <h2 className="text-2xl text-gray-900 dark:text-gray-100">Other</h2>
               </div>
 
               <div className="space-y-6">
@@ -4089,8 +3715,7 @@ export default function GrantApplicationForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="dark:text-gray-200 text-md">
-                        Is your team willing to KYB?{" "}
-                        <span className="text-red-500">*</span>
+                        Is your team willing to KYB? <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormDescription className="text-red-500 font-medium">
                         If not, you will not be eligible to receive funding.
@@ -4104,17 +3729,13 @@ export default function GrantApplicationForm({
                           <FormControl>
                             <RadioGroupItem value="Yes" />
                           </FormControl>
-                          <FormLabel className="font-normal dark:text-gray-200">
-                            Yes
-                          </FormLabel>
+                          <FormLabel className="font-normal dark:text-gray-200">Yes</FormLabel>
                         </FormItem>
                         <FormItem className="flex items-center space-x-3 space-y-0">
                           <FormControl>
                             <RadioGroupItem value="No" />
                           </FormControl>
-                          <FormLabel className="font-normal dark:text-gray-200">
-                            No
-                          </FormLabel>
+                          <FormLabel className="font-normal dark:text-gray-200">No</FormLabel>
                         </FormItem>
                       </RadioGroup>
                       <FormMessage className="dark:text-red-400" />
@@ -4144,70 +3765,37 @@ export default function GrantApplicationForm({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
-                          <SelectItem
-                            value="Avalanche Website"
-                            className="dark:text-gray-200"
-                          >
+                          <SelectItem value="Avalanche Website" className="dark:text-gray-200">
                             Avalanche Website
                           </SelectItem>
-                          <SelectItem
-                            value="Avalanche Forum"
-                            className="dark:text-gray-200"
-                          >
+                          <SelectItem value="Avalanche Forum" className="dark:text-gray-200">
                             Avalanche Forum
                           </SelectItem>
-                          <SelectItem
-                            value="Twitter/X"
-                            className="dark:text-gray-200"
-                          >
+                          <SelectItem value="Twitter/X" className="dark:text-gray-200">
                             Twitter/X
                           </SelectItem>
-                          <SelectItem
-                            value="Telegram"
-                            className="dark:text-gray-200"
-                          >
+                          <SelectItem value="Telegram" className="dark:text-gray-200">
                             Telegram
                           </SelectItem>
-                          <SelectItem
-                            value="LinkedIn"
-                            className="dark:text-gray-200"
-                          >
+                          <SelectItem value="LinkedIn" className="dark:text-gray-200">
                             LinkedIn
                           </SelectItem>
-                          <SelectItem
-                            value="Livestream"
-                            className="dark:text-gray-200"
-                          >
+                          <SelectItem value="Livestream" className="dark:text-gray-200">
                             Livestream
                           </SelectItem>
-                          <SelectItem
-                            value="The Arena"
-                            className="dark:text-gray-200"
-                          >
+                          <SelectItem value="The Arena" className="dark:text-gray-200">
                             The Arena
                           </SelectItem>
-                          <SelectItem
-                            value="Email"
-                            className="dark:text-gray-200"
-                          >
+                          <SelectItem value="Email" className="dark:text-gray-200">
                             Email
                           </SelectItem>
-                          <SelectItem
-                            value="Word of Mouth"
-                            className="dark:text-gray-200"
-                          >
+                          <SelectItem value="Word of Mouth" className="dark:text-gray-200">
                             Word of Mouth
                           </SelectItem>
-                          <SelectItem
-                            value="Event"
-                            className="dark:text-gray-200"
-                          >
+                          <SelectItem value="Event" className="dark:text-gray-200">
                             Event
                           </SelectItem>
-                          <SelectItem
-                            value="Other"
-                            className="dark:text-gray-200"
-                          >
+                          <SelectItem value="Other" className="dark:text-gray-200">
                             Other
                           </SelectItem>
                         </SelectContent>
@@ -4301,13 +3889,15 @@ export default function GrantApplicationForm({
                 {/* Legal Compliance */}
                 <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                    The Avalanche Foundation needs the contact information you
-                    provide to us to contact you about our products and
-                    services. You may unsubscribe from these communications at
-                    any time. For information on how to unsubscribe, as well as
-                    our privacy practices and commitment to protecting your
-                    privacy, please review our{" "}
-                    <a href="#" className="text-blue-500 hover:underline">
+                    The Avalanche Foundation needs the contact information you provide to us to
+                    contact you about our products and services. You may unsubscribe from these
+                    communications at any time. For information on how to unsubscribe, as well as
+                    our privacy practices and commitment to protecting your privacy, please review
+                    our{" "}
+                    <a
+                      href="https://www.avax.network/privacy-policy"
+                      className="text-blue-500 hover:underline"
+                    >
                       Privacy Policy
                     </a>
                     .
@@ -4327,17 +3917,14 @@ export default function GrantApplicationForm({
                         </FormControl>
                         <div className="space-y-1 leading-none">
                           <FormLabel className="font-normal dark:text-gray-200">
-                            By checking this box, you agree and authorize the
-                            Avalanche Foundation to utilize artificial
-                            intelligence systems to process the information in
-                            your application, any related material you provide
-                            to us and any related communications between you and
-                            the Avalanche Foundation, in order to assess the
-                            eligibility and suitability of your application and
-                            proposal. You can withdraw your consent at any time.
-                            For more details on data processing and your rights,
-                            please refer to our Privacy Policy, linked above.{" "}
-                            <span className="text-red-500">*</span>
+                            By checking this box, you agree and authorize the Avalanche Foundation
+                            to utilize artificial intelligence systems to process the information in
+                            your application, any related material you provide to us and any related
+                            communications between you and the Avalanche Foundation, in order to
+                            assess the eligibility and suitability of your application and proposal.
+                            You can withdraw your consent at any time. For more details on data
+                            processing and your rights, please refer to our Privacy Policy, linked
+                            above. <span className="text-red-500">*</span>
                           </FormLabel>
                         </div>
                         <FormMessage className="dark:text-red-400" />
@@ -4359,9 +3946,8 @@ export default function GrantApplicationForm({
                         </FormControl>
                         <div className="space-y-1 leading-none">
                           <FormLabel className="font-normal dark:text-gray-200">
-                            Check this box to stay up to date with all things
-                            Avalanche, including promotional emails about
-                            events, initiatives and programs. You can
+                            Check this box to stay up to date with all things Avalanche, including
+                            promotional emails about events, initiatives and programs. You can
                             unsubscribe anytime.
                           </FormLabel>
                         </div>
@@ -4380,8 +3966,7 @@ export default function GrantApplicationForm({
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                    Submitting...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
                   </>
                 ) : (
                   "Submit"

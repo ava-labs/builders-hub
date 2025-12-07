@@ -30,13 +30,7 @@ function SocialLogin({ callbackUrl = "/" }: SocialLoginProps) {
           className="h-10 flex items-center justify-center border border-zinc-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 group"
           onClick={() => SignInSocialMedia("google")}
         >
-          <Image
-            src="/brands/google.svg"
-            alt="Google"
-            width={20}
-            height={20}
-            className="w-5 h-5"
-          />
+          <Image src="/brands/google.svg" alt="Google" width={20} height={20} className="w-5 h-5" />
           <span className="sr-only">Google</span>
         </Button>
         <Button

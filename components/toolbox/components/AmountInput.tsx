@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, type InputHTMLAttributes } from "react"
-import { cn } from "../lib/utils"
+import { useState, type InputHTMLAttributes } from "react";
+import { cn } from "../lib/utils";
 
 interface RawInputProps extends InputHTMLAttributes<HTMLInputElement> {
-  error?: string | null | React.ReactNode
+  error?: string | null | React.ReactNode;
 }
 
 function RawInput({ className, error, ...props }: RawInputProps) {
@@ -25,21 +25,23 @@ function RawInput({ className, error, ...props }: RawInputProps) {
         "transition-colors duration-200",
         "focus:outline-none focus:ring-2",
         "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
-        props.disabled ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 cursor-not-allowed" : "",
-        className,
+        props.disabled
+          ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 cursor-not-allowed"
+          : "",
+        className
       )}
       {...props}
     />
-  )
+  );
 }
 
 interface AmountInputProps extends Omit<RawInputProps, "onChange"> {
-  label: string
-  unit?: string
-  onChange?: (newValue: string) => void
-  helperText?: string | React.ReactNode
-  button?: React.ReactNode
-  error?: string | null | React.ReactNode
+  label: string;
+  unit?: string;
+  onChange?: (newValue: string) => void;
+  helperText?: string | React.ReactNode;
+  button?: React.ReactNode;
+  error?: string | null | React.ReactNode;
 }
 
 export function AmountInput({
@@ -53,24 +55,26 @@ export function AmountInput({
   error,
   ...props
 }: AmountInputProps) {
-  const [inputValue, setInputValue] = useState(props.value?.toString() || props.defaultValue?.toString() || "")
+  const [inputValue, setInputValue] = useState(
+    props.value?.toString() || props.defaultValue?.toString() || ""
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value
-    setInputValue(newValue)
-    onChange?.(newValue)
-  }
+    const newValue = e.target.value;
+    setInputValue(newValue);
+    onChange?.(newValue);
+  };
 
   return (
     <div className="space-y-2 mb-6">
-
       <div className="flex items-center justify-between gap-1">
-        <label htmlFor={id} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+        <label
+          htmlFor={id}
+          className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
+        >
           {label}
         </label>
-        <div className="text-xs text-zinc-500 dark:text-zinc-400">
-          Max: {props.max}
-        </div>
+        <div className="text-xs text-zinc-500 dark:text-zinc-400">Max: {props.max}</div>
       </div>
 
       <div className="relative">
@@ -87,7 +91,9 @@ export function AmountInput({
         </div>
         {unit && (
           <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-            <span className="text-sm text-zinc-500 dark:text-zinc-400 pointer-events-none">{unit}</span>
+            <span className="text-sm text-zinc-500 dark:text-zinc-400 pointer-events-none">
+              {unit}
+            </span>
           </div>
         )}
       </div>
@@ -98,5 +104,5 @@ export function AmountInput({
         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{helperText}</p>
       ) : null}
     </div>
-  )
+  );
 }

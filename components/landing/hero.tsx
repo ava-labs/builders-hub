@@ -4,9 +4,9 @@ import React, { useState, useEffect } from "react";
 import { cn } from "@/utils/cn";
 import Link from "next/link";
 import Image from "next/image";
-import { Sponsors } from '@/components/landing/globe';
-import { GraduationCap } from 'lucide-react';
-import Chatbot from '@/components/ui/chatbot';
+import { Sponsors } from "@/components/landing/globe";
+import { GraduationCap } from "lucide-react";
+import Chatbot from "@/components/ui/chatbot";
 
 // Premium animation styles
 const premiumStyles = `
@@ -148,7 +148,7 @@ const premiumStyles = `
 `;
 
 // Inject styles
-if (typeof document !== 'undefined') {
+if (typeof document !== "undefined") {
   const styleSheet = document.createElement("style");
   styleSheet.type = "text/css";
   styleSheet.innerText = premiumStyles;
@@ -157,7 +157,16 @@ if (typeof document !== 'undefined') {
 
 // Rotating Text Component
 function RotatingText() {
-  const words = ['Documentation', 'Academy', 'Console', 'Hackathons', 'Bounties', 'Events', 'Grants', 'Stats'];
+  const words = [
+    "Documentation",
+    "Academy",
+    "Console",
+    "Hackathons",
+    "Bounties",
+    "Events",
+    "Grants",
+    "Stats",
+  ];
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -179,7 +188,7 @@ function RotatingText() {
     <span className="text-rotator min-w-[140px] sm:min-w-[180px] lg:min-w-[220px] xl:min-w-[280px] h-[1.3em] text-center lg:text-left inline-block">
       <div className="text-rotator-inner">
         {words.map((word, index) => (
-          <div 
+          <div
             key={index}
             className="h-[1.3em] flex items-center justify-center lg:justify-start bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent font-black tracking-tighter whitespace-nowrap"
           >
@@ -187,9 +196,7 @@ function RotatingText() {
           </div>
         ))}
         {/* Duplicate first word for smooth loop */}
-        <div 
-          className="h-[1.3em] flex items-center justify-center lg:justify-start bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent font-black tracking-tighter whitespace-nowrap"
-        >
+        <div className="h-[1.3em] flex items-center justify-center lg:justify-start bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent font-black tracking-tighter whitespace-nowrap">
           {words[0]}
         </div>
       </div>
@@ -215,22 +222,20 @@ export default function Hero() {
     <section className="min-h-[50vh] w-full flex items-center justify-center relative py-12 lg:py-16 px-4">
       <div className="relative z-10 w-full max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          
           {/* Content Section */}
           <div className="space-y-8 text-center lg:text-left">
-            
             {/* Main Heading */}
             <div className="space-y-6">
               <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter leading-[0.95] sm:leading-[0.95] lg:leading-[0.9] xl:leading-[0.85]">
                 <span className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent dark:from-white dark:via-slate-100 dark:to-white animate-gradient-shift">
-                Builder Hub
+                  Builder Hub
                 </span>
               </h1>
-              
+
               <h2 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-semibold tracking-tight leading-[1.2] flex items-center justify-center lg:justify-start min-h-[1.5em]">
                 <RotatingText />
               </h2>
-              
+
               {/* <p className="text-xl sm:text-2xl lg:text-2xl xl:text-3xl text-slate-600 dark:text-slate-300 font-light leading-[1.5] tracking-[-0.025em] max-w-2xl mx-auto lg:mx-0 text-balance">
                 Everything you need to go from idea to impact.
               </p> */}
@@ -245,22 +250,29 @@ export default function Hero() {
                 <GraduationCap className="w-6 h-6 sm:w-5 sm:h-5 mr-3" />
                 Start Learning
               </Link>
-              
+
               <Link
                 href="/docs/primary-network"
                 className="group premium-button inline-flex items-center justify-center px-8 py-4 text-lg sm:text-base font-bold tracking-[-0.015em] rounded-xl bg-white/10 glass-effect border border-slate-200/30 text-slate-900 dark:text-white hover:bg-white/20 hover:scale-[1.02] transition-all duration-300 backdrop-blur-sm dark:border-slate-700/40 min-w-[160px]"
               >
                 Build
-                <svg className="w-6 h-6 sm:w-5 sm:h-5 ml-3 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                <svg
+                  className="w-6 h-6 sm:w-5 sm:h-5 ml-3 group-hover:translate-x-1 transition-transform duration-300"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 8l4 4m0 0l-4 4m4-4H3"
+                  />
                 </svg>
               </Link>
 
               <div className="hidden sm:block">
-                <Chatbot 
-                  variant="static" 
-                  className="ml-2" 
-                />
+                <Chatbot variant="static" className="ml-2" />
               </div>
             </div>
           </div>
@@ -276,25 +288,23 @@ export default function Hero() {
 }
 
 function GradientBG({
-	children,
-	className,
-	...props
+  children,
+  className,
+  ...props
 }: React.PropsWithChildren<
-	{
-		className?: string;
-	} & React.HTMLAttributes<HTMLElement>
+  {
+    className?: string;
+  } & React.HTMLAttributes<HTMLElement>
 >) {
-	return (
-		<div
-			className={cn(
-				"relative flex content-center items-center flex-col flex-nowrap h-min justify-center overflow-visible p-px w-full",
-			)}
-			{...props}
-		>
-			<div className={cn("w-auto z-10 px-4 py-2 rounded-none", className)}>
-				{children}
-			</div>
-			<div className="bg-zinc-100 dark:bg-zinc-950 absolute z-1 flex-none inset-[2px] " />
-		</div>
-	);
+  return (
+    <div
+      className={cn(
+        "relative flex content-center items-center flex-col flex-nowrap h-min justify-center overflow-visible p-px w-full"
+      )}
+      {...props}
+    >
+      <div className={cn("w-auto z-10 px-4 py-2 rounded-none", className)}>{children}</div>
+      <div className="bg-zinc-100 dark:bg-zinc-950 absolute z-1 flex-none inset-[2px] " />
+    </div>
+  );
 }

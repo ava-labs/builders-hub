@@ -16,8 +16,7 @@ export const PChainFaucetButton = ({
   buttonProps,
   children,
 }: PChainFaucetButtonProps = {}) => {
-  const { pChainAddress, isTestnet, pChainBalance, updatePChainBalance } =
-    useWalletStore();
+  const { pChainAddress, isTestnet, pChainBalance, updatePChainBalance } = useWalletStore();
   const { claimPChainAVAX, isClaimingPChain } = useTestnetFaucet();
 
   const handlePChainTokenRequest = async () => {

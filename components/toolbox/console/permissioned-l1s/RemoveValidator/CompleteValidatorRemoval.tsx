@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
-import { Button } from '@/components/toolbox/components/Button';
-import { Input } from '@/components/toolbox/components/Input';
-import { Success } from '@/components/toolbox/components/Success';
-import { Alert } from '@/components/toolbox/components/Alert';
-import { bytesToHex, hexToBytes } from 'viem';
-import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
-import poaManagerAbi from '@/contracts/icm-contracts/compiled/PoAManager.json';
-import { GetRegistrationJustification } from '../ValidatorManager/justification';
-import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
-import { packWarpIntoAccessList } from '../ValidatorManager/packWarp';
-import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import React, { useState, useEffect } from "react";
+import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
+import { Button } from "@/components/toolbox/components/Button";
+import { Input } from "@/components/toolbox/components/Input";
+import { Success } from "@/components/toolbox/components/Success";
+import { Alert } from "@/components/toolbox/components/Alert";
+import { bytesToHex, hexToBytes } from "viem";
+import validatorManagerAbi from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
+import poaManagerAbi from "@/contracts/icm-contracts/compiled/PoAManager.json";
+import { GetRegistrationJustification } from "../ValidatorManager/justification";
+import { packL1ValidatorRegistration } from "@/components/toolbox/coreViem/utils/convertWarp";
+import { packWarpIntoAccessList } from "../ValidatorManager/packWarp";
+import { useAvalancheSDKChainkit } from "@/components/toolbox/stores/useAvalancheSDKChainkit";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 interface CompleteValidatorRemovalProps {
   subnetIdL1: string;
@@ -31,7 +31,7 @@ interface CompleteValidatorRemovalProps {
   signingSubnetId: string;
   contractOwner: string | null;
   isLoadingOwnership: boolean;
-  ownerType: 'PoAManager' | 'StakingManager' | 'EOA' | null;
+  ownerType: "PoAManager" | "StakingManager" | "EOA" | null;
 }
 
 const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
@@ -49,7 +49,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   const { coreWalletClient, publicClient, avalancheNetworkID, walletEVMAddress } = useWalletStore();
   const { aggregateSignature } = useAvalancheSDKChainkit();
   const viemChain = useViemChainStore();
-  const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || '');
+  const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || "");
   const { notify } = useConsoleNotifications();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -63,7 +63,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   } | null>(null);
 
   // Determine target contract and ABI based on ownerType
-  const useMultisig = ownerType === 'PoAManager';
+  const useMultisig = ownerType === "PoAManager";
   const targetContractAddress = useMultisig ? contractOwner : validatorManagerAddress;
   const targetAbi = useMultisig ? poaManagerAbi.abi : validatorManagerAbi.abi;
 
@@ -99,8 +99,12 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       return;
     }
     if (useMultisig && !contractOwner?.trim()) {
-      setErrorState("PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager.");
-      onError("PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager.");
+      setErrorState(
+        "PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager."
+      );
+      onError(
+        "PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager."
+      );
       return;
     }
     if (!coreWalletClient || !publicClient || !viemChain) {
@@ -113,13 +117,13 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     try {
       // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
       const weightMessageData = await coreWalletClient.extractL1ValidatorWeightMessage({
-        txId: pChainTxId
+        txId: pChainTxId,
       });
 
       setExtractedData({
         validationID: weightMessageData.validationID,
         nonce: weightMessageData.nonce,
-        weight: weightMessageData.weight
+        weight: weightMessageData.weight,
       });
 
       // Step 2: Get justification for the validation (using the extracted validation ID)
@@ -148,10 +152,13 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         signingSubnetId: signingSubnetId || subnetIdL1,
         quorumPercentage: 67,
       });
-      notify({
-        type: 'local',
-        name: 'Aggregate Signatures'
-      }, aggregateSignaturePromise);
+      notify(
+        {
+          type: "local",
+          name: "Aggregate Signatures",
+        },
+        aggregateSignaturePromise
+      );
       const signature = await aggregateSignaturePromise;
 
       setPChainSignature(signature.signedMessage);
@@ -169,14 +176,18 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         account: walletEVMAddress as `0x${string}`,
         chain: viemChain,
       });
-      notify({
-        type: 'call',
-        name: 'Complete Validator Removal'
-      }, writePromise, viemChain ?? undefined);
+      notify(
+        {
+          type: "call",
+          name: "Complete Validator Removal",
+        },
+        writePromise,
+        viemChain ?? undefined
+      );
 
       const hash = await writePromise;
       const finalReceipt = await publicClient.waitForTransactionReceipt({ hash });
-      if (finalReceipt.status !== 'success') {
+      if (finalReceipt.status !== "success") {
         throw new Error(`Transaction failed with status: ${finalReceipt.status}`);
       }
 
@@ -204,9 +215,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
 
   return (
     <div className="space-y-4">
-      {error && (
-        <Alert variant="error">{error}</Alert>
-      )}
+      {error && <Alert variant="error">{error}</Alert>}
 
       <Input
         label="P-Chain SetL1ValidatorWeightTx ID"
@@ -224,17 +233,22 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
 
       <Button
         onClick={handleCompleteRemoval}
-        disabled={isProcessing || !pChainTxId.trim() || !!successMessage || (isContractOwner === false && !useMultisig) || isLoadingOwnership}
+        disabled={
+          isProcessing ||
+          !pChainTxId.trim() ||
+          !!successMessage ||
+          (isContractOwner === false && !useMultisig) ||
+          isLoadingOwnership
+        }
       >
-        {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : 'Sign & Complete Validator Removal')}
+        {isLoadingOwnership
+          ? "Checking ownership..."
+          : isProcessing
+            ? "Processing..."
+            : "Sign & Complete Validator Removal"}
       </Button>
 
-      {transactionHash && (
-        <Success
-          label="Transaction Hash"
-          value={transactionHash}
-        />
-      )}
+      {transactionHash && <Success label="Transaction Hash" value={transactionHash} />}
     </div>
   );
 };

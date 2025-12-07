@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import Image from "next/image";
 
 interface DiscoveryCardProps {
   title: string;
@@ -17,7 +17,7 @@ export default function DiscoveryCard({ title, description, image, url }: Discov
               src={image}
               alt={title}
               fill
-              style={{ objectFit: 'cover' }}
+              style={{ objectFit: "cover" }}
               className="transition-transform duration-300 group-hover:scale-105"
             />
           </div>

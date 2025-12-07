@@ -24,10 +24,6 @@ export const metadata: Metadata = createMetadata({
   },
 });
 
-export default function StatsOverviewLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function StatsOverviewLayout({ children }: { children: React.ReactNode }) {
   return children;
 }

@@ -63,9 +63,7 @@ const HUBSPOT_FIELD_MAPPING = {
 
 export default function ValidatorsForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submissionStatus, setSubmissionStatus] = useState<
-    "success" | "error" | null
-  >(null);
+  const [submissionStatus, setSubmissionStatus] = useState<"success" | "error" | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -87,14 +85,8 @@ export default function ValidatorsForm() {
       const hubspotFormData: Record<string, string | number | boolean> = {};
       Object.entries(values).forEach(([key, value]) => {
         const hubspotFieldName =
-          HUBSPOT_FIELD_MAPPING[key as keyof typeof HUBSPOT_FIELD_MAPPING] ||
-          key;
-        if (
-          value === "" &&
-          key !== "firstName" &&
-          key !== "email" &&
-          !key.includes("required")
-        ) {
+          HUBSPOT_FIELD_MAPPING[key as keyof typeof HUBSPOT_FIELD_MAPPING] || key;
+        if (value === "" && key !== "firstName" && key !== "email" && !key.includes("required")) {
           return;
         }
         if (typeof value === "boolean") {
@@ -126,11 +118,12 @@ export default function ValidatorsForm() {
       form.reset();
     } catch (error) {
       setSubmissionStatus("error");
-      alert(
-        `Error submitting form: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
+      console.error("Error submitting form:", error);
+      // Show error in UI instead of alert
+      form.setError("root", {
+        type: "manual",
+        message: `Error submitting form: ${error instanceof Error ? error.message : "Unknown error"}`,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -169,9 +162,8 @@ export default function ValidatorsForm() {
             </h1>
 
             <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
-              Stay informed about the latest validator updates and
-              opportunities. Join our community to receive important
-              notifications and exclusive insights.
+              Stay informed about the latest validator updates and opportunities. Join our community
+              to receive important notifications and exclusive insights.
             </p>
           </div>
         </section>
@@ -185,8 +177,8 @@ export default function ValidatorsForm() {
               Successfully Subscribed!
             </h2>
             <p className="text-emerald-700 dark:text-emerald-300 mb-8 text-lg">
-              Thank you for signing up for validator updates. You'll receive
-              important notifications and updates via email.
+              Thank you for signing up for validator updates. You'll receive important notifications
+              and updates via email.
             </p>
             <Button
               onClick={() => {
@@ -202,10 +194,7 @@ export default function ValidatorsForm() {
         ) : (
           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden">
             <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-0"
-              >
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-0">
                 {/* Contact Information */}
                 <div className="p-8 md:p-12 border-b border-slate-100 dark:border-slate-700">
                   <div className="space-y-2 mb-8">
@@ -231,8 +220,7 @@ export default function ValidatorsForm() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-slate-700 dark:text-slate-300 font-medium text-base">
-                            Email Address{" "}
-                            <span className="text-red-500">*</span>
+                            Email Address <span className="text-red-500">*</span>
                           </FormLabel>
                           <FormControl>
                             <div className="relative">
@@ -324,8 +312,7 @@ export default function ValidatorsForm() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-slate-700 dark:text-slate-300 font-medium text-base">
-                            Company/Project{" "}
-                            <span className="text-red-500">*</span>
+                            Company/Project <span className="text-red-500">*</span>
                           </FormLabel>
                           <FormControl>
                             <div className="relative">
@@ -372,13 +359,9 @@ export default function ValidatorsForm() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-slate-700 dark:text-slate-300 font-medium text-base">
-                            Validator Type{" "}
-                            <span className="text-red-500">*</span>
+                            Validator Type <span className="text-red-500">*</span>
                           </FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger className="h-14 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
                                 <SelectValue placeholder="Select Validator Type" />
@@ -430,13 +413,11 @@ export default function ValidatorsForm() {
                           Consent & Privacy
                         </h2>
                         <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                          The Avalanche Foundation needs the contact information
-                          you provide to us to contact you about our products
-                          and services. You may unsubscribe from these
-                          communications at any time. For information on how to
-                          unsubscribe, as well as our privacy practices and
-                          commitment to protecting your privacy, please review
-                          our{" "}
+                          The Avalanche Foundation needs the contact information you provide to us
+                          to contact you about our products and services. You may unsubscribe from
+                          these communications at any time. For information on how to unsubscribe,
+                          as well as our privacy practices and commitment to protecting your
+                          privacy, please review our{" "}
                           <a
                             className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline font-medium transition-colors"
                             href="https://www.avax.network/privacy-policy"
@@ -470,8 +451,8 @@ export default function ValidatorsForm() {
                               <span className="text-red-500">*</span>
                             </FormLabel>
                             <FormDescription className="text-sm text-slate-500 dark:text-slate-400">
-                              By checking this box, you confirm that you have
-                              read and agree to our privacy policy.
+                              By checking this box, you confirm that you have read and agree to our
+                              privacy policy.
                             </FormDescription>
                           </div>
                           <FormMessage className="text-red-500 dark:text-red-400" />
@@ -493,13 +474,12 @@ export default function ValidatorsForm() {
                           </FormControl>
                           <div className="space-y-2 leading-none">
                             <FormLabel className="font-medium text-slate-700 dark:text-slate-300 text-base cursor-pointer">
-                              I would also like to sign up for the Avalanche
-                              Foundation's email list and understand I may
-                              unsubscribe at any time
+                              I would also like to sign up for the Avalanche Foundation's email list
+                              and understand I may unsubscribe at any time
                             </FormLabel>
                             <FormDescription className="text-sm text-slate-500 dark:text-slate-400">
-                              Check this box if you wish to receive additional
-                              marketing communications from us.
+                              Check this box if you wish to receive additional marketing
+                              communications from us.
                             </FormDescription>
                           </div>
                           <FormMessage className="text-red-500 dark:text-red-400" />

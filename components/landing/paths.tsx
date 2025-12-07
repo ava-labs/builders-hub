@@ -1,14 +1,7 @@
 "use client";
 
 import React from "react";
-import {
-  Code,
-  Rocket,
-  Network,
-  Server,
-  DollarSign,
-  ArrowRight
-} from "lucide-react";
+import { Code, Rocket, Network, Server, DollarSign, ArrowRight } from "lucide-react";
 import { cn } from "@/utils/cn";
 import Link from "next/link";
 
@@ -18,29 +11,29 @@ const paths = [
     title: "Launch an L1",
     description: "Launch your own L1",
     icon: Rocket,
-    href: "/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1"
+    href: "/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1",
   },
   {
     id: 2,
     title: "Interoperability",
     description: "Build cross-chain apps",
     icon: Network,
-    href: "/academy/interchain-messaging"
+    href: "/academy/interchain-messaging",
   },
   {
     id: 3,
     title: "Primary Network",
     description: "Run validators",
     icon: Server,
-    href: "/docs/nodes"
+    href: "/docs/nodes",
   },
   {
     id: 4,
     title: "Fund",
     description: "Grants Program",
     icon: DollarSign,
-    href: "/grants"
-  }
+    href: "/grants",
+  },
 ];
 
 export default function Paths() {
@@ -51,7 +44,7 @@ export default function Paths() {
           Choose your path
         </h2>
       </div>
-      
+
       <div className="mx-auto font-geist relative max-w-7xl w-full">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
           {paths.map((path, index) => (
@@ -71,18 +64,18 @@ export default function Paths() {
                 <div className="mb-3">
                   <path.icon className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
                 </div>
-                
+
                 {/* Content */}
                 <div className="flex-1">
                   <h3 className="text-base font-medium mb-1 text-zinc-900 dark:text-zinc-100">
                     {path.title}
                   </h3>
-                  
+
                   <p className="text-xs text-zinc-500 dark:text-zinc-500 leading-snug">
                     {path.description}
                   </p>
                 </div>
-                
+
                 {/* Arrow */}
                 <div className="mt-3 flex justify-end">
                   <ArrowRight className="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-500 dark:group-hover:text-zinc-500 transition-colors" />
@@ -94,4 +87,4 @@ export default function Paths() {
       </div>
     </div>
   );
-} 
+}

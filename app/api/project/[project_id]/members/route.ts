@@ -1,19 +1,13 @@
 import { withAuth } from "@/lib/protectedRoute";
 import { prisma } from "@/prisma/prisma";
-import {
-  GetMembersByProjectId,
-  UpdateRoleMember,
-} from "@/server/services/memberProject";
+import { GetMembersByProjectId, UpdateRoleMember } from "@/server/services/memberProject";
 import { NextResponse } from "next/server";
 
 export const GET = withAuth(async (request, context: any) => {
   try {
     const { project_id } = await context.params;
     if (!project_id) {
-      return NextResponse.json(
-        { error: "project_id is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "project_id is required" }, { status: 400 });
     }
     const members = await GetMembersByProjectId(project_id);
     return NextResponse.json(members ?? []);
@@ -34,10 +28,7 @@ export const PATCH = withAuth(async (request: Request, context: any) => {
     const { member_id, role } = body;
     console.log("body", member_id);
     if (!member_id || !role) {
-      return NextResponse.json(
-        { error: "member_id and role are required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "member_id and role are required" }, { status: 400 });
     }
 
     const updatedMember = await UpdateRoleMember(member_id, role);

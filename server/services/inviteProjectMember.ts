@@ -13,6 +13,26 @@ interface invitationLink {
   Success: boolean;
 }
 
+interface User {
+  id: string;
+  email?: string;
+}
+
+interface Member {
+  id: string;
+  user_id: string | null;
+  project_id: string;
+  role: string;
+  status: string;
+  email: string | null;
+}
+
+interface Project {
+  id: string;
+  hackaton_id: string;
+  project_name: string;
+}
+
 export async function generateInvitation(
   hackathonId: string,
   userId: string,
@@ -48,7 +68,7 @@ export async function generateInvitation(
 async function handleEmailInvitation(
   email: string,
   userId: string,
-  project: any,
+  project: Project,
   hackathonId: string,
   inviterName: string
 ) {
@@ -58,29 +78,14 @@ async function handleEmailInvitation(
     return;
   }
 
-  const existingMember = await findExistingMember(
-    invitedUser,
-    email,
-    project.id
-  );
+  const existingMember = await findExistingMember(invitedUser, email, project.id);
 
   if (isConfirmedMember(existingMember)) {
     return;
   }
 
-  const member = await createOrUpdateMember(
-    invitedUser,
-    email,
-    project.id,
-    existingMember
-  );
-  const inviteLink = await sendInvitationEmail(
-    member,
-    email,
-    project,
-    hackathonId,
-    inviterName
-  );
+  const member = await createOrUpdateMember(invitedUser, email, project.id, existingMember);
+  const inviteLink = await sendInvitationEmail(member, email, project, hackathonId, inviterName);
   if (inviteLink) {
     const invitationLink = {
       User: email,
@@ -91,15 +96,11 @@ async function handleEmailInvitation(
   }
 }
 
-function isSelfInvitation(invitedUser: any, userId: string): boolean {
+function isSelfInvitation(invitedUser: User | null, userId: string): boolean {
   return invitedUser?.id === userId;
 }
 
-async function findExistingMember(
-  invitedUser: any,
-  email: string,
-  projectId: string
-) {
+async function findExistingMember(invitedUser: User | null, email: string, projectId: string) {
   if (invitedUser) {
     const member = await prisma.member.findFirst({
       where: {
@@ -120,15 +121,15 @@ async function findExistingMember(
   return member;
 }
 
-function isConfirmedMember(member: any): boolean {
+function isConfirmedMember(member: Member | null): boolean {
   return member?.status === "Confirmed";
 }
 
-async function createOrUpdateMember(
-  invitedUser: any,
+function createOrUpdateMember(
+  invitedUser: User | null,
   email: string,
   projectId: string,
-  existingMember: any
+  existingMember: Member | null
 ) {
   if (existingMember) {
     return updateExistingMember(existingMember, invitedUser);
@@ -137,7 +138,7 @@ async function createOrUpdateMember(
   return createNewMember(invitedUser, email, projectId);
 }
 
-async function updateExistingMember(existingMember: any, invitedUser: any) {
+function updateExistingMember(existingMember: Member, invitedUser: User | null) {
   return prisma.member.update({
     where: { id: existingMember.id },
     data: {
@@ -148,11 +149,7 @@ async function updateExistingMember(existingMember: any, invitedUser: any) {
   });
 }
 
-async function createNewMember(
-  invitedUser: any,
-  email: string,
-  projectId: string
-) {
+function createNewMember(invitedUser: User | null, email: string, projectId: string) {
   return prisma.member.create({
     data: {
       user_id: invitedUser?.id,
@@ -165,15 +162,15 @@ async function createNewMember(
 }
 
 async function sendInvitationEmail(
-  member: any,
+  member: Member,
   email: string,
-  project: any,
+  project: Project,
   hackathonId: string,
   inviterName: string
 ): Promise<{ success: boolean; inviteLink: string }> {
   const baseUrl = process.env.NEXTAUTH_URL as string;
   const inviteLink = `${baseUrl}/hackathons/project-submission?hackathon=${hackathonId}&invitation=${member.id}#team`;
-  let result = { success: true, inviteLink: inviteLink };
+  const result = { success: true, inviteLink: inviteLink };
   try {
     await sendInvitation(email, project.project_name, inviterName, inviteLink);
   } catch (error) {
@@ -182,9 +179,9 @@ async function sendInvitationEmail(
   return result;
 }
 
-async function createProject(hackathonId: string, userId: string) {
+function createProject(hackathonId: string, userId: string) {
   //  Atomic transaction to prevent race conditions during invitations
-  return await prisma.$transaction(
+  return prisma.$transaction(
     async (tx) => {
       // Find existing project WITHIN transaction
       const existingProject = await tx.project.findFirst({

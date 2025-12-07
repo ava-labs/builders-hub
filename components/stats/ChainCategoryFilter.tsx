@@ -8,10 +8,12 @@ import { L1Chain } from "@/types/stats";
 import { categoryColors } from "@/components/stats/CategoryChip";
 
 // Get all chains that have data (chainId defined)
-const allChains = (l1ChainsData as L1Chain[]).filter(c => c.chainId);
+const allChains = (l1ChainsData as L1Chain[]).filter((c) => c.chainId);
 
 // Get unique categories
-const allCategories = Array.from(new Set(allChains.map(c => c.category).filter(Boolean))) as string[];
+const allCategories = Array.from(
+  new Set(allChains.map((c) => c.category).filter(Boolean))
+) as string[];
 
 // Get first initial of chain name
 function getChainInitial(name: string): string {
@@ -19,26 +21,26 @@ function getChainInitial(name: string): string {
 }
 
 // Chain chip component for filter UI
-function FilterChainChip({ 
-  chain, 
-  selected, 
-  onClick 
-}: { 
-  chain: L1Chain; 
-  selected: boolean; 
+function FilterChainChip({
+  chain,
+  selected,
+  onClick,
+}: {
+  chain: L1Chain;
+  selected: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       onClick={onClick}
       className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer border ${
-        selected 
-          ? 'border-transparent shadow-sm' 
-          : 'border-zinc-200 dark:border-zinc-700 opacity-50 hover:opacity-75'
+        selected
+          ? "border-transparent shadow-sm"
+          : "border-zinc-200 dark:border-zinc-700 opacity-50 hover:opacity-75"
       }`}
-      style={{ 
-        backgroundColor: selected ? `${chain.color || '#6B7280'}20` : 'transparent',
-        color: selected ? chain.color || '#6B7280' : undefined,
+      style={{
+        backgroundColor: selected ? `${chain.color || "#6B7280"}20` : "transparent",
+        color: selected ? chain.color || "#6B7280" : undefined,
       }}
     >
       {chain.chainLogoURI ? (
@@ -50,59 +52,61 @@ function FilterChainChip({
           className="rounded-full"
         />
       ) : (
-        <span 
-          className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white" 
-          style={{ backgroundColor: chain.color || '#6B7280' }} 
+        <span
+          className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white"
+          style={{ backgroundColor: chain.color || "#6B7280" }}
         >
           {getChainInitial(chain.chainName)}
         </span>
       )}
-      <span className={selected ? '' : 'text-zinc-500 dark:text-zinc-400'}>{chain.chainName}</span>
+      <span className={selected ? "" : "text-zinc-500 dark:text-zinc-400"}>{chain.chainName}</span>
       {selected && <Check className="w-3 h-3 ml-0.5" />}
     </button>
   );
 }
 
 // Category toggle button
-function CategoryToggle({ 
-  category, 
-  selected, 
+function CategoryToggle({
+  category,
+  selected,
   chainCount,
   selectedCount,
-  onClick 
-}: { 
-  category: string; 
+  onClick,
+}: {
+  category: string;
   selected: boolean;
   chainCount: number;
   selectedCount: number;
   onClick: () => void;
 }) {
-  const color = categoryColors[category] || '#6B7280';
+  const color = categoryColors[category] || "#6B7280";
   const isPartial = selectedCount > 0 && selectedCount < chainCount;
-  
+
   return (
     <button
       onClick={onClick}
       className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer border ${
-        selected 
-          ? 'border-transparent shadow-sm' 
-          : 'border-zinc-200 dark:border-zinc-700 opacity-60 hover:opacity-80'
+        selected
+          ? "border-transparent shadow-sm"
+          : "border-zinc-200 dark:border-zinc-700 opacity-60 hover:opacity-80"
       }`}
-      style={{ 
-        backgroundColor: selected ? `${color}15` : 'transparent',
+      style={{
+        backgroundColor: selected ? `${color}15` : "transparent",
         color: selected ? color : undefined,
       }}
     >
-      <span 
-        className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isPartial ? 'ring-2 ring-offset-1' : ''}`}
-        style={{ 
-          backgroundColor: selected || isPartial ? color : '#9CA3AF',
-          // @ts-ignore - ringColor is a Tailwind CSS variable
-          '--tw-ring-color': isPartial ? color : undefined,
-        } as React.CSSProperties} 
+      <span
+        className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isPartial ? "ring-2 ring-offset-1" : ""}`}
+        style={
+          {
+            backgroundColor: selected || isPartial ? color : "#9CA3AF",
+            // @ts-ignore - ringColor is a Tailwind CSS variable
+            "--tw-ring-color": isPartial ? color : undefined,
+          } as React.CSSProperties
+        }
       />
-      <span className={selected ? '' : 'text-zinc-500 dark:text-zinc-400'}>{category}</span>
-      <span className={`text-xs ${selected ? 'opacity-70' : 'text-zinc-400'}`}>
+      <span className={selected ? "" : "text-zinc-500 dark:text-zinc-400"}>{category}</span>
+      <span className={`text-xs ${selected ? "opacity-70" : "text-zinc-400"}`}>
         ({selectedCount}/{chainCount})
       </span>
     </button>
@@ -125,8 +129,8 @@ export function ChainCategoryFilter({
   // Get chains grouped by category
   const chainsByCategory = useMemo(() => {
     const grouped: Record<string, L1Chain[]> = {};
-    allChains.forEach(chain => {
-      const cat = chain.category || 'Other';
+    allChains.forEach((chain) => {
+      const cat = chain.category || "Other";
       if (!grouped[cat]) grouped[cat] = [];
       grouped[cat].push(chain);
     });
@@ -134,46 +138,55 @@ export function ChainCategoryFilter({
   }, []);
 
   // Check if all chains in a category are selected
-  const getCategorySelectionState = useCallback((category: string) => {
-    const chainsInCategory = chainsByCategory[category] || [];
-    const selectedInCategory = chainsInCategory.filter(c => selectedChainIds.has(c.chainId));
-    return {
-      allSelected: selectedInCategory.length === chainsInCategory.length,
-      selectedCount: selectedInCategory.length,
-      totalCount: chainsInCategory.length,
-    };
-  }, [chainsByCategory, selectedChainIds]);
+  const getCategorySelectionState = useCallback(
+    (category: string) => {
+      const chainsInCategory = chainsByCategory[category] || [];
+      const selectedInCategory = chainsInCategory.filter((c) => selectedChainIds.has(c.chainId));
+      return {
+        allSelected: selectedInCategory.length === chainsInCategory.length,
+        selectedCount: selectedInCategory.length,
+        totalCount: chainsInCategory.length,
+      };
+    },
+    [chainsByCategory, selectedChainIds]
+  );
 
   // Toggle a single chain
-  const toggleChain = useCallback((chainIdToToggle: string) => {
-    const next = new Set(selectedChainIds);
-    if (next.has(chainIdToToggle)) {
-      next.delete(chainIdToToggle);
-    } else {
-      next.add(chainIdToToggle);
-    }
-    onSelectionChange(next);
-  }, [selectedChainIds, onSelectionChange]);
+  const toggleChain = useCallback(
+    (chainIdToToggle: string) => {
+      const next = new Set(selectedChainIds);
+      if (next.has(chainIdToToggle)) {
+        next.delete(chainIdToToggle);
+      } else {
+        next.add(chainIdToToggle);
+      }
+      onSelectionChange(next);
+    },
+    [selectedChainIds, onSelectionChange]
+  );
 
   // Toggle all chains in a category
-  const toggleCategory = useCallback((category: string) => {
-    const chainsInCategory = chainsByCategory[category] || [];
-    const { allSelected } = getCategorySelectionState(category);
-    
-    const next = new Set(selectedChainIds);
-    if (allSelected) {
-      // Deselect all chains in this category
-      chainsInCategory.forEach(c => next.delete(c.chainId));
-    } else {
-      // Select all chains in this category
-      chainsInCategory.forEach(c => next.add(c.chainId));
-    }
-    onSelectionChange(next);
-  }, [chainsByCategory, getCategorySelectionState, selectedChainIds, onSelectionChange]);
+  const toggleCategory = useCallback(
+    (category: string) => {
+      const chainsInCategory = chainsByCategory[category] || [];
+      const { allSelected } = getCategorySelectionState(category);
+
+      const next = new Set(selectedChainIds);
+      if (allSelected) {
+        // Deselect all chains in this category
+        chainsInCategory.forEach((c) => next.delete(c.chainId));
+      } else {
+        // Select all chains in this category
+        chainsInCategory.forEach((c) => next.add(c.chainId));
+      }
+      onSelectionChange(next);
+    },
+    [chainsByCategory, getCategorySelectionState, selectedChainIds, onSelectionChange]
+  );
 
   // Select all / deselect all
   const selectAll = useCallback(() => {
-    onSelectionChange(new Set(allChains.map(c => c.chainId)));
+    onSelectionChange(new Set(allChains.map((c) => c.chainId)));
   }, [onSelectionChange]);
 
   const deselectAll = useCallback(() => {
@@ -193,7 +206,9 @@ export function ChainCategoryFilter({
           <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">
             ({selectedChainIds.size} of {allChains.length} selected)
           </span>
-          <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+          <ChevronDown
+            className={`w-4 h-4 transition-transform ${showFilters ? "rotate-180" : ""}`}
+          />
         </button>
         <div className="flex items-center gap-2">
           <button
@@ -201,8 +216,8 @@ export function ChainCategoryFilter({
             disabled={selectedChainIds.size === allChains.length}
             className={`text-xs cursor-pointer ${
               selectedChainIds.size === allChains.length
-                ? 'text-zinc-400 dark:text-zinc-600 cursor-not-allowed'
-                : 'text-blue-600 dark:text-blue-400 hover:underline'
+                ? "text-zinc-400 dark:text-zinc-600 cursor-not-allowed"
+                : "text-blue-600 dark:text-blue-400 hover:underline"
             }`}
           >
             Select All
@@ -213,8 +228,8 @@ export function ChainCategoryFilter({
             disabled={selectedChainIds.size === 0}
             className={`text-xs cursor-pointer ${
               selectedChainIds.size === 0
-                ? 'text-zinc-400 dark:text-zinc-600 cursor-not-allowed'
-                : 'text-zinc-500 dark:text-zinc-400 hover:underline'
+                ? "text-zinc-400 dark:text-zinc-600 cursor-not-allowed"
+                : "text-zinc-500 dark:text-zinc-400 hover:underline"
             }`}
           >
             Clear All
@@ -260,4 +275,3 @@ export function ChainCategoryFilter({
 
 // Export constants for use in other components
 export { allChains, allCategories };
-

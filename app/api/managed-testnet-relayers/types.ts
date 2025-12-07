@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export interface RelayerConfig {
   subnetId: string;
@@ -24,8 +24,8 @@ export interface Relayer {
 export interface HealthStatus {
   healthy: boolean;
   components?: {
-    'network-all'?: boolean;
-    'relayers-all'?: boolean;
+    "network-all"?: boolean;
+    "relayers-all"?: boolean;
   };
 }
 
@@ -33,4 +33,3 @@ export const ServiceErrorSchema = z.object({
   error: z.string().optional(),
   message: z.string().optional(),
 });
-

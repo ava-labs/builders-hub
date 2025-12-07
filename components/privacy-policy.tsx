@@ -1,37 +1,37 @@
-"use client"
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Shield, Check, X } from "lucide-react"
-import Link from "next/link"
-import posthog from 'posthog-js'
+"use client";
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Shield, Check, X } from "lucide-react";
+import Link from "next/link";
+import posthog from "posthog-js";
 
 export function PrivacyPolicyBox() {
-  const [mounted, setMounted] = useState(false)
-  const [shouldShow, setShouldShow] = useState(false)
+  const [mounted, setMounted] = useState(false);
+  const [shouldShow, setShouldShow] = useState(false);
 
   useEffect(() => {
-    const consent = localStorage.getItem('cookie_consent')
-    setShouldShow(!consent)
-    setMounted(true)
-  }, [])
+    const consent = localStorage.getItem("cookie_consent");
+    setShouldShow(!consent);
+    setMounted(true);
+  }, []);
 
   const handleAccept = () => {
-    localStorage.setItem('cookie_consent', 'yes')
-    posthog.set_config({ persistence: 'localStorage+cookie' })
-    setShouldShow(false)
-    window.location.reload()
-  }
+    localStorage.setItem("cookie_consent", "yes");
+    posthog.set_config({ persistence: "localStorage+cookie" });
+    setShouldShow(false);
+    window.location.reload();
+  };
 
   const handleDecline = () => {
-    localStorage.setItem('cookie_consent', 'no')
-    posthog.set_config({ persistence: 'memory' })
-    setShouldShow(false)
-    window.location.reload()
-  }
+    localStorage.setItem("cookie_consent", "no");
+    posthog.set_config({ persistence: "memory" });
+    setShouldShow(false);
+    window.location.reload();
+  };
 
-  if (!mounted) return null
-  if (!shouldShow) return null
+  if (!mounted) return null;
+  if (!shouldShow) return null;
 
   return (
     <div className="fixed bottom-4 left-0 sm:left-4 isolate z-99999 w-full sm:w-auto px-2 sm:px-0">
@@ -44,8 +44,9 @@ export function PrivacyPolicyBox() {
         </CardHeader>
         <CardContent className="bg-white dark:bg-slate-950 py-2">
           <p className="text-xs sm:text-sm text-muted-foreground">
-            We respect your privacy and are committed to protecting your personal data. This privacy policy will inform
-            you about how we look after your personal data and tell you about your privacy rights.
+            We respect your privacy and are committed to protecting your personal data. This privacy
+            policy will inform you about how we look after your personal data and tell you about
+            your privacy rights.
           </p>
         </CardContent>
         <CardFooter className="flex flex-col gap-2 pt-2 bg-white dark:bg-slate-950 rounded-b-lg">
@@ -65,5 +66,5 @@ export function PrivacyPolicyBox() {
         </CardFooter>
       </Card>
     </div>
-  )
+  );
 }

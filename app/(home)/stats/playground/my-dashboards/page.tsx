@@ -3,7 +3,17 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Loader2, Globe, Lock, Eye, Trash2, LayoutDashboard, Plus, Heart, ChevronsDownUp } from "lucide-react";
+import {
+  Loader2,
+  Globe,
+  Lock,
+  Eye,
+  Trash2,
+  LayoutDashboard,
+  Plus,
+  Heart,
+  ChevronsDownUp,
+} from "lucide-react";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import { LoginModal } from "@/components/login/LoginModal";
 import { Card } from "@/components/ui/card";
@@ -15,7 +25,7 @@ export default function MyDashboardsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { openLoginModal } = useLoginModalTrigger();
-  
+
   const [dashboards, setDashboards] = useState<any[]>([]);
   const [dashboardsLoading, setDashboardsLoading] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
@@ -26,9 +36,9 @@ export default function MyDashboardsPage() {
       openLoginModal(callbackUrl);
       return;
     }
-    
+
     if (status === "loading") return;
-    
+
     setDashboardsLoading(true);
     try {
       const response = await fetch("/api/playground");
@@ -52,10 +62,12 @@ export default function MyDashboardsPage() {
   }, [status, fetchDashboards]);
 
   const handleDeleteDashboard = async (id: string) => {
+    // Use native confirm for delete confirmation
+    // eslint-disable-next-line no-alert
     if (!confirm("Are you sure you want to delete this dashboard?")) return;
-    
+
     const promise = fetch(`/api/playground?id=${id}`, {
-      method: "DELETE"
+      method: "DELETE",
     }).then(async (response) => {
       if (!response.ok) {
         const errorData = await response.json();
@@ -67,12 +79,12 @@ export default function MyDashboardsPage() {
     toast.promise(promise, {
       loading: "Deleting dashboard...",
       success: "Dashboard deleted successfully",
-      error: (err) => err.message || "Failed to delete dashboard"
+      error: (err) => err.message || "Failed to delete dashboard",
     });
 
     try {
       await promise;
-      setDashboards(dashboards.filter(d => d.id !== id));
+      setDashboards(dashboards.filter((d) => d.id !== id));
     } catch (err) {
       // Error already handled by toast.promise
     }
@@ -82,17 +94,21 @@ export default function MyDashboardsPage() {
     router.push(`/stats/playground?id=${id}`);
   };
 
-  const handleToggleVisibility = async (e: React.MouseEvent, id: string, currentVisibility: boolean) => {
+  const handleToggleVisibility = async (
+    e: React.MouseEvent,
+    id: string,
+    currentVisibility: boolean
+  ) => {
     e.stopPropagation(); // Prevent row click
-    
+
     const newVisibility = !currentVisibility;
     const promise = fetch("/api/playground", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         id,
-        isPublic: newVisibility
-      })
+        isPublic: newVisibility,
+      }),
     }).then(async (response) => {
       if (!response.ok) {
         const errorData = await response.json();
@@ -104,15 +120,13 @@ export default function MyDashboardsPage() {
     toast.promise(promise, {
       loading: `Updating visibility to ${newVisibility ? "public" : "private"}...`,
       success: `Dashboard is now ${newVisibility ? "public" : "private"}`,
-      error: (err) => err.message || "Failed to update visibility"
+      error: (err) => err.message || "Failed to update visibility",
     });
 
     try {
       await promise;
       // Update local state
-      setDashboards(dashboards.map(d => 
-        d.id === id ? { ...d, is_public: newVisibility } : d
-      ));
+      setDashboards(dashboards.map((d) => (d.id === id ? { ...d, is_public: newVisibility } : d)));
     } catch (err) {
       // Error already handled by toast.promise
     }
@@ -131,7 +145,8 @@ export default function MyDashboardsPage() {
                 My Dashboards
               </h1>
               <p className="text-base text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed mt-2">
-                View and manage all your saved playground dashboards. Track engagement metrics, organize your analytics, and access your custom visualizations.
+                View and manage all your saved playground dashboards. Track engagement metrics,
+                organize your analytics, and access your custom visualizations.
               </p>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
@@ -209,19 +224,27 @@ export default function MyDashboardsPage() {
                       </td>
                       <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                         <button
-                          onClick={(e) => handleToggleVisibility(e, dashboard.id, dashboard.is_public)}
+                          onClick={(e) =>
+                            handleToggleVisibility(e, dashboard.id, dashboard.is_public)
+                          }
                           className="flex items-center gap-2 hover:opacity-70 transition-opacity cursor-pointer group"
-                          title={dashboard.is_public ? "Click to make private" : "Click to make public"}
+                          title={
+                            dashboard.is_public ? "Click to make private" : "Click to make public"
+                          }
                         >
                           {dashboard.is_public ? (
                             <>
                               <Globe className="h-4 w-4 text-gray-500" />
-                              <span className="text-sm text-neutral-900 dark:text-neutral-100">Public</span>
+                              <span className="text-sm text-neutral-900 dark:text-neutral-100">
+                                Public
+                              </span>
                             </>
                           ) : (
                             <>
                               <Lock className="h-4 w-4 text-gray-500" />
-                              <span className="text-sm text-neutral-900 dark:text-neutral-100">Private</span>
+                              <span className="text-sm text-neutral-900 dark:text-neutral-100">
+                                Private
+                              </span>
                             </>
                           )}
                           <ChevronsDownUp className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-colors" />
@@ -306,4 +329,3 @@ export default function MyDashboardsPage() {
     </div>
   );
 }
-

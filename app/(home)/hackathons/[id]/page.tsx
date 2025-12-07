@@ -1,11 +1,5 @@
-import React from "react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  getFilteredHackathons,
-  getHackathon,
-} from "@/server/services/hackathons";
+import { getFilteredHackathons, getHackathon } from "@/server/services/hackathons";
 import { getRegisterForm } from "@/server/services/registerForms";
 import { getAuthSession } from "@/lib/auth/authSession";
 import Image from "next/image";
@@ -40,14 +34,14 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  
+
   try {
     const hackathon = await getHackathon(id);
-    
+
     if (!hackathon) {
       return createMetadata({
-        title: 'Hackathon Not Found',
-        description: 'The requested hackathon could not be found',
+        title: "Hackathon Not Found",
+        description: "The requested hackathon could not be found",
       });
     }
 
@@ -63,8 +57,8 @@ export async function generateMetadata({
     });
   } catch (error) {
     return createMetadata({
-      title: 'Hackathons',
-      description: 'Join exciting blockchain hackathons and build the future on Avalanche',
+      title: "Hackathons",
+      description: "Join exciting blockchain hackathons and build the future on Avalanche",
     });
   }
 }
@@ -79,13 +73,13 @@ export default async function HackathonPage({
   const { id } = await params;
   const resolvedSearchParams = await searchParams;
   const utm = resolvedSearchParams?.utm ?? "";
-  
+
   const hackathon = await getHackathon(id);
 
   // Check if user is authenticated and registered
   const session = await getAuthSession();
   let isRegistered = false;
-  
+
   if (session?.user?.email) {
     const registration = await getRegisterForm(session.user.email, id);
     isRegistered = !!registration;
@@ -134,7 +128,13 @@ export default async function HackathonPage({
       <div className="flex flex-col mt-2 ">
         <div className="sm:px-8 pt-6 ">
           <div className="sm:block relative w-full">
-            <OverviewBanner hackathon={hackathon} id={id} isTopMost={false} isRegistered={isRegistered} utm={utm as string} />
+            <OverviewBanner
+              hackathon={hackathon}
+              id={id}
+              isTopMost={false}
+              isRegistered={isRegistered}
+              utm={utm as string}
+            />
             <JoinBannerLink
               isRegistered={isRegistered}
               hackathonId={id}
@@ -158,9 +158,7 @@ export default async function HackathonPage({
               <MentorsJudges hackathon={hackathon} />
             )}
             <Community hackathon={hackathon} />
-            {hackathon.content.partners?.length > 0 && (
-              <Sponsors hackathon={hackathon} />
-            )}
+            {hackathon.content.partners?.length > 0 && <Sponsors hackathon={hackathon} />}
           </div>
         </div>
       </div>

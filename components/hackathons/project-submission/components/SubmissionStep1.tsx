@@ -1,25 +1,19 @@
-'use client';
+"use client";
 
-import React, { FC, useLayoutEffect } from 'react';
-import { useFormContext } from 'react-hook-form';
+import React, { FC, useLayoutEffect } from "react";
+import { useFormContext } from "react-hook-form";
 
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
-import {  trackProp } from './MultiSelectTrack';
-import { FormLabelWithCheck } from './FormLabelWithCheck';
-import MembersComponent from './Members';
-import { Track as HackathonTrack } from '@/types/hackathons';
-import { MultiSelect } from '@/components/ui/multi-select';
-import { SubmissionForm } from '../hooks/useSubmissionFormSecure';
+import { trackProp } from "./MultiSelectTrack";
+import { FormLabelWithCheck } from "./FormLabelWithCheck";
+import MembersComponent from "./Members";
+import { Track as HackathonTrack } from "@/types/hackathons";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { SubmissionForm } from "../hooks/useSubmissionFormSecure";
 
 export interface projectProps {
   project_id: string;
@@ -28,7 +22,7 @@ export interface projectProps {
   onProjectCreated?: () => void;
   onHandleSave?: () => Promise<void>;
   availableTracks: HackathonTrack[];
-  
+
   openjoinTeamDialog?: boolean;
   onOpenChange: (open: boolean) => void;
   teamName?: string;
@@ -40,49 +34,43 @@ export interface projectProps {
 const SubmitStep1: FC<projectProps> = (project) => {
   const form = useFormContext<SubmissionForm>();
 
-  const transformedTracks: trackProp[] = project.availableTracks.map(
-    (track) => ({
-      value: track.name,
-      label: track.name,
-    })
-  );
+  const transformedTracks: trackProp[] = project.availableTracks.map((track) => ({
+    value: track.name,
+    label: track.name,
+  }));
 
-  const fullDescription = form.watch('full_description');
-  const shortDescription = form.watch('short_description');
+  const fullDescription = form.watch("full_description");
+  const shortDescription = form.watch("short_description");
 
   useLayoutEffect(() => {
-    const textareas = ['full_description', 'short_description'];
-    
-    textareas.forEach(name => {
+    const textareas = ["full_description", "short_description"];
+
+    textareas.forEach((name) => {
       const el = document.querySelector(`textarea[name="${name}"]`);
       if (el) {
-        (el as HTMLTextAreaElement).style.height = '0px';
-        (el as HTMLTextAreaElement).style.height =
-          (el as HTMLTextAreaElement).scrollHeight + 'px';
+        (el as HTMLTextAreaElement).style.height = "0px";
+        (el as HTMLTextAreaElement).style.height = (el as HTMLTextAreaElement).scrollHeight + "px";
       }
     });
   }, [fullDescription, shortDescription]);
 
   return (
-    <div className='flex flex-col w-full  mt-6 space-y-8'>
-      <section className='space-y-4'>
-        <h3 className='font-medium  text-lg md:text-xl'>General Section</h3>
-        <p className='text-sm text-muted-foreground'>
+    <div className="flex flex-col w-full  mt-6 space-y-8">
+      <section className="space-y-4">
+        <h3 className="font-medium  text-lg md:text-xl">General Section</h3>
+        <p className="text-sm text-muted-foreground">
           Provide key details about your project that will appear in listings.
         </p>
         <FormField
           control={form.control}
-          name='project_name'
+          name="project_name"
           render={({ field }) => (
             <FormItem>
-              <FormLabelWithCheck
-                label='Project Name'
-                checked={!!field.value}
-              />
+              <FormLabelWithCheck label="Project Name" checked={!!field.value} />
               <FormControl>
                 <Input
-                  placeholder='Enter your project name'
-                  className='w-full dark:bg-zinc-950'
+                  placeholder="Enter your project name"
+                  className="w-full dark:bg-zinc-950"
                   {...field}
                 />
               </FormControl>
@@ -94,22 +82,19 @@ const SubmitStep1: FC<projectProps> = (project) => {
         {/* Short Description */}
         <FormField
           control={form.control}
-          name='short_description'
+          name="short_description"
           render={({ field }) => (
             <FormItem>
-              <FormLabelWithCheck
-                label='Short Description'
-                checked={!!field.value}
-              />
+              <FormLabelWithCheck label="Short Description" checked={!!field.value} />
               <FormControl>
                 <Textarea
                   onInput={(e) => {
                     const target = e.target as HTMLTextAreaElement;
-                    target.style.height = '0px';
-                    target.style.height = target.scrollHeight + 'px';
+                    target.style.height = "0px";
+                    target.style.height = target.scrollHeight + "px";
                   }}
-                  placeholder='Write a short and engaging overview...'
-                  className='w-full h-9 dark:bg-zinc-950'
+                  placeholder="Write a short and engaging overview..."
+                  className="w-full h-9 dark:bg-zinc-950"
                   {...field}
                 />
               </FormControl>
@@ -121,17 +106,14 @@ const SubmitStep1: FC<projectProps> = (project) => {
         {/* Full Description */}
         <FormField
           control={form.control}
-          name='full_description'
+          name="full_description"
           render={({ field }) => (
             <FormItem>
-              <FormLabelWithCheck
-                label='Full Description'
-                checked={!!field.value}
-              />
+              <FormLabelWithCheck label="Full Description" checked={!!field.value} />
               <FormControl>
                 <Textarea
-                  placeholder='Describe your project in detail...'
-                  className='w-full h-9 dark:bg-zinc-950'
+                  placeholder="Describe your project in detail..."
+                  className="w-full h-9 dark:bg-zinc-950"
                   {...field}
                 />
               </FormControl>
@@ -143,7 +125,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
         {/* Track (MultiSelect) */}
         <FormField
           control={form.control}
-          name='tracks'
+          name="tracks"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Tracks</FormLabel>
@@ -152,8 +134,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
                   options={transformedTracks}
                   selected={field.value || []}
                   onChange={field.onChange}
-                  placeholder='Select tracks'
-                  searchPlaceholder='Search tracks'
+                  placeholder="Select tracks"
+                  searchPlaceholder="Search tracks"
                 />
               </FormControl>
               <FormMessage />
@@ -163,8 +145,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
       </section>
 
       {/* TEAM & COLLABORATION */}
-      <section className='space-y-4'>
-        <h3 className='font-medium  text-lg md:text-xl' id='team'>
+      <section className="space-y-4">
+        <h3 className="font-medium  text-lg md:text-xl" id="team">
           Team &amp; Collaboration
         </h3>
         <MembersComponent {...project} />

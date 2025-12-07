@@ -17,11 +17,7 @@ import { Heading } from "fumadocs-ui/components/heading";
 import YouTube from "@/components/content-design/youtube";
 import Gallery from "@/components/content-design/gallery";
 import { cn } from "@/utils/cn";
-import {
-  CodeBlock,
-  type CodeBlockProps,
-  Pre,
-} from "fumadocs-ui/components/codeblock";
+import { CodeBlock, type CodeBlockProps, Pre } from "fumadocs-ui/components/codeblock";
 import { BadgeCheck } from "lucide-react";
 import Mermaid from "@/components/content-design/mermaid";
 import { Feedback } from "@/components/ui/feedback";
@@ -37,7 +33,7 @@ export default async function Page(props: {
   if (!page) notFound();
 
   const MDX = page.data.body;
-  const path = `content/blog${page.url.replace('/blog/', '/')}.mdx`;
+  const path = `content/blog${page.url.replace("/blog/", "/")}.mdx`;
 
   return (
     <>
@@ -53,14 +49,9 @@ export default async function Page(props: {
           backgroundBlendMode: "difference, difference, normal",
         }}
       >
-        <h1 className="mb-2 text-3xl font-bold text-white">
-          {page.data.title}
-        </h1>
+        <h1 className="mb-2 text-3xl font-bold text-white">{page.data.title}</h1>
         <p className="mb-4 text-white/80">{page.data.description}</p>
-        <Link
-          href="/blog"
-          className={buttonVariants({ size: "sm", variant: "secondary" })}
-        >
+        <Link href="/blog" className={buttonVariants({ size: "sm", variant: "secondary" })}>
           Back
         </Link>
       </div>
@@ -92,18 +83,9 @@ export default async function Page(props: {
               Tabs,
               TypeTable,
               YouTube,
-              pre: ({
-                title,
-                className,
-                icon,
-                allowCopy,
-                ...props
-              }: CodeBlockProps) => (
+              pre: ({ title, className, icon, allowCopy, ...props }: CodeBlockProps) => (
                 <CodeBlock title={title} icon={icon} allowCopy={allowCopy}>
-                  <Pre
-                    className={cn("max-h-[1200px]", className)}
-                    {...(props as any)}
-                  />
+                  <Pre className={cn("max-h-[1200px]", className)} {...(props as any)} />
                 </CodeBlock>
               ),
             }}
@@ -137,9 +119,7 @@ export default async function Page(props: {
           <div>
             <p className="mb-1 text-sm text-muted-foreground">On</p>
             <p className="font-medium">
-              {new Date(
-                (page.data.date as string) ?? page.url
-              ).toDateString()}
+              {new Date((page.data.date as string) ?? page.url).toDateString()}
             </p>
           </div>
 
@@ -162,7 +142,7 @@ export default async function Page(props: {
   );
 }
 
-export async function generateStaticParams() {
+export function generateStaticParams() {
   return blog.getPages().map((page) => ({
     slug: page.slugs,
   }));

@@ -5,7 +5,10 @@ import { ExplorerProvider } from "@/components/explorer/ExplorerContext";
 import { ExplorerLayout } from "@/components/explorer/ExplorerLayout";
 import { L1Chain } from "@/types/stats";
 import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
-import { convertL1ListItemToL1Chain, findCustomChainBySlug } from "@/components/explorer/utils/chainConverter";
+import {
+  convertL1ListItemToL1Chain,
+  findCustomChainBySlug,
+} from "@/components/explorer/utils/chainConverter";
 import { Loader2 } from "lucide-react";
 
 // Context to pass chain props to child pages
@@ -78,7 +81,7 @@ export function ChainExplorerLayoutClient(props: ChainExplorerLayoutClientProps)
       sourcifySupport,
       children,
     } = props;
-    
+
     const contextValue: ChainContextValue = {
       chainId,
       chainName,
@@ -119,13 +122,7 @@ export function ChainExplorerLayoutClient(props: ChainExplorerLayoutClientProps)
 }
 
 // Separate component for custom chain loading
-function CustomChainLoader({ 
-  chainSlug, 
-  children 
-}: { 
-  chainSlug: string; 
-  children: ReactNode;
-}) {
+function CustomChainLoader({ chainSlug, children }: { chainSlug: string; children: ReactNode }) {
   const [chain, setChain] = useState<L1Chain | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -134,14 +131,14 @@ function CustomChainLoader({
     // Check both testnet and mainnet stores
     const testnetStore = getL1ListStore(true);
     const mainnetStore = getL1ListStore(false);
-    
+
     const testnetChains: L1ListItem[] = testnetStore.getState().l1List;
     const mainnetChains: L1ListItem[] = mainnetStore.getState().l1List;
-    
+
     // Combine all chains and search
     const allChains = [...testnetChains, ...mainnetChains];
     const customChain = findCustomChainBySlug(allChains, chainSlug);
-    
+
     if (customChain) {
       setChain(convertL1ListItemToL1Chain(customChain));
     } else {
@@ -216,4 +213,3 @@ function CustomChainLoader({
     </ChainContext.Provider>
   );
 }
-

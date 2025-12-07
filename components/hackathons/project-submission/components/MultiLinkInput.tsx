@@ -6,13 +6,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-} from "@/components/ui/form";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { SubmissionForm } from "../hooks/useSubmissionFormSecure";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
 
@@ -32,33 +26,31 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
   const form = useFormContext<SubmissionForm>();
   const [newLink, setNewLink] = React.useState("");
 
-  const handleAddLink = async () => {
+  const handleAddLink = () => {
     if (!newLink) return;
 
     try {
-      
       const url = new URL(newLink);
-      
-      
-      if (name === 'demo_link' && (
-        url.hostname.includes('youtube.com') ||
-        url.hostname.includes('youtu.be') ||
-        url.hostname.includes('loom.com')
-      )) {
+
+      if (
+        name === "demo_link" &&
+        (url.hostname.includes("youtube.com") ||
+          url.hostname.includes("youtu.be") ||
+          url.hostname.includes("loom.com"))
+      ) {
         form.setError(name, {
-          type: 'manual',
-          message: 'YouTube and Loom links should be added in the video section'
+          type: "manual",
+          message: "YouTube and Loom links should be added in the video section",
         });
         return;
       }
 
       const currentLinks = (form.getValues(name) as string[]) || [];
-      
-      
+
       if (currentLinks.includes(newLink)) {
         form.setError(name, {
-          type: 'manual',
-          message: 'This link has already been added'
+          type: "manual",
+          message: "This link has already been added",
         });
         return;
       }
@@ -67,8 +59,8 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
       setNewLink("");
     } catch (error) {
       form.setError(name, {
-        type: 'manual',
-        message: 'Please enter a valid URL (e.g., https://github.com/user/repo)'
+        type: "manual",
+        message: "Please enter a valid URL (e.g., https://github.com/user/repo)",
       });
     }
   };
@@ -110,11 +102,7 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
               />
               <div className="flex flex-wrap gap-2">
                 {((field.value as string[]) || []).map((link, index) => (
-                  <Badge
-                    key={index}
-                    variant="secondary"
-                    className="flex items-center gap-1"
-                  >
+                  <Badge key={index} variant="secondary" className="flex items-center gap-1">
                     {link}
                     <Button
                       type="button"
@@ -131,7 +119,7 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
             </div>
           </FormControl>
           <FormMessage />
-        
+
           {!fieldState.error && validationMessage && (
             <p className="text-zinc-400 text-[14px] leading-[100%] tracking-[0%] font-aeonik">
               {validationMessage}

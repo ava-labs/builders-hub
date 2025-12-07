@@ -1,5 +1,4 @@
-
-import { put, del, head, list, type HeadBlobResult } from '@vercel/blob';
+import { put, del, head, list, type HeadBlobResult } from "@vercel/blob";
 
 export class BlobService {
   private token: string;
@@ -10,7 +9,6 @@ export class BlobService {
       throw new Error("BLOB_READ_WRITE_TOKEN is not defined in environment variables");
     }
   }
-
 
   async uploadFile(file: File, customId?: string): Promise<{ id: string; url: string }> {
     try {
@@ -24,16 +22,19 @@ export class BlobService {
         url: blob.url,
       };
     } catch (error) {
-      throw new Error(`Failed to upload file: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to upload file: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     }
   }
-
 
   async deleteFile(id: string): Promise<void> {
     try {
       await del(id, { token: this.token });
     } catch (error) {
-      throw new Error(`Failed to delete file: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to delete file: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     }
   }
 
@@ -45,7 +46,9 @@ export class BlobService {
       }
       return blob;
     } catch (error) {
-      throw new Error(`Failed to fetch file: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to fetch file: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     }
   }
 
@@ -57,7 +60,9 @@ export class BlobService {
       });
       return blobs;
     } catch (error) {
-      throw new Error(`Failed to list files: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to list files: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     }
   }
 }

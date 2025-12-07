@@ -31,7 +31,7 @@ function ConsoleContent({ children }: { children: ReactNode }) {
           </div>
         </SidebarInset>
       </SidebarProvider>
-      <Toaster position="bottom-right" richColors expand={true} visibleToasts={5}/>
+      <Toaster position="bottom-right" richColors expand={true} visibleToasts={5} />
     </WalletProvider>
   );
 }

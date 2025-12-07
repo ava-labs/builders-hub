@@ -23,8 +23,7 @@ function SetEnabledComponent({
   onSuccess?: () => void;
   defaultAddress?: string;
 }) {
-  const { publicClient, walletEVMAddress, walletChainId } =
-    useWalletStore();
+  const { publicClient, walletEVMAddress, walletChainId } = useWalletStore();
   const { coreWalletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -73,18 +72,12 @@ function SetEnabledComponent({
     }
   };
 
-  const canSetEnabled = Boolean(
-    enabledAddress &&
-    walletEVMAddress &&
-    !isProcessing
-  );
+  const canSetEnabled = Boolean(enabledAddress && walletEVMAddress && !isProcessing);
 
   return (
     <>
       <div className="space-y-4">
-        {error && (
-          <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
-        )}
+        {error && <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>}
 
         <EVMAddressInput
           label="Enabled Address"
@@ -104,17 +97,11 @@ function SetEnabledComponent({
             : `Set Enabled ${precompileType}`}
         </Button>
 
-        {txHash && (
-          <ResultField
-            label="Transaction Successful"
-            value={txHash}
-            showCheck={true}
-          />
-        )}
+        {txHash && <ResultField label="Transaction Successful" value={txHash} showCheck={true} />}
       </div>
     </>
   );
-};
+}
 
 // Component for setting Manager permissions
 function SetManagerComponent({
@@ -128,8 +115,7 @@ function SetManagerComponent({
   abi?: any;
   onSuccess?: () => void;
 }) {
-  const { publicClient, walletEVMAddress, walletChainId } =
-    useWalletStore();
+  const { publicClient, walletEVMAddress, walletChainId } = useWalletStore();
   const { coreWalletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -178,18 +164,12 @@ function SetManagerComponent({
     }
   };
 
-  const canSetManager = Boolean(
-    managerAddress &&
-    walletEVMAddress &&
-    !isProcessing
-  );
+  const canSetManager = Boolean(managerAddress && walletEVMAddress && !isProcessing);
 
   return (
     <>
       <div className="space-y-4">
-        {error && (
-          <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
-        )}
+        {error && <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>}
 
         <EVMAddressInput
           label="Manager Address"
@@ -204,18 +184,10 @@ function SetManagerComponent({
           variant="primary"
           disabled={!canSetManager}
         >
-          {!walletEVMAddress
-            ? "Connect Wallet to Set Manager"
-            : `Set Manager ${precompileType}`}
+          {!walletEVMAddress ? "Connect Wallet to Set Manager" : `Set Manager ${precompileType}`}
         </Button>
 
-        {txHash && (
-          <ResultField
-            label="Transaction Successful"
-            value={txHash}
-            showCheck={true}
-          />
-        )}
+        {txHash && <ResultField label="Transaction Successful" value={txHash} showCheck={true} />}
       </div>
     </>
   );
@@ -233,8 +205,7 @@ function SetAdminComponent({
   abi?: any;
   onSuccess?: () => void;
 }) {
-  const { publicClient, walletEVMAddress, walletChainId } =
-    useWalletStore();
+  const { publicClient, walletEVMAddress, walletChainId } = useWalletStore();
   const { coreWalletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -243,7 +214,6 @@ function SetAdminComponent({
   const [error, setError] = useState<string | null>(null);
 
   const handleSetAdmin = async () => {
-
     setIsProcessing(true);
     setError(null);
 
@@ -284,18 +254,12 @@ function SetAdminComponent({
     }
   };
 
-  const canSetAdmin = Boolean(
-    adminAddress &&
-    walletEVMAddress &&
-    !isProcessing
-  );
+  const canSetAdmin = Boolean(adminAddress && walletEVMAddress && !isProcessing);
 
   return (
     <>
       <div className="space-y-4">
-        {error && (
-          <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
-        )}
+        {error && <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>}
 
         <EVMAddressInput
           label="Admin Address"
@@ -310,18 +274,10 @@ function SetAdminComponent({
           variant="primary"
           disabled={!canSetAdmin}
         >
-          {!walletEVMAddress
-            ? "Connect Wallet to Set Admin"
-            : `Set Admin ${precompileType}`}
+          {!walletEVMAddress ? "Connect Wallet to Set Admin" : `Set Admin ${precompileType}`}
         </Button>
 
-        {txHash && (
-          <ResultField
-            label="Transaction Successful"
-            value={txHash}
-            showCheck={true}
-          />
-        )}
+        {txHash && <ResultField label="Transaction Successful" value={txHash} showCheck={true} />}
       </div>
     </>
   );
@@ -339,8 +295,7 @@ function RemoveAllowListComponent({
   abi?: any;
   onSuccess?: () => void;
 }) {
-  const { publicClient, walletEVMAddress, walletChainId } =
-    useWalletStore();
+  const { publicClient, walletEVMAddress, walletChainId } = useWalletStore();
   const { coreWalletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -389,18 +344,12 @@ function RemoveAllowListComponent({
     }
   };
 
-  const canRemove = Boolean(
-    removeAddress &&
-    walletEVMAddress &&
-    !isProcessing
-  );
+  const canRemove = Boolean(removeAddress && walletEVMAddress && !isProcessing);
 
   return (
     <>
       <div className="space-y-4">
-        {error && (
-          <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
-        )}
+        {error && <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>}
 
         <EVMAddressInput
           label="Address"
@@ -420,13 +369,7 @@ function RemoveAllowListComponent({
             : `Remove from ${precompileType} Allowlist`}
         </Button>
 
-        {txHash && (
-          <ResultField
-            label="Transaction Successful"
-            value={txHash}
-            showCheck={true}
-          />
-        )}
+        {txHash && <ResultField label="Transaction Successful" value={txHash} showCheck={true} />}
       </div>
     </>
   );
@@ -478,9 +421,7 @@ function ReadAllowListComponent({
   return (
     <>
       <div className="space-y-4">
-        {error && (
-          <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
-        )}
+        {error && <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>}
 
         <EVMAddressInput
           label="Address to Read"
@@ -489,12 +430,7 @@ function ReadAllowListComponent({
           disabled={isReading}
         />
 
-        <Button
-          onClick={handleRead}
-          loading={isReading}
-          variant="primary"
-          disabled={!canRead}
-        >
+        <Button onClick={handleRead} loading={isReading} variant="primary" disabled={!canRead}>
           Read
         </Button>
 

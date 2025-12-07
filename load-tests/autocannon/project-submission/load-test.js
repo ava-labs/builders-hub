@@ -52,8 +52,7 @@ function runLoadTest(connections, duration) {
           "User-Agent": "curl/8.5.0",
           Connection: "close",
           "user-agent": "autocannon-test",
-          Cookie:
-            "Take a session cookie from the browser",
+          Cookie: "Take a session cookie from the browser",
         };
         // console.log("Headers:", headers);
         // console.log("Body:", payload);

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import {
   Children,
   type ComponentProps,
@@ -12,13 +12,27 @@ import {
   useEffect,
   useRef,
   useState,
-} from 'react';
-import { Loader2, RefreshCw, Send, X, User, Bot, Sparkles, StopCircle, HelpCircle, ChevronRight, Maximize2, Minimize2, ArrowRight } from 'lucide-react';
-import defaultMdxComponents from 'fumadocs-ui/mdx';
-import { cn } from '../../lib/cn';
-import { buttonVariants } from '../ui/button';
-import { createProcessor, type Processor } from './markdown-processor';
-import Link from 'fumadocs-core/link';
+} from "react";
+import {
+  Loader2,
+  RefreshCw,
+  Send,
+  X,
+  User,
+  Bot,
+  Sparkles,
+  StopCircle,
+  HelpCircle,
+  ChevronRight,
+  Maximize2,
+  Minimize2,
+  ArrowRight,
+} from "lucide-react";
+import defaultMdxComponents from "fumadocs-ui/mdx";
+import { cn } from "../../lib/cn";
+import { buttonVariants } from "../ui/button";
+import { createProcessor, type Processor } from "./markdown-processor";
+import Link from "fumadocs-core/link";
 import {
   Dialog,
   DialogClose,
@@ -27,16 +41,16 @@ import {
   DialogPortal,
   type DialogProps,
   DialogTitle,
-} from '@radix-ui/react-dialog';
-import { type Message, useChat, type UseChatHelpers } from '@ai-sdk/react';
-import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
-import dynamic from 'next/dynamic';
-import { useIsMobile } from '../../hooks/use-mobile';
-import React from 'react';
-import 'katex/dist/katex.min.css';
-import posthog from 'posthog-js';
+} from "@radix-ui/react-dialog";
+import { type Message, useChat, type UseChatHelpers } from "@ai-sdk/react";
+import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
+import dynamic from "next/dynamic";
+import { useIsMobile } from "../../hooks/use-mobile";
+import React from "react";
+import "katex/dist/katex.min.css";
+import posthog from "posthog-js";
 
-const Mermaid = dynamic(() => import('@/components/content-design/mermaid'), {
+const Mermaid = dynamic(() => import("@/components/content-design/mermaid"), {
   ssr: false,
 });
 
@@ -47,23 +61,23 @@ function useChatContext() {
 
 function SearchAIActions() {
   const { messages, status, setMessages, reload } = useChatContext();
-  const isLoading = status === 'streaming';
+  const isLoading = status === "streaming";
 
   if (messages.length === 0) return null;
   return (
     <div className="flex items-center justify-center gap-2 py-4 border-t border-fd-border/50">
-      {!isLoading && messages.at(-1)?.role === 'assistant' && (
+      {!isLoading && messages.at(-1)?.role === "assistant" && (
         <button
           type="button"
           className={cn(
             buttonVariants({
-              variant: 'ghost',
-              size: 'sm',
+              variant: "ghost",
+              size: "sm",
             }),
-            'text-fd-muted-foreground hover:text-fd-foreground gap-1.5',
+            "text-fd-muted-foreground hover:text-fd-foreground gap-1.5"
           )}
           onClick={() => {
-            posthog.capture('ai_chat_regenerate', {
+            posthog.capture("ai_chat_regenerate", {
               message_count: messages.length,
             });
             reload();
@@ -77,13 +91,13 @@ function SearchAIActions() {
         type="button"
         className={cn(
           buttonVariants({
-            variant: 'ghost',
-            size: 'sm',
+            variant: "ghost",
+            size: "sm",
           }),
-          'text-fd-muted-foreground hover:text-fd-foreground',
+          "text-fd-muted-foreground hover:text-fd-foreground"
         )}
         onClick={() => {
-          posthog.capture('ai_chat_cleared', {
+          posthog.capture("ai_chat_cleared", {
             message_count: messages.length,
           });
           setMessages([]);
@@ -97,11 +111,11 @@ function SearchAIActions() {
 
 function SearchAIInput(props: FormHTMLAttributes<HTMLFormElement>) {
   const { status, input, setInput, handleSubmit, stop } = useChatContext();
-  const isLoading = status === 'streaming' || status === 'submitted';
+  const isLoading = status === "streaming" || status === "submitted";
   const onStart = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (input.trim()) {
-      posthog.capture('ai_chat_message_sent', {
+      posthog.capture("ai_chat_message_sent", {
         query_length: input.length,
         query: input.substring(0, 100), // First 100 chars for privacy
       });
@@ -110,15 +124,15 @@ function SearchAIInput(props: FormHTMLAttributes<HTMLFormElement>) {
   };
 
   useEffect(() => {
-    if (isLoading) document.getElementById('nd-ai-input')?.focus();
+    if (isLoading) document.getElementById("nd-ai-input")?.focus();
   }, [isLoading]);
 
   return (
     <form
       {...props}
       className={cn(
-        'w-full flex items-center gap-3 px-6 pb-6 pt-4 border-t border-border/20',
-        props.className,
+        "w-full flex items-center gap-3 px-6 pb-6 pt-4 border-t border-border/20",
+        props.className
       )}
       onSubmit={onStart}
     >
@@ -127,42 +141,38 @@ function SearchAIInput(props: FormHTMLAttributes<HTMLFormElement>) {
           value={input}
           placeholder="Ask anything..."
           className="w-full px-4 py-4 text-lg bg-transparent border-b border-border/20 focus:border-blue-500/50 rounded-none transition-all min-h-[50px] placeholder:text-muted-foreground/30 resize-none"
-          disabled={status === 'streaming' || status === 'submitted'}
+          disabled={status === "streaming" || status === "submitted"}
           onChange={(e) => {
             setInput(e.target.value);
           }}
           onKeyDown={(event) => {
-            if (!event.shiftKey && event.key === 'Enter') {
+            if (!event.shiftKey && event.key === "Enter") {
               onStart();
               event.preventDefault();
             }
           }}
         />
         <button
-          type={isLoading ? 'button' : 'submit'}
+          type={isLoading ? "button" : "submit"}
           className={cn(
-            'absolute right-2 bottom-3 p-2 rounded-full transition-all shrink-0',
+            "absolute right-2 bottom-3 p-2 rounded-full transition-all shrink-0",
             isLoading
-              ? 'bg-transparent text-muted-foreground'
+              ? "bg-transparent text-muted-foreground"
               : input.length > 0
-                ? 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-110 shadow-lg shadow-blue-500/20'
-                : 'text-muted-foreground/30 cursor-not-allowed',
+                ? "bg-blue-600 text-white hover:bg-blue-700 hover:scale-110 shadow-lg shadow-blue-500/20"
+                : "text-muted-foreground/30 cursor-not-allowed"
           )}
           disabled={!isLoading && input.length === 0}
           onClick={isLoading ? stop : undefined}
         >
-          {isLoading ? (
-            <StopCircle className="size-5" />
-          ) : (
-            <Send className="size-5" />
-          )}
+          {isLoading ? <StopCircle className="size-5" /> : <Send className="size-5" />}
         </button>
       </div>
     </form>
   );
 }
 
-function List(props: Omit<HTMLAttributes<HTMLDivElement>, 'dir'>) {
+function List(props: Omit<HTMLAttributes<HTMLDivElement>, "dir">) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -173,7 +183,7 @@ function List(props: Omit<HTMLAttributes<HTMLDivElement>, 'dir'>) {
 
       container.scrollTo({
         top: container.scrollHeight,
-        behavior: 'smooth',
+        behavior: "smooth",
       });
     }
 
@@ -195,10 +205,7 @@ function List(props: Omit<HTMLAttributes<HTMLDivElement>, 'dir'>) {
     <div
       ref={containerRef}
       {...props}
-      className={cn(
-        'fd-scroll-container overflow-y-auto flex-1 min-h-0',
-        props.className,
-      )}
+      className={cn("fd-scroll-container overflow-y-auto flex-1 min-h-0", props.className)}
     >
       {props.children}
     </div>
@@ -210,7 +217,7 @@ function Input(props: TextareaHTMLAttributes<HTMLTextAreaElement> & { className?
 
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
     }
   }, [props.value]);
@@ -220,10 +227,10 @@ function Input(props: TextareaHTMLAttributes<HTMLTextAreaElement> & { className?
       ref={textareaRef}
       id="nd-ai-input"
       className={cn(
-        'flex-1 resize-none bg-transparent px-4 py-3',
-        'placeholder:text-fd-muted-foreground focus:outline-none',
-        'min-h-[48px] max-h-[200px] leading-relaxed',
-        props.className,
+        "flex-1 resize-none bg-transparent px-4 py-3",
+        "placeholder:text-fd-muted-foreground focus:outline-none",
+        "min-h-[48px] max-h-[200px] leading-relaxed",
+        props.className
       )}
       rows={1}
       {...props}
@@ -242,27 +249,30 @@ function parseFollowUpQuestions(content: string): string[] {
 
   const questionsText = match[1].trim();
   const questions = questionsText
-    .split('\n')
-    .map(line => line.replace(/^\d+\.\s*/, '').trim())
-    .filter(q => q.length > 0);
+    .split("\n")
+    .map((line) => line.replace(/^\d+\.\s*/, "").trim())
+    .filter((q) => q.length > 0);
 
   return questions;
 }
 
 function removeFollowUpQuestions(content: string): string {
-  if (!content) return '';
+  if (!content) return "";
 
   // Remove the follow-up questions section and any trailing whitespace
   // Also handle partial matches during streaming
-  let cleaned = content
-    .replace(/---FOLLOW-UP-QUESTIONS---[\s\S]*?---END-FOLLOW-UP-QUESTIONS---/g, '')
-    .replace(/---FOLLOW-UP-QUESTIONS---[\s\S]*$/g, '') // Remove incomplete section at end
+  const cleaned = content
+    .replace(/---FOLLOW-UP-QUESTIONS---[\s\S]*?---END-FOLLOW-UP-QUESTIONS---/g, "")
+    .replace(/---FOLLOW-UP-QUESTIONS---[\s\S]*$/g, "") // Remove incomplete section at end
     .trim();
 
   return cleaned;
 }
 
-function SuggestedFollowUps({ questions, onQuestionClick }: {
+function SuggestedFollowUps({
+  questions,
+  onQuestionClick,
+}: {
   questions: string[];
   onQuestionClick: (question: string) => void;
 }) {
@@ -293,14 +303,20 @@ function SuggestedFollowUps({ questions, onQuestionClick }: {
   );
 }
 
-function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReference }: {
+function Message({
+  message,
+  isLast,
+  onFollowUpClick,
+  isStreaming,
+  onToolReference,
+}: {
   message: Message;
   isLast: boolean;
   onFollowUpClick: (question: string) => void;
   isStreaming?: boolean;
   onToolReference?: (toolId: string) => void;
 }) {
-  const isUser = message.role === 'user';
+  const isUser = message.role === "user";
   const isMobile = useIsMobile();
 
   // Parse content immediately - this should happen synchronously
@@ -366,36 +382,31 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
 
         {/* Show follow-up suggestions only for the last assistant message and not while streaming */}
         {isLast && !isStreaming && followUpQuestions.length > 0 && (
-          <SuggestedFollowUps
-            questions={followUpQuestions}
-            onQuestionClick={onFollowUpClick}
-          />
+          <SuggestedFollowUps questions={followUpQuestions} onQuestionClick={onFollowUpClick} />
         )}
       </div>
     </div>
   );
 }
 
-function Pre(props: ComponentProps<'pre'>) {
+function Pre(props: ComponentProps<"pre">) {
   const code = Children.only(props.children) as ReactElement;
-  const codeProps = code.props as ComponentProps<'code'>;
+  const codeProps = code.props as ComponentProps<"code">;
 
   let lang =
     codeProps.className
-      ?.split(' ')
-      .find((v) => v.startsWith('language-'))
-      ?.slice('language-'.length) ?? 'text';
+      ?.split(" ")
+      .find((v) => v.startsWith("language-"))
+      ?.slice("language-".length) ?? "text";
 
-  if (lang === 'mdx') lang = 'md';
+  if (lang === "mdx") lang = "md";
 
   // Handle Mermaid diagrams specially
-  if (lang === 'mermaid') {
-    return <Mermaid chart={(codeProps.children ?? '') as string} />;
+  if (lang === "mermaid") {
+    return <Mermaid chart={(codeProps.children ?? "") as string} />;
   }
 
-  return (
-    <DynamicCodeBlock lang={lang} code={(codeProps.children ?? '') as string} />
-  );
+  return <DynamicCodeBlock lang={lang} code={(codeProps.children ?? "") as string} />;
 }
 
 function Markdown({ text, onToolClick }: { text: string; onToolClick?: (toolId: string) => void }) {
@@ -409,8 +420,7 @@ function Markdown({ text, onToolClick }: { text: string; onToolClick?: (toolId: 
         processor ??= createProcessor();
 
         // Custom link component to intercept tool clicks
-        const LinkWithToolDetection = (props: ComponentProps<'a'>) => {
-      
+        const LinkWithToolDetection = (props: ComponentProps<"a">) => {
           // On mobile or when no handler, just use regular link
           return <Link {...props} />;
         };
@@ -443,10 +453,10 @@ function Markdown({ text, onToolClick }: { text: string; onToolClick?: (toolId: 
 
 export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: string) => void }) {
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
-  const [mobileView, setMobileView] = useState<'chat' | 'tool'>('chat');
+  const [mobileView, setMobileView] = useState<"chat" | "tool">("chat");
   const [isClosing, setIsClosing] = useState(false);
   const [closedTools, setClosedTools] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<'big' | 'small'>('big'); // Default to big view
+  const [viewMode, setViewMode] = useState<"big" | "small">("big"); // Default to big view
   const isMobile = useIsMobile();
   const toolSwitchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -464,7 +474,7 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
     // Don't clear the hash, just hide the tool
     setTimeout(() => {
       if (selectedTool) {
-        setClosedTools(prev => new Set(prev).add(selectedTool));
+        setClosedTools((prev) => new Set(prev).add(selectedTool));
       }
       setSelectedTool(null);
       setIsClosing(false);
@@ -485,7 +495,7 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
       }
 
       // Remove from closedTools if it was there
-      setClosedTools(prev => {
+      setClosedTools((prev) => {
         const newSet = new Set(prev);
         newSet.delete(toolId);
         return newSet;
@@ -510,12 +520,12 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
     <Dialog {...props}>
       {props.children}
       <DialogPortal>
-        {viewMode === 'small' ? (
+        {viewMode === "small" ? (
           // Small view - positioned near the chatbot button
           <>
             <DialogContent
               onOpenAutoFocus={(e) => {
-                document.getElementById('nd-ai-input')?.focus();
+                document.getElementById("nd-ai-input")?.focus();
                 e.preventDefault();
               }}
               aria-describedby={undefined}
@@ -527,9 +537,7 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
               )}
             >
               <div className="flex h-full bg-slate-50/80 dark:bg-zinc-950/80 backdrop-blur-xl rounded-2xl border border-border/40 shadow-2xl overflow-hidden flex-col">
-                <SmallViewContent
-                  onExpand={() => setViewMode('big')}
-                />
+                <SmallViewContent onExpand={() => setViewMode("big")} />
               </div>
             </DialogContent>
           </>
@@ -539,31 +547,35 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
             <DialogOverlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm data-[state=closed]:animate-fd-fade-out data-[state=open]:animate-fd-fade-in" />
             <DialogContent
               onOpenAutoFocus={(e) => {
-                document.getElementById('nd-ai-input')?.focus();
+                document.getElementById("nd-ai-input")?.focus();
                 e.preventDefault();
               }}
               aria-describedby={undefined}
               className={cn(
                 "fixed inset-4 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 z-50",
-                selectedTool && !isMobile ? "md:max-w-[1600px] md:w-[95vw]" : "md:max-w-5xl md:w-[90vw]",
+                selectedTool && !isMobile
+                  ? "md:max-w-[1600px] md:w-[95vw]"
+                  : "md:max-w-5xl md:w-[90vw]",
                 "md:h-[85vh] max-h-[90vh] focus-visible:outline-none data-[state=closed]:animate-fd-fade-out data-[state=open]:animate-fd-fade-in transition-all duration-300"
               )}
             >
               <div className="flex h-full bg-slate-50/80 dark:bg-zinc-950/80 backdrop-blur-xl rounded-2xl border border-border/40 shadow-2xl overflow-hidden">
                 {/* Desktop view - side by side */}
-                <div className={cn(
-                  "hidden md:flex md:flex-col",
-                  selectedTool ? "md:w-[40%] md:border-r md:border-fd-border" : "md:w-full"
-                )}>
+                <div
+                  className={cn(
+                    "hidden md:flex md:flex-col",
+                    selectedTool ? "md:w-[40%] md:border-r md:border-fd-border" : "md:w-full"
+                  )}
+                >
                   <Content
                     onToolReference={handleToolSelect}
-                    onCollapse={() => setViewMode('small')}
+                    onCollapse={() => setViewMode("small")}
                   />
                 </div>
 
                 {/* Mobile view - chat only */}
                 <div className="flex md:hidden flex-col w-full">
-                  <Content onCollapse={() => setViewMode('small')} />
+                  <Content onCollapse={() => setViewMode("small")} />
                 </div>
               </div>
             </DialogContent>
@@ -576,12 +588,12 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
 
 function SmallViewContent({ onExpand }: { onExpand: () => void }) {
   const chat = useChat({
-    id: 'search',
-    streamProtocol: 'data',
+    id: "search",
+    streamProtocol: "data",
     sendExtraMessageFields: true,
     body: {
       // Pass PostHog distinct ID for server-side LLM analytics
-      id: typeof window !== 'undefined' ? posthog.get_distinct_id() : undefined,
+      id: typeof window !== "undefined" ? posthog.get_distinct_id() : undefined,
     },
     onResponse(response) {
       if (response.status === 401) {
@@ -589,21 +601,21 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
       }
     },
     onFinish(message) {
-      posthog.capture('ai_chat_response_received', {
+      posthog.capture("ai_chat_response_received", {
         response_length: message.content.length,
         message_count: chat.messages.length + 1,
-        view: 'small',
+        view: "small",
       });
     },
   });
 
-  const messages = chat.messages.filter((msg) => msg.role !== 'system');
+  const messages = chat.messages.filter((msg) => msg.role !== "system");
   const { status } = chat;
 
   // Track chat opened in small view
   useEffect(() => {
-    posthog.capture('ai_chat_opened', {
-      view: 'small',
+    posthog.capture("ai_chat_opened", {
+      view: "small",
     });
   }, []);
 
@@ -611,33 +623,23 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
     <ChatContext value={chat}>
       <div className="flex items-center justify-between border-b border-fd-border px-4 py-3">
         <div className="flex items-center gap-3">
-          <img 
-            src="/avax-gpt.png" 
-            alt="AI" 
-            className="size-6 object-contain dark:invert"
-          />
+          <img src="/avax-gpt.png" alt="AI" className="size-6 object-contain dark:invert" />
           <DialogTitle className="text-sm font-semibold">AI Assistant</DialogTitle>
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={() => {
-              posthog.capture('ai_chat_expanded');
+              posthog.capture("ai_chat_expanded");
               onExpand();
             }}
-            className={cn(
-              buttonVariants({ size: 'icon', variant: 'ghost' }),
-              'size-7 rounded-md',
-            )}
+            className={cn(buttonVariants({ size: "icon", variant: "ghost" }), "size-7 rounded-md")}
             aria-label="Expand to full view"
           >
             <Maximize2 className="size-3.5" />
           </button>
           <DialogClose
             aria-label="Close"
-            className={cn(
-              buttonVariants({ size: 'icon', variant: 'ghost' }),
-              'size-7 rounded-md',
-            )}
+            className={cn(buttonVariants({ size: "icon", variant: "ghost" }), "size-7 rounded-md")}
           >
             <X className="size-3.5" />
           </DialogClose>
@@ -646,19 +648,17 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
 
       <List className="flex-1">
         {messages.length === 0 ? (
-              <div className="flex h-full items-center justify-center p-6">
-                <div className="text-center space-y-4">
-                  <img 
-                    src="/avax-gpt.png" 
-                    alt="AI" 
-                    className="mx-auto size-12 object-contain mb-4 dark:invert"
-                  />
-                  <h3 className="text-sm font-medium">How can I help?</h3>
-                  <p className="text-xs text-fd-muted-foreground">
-                    Ask me anything about Avalanche
-                  </p>
-                </div>
-              </div>
+          <div className="flex h-full items-center justify-center p-6">
+            <div className="text-center space-y-4">
+              <img
+                src="/avax-gpt.png"
+                alt="AI"
+                className="mx-auto size-12 object-contain mb-4 dark:invert"
+              />
+              <h3 className="text-sm font-medium">How can I help?</h3>
+              <p className="text-xs text-fd-muted-foreground">Ask me anything about Avalanche</p>
+            </div>
+          </div>
         ) : (
           <div className="space-y-2">
             {messages.map((item, index) => (
@@ -667,24 +667,28 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
                 message={item}
                 isLast={index === messages.length - 1}
                 onFollowUpClick={async (question) => {
-                  posthog.capture('ai_chat_followup_clicked', {
+                  posthog.capture("ai_chat_followup_clicked", {
                     question: question,
                   });
                   await chat.append({
                     content: question,
-                    role: 'user',
+                    role: "user",
                   });
                 }}
-                isStreaming={status === 'streaming' && index === messages.length - 1 && item.role === 'assistant'}
+                isStreaming={
+                  status === "streaming" &&
+                  index === messages.length - 1 &&
+                  item.role === "assistant"
+                }
               />
             ))}
-            {status === 'streaming' && messages[messages.length - 1]?.role === 'user' && (
+            {status === "streaming" && messages[messages.length - 1]?.role === "user" && (
               <div className="flex px-6 py-4">
                 <div className="max-w-[85%] space-y-2">
                   <div className="flex items-center gap-2 mb-1">
-                    <img 
-                      src="/avax-gpt.png" 
-                      alt="AI" 
+                    <img
+                      src="/avax-gpt.png"
+                      alt="AI"
                       className="size-7 object-contain dark:invert"
                     />
                     <p className="text-xs font-medium text-muted-foreground">AI Assistant</p>
@@ -717,14 +721,20 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
   );
 }
 
-function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: string) => void; onCollapse?: () => void }) {
+function Content({
+  onToolReference,
+  onCollapse,
+}: {
+  onToolReference?: (toolId: string) => void;
+  onCollapse?: () => void;
+}) {
   const chat = useChat({
-    id: 'search',
-    streamProtocol: 'data',
+    id: "search",
+    streamProtocol: "data",
     sendExtraMessageFields: true,
     body: {
       // Pass PostHog distinct ID for server-side LLM analytics
-      id: typeof window !== 'undefined' ? posthog.get_distinct_id() : undefined,
+      id: typeof window !== "undefined" ? posthog.get_distinct_id() : undefined,
     },
     onResponse(response) {
       if (response.status === 401) {
@@ -733,21 +743,21 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
     },
     onFinish(message) {
       // Track when AI response is complete
-      posthog.capture('ai_chat_response_received', {
+      posthog.capture("ai_chat_response_received", {
         response_length: message.content.length,
         message_count: chat.messages.length + 1,
       });
     },
   });
 
-  const messages = chat.messages.filter((msg) => msg.role !== 'system');
+  const messages = chat.messages.filter((msg) => msg.role !== "system");
   const { status, append } = chat;
-  const isLoading = status === 'streaming';
+  const isLoading = status === "streaming";
 
   // Track chat opened
   useEffect(() => {
-    posthog.capture('ai_chat_opened', {
-      view: 'full',
+    posthog.capture("ai_chat_opened", {
+      view: "full",
     });
   }, []);
 
@@ -762,12 +772,12 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
   ];
 
   const handleSuggestionClick = async (question: string) => {
-    posthog.capture('ai_chat_suggested_question_clicked', {
+    posthog.capture("ai_chat_suggested_question_clicked", {
       question: question,
     });
     await append({
       content: question,
-      role: 'user',
+      role: "user",
     });
   };
 
@@ -775,23 +785,19 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
     <ChatContext value={chat}>
       <div className="flex items-center justify-between border-b border-fd-border px-4 py-3">
         <div className="flex items-center gap-3">
-          <img 
-            src="/avax-gpt.png" 
-            alt="AI" 
-            className="size-7 object-contain dark:invert"
-          />
+          <img src="/avax-gpt.png" alt="AI" className="size-7 object-contain dark:invert" />
           <DialogTitle className="text-lg font-semibold">AI Assistant</DialogTitle>
         </div>
         <div className="flex items-center gap-1">
           {onCollapse && (
             <button
               onClick={() => {
-                posthog.capture('ai_chat_collapsed');
+                posthog.capture("ai_chat_collapsed");
                 onCollapse();
               }}
               className={cn(
-                buttonVariants({ size: 'icon', variant: 'ghost' }),
-                'size-8 rounded-md',
+                buttonVariants({ size: "icon", variant: "ghost" }),
+                "size-8 rounded-md"
               )}
               aria-label="Collapse to small view"
             >
@@ -800,10 +806,7 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
           )}
           <DialogClose
             aria-label="Close"
-            className={cn(
-              buttonVariants({ size: 'icon', variant: 'ghost' }),
-              'size-8 rounded-md',
-            )}
+            className={cn(buttonVariants({ size: "icon", variant: "ghost" }), "size-8 rounded-md")}
           >
             <X className="size-4" />
           </DialogClose>
@@ -815,9 +818,9 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
           <div className="flex h-full items-center justify-center p-8">
             <div className="text-center space-y-6 max-w-2xl">
               <div className="space-y-4">
-                <img 
-                  src="/avax-gpt.png" 
-                  alt="AI" 
+                <img
+                  src="/avax-gpt.png"
+                  alt="AI"
                   className="mx-auto size-16 object-contain mb-6 dark:invert"
                 />
                 <h3 className="text-lg font-medium">How can I help you today?</h3>
@@ -853,17 +856,19 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
                 message={item}
                 isLast={index === messages.length - 1}
                 onFollowUpClick={handleSuggestionClick}
-                isStreaming={isLoading && index === messages.length - 1 && item.role === 'assistant'}
+                isStreaming={
+                  isLoading && index === messages.length - 1 && item.role === "assistant"
+                }
                 onToolReference={onToolReference}
               />
             ))}
-            {isLoading && messages[messages.length - 1]?.role === 'user' && (
+            {isLoading && messages[messages.length - 1]?.role === "user" && (
               <div className="flex px-6 py-4">
                 <div className="max-w-[85%] space-y-2">
                   <div className="flex items-center gap-2 mb-1">
-                    <img 
-                      src="/avax-gpt.png" 
-                      alt="AI" 
+                    <img
+                      src="/avax-gpt.png"
+                      alt="AI"
                       className="size-7 object-contain dark:invert"
                     />
                     <p className="text-xs font-medium text-muted-foreground">AI Assistant</p>

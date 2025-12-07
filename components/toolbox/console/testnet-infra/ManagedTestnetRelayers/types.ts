@@ -18,11 +18,11 @@ export interface Relayer {
 export interface HealthStatus {
   status: string; // "up" or "down"
   details?: {
-    'network-all'?: {
+    "network-all"?: {
       status: string;
       timestamp: string;
     };
-    'relayers-all'?: {
+    "relayers-all"?: {
       status: string;
       timestamp: string;
     };
@@ -37,7 +37,6 @@ export interface TimeRemaining {
 
 export interface StatusData {
   color: string;
-  iconType: 'expired' | 'warning' | 'active';
+  iconType: "expired" | "warning" | "active";
   label: string;
 }
-

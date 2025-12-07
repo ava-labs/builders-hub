@@ -1,9 +1,9 @@
-import React from 'react';
-import { cn } from '@/utils/cn';
-import Prism from 'prismjs';
-import 'prismjs/components/prism-typescript';
-import 'prismjs/themes/prism-tomorrow.css';
-import 'prismjs/components/prism-bash';
+import React from "react";
+import { cn } from "@/utils/cn";
+import Prism from "prismjs";
+import "prismjs/components/prism-typescript";
+import "prismjs/themes/prism-tomorrow.css";
+import "prismjs/components/prism-bash";
 
 interface CodeSnippetProps {
   code: string;
@@ -13,8 +13,8 @@ interface CodeSnippetProps {
 
 export const CodeSnippet: React.FC<CodeSnippetProps> = ({
   code,
-  language = 'typescript',
-  className
+  language = "typescript",
+  className,
 }) => {
   const [isMounted, setIsMounted] = React.useState(false);
 
@@ -23,13 +23,13 @@ export const CodeSnippet: React.FC<CodeSnippetProps> = ({
   }, []);
 
   const highlightedCode = React.useMemo(() => {
-    return isMounted ? Prism.highlight(code, Prism.languages[language], language) : '';
+    return isMounted ? Prism.highlight(code, Prism.languages[language], language) : "";
   }, [code, language, isMounted]);
 
   return (
     <pre className={cn("text-sm", className)}>
-      <code 
-        className={isMounted ? `language-${language}` : ''}
+      <code
+        className={isMounted ? `language-${language}` : ""}
         dangerouslySetInnerHTML={{ __html: highlightedCode }}
       />
     </pre>

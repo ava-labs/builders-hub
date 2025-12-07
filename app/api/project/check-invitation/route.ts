@@ -7,20 +7,14 @@ export const GET = withAuth(async (request, context, session) => {
   const invitationId = searchParams.get("invitation");
   const user_id = searchParams.get("user_id");
   if (!invitationId) {
-    return NextResponse.json(
-      { error: "invitationId parameter is required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "invitationId parameter is required" }, { status: 400 });
   }
 
   try {
-    const member = await CheckInvitation(invitationId,user_id as string);
+    const member = await CheckInvitation(invitationId, user_id as string);
     return NextResponse.json(member, { status: 200 });
   } catch (error) {
     console.error("Error checking user by email:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 });

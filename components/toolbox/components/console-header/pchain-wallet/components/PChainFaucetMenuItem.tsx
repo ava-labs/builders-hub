@@ -1,9 +1,17 @@
-'use client'
+"use client";
 import { useState } from "react";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Droplet } from "lucide-react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { AlertDialog,AlertDialogAction,AlertDialogContent,AlertDialogDescription,AlertDialogFooter,AlertDialogHeader,AlertDialogTitle } from "@/components/toolbox/components/AlertDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/toolbox/components/AlertDialog";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 export function PChainFaucetMenuItem() {
@@ -73,7 +81,9 @@ export function PChainFaucetMenuItem() {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       if (errorMessage.includes("login") || errorMessage.includes("401")) {
         setAlertDialogTitle("Authentication Required");
-        setAlertDialogMessage("You need to be logged in to request free tokens from the P-Chain Faucet.");
+        setAlertDialogMessage(
+          "You need to be logged in to request free tokens from the P-Chain Faucet."
+        );
         setIsLoginError(true);
         setIsAlertDialogOpen(true);
       } else {
@@ -98,9 +108,7 @@ export function PChainFaucetMenuItem() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{alertDialogTitle}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {alertDialogMessage}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{alertDialogMessage}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex gap-2">
             {isLoginError ? (
@@ -122,7 +130,7 @@ export function PChainFaucetMenuItem() {
       <DropdownMenuItem
         onClick={handlePChainTokenRequest}
         disabled={isRequestingPTokens}
-        className='cursor-pointer'
+        className="cursor-pointer"
       >
         <Droplet className="mr-2 h-3 w-3" />
         {isRequestingPTokens ? "Requesting..." : "Get AVAX from Faucet"}

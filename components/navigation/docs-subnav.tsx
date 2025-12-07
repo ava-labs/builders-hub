@@ -4,11 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { ChevronDown } from "lucide-react";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   documentationOptions,
@@ -80,9 +76,7 @@ export function DocsSubNav() {
             <span className="flex items-center gap-1">
               {tab.label}
               {showChevron && (
-                <ChevronDown
-                  className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180"
-                />
+                <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
               )}
             </span>
           );
@@ -106,9 +100,7 @@ export function DocsSubNav() {
           if (hasItems && !isMobile) {
             return (
               <HoverCard key={tab.href} openDelay={100} closeDelay={200}>
-                <HoverCardTrigger asChild>
-                  {LinkElement}
-                </HoverCardTrigger>
+                <HoverCardTrigger asChild>{LinkElement}</HoverCardTrigger>
                 <HoverCardContent className="w-80" align="start">
                   <div className="grid gap-2">
                     {tab.items?.map((item) => (
@@ -117,13 +109,9 @@ export function DocsSubNav() {
                         href={item.url}
                         className="flex items-start gap-2 rounded-md p-2 hover:bg-accent hover:text-accent-foreground transition-colors"
                       >
-                        <div className="mt-0.5 text-muted-foreground">
-                          {item.icon}
-                        </div>
+                        <div className="mt-0.5 text-muted-foreground">{item.icon}</div>
                         <div className="grid gap-0.5">
-                          <p className="text-sm font-medium leading-none">
-                            {item.title}
-                          </p>
+                          <p className="text-sm font-medium leading-none">{item.title}</p>
                           <p className="text-xs text-muted-foreground line-clamp-2">
                             {item.description}
                           </p>

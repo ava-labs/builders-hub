@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { Button } from '@/components/toolbox/components/Button';
-import { Input } from '@/components/toolbox/components/Input';
-import { Success } from '@/components/toolbox/components/Success';
-import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { Alert } from '@/components/toolbox/components/Alert';
+import React, { useState, useEffect } from "react";
+import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { Button } from "@/components/toolbox/components/Button";
+import { Input } from "@/components/toolbox/components/Input";
+import { Success } from "@/components/toolbox/components/Success";
+import { useAvalancheSDKChainkit } from "@/components/toolbox/stores/useAvalancheSDKChainkit";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { Alert } from "@/components/toolbox/components/Alert";
 
 interface SubmitPChainTxRegisterL1ValidatorProps {
   subnetIdL1: string;
@@ -31,7 +31,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   const { coreWalletClient, pChainAddress, publicClient } = useWalletStore();
   const { aggregateSignature } = useAvalancheSDKChainkit();
   const { notify } = useConsoleNotifications();
-  const [evmTxHashState, setEvmTxHashState] = useState(evmTxHash || '');
+  const [evmTxHashState, setEvmTxHashState] = useState(evmTxHash || "");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
@@ -49,7 +49,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   const validateAndCleanTxHash = (hash: string): `0x${string}` | null => {
     if (!hash) return null;
     const cleanHash = hash.trim().toLowerCase();
-    if (!cleanHash.startsWith('0x')) return null;
+    if (!cleanHash.startsWith("0x")) return null;
     if (cleanHash.length !== 66) return null;
     return cleanHash as `0x${string}`;
   };
@@ -89,12 +89,19 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
 
         // Method 1: Look for the warp message topic (most reliable)
         // This works for both direct and multisig transactions when the warp precompile emits the event
-        const warpMessageTopic = "0x56600c567728a800c0aa927500f831cb451df66a7af570eb4df4dfbf4674887d";
+        const warpMessageTopic =
+          "0x56600c567728a800c0aa927500f831cb451df66a7af570eb4df4dfbf4674887d";
         const warpPrecompileAddress = "0x0200000000000000000000000000000000000005";
 
         const warpEventLog = receipt.logs.find((log) => {
-          return log && log.address && log.address.toLowerCase() === warpPrecompileAddress.toLowerCase() &&
-            log.topics && log.topics[0] && log.topics[0].toLowerCase() === warpMessageTopic.toLowerCase();
+          return (
+            log &&
+            log.address &&
+            log.address.toLowerCase() === warpPrecompileAddress.toLowerCase() &&
+            log.topics &&
+            log.topics[0] &&
+            log.topics[0].toLowerCase() === warpMessageTopic.toLowerCase()
+          );
         });
 
         if (warpEventLog && warpEventLog.data) {
@@ -105,7 +112,9 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
           // Multisig transactions often have different log ordering due to Safe contract interactions
           // The actual validator manager event may be in a different position
           if (receipt.logs.length > 1 && receipt.logs[1].data) {
-            console.log("[WarpExtract] Using receipt.logs[1].data for potential multisig transaction");
+            console.log(
+              "[WarpExtract] Using receipt.logs[1].data for potential multisig transaction"
+            );
             unsignedWarpMessage = receipt.logs[1].data;
           } else if (receipt.logs[0].data) {
             // Method 3: Fallback to first log data (original approach for direct transactions)
@@ -115,10 +124,15 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
         }
 
         if (!unsignedWarpMessage) {
-          throw new Error("Could not extract warp message from any log in the transaction receipt.");
+          throw new Error(
+            "Could not extract warp message from any log in the transaction receipt."
+          );
         }
 
-        console.log("[WarpExtract] Extracted warp message:", unsignedWarpMessage.substring(0, 60) + "...");
+        console.log(
+          "[WarpExtract] Extracted warp message:",
+          unsignedWarpMessage.substring(0, 60) + "..."
+        );
         console.log("[WarpExtract] Message length:", unsignedWarpMessage.length);
         console.log("[WarpExtract] Message format validation:");
         console.log("  - Is hex string:", /^0x[0-9a-fA-F]*$/.test(unsignedWarpMessage));
@@ -180,7 +194,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       onError("Unsigned warp message not found. Check the transaction hash.");
       return;
     }
-    if (typeof window === 'undefined' || !window.avalanche) {
+    if (typeof window === "undefined" || !window.avalanche) {
       setErrorState("Core wallet not found. Please ensure Core is installed and active.");
       onError("Core wallet not found. Please ensure Core is installed and active.");
       return;
@@ -199,10 +213,13 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
         signingSubnetId: signingSubnetId || subnetIdL1,
         quorumPercentage: 67,
       });
-      notify({
-        type: 'local',
-        name: 'Aggregate Signatures'
-      }, aggregateSignaturePromise);
+      notify(
+        {
+          type: "local",
+          name: "Aggregate Signatures",
+        },
+        aggregateSignaturePromise
+      );
       const { signedMessage } = await aggregateSignaturePromise;
 
       setSignedWarpMessage(signedMessage);
@@ -213,18 +230,18 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
         blsProofOfPossession: blsProofOfPossession.trim(),
         signedWarpMessage: signedMessage,
       });
-      notify('registerL1Validator', registerL1ValidatorPromise);
+      notify("registerL1Validator", registerL1ValidatorPromise);
 
       const pChainTxId = await registerL1ValidatorPromise;
       setTxSuccess(`P-Chain transaction successful! ID: ${pChainTxId}`);
       onSuccess(pChainTxId);
     } catch (err: any) {
-      let message = '';
+      let message = "";
 
       // Better error extraction
       if (err instanceof Error) {
         message = err.message;
-      } else if (typeof err === 'string') {
+      } else if (typeof err === "string") {
         message = err;
       } else if (err?.message) {
         message = err.message;
@@ -237,22 +254,22 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
         try {
           message = JSON.stringify(err);
         } catch {
-          message = 'Unknown error occurred';
+          message = "Unknown error occurred";
         }
       }
 
       // Handle specific error types
-      if (message.includes('User rejected') || message.includes('user rejected')) {
-        message = 'Transaction was rejected by user';
-      } else if (message.includes('insufficient funds')) {
-        message = 'Insufficient funds for transaction';
-      } else if (message.includes('execution reverted')) {
+      if (message.includes("User rejected") || message.includes("user rejected")) {
+        message = "Transaction was rejected by user";
+      } else if (message.includes("insufficient funds")) {
+        message = "Insufficient funds for transaction";
+      } else if (message.includes("execution reverted")) {
         message = `Transaction reverted: ${message}`;
-      } else if (message.includes('nonce')) {
-        message = 'Transaction nonce error. Please try again.';
+      } else if (message.includes("nonce")) {
+        message = "Transaction nonce error. Please try again.";
       }
 
-      console.error('P-Chain transaction error:', err);
+      console.error("P-Chain transaction error:", err);
       setErrorState(`P-Chain transaction failed: ${message}`);
       onError(`P-Chain transaction failed: ${message}`);
     } finally {
@@ -277,7 +294,6 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     );
   }
 
-
   return (
     <div className="space-y-4">
       <Input
@@ -297,15 +313,23 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
           </h3>
           <div className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
             {validatorBalance && (
-              <p><span className="font-medium">Initial AVAX Balance:</span> {validatorBalance} AVAX</p>
-            )}
-            {userPChainBalanceNavax && validatorBalance && BigInt(Number(validatorBalance) * 1e9) > userPChainBalanceNavax && (
-              <p className="text-xs mt-1 text-red-500 dark:text-red-400">
-                Validator balance ({validatorBalance} AVAX) exceeds your P-Chain balance ({(Number(userPChainBalanceNavax) / 1e9).toFixed(2)} AVAX).
+              <p>
+                <span className="font-medium">Initial AVAX Balance:</span> {validatorBalance} AVAX
               </p>
             )}
+            {userPChainBalanceNavax &&
+              validatorBalance &&
+              BigInt(Number(validatorBalance) * 1e9) > userPChainBalanceNavax && (
+                <p className="text-xs mt-1 text-red-500 dark:text-red-400">
+                  Validator balance ({validatorBalance} AVAX) exceeds your P-Chain balance (
+                  {(Number(userPChainBalanceNavax) / 1e9).toFixed(2)} AVAX).
+                </p>
+              )}
             {blsProofOfPossession && (
-              <p><span className="font-medium">BLS Proof of Possession:</span> {blsProofOfPossession.substring(0, 50)}...</p>
+              <p>
+                <span className="font-medium">BLS Proof of Possession:</span>{" "}
+                {blsProofOfPossession.substring(0, 50)}...
+              </p>
             )}
           </div>
         </div>
@@ -313,19 +337,24 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
 
       <Button
         onClick={handleSubmitPChainTx}
-        disabled={isProcessing || !evmTxHashState.trim() || !validatorBalance || !blsProofOfPossession || !unsignedWarpMessage || txSuccess !== null}
+        disabled={
+          isProcessing ||
+          !evmTxHashState.trim() ||
+          !validatorBalance ||
+          !blsProofOfPossession ||
+          !unsignedWarpMessage ||
+          txSuccess !== null
+        }
       >
-        {isProcessing ? 'Processing...' : 'Sign & Submit to P-Chain'}
+        {isProcessing ? "Processing..." : "Sign & Submit to P-Chain"}
       </Button>
 
-      {error && (
-        <Alert variant="error">{error}</Alert>
-      )}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {txSuccess && (
         <Success
           label="Transaction Hash"
-          value={txSuccess.replace('P-Chain transaction successful! ID: ', '')}
+          value={txSuccess.replace("P-Chain transaction successful! ID: ", "")}
         />
       )}
     </div>

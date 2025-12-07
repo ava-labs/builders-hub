@@ -21,12 +21,7 @@ export interface ChainChipProps {
 /**
  * Reusable chain chip component displaying chain logo and name with colored background
  */
-export function ChainChip({ 
-  chain, 
-  size = "sm", 
-  onClick,
-  showName = true,
-}: ChainChipProps) {
+export function ChainChip({ chain, size = "sm", onClick, showName = true }: ChainChipProps) {
   const sizeConfig = {
     xs: { img: 12, fallback: "w-3 h-3", text: "text-[10px]", padding: "px-1.5 py-0.5" },
     sm: { img: 14, fallback: "w-3.5 h-3.5", text: "text-[10px]", padding: "px-1.5 py-0.5" },
@@ -48,6 +43,15 @@ export function ChainChip({
           onClick();
         }
       }}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === "Enter" || e.key === " ")) {
+          e.stopPropagation();
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
     >
       {chain.chainLogoURI ? (
         <Image
@@ -58,9 +62,9 @@ export function ChainChip({
           className="rounded-full"
         />
       ) : (
-        <span 
-          className={`${config.fallback} rounded-full flex-shrink-0`} 
-          style={{ backgroundColor: chain.color }} 
+        <span
+          className={`${config.fallback} rounded-full flex-shrink-0`}
+          style={{ backgroundColor: chain.color }}
         />
       )}
       {showName && chain.chainName}
@@ -83,9 +87,8 @@ export function createChainInfo(chain: {
     chainId: chain.chainId,
     chainName: chain.chainName,
     chainSlug: chain.slug,
-    chainLogoURI: chain.chainLogoURI || '',
-    color: chain.color || '#6B7280',
-    tokenSymbol: chain.networkToken?.symbol || '',
+    chainLogoURI: chain.chainLogoURI || "",
+    color: chain.color || "#6B7280",
+    tokenSymbol: chain.networkToken?.symbol || "",
   };
 }
-

@@ -21,4 +21,3 @@ export interface SubnetStats {
   chainLogoURI?: string;
   isL1: boolean;
 }
-

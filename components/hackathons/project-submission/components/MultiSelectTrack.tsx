@@ -14,15 +14,15 @@ import { Check, ChevronsUpDown, X } from "lucide-react";
 
 // Opciones disponibles
 
-export type trackProp={
-  value:string,
-  label:string
-}
+export type trackProp = {
+  value: string;
+  label: string;
+};
 
 interface MultiSelectTrackProps {
   value: string[];
   onChange: (value: string[]) => void;
-  tracks:trackProp[]
+  tracks: trackProp[];
 }
 
 // Puedes usar una función simple para concatenar clases
@@ -49,30 +49,16 @@ export function MultiSelectTrack({ value, onChange, tracks }: MultiSelectTrackPr
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className="w-full justify-between text-zinc-400"
-        >
+        <Button variant="outline" className="w-full justify-between text-zinc-400">
           {value.length > 0
-            ? value
-                .map((v) => tracks.find((t) => t.value === v)?.label)
-                .join(", ")
+            ? value.map((v) => tracks.find((t) => t.value === v)?.label).join(", ")
             : "Select Track"}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="w-full p-0 "
-      >
+      <PopoverContent align="start" className="w-full p-0 ">
         <Command className="dark:bg-zinc-950 ">
-
-          <CommandInput 
-            placeholder="Search track..."
-            value={query}
-            onValueChange={setQuery} 
-            
-          />
+          <CommandInput placeholder="Search track..." value={query} onValueChange={setQuery} />
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             {filteredTracks.map((track) => (
@@ -84,17 +70,15 @@ export function MultiSelectTrack({ value, onChange, tracks }: MultiSelectTrackPr
                 }}
               >
                 <Check
-                 className={cn(
+                  className={cn(
                     "mr-2 h-4 w-4",
                     "border rounded-md",
                     value.includes(track.value)
                       ? "bg-zinc-50 "
                       : "dark:bg-zinc-800  dark:border-zinc-50"
                   )}
-                  color={cn(
-                    value.includes(track.value)?'black':'transparent'
-                  )}
-                  />
+                  color={cn(value.includes(track.value) ? "black" : "transparent")}
+                />
                 {track.label}
               </CommandItem>
             ))}

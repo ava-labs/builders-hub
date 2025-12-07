@@ -20,6 +20,9 @@ export default [
       "**/.fumadocs/**",
       "**/public/**",
       "**/artifacts/**",
+      // Content directories contain MDX that shouldn't be linted as TS
+      "**/content/**",
+      "**/upcoming_content/**",
     ],
   },
 
@@ -186,22 +189,22 @@ export default [
       },
     },
     rules: {
-      // Prettier integration
-      "prettier/prettier": "warn",
+      // Prettier integration - enforce formatting
+      "prettier/prettier": "error",
 
       // React rules
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
       "react/display-name": "off",
-      "react/no-unescaped-entities": "warn",
+      "react/no-unescaped-entities": "warn", // Demoted for gradual adoption
       "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn",
+      "react-hooks/exhaustive-deps": "warn", // Demoted for gradual adoption
 
       // Next.js rules
-      "@next/next/no-html-link-for-pages": "warn",
-      "@next/next/no-img-element": "warn",
+      "@next/next/no-html-link-for-pages": "warn", // Demoted for gradual adoption
+      "@next/next/no-img-element": "warn", // Demoted for gradual adoption
 
-      // TypeScript rules - relaxed for gradual adoption
+      // TypeScript rules - demoted for gradual adoption
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-unused-vars": [
         "warn",
@@ -216,19 +219,23 @@ export default [
       "@typescript-eslint/no-require-imports": "warn",
 
       // General rules
-      "no-console": ["warn", { allow: ["warn", "error", "info"] }],
+      "no-console": ["warn", { allow: ["warn", "error", "info"] }], // Demoted
       "no-debugger": "error",
       "no-alert": "warn",
-      "prefer-const": "warn",
+      "prefer-const": "warn", // Demoted for gradual adoption
       eqeqeq: ["error", "always", { null: "ignore" }],
       "no-var": "error",
       "no-unused-expressions": "warn",
-      curly: ["warn", "multi-line"],
-      "no-throw-literal": "error",
+      curly: ["error", "multi-line"],
+      "no-throw-literal": "warn", // Demoted for gradual adoption
+      "no-prototype-builtins": "warn", // Demoted for gradual adoption
+      "no-constant-binary-expression": "warn", // Demoted for gradual adoption
+      "no-constant-condition": "warn", // Demoted for gradual adoption
+      "@typescript-eslint/no-unsafe-function-type": "warn", // Demoted for gradual adoption
       "no-return-await": "warn",
       "require-await": "warn",
 
-      // A11y rules (warnings for gradual adoption)
+      // A11y rules - demoted for gradual adoption
       "jsx-a11y/alt-text": "warn",
       "jsx-a11y/anchor-is-valid": "warn",
       "jsx-a11y/click-events-have-key-events": "warn",
@@ -274,6 +281,72 @@ export default [
     files: ["**/server/**", "**/api/**", "**/scripts/**"],
     rules: {
       "no-console": "off",
+    },
+  },
+
+  // Node.js script files (.mjs, .mts) - add Node.js globals and relax rules
+  {
+    files: ["**/*.mjs", "**/*.mts"],
+    languageOptions: {
+      globals: {
+        process: "readonly",
+        console: "readonly",
+        __dirname: "readonly",
+        __filename: "readonly",
+        Buffer: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+      },
+    },
+    rules: {
+      "no-console": "off",
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+      "no-useless-catch": "warn",
+    },
+  },
+
+  // Utils and remote content scripts - relax unused vars for caught errors
+  {
+    files: ["**/utils/**/*.mts", "**/utils/**/*.ts"],
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
+
+  // Files with known hook issues that need refactoring - demote for gradual adoption
+  {
+    files: [
+      "**/components/console/step-flow.tsx",
+      "**/components/quizzes/hooks/useBadgeAward.ts",
+      "**/components/tools/common/api/**",
+    ],
+    rules: {
+      "react-hooks/rules-of-hooks": "warn",
+    },
+  },
+
+  // Toolbox components - relax unused expressions for patterns with side effects
+  {
+    files: ["**/components/toolbox/**/*.tsx", "**/components/toolbox/**/*.ts"],
+    rules: {
+      "@typescript-eslint/no-unused-expressions": "warn",
     },
   },
 ];

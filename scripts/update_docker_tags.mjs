@@ -200,8 +200,8 @@ function fetchGithubLatestTagMatching(owner, repo, filter, isFuji = false) {
 
 // Compare semver strings
 function compareSemver(a, b) {
-    const ap = a.replace(/^v/, '').split(/[\.-]/);
-    const bp = b.replace(/^v/, '').split(/[\.-]/);
+    const ap = a.replace(/^v/, '').split(/[.-]/);
+    const bp = b.replace(/^v/, '').split(/[.-]/);
     for (let i = 0; i < Math.max(ap.length, bp.length); i++) {
         const anum = parseInt(ap[i] || '0');
         const bnum = parseInt(bp[i] || '0');

@@ -1,4 +1,4 @@
-import { getAuthSession } from '@/lib/auth/authSession';
+import { getAuthSession } from "@/lib/auth/authSession";
 import ProfileForm from "@/components/profile/ProfileForm";
 import { getProfile } from "@/server/services/profile";
 import UTMPreservationWrapper from "@/components/hackathons/UTMPreservationWrapper";
@@ -9,7 +9,7 @@ export default async function ProfileWrapper() {
 
   return (
     <UTMPreservationWrapper>
-      <ProfileForm initialData={ profileData } id={session!.user.id!}/>
+      <ProfileForm initialData={profileData} id={session!.user.id!} />
     </UTMPreservationWrapper>
   );
 }

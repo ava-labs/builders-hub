@@ -7,24 +7,18 @@ export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   const response = NextResponse.next();
   response.headers.set("Access-Control-Allow-Origin", "*");
-  response.headers.set(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS"
-  );
-  response.headers.set(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization"
-  );
+  response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204 });
   }
-  
+
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const isAuthenticated = !!token;
   const isLoginPage = pathname === "/login";
   const isShowCase = pathname.startsWith("/showcase");
-  const custom_attributes = token?.custom_attributes as string[] ?? []
+  const custom_attributes = (token?.custom_attributes as string[]) ?? [];
 
   if (!isAuthenticated && !isLoginPage) {
     const protectedPaths = [
@@ -32,10 +26,10 @@ export async function middleware(req: NextRequest) {
       "/hackathons/project-submission",
       "/showcase",
       "/profile",
-      "/student-launchpad"
+      "/student-launchpad",
     ];
 
-    const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
+    const isProtectedPath = protectedPaths.some((path) => pathname.startsWith(path));
 
     if (isProtectedPath) {
       const currentUrl = req.url;
@@ -46,24 +40,26 @@ export async function middleware(req: NextRequest) {
   }
 
   if (isAuthenticated) {
-    if (isLoginPage)
+    if (isLoginPage) {
       return NextResponse.redirect(new URL("/", req.url));
+    }
 
-    if (isShowCase && !custom_attributes.includes('showcase'))
-      return NextResponse.redirect(new URL("/hackathons", req.url))
+    if (isShowCase && !custom_attributes.includes("showcase")) {
+      return NextResponse.redirect(new URL("/hackathons", req.url));
+    }
 
     // Protect hackathons/edit route - only team1-admin and hackathonCreator can access
     if (pathname.startsWith("/hackathons/edit")) {
-      const hasRequiredPermissions = custom_attributes.includes("team1-admin") || 
-                                   custom_attributes.includes("hackathonCreator")  || 
-                                   custom_attributes.includes("devrel");
+      const hasRequiredPermissions =
+        custom_attributes.includes("team1-admin") ||
+        custom_attributes.includes("hackathonCreator") ||
+        custom_attributes.includes("devrel");
       if (!hasRequiredPermissions) {
         return NextResponse.redirect(new URL("/", req.url));
       }
     }
-
   }
-  
+
   return withAuth(
     (authReq: NextRequestWithAuth): NextMiddlewareResult => {
       return NextResponse.next();
@@ -74,7 +70,7 @@ export async function middleware(req: NextRequest) {
       },
       callbacks: {
         authorized: ({ token }) => !!token,
-      }
+      },
     }
   )(req as NextRequestWithAuth, {} as any);
 }

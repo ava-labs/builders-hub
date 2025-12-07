@@ -30,7 +30,7 @@ export default function GeneralSecureComponent({
   const [step, setStep] = useState(1);
   const [progress, setProgress] = useState(0);
 
-  const debouncedProgress = useDebounce(progress, 300); 
+  const debouncedProgress = useDebounce(progress, 300);
 
   const { data: session } = useSession();
   const currentUser = session?.user;
@@ -76,7 +76,7 @@ export default function GeneralSecureComponent({
       "tracks",
     ];
   };
-  
+
   const calculateProgress = () => {
     const formValues = form.getValues();
     const allFields = getAllFields();
@@ -89,10 +89,7 @@ export default function GeneralSecureComponent({
         if (fieldValue && fieldValue.length > 0) {
           completedFields++;
         }
-      } else if (
-        typeof fieldValue === "string" &&
-        fieldValue.trim() !== ""
-      ) {
+      } else if (typeof fieldValue === "string" && fieldValue.trim() !== "") {
         completedFields++;
       } else if (typeof fieldValue === "boolean" && fieldValue === true) {
         completedFields++;
@@ -108,7 +105,7 @@ export default function GeneralSecureComponent({
 
     return Math.round((completedFields / totalFields) * 100);
   };
-  
+
   useEffect(() => {
     const subscription = form.watch(
       (value: any, { name, type }: { name?: string; type?: string }) => {
@@ -129,10 +126,10 @@ export default function GeneralSecureComponent({
   useEffect(() => {
     if (project && isEditing) {
       setFormData(project);
-    
+
       dispatch({ type: "SET_PROJECT_ID", payload: project.id || "" });
     }
-  }, [project, isEditing, setFormData, dispatch]); 
+  }, [project, isEditing, setFormData, dispatch]);
 
   const handleStepChange = (newStep: number) => {
     if (newStep >= 1 && newStep <= 3) {
@@ -167,12 +164,11 @@ export default function GeneralSecureComponent({
     }
   };
 
-  const onNextStep = async () => {
+  const onNextStep = () => {
     if (step < 3) {
       setStep(step + 1);
     }
   };
-
 
   if (status === "error") {
     return (
@@ -180,8 +176,7 @@ export default function GeneralSecureComponent({
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {error ||
-              "An error occurred while initializing the project. Please try again."}
+            {error || "An error occurred while initializing the project. Please try again."}
           </AlertDescription>
         </Alert>
       </div>
@@ -198,8 +193,8 @@ export default function GeneralSecureComponent({
           Submit Your Project {hackathon?.title ? " - " + hackathon?.title : ""}
         </h2>
         <p className="text-xs sm:text-sm text-gray-400">
-          Finalize and submit your project for review before the deadline.
-          Complete all sections to ensure eligibility.
+          Finalize and submit your project for review before the deadline. Complete all sections to
+          ensure eligibility.
         </p>
       </div>
 
@@ -210,33 +205,25 @@ export default function GeneralSecureComponent({
         <div className="flex sm:hidden justify-center items-center gap-4 py-4 border-b border-zinc-200 dark:border-zinc-800">
           <Tag
             className={`cursor-pointer ${
-              step === 1
-                ? "text-zinc-900 dark:text-[#F5F5F9]"
-                : "text-zinc-500 dark:text-[#4F4F55]"
+              step === 1 ? "text-zinc-900 dark:text-[#F5F5F9]" : "text-zinc-500 dark:text-[#4F4F55]"
             }`}
             onClick={() => handleStepChange(1)}
           />
           <Users
             className={`cursor-pointer ${
-              step === 1
-                ? "text-zinc-900 dark:text-[#F5F5F9]"
-                : "text-zinc-500 dark:text-[#4F4F55]"
+              step === 1 ? "text-zinc-900 dark:text-[#F5F5F9]" : "text-zinc-500 dark:text-[#4F4F55]"
             }`}
             onClick={() => handleStepChange(1)}
           />
           <Pickaxe
             className={`cursor-pointer ${
-              step === 2
-                ? "text-zinc-900 dark:text-[#F5F5F9]"
-                : "text-zinc-500 dark:text-[#4F4F55]"
+              step === 2 ? "text-zinc-900 dark:text-[#F5F5F9]" : "text-zinc-500 dark:text-[#4F4F55]"
             }`}
             onClick={() => handleStepChange(2)}
           />
           <Image
             className={`cursor-pointer ${
-              step === 3
-                ? "text-zinc-900 dark:text-[#F5F5F9]"
-                : "text-zinc-500 dark:text-[#4F4F55]"
+              step === 3 ? "text-zinc-900 dark:text-[#F5F5F9]" : "text-zinc-500 dark:text-[#4F4F55]"
             }`}
             onClick={() => handleStepChange(3)}
           />
@@ -283,10 +270,7 @@ export default function GeneralSecureComponent({
         <div className="flex-1 flex flex-col gap-4 sm:gap-6">
           <section className="w-full">
             <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4 sm:space-y-6"
-              >
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
                 {step === 1 && (
                   <SubmitStep1
                     project_id={projectId || ""}
@@ -303,9 +287,7 @@ export default function GeneralSecureComponent({
                         payload: open,
                       })
                     }
-                    onOpenChange={(open) =>
-                      dispatch({ type: "SET_OPEN_JOIN_TEAM", payload: open })
-                    }
+                    onOpenChange={(open) => dispatch({ type: "SET_OPEN_JOIN_TEAM", payload: open })}
                     currentEmail={currentUser?.email}
                     teamName={teamName}
                   />
@@ -327,14 +309,11 @@ export default function GeneralSecureComponent({
           </section>
         </div>
       </div>
-  
 
       <InvalidInvitationComponent
         hackathonId={hackathonId as string}
         open={openInvalidInvitation}
-        onOpenChange={(open) =>
-          dispatch({ type: "SET_OPEN_INVALID_INVITATION", payload: open })
-        }
+        onOpenChange={(open) => dispatch({ type: "SET_OPEN_INVALID_INVITATION", payload: open })}
       />
 
       {error && (

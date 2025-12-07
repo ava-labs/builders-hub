@@ -1,20 +1,14 @@
 "use client";
 import { Search, Building2 } from "lucide-react";
 import { Input } from "../ui/input";
-import {
-  Select,
-  SelectItem,
-  SelectContent,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
+import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "../ui/select";
 import HackathonCard from "./HackathonCard";
 import { HackathonHeader, HackathonsFilters } from "@/types/hackathons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { Separator } from "../ui/separator";
-import { useSession } from 'next-auth/react';
+import { useSession } from "next-auth/react";
 import {
   Pagination,
   PaginationContent,
@@ -29,12 +23,7 @@ import Link from "next/link";
 import Image from "next/image";
 import DiscoveryCard from "./DiscoveryCard";
 
-
-function buildQueryString(
-  filters: HackathonsFilters,
-  searchQuery: string,
-  pageSize: number
-) {
+function buildQueryString(filters: HackathonsFilters, searchQuery: string, pageSize: number) {
   const params = new URLSearchParams();
 
   if (filters.location) {
@@ -74,26 +63,22 @@ export default function Hackathons({
   totalUpcomingHackathons,
 }: Props) {
   const { data: session, status } = useSession();
-  const isHackathonCreator = session?.user?.custom_attributes.includes("hackathonCreator") || session?.user?.custom_attributes.includes("team1-admin");
-  
+  const isHackathonCreator =
+    session?.user?.custom_attributes.includes("hackathonCreator") ||
+    session?.user?.custom_attributes.includes("team1-admin");
+
   const router = useRouter();
 
-  const [pastHackathons, setPastHackathons] = useState<HackathonHeader[]>(
-    initialPastHackathons
-  );
-  const [upcomingHackathons, setUpcomingHackathons] = useState<
-    HackathonHeader[]
-  >(initialUpcomingHackathons);
-  const [ongoingHackathons, setOngoingHackathons] = useState<
-    HackathonHeader[]
-  >(initialOngoingHackathons);
+  const [pastHackathons, setPastHackathons] = useState<HackathonHeader[]>(initialPastHackathons);
+  const [upcomingHackathons, setUpcomingHackathons] =
+    useState<HackathonHeader[]>(initialUpcomingHackathons);
+  const [ongoingHackathons, setOngoingHackathons] =
+    useState<HackathonHeader[]>(initialOngoingHackathons);
 
   const [filters, setFilters] = useState<HackathonsFilters>(initialFilters);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [pageSize, setPageSize] = useState<number>(filters.recordsByPage ?? 4);
-  const [totalPages, setTotalPages] = useState<number>(
-    Math.ceil(totalPastHackathons / pageSize)
-  );
+  const [totalPages, setTotalPages] = useState<number>(Math.ceil(totalPastHackathons / pageSize));
   const [currentPage, setCurrentPage] = useState<number>(filters.page ?? 1);
   const [searchValue, setSearchValue] = useState("");
 
@@ -107,12 +92,9 @@ export default function Hackathons({
     async function fetchHackathons() {
       try {
         const queryString = buildQueryString(filters, searchQuery, pageSize);
-        const { data } = await axios.get(
-          `/api/hackathons?${queryString}&status=ENDED`,
-          {
-            signal,
-          }
-        );
+        const { data } = await axios.get(`/api/hackathons?${queryString}&status=ENDED`, {
+          signal,
+        });
 
         if (!signal.aborted) {
           setPastHackathons(data.hackathons);
@@ -136,7 +118,10 @@ export default function Hackathons({
     if (status === "authenticated" && session?.user) {
       console.log("User ID:", session.user.id);
 
-      if (session.user.custom_attributes?.includes("hackathonCreator") || session.user.custom_attributes?.includes("team1-admin")) {
+      if (
+        session.user.custom_attributes?.includes("hackathonCreator") ||
+        session.user.custom_attributes?.includes("team1-admin")
+      ) {
         console.log("User is hackathonCreator");
       }
     }
@@ -155,8 +140,9 @@ export default function Hackathons({
     if (newFilters.page) params.set("page", newFilters.page.toString());
     if (newFilters.location) params.set("location", newFilters.location);
     if (newFilters.status) params.set("status", newFilters.status);
-    if (newFilters.recordsByPage)
+    if (newFilters.recordsByPage) {
       params.set("recordsByPage", String(newFilters.recordsByPage));
+    }
 
     router.replace(`/hackathons?${params.toString()}`);
   };
@@ -182,11 +168,11 @@ export default function Hackathons({
       handleSearchChange(searchValue);
     }
   };
-  const topMostHackathon = upcomingHackathons.find((x) => x.top_most) || 
-                          ongoingHackathons.find((x) => x.top_most);
+  const topMostHackathon =
+    upcomingHackathons.find((x) => x.top_most) || ongoingHackathons.find((x) => x.top_most);
 
   const addNewHackathon = () => {
-    router.push('/hackathons/edit');
+    router.push("/hackathons/edit");
   };
 
   return (
@@ -215,120 +201,117 @@ export default function Hackathons({
               />
             </Link>
           </div>
-          </div>
-        )}
+        </div>
+      )}
 
-        {isHackathonCreator && <><button
-          className={`flex items-center gap-2 font-medium text-3xl text-zinc-900 dark:text-zinc-50 ${topMostHackathon ? "mt-12" : ""} px-4 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 hover:bg-red-500 hover:text-white transition-colors duration-200 cursor-pointer`}
-          onClick={addNewHackathon}
-        >
-          <Building2 className="h-6 w-6" />
-          My Hackathons
-        </button>
-        <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
-        </>}
-        <h2
-          className={`font-medium text-3xl text-zinc-900 dark:text-zinc-50 ${
-            topMostHackathon ? "mt-12" : ""
-          }`}
-        >
-          Upcoming
-        </h2>
-        <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
-        {upcomingHackathons.length > 0 ? (
-          <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
-            {upcomingHackathons
-              .map((hackathon: any) => (
-                <HackathonCard key={hackathon.id} hackathon={hackathon} />
-              ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="max-w-md">
-              <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6">
-                No upcoming hackathons at the moment. Join our Telegram community to be the first to know about new opportunities!
-              </p>
-              <a
-                href="https://t.me/avalancheacademy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-md transition-colors duration-200"
-              >
-                Join Telegram Group
-              </a>
-            </div>
-          </div>
-        )}
-        
-        {ongoingHackathons.length > 0 && (
-          <>
-            <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mt-12">
-              Ongoing
-            </h2>
-            <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
-            <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
-              {ongoingHackathons.map((hackathon: any) => (
-                  <HackathonCard key={hackathon.id} hackathon={hackathon} />
-                ))}
-            </div>
-          </>
-        )}
-
-        {/* Discovery Section */}
-        <div className="mt-12 mb-12">
-          <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mb-4">
-            Discover More
-          </h2>
-          <Separator className="mb-6 bg-zinc-300 dark:bg-zinc-800" />
-          <div className="grid md:grid-cols-3 gap-6">
-            <DiscoveryCard
-              title="Avalanche Calendar"
-              description="Explore upcoming Avalanche events, meetups, and community gatherings. Stay connected with the latest happenings in the ecosystem."
-              image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/Avalanche-Event-TnQovuFzkt8CGHyF0wfiSYTrGVtuPU.jpg"
-              url="https://lu.ma/calendar/cal-Igl2DB6quhzn7Z4"
-            />
-            <DiscoveryCard
-              title="Community Events"
-              description="Check out and join the global meetups, workshops and events organized by Avalanche Team1"
-              image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg"
-              url="https://lu.ma/Team1?utm_source=builder_hub"
-            />
-            <DiscoveryCard
-              title="Campus Connect"
-              description="Discover opportunities for students and educators to explore blockchain technology and join our community of builders."
-              image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/University-Slideshow/729e397093550313627a7a1717249ef2%20%282%29.jpg"
-              url="/university"
-            />
+      {isHackathonCreator && (
+        <>
+          <button
+            className={`flex items-center gap-2 font-medium text-3xl text-zinc-900 dark:text-zinc-50 ${topMostHackathon ? "mt-12" : ""} px-4 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 hover:bg-red-500 hover:text-white transition-colors duration-200 cursor-pointer`}
+            onClick={addNewHackathon}
+          >
+            <Building2 className="h-6 w-6" />
+            My Hackathons
+          </button>
+          <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
+        </>
+      )}
+      <h2
+        className={`font-medium text-3xl text-zinc-900 dark:text-zinc-50 ${
+          topMostHackathon ? "mt-12" : ""
+        }`}
+      >
+        Upcoming
+      </h2>
+      <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
+      {upcomingHackathons.length > 0 ? (
+        <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
+          {upcomingHackathons.map((hackathon: any) => (
+            <HackathonCard key={hackathon.id} hackathon={hackathon} />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="max-w-md">
+            <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6">
+              No upcoming hackathons at the moment. Join our Telegram community to be the first to
+              know about new opportunities!
+            </p>
+            <a
+              href="https://t.me/avalancheacademy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-md transition-colors duration-200"
+            >
+              Join Telegram Group
+            </a>
           </div>
         </div>
+      )}
 
-        <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mt-12">
-          Past
-        </h2>
-        <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-4 justify-between">
-          <div className="flex items-stretch gap-4 max-w-sm w-full h-9">
-            {/* Input */}
-            <div className="relative flex-grow h-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-zinc-400 stroke-zinc-700" />
-              <Input
-                type="text"
-                onChange={(e) => setSearchValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Search by name, track or location"
-                className="w-full h-full px-3 pl-10 bg-transparent border border-zinc-300 dark:border-zinc-700 rounded-md dark:text-zinc-50 text-zinc-900 placeholder-zinc-500"
-              />
-            </div>
-            {/* Button */}
-            <button
-              onClick={() => handleSearchChange(searchValue)}
-              className="px-[6px] rounded-md bg-red-500 hover:bg-red-600 transition"
-            >
-              <Search size={24} color="white" />
-            </button>
+      {ongoingHackathons.length > 0 && (
+        <>
+          <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mt-12">Ongoing</h2>
+          <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
+          <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
+            {ongoingHackathons.map((hackathon: any) => (
+              <HackathonCard key={hackathon.id} hackathon={hackathon} />
+            ))}
           </div>
-          <div className="flex flex-row gap-4 items-center">
-            {/* <h3 className="font-medium text-xl py-5 text-zinc-900 dark:text-zinc-50">
+        </>
+      )}
+
+      {/* Discovery Section */}
+      <div className="mt-12 mb-12">
+        <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mb-4">Discover More</h2>
+        <Separator className="mb-6 bg-zinc-300 dark:bg-zinc-800" />
+        <div className="grid md:grid-cols-3 gap-6">
+          <DiscoveryCard
+            title="Avalanche Calendar"
+            description="Explore upcoming Avalanche events, meetups, and community gatherings. Stay connected with the latest happenings in the ecosystem."
+            image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/Avalanche-Event-TnQovuFzkt8CGHyF0wfiSYTrGVtuPU.jpg"
+            url="https://lu.ma/calendar/cal-Igl2DB6quhzn7Z4"
+          />
+          <DiscoveryCard
+            title="Community Events"
+            description="Check out and join the global meetups, workshops and events organized by Avalanche Team1"
+            image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg"
+            url="https://lu.ma/Team1?utm_source=builder_hub"
+          />
+          <DiscoveryCard
+            title="Campus Connect"
+            description="Discover opportunities for students and educators to explore blockchain technology and join our community of builders."
+            image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/University-Slideshow/729e397093550313627a7a1717249ef2%20%282%29.jpg"
+            url="/university"
+          />
+        </div>
+      </div>
+
+      <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mt-12">Past</h2>
+      <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-4 justify-between">
+        <div className="flex items-stretch gap-4 max-w-sm w-full h-9">
+          {/* Input */}
+          <div className="relative flex-grow h-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-zinc-400 stroke-zinc-700" />
+            <Input
+              type="text"
+              onChange={(e) => setSearchValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Search by name, track or location"
+              className="w-full h-full px-3 pl-10 bg-transparent border border-zinc-300 dark:border-zinc-700 rounded-md dark:text-zinc-50 text-zinc-900 placeholder-zinc-500"
+            />
+          </div>
+          {/* Button */}
+          <button
+            onClick={() => handleSearchChange(searchValue)}
+            className="px-[6px] rounded-md bg-red-500 hover:bg-red-600 transition"
+          >
+            <Search size={24} color="white" />
+          </button>
+        </div>
+        <div className="flex flex-row gap-4 items-center">
+          {/* <h3 className="font-medium text-xl py-5 text-zinc-900 dark:text-zinc-50">
               {totalPastHackathons ?? ""}{" "}
               {totalPastHackathons > 1
                 ? "Hackathons"
@@ -337,102 +320,87 @@ export default function Hackathons({
                 : "Hackathon"}{" "}
               found
             </h3> */}
-            <Select
-              onValueChange={(value: string) =>
-                handleFilterChange("location", value)
-              }
-              value={filters.location}
-            >
-              <SelectTrigger className="w-[180px] border border-zinc-300 dark:border-zinc-800">
-                <SelectValue placeholder="Filter by Location" />
-              </SelectTrigger>
-              <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
-                <SelectItem value="all">All Locations</SelectItem>
-                <SelectItem value="Online">Online</SelectItem>
-                <SelectItem value="InPerson">In Person</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select
+            onValueChange={(value: string) => handleFilterChange("location", value)}
+            value={filters.location}
+          >
+            <SelectTrigger className="w-[180px] border border-zinc-300 dark:border-zinc-800">
+              <SelectValue placeholder="Filter by Location" />
+            </SelectTrigger>
+            <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
+              <SelectItem value="all">All Locations</SelectItem>
+              <SelectItem value="Online">Online</SelectItem>
+              <SelectItem value="InPerson">In Person</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        {/* <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" color="transparent" /> */}
-        <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2 my-8">
-          {pastHackathons.map((hackathon: any) => (
-              <HackathonCard key={hackathon.id} hackathon={hackathon} />
-            ))}
-        </div>
-        <Pagination className="flex justify-end gap-2">
-          <PaginationContent className="flex-wrap cursor-pointer">
-            {currentPage > 1 && (
-              <PaginationItem
-                onClick={() =>
-                  handleFilterChange("page", (currentPage - 1).toString())
-                }
-              >
-                <PaginationPrevious />
-              </PaginationItem>
-            )}
-            {Array.from(
-              {
-                length: totalPages > 7 ? 7 : totalPages,
-              },
-              (_, i) =>
-                1 +
-                i -
-                (currentPage > 3
-                  ? totalPages - currentPage > 3
-                    ? 3
-                    : totalPages - 1 - (totalPages - currentPage)
-                  : currentPage - 1)
-            ).map((page) => (
-              <PaginationItem
-                key={page}
-                onClick={() => handleFilterChange("page", page.toString())}
-              >
-                <PaginationLink isActive={page === currentPage}>
-                  {page}
-                </PaginationLink>
-              </PaginationItem>
-            ))}
-            {totalPages - currentPage > 3 && (
-              <PaginationItem>
-                <PaginationEllipsis />
-              </PaginationItem>
-            )}
-            {currentPage < totalPages && (
-              <PaginationItem
-                onClick={() =>
-                  handleFilterChange("page", (currentPage + 1).toString())
-                }
-              >
-                <PaginationNext />
-              </PaginationItem>
-            )}
-
-            <p className="mx-2">
-              Page {currentPage} of {totalPages}
-            </p>
-
-            <Select
-              onValueChange={(value: string) =>
-                handleFilterChange("recordsByPage", value)
-              }
-              value={String(pageSize) ?? 4}
+      </div>
+      {/* <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" color="transparent" /> */}
+      <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2 my-8">
+        {pastHackathons.map((hackathon: any) => (
+          <HackathonCard key={hackathon.id} hackathon={hackathon} />
+        ))}
+      </div>
+      <Pagination className="flex justify-end gap-2">
+        <PaginationContent className="flex-wrap cursor-pointer">
+          {currentPage > 1 && (
+            <PaginationItem
+              onClick={() => handleFilterChange("page", (currentPage - 1).toString())}
             >
-              <SelectTrigger className="border border-zinc-300 dark:border-zinc-800">
-                <SelectValue placeholder="Select track" />
-              </SelectTrigger>
-              <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
-                {[4, 8, ...Array.from({ length: 5 }, (_, i) => (i + 1) * 12)].map(
-                  (option) => (
-                    <SelectItem key={option} value={option.toString()}>
-                      {option}
-                    </SelectItem>
-                  )
-                )}
-              </SelectContent>
-            </Select>
-          </PaginationContent>
-        </Pagination>
-      </section>
-    );
+              <PaginationPrevious />
+            </PaginationItem>
+          )}
+          {Array.from(
+            {
+              length: totalPages > 7 ? 7 : totalPages,
+            },
+            (_, i) =>
+              1 +
+              i -
+              (currentPage > 3
+                ? totalPages - currentPage > 3
+                  ? 3
+                  : totalPages - 1 - (totalPages - currentPage)
+                : currentPage - 1)
+          ).map((page) => (
+            <PaginationItem key={page} onClick={() => handleFilterChange("page", page.toString())}>
+              <PaginationLink isActive={page === currentPage}>{page}</PaginationLink>
+            </PaginationItem>
+          ))}
+          {totalPages - currentPage > 3 && (
+            <PaginationItem>
+              <PaginationEllipsis />
+            </PaginationItem>
+          )}
+          {currentPage < totalPages && (
+            <PaginationItem
+              onClick={() => handleFilterChange("page", (currentPage + 1).toString())}
+            >
+              <PaginationNext />
+            </PaginationItem>
+          )}
+
+          <p className="mx-2">
+            Page {currentPage} of {totalPages}
+          </p>
+
+          <Select
+            onValueChange={(value: string) => handleFilterChange("recordsByPage", value)}
+            value={String(pageSize) ?? 4}
+          >
+            <SelectTrigger className="border border-zinc-300 dark:border-zinc-800">
+              <SelectValue placeholder="Select track" />
+            </SelectTrigger>
+            <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
+              {[4, 8, ...Array.from({ length: 5 }, (_, i) => (i + 1) * 12)].map((option) => (
+                <SelectItem key={option} value={option.toString()}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </PaginationContent>
+      </Pagination>
+    </section>
+  );
 }

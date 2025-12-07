@@ -13,29 +13,33 @@ export default async function RewardBoard() {
   if (!user_id) {
     return <div>Loading...</div>;
   }
-  const data:UserBadge[] = await getRewardBoard(user_id);
-  const rewards = data.filter((reward) => reward.metadata?.type === "hackathon").map((reward) => (
-    <RewardCard
-      key={reward.name}
-      icon={reward.image_path}
-      name={reward.name}
-      description={reward.description}
-      category={reward.category}
-      image={reward.image_path}
-      className="border border-red-500 dark:bg-zinc-900"
-    />
-  ));
-  const academyRewards = data.filter((reward) => reward.metadata?.type === "course").map((reward) => (
-    <RewardCard
-      key={reward.name}
-      icon={reward.image_path}
-      name={reward.name}
-      description={reward.description}
-      category={reward.category}
-      image={reward.image_path}
-      className="border border-gray-900 dark:bg-zinc-900"
-    />
-  ));
+  const data: UserBadge[] = await getRewardBoard(user_id);
+  const rewards = data
+    .filter((reward) => reward.metadata?.type === "hackathon")
+    .map((reward) => (
+      <RewardCard
+        key={reward.name}
+        icon={reward.image_path}
+        name={reward.name}
+        description={reward.description}
+        category={reward.category}
+        image={reward.image_path}
+        className="border border-red-500 dark:bg-zinc-900"
+      />
+    ));
+  const academyRewards = data
+    .filter((reward) => reward.metadata?.type === "course")
+    .map((reward) => (
+      <RewardCard
+        key={reward.name}
+        icon={reward.image_path}
+        name={reward.name}
+        description={reward.description}
+        category={reward.category}
+        image={reward.image_path}
+        className="border border-gray-900 dark:bg-zinc-900"
+      />
+    ));
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
@@ -68,7 +72,7 @@ export default async function RewardBoard() {
       {academyRewards.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-gray-500 dark:text-gray-400 text-lg">
-          Your contributions matter. Keep going to start earning rewards!
+            Your contributions matter. Keep going to start earning rewards!
           </div>
         </div>
       ) : (

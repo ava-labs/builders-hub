@@ -1,15 +1,5 @@
-import {
-  Hackathon,
-  HackathonHeader,
-  HackathonStatus,
-  ScheduleActivity,
-} from "@/types/hackathons";
-import {
-  hasAtLeastOne,
-  requiredField,
-  validateEntity,
-  Validation,
-} from "./base";
+import { Hackathon, HackathonHeader, HackathonStatus, ScheduleActivity } from "@/types/hackathons";
+import { hasAtLeastOne, requiredField, validateEntity, Validation } from "./base";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getDateWithTimezone } from "./date-parser";
@@ -26,14 +16,12 @@ export const hackathonsValidations: Validation[] = [
   {
     field: "description",
     message: "A description is required.",
-    validation: (hackathon: Hackathon) =>
-      requiredField(hackathon, "description"),
+    validation: (hackathon: Hackathon) => requiredField(hackathon, "description"),
   },
   {
     field: "start_date",
     message: "Please enter a valid date for the hackathon.",
-    validation: (hackathon: Hackathon) =>
-      requiredField(hackathon, "start_date"),
+    validation: (hackathon: Hackathon) => requiredField(hackathon, "start_date"),
   },
   {
     field: "end_date",
@@ -52,9 +40,8 @@ export const hackathonsValidations: Validation[] = [
   },
 ];
 
-export const validateHackathon = (
-  hackathon: Partial<HackathonHeader>
-): Validation[] => validateEntity(hackathonsValidations, hackathon);
+export const validateHackathon = (hackathon: Partial<HackathonHeader>): Validation[] =>
+  validateEntity(hackathonsValidations, hackathon);
 
 export class ValidationError extends Error {
   public details: Validation[];
@@ -67,16 +54,13 @@ export class ValidationError extends Error {
   }
 }
 
-export async function getHackathonLite(
-  hackathon: any
-): Promise<HackathonHeader> {
+export async function getHackathonLite(hackathon: any): Promise<HackathonHeader> {
   // Get user information if created_by exists
   if (hackathon.created_by) {
     try {
       const user = await getUserById(hackathon.created_by);
       hackathon.created_by_name = user?.name || user?.email || "Unknown User";
     } catch (error) {
-      console.error("Error fetching user info:", error);
       hackathon.created_by_name = "Unknown User";
     }
   }
@@ -87,7 +71,6 @@ export async function getHackathonLite(
       const user = await getUserById(hackathon.updated_by);
       hackathon.updated_by_name = user?.name || user?.email || "Unknown User";
     } catch (error) {
-      console.error("Error fetching updated_by user info:", error);
       hackathon.updated_by_name = "Unknown User";
     }
   }
@@ -110,8 +93,9 @@ export async function getHackathon(id: string) {
   const hackathon = await prisma.hackathon.findUnique({
     where: { id },
   });
-  if (!hackathon)
+  if (!hackathon) {
     throw new Error("Hackathon not found", { cause: "BadRequest" });
+  }
 
   const hackathonContent = hackathon.content as unknown as Hackathon;
   return {
@@ -124,20 +108,18 @@ export async function getHackathon(id: string) {
 }
 
 const getStatus = (start_date: Date, end_date: Date) => {
-  if (start_date.getTime() <= Date.now() && end_date.getTime() >= Date.now())
+  if (start_date.getTime() <= Date.now() && end_date.getTime() >= Date.now()) {
     return "ONGOING";
+  }
   if (start_date.getTime() > Date.now()) return "UPCOMING";
   else return "ENDED";
 };
 
 export async function getFilteredHackathons(options: GetHackathonsOptions) {
-  if (
-    (options.page && options.page < 1) ||
-    (options.pageSize && options.pageSize < 1)
-  )
+  if ((options.page && options.page < 1) || (options.pageSize && options.pageSize < 1)) {
     throw new Error("Pagination params invalid", { cause: "BadRequest" });
+  }
 
-  console.log("GET hackathons with options:", options);
   const page = options.page ?? 1;
   const pageSize = options.pageSize ?? 10;
   const offset = (page - 1) * pageSize;
@@ -158,10 +140,7 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
   if (options.created_by) {
     // Show hackathons where user is either creator OR updater
     conditions.push({
-      OR: [
-        { created_by: options.created_by },
-        { updated_by: options.created_by },
-      ],
+      OR: [{ created_by: options.created_by }, { updated_by: options.created_by }],
     });
   }
 
@@ -239,7 +218,6 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
     filters = { AND: conditions };
   }
 
-  console.log("Filters: ", filters);
   const hackathonCount = await prisma.hackathon.count({ where: filters });
 
   const hackathonList = await prisma.hackathon.findMany({
@@ -252,18 +230,15 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
   });
 
   const hackathons = await Promise.all(hackathonList.map(getHackathonLite));
-  let hackathonsLite = hackathons;
+  const hackathonsLite = hackathons;
 
   return {
     hackathons: hackathonsLite.map(
       (hackathon) =>
         ({
           ...hackathon,
-          status: getStatus(
-            new Date(hackathon.start_date),
-            new Date(hackathon.end_date)
-          ),
-        } as HackathonHeader)
+          status: getStatus(new Date(hackathon.start_date), new Date(hackathon.end_date)),
+        }) as HackathonHeader
     ),
     total: hackathonCount,
     page,
@@ -275,20 +250,17 @@ export async function createHackathon(
   hackathonData: Partial<HackathonHeader>
 ): Promise<HackathonHeader> {
   const errors = validateHackathon(hackathonData);
-  console.log(errors);
   if (errors.length > 0) {
     throw new ValidationError("Validation failed", errors);
   }
   if (hackathonData.content?.schedule) {
-    const schedule = hackathonData.content.schedule.map(
-      (activity: ScheduleActivity) => {
-        activity.date = getDateWithTimezone(
-          activity.date,
-          hackathonData.timezone ?? ""
-        ).toISOString();
-        return activity;
-      }
-    );
+    const schedule = hackathonData.content.schedule.map((activity: ScheduleActivity) => {
+      activity.date = getDateWithTimezone(
+        activity.date,
+        hackathonData.timezone ?? ""
+      ).toISOString();
+      return activity;
+    });
     hackathonData.content!.schedule = schedule;
   }
   const content = { ...hackathonData.content } as Prisma.JsonObject;
@@ -298,14 +270,8 @@ export async function createHackathon(
       id: hackathonData.id,
       title: hackathonData.title!,
       description: hackathonData.description!,
-      start_date: getDateWithTimezone(
-        hackathonData.start_date!,
-        hackathonData.timezone!
-      ),
-      end_date: getDateWithTimezone(
-        hackathonData.end_date!,
-        hackathonData.timezone!
-      ),
+      start_date: getDateWithTimezone(hackathonData.start_date!, hackathonData.timezone!),
+      end_date: getDateWithTimezone(hackathonData.end_date!, hackathonData.timezone!),
       location: hackathonData.location!,
       total_prizes: hackathonData.total_prizes!,
       participants: hackathonData.participants!,
@@ -330,12 +296,10 @@ export async function updateHackathon(
 ): Promise<HackathonHeader> {
   // Skip validation if we're only updating is_public field
   const isOnlyPublicUpdate =
-    Object.keys(hackathonData).length === 1 &&
-    hackathonData.hasOwnProperty("is_public");
+    Object.keys(hackathonData).length === 1 && hackathonData.hasOwnProperty("is_public");
 
   if (!isOnlyPublicUpdate) {
     const errors = validateHackathon(hackathonData);
-    console.log(errors);
     if (errors.length > 0) {
       throw new ValidationError("Validation failed", errors);
     }
@@ -349,15 +313,13 @@ export async function updateHackathon(
   }
 
   if (hackathonData.content?.schedule) {
-    const schedule = hackathonData.content.schedule.map(
-      (activity: ScheduleActivity) => {
-        activity.date = getDateWithTimezone(
-          activity.date,
-          hackathonData.timezone ?? ""
-        ).toISOString();
-        return activity;
-      }
-    );
+    const schedule = hackathonData.content.schedule.map((activity: ScheduleActivity) => {
+      activity.date = getDateWithTimezone(
+        activity.date,
+        hackathonData.timezone ?? ""
+      ).toISOString();
+      return activity;
+    });
     hackathonData.content!.schedule = schedule;
   }
   // Build update data object with only provided fields
@@ -365,8 +327,9 @@ export async function updateHackathon(
 
   if (hackathonData.id !== undefined) updateData.id = hackathonData.id;
   if (hackathonData.title !== undefined) updateData.title = hackathonData.title;
-  if (hackathonData.description !== undefined)
+  if (hackathonData.description !== undefined) {
     updateData.description = hackathonData.description;
+  }
   if (hackathonData.start_date !== undefined) {
     updateData.start_date = getDateWithTimezone(
       hackathonData.start_date,
@@ -379,30 +342,41 @@ export async function updateHackathon(
       hackathonData.timezone ?? existingHackathon.timezone
     );
   }
-  if (hackathonData.location !== undefined)
+  if (hackathonData.location !== undefined) {
     updateData.location = hackathonData.location;
-  if (hackathonData.total_prizes !== undefined)
+  }
+  if (hackathonData.total_prizes !== undefined) {
     updateData.total_prizes = hackathonData.total_prizes;
+  }
   if (hackathonData.tags !== undefined) updateData.tags = hackathonData.tags;
-  if (hackathonData.timezone !== undefined)
+  if (hackathonData.timezone !== undefined) {
     updateData.timezone = hackathonData.timezone;
+  }
   if (hackathonData.icon !== undefined) updateData.icon = hackathonData.icon;
-  if (hackathonData.banner !== undefined)
+  if (hackathonData.banner !== undefined) {
     updateData.banner = hackathonData.banner;
-  if (hackathonData.small_banner !== undefined)
+  }
+  if (hackathonData.small_banner !== undefined) {
     updateData.small_banner = hackathonData.small_banner;
-  if (hackathonData.participants !== undefined)
+  }
+  if (hackathonData.participants !== undefined) {
     updateData.participants = hackathonData.participants;
-  if (hackathonData.top_most !== undefined)
+  }
+  if (hackathonData.top_most !== undefined) {
     updateData.top_most = hackathonData.top_most;
-  if (hackathonData.organizers !== undefined)
+  }
+  if (hackathonData.organizers !== undefined) {
     updateData.organizers = hackathonData.organizers;
-  if (hackathonData.custom_link !== undefined)
+  }
+  if (hackathonData.custom_link !== undefined) {
     updateData.custom_link = hackathonData.custom_link;
-  if (hackathonData.created_by !== undefined)
+  }
+  if (hackathonData.created_by !== undefined) {
     updateData.created_by = hackathonData.created_by;
-  if (hackathonData.is_public !== undefined)
+  }
+  if (hackathonData.is_public !== undefined) {
     updateData.is_public = hackathonData.is_public;
+  }
   if (userId) updateData.updated_by = userId;
   if (hackathonData.content !== undefined) {
     const content = {

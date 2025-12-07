@@ -27,9 +27,8 @@ interface PendingExecution {
 
 // Extend globalThis type for our cache
 declare global {
-  // eslint-disable-next-line no-var
   var duneLabelCache: Map<string, CachedLabels> | undefined;
-  // eslint-disable-next-line no-var
+
   var dunePendingExecutions: Map<string, PendingExecution> | undefined;
 }
 
@@ -44,15 +43,15 @@ globalThis.dunePendingExecutions = pendingExecutions;
 export function getCachedLabels(address: string): DuneLabel[] | null {
   const key = address.toLowerCase();
   const cached = labelCache.get(key);
-  
+
   if (!cached) return null;
-  
+
   // Check if expired
   if (Date.now() - cached.timestamp > CACHE_TTL) {
     labelCache.delete(key);
     return null;
   }
-  
+
   return cached.labels;
 }
 
@@ -72,15 +71,15 @@ export function setCachedLabels(address: string, labels: DuneLabel[]): void {
 export function getPendingExecution(address: string): string | null {
   const key = address.toLowerCase();
   const pending = pendingExecutions.get(key);
-  
+
   if (!pending) return null;
-  
+
   // Check if expired
   if (Date.now() - pending.timestamp > PENDING_TTL) {
     pendingExecutions.delete(key);
     return null;
   }
-  
+
   return pending.executionId;
 }
 

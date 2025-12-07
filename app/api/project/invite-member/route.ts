@@ -12,10 +12,7 @@ export const POST = withAuth(async (request, context, session) => {
       session.user.name,
       body.emails
     );
-    return NextResponse.json(
-      { message: "invitation sent", result },
-      { status: 200 }
-    );
+    return NextResponse.json({ message: "invitation sent", result }, { status: 200 });
   } catch (error: any) {
     console.error("Error inviting members:", error);
     console.error("Error POST /api/submit-project:", error.message);

@@ -1,11 +1,11 @@
-import { createOpenAI } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { createOpenAI } from "@ai-sdk/openai";
+import { streamText } from "ai";
 
-export const runtime = 'edge';
+export const runtime = "edge";
 
 // PostHog configuration for LLM analytics
 const POSTHOG_API_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com';
+const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
 
 // Capture LLM generation event to PostHog
 async function captureAIGeneration({
@@ -36,20 +36,20 @@ async function captureAIGeneration({
 
     // GPT-4o-mini pricing: $0.15/1M input, $0.60/1M output
     const inputCost = (estimatedInputTokens / 1000000) * 0.15;
-    const outputCost = (estimatedOutputTokens / 1000000) * 0.60;
+    const outputCost = (estimatedOutputTokens / 1000000) * 0.6;
 
     await fetch(`${POSTHOG_HOST}/capture/`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         api_key: POSTHOG_API_KEY,
-        event: '$ai_generation',
-        distinct_id: distinctId || 'anonymous',
+        event: "$ai_generation",
+        distinct_id: distinctId || "anonymous",
         properties: {
           $ai_model: model,
-          $ai_provider: 'openai',
+          $ai_provider: "openai",
           $ai_input: input,
           $ai_output_choices: [{ message: { content: output } }],
           $ai_input_tokens: estimatedInputTokens,
@@ -63,7 +63,7 @@ async function captureAIGeneration({
       }),
     });
   } catch (error) {
-    console.error('Failed to capture AI generation event:', error);
+    console.error("Failed to capture AI generation event:", error);
   }
 }
 
@@ -82,122 +82,129 @@ let urlsCacheTimestamp: number = 0;
 
 async function getDocumentation(): Promise<string> {
   const now = Date.now();
-  
+
   // Return cached docs if still valid
-  if (docsCache && (now - cacheTimestamp) < CACHE_DURATION) {
+  if (docsCache && now - cacheTimestamp < CACHE_DURATION) {
     return docsCache;
   }
-  
+
   try {
     // Build the URL more reliably for both local and production
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
-                   'http://localhost:3000';
-    
-    const url = new URL('/llms-full.txt', baseUrl);
+    const baseUrl =
+      process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000";
+
+    const url = new URL("/llms-full.txt", baseUrl);
     console.log(`Fetching documentation from: ${url.toString()}`);
-    
+
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch documentation: ${response.status} ${response.statusText}`);
     }
-    
+
     docsCache = await response.text();
     cacheTimestamp = now;
-    
+
     console.log(`Cached documentation: ${docsCache.length} characters`);
     return docsCache;
   } catch (error) {
-    console.error('Error fetching documentation:', error);
+    console.error("Error fetching documentation:", error);
     // Return empty string to avoid breaking the chat
-    return '';
+    return "";
   }
 }
 
 async function getValidUrls(): Promise<string[]> {
   const now = Date.now();
-  
+
   // Return cached URLs if still valid
-  if (validUrlsCache && (now - urlsCacheTimestamp) < CACHE_DURATION) {
+  if (validUrlsCache && now - urlsCacheTimestamp < CACHE_DURATION) {
     return validUrlsCache;
   }
-  
+
   try {
     // Build the URL more reliably for both local and production
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
-                   'http://localhost:3000';
-    
-    const url = new URL('/static.json', baseUrl);
+    const baseUrl =
+      process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000";
+
+    const url = new URL("/static.json", baseUrl);
     console.log(`Fetching valid URLs from: ${url.toString()}`);
-    
+
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch URLs: ${response.status} ${response.statusText}`);
     }
-    
+
     const data = await response.json();
     const urls = data.map((item: any) => item.url);
     validUrlsCache = urls;
     urlsCacheTimestamp = now;
-    
+
     console.log(`Cached ${urls.length} valid URLs`);
     return urls;
   } catch (error) {
-    console.error('Error fetching valid URLs:', error);
+    console.error("Error fetching valid URLs:", error);
     return [];
   }
 }
 
 // Use MCP server for better search quality
-async function searchDocsViaMcp(query: string): Promise<Array<{ url: string; title: string; description?: string; source: string }>> {
+async function searchDocsViaMcp(
+  query: string
+): Promise<Array<{ url: string; title: string; description?: string; source: string }>> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                   'http://localhost:3000';
+    const baseUrl =
+      process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000";
 
     const response = await fetch(`${baseUrl}/api/mcp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        jsonrpc: '2.0',
+        jsonrpc: "2.0",
         id: Date.now(),
-        method: 'tools/call',
+        method: "tools/call",
         params: {
-          name: 'avalanche_docs_search',
-          arguments: { query, limit: 10 }
-        }
-      })
+          name: "avalanche_docs_search",
+          arguments: { query, limit: 10 },
+        },
+      }),
     });
 
     if (!response.ok) {
-      console.error('MCP search failed:', response.status);
+      console.error("MCP search failed:", response.status);
       return [];
     }
 
     const result = await response.json();
     if (result.error) {
-      console.error('MCP search error:', result.error);
+      console.error("MCP search error:", result.error);
       return [];
     }
 
     // Parse the text response from MCP
-    const text = result.result?.content?.[0]?.text || '';
+    const text = result.result?.content?.[0]?.text || "";
 
     // Extract results from the formatted text
     const results: Array<{ url: string; title: string; description?: string; source: string }> = [];
-    const lines = text.split('\n').filter((l: string) => l.startsWith('- ['));
+    const lines = text.split("\n").filter((l: string) => l.startsWith("- ["));
 
     for (const line of lines) {
-      const match = line.match(/- \[(.+?)\]\(https:\/\/build\.avax\.network(.+?)\) \((.+?)\)(?:\n\s+(.+))?/);
+      const match = line.match(
+        /- \[(.+?)\]\(https:\/\/build\.avax\.network(.+?)\) \((.+?)\)(?:\n\s+(.+))?/
+      );
       if (match) {
         results.push({
           title: match[1],
           url: match[2],
           source: match[3],
-          description: match[4]
+          description: match[4],
         });
       }
     }
@@ -205,7 +212,7 @@ async function searchDocsViaMcp(query: string): Promise<Array<{ url: string; tit
     console.log(`MCP search found ${results.length} results for "${query}"`);
     return results;
   } catch (error) {
-    console.error('MCP search error:', error);
+    console.error("MCP search error:", error);
     return [];
   }
 }
@@ -213,22 +220,23 @@ async function searchDocsViaMcp(query: string): Promise<Array<{ url: string; tit
 // Fetch specific pages from search results
 async function fetchPageContent(url: string): Promise<string | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                   'http://localhost:3000';
+    const baseUrl =
+      process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000";
 
     const response = await fetch(`${baseUrl}/api/mcp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        jsonrpc: '2.0',
+        jsonrpc: "2.0",
         id: Date.now(),
-        method: 'tools/call',
+        method: "tools/call",
         params: {
-          name: 'avalanche_docs_fetch',
-          arguments: { url }
-        }
-      })
+          name: "avalanche_docs_fetch",
+          arguments: { url },
+        },
+      }),
     });
 
     if (!response.ok) return null;
@@ -238,7 +246,7 @@ async function fetchPageContent(url: string): Promise<string | null> {
 
     return result.result?.content?.[0]?.text || null;
   } catch (error) {
-    console.error('Page fetch error:', error);
+    console.error("Page fetch error:", error);
     return null;
   }
 }
@@ -247,24 +255,24 @@ function findRelevantSections(query: string, docs: string): string[] {
   if (!docs || !query) return [];
 
   // Split documentation into individual page sections
-  const sections = docs.split(/\n# /).filter(s => s.trim());
+  const sections = docs.split(/\n# /).filter((s) => s.trim());
 
   // Normalize query for better matching
   const queryLower = query.toLowerCase();
-  const queryTerms = queryLower.split(/\s+/).filter(t => t.length > 2);
+  const queryTerms = queryLower.split(/\s+/).filter((t) => t.length > 2);
 
   // Score each section based on relevance
-  const scoredSections = sections.map(section => {
+  const scoredSections = sections.map((section) => {
     const sectionLower = section.toLowerCase();
     let score = 0;
 
     // Extract title (first line)
     const titleMatch = section.match(/^([^\n]+)/);
-    const title = titleMatch ? titleMatch[1] : '';
+    const title = titleMatch ? titleMatch[1] : "";
     const titleLower = title.toLowerCase();
 
     // Score based on query terms appearing in title and content
-    queryTerms.forEach(term => {
+    queryTerms.forEach((term) => {
       if (titleLower.includes(term)) score += 20;
       if (sectionLower.includes(term)) score += 5;
     });
@@ -277,30 +285,33 @@ function findRelevantSections(query: string, docs: string): string[] {
 
   // Filter and sort by relevance
   const relevant = scoredSections
-    .filter(s => s.score > 0)
+    .filter((s) => s.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, 8); // Top 8 most relevant sections
 
   console.log(`Found ${relevant.length} relevant sections for query: "${query}"`);
   if (relevant.length > 0) {
-    console.log('Top 3 sections:', relevant.slice(0, 3).map(r => ({ title: r.title, score: r.score })));
+    console.log(
+      "Top 3 sections:",
+      relevant.slice(0, 3).map((r) => ({ title: r.title, score: r.score }))
+    );
   }
 
-  return relevant.map(r => r.section);
+  return relevant.map((r) => r.section);
 }
 
 export async function POST(req: Request) {
   const { messages, id: visitorId } = await req.json();
   const startTime = Date.now();
   const traceId = `trace_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
   // Get the last user message to search for relevant docs
-  const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
-  
+  const lastUserMessage = messages.filter((m: any) => m.role === "user").pop();
+
   // Get valid URLs for link validation
   const validUrls = await getValidUrls();
-  
-  let relevantContext = '';
+
+  let relevantContext = "";
   if (lastUserMessage) {
     // Try MCP search first (better quality), fall back to full-text search
     const mcpResults = await searchDocsViaMcp(lastUserMessage.content);
@@ -309,16 +320,18 @@ export async function POST(req: Request) {
       // Fetch content for top 3 results
       const contentPromises = mcpResults.slice(0, 3).map(async (result) => {
         const content = await fetchPageContent(result.url);
-        return content ? `# ${result.title}\nURL: https://build.avax.network${result.url}\nSource: ${result.source}\n\n${content}` : null;
+        return content
+          ? `# ${result.title}\nURL: https://build.avax.network${result.url}\nSource: ${result.source}\n\n${content}`
+          : null;
       });
 
       const contents = (await Promise.all(contentPromises)).filter(Boolean);
 
       if (contents.length > 0) {
-        relevantContext = '\n\n=== RELEVANT DOCUMENTATION ===\n\n';
-        relevantContext += 'Here are the most relevant pages from the Avalanche documentation:\n\n';
-        relevantContext += contents.join('\n\n---\n\n');
-        relevantContext += '\n\n=== END DOCUMENTATION ===\n';
+        relevantContext = "\n\n=== RELEVANT DOCUMENTATION ===\n\n";
+        relevantContext += "Here are the most relevant pages from the Avalanche documentation:\n\n";
+        relevantContext += contents.join("\n\n---\n\n");
+        relevantContext += "\n\n=== END DOCUMENTATION ===\n";
         console.log(`Using MCP search results: ${contents.length} pages`);
       }
     }
@@ -329,37 +342,40 @@ export async function POST(req: Request) {
       const relevantSections = findRelevantSections(lastUserMessage.content, docs);
 
       if (relevantSections.length > 0) {
-        relevantContext = '\n\n=== RELEVANT DOCUMENTATION ===\n\n';
-        relevantContext += 'Here are the most relevant sections from the Avalanche documentation:\n\n';
-        relevantContext += relevantSections.join('\n\n---\n\n');
-        relevantContext += '\n\n=== END DOCUMENTATION ===\n';
+        relevantContext = "\n\n=== RELEVANT DOCUMENTATION ===\n\n";
+        relevantContext +=
+          "Here are the most relevant sections from the Avalanche documentation:\n\n";
+        relevantContext += relevantSections.join("\n\n---\n\n");
+        relevantContext += "\n\n=== END DOCUMENTATION ===\n";
         console.log(`Using fallback full-text search: ${relevantSections.length} sections`);
       } else {
-        relevantContext = '\n\n=== DOCUMENTATION ===\n';
-        relevantContext += 'No specific documentation sections matched this query.\n';
-        relevantContext += 'Provide general guidance and suggest relevant documentation sections if applicable.\n';
-        relevantContext += '=== END DOCUMENTATION ===\n';
+        relevantContext = "\n\n=== DOCUMENTATION ===\n";
+        relevantContext += "No specific documentation sections matched this query.\n";
+        relevantContext +=
+          "Provide general guidance and suggest relevant documentation sections if applicable.\n";
+        relevantContext += "=== END DOCUMENTATION ===\n";
       }
     }
   }
-  
+
   // Add valid URLs list
-  const validUrlsList = validUrls.length > 0 
-    ? `\n\n=== VALID DOCUMENTATION URLS ===\nThese are ALL the valid URLs on the site. ONLY use URLs from this list:\n${validUrls.map(url => `https://build.avax.network${url}`).join('\n')}\n=== END VALID URLS ===\n`
-    : '';
+  const validUrlsList =
+    validUrls.length > 0
+      ? `\n\n=== VALID DOCUMENTATION URLS ===\nThese are ALL the valid URLs on the site. ONLY use URLs from this list:\n${validUrls.map((url) => `https://build.avax.network${url}`).join("\n")}\n=== END VALID URLS ===\n`
+      : "";
 
   // Build the full input for analytics
-  const userInput = lastUserMessage?.content || '';
+  const userInput = lastUserMessage?.content || "";
 
   const result = streamText({
-    model: openai('gpt-4o-mini'),
+    model: openai("gpt-4o-mini"),
     messages: messages,
     onFinish: async ({ text, usage }) => {
       // Capture LLM generation event to PostHog
       const latencyMs = Date.now() - startTime;
       await captureAIGeneration({
         distinctId: visitorId,
-        model: 'gpt-4o-mini',
+        model: "gpt-4o-mini",
         input: userInput,
         output: text,
         inputTokens: usage?.promptTokens,

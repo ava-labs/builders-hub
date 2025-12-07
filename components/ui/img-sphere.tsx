@@ -1,11 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { X } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 /**
  * SphereImageGrid - Interactive 3D Image Sphere Component
@@ -111,20 +106,13 @@ const SPHERE_MATH = {
   degreesToRadians: (degrees: number): number => degrees * (Math.PI / 180),
   radiansToDegrees: (radians: number): number => radians * (180 / Math.PI),
 
-  sphericalToCartesian: (
-    radius: number,
-    theta: number,
-    phi: number
-  ): Position3D => ({
+  sphericalToCartesian: (radius: number, theta: number, phi: number): Position3D => ({
     x: radius * Math.sin(phi) * Math.cos(theta),
     y: radius * Math.cos(phi),
     z: radius * Math.sin(phi) * Math.sin(theta),
   }),
 
-  calculateDistance: (
-    pos: Position3D,
-    center: Position3D = { x: 0, y: 0, z: 0 }
-  ): number => {
+  calculateDistance: (pos: Position3D, center: Position3D = { x: 0, y: 0, z: 0 }): number => {
     const dx = pos.x - center.x;
     const dy = pos.y - center.y;
     const dz = pos.z - center.z;
@@ -297,19 +285,14 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
       let fadeOpacity = 1;
       if (worldPos.z <= fadeZoneStart) {
         // Linear fade from 1 to 0 as Z goes from fadeZoneStart to fadeZoneEnd
-        fadeOpacity = Math.max(
-          0,
-          (worldPos.z - fadeZoneEnd) / (fadeZoneStart - fadeZoneEnd)
-        );
+        fadeOpacity = Math.max(0, (worldPos.z - fadeZoneEnd) / (fadeZoneStart - fadeZoneEnd));
       }
 
       // Check if this image originated from a pole position
       const isPoleImage = pos.phi < 30 || pos.phi > 150; // Images from extreme angles
 
       // Calculate distance from center for scaling (in 2D screen space)
-      const distanceFromCenter = Math.sqrt(
-        worldPos.x * worldPos.x + worldPos.y * worldPos.y
-      );
+      const distanceFromCenter = Math.sqrt(worldPos.x * worldPos.x + worldPos.y * worldPos.y);
       const maxDistance = actualSphereRadius;
       const distanceRatio = Math.min(distanceFromCenter / maxDistance, 1);
 
@@ -318,8 +301,7 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
       const centerScale = Math.max(0.3, 1 - distanceRatio * distancePenalty);
 
       // Also consider Z-depth for additional scaling
-      const depthScale =
-        (worldPos.z + actualSphereRadius) / (2 * actualSphereRadius);
+      const depthScale = (worldPos.z + actualSphereRadius) / (2 * actualSphereRadius);
       const scale = centerScale * Math.max(0.5, 0.8 + depthScale * 0.3);
 
       return {
@@ -362,14 +344,8 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
         if (distance < minDistance && distance > 0) {
           // More aggressive scale reduction to prevent overlap
           const overlap = minDistance - distance;
-          const reductionFactor = Math.max(
-            0.4,
-            1 - (overlap / minDistance) * 0.6
-          );
-          adjustedScale = Math.min(
-            adjustedScale,
-            adjustedScale * reductionFactor
-          );
+          const reductionFactor = Math.max(0.4, 1 - (overlap / minDistance) * 0.6);
+          adjustedScale = Math.min(adjustedScale, adjustedScale * reductionFactor);
         }
       }
 
@@ -403,11 +379,7 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
       };
 
       // Stop animation if velocity is too low and auto-rotate is off
-      if (
-        !autoRotate &&
-        Math.abs(newVelocity.x) < 0.01 &&
-        Math.abs(newVelocity.y) < 0.01
-      ) {
+      if (!autoRotate && Math.abs(newVelocity.x) < 0.01 && Math.abs(newVelocity.y) < 0.01) {
         return { x: 0, y: 0 };
       }
 
@@ -431,29 +403,25 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
         z: prev.z,
       };
     });
-  }, [
-    isDragging,
-    momentumDecay,
-    velocity,
-    clampRotationSpeed,
-    autoRotate,
-    autoRotateSpeed,
-  ]);
+  }, [isDragging, momentumDecay, velocity, clampRotationSpeed, autoRotate, autoRotateSpeed]);
 
   // ==========================================
   // EVENT HANDLERS
   // ==========================================
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-    setVelocity({ x: 0, y: 0 });
-    lastMousePos.current = { x: e.clientX, y: e.clientY };
-    if (!hasInteracted) {
-      setHasInteracted(true);
-      setShowDragHint(false);
-    }
-  }, [hasInteracted]);
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      setIsDragging(true);
+      setVelocity({ x: 0, y: 0 });
+      lastMousePos.current = { x: e.clientX, y: e.clientY };
+      if (!hasInteracted) {
+        setHasInteracted(true);
+        setShowDragHint(false);
+      }
+    },
+    [hasInteracted]
+  );
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
@@ -468,12 +436,8 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
       };
 
       setRotation((prev) => ({
-        x: SPHERE_MATH.normalizeAngle(
-          prev.x + clampRotationSpeed(rotationDelta.x)
-        ),
-        y: SPHERE_MATH.normalizeAngle(
-          prev.y + clampRotationSpeed(rotationDelta.y)
-        ),
+        x: SPHERE_MATH.normalizeAngle(prev.x + clampRotationSpeed(rotationDelta.x)),
+        y: SPHERE_MATH.normalizeAngle(prev.y + clampRotationSpeed(rotationDelta.y)),
         z: prev.z,
       }));
 
@@ -492,17 +456,20 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
     setIsDragging(false);
   }, []);
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    e.preventDefault();
-    const touch = e.touches[0];
-    setIsDragging(true);
-    setVelocity({ x: 0, y: 0 });
-    lastMousePos.current = { x: touch.clientX, y: touch.clientY };
-    if (!hasInteracted) {
-      setHasInteracted(true);
-      setShowDragHint(false);
-    }
-  }, [hasInteracted]);
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      setIsDragging(true);
+      setVelocity({ x: 0, y: 0 });
+      lastMousePos.current = { x: touch.clientX, y: touch.clientY };
+      if (!hasInteracted) {
+        setHasInteracted(true);
+        setShowDragHint(false);
+      }
+    },
+    [hasInteracted]
+  );
 
   const handleTouchMove = useCallback(
     (e: TouchEvent) => {
@@ -519,12 +486,8 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
       };
 
       setRotation((prev) => ({
-        x: SPHERE_MATH.normalizeAngle(
-          prev.x + clampRotationSpeed(rotationDelta.x)
-        ),
-        y: SPHERE_MATH.normalizeAngle(
-          prev.y + clampRotationSpeed(rotationDelta.y)
-        ),
+        x: SPHERE_MATH.normalizeAngle(prev.x + clampRotationSpeed(rotationDelta.x)),
+        y: SPHERE_MATH.normalizeAngle(prev.y + clampRotationSpeed(rotationDelta.y)),
         z: prev.z,
       }));
 
@@ -591,13 +554,7 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
       document.removeEventListener("touchmove", handleTouchMove);
       document.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [
-    isMounted,
-    handleMouseMove,
-    handleMouseUp,
-    handleTouchMove,
-    handleTouchEnd,
-  ]);
+  }, [isMounted, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
   // ==========================================
   // RENDER HELPERS
@@ -668,9 +625,7 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
                     className="relative w-full h-full rounded-full overflow-hidden shadow-xl transition-all duration-300"
                     style={{
                       border: `4px solid ${borderColor}`,
-                      boxShadow: isHovered
-                        ? `0 0 30px ${borderColor}`
-                        : `0 0 15px ${borderColor}`,
+                      boxShadow: isHovered ? `0 0 30px ${borderColor}` : `0 0 15px ${borderColor}`,
                     }}
                   >
                     <img
@@ -755,13 +710,7 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
         </TooltipProvider>
       );
     },
-    [
-      worldPositions,
-      baseImageSize,
-      containerSize,
-      hoveredIndex,
-      getCategoryBorderColor,
-    ]
+    [worldPositions, baseImageSize, containerSize, hoveredIndex, getCategoryBorderColor]
   );
 
   const renderSpotlightModal = () => {
@@ -804,9 +753,7 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
                 </h3>
               )}
               {selectedImage.description && (
-                <p className="text-zinc-600 dark:text-zinc-400">
-                  {selectedImage.description}
-                </p>
+                <p className="text-zinc-600 dark:text-zinc-400">{selectedImage.description}</p>
               )}
             </div>
           )}
@@ -897,7 +844,7 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
           width: containerSize,
           height: containerSize,
           perspective: `${perspective}px`,
-          animation: 'sphereEntrance 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
+          animation: "sphereEntrance 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
         }}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
@@ -923,20 +870,20 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
         <div
           className="absolute pointer-events-none"
           style={{
-            left: '50%',
-            bottom: '140px',
-            transform: 'translateX(-50%)',
-            animation: hasInteracted 
-              ? 'dragHintFadeOut 0.5s ease-out forwards' 
-              : 'dragHintPulse 2s ease-in-out infinite',
+            left: "50%",
+            bottom: "140px",
+            transform: "translateX(-50%)",
+            animation: hasInteracted
+              ? "dragHintFadeOut 0.5s ease-out forwards"
+              : "dragHintPulse 2s ease-in-out infinite",
             zIndex: 9999,
           }}
         >
           <div className="flex items-center gap-1 bg-zinc-100/80 dark:bg-zinc-900/50 backdrop-blur-md px-2 py-1 rounded-full shadow-sm border border-zinc-200/80 dark:border-zinc-800/80">
-            <div 
+            <div
               className="text-sm opacity-70"
               style={{
-                animation: 'handGesture 2s ease-in-out infinite',
+                animation: "handGesture 2s ease-in-out infinite",
               }}
             >
               👆

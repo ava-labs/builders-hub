@@ -1,4 +1,4 @@
-import { getQuizResponse } from './indexedDB';
+import { getQuizResponse } from "./indexedDB";
 
 interface QuizProgress {
   [quizId: string]: boolean;
@@ -6,12 +6,12 @@ interface QuizProgress {
 
 export async function getQuizProgress(quizIds: string[]): Promise<QuizProgress> {
   const progress: QuizProgress = {};
-  
+
   for (const quizId of quizIds) {
     const response = await getQuizResponse(quizId);
     progress[quizId] = response ? response.isCorrect : false;
   }
-  
+
   return progress;
 }
 

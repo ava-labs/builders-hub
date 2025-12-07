@@ -1,13 +1,7 @@
 "use client";
 
-import {
-  useL1ByChainId,
-  useSelectedL1,
-} from "@/components/toolbox/stores/l1ListStore";
-import {
-  useToolboxStore,
-  useViemChainStore,
-} from "@/components/toolbox/stores/toolboxStore";
+import { useL1ByChainId, useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
+import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
@@ -22,20 +16,22 @@ import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchain
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
+import {
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from "@/components/toolbox/components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 
 const metadata: ConsoleToolMetadata = {
   title: "Register Remote Contract with Home",
   description: "Register the remote contract with the home contract.",
   toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 function RegisterWithHome() {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
-  const { erc20TokenRemoteAddress, nativeTokenRemoteAddress } =
-    useToolboxStore();
+  const { erc20TokenRemoteAddress, nativeTokenRemoteAddress } = useToolboxStore();
   const [remoteAddress, setRemoteAddress] = useState("");
   const { coreWalletClient } = useWalletStore();
   const { notify } = useConsoleNotifications();
@@ -45,11 +41,8 @@ function RegisterWithHome() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [lastTxId, setLastTxId] = useState<string>();
   const [localError, setLocalError] = useState("");
-  const [homeContractAddress, setHomeContractAddress] = useState<string | null>(
-    null
-  );
-  const [homeContractClient, setHomeContractClient] =
-    useState<PublicClient | null>(null);
+  const [homeContractAddress, setHomeContractAddress] = useState<string | null>(null);
+  const [homeContractClient, setHomeContractClient] = useState<PublicClient | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
   const [isCheckingRegistration, setIsCheckingRegistration] = useState(false);
 
@@ -95,9 +88,7 @@ function RegisterWithHome() {
 
       // Convert CURRENT chain ID to hex for the contract call
       // This is where the remote contract is deployed
-      const remoteBlockchainIDHex = utils.bufferToHex(
-        utils.base58check.decode(selectedL1.id)
-      );
+      const remoteBlockchainIDHex = utils.bufferToHex(utils.base58check.decode(selectedL1.id));
 
       const remoteSettings = (await homePublicClient.readContract({
         address: tokenHomeAddress as `0x${string}`,
@@ -115,22 +106,12 @@ function RegisterWithHome() {
       setIsRegistered(remoteSettings.registered);
     } catch (error: any) {
       console.error("Error fetching token home address:", error);
-      setLocalError(
-        `Error fetching token home address: ${
-          error.shortMessage || error.message
-        }`
-      );
+      setLocalError(`Error fetching token home address: ${error.shortMessage || error.message}`);
       setHomeContractAddress(null);
     } finally {
       setIsCheckingRegistration(false);
     }
-  }, [
-    remoteAddress,
-    sourceChainId,
-    viemChain?.id,
-    sourceL1?.rpcUrl,
-    selectedL1?.id,
-  ]);
+  }, [remoteAddress, sourceChainId, viemChain?.id, sourceL1?.rpcUrl, selectedL1?.id]);
 
   useEffect(() => {
     fetchSettings();
@@ -165,10 +146,7 @@ function RegisterWithHome() {
 
       const feeInfo: readonly [`0x${string}`, bigint] = [zeroAddress, 0n]; // feeTokenAddress, amount
 
-      console.log(
-        `Calling registerWithHome on ${remoteAddress} with feeInfo:`,
-        feeInfo
-      );
+      console.log(`Calling registerWithHome on ${remoteAddress} with feeInfo:`, feeInfo);
 
       // Simulate the transaction first
       const { request } = await publicClient.simulateContract({
@@ -198,12 +176,8 @@ function RegisterWithHome() {
       setLocalError("");
     } catch (error: any) {
       console.error("Registration failed:", error);
-      setLocalError(
-        `Registration failed: ${error.shortMessage || error.message}`
-      );
-      setCriticalError(
-        error instanceof Error ? error : new Error(String(error))
-      );
+      setLocalError(`Registration failed: ${error.shortMessage || error.message}`);
+      setCriticalError(error instanceof Error ? error : new Error(String(error)));
     } finally {
       setIsRegistering(false);
     }
@@ -232,9 +206,9 @@ function RegisterWithHome() {
     <>
       <div>
         <p className="mt-2">
-          This will call the `registerWithHome` function on the remote contract
-          on the current chain ({selectedL1?.name}). This links the remote
-          bridge back to the home bridge on the source chain.
+          This will call the `registerWithHome` function on the remote contract on the current chain
+          ({selectedL1?.name}). This links the remote bridge back to the home bridge on the source
+          chain.
         </p>
       </div>
 
@@ -251,15 +225,11 @@ function RegisterWithHome() {
         onChange={setRemoteAddress}
         disabled={isRegistering}
         suggestions={remoteAddressSuggestions}
-        helperText={
-          !remoteAddress ? "Please enter a remote contract address" : undefined
-        }
+        helperText={!remoteAddress ? "Please enter a remote contract address" : undefined}
       />
 
       {localError && (
-        <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">
-          {localError}
-        </div>
+        <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">{localError}</div>
       )}
 
       <Button
@@ -292,22 +262,19 @@ function RegisterWithHome() {
         <div>✅ Remote contract is registered with the Home contract</div>
       )}
 
-      {!isCheckingRegistration &&
-        !isRegistered &&
-        sourceChainId &&
-        remoteAddress && (
-          <div>
-            ⚠️ Remote contract is not yet registered with the Home contract. ICM
-            message needs a few seconds to be processed.
-            <button
-              className="underline text-blue-500 px-1 py-0 h-auto"
-              onClick={fetchSettings}
-              disabled={isCheckingRegistration}
-            >
-              Refresh
-            </button>
-          </div>
-        )}
+      {!isCheckingRegistration && !isRegistered && sourceChainId && remoteAddress && (
+        <div>
+          ⚠️ Remote contract is not yet registered with the Home contract. ICM message needs a few
+          seconds to be processed.
+          <button
+            className="underline text-blue-500 px-1 py-0 h-auto"
+            onClick={fetchSettings}
+            disabled={isCheckingRegistration}
+          >
+            Refresh
+          </button>
+        </div>
+      )}
 
       {homeContractAddress && homeContractClient && (
         <div className="mt-8 pt-4 border-t border-gray-200">

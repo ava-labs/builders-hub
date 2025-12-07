@@ -19,11 +19,13 @@ export const formSchema = z.object({
   project_company_logo: z.any().optional(),
   project_company_banner: z.any().optional(),
   media_kit: z.string().min(1, "Media Kit URL is required"),
-  
+
   // Financial Overview
   previous_funding: z.array(z.string()).min(1, "At least one funding option must be selected"),
   funding_details: z.string().optional(),
-  previous_avalanche_funding_grants: z.array(z.string()).min(1, "At least one option must be selected"),
+  previous_avalanche_funding_grants: z
+    .array(z.string())
+    .min(1, "At least one option must be selected"),
   funding_amount_codebase: z.string().optional(),
   funding_amount_infrabuidl: z.string().optional(),
   funding_amount_infrabuidl_ai: z.string().optional(),
@@ -31,40 +33,48 @@ export const formSchema = z.object({
   funding_amount_blizzard: z.string().optional(),
   funding_amount_ava_labs: z.string().optional(),
   funding_amount_other_avalanche: z.string().optional(),
-  
+
   // Grant Budget Structure & Milestones
   requested_funding_range_milestone: z.string().min(1, "Funding range is required"),
   milestone_name_1: z.string().min(1, "Milestone name is required"),
-  milestone_1_description: z.string().min(10, "Please provide a more detailed milestone description"),
-  milestone_1_deliverables_kpi: z.string().min(10, "Please provide more detailed deliverables and KPIs"),
+  milestone_1_description: z
+    .string()
+    .min(10, "Please provide a more detailed milestone description"),
+  milestone_1_deliverables_kpi: z
+    .string()
+    .min(10, "Please provide more detailed deliverables and KPIs"),
   milestone_1_completion_date: z.date({
     message: "Completion date is required",
   }),
   milestone_1_amount_requested: z.number().min(1, "Amount must be greater than 0"),
-  
+
   milestone_name_2: z.string().min(1, "Milestone name is required"),
-  milestone_2_description: z.string().min(10, "Please provide a more detailed milestone description"),
-  milestone_2_deliverables_kpi: z.string().min(10, "Please provide more detailed deliverables and KPIs"),
+  milestone_2_description: z
+    .string()
+    .min(10, "Please provide a more detailed milestone description"),
+  milestone_2_deliverables_kpi: z
+    .string()
+    .min(10, "Please provide more detailed deliverables and KPIs"),
   milestone_2_completion_date: z.date({
     message: "Completion date is required",
   }),
   milestone_2_amount_requested: z.number().min(1, "Amount must be greater than 0"),
-  
+
   milestone_name_3: z.string().optional(),
   milestone_3_description: z.string().optional(),
   milestone_3_deliverables_kpi: z.string().optional(),
   milestone_3_completion_date: z.date().optional(),
   milestone_3_amount_requested: z.number().optional(),
-  
+
   milestone_name_4: z.string().optional(),
   milestone_4_description: z.string().optional(),
   milestone_4_deliverables_kpi: z.string().optional(),
   milestone_4_completion_date: z.date().optional(),
   milestone_4_amount_requested: z.number().optional(),
-  
+
   vc_fundraising_support_check: z.string().min(1, "Please select an option"),
   aethir_ai_gaming_fund_check: z.string().min(1, "Please select an option"),
-  
+
   // Contribution to the Avalanche Ecosystem
   current_development_stage: z.string().min(1, "Development stage is required"),
   project_work_duration: z.string().min(1, "Work duration is required"),
@@ -92,7 +102,7 @@ export const formSchema = z.object({
   token_launch_avalanche_check: z.string().min(1, "Please select an option"),
   token_launch_other: z.string().optional(),
   open_source_check: z.string().min(1, "Please select an option"),
-  
+
   // Applicant Information
   firstname: z.string().min(1, "First name is required"),
   lastname: z.string().min(1, "Last name is required"),
@@ -107,10 +117,10 @@ export const formSchema = z.object({
   linkedin: z.string().optional(),
   github: z.string().optional(),
   other_resources: z.string().optional(),
-  
+
   // Team Details
   team_size: z.string().min(1, "Team size is required"),
-  
+
   // Team members (conditionally required based on team size)
   team_member_1_first_name: z.string().optional(),
   team_member_1_last_name: z.string().optional(),
@@ -123,7 +133,7 @@ export const formSchema = z.object({
   team_member_1_github: z.string().optional(),
   team_member_1_country: z.string().optional(),
   other_resource_s__team_member_1: z.string().optional(),
-  
+
   team_member_2_first_name: z.string().optional(),
   team_member_2_last_name: z.string().optional(),
   team_member_2_email: z.string().optional(),
@@ -135,16 +145,16 @@ export const formSchema = z.object({
   team_member_2_github: z.string().optional(),
   team_member_2_country: z.string().optional(),
   other_resource_s__team_member_2: z.string().optional(),
-  
+
   // Other
   kyb_willingness: z.string().min(1, "Please select an option"),
   avalanche_grant_source: z.string().min(1, "Please select an option"),
   avalanche_grant_source_other: z.string().optional(),
   program_referral_check: z.string().min(1, "Please select an option"),
   program_referrer: z.string().optional(),
-  
+
   // Legal Compliance
-  gdpr: z.boolean().refine(val => val === true, {
+  gdpr: z.boolean().refine((val) => val === true, {
     message: "You must agree to the privacy policy to submit the form",
   }),
   marketing_consent: z.boolean().optional(),
@@ -161,7 +171,7 @@ export const jobRoles: string[] = [
   "Marketing Lead / Growth Lead",
   "Blockchain Engineer",
   "UX/UI Designer",
-  "Other"
+  "Other",
 ];
 
 export const continents: string[] = [
@@ -170,15 +180,72 @@ export const continents: string[] = [
   "Australia",
   "Europe",
   "North America",
-  "South America"
+  "South America",
 ];
 
 export const countries: string[] = [
-  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", 
-  "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", 
-  "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi",
-  "Canada", "China", "Denmark", "Egypt", "Finland", "France", "Germany", "Greece", "India", "Indonesia",
-  "Ireland", "Israel", "Italy", "Japan", "Kenya", "Mexico", "Netherlands", "New Zealand", "Norway",
-  "Portugal", "Russia", "Saudi Arabia", "Singapore", "South Africa", "South Korea", "Spain", "Sweden",
-  "Switzerland", "Thailand", "Turkey", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Vietnam", "Other"
+  "Afghanistan",
+  "Albania",
+  "Algeria",
+  "Andorra",
+  "Angola",
+  "Antigua and Barbuda",
+  "Argentina",
+  "Armenia",
+  "Australia",
+  "Austria",
+  "Azerbaijan",
+  "Bahamas",
+  "Bahrain",
+  "Bangladesh",
+  "Barbados",
+  "Belarus",
+  "Belgium",
+  "Belize",
+  "Benin",
+  "Bhutan",
+  "Bolivia",
+  "Bosnia and Herzegovina",
+  "Botswana",
+  "Brazil",
+  "Brunei",
+  "Bulgaria",
+  "Burkina Faso",
+  "Burundi",
+  "Canada",
+  "China",
+  "Denmark",
+  "Egypt",
+  "Finland",
+  "France",
+  "Germany",
+  "Greece",
+  "India",
+  "Indonesia",
+  "Ireland",
+  "Israel",
+  "Italy",
+  "Japan",
+  "Kenya",
+  "Mexico",
+  "Netherlands",
+  "New Zealand",
+  "Norway",
+  "Portugal",
+  "Russia",
+  "Saudi Arabia",
+  "Singapore",
+  "South Africa",
+  "South Korea",
+  "Spain",
+  "Sweden",
+  "Switzerland",
+  "Thailand",
+  "Turkey",
+  "Ukraine",
+  "United Arab Emirates",
+  "United Kingdom",
+  "United States",
+  "Vietnam",
+  "Other",
 ];

@@ -42,7 +42,9 @@ const isPathType = (value: string | undefined): value is AcademyPathType => {
   return value === "avalanche" || value === "blockchain" || value === "entrepreneur";
 };
 
-export default async function AvalancheAcademyPage({ searchParams }: PageProps): Promise<React.ReactElement> {
+export default async function AvalancheAcademyPage({
+  searchParams,
+}: PageProps): Promise<React.ReactElement> {
   const resolvedSearchParams = await searchParams;
   // Get all guides server-side
   const blogPages = [...blog.getPages()]
@@ -77,8 +79,8 @@ export default async function AvalancheAcademyPage({ searchParams }: PageProps):
     data: {
       title: blogEntry.title,
       description: blogEntry.description,
-      topics: ['Entrepreneur'],
-      date: blogEntry.date || '',
+      topics: ["Entrepreneur"],
+      date: blogEntry.date || "",
     },
     file: {
       name: blogEntry.id,
@@ -111,14 +113,10 @@ export default async function AvalancheAcademyPage({ searchParams }: PageProps):
             </div>
 
             {blog.date && (
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
-                {blog.date}
-              </p>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">{blog.date}</p>
             )}
 
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 flex-grow">
-              {blog.description}
-            </p>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 flex-grow">{blog.description}</p>
 
             <div className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-red-600 group-hover:text-red-700 dark:text-red-500 dark:hover:text-red-400">
               Read article
@@ -130,17 +128,26 @@ export default async function AvalancheAcademyPage({ searchParams }: PageProps):
     </div>
   ) : null;
 
-  const initialPathType = isPathType(resolvedSearchParams?.path) ? resolvedSearchParams?.path : undefined;
+  const initialPathType = isPathType(resolvedSearchParams?.path)
+    ? resolvedSearchParams?.path
+    : undefined;
 
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="text-zinc-600 dark:text-zinc-400">Loading...</div></div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-zinc-600 dark:text-zinc-400">Loading...</div>
+        </div>
+      }
+    >
       <AcademyLayout
         config={avalancheDeveloperAcademyLandingPageConfig}
         blogs={blogs}
         blogsByPath={{
           avalanche: blogs,
           blockchain: blogs,
-          entrepreneur: entrepreneurBlogsFromConfig.length > 0 ? entrepreneurBlogsFromConfig : blogs,
+          entrepreneur:
+            entrepreneurBlogsFromConfig.length > 0 ? entrepreneurBlogsFromConfig : blogs,
         }}
         afterLearningPathByPath={{
           entrepreneur: entrepreneurHighlights,

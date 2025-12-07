@@ -1,5 +1,5 @@
-import { getPChainBalance, getNativeTokenBalance, getChains } from '../coreViem/utils/glacier';
-import { avalancheFuji, avalanche } from 'viem/chains';
+import { getPChainBalance, getNativeTokenBalance, getChains } from "../coreViem/utils/glacier";
+import { avalancheFuji, avalanche } from "viem/chains";
 
 // Local debounce function
 function debounce<T extends (...args: any[]) => any>(
@@ -14,15 +14,15 @@ function debounce<T extends (...args: any[]) => any>(
 }
 
 // Cache for indexed chains to avoid repeated API calls
-let indexedChainsCache: Number[] | null = null;
-let indexedChainsPromise: Promise<Number[]> | null = null;
+let indexedChainsCache: number[] | null = null;
+let indexedChainsPromise: Promise<number[]> | null = null;
 
-async function getIndexedChains(): Promise<Number[]> {
-  if (indexedChainsCache) return indexedChainsCache;
+function getIndexedChains(): Promise<number[]> {
+  if (indexedChainsCache) return Promise.resolve(indexedChainsCache);
 
   if (!indexedChainsPromise) {
-    indexedChainsPromise = getChains().then(chains => {
-      const chainIds = chains.map(chain => parseInt(chain.chainId));
+    indexedChainsPromise = getChains().then((chains) => {
+      const chainIds = chains.map((chain) => parseInt(chain.chainId));
       indexedChainsCache = chainIds;
       return chainIds;
     });
@@ -32,8 +32,8 @@ async function getIndexedChains(): Promise<Number[]> {
 }
 
 interface BalanceUpdateCallbacks {
-  setBalance: (type: 'pChain' | 'cChain' | string, amount: number) => void;
-  setLoading: (type: 'pChain' | 'cChain' | string, loading: boolean) => void;
+  setBalance: (type: "pChain" | "cChain" | string, amount: number) => void;
+  setLoading: (type: "pChain" | "cChain" | string, loading: boolean) => void;
   getState: () => {
     isTestnet?: boolean;
     pChainAddress: string;
@@ -52,8 +52,7 @@ interface BalanceUpdateCallbacks {
 class BalanceService {
   private callbacks: BalanceUpdateCallbacks | null = null;
 
-
-  constructor(private debounceTime: number = 500) { }
+  constructor(private debounceTime: number = 500) {}
 
   setCallbacks(callbacks: BalanceUpdateCallbacks) {
     this.callbacks = callbacks;
@@ -69,12 +68,15 @@ class BalanceService {
 
       if (state.isLoading.pChain) return;
 
-      this.callbacks.setLoading('pChain', true);
+      this.callbacks.setLoading("pChain", true);
       try {
-        const balance = await this.fetchPChainBalance(state.isTestnet ?? false, state.pChainAddress);
-        this.callbacks.setBalance('pChain', balance);
+        const balance = await this.fetchPChainBalance(
+          state.isTestnet ?? false,
+          state.pChainAddress
+        );
+        this.callbacks.setBalance("pChain", balance);
       } finally {
-        this.callbacks.setLoading('pChain', false);
+        this.callbacks.setLoading("pChain", false);
       }
     }, this.debounceTime);
 
@@ -83,24 +85,25 @@ class BalanceService {
     };
 
     // Create debounced L1 update function that takes chainId
-    const createDebouncedL1Update = (chainId: string) => debounce(async () => {
-      if (!this.callbacks) return;
-      const state = this.callbacks.getState();
+    const createDebouncedL1Update = (chainId: string) =>
+      debounce(async () => {
+        if (!this.callbacks) return;
+        const state = this.callbacks.getState();
 
-      if (state.isLoading.l1Chains[chainId]) return;
+        if (state.isLoading.l1Chains[chainId]) return;
 
-      this.callbacks.setLoading(chainId, true);
-      try {
-        const balance = await this.fetchL1Balance(
-          parseInt(chainId),
-          state.walletEVMAddress,
-          state.publicClient
-        );
-        this.callbacks.setBalance(chainId, balance);
-      } finally {
-        this.callbacks.setLoading(chainId, false);
-      }
-    }, this.debounceTime);
+        this.callbacks.setLoading(chainId, true);
+        try {
+          const balance = await this.fetchL1Balance(
+            parseInt(chainId),
+            state.walletEVMAddress,
+            state.publicClient
+          );
+          this.callbacks.setBalance(chainId, balance);
+        } finally {
+          this.callbacks.setLoading(chainId, false);
+        }
+      }, this.debounceTime);
 
     // Store debounced functions for each chain
     const debouncedL1Updates = new Map<string, ReturnType<typeof createDebouncedL1Update>>();
@@ -118,12 +121,15 @@ class BalanceService {
 
       if (state.isLoading.cChain) return;
 
-      this.callbacks.setLoading('cChain', true);
+      this.callbacks.setLoading("cChain", true);
       try {
-        const balance = await this.fetchCChainBalance(state.isTestnet ?? false, state.walletEVMAddress);
-        this.callbacks.setBalance('cChain', balance);
+        const balance = await this.fetchCChainBalance(
+          state.isTestnet ?? false,
+          state.walletEVMAddress
+        );
+        this.callbacks.setBalance("cChain", balance);
       } finally {
-        this.callbacks.setLoading('cChain', false);
+        this.callbacks.setLoading("cChain", false);
       }
     }, this.debounceTime);
 
@@ -141,7 +147,7 @@ class BalanceService {
       const response = await getPChainBalance(network, pChainAddress);
       return Number(response.balances.unlockedUnstaked[0]?.amount || 0) / 1e9;
     } catch (error) {
-      console.error('Failed to fetch P-Chain balance:', error);
+      console.error("Failed to fetch P-Chain balance:", error);
       return 0;
     }
   }
@@ -160,7 +166,7 @@ class BalanceService {
 
       if (isIndexedChain) {
         const balance = await getNativeTokenBalance(walletChainId, walletEVMAddress);
-        return Number(balance.balance) / (10 ** balance.decimals);
+        return Number(balance.balance) / 10 ** balance.decimals;
       } else {
         const balance = await publicClient.getBalance({
           address: walletEVMAddress as `0x${string}`,
@@ -168,7 +174,7 @@ class BalanceService {
         return Number(balance) / 1e18;
       }
     } catch (error) {
-      console.error('Failed to fetch L1 balance:', error);
+      console.error("Failed to fetch L1 balance:", error);
       return 0;
     }
   }
@@ -180,19 +186,16 @@ class BalanceService {
     try {
       const chain = isTestnet ? avalancheFuji : avalanche;
       const balance = await getNativeTokenBalance(chain.id, walletEVMAddress);
-      return Number(balance.balance) / (10 ** balance.decimals);
+      return Number(balance.balance) / 10 ** balance.decimals;
     } finally {
       // Handle any cleanup if needed
     }
   }
 
-
   // These will be set up by initializeDebouncedMethods
-  updatePChainBalance = async () => Promise.resolve();
-  updateL1Balance = async (_chainId: string) => Promise.resolve();
-  updateCChainBalance = async () => Promise.resolve();
-
-
+  updatePChainBalance = () => Promise.resolve();
+  updateL1Balance = (_chainId: string) => Promise.resolve();
+  updateCChainBalance = () => Promise.resolve();
 
   // Update all balances (normal behavior - only current L1)
   updateAllBalances = async () => {
@@ -207,9 +210,7 @@ class BalanceService {
   updateAllBalancesWithAllL1s = async (l1List?: Array<{ evmChainId: number }>) => {
     if (l1List && l1List.length > 0) {
       // Update balances for all L1s in the list
-      const updatePromises = l1List.map(l1 =>
-        this.updateL1Balance(l1.evmChainId.toString())
-      );
+      const updatePromises = l1List.map((l1) => this.updateL1Balance(l1.evmChainId.toString()));
       await Promise.all([
         this.updatePChainBalance(),
         Promise.all(updatePromises),

@@ -1,13 +1,12 @@
-import { NextResponse } from 'next/server';
-import { getUserByEmail } from '@/server/services/getUser';
-import { withAuth } from '@/lib/protectedRoute';
-
+import { NextResponse } from "next/server";
+import { getUserByEmail } from "@/server/services/getUser";
+import { withAuth } from "@/lib/protectedRoute";
 
 export const GET = withAuth(async (request: Request) => {
-    const { searchParams } = new URL(request.url);
-    const email = searchParams.get('email');
+  const { searchParams } = new URL(request.url);
+  const email = searchParams.get("email");
   if (!email) {
-    return NextResponse.json({ error: 'Email parameter is required' }, { status: 400 });
+    return NextResponse.json({ error: "Email parameter is required" }, { status: 400 });
   }
 
   try {

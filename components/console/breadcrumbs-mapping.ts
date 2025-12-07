@@ -19,12 +19,28 @@ export const pathToBreadcrumb = {
   "/console/l1-tokenomics/native-minter": ["Console", "L1 Tokenomics", "Mint Native Coins"],
 
   // Permissioned L1s
-  "/console/l1-access-restrictions/deployer-allowlist": ["Console", "Permissioned L1s", "Deployer Allowlist"],
+  "/console/l1-access-restrictions/deployer-allowlist": [
+    "Console",
+    "Permissioned L1s",
+    "Deployer Allowlist",
+  ],
   "/console/permissioned-l1s/add-validator": ["Console", "Permissioned L1s", "Add Validator"],
   "/console/permissioned-l1s/remove-validator": ["Console", "Permissioned L1s", "Remove Validator"],
-  "/console/permissioned-l1s/change-validator-weight": ["Console", "Permissioned L1s", "Change Validator Weight"],
-  "/console/l1-access-restrictions/transactor-allowlist": ["Console", "Permissioned L1s", "Transactor Allowlist"],
-  "/console/permissioned-l1s/validator-manager-setup": ["Console", "Permissioned L1s", "Validator Manager Setup"],
+  "/console/permissioned-l1s/change-validator-weight": [
+    "Console",
+    "Permissioned L1s",
+    "Change Validator Weight",
+  ],
+  "/console/l1-access-restrictions/transactor-allowlist": [
+    "Console",
+    "Permissioned L1s",
+    "Transactor Allowlist",
+  ],
+  "/console/permissioned-l1s/validator-manager-setup": [
+    "Console",
+    "Permissioned L1s",
+    "Validator Manager Setup",
+  ],
 
   // ICM (Interchain Messaging)
   "/console/icm/setup": ["Console", "ICM", "Setup"],

@@ -1,39 +1,39 @@
-"use client"
-import { Plus, Trash2 } from "lucide-react"
-import { cn } from "./utils"
-import { Button } from "./Button"
+"use client";
+import { Plus, Trash2 } from "lucide-react";
+import { cn } from "./utils";
+import { Button } from "./Button";
 
-export type PChainOwner = { 
-  addresses: string[]
-  threshold: number
-}
+export type PChainOwner = {
+  addresses: string[];
+  threshold: number;
+};
 
 interface OwnerAddressesInputProps {
-  label: string
-  owner: PChainOwner
-  onChange: (owner: PChainOwner) => void
+  label: string;
+  owner: PChainOwner;
+  onChange: (owner: PChainOwner) => void;
 }
 
 export function OwnerAddressesInput({ label, owner, onChange }: OwnerAddressesInputProps) {
   const updateAddresses = (addresses: string[]) => {
     // If there's only one address, set threshold to 1
-    const threshold = addresses.length <= 1 ? 1 : owner.threshold
+    const threshold = addresses.length <= 1 ? 1 : owner.threshold;
 
     // Make sure threshold is not greater than the number of addresses
-    const validThreshold = Math.min(threshold, addresses.length)
+    const validThreshold = Math.min(threshold, addresses.length);
 
     onChange({
       addresses,
       threshold: validThreshold,
-    })
-  }
+    });
+  };
 
   const updateThreshold = (threshold: number) => {
     onChange({
       ...owner,
       threshold: Math.max(1, Math.min(threshold, owner.addresses.length)),
-    })
-  }
+    });
+  };
 
   return (
     <div className="space-y-2">
@@ -45,9 +45,9 @@ export function OwnerAddressesInput({ label, owner, onChange }: OwnerAddressesIn
               type="text"
               value={address}
               onChange={(e) => {
-                const newAddresses = [...owner.addresses]
-                newAddresses[addrIndex] = e.target.value
-                updateAddresses(newAddresses)
+                const newAddresses = [...owner.addresses];
+                newAddresses[addrIndex] = e.target.value;
+                updateAddresses(newAddresses);
               }}
               className={cn(
                 "flex-1 rounded p-2",
@@ -55,14 +55,14 @@ export function OwnerAddressesInput({ label, owner, onChange }: OwnerAddressesIn
                 "border border-zinc-200 dark:border-zinc-700",
                 "text-zinc-900 dark:text-zinc-100",
                 "shadow-sm focus:ring focus:ring-indigo-200 focus:ring-opacity-50",
-                "font-mono text-sm",
+                "font-mono text-sm"
               )}
             />
             <button
               onClick={() => {
-                const newAddresses = [...owner.addresses]
-                newAddresses.splice(addrIndex, 1)
-                updateAddresses(newAddresses)
+                const newAddresses = [...owner.addresses];
+                newAddresses.splice(addrIndex, 1);
+                updateAddresses(newAddresses);
               }}
               className="p-2 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-md transition-colors text-red-500"
               title="Remove address"
@@ -76,7 +76,9 @@ export function OwnerAddressesInput({ label, owner, onChange }: OwnerAddressesIn
         {owner.addresses.length > 1 && (
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap">Threshold:</span>
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
+                Threshold:
+              </span>
               <input
                 type="number"
                 min="1"
@@ -88,7 +90,7 @@ export function OwnerAddressesInput({ label, owner, onChange }: OwnerAddressesIn
                   "bg-zinc-50 dark:bg-zinc-900",
                   "border border-zinc-200 dark:border-zinc-700",
                   "text-zinc-900 dark:text-zinc-100",
-                  "shadow-sm focus:ring focus:ring-indigo-200 focus:ring-opacity-50",
+                  "shadow-sm focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                 )}
               />
               <span className="text-sm text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
@@ -103,8 +105,8 @@ export function OwnerAddressesInput({ label, owner, onChange }: OwnerAddressesIn
 
         <Button
           onClick={() => {
-            const newAddresses = [...owner.addresses, ""]
-            updateAddresses(newAddresses)
+            const newAddresses = [...owner.addresses, ""];
+            updateAddresses(newAddresses);
           }}
           variant="secondary"
           className="w-full"
@@ -114,6 +116,5 @@ export function OwnerAddressesInput({ label, owner, onChange }: OwnerAddressesIn
         </Button>
       </div>
     </div>
-  )
+  );
 }
-

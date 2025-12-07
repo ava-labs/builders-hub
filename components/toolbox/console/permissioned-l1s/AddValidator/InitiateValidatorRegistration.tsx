@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
-import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { Button } from '@/components/toolbox/components/Button';
-import { ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
-import { validateStakePercentage } from '@/components/toolbox/coreViem/hooks/getTotalStake';
-import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
-import { Success } from '@/components/toolbox/components/Success';
-import { parseNodeID } from '@/components/toolbox/coreViem/utils/ids';
-import { fromBytes } from 'viem';
-import { utils } from '@avalabs/avalanchejs';
-import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
-import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { Alert } from '@/components/toolbox/components/Alert';
+import React, { useState, useEffect } from "react";
+import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
+import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { Button } from "@/components/toolbox/components/Button";
+import { ConvertToL1Validator } from "@/components/toolbox/components/ValidatorListInput";
+import { validateStakePercentage } from "@/components/toolbox/coreViem/hooks/getTotalStake";
+import validatorManagerAbi from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
+import { Success } from "@/components/toolbox/components/Success";
+import { parseNodeID } from "@/components/toolbox/coreViem/utils/ids";
+import { fromBytes } from "viem";
+import { utils } from "@avalabs/avalanchejs";
+import { MultisigOption } from "@/components/toolbox/components/MultisigOption";
+import { getValidationIdHex } from "@/components/toolbox/coreViem/hooks/getValidationID";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { Alert } from "@/components/toolbox/components/Alert";
 
 interface InitiateValidatorRegistrationProps {
   subnetId: string;
@@ -28,7 +28,7 @@ interface InitiateValidatorRegistrationProps {
     blsProofOfPossession: string;
   }) => void;
   onError: (message: string) => void;
-  ownershipState: 'contract' | 'currentWallet' | 'differentEOA' | 'loading';
+  ownershipState: "contract" | "currentWallet" | "differentEOA" | "loading";
   contractTotalWeight: bigint;
   l1WeightError: string | null;
 }
@@ -56,8 +56,10 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     }
 
     // Check ownership permissions
-    if (ownershipState === 'differentEOA') {
-      setErrorState("You are not the owner of this contract. Only the contract owner can add validators.");
+    if (ownershipState === "differentEOA") {
+      setErrorState(
+        "You are not the owner of this contract. Only the contract owner can add validators."
+      );
       return false;
     }
 
@@ -77,7 +79,9 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
       );
 
       if (exceedsMaximum) {
-        setErrorState(`The new validator's proposed weight (${validator.validatorWeight}) represents ${percentageChange.toFixed(2)}% of the current total L1 stake (${contractTotalWeight}). This must be less than 20%.`);
+        setErrorState(
+          `The new validator's proposed weight (${validator.validatorWeight}) represents ${percentageChange.toFixed(2)}% of the current total L1 stake (${contractTotalWeight}). This must be less than 20%.`
+        );
         return false;
       }
     }
@@ -103,12 +107,14 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
       return;
     }
 
-    if (ownershipState === 'differentEOA') {
-      setErrorState("You are not the owner of this contract. Only the contract owner can add validators.");
+    if (ownershipState === "differentEOA") {
+      setErrorState(
+        "You are not the owner of this contract. Only the contract owner can add validators."
+      );
       return;
     }
 
-    if (ownershipState === 'loading') {
+    if (ownershipState === "loading") {
       setErrorState("Verifying contract ownership... please wait.");
       return;
     }
@@ -119,15 +125,19 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
       const [account] = await coreWalletClient.requestAddresses();
 
       // Process P-Chain Addresses
-      const pChainRemainingBalanceOwnerAddressesHex = validator.remainingBalanceOwner.addresses.map(address => {
-        const addressBytes = utils.bech32ToBytes(address);
-        return fromBytes(addressBytes, "hex");
-      });
+      const pChainRemainingBalanceOwnerAddressesHex = validator.remainingBalanceOwner.addresses.map(
+        (address) => {
+          const addressBytes = utils.bech32ToBytes(address);
+          return fromBytes(addressBytes, "hex");
+        }
+      );
 
-      const pChainDisableOwnerAddressesHex = validator.deactivationOwner.addresses.map(address => {
-        const addressBytes = utils.bech32ToBytes(address);
-        return fromBytes(addressBytes, "hex");
-      });
+      const pChainDisableOwnerAddressesHex = validator.deactivationOwner.addresses.map(
+        (address) => {
+          const addressBytes = utils.bech32ToBytes(address);
+          return fromBytes(addressBytes, "hex");
+        }
+      );
 
       // Build arguments for transaction
       const args = [
@@ -141,7 +151,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           threshold: validator.deactivationOwner.threshold,
           addresses: pChainDisableOwnerAddressesHex,
         },
-        validator.validatorWeight
+        validator.validatorWeight,
       ];
 
       let hash;
@@ -155,17 +165,21 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           functionName: "initiateValidatorRegistration",
           args,
           account,
-          chain: viemChain
+          chain: viemChain,
         });
-        notify({
-          type: 'call',
-          name: 'Initiate Validator Registration'
-        }, writePromise, viemChain ?? undefined);
+        notify(
+          {
+            type: "call",
+            name: "Initiate Validator Registration",
+          },
+          writePromise,
+          viemChain ?? undefined
+        );
 
         // Get receipt to extract warp message and validation ID
         receipt = await publicClient.waitForTransactionReceipt({ hash: await writePromise });
 
-        if (receipt.status === 'reverted') {
+        if (receipt.status === "reverted") {
           setErrorState(`Transaction reverted. Hash: ${hash}`);
           onError(`Transaction reverted. Hash: ${hash}`);
           return;
@@ -184,7 +198,6 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           validatorBalance: (Number(validator.validatorBalance) / 1e9).toString(), // Convert from nAVAX to AVAX
           blsProofOfPossession: validator.nodePOP.proofOfPossession,
         });
-
       } catch (txError) {
         // Attempt to get existing validation ID for fallback
         try {
@@ -196,7 +209,9 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           );
 
           // Check if validation ID exists (not zero)
-          if (validationId === "0x0000000000000000000000000000000000000000000000000000000000000000") {
+          if (
+            validationId === "0x0000000000000000000000000000000000000000000000000000000000000000"
+          ) {
             setErrorState("Transaction failed and no existing validation ID found for this node.");
             onError("Transaction failed and no existing validation ID found for this node.");
             return;
@@ -209,12 +224,14 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
             functionName: "resendRegisterValidatorMessage",
             args: [validationId],
             account,
-            chain: viemChain
+            chain: viemChain,
           });
 
-          const fallbackReceipt = await publicClient.waitForTransactionReceipt({ hash: fallbackHash });
+          const fallbackReceipt = await publicClient.waitForTransactionReceipt({
+            hash: fallbackHash,
+          });
 
-          if (fallbackReceipt.status === 'reverted') {
+          if (fallbackReceipt.status === "reverted") {
             setErrorState(`Fallback transaction reverted. Hash: ${fallbackHash}`);
             onError(`Fallback transaction reverted. Hash: ${fallbackHash}`);
             return;
@@ -232,15 +249,15 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
             validatorBalance: (Number(validator.validatorBalance) / 1e9).toString(), // Convert from nAVAX to AVAX
             blsProofOfPossession: validator.nodePOP.proofOfPossession,
           });
-
         } catch (fallbackError: any) {
-          let fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+          let fallbackMessage =
+            fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
 
           // Handle specific fallback error types
-          if (fallbackMessage.includes('User rejected')) {
-            fallbackMessage = 'Transaction was rejected by user';
-          } else if (fallbackMessage.includes('insufficient funds')) {
-            fallbackMessage = 'Insufficient funds for transaction';
+          if (fallbackMessage.includes("User rejected")) {
+            fallbackMessage = "Transaction was rejected by user";
+          } else if (fallbackMessage.includes("insufficient funds")) {
+            fallbackMessage = "Insufficient funds for transaction";
           }
 
           setErrorState(`Both primary transaction and fallback failed: ${fallbackMessage}`);
@@ -251,14 +268,14 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
       let message = err instanceof Error ? err.message : String(err);
 
       // Handle specific error types
-      if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
-      } else if (message.includes('insufficient funds')) {
-        message = 'Insufficient funds for transaction';
-      } else if (message.includes('execution reverted')) {
+      if (message.includes("User rejected")) {
+        message = "Transaction was rejected by user";
+      } else if (message.includes("insufficient funds")) {
+        message = "Insufficient funds for transaction";
+      } else if (message.includes("execution reverted")) {
         message = `Transaction reverted: ${message}`;
-      } else if (message.includes('nonce')) {
-        message = 'Transaction nonce error. Please try again.';
+      } else if (message.includes("nonce")) {
+        message = "Transaction nonce error. Please try again.";
       }
 
       setErrorState(`Transaction failed: ${message}`);
@@ -311,14 +328,16 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     if (validators.length === 0) return [];
 
     const validator = validators[0];
-    
-    // Process all P-Chain addresses for multisig
-    const pChainRemainingBalanceOwnerAddressesHex = validator.remainingBalanceOwner.addresses.map(address => {
-      const addressBytes = utils.bech32ToBytes(address);
-      return fromBytes(addressBytes, "hex");
-    });
 
-    const pChainDisableOwnerAddressesHex = validator.deactivationOwner.addresses.map(address => {
+    // Process all P-Chain addresses for multisig
+    const pChainRemainingBalanceOwnerAddressesHex = validator.remainingBalanceOwner.addresses.map(
+      (address) => {
+        const addressBytes = utils.bech32ToBytes(address);
+        return fromBytes(addressBytes, "hex");
+      }
+    );
+
+    const pChainDisableOwnerAddressesHex = validator.deactivationOwner.addresses.map((address) => {
       const addressBytes = utils.bech32ToBytes(address);
       return fromBytes(addressBytes, "hex");
     });
@@ -334,64 +353,90 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         threshold: validator.deactivationOwner.threshold,
         addresses: pChainDisableOwnerAddressesHex,
       },
-      validator.validatorWeight
+      validator.validatorWeight,
     ];
   };
 
   return (
     <div className="space-y-4">
-      {ownershipState === 'contract' && (
+      {ownershipState === "contract" && (
         <MultisigOption
           validatorManagerAddress={validatorManagerAddress}
           functionName="initiateValidatorRegistration"
           args={getMultisigArgs()}
           onSuccess={handleMultisigSuccess}
           onError={handleMultisigError}
-          disabled={isProcessing || validators.length === 0 || !validatorManagerAddress || txSuccess !== null}
+          disabled={
+            isProcessing ||
+            validators.length === 0 ||
+            !validatorManagerAddress ||
+            txSuccess !== null
+          }
         >
           <Button
             onClick={handleInitiateValidatorRegistration}
-            disabled={isProcessing || validators.length === 0 || !validatorManagerAddress || txSuccess !== null}
+            disabled={
+              isProcessing ||
+              validators.length === 0 ||
+              !validatorManagerAddress ||
+              txSuccess !== null
+            }
           >
             Initiate Validator Registration
           </Button>
         </MultisigOption>
       )}
 
-      {ownershipState === 'currentWallet' && (
+      {ownershipState === "currentWallet" && (
         <Button
           onClick={handleInitiateValidatorRegistration}
-          disabled={isProcessing || validators.length === 0 || !validatorManagerAddress || txSuccess !== null}
-          error={!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined}
+          disabled={
+            isProcessing ||
+            validators.length === 0 ||
+            !validatorManagerAddress ||
+            txSuccess !== null
+          }
+          error={
+            !validatorManagerAddress && subnetId
+              ? "Could not find Validator Manager for this L1."
+              : undefined
+          }
         >
-          {txSuccess ? 'Transaction Completed' : (isProcessing ? 'Processing...' : 'Initiate Validator Registration')}
+          {txSuccess
+            ? "Transaction Completed"
+            : isProcessing
+              ? "Processing..."
+              : "Initiate Validator Registration"}
         </Button>
       )}
 
-      {(ownershipState === 'differentEOA' || ownershipState === 'loading') && (
+      {(ownershipState === "differentEOA" || ownershipState === "loading") && (
         <Button
           onClick={handleInitiateValidatorRegistration}
           disabled={true}
           error={
-            ownershipState === 'differentEOA'
+            ownershipState === "differentEOA"
               ? "You are not the owner of this contract. Only the contract owner can add validators."
-              : ownershipState === 'loading'
+              : ownershipState === "loading"
                 ? "Verifying ownership..."
-                : (!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined)
+                : !validatorManagerAddress && subnetId
+                  ? "Could not find Validator Manager for this L1."
+                  : undefined
           }
         >
-          {ownershipState === 'loading' ? 'Verifying...' : 'Initiate Validator Registration'}
+          {ownershipState === "loading" ? "Verifying..." : "Initiate Validator Registration"}
         </Button>
       )}
 
-      {error && (
-        <Alert variant="error">{error}</Alert>
-      )}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {txSuccess && (
         <Success
           label="Transaction Hash"
-          value={txSuccess.replace('Transaction successful! Hash: ', '').replace('Fallback transaction successful! Hash: ', '').replace('Multisig transaction proposed! Hash: ', '')}
+          value={txSuccess
+            .replace("Transaction successful! Hash: ", "")
+            .replace("Fallback transaction successful! Hash: ", "")
+            .replace("Multisig transaction proposed! Hash: ", "")}
         />
       )}
     </div>

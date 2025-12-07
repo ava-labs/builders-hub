@@ -207,7 +207,7 @@ export default function ConfigurableChart({
   // Use refs to track latest filter values for reload
   const startTimeRef = useRef<string | null>(startTime);
   const endTimeRef = useRef<string | null>(endTime);
-  
+
   // Update refs when values change
   useEffect(() => {
     startTimeRef.current = startTime;
@@ -282,27 +282,36 @@ export default function ConfigurableChart({
   }, [showMetricFilter, showChainSelector]);
 
   // Fetch metric data for a chain
-  const fetchMetricData = async (chainId: string, metricKey: string, forceReload: boolean = false) => {
+  const fetchMetricData = async (
+    chainId: string,
+    metricKey: string,
+    forceReload: boolean = false
+  ) => {
     const seriesId = `${chainId}-${metricKey}`;
-    
+
     // Use refs to get latest values, especially important during reloads
     const effectiveStartTime = startTimeRef.current;
     const effectiveEndTime = endTimeRef.current;
-    
+
     // Convert ISO timestamps to Unix timestamps (seconds)
-    const startTimestamp = effectiveStartTime ? Math.floor(new Date(effectiveStartTime).getTime() / 1000) : undefined;
-    const endTimestamp = effectiveEndTime ? Math.floor(new Date(effectiveEndTime).getTime() / 1000) : undefined;
-    
+    const startTimestamp = effectiveStartTime
+      ? Math.floor(new Date(effectiveStartTime).getTime() / 1000)
+      : undefined;
+    const endTimestamp = effectiveEndTime
+      ? Math.floor(new Date(effectiveEndTime).getTime() / 1000)
+      : undefined;
+
     // Create cache key that includes timestamps
-    const cacheKey = startTimestamp && endTimestamp 
-      ? `${seriesId}-${startTimestamp}-${endTimestamp}`
-      : `${seriesId}-all`;
-    
+    const cacheKey =
+      startTimestamp && endTimestamp
+        ? `${seriesId}-${startTimestamp}-${endTimestamp}`
+        : `${seriesId}-all`;
+
     // Check if we already have this data cached (unless forcing reload)
     if (!forceReload && chartData[cacheKey]) {
       return; // Data already loaded for this time range
     }
-    
+
     if (loadingMetrics.has(cacheKey)) {
       return; // Already loading this data
     }
@@ -315,7 +324,7 @@ export default function ConfigurableChart({
       if (startTimestamp !== undefined && endTimestamp !== undefined) {
         queryString += `&startTimestamp=${startTimestamp}&endTimestamp=${endTimestamp}`;
       }
-      
+
       const response = await fetch(`/api/chain-stats/${chainId}?${queryString}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch data: ${response.status}`);
@@ -343,17 +352,15 @@ export default function ConfigurableChart({
           .map((point: TimeSeriesDataPoint) => ({
             date: point.date,
             [seriesId]:
-              typeof point.value === "string"
-                ? Number.parseFloat(point.value)
-                : point.value,
+              typeof point.value === "string" ? Number.parseFloat(point.value) : point.value,
           }))
           .reverse();
       }
 
-      setChartData((prev) => ({ 
-        ...prev, 
+      setChartData((prev) => ({
+        ...prev,
         [seriesId]: data, // Keep seriesId for compatibility
-        [cacheKey]: data // Cache with timestamp key for future lookups
+        [cacheKey]: data, // Cache with timestamp key for future lookups
       }));
     } catch (error) {
       console.error(`Error fetching ${metricKey} for chain ${chainId}:`, error);
@@ -418,7 +425,7 @@ export default function ConfigurableChart({
     dataSeries.forEach((series) => {
       const seriesId = `${series.chainId}-${series.metricKey}`;
       const data = chartData[seriesId];
-      
+
       if (data) {
         data.forEach((point) => {
           if (!dateMap.has(point.date)) {
@@ -433,19 +440,14 @@ export default function ConfigurableChart({
       }
     });
 
-    return Array.from(dateMap.values()).sort((a, b) =>
-      a.date.localeCompare(b.date)
-    );
+    return Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
   }, [chartData, dataSeries]);
 
   // Aggregate data based on resolution
   const aggregatedData = useMemo(() => {
     if (resolution === "D" || mergedData.length === 0) return mergedData;
 
-    const grouped = new Map<
-      string,
-      { sum: Record<string, number>; count: number; date: string }
-    >();
+    const grouped = new Map<string, { sum: Record<string, number>; count: number; date: string }>();
 
     mergedData.forEach((point) => {
       // Parse date string directly to avoid timezone issues
@@ -516,7 +518,7 @@ export default function ConfigurableChart({
       const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       return days;
     }
-    
+
     // If no filter, use the data length as an estimate (assuming daily data)
     return filteredData.length;
   }, [startTime, endTime, filteredData.length]);
@@ -558,14 +560,14 @@ export default function ConfigurableChart({
   // Compute safe brush indices that are always valid for current data
   const safeBrushRange = useMemo(() => {
     const maxIndex = Math.max(0, aggregatedData.length - 1);
-    
+
     if (!brushRange) {
       return {
         startIndex: 0,
         endIndex: maxIndex,
       };
     }
-    
+
     return {
       startIndex: Math.max(0, Math.min(brushRange.startIndex, maxIndex)),
       endIndex: Math.max(0, Math.min(brushRange.endIndex, maxIndex)),
@@ -574,14 +576,12 @@ export default function ConfigurableChart({
 
   const displayData = useMemo(() => {
     if (filteredData.length === 0) return filteredData;
-    
+
     return filteredData.slice(safeBrushRange.startIndex, safeBrushRange.endIndex + 1);
   }, [safeBrushRange, filteredData]);
 
   const visibleSeries = useMemo(() => {
-    return dataSeries
-      .filter((s) => s.visible)
-      .sort((a, b) => a.zIndex - b.zIndex); // Sort by z-index: lower values render first (behind)
+    return dataSeries.filter((s) => s.visible).sort((a, b) => a.zIndex - b.zIndex); // Sort by z-index: lower values render first (behind)
   }, [dataSeries]);
 
   // Group series by metricKey for stacking
@@ -595,7 +595,6 @@ export default function ConfigurableChart({
     });
     return grouped;
   }, [visibleSeries]);
-
 
   // Parse date string as local time to avoid timezone issues
   const parseLocalDate = (value: string): Date => {
@@ -665,9 +664,7 @@ export default function ConfigurableChart({
 
   const toggleSeriesVisibility = (seriesId: string) => {
     setDataSeries((prev) =>
-      prev.map((s) =>
-        s.id === seriesId ? { ...s, visible: !s.visible } : s
-      )
+      prev.map((s) => (s.id === seriesId ? { ...s, visible: !s.visible } : s))
     );
   };
 
@@ -696,7 +693,7 @@ export default function ConfigurableChart({
     // Special handling for "All Chains" option
     const isAllChains = chainId === "all";
     const chain = isAllChains ? null : l1ChainsData.find((c) => c.chainId === chainId);
-    const chainColor = isAllChains ? "#E84142" : (chain?.color || DEFAULT_COLORS[0]);
+    const chainColor = isAllChains ? "#E84142" : chain?.color || DEFAULT_COLORS[0];
 
     const seriesId = `${chainId}-${selectedMetric}`;
     const existingSeries = dataSeries.find((s) => s.id === seriesId);
@@ -711,20 +708,16 @@ export default function ConfigurableChart({
     const seriesName = `${chainName}: ${metric.name}`;
 
     // Group by metric: same metrics use same Y-axis by default
-    const existingSeriesForMetric = dataSeries.filter(
-      (s) => s.metricKey === selectedMetric
-    );
+    const existingSeriesForMetric = dataSeries.filter((s) => s.metricKey === selectedMetric);
     const defaultYAxis =
       existingSeriesForMetric.length > 0
         ? existingSeriesForMetric[0].yAxis
         : dataSeries.length % 2 === 0
-        ? "left"
-        : "right";
+          ? "left"
+          : "right";
 
     // Default z-index: higher for newer series (appear on top)
-    const maxZIndex = dataSeries.length > 0 
-      ? Math.max(...dataSeries.map(s => s.zIndex))
-      : 0;
+    const maxZIndex = dataSeries.length > 0 ? Math.max(...dataSeries.map((s) => s.zIndex)) : 0;
     const defaultZIndex = maxZIndex + 1;
 
     const newSeries: DataSeries = {
@@ -746,14 +739,8 @@ export default function ConfigurableChart({
     fetchMetricData(chainId, selectedMetric);
   };
 
-  const updateSeriesProperty = (
-    seriesId: string,
-    property: keyof DataSeries,
-    value: any
-  ) => {
-    setDataSeries((prev) =>
-      prev.map((s) => (s.id === seriesId ? { ...s, [property]: value } : s))
-    );
+  const updateSeriesProperty = (seriesId: string, property: keyof DataSeries, value: any) => {
+    setDataSeries((prev) => prev.map((s) => (s.id === seriesId ? { ...s, [property]: value } : s)));
   };
 
   const filteredMetrics = AVAILABLE_METRICS.filter((m) =>
@@ -770,9 +757,13 @@ export default function ConfigurableChart({
 
   const filteredChains = [
     // Include "All Chains" at the top if it matches the search
-    ...(ALL_CHAINS_OPTION.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase()) ? [ALL_CHAINS_OPTION] : []),
-    ...l1ChainsData.filter((chain) => chain.isTestnet !== true &&
-      chain.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase())
+    ...(ALL_CHAINS_OPTION.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase())
+      ? [ALL_CHAINS_OPTION]
+      : []),
+    ...l1ChainsData.filter(
+      (chain) =>
+        chain.isTestnet !== true &&
+        chain.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase())
     ),
   ];
 
@@ -789,7 +780,7 @@ export default function ConfigurableChart({
     if (visibleSeries.length === 0) {
       return (
         <div className="flex items-center justify-center h-[400px] text-muted-foreground">
-          No data series selected. Click "+ Add" to add a metric.
+          No data series selected. Click &quot;+ Add&quot; to add a metric.
         </div>
       );
     }
@@ -799,10 +790,7 @@ export default function ConfigurableChart({
 
     return (
       <ResponsiveContainer width="100%" height={400}>
-        <ComposedChart
-          data={displayData}
-          margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-        >
+        <ComposedChart data={displayData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
           <CartesianGrid
             strokeDasharray="3 3"
             className="stroke-gray-200 dark:stroke-gray-700"
@@ -839,103 +827,96 @@ export default function ConfigurableChart({
               const date = payload[0]?.payload?.date;
               return (
                 <div className="rounded-lg border bg-background p-3 shadow-sm">
-                  <div className="font-medium text-sm mb-2">
-                    {formatTooltipDate(date)}
-                  </div>
+                  <div className="font-medium text-sm mb-2">{formatTooltipDate(date)}</div>
                   {payload.map((entry: any, idx: number) => (
-                    <div
-                      key={idx}
-                      className="text-xs flex items-center gap-2 mb-1"
-                    >
-                      <div
-                        className="w-3 h-3 rounded"
-                        style={{ backgroundColor: entry.color }}
-                      />
+                    <div key={idx} className="text-xs flex items-center gap-2 mb-1">
+                      <div className="w-3 h-3 rounded" style={{ backgroundColor: entry.color }} />
                       <span>{entry.name}:</span>
-                      <span className="font-mono">
-                        {formatValue(entry.value)}
-                      </span>
+                      <span className="font-mono">{formatValue(entry.value)}</span>
                     </div>
                   ))}
                 </div>
               );
             }}
           />
-          {Object.entries(seriesByMetric).map(([metricKey, seriesList]) => {
-            const isStacked = stackSameMetrics && seriesList.length > 1;
-            const stackId = isStacked ? `stack-${metricKey}` : undefined;
+          {Object.entries(seriesByMetric)
+            .map(([metricKey, seriesList]) => {
+              const isStacked = stackSameMetrics && seriesList.length > 1;
+              const stackId = isStacked ? `stack-${metricKey}` : undefined;
 
-            return seriesList.map((series) => {
-              const yAxisId = series.yAxis === "left" ? "left" : "right";
-              const dataKey = series.id;
-              const isLoading = loadingMetrics.has(dataKey);
+              return seriesList.map((series) => {
+                const yAxisId = series.yAxis === "left" ? "left" : "right";
+                const dataKey = series.id;
+                const isLoading = loadingMetrics.has(dataKey);
 
-              if (isLoading) {
-                return null;
-              }
+                if (isLoading) {
+                  return null;
+                }
 
-              if (series.chartStyle === "bar") {
-                return (
-                  <Bar
-                    key={series.id}
-                    dataKey={dataKey}
-                    yAxisId={yAxisId}
-                    fill={series.color}
-                    radius={[0, 0, 0, 0]}
-                    name={series.name}
-                    stackId={stackId}
-                  />
-                );
-              } else if (series.chartStyle === "area") {
-                return (
-                  <Area
-                    key={series.id}
-                    type="monotone"
-                    dataKey={dataKey}
-                    yAxisId={yAxisId}
-                    stroke={series.color}
-                    fill={series.color}
-                    fillOpacity={isStacked ? 0.6 : 0.3}
-                    strokeWidth={1}
-                    name={series.name}
-                    stackId={stackId}
-                  />
-                );
-              } else {
-                // Lines don't support stacking, render normally
-                return (
-                  <Line
-                    key={series.id}
-                    type="monotone"
-                    dataKey={dataKey}
-                    yAxisId={yAxisId}
-                    stroke={series.color}
-                    strokeWidth={2}
-                    dot={false}
-                    name={series.name}
-                  />
-                );
-              }
-            });
-          }).flat()}
+                if (series.chartStyle === "bar") {
+                  return (
+                    <Bar
+                      key={series.id}
+                      dataKey={dataKey}
+                      yAxisId={yAxisId}
+                      fill={series.color}
+                      radius={[0, 0, 0, 0]}
+                      name={series.name}
+                      stackId={stackId}
+                    />
+                  );
+                } else if (series.chartStyle === "area") {
+                  return (
+                    <Area
+                      key={series.id}
+                      type="monotone"
+                      dataKey={dataKey}
+                      yAxisId={yAxisId}
+                      stroke={series.color}
+                      fill={series.color}
+                      fillOpacity={isStacked ? 0.6 : 0.3}
+                      strokeWidth={1}
+                      name={series.name}
+                      stackId={stackId}
+                    />
+                  );
+                } else {
+                  // Lines don't support stacking, render normally
+                  return (
+                    <Line
+                      key={series.id}
+                      type="monotone"
+                      dataKey={dataKey}
+                      yAxisId={yAxisId}
+                      stroke={series.color}
+                      strokeWidth={2}
+                      dot={false}
+                      name={series.name}
+                    />
+                  );
+                }
+              });
+            })
+            .flat()}
         </ComposedChart>
       </ResponsiveContainer>
     );
   };
 
-  const handleScreenshot = async () => {
+  const handleScreenshot = () => {
     if (!chartContainerRef.current) return;
 
     try {
       // Capture SVG from Recharts
-      const chartArea = chartContainerRef.current.querySelector('[class*="recharts"]') || chartContainerRef.current;
+      const chartArea =
+        chartContainerRef.current.querySelector('[class*="recharts"]') || chartContainerRef.current;
       const svgElement = chartArea.querySelector("svg");
-      
+
       if (svgElement) {
         const svgData = new XMLSerializer().serializeToString(svgElement);
         const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
         const url = URL.createObjectURL(svgBlob);
-        
+
         const img = document.createElement("img");
         img.onload = () => {
           const canvas = document.createElement("canvas");
@@ -944,25 +925,25 @@ export default function ConfigurableChart({
             URL.revokeObjectURL(url);
             return;
           }
-          
+
           canvas.width = img.width;
           canvas.height = img.height;
           ctx.fillStyle = resolvedTheme === "dark" ? "#000000" : "#ffffff";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           ctx.drawImage(img, 0, 0);
           URL.revokeObjectURL(url);
-          
+
           const link = document.createElement("a");
           link.download = `${chartTitle || "chart"}-${new Date().toISOString().split("T")[0]}.png`;
           link.href = canvas.toDataURL("image/png");
           link.click();
         };
-        
+
         img.onerror = () => {
           URL.revokeObjectURL(url);
           console.error("Failed to load SVG for screenshot");
         };
-        
+
         img.src = url;
       } else {
         console.error("No SVG element found in chart");
@@ -986,13 +967,13 @@ export default function ConfigurableChart({
           {/* Data Series Legends */}
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {dataSeries.map((series) => {
-              const index = dataSeries.findIndex(s => s.id === series.id);
+              const index = dataSeries.findIndex((s) => s.id === series.id);
               const isLoading = loadingMetrics.has(series.id);
               const chain = l1ChainsData.find((c) => c.chainId === series.chainId);
               const isDragging = draggedIndex === index;
               const isDragOver = dragOverIndex === index;
               const canDrag = !disableControls && dataSeries.length > 1;
-              
+
               return (
                 <div
                   key={series.id}
@@ -1004,7 +985,14 @@ export default function ConfigurableChart({
                     }
                     // Only allow drag from grip icon or empty space, not from buttons/selects
                     const target = e.target as HTMLElement;
-                    if (target.tagName === "BUTTON" || target.tagName === "SELECT" || target.tagName === "INPUT" || target.closest("button") || target.closest("select") || target.closest("input")) {
+                    if (
+                      target.tagName === "BUTTON" ||
+                      target.tagName === "SELECT" ||
+                      target.tagName === "INPUT" ||
+                      target.closest("button") ||
+                      target.closest("select") ||
+                      target.closest("input")
+                    ) {
                       e.preventDefault();
                       return;
                     }
@@ -1040,33 +1028,33 @@ export default function ConfigurableChart({
                   onDrop={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    
+
                     if (draggedIndex === null || draggedIndex === index) {
                       setDraggedIndex(null);
                       setDragOverIndex(null);
                       return;
                     }
-                    
+
                     const newSeries = [...dataSeries];
                     const draggedItem = newSeries[draggedIndex];
-                    
+
                     // Remove the dragged item from its original position
                     newSeries.splice(draggedIndex, 1);
-                    
+
                     // Calculate the new insertion index
                     // If dragging forward (draggedIndex < index), adjust index by -1
                     // If dragging backward (draggedIndex > index), use index as-is
                     const insertIndex = draggedIndex < index ? index - 1 : index;
-                    
+
                     // Insert the dragged item at the new position
                     newSeries.splice(insertIndex, 0, draggedItem);
-                    
+
                     // Update z-index based on new order
                     const updatedSeries = newSeries.map((s, idx) => ({
                       ...s,
                       zIndex: idx + 1,
                     }));
-                    
+
                     setDataSeries(updatedSeries);
                     setDraggedIndex(null);
                     setDragOverIndex(null);
@@ -1078,11 +1066,13 @@ export default function ConfigurableChart({
                   className={`group flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-white dark:bg-neutral-900 border transition-all ${
                     disableControls || !canDrag
                       ? "cursor-default border-gray-200 dark:border-neutral-800"
-                      : isDragging 
-                        ? "opacity-50 cursor-grabbing border-gray-300 dark:border-neutral-700 shadow-lg scale-95" 
+                      : isDragging
+                        ? "opacity-50 cursor-grabbing border-gray-300 dark:border-neutral-700 shadow-lg scale-95"
                         : "cursor-grab border-gray-200 dark:border-neutral-800 hover:border-gray-300 dark:hover:border-neutral-700 hover:shadow-sm"
                   } ${
-                    isDragOver ? "border-blue-500 dark:border-blue-400 shadow-md ring-2 ring-blue-500/20 dark:ring-blue-400/20" : ""
+                    isDragOver
+                      ? "border-blue-500 dark:border-blue-400 shadow-md ring-2 ring-blue-500/20 dark:ring-blue-400/20"
+                      : ""
                   } ${!series.visible ? "opacity-60" : ""}`}
                 >
                   {/* Only show grip icon when there are multiple series to reorder */}
@@ -1130,28 +1120,29 @@ export default function ConfigurableChart({
                           <div className="relative h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 flex items-center justify-center">
                             <AvalancheLogo className="h-4 w-4 sm:h-5 sm:w-5" fill="#E84142" />
                           </div>
-                        ) : chain?.chainLogoURI && (
-                          <div className="relative h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 rounded-full overflow-hidden ring-1 ring-gray-200 dark:ring-neutral-700">
-                            <Image
-                              src={getThemedLogoUrl(chain.chainLogoURI)}
-                              alt={`${series.chainName} logo`}
-                              width={20}
-                              height={20}
-                              className="rounded-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none";
-                              }}
-                            />
-                          </div>
+                        ) : (
+                          chain?.chainLogoURI && (
+                            <div className="relative h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 rounded-full overflow-hidden ring-1 ring-gray-200 dark:ring-neutral-700">
+                              <Image
+                                src={getThemedLogoUrl(chain.chainLogoURI)}
+                                alt={`${series.chainName} logo`}
+                                width={20}
+                                height={20}
+                                className="rounded-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none";
+                                }}
+                              />
+                            </div>
+                          )
                         )}
                         {/* On mobile: show only metric name (chain icon is enough). On desktop: show full name */}
                         <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 truncate max-w-[100px] sm:max-w-[150px] md:max-w-none">
                           <span className="sm:hidden">
-                            {AVAILABLE_METRICS.find(m => m.id === series.metricKey)?.name || series.name}
+                            {AVAILABLE_METRICS.find((m) => m.id === series.metricKey)?.name ||
+                              series.name}
                           </span>
-                          <span className="hidden sm:inline">
-                            {series.name}
-                          </span>
+                          <span className="hidden sm:inline">{series.name}</span>
                         </span>
                       </>
                     )}
@@ -1170,11 +1161,7 @@ export default function ConfigurableChart({
                       <select
                         value={series.chartStyle}
                         onChange={(e) =>
-                          updateSeriesProperty(
-                            series.id,
-                            "chartStyle",
-                            e.target.value
-                          )
+                          updateSeriesProperty(series.id, "chartStyle", e.target.value)
                         }
                         className="text-[10px] sm:text-xs px-1 sm:px-2 py-0.5 sm:py-1 rounded-md border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-gray-400 dark:focus:ring-neutral-500 transition-colors"
                         onClick={(e) => e.stopPropagation()}
@@ -1185,13 +1172,7 @@ export default function ConfigurableChart({
                       </select>
                       <select
                         value={series.yAxis}
-                        onChange={(e) =>
-                          updateSeriesProperty(
-                            series.id,
-                            "yAxis",
-                            e.target.value
-                          )
-                        }
+                        onChange={(e) => updateSeriesProperty(series.id, "yAxis", e.target.value)}
                         className="text-[10px] sm:text-xs px-1 sm:px-2 py-0.5 sm:py-1 rounded-md border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-gray-400 dark:focus:ring-neutral-500 transition-colors"
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -1202,13 +1183,7 @@ export default function ConfigurableChart({
                         <input
                           type="color"
                           value={series.color}
-                          onChange={(e) =>
-                            updateSeriesProperty(
-                              series.id,
-                              "color",
-                              e.target.value
-                            )
-                          }
+                          onChange={(e) => updateSeriesProperty(series.id, "color", e.target.value)}
                           className="w-5 h-5 sm:w-7 sm:h-7 rounded border border-gray-200 dark:border-neutral-700 cursor-pointer hover:border-gray-300 dark:hover:border-neutral-600 transition-colors appearance-none p-0 overflow-hidden"
                           style={{
                             backgroundColor: series.color,
@@ -1297,122 +1272,121 @@ export default function ConfigurableChart({
                     <Plus className="h-4 w-4" />
                     <span>Add</span>
                   </Button>
-                {showMetricFilter && (
-                  <div className="metric-filter-dropdown absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
-                    <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-                      <div className="relative">
-                        <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                        <Input
-                          placeholder="Filter by metric..."
-                          value={metricSearchTerm}
-                          onChange={(e) => setMetricSearchTerm(e.target.value)}
-                          className="pl-8 pr-8 text-sm"
-                        />
-                        {metricSearchTerm && (
-                          <button
-                            onClick={() => setMetricSearchTerm("")}
-                            className="absolute right-2 top-1/2 -translate-y-1/2"
-                          >
-                            <X className="h-4 w-4 text-gray-400" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
-                      {filteredMetrics.map((metric) => (
-                        <button
-                          key={metric.id}
-                          onClick={() => handleMetricClick(metric.id)}
-                          className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2 text-sm"
-                        >
-                          <span>{metric.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {showChainSelector && selectedMetric && (
-                  <div className="chain-selector-dropdown absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
-                    <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center gap-2 mb-2">
-                        <button
-                          onClick={() => {
-                            setShowChainSelector(false);
-                            setShowMetricFilter(true);
-                            setSelectedMetric(null);
-                            setChainSearchTerm("");
-                          }}
-                          className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                          <span>Metric List</span>
-                        </button>
-                      </div>
-                      <div className="relative">
-                        <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                        <Input
-                          placeholder="Filter by chain..."
-                          value={chainSearchTerm}
-                          onChange={(e) => setChainSearchTerm(e.target.value)}
-                          className="pl-8 pr-8 text-sm"
-                        />
-                        {chainSearchTerm && (
-                          <button
-                            onClick={() => setChainSearchTerm("")}
-                            className="absolute right-2 top-1/2 -translate-y-1/2"
-                          >
-                            <X className="h-4 w-4 text-gray-400" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
-                      {filteredChains.map((chain, index) => {
-                        const seriesId = `${chain.chainId}-${selectedMetric}`;
-                        const isAdded = dataSeries.some((s) => s.id === seriesId);
-                        const isAllChains = chain.chainId === "all";
-                        const isLastAllChains = isAllChains && index < filteredChains.length - 1 && filteredChains[index + 1].chainId !== "all";
-                        
-                        return (
-                          <div key={chain.chainId}>
+                  {showMetricFilter && (
+                    <div className="metric-filter-dropdown absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+                      <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                        <div className="relative">
+                          <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                          <Input
+                            placeholder="Filter by metric..."
+                            value={metricSearchTerm}
+                            onChange={(e) => setMetricSearchTerm(e.target.value)}
+                            className="pl-8 pr-8 text-sm"
+                          />
+                          {metricSearchTerm && (
                             <button
-                              onClick={() =>
-                                handleChainSelect(chain.chainId, chain.chainName)
-                              }
-                              className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2 text-sm"
+                              onClick={() => setMetricSearchTerm("")}
+                              className="absolute right-2 top-1/2 -translate-y-1/2"
                             >
-                              {isAllChains ? (
-                                <div className="relative h-5 w-5 flex-shrink-0 flex items-center justify-center">
-                                  <AvalancheLogo className="h-5 w-5" fill="#E84142" />
-                                </div>
-                              ) : chain.chainLogoURI ? (
-                                <div className="relative h-5 w-5 flex-shrink-0">
-                                  <Image
-                                    src={getThemedLogoUrl(chain.chainLogoURI)}
-                                    alt={`${chain.chainName} logo`}
-                                    width={20}
-                                    height={20}
-                                    className="rounded-full object-cover"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = "none";
-                                    }}
-                                  />
-                                </div>
-                              ) : null}
-                              <span className="flex-1">{chain.chainName}</span>
-                              {isAdded && (
-                                <Eye className="h-4 w-4 text-gray-400" />
-                              )}
+                              <X className="h-4 w-4 text-gray-400" />
                             </button>
-                            {isLastAllChains && (
-                              <hr className="border-t border-gray-200 dark:border-gray-700" />
-                            )}
-                          </div>
-                        );
-                      })}
+                          )}
+                        </div>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto">
+                        {filteredMetrics.map((metric) => (
+                          <button
+                            key={metric.id}
+                            onClick={() => handleMetricClick(metric.id)}
+                            className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2 text-sm"
+                          >
+                            <span>{metric.name}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                  {showChainSelector && selectedMetric && (
+                    <div className="chain-selector-dropdown absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+                      <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-2 mb-2">
+                          <button
+                            onClick={() => {
+                              setShowChainSelector(false);
+                              setShowMetricFilter(true);
+                              setSelectedMetric(null);
+                              setChainSearchTerm("");
+                            }}
+                            className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                            <span>Metric List</span>
+                          </button>
+                        </div>
+                        <div className="relative">
+                          <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                          <Input
+                            placeholder="Filter by chain..."
+                            value={chainSearchTerm}
+                            onChange={(e) => setChainSearchTerm(e.target.value)}
+                            className="pl-8 pr-8 text-sm"
+                          />
+                          {chainSearchTerm && (
+                            <button
+                              onClick={() => setChainSearchTerm("")}
+                              className="absolute right-2 top-1/2 -translate-y-1/2"
+                            >
+                              <X className="h-4 w-4 text-gray-400" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto">
+                        {filteredChains.map((chain, index) => {
+                          const seriesId = `${chain.chainId}-${selectedMetric}`;
+                          const isAdded = dataSeries.some((s) => s.id === seriesId);
+                          const isAllChains = chain.chainId === "all";
+                          const isLastAllChains =
+                            isAllChains &&
+                            index < filteredChains.length - 1 &&
+                            filteredChains[index + 1].chainId !== "all";
+
+                          return (
+                            <div key={chain.chainId}>
+                              <button
+                                onClick={() => handleChainSelect(chain.chainId, chain.chainName)}
+                                className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2 text-sm"
+                              >
+                                {isAllChains ? (
+                                  <div className="relative h-5 w-5 flex-shrink-0 flex items-center justify-center">
+                                    <AvalancheLogo className="h-5 w-5" fill="#E84142" />
+                                  </div>
+                                ) : chain.chainLogoURI ? (
+                                  <div className="relative h-5 w-5 flex-shrink-0">
+                                    <Image
+                                      src={getThemedLogoUrl(chain.chainLogoURI)}
+                                      alt={`${chain.chainName} logo`}
+                                      width={20}
+                                      height={20}
+                                      className="rounded-full object-cover"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = "none";
+                                      }}
+                                    />
+                                  </div>
+                                ) : null}
+                                <span className="flex-1">{chain.chainName}</span>
+                                {isAdded && <Eye className="h-4 w-4 text-gray-400" />}
+                              </button>
+                              {isLastAllChains && (
+                                <hr className="border-t border-gray-200 dark:border-gray-700" />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <Button
                   variant="outline"
@@ -1431,7 +1405,9 @@ export default function ConfigurableChart({
                         variant="outline"
                         size="sm"
                         className={`text-xs flex items-center justify-center px-2 py-2 h-8 w-8 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
-                          (startTime || endTime) ? "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800" : ""
+                          startTime || endTime
+                            ? "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+                            : ""
                         }`}
                         title="Set time filter"
                       >
@@ -1451,7 +1427,12 @@ export default function ConfigurableChart({
                             const newDate = new Date(range.from);
                             if (tempStartTime) {
                               // Preserve time from existing tempStartTime
-                              newDate.setHours(tempStartTime.getHours(), tempStartTime.getMinutes(), 0, 0);
+                              newDate.setHours(
+                                tempStartTime.getHours(),
+                                tempStartTime.getMinutes(),
+                                0,
+                                0
+                              );
                             } else {
                               // Default to 00:00 if no existing time
                               newDate.setHours(0, 0, 0, 0);
@@ -1460,12 +1441,17 @@ export default function ConfigurableChart({
                           } else {
                             setTempStartTime(undefined);
                           }
-                          
+
                           if (range?.to) {
                             const newDate = new Date(range.to);
                             if (tempEndTime) {
                               // Preserve time from existing tempEndTime
-                              newDate.setHours(tempEndTime.getHours(), tempEndTime.getMinutes(), 0, 0);
+                              newDate.setHours(
+                                tempEndTime.getHours(),
+                                tempEndTime.getMinutes(),
+                                0,
+                                0
+                              );
                             } else {
                               // Default to 23:59 if no existing time
                               newDate.setHours(23, 59, 0, 0);
@@ -1479,10 +1465,14 @@ export default function ConfigurableChart({
                       />
                       <div className="p-3 border-t space-y-2">
                         <div className="flex items-center gap-2">
-                          <label className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[50px]">Start:</label>
+                          <label className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[50px]">
+                            Start:
+                          </label>
                           <Input
                             type="time"
-                            value={tempStartTime ? tempStartTime.toTimeString().slice(0, 5) : "00:00"}
+                            value={
+                              tempStartTime ? tempStartTime.toTimeString().slice(0, 5) : "00:00"
+                            }
                             onChange={(e) => {
                               const [hours, minutes] = e.target.value.split(":").map(Number);
                               if (tempStartTime) {
@@ -1501,7 +1491,9 @@ export default function ConfigurableChart({
                           />
                         </div>
                         <div className="flex items-center gap-2">
-                          <label className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[50px]">End:</label>
+                          <label className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[50px]">
+                            End:
+                          </label>
                           <Input
                             type="time"
                             value={tempEndTime ? tempEndTime.toTimeString().slice(0, 5) : "23:59"}
@@ -1548,7 +1540,9 @@ export default function ConfigurableChart({
                           <Button
                             onClick={() => {
                               // Convert Date objects to ISO strings
-                              const newStartTime = tempStartTime ? tempStartTime.toISOString() : null;
+                              const newStartTime = tempStartTime
+                                ? tempStartTime.toISOString()
+                                : null;
                               const newEndTime = tempEndTime ? tempEndTime.toISOString() : null;
                               // Apply to actual state via parent callback
                               if (onTimeFilterChange) {
@@ -1602,7 +1596,6 @@ export default function ConfigurableChart({
           )}
         </div>
 
-
         {/* Chart Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2 group flex-1">
@@ -1639,14 +1632,16 @@ export default function ConfigurableChart({
             >
               {chartTitle}
             </h3>
-            {!disableControls && <Pencil className="h-4 w-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />}
+            {!disableControls && (
+              <Pencil className="h-4 w-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+            )}
           </div>
           <div className="flex gap-0.5 sm:gap-1">
             {(["D", "W", "M", "Q", "Y"] as const).map((p) => {
               const primaryColor = visibleSeries[0]?.color || "#888";
               const isEnabled = isResolutionEnabled[p];
               const isSelected = resolution === p;
-              
+
               return (
                 <button
                   key={p}
@@ -1660,15 +1655,17 @@ export default function ConfigurableChart({
                     isSelected && isEnabled
                       ? "text-white dark:text-white"
                       : isEnabled
-                      ? "text-muted-foreground hover:bg-muted"
-                      : "text-muted-foreground opacity-40 cursor-not-allowed"
+                        ? "text-muted-foreground hover:bg-muted"
+                        : "text-muted-foreground opacity-40 cursor-not-allowed"
                   }`}
                   style={
-                    isSelected && isEnabled
-                      ? { backgroundColor: primaryColor, opacity: 0.9 }
-                      : {}
+                    isSelected && isEnabled ? { backgroundColor: primaryColor, opacity: 0.9 } : {}
                   }
-                  title={!isEnabled ? `Requires at least ${p === "W" ? "7" : p === "M" ? "30" : p === "Q" ? "90" : "365"} days of filtered data` : undefined}
+                  title={
+                    !isEnabled
+                      ? `Requires at least ${p === "W" ? "7" : p === "M" ? "30" : p === "Q" ? "90" : "365"} days of filtered data`
+                      : undefined
+                  }
                 >
                   {p}
                 </button>
@@ -1680,13 +1677,22 @@ export default function ConfigurableChart({
         {/* Chart Area */}
         <div className="p-6 relative">
           {/* Watermark */}
-          <div 
+          <div
             className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
             style={{ opacity: 0.15 }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", transform: "scale(2)" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem",
+                transform: "scale(2)",
+              }}
+            >
               <AvalancheLogo className="size-10" fill="currentColor" />
-              <span style={{ fontSize: "x-large", marginTop: "4px", fontWeight: 500 }}>Builder Hub</span>
+              <span style={{ fontSize: "x-large", marginTop: "4px", fontWeight: 500 }}>
+                Builder Hub
+              </span>
             </div>
           </div>
           <div className="relative z-10">
@@ -1695,45 +1701,42 @@ export default function ConfigurableChart({
             {/* Brush Slider */}
             {filteredData.length > 0 && visibleSeries.length > 0 && (
               <div className="mt-4 bg-white dark:bg-black pl-[60px]">
-              <ResponsiveContainer width="100%" height={80}>
-                <LineChart
-                  data={aggregatedData}
-                  margin={{ top: 0, right: 30, left: 0, bottom: 5 }}
-                >
-                  <Brush
-                    dataKey="date"
-                    height={80}
-                    stroke={visibleSeries[0]?.color || "#888"}
-                    fill={`${visibleSeries[0]?.color || "#888"}20`}
-                    alwaysShowText={false}
-                    startIndex={safeBrushRange.startIndex}
-                    endIndex={safeBrushRange.endIndex}
-                    onChange={(e: any) => {
-                      if (
-                        e.startIndex !== undefined &&
-                        e.endIndex !== undefined
-                      ) {
-                        setBrushRange({
-                          startIndex: e.startIndex,
-                          endIndex: e.endIndex,
-                        });
-                      }
-                    }}
-                    travellerWidth={8}
-                    tickFormatter={formatXAxis}
+                <ResponsiveContainer width="100%" height={80}>
+                  <LineChart
+                    data={aggregatedData}
+                    margin={{ top: 0, right: 30, left: 0, bottom: 5 }}
                   >
-                    <LineChart>
-                      <Line
-                        type="monotone"
-                        dataKey={visibleSeries[0]?.id || "date"}
-                        stroke={visibleSeries[0]?.color || "#888"}
-                        strokeWidth={1}
-                        dot={false}
-                      />
-                    </LineChart>
-                  </Brush>
-                </LineChart>
-              </ResponsiveContainer>
+                    <Brush
+                      dataKey="date"
+                      height={80}
+                      stroke={visibleSeries[0]?.color || "#888"}
+                      fill={`${visibleSeries[0]?.color || "#888"}20`}
+                      alwaysShowText={false}
+                      startIndex={safeBrushRange.startIndex}
+                      endIndex={safeBrushRange.endIndex}
+                      onChange={(e: any) => {
+                        if (e.startIndex !== undefined && e.endIndex !== undefined) {
+                          setBrushRange({
+                            startIndex: e.startIndex,
+                            endIndex: e.endIndex,
+                          });
+                        }
+                      }}
+                      travellerWidth={8}
+                      tickFormatter={formatXAxis}
+                    >
+                      <LineChart>
+                        <Line
+                          type="monotone"
+                          dataKey={visibleSeries[0]?.id || "date"}
+                          stroke={visibleSeries[0]?.color || "#888"}
+                          strokeWidth={1}
+                          dot={false}
+                        />
+                      </LineChart>
+                    </Brush>
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             )}
           </div>

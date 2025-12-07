@@ -4,7 +4,13 @@ import YouTube from "@/components/content-design/youtube";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { Feedback } from "@/components/ui/feedback";
 import { SidebarActions } from "@/components/ui/sidebar-actions";
-import { CChainAPIPage, DataAPIPage, MetricsAPIPage, PChainAPIPage, XChainAPIPage } from "@/components/api/api-pages";
+import {
+  CChainAPIPage,
+  DataAPIPage,
+  MetricsAPIPage,
+  PChainAPIPage,
+  XChainAPIPage,
+} from "@/components/api/api-pages";
 import AddNetworkButtonInline from "@/components/client/AddNetworkButtonInline";
 import { documentation } from "@/lib/source";
 import { createMetadata } from "@/utils/metadata";
@@ -17,12 +23,7 @@ import { Step, Steps } from "fumadocs-ui/components/steps";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { TypeTable } from "fumadocs-ui/components/type-table";
 import defaultComponents from "fumadocs-ui/mdx";
-import {
-  DocsBody,
-  DocsDescription,
-  DocsPage,
-  DocsTitle,
-} from "fumadocs-ui/page";
+import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/page";
 import type { MDXComponents } from "mdx/types";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -41,7 +42,7 @@ export default async function Page(props: {
   if (!page) notFound();
 
   const { body: MDX, toc } = await page.data.load();
-  const path = `content/docs${page.url.replace('/docs/', '/')}.mdx`;
+  const path = `content/docs${page.url.replace("/docs/", "/")}.mdx`;
 
   // Use custom edit URL if provided in frontmatter, otherwise use default path
   const editUrl =
@@ -57,12 +58,12 @@ export default async function Page(props: {
         single: false,
         footer: (
           <>
-        <SidebarActions
-          editUrl={editUrl}
-          title={(page.data.title as string) || "Untitled"}
-          pagePath={`/${params.slug.join("/")}`}
-          pageType="docs"
-        />
+            <SidebarActions
+              editUrl={editUrl}
+              title={(page.data.title as string) || "Untitled"}
+              pagePath={`/${params.slug.join("/")}`}
+              pageType="docs"
+            />
             <BackToTop />
           </>
         ),
@@ -72,9 +73,7 @@ export default async function Page(props: {
       }}
     >
       <DocsTitle>{page.data.title || "Untitled"}</DocsTitle>
-      {page.data.description && (
-        <DocsDescription>{page.data.description}</DocsDescription>
-      )}
+      {page.data.description && <DocsDescription>{page.data.description}</DocsDescription>}
       <DocsBody className="text-fd-foreground/80">
         <MDX
           components={{
@@ -101,14 +100,8 @@ export default async function Page(props: {
             PopupTrigger,
             Tabs,
             Tab,
-            InstallTabs: ({
-              items,
-              children,
-            }: {
-              items: string[];
-              children: ReactNode;
-            }) => (
-              <Tabs items={items} style={{ padding: '15px'}} id="package-manager">
+            InstallTabs: ({ items, children }: { items: string[]; children: ReactNode }) => (
+              <Tabs items={items} style={{ padding: "15px" }} id="package-manager">
                 {children}
               </Tabs>
             ),
@@ -126,12 +119,12 @@ export default async function Page(props: {
             Files,
             APIPage: (props: any) => {
               // Determine which API instance to use based on document path
-              const document = props.document || '';
-              const isMetricsApi = document.includes('popsicle.json');
-              const isPChainApi = document.includes('platformvm.yaml');
-              const isCChainApi = document.includes('coreth.yaml');
-              const isXChainApi = document.includes('xchain.yaml');
-              
+              const document = props.document || "";
+              const isMetricsApi = document.includes("popsicle.json");
+              const isPChainApi = document.includes("platformvm.yaml");
+              const isCChainApi = document.includes("coreth.yaml");
+              const isXChainApi = document.includes("xchain.yaml");
+
               if (isPChainApi) {
                 return <PChainAPIPage {...props} />;
               } else if (isCChainApi) {
@@ -163,7 +156,7 @@ export default async function Page(props: {
   );
 }
 
-export async function generateStaticParams() {
+export function generateStaticParams() {
   return documentation.getPages().map((page) => ({
     slug: page.slugs,
   }));

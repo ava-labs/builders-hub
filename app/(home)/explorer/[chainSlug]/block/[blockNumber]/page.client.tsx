@@ -10,7 +10,7 @@ interface BlockDetailPageClientProps {
 
 export function BlockDetailPageClient({ blockNumber }: BlockDetailPageClientProps) {
   const chain = useChainContext();
-  
+
   return (
     <ExplorerLayout
       chainId={chain.chainId}
@@ -40,4 +40,3 @@ export function BlockDetailPageClient({ blockNumber }: BlockDetailPageClientProp
     </ExplorerLayout>
   );
 }
-

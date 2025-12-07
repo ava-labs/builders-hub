@@ -8,11 +8,7 @@ interface EditOnGitHubButtonProps {
   toolTitle?: string;
 }
 
-export function EditOnGitHubButton({
-  className,
-  githubUrl,
-  toolTitle,
-}: EditOnGitHubButtonProps) {
+export function EditOnGitHubButton({ className, githubUrl, toolTitle }: EditOnGitHubButtonProps) {
   const handleEditOnGitHub = () => {
     if (!githubUrl) return;
     window.open(githubUrl, "_blank");
@@ -24,15 +20,9 @@ export function EditOnGitHubButton({
   }
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={handleEditOnGitHub}
-      className={className}
-    >
+    <Button variant="outline" size="sm" onClick={handleEditOnGitHub} className={className}>
       <Github className="h-4 w-4 mr-2" />
       Edit on GitHub
     </Button>
   );
 }
-

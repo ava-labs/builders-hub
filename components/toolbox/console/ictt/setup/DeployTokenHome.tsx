@@ -2,10 +2,7 @@
 
 import ERC20TokenHome from "@/contracts/icm-contracts/compiled/ERC20TokenHome.json";
 import NativeTokenHome from "@/contracts/icm-contracts/compiled/NativeTokenHome.json";
-import {
-  useToolboxStore,
-  useViemChainStore,
-} from "@/components/toolbox/stores/toolboxStore";
+import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWrappedNativeToken } from "@/components/toolbox/stores/l1ListStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState, useEffect } from "react";
@@ -21,14 +18,17 @@ import TeleporterRegistryAddressInput from "@/components/toolbox/components/Tele
 import { RadioGroup } from "@/components/toolbox/components/RadioGroup";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
+import {
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from "@/components/toolbox/components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 
 const metadata: ConsoleToolMetadata = {
   title: "Deploy Token Home Contract",
   description: "Deploy the TokenHome contract for your token.",
   toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 function DeployTokenHome() {
@@ -42,8 +42,7 @@ function DeployTokenHome() {
   } = useToolboxStore();
   const wrappedNativeTokenAddress = useWrappedNativeToken();
   const selectedL1 = useSelectedL1()();
-  const { coreWalletClient, walletEVMAddress, walletChainId } =
-    useWalletStore();
+  const { coreWalletClient, walletEVMAddress, walletChainId } = useWalletStore();
   const { notify } = useConsoleNotifications();
   const viemChain = useViemChainStore();
   const [isDeploying, setIsDeploying] = useState(false);
@@ -53,8 +52,7 @@ function DeployTokenHome() {
   const [tokenDecimals, setTokenDecimals] = useState("0");
   const [localError, setLocalError] = useState("");
   const [deployError, setDeployError] = useState("");
-  const [teleporterRegistryAddress, setTeleporterRegistryAddress] =
-    useState(""); //local, not in store
+  const [teleporterRegistryAddress, setTeleporterRegistryAddress] = useState(""); //local, not in store
   const [tokenType, setTokenType] = useState<"erc20" | "native">("erc20");
 
   // Throw critical errors during render
@@ -70,8 +68,7 @@ function DeployTokenHome() {
     setTokenAddress(tokenAddress);
   }, [tokenType, selectedL1, exampleErc20Address]);
 
-  const [initTeleporterManagerRan, setInitTeleporterManagerRan] =
-    useState(false);
+  const [initTeleporterManagerRan, setInitTeleporterManagerRan] = useState(false);
   useEffect(() => {
     if (!teleporterManager && walletEVMAddress && !initTeleporterManagerRan) {
       setTeleporterManager(walletEVMAddress);
@@ -110,16 +107,12 @@ function DeployTokenHome() {
 
     setDeployError("");
     if (!teleporterRegistryAddress) {
-      setDeployError(
-        "Teleporter Registry address is required. Please deploy it first."
-      );
+      setDeployError("Teleporter Registry address is required. Please deploy it first.");
       return;
     }
 
     if (!tokenAddress) {
-      setDeployError(
-        "Token address is required. Please deploy an ERC20 token first."
-      );
+      setDeployError("Token address is required. Please deploy an ERC20 token first.");
       return;
     }
 
@@ -146,9 +139,7 @@ function DeployTokenHome() {
       }
 
       const deployPromise = coreWalletClient.deployContract({
-        abi: (tokenType === "erc20"
-          ? ERC20TokenHome.abi
-          : NativeTokenHome.abi) as any,
+        abi: (tokenType === "erc20" ? ERC20TokenHome.abi : NativeTokenHome.abi) as any,
         bytecode:
           tokenType === "erc20"
             ? (ERC20TokenHome.bytecode.object as `0x${string}`)
@@ -180,9 +171,7 @@ function DeployTokenHome() {
         setNativeTokenHomeAddress(receipt.contractAddress);
       }
     } catch (error) {
-      setCriticalError(
-        error instanceof Error ? error : new Error(String(error))
-      );
+      setCriticalError(error instanceof Error ? error : new Error(String(error)));
     } finally {
       setIsDeploying(false);
     }
@@ -200,9 +189,9 @@ function DeployTokenHome() {
     <>
       <div>
         <p className="mt-2">
-          This will deploy a TokenHome contract to your connected network (Chain
-          ID: <code>{walletChainId}</code>). This contract serves as the home
-          chain endpoint for cross-chain token transfers.
+          This will deploy a TokenHome contract to your connected network (Chain ID:{" "}
+          <code>{walletChainId}</code>). This contract serves as the home chain endpoint for
+          cross-chain token transfers.
         </p>
       </div>
 
@@ -219,10 +208,7 @@ function DeployTokenHome() {
         <Note variant="warning" className="px-2 py-1">
           <p>
             Please{" "}
-            <a
-              href="#teleporterRegistry"
-              className="text-blue-500 no-underline"
-            >
+            <a href="#teleporterRegistry" className="text-blue-500 no-underline">
               deploy the Teleporter Registry contract first
             </a>
             .
@@ -261,9 +247,7 @@ function DeployTokenHome() {
       </div>
 
       <EVMAddressInput
-        label={
-          tokenType === "erc20" ? "Token Address" : "Wrapped Token Address"
-        }
+        label={tokenType === "erc20" ? "Token Address" : "Wrapped Token Address"}
         value={tokenAddress}
         onChange={setTokenAddress}
         disabled={isDeploying}
@@ -297,9 +281,7 @@ function DeployTokenHome() {
         variant={getTokenHomeAddress() ? "secondary" : "primary"}
         onClick={handleDeploy}
         loading={isDeploying}
-        disabled={
-          !teleporterRegistryAddress || !tokenAddress || tokenDecimals === "0"
-        }
+        disabled={!teleporterRegistryAddress || !tokenAddress || tokenDecimals === "0"}
       >
         {getTokenHomeAddress() ? "Re-Deploy Token Home" : "Deploy Token Home"}
       </Button>

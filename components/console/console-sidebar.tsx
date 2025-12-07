@@ -30,7 +30,7 @@ import {
   SquarePlus,
   HandCoins,
   ExternalLink,
-  BookKey
+  BookKey,
 } from "lucide-react";
 
 import {
@@ -206,7 +206,7 @@ const data = {
           title: "Remove Expired Validator Registration",
           url: "/console/permissioned-l1s/remove-expired-validator-registration",
           icon: SquareMinus,
-        }
+        },
       ],
     },
     {
@@ -291,18 +291,16 @@ const data = {
           title: "Revert PoA Manager",
           url: "/console/utilities/revert-poa-manager",
           icon: Wrench,
-        }
+        },
       ],
     },
   ],
   navSecondary: [],
 };
 
-interface ConsoleSidebarProps extends React.ComponentProps<typeof Sidebar> { }
+interface ConsoleSidebarProps extends React.ComponentProps<typeof Sidebar> {}
 
-export function ConsoleSidebar({
-  ...props
-}: ConsoleSidebarProps) {
+export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   const pathname = usePathname();
   return (
     <Sidebar {...props}>
@@ -311,7 +309,7 @@ export function ConsoleSidebar({
           href="/console"
           className="flex items-center gap-2 group transition-all duration-200 p-2"
         >
-          <AvalancheLogo className='size-7' fill='currentColor' />
+          <AvalancheLogo className="size-7" fill="currentColor" />
           <span className="font-large font-semibold">Builder Console</span>
         </Link>
       </SidebarHeader>
@@ -324,10 +322,7 @@ export function ConsoleSidebar({
               const isActive = pathname === item.url;
               return (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive}
-                  >
+                  <SidebarMenuButton asChild isActive={isActive}>
                     <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
@@ -348,24 +343,22 @@ export function ConsoleSidebar({
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => {
-                  const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
-                  const isComingSoon = 'comingSoon' in item && (item as any).comingSoon;
+                  const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
+                  const isComingSoon = "comingSoon" in item && (item as any).comingSoon;
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
                         asChild
                         isActive={isActive}
-                        className={`${isComingSoon ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`${isComingSoon ? "opacity-50 cursor-not-allowed" : ""}`}
                         disabled={isComingSoon}
                       >
-
-
                         {isComingSoon ? (
                           <Link href="#">
                             <item.icon />
                             <span>{item.title} (soon)</span>
                           </Link>
-                        ) : item.url.startsWith('https://') ? (
+                        ) : item.url.startsWith("https://") ? (
                           <a
                             href={item.url}
                             target="_blank"
@@ -390,8 +383,6 @@ export function ConsoleSidebar({
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
-
-
       </SidebarContent>
     </Sidebar>
   );

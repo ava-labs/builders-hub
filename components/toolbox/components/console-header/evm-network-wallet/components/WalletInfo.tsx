@@ -1,8 +1,5 @@
 import { useState } from "react";
-import {
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import {
   Copy,
   RefreshCw,
@@ -45,11 +42,7 @@ export function WalletInfo({
   const { isTestnet } = useWalletStore();
 
   // Format EVM address for compact display
-  const formatAddressForDisplay = (
-    address: string,
-    leading: number = 6,
-    trailing: number = 4
-  ) => {
+  const formatAddressForDisplay = (address: string, leading: number = 6, trailing: number = 4) => {
     if (!address) return "";
     if (address.length <= leading + trailing + 3) return address;
     return `${address.slice(0, leading)}...${address.slice(-trailing)}`;
@@ -93,9 +86,7 @@ export function WalletInfo({
               title={walletAddress || "Not connected"}
               onClick={handleCopyAddress}
             >
-              {walletAddress
-                ? formatAddressForDisplay(walletAddress)
-                : "Not connected"}
+              {walletAddress ? formatAddressForDisplay(walletAddress) : "Not connected"}
             </div>
           </div>
 
@@ -105,29 +96,25 @@ export function WalletInfo({
               variant="ghost"
               size="sm"
               onClick={handleCopyAddress}
-              className={`h-6 w-6 p-0 hover:bg-muted transition-colors ${isCopied ? "text-green-600" : ""
-                }`}
+              className={`h-6 w-6 p-0 hover:bg-muted transition-colors ${
+                isCopied ? "text-green-600" : ""
+              }`}
               title={isCopied ? "Copied!" : "Copy address"}
             >
-              {isCopied ? (
-                <Check className="h-3 w-3" />
-              ) : (
-                <Copy className="h-3 w-3" />
-              )}
+              {isCopied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
             </Button>
 
             <Button
               variant="ghost"
               size="sm"
               onClick={handleRefreshBalances}
-              className={`h-6 w-6 p-0 hover:bg-muted transition-colors ${isRefreshing ? "text-blue-600" : ""
-                }`}
+              className={`h-6 w-6 p-0 hover:bg-muted transition-colors ${
+                isRefreshing ? "text-blue-600" : ""
+              }`}
               title={isRefreshing ? "Refreshing..." : "Refresh balances"}
               disabled={isRefreshing}
             >
-              <RefreshCw
-                className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`}
-              />
+              <RefreshCw className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`} />
             </Button>
 
             {currentNetworkExplorerUrl && (
@@ -158,20 +145,14 @@ export function WalletInfo({
             <>
               <DropdownMenuSeparator />
               {hasBuilderHubFaucet && (
-                <DropdownMenuItem
-                  onClick={handleBuilderHubFaucet}
-                  className="cursor-pointer"
-                >
+                <DropdownMenuItem onClick={handleBuilderHubFaucet} className="cursor-pointer">
                   <Droplets className="mr-2 h-3 w-3" />
                   Claim free Testnet {currentNetwork.coinName}
                 </DropdownMenuItem>
               )}
 
               {hasExternalFaucet && (
-                <DropdownMenuItem
-                  onClick={handleExternalFaucet}
-                  className="cursor-pointer"
-                >
+                <DropdownMenuItem onClick={handleExternalFaucet} className="cursor-pointer">
                   <SquareArrowOutUpRight className="mr-2 h-3 w-3" />
                   Open External Faucet
                 </DropdownMenuItem>

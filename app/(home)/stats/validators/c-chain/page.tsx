@@ -17,13 +17,7 @@ import {
   Tooltip,
   ComposedChart,
 } from "recharts";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -87,12 +81,9 @@ export default function CChainValidatorMetrics() {
   const [metrics, setMetrics] = useState<PrimaryNetworkMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [validatorVersions, setValidatorVersions] = useState<VersionCount[]>(
-    []
-  );
+  const [validatorVersions, setValidatorVersions] = useState<VersionCount[]>([]);
   const [validators, setValidators] = useState<ValidatorData[]>([]);
-  const [versionBreakdown, setVersionBreakdown] =
-    useState<VersionBreakdownData | null>(null);
+  const [versionBreakdown, setVersionBreakdown] = useState<VersionBreakdownData | null>(null);
   const [availableVersions, setAvailableVersions] = useState<string[]>([]);
   const [minVersion, setMinVersion] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -108,12 +99,11 @@ export default function CChainValidatorMetrics() {
 
       // Fetch all APIs in parallel
       // Use validator-stats API for version breakdown (same as landing page)
-      const [statsResponse, validatorsResponse, validatorStatsResponse] =
-        await Promise.all([
-          fetch(`/api/primary-network-stats?timeRange=all`),
-          fetch("/api/primary-network-validators"),
-          fetch("/api/validator-stats?network=mainnet"),
-        ]);
+      const [statsResponse, validatorsResponse, validatorStatsResponse] = await Promise.all([
+        fetch(`/api/primary-network-stats?timeRange=all`),
+        fetch("/api/primary-network-validators"),
+        fetch("/api/validator-stats?network=mainnet"),
+      ]);
 
       if (!statsResponse.ok) {
         throw new Error(`HTTP error! status: ${statsResponse.status}`);
@@ -144,9 +134,7 @@ export default function CChainValidatorMetrics() {
             });
 
             // Build versionArray for pie charts
-            const versionArray: VersionCount[] = Object.entries(
-              primaryNetwork.byClientVersion
-            )
+            const versionArray: VersionCount[] = Object.entries(primaryNetwork.byClientVersion)
               .map(([version, data]: [string, any]) => ({
                 version,
                 count: data.nodes,
@@ -156,18 +144,11 @@ export default function CChainValidatorMetrics() {
               }))
               .sort((a, b) => b.count - a.count);
 
-            const totalValidators = versionArray.reduce(
-              (sum, item) => sum + item.count,
-              0
-            );
-            const totalStaked = versionArray.reduce(
-              (sum, item) => sum + item.amountStaked,
-              0
-            );
+            const totalValidators = versionArray.reduce((sum, item) => sum + item.count, 0);
+            const totalStaked = versionArray.reduce((sum, item) => sum + item.amountStaked, 0);
 
             versionArray.forEach((item) => {
-              item.percentage =
-                totalValidators > 0 ? (item.count / totalValidators) * 100 : 0;
+              item.percentage = totalValidators > 0 ? (item.count / totalValidators) * 100 : 0;
               item.stakingPercentage =
                 totalStaked > 0 ? (item.amountStaked / totalStaked) * 100 : 0;
             });
@@ -216,8 +197,7 @@ export default function CChainValidatorMetrics() {
 
   const formatWeight = (weight: number | string): string => {
     if (weight === "N/A" || weight === "") return "N/A";
-    const numValue =
-      typeof weight === "string" ? Number.parseFloat(weight) : weight;
+    const numValue = typeof weight === "string" ? Number.parseFloat(weight) : weight;
     if (isNaN(numValue)) return "N/A";
 
     const avaxValue = numValue / 1e9;
@@ -238,8 +218,7 @@ export default function CChainValidatorMetrics() {
 
   const formatWeightForAxis = (weight: number | string): string => {
     if (weight === "N/A" || weight === "") return "N/A";
-    const numValue =
-      typeof weight === "string" ? Number.parseFloat(weight) : weight;
+    const numValue = typeof weight === "string" ? Number.parseFloat(weight) : weight;
     if (isNaN(numValue)) return "N/A";
 
     const avaxValue = numValue / 1e9;
@@ -273,8 +252,7 @@ export default function CChainValidatorMetrics() {
     const sorted = [...validators]
       .map((v) => ({
         nodeId: v.nodeId,
-        weight:
-          (parseFloat(v.amountStaked) + parseFloat(v.amountDelegated)) / 1e9,
+        weight: (parseFloat(v.amountStaked) + parseFloat(v.amountDelegated)) / 1e9,
       }))
       .sort((a, b) => b.weight - a.weight);
     const totalWeight = sorted.reduce((sum, v) => sum + v.weight, 0);
@@ -326,8 +304,7 @@ export default function CChainValidatorMetrics() {
       return {
         rank: index + 1,
         weight: v.weight,
-        cumulativePercentage:
-          totalWeight > 0 ? (cumulativeWeight / totalWeight) * 100 : 0,
+        cumulativePercentage: totalWeight > 0 ? (cumulativeWeight / totalWeight) * 100 : 0,
       };
     });
   }, [validators]);
@@ -365,33 +342,23 @@ export default function CChainValidatorMetrics() {
   const getChartData = (
     metricKey: keyof Pick<
       PrimaryNetworkMetrics,
-      | "validator_count"
-      | "validator_weight"
-      | "delegator_count"
-      | "delegator_weight"
+      "validator_count" | "validator_weight" | "delegator_count" | "delegator_weight"
     >
   ): ChartDataPoint[] => {
     if (!metrics || !metrics[metricKey]?.data) return [];
     const today = new Date().toISOString().split("T")[0];
-    const finalizedData = metrics[metricKey].data.filter(
-      (point) => point.date !== today
-    );
+    const finalizedData = metrics[metricKey].data.filter((point) => point.date !== today);
 
     return finalizedData
       .map((point: TimeSeriesDataPoint) => ({
         day: point.date,
-        value:
-          typeof point.value === "string"
-            ? parseFloat(point.value)
-            : point.value,
+        value: typeof point.value === "string" ? parseFloat(point.value) : point.value,
       }))
       .reverse();
   };
 
   const formatTooltipValue = (value: number, metricKey: string): string => {
-    const roundedValue = ["validator_count", "delegator_count"].includes(
-      metricKey
-    )
+    const roundedValue = ["validator_count", "delegator_count"].includes(metricKey)
       ? Math.round(value)
       : value;
 
@@ -416,10 +383,7 @@ export default function CChainValidatorMetrics() {
   const getCurrentValue = (
     metricKey: keyof Pick<
       PrimaryNetworkMetrics,
-      | "validator_count"
-      | "validator_weight"
-      | "delegator_count"
-      | "delegator_weight"
+      "validator_count" | "validator_weight" | "delegator_count" | "delegator_weight"
     >
   ): number | string => {
     if (!metrics || !metrics[metricKey]) return "N/A";
@@ -484,12 +448,16 @@ export default function CChainValidatorMetrics() {
   };
 
   // C-Chain config from l1-chains.json
-  const cChainData = (l1ChainsData as L1Chain[]).find(c => c.slug === "c-chain");
+  const cChainData = (l1ChainsData as L1Chain[]).find((c) => c.slug === "c-chain");
   const chainConfig = {
-    chainLogoURI: cChainData?.chainLogoURI || "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
+    chainLogoURI:
+      cChainData?.chainLogoURI ||
+      "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
     color: cChainData?.color || "#E57373",
     category: "Primary Network",
-    description: cChainData?.description || "Real-time insights into the Avalanche C-Chain performance and validator distribution",
+    description:
+      cChainData?.description ||
+      "Real-time insights into the Avalanche C-Chain performance and validator distribution",
     website: cChainData?.website,
     socials: cChainData?.socials,
     explorers: cChainData?.explorers || [],
@@ -534,9 +502,9 @@ export default function CChainValidatorMetrics() {
     },
   ];
 
-  const [chartPeriods, setChartPeriods] = useState<
-    Record<string, "D" | "W" | "M" | "Q" | "Y">
-  >(Object.fromEntries(chartConfigs.map((config) => [config.metricKey, "D"])));
+  const [chartPeriods, setChartPeriods] = useState<Record<string, "D" | "W" | "M" | "Q" | "Y">>(
+    Object.fromEntries(chartConfigs.map((config) => [config.metricKey, "D"]))
+  );
 
   // Active section tracking for navbar
   const [activeSection, setActiveSection] = useState<string>("trends");
@@ -587,9 +555,11 @@ export default function CChainValidatorMetrics() {
     if (sortColumn !== column) {
       return <ChevronsUpDown className="w-3 h-3 ml-1 opacity-40" />;
     }
-    return sortDirection === "asc" 
-      ? <ChevronUp className="w-3 h-3 ml-1" />
-      : <ChevronDown className="w-3 h-3 ml-1" />;
+    return sortDirection === "asc" ? (
+      <ChevronUp className="w-3 h-3 ml-1" />
+    ) : (
+      <ChevronDown className="w-3 h-3 ml-1" />
+    );
   };
 
   // Filter validators based on search term
@@ -598,17 +568,15 @@ export default function CChainValidatorMetrics() {
     const searchLower = searchTerm.toLowerCase();
     return (
       validator.nodeId.toLowerCase().includes(searchLower) ||
-      (validator.version &&
-        validator.version.toLowerCase().includes(searchLower))
+      (validator.version && validator.version.toLowerCase().includes(searchLower))
     );
   });
 
   // Sort validators
   const sortedValidators = [...filteredValidators].sort((a, b) => {
-    
     let aValue: number = 0;
     let bValue: number = 0;
-    
+
     switch (sortColumn) {
       case "amountStaked":
         aValue = parseFloat(a.amountStaked) || 0;
@@ -629,7 +597,7 @@ export default function CChainValidatorMetrics() {
       default:
         return 0;
     }
-    
+
     if (sortDirection === "asc") {
       return aValue - bValue;
     }
@@ -653,9 +621,7 @@ export default function CChainValidatorMetrics() {
   // Track active section on scroll
   useEffect(() => {
     const handleScroll = () => {
-      const sections = navCategories.map((cat) =>
-        document.getElementById(cat.id)
-      );
+      const sections = navCategories.map((cat) => document.getElementById(cat.id));
       const scrollPosition = window.scrollY + 180; // Account for navbar height
 
       for (let i = sections.length - 1; i >= 0; i--) {
@@ -677,8 +643,7 @@ export default function CChainValidatorMetrics() {
     const element = document.getElementById(sectionId);
     if (element) {
       const offset = 180; // Account for both navbars
-      const elementPosition =
-        element.getBoundingClientRect().top + window.scrollY;
+      const elementPosition = element.getBoundingClientRect().top + window.scrollY;
       window.scrollTo({
         top: elementPosition - offset,
         behavior: "smooth",
@@ -756,10 +721,7 @@ export default function CChainValidatorMetrics() {
                   </div>
                   <div className="flex gap-1">
                     {[1, 2, 3, 4, 5].map((j) => (
-                      <div
-                        key={j}
-                        className="w-8 h-7 bg-zinc-200 dark:bg-zinc-800 rounded"
-                      />
+                      <div key={j} className="w-8 h-7 bg-zinc-200 dark:bg-zinc-800 rounded" />
                     ))}
                   </div>
                 </div>
@@ -833,10 +795,7 @@ export default function CChainValidatorMetrics() {
             <div className="space-y-4 sm:space-y-6 flex-1">
               <div>
                 <div className="flex items-center gap-2 sm:gap-3 mb-3">
-                  <AvalancheLogo
-                    className="w-4 h-4 sm:w-5 sm:h-5"
-                    fill="#E84142"
-                  />
+                  <AvalancheLogo className="w-4 h-4 sm:w-5 sm:h-5" fill="#E84142" />
                   <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
                     Avalanche Ecosystem
                   </p>
@@ -856,11 +815,14 @@ export default function CChainValidatorMetrics() {
                   <div className="mt-3 -mx-4 px-4 sm:mx-0 sm:px-0">
                     <div className="flex flex-row items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <ChainIdChips subnetId={chainConfig.subnetId} blockchainId={chainConfig.blockchainId} />
+                        <ChainIdChips
+                          subnetId={chainConfig.subnetId}
+                          blockchainId={chainConfig.blockchainId}
+                        />
                       </div>
                       {chainConfig.rpcUrl && (
                         <div className="flex-shrink-0">
-                          <AddToWalletButton 
+                          <AddToWalletButton
                             rpcUrl={chainConfig.rpcUrl}
                             chainName="Avalanche C-Chain"
                             chainId={43114}
@@ -886,56 +848,64 @@ export default function CChainValidatorMetrics() {
                         asChild
                         className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
                       >
-                        <a href={chainConfig.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                        <a
+                          href={chainConfig.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2"
+                        >
                           Website
                           <ArrowUpRight className="h-4 w-4" />
                         </a>
                       </Button>
                     )}
-                    {chainConfig.socials && (chainConfig.socials.twitter || chainConfig.socials.linkedin) && (
-                      <>
-                        {chainConfig.socials.twitter && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                          >
-                            <a 
-                              href={`https://x.com/${chainConfig.socials.twitter}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              aria-label="Twitter"
+                    {chainConfig.socials &&
+                      (chainConfig.socials.twitter || chainConfig.socials.linkedin) && (
+                        <>
+                          {chainConfig.socials.twitter && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              asChild
+                              className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
                             >
-                              <Twitter className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
-                        {chainConfig.socials.linkedin && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                          >
-                            <a 
-                              href={`https://linkedin.com/company/${chainConfig.socials.linkedin}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              aria-label="LinkedIn"
+                              <a
+                                href={`https://x.com/${chainConfig.socials.twitter}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="Twitter"
+                              >
+                                <Twitter className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          )}
+                          {chainConfig.socials.linkedin && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              asChild
+                              className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
                             >
-                              <Linkedin className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
-                      </>
-                    )}
+                              <a
+                                href={`https://linkedin.com/company/${chainConfig.socials.linkedin}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="LinkedIn"
+                              >
+                                <Linkedin className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          )}
+                        </>
+                      )}
                     {chainConfig.rpcUrl && (
                       <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
                         <ExplorerDropdown
                           explorers={[
                             { name: "BuilderHub", link: `/explorer/${chainConfig.slug}` },
-                            ...(chainConfig.explorers || []).filter((e: { name: string }) => e.name !== "BuilderHub"),
+                            ...(chainConfig.explorers || []).filter(
+                              (e: { name: string }) => e.name !== "BuilderHub"
+                            ),
                           ]}
                           variant="outline"
                           size="sm"
@@ -1012,59 +982,67 @@ export default function CChainValidatorMetrics() {
                     asChild
                     className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
                   >
-                    <a href={chainConfig.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                    <a
+                      href={chainConfig.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2"
+                    >
                       Website
                       <ArrowUpRight className="h-4 w-4" />
                     </a>
                   </Button>
                 )}
-                
+
                 {/* Social buttons */}
-                {chainConfig.socials && (chainConfig.socials.twitter || chainConfig.socials.linkedin) && (
-                  <>
-                    {chainConfig.socials.twitter && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                      >
-                        <a 
-                          href={`https://x.com/${chainConfig.socials.twitter}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          aria-label="Twitter"
+                {chainConfig.socials &&
+                  (chainConfig.socials.twitter || chainConfig.socials.linkedin) && (
+                    <>
+                      {chainConfig.socials.twitter && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
                         >
-                          <Twitter className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
-                    {chainConfig.socials.linkedin && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                      >
-                        <a 
-                          href={`https://linkedin.com/company/${chainConfig.socials.linkedin}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          aria-label="LinkedIn"
+                          <a
+                            href={`https://x.com/${chainConfig.socials.twitter}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Twitter"
+                          >
+                            <Twitter className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      )}
+                      {chainConfig.socials.linkedin && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
                         >
-                          <Linkedin className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
-                  </>
-                )}
-                
+                          <a
+                            href={`https://linkedin.com/company/${chainConfig.socials.linkedin}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="LinkedIn"
+                          >
+                            <Linkedin className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      )}
+                    </>
+                  )}
+
                 {chainConfig.rpcUrl && (
                   <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
                     <ExplorerDropdown
                       explorers={[
                         { name: "BuilderHub", link: `/explorer/${chainConfig.slug}` },
-                        ...chainConfig.explorers.filter((e: { name: string }) => e.name !== "BuilderHub"),
+                        ...chainConfig.explorers.filter(
+                          (e: { name: string }) => e.name !== "BuilderHub"
+                        ),
                       ]}
                       variant="outline"
                       size="sm"
@@ -1108,9 +1086,7 @@ export default function CChainValidatorMetrics() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8 sm:space-y-12">
         <section id="trends" className="space-y-4 sm:space-y-6 scroll-mt-32">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
-              Historical Trends
-            </h2>
+            <h2 className="text-lg sm:text-2xl font-medium text-left">Historical Trends</h2>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
               Track network growth and validator activity over time
             </p>
@@ -1137,13 +1113,9 @@ export default function CChainValidatorMetrics() {
                       [config.metricKey]: newPeriod,
                     }))
                   }
-                  formatTooltipValue={(value) =>
-                    formatTooltipValue(value, config.metricKey)
-                  }
+                  formatTooltipValue={(value) => formatTooltipValue(value, config.metricKey)}
                   formatYAxisValue={
-                    config.metricKey.includes("weight")
-                      ? formatWeightForAxis
-                      : formatNumber
+                    config.metricKey.includes("weight") ? formatWeightForAxis : formatNumber
                   }
                 />
               );
@@ -1151,17 +1123,13 @@ export default function CChainValidatorMetrics() {
           </div>
         </section>
 
-        <section
-          id="distribution"
-          className="space-y-4 sm:space-y-6 scroll-mt-32"
-        >
+        <section id="distribution" className="space-y-4 sm:space-y-6 scroll-mt-32">
           <div className="space-y-2">
             <h2 className="text-lg sm:text-2xl font-medium text-left">
               Stake Distribution Analysis
             </h2>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
-              Analyze how stake is distributed across validators and delegation
-              patterns
+              Analyze how stake is distributed across validators and delegation patterns
             </p>
           </div>
 
@@ -1199,9 +1167,7 @@ export default function CChainValidatorMetrics() {
                           className="w-3 h-3 rounded-full"
                           style={{ backgroundColor: "#E84142" }}
                         />
-                        <span>
-                          Cumulative Validator Weight Percentage by Rank
-                        </span>
+                        <span>Cumulative Validator Weight Percentage by Rank</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div
@@ -1229,15 +1195,10 @@ export default function CChainValidatorMetrics() {
                           interval="preserveStartEnd"
                           ticks={Array.from(
                             {
-                              length:
-                                Math.ceil(
-                                  validatorWeightDistribution.length / 200
-                                ) + 1,
+                              length: Math.ceil(validatorWeightDistribution.length / 200) + 1,
                             },
                             (_, i) => i * 200
-                          ).filter(
-                            (v) => v <= validatorWeightDistribution.length
-                          )}
+                          ).filter((v) => v <= validatorWeightDistribution.length)}
                         />
                         <YAxis
                           yAxisId="left"
@@ -1268,29 +1229,18 @@ export default function CChainValidatorMetrics() {
                             if (!active || !payload?.length) return null;
                             return (
                               <div className="bg-background p-3 border rounded-lg shadow-lg">
-                                <p className="font-semibold">
-                                  Rank: {payload[0].payload.rank}
+                                <p className="font-semibold">Rank: {payload[0].payload.rank}</p>
+                                <p className="text-sm">
+                                  Weight: {formatStake(payload[0].payload.weight)}
                                 </p>
                                 <p className="text-sm">
-                                  Weight:{" "}
-                                  {formatStake(payload[0].payload.weight)}
-                                </p>
-                                <p className="text-sm">
-                                  Cumulative:{" "}
-                                  {payload[0].payload.cumulativePercentage.toFixed(
-                                    2
-                                  )}
-                                  %
+                                  Cumulative: {payload[0].payload.cumulativePercentage.toFixed(2)}%
                                 </p>
                               </div>
                             );
                           }}
                         />
-                        <Bar
-                          yAxisId="right"
-                          dataKey="weight"
-                          fill={chainConfig.color}
-                        />
+                        <Bar yAxisId="right" dataKey="weight" fill={chainConfig.color} />
                         <Line
                           yAxisId="left"
                           type="monotone"
@@ -1368,15 +1318,10 @@ export default function CChainValidatorMetrics() {
                           interval="preserveStartEnd"
                           ticks={Array.from(
                             {
-                              length:
-                                Math.ceil(
-                                  validatorStakeDistribution.length / 200
-                                ) + 1,
+                              length: Math.ceil(validatorStakeDistribution.length / 200) + 1,
                             },
                             (_, i) => i * 200
-                          ).filter(
-                            (v) => v <= validatorStakeDistribution.length
-                          )}
+                          ).filter((v) => v <= validatorStakeDistribution.length)}
                         />
                         <YAxis
                           yAxisId="left"
@@ -1407,29 +1352,18 @@ export default function CChainValidatorMetrics() {
                             if (!active || !payload?.length) return null;
                             return (
                               <div className="bg-background p-3 border rounded-lg shadow-lg">
-                                <p className="font-semibold">
-                                  Rank: {payload[0].payload.rank}
+                                <p className="font-semibold">Rank: {payload[0].payload.rank}</p>
+                                <p className="text-sm">
+                                  Stake: {formatStake(payload[0].payload.weight)}
                                 </p>
                                 <p className="text-sm">
-                                  Stake:{" "}
-                                  {formatStake(payload[0].payload.weight)}
-                                </p>
-                                <p className="text-sm">
-                                  Cumulative:{" "}
-                                  {payload[0].payload.cumulativePercentage.toFixed(
-                                    2
-                                  )}
-                                  %
+                                  Cumulative: {payload[0].payload.cumulativePercentage.toFixed(2)}%
                                 </p>
                               </div>
                             );
                           }}
                         />
-                        <Bar
-                          yAxisId="right"
-                          dataKey="weight"
-                          fill={chainConfig.color}
-                        />
+                        <Bar yAxisId="right" dataKey="weight" fill={chainConfig.color} />
                         <Line
                           yAxisId="left"
                           type="monotone"
@@ -1459,10 +1393,7 @@ export default function CChainValidatorMetrics() {
                         className="rounded-full p-2 sm:p-3 flex items-center justify-center"
                         style={{ backgroundColor: "#E8414220" }}
                       >
-                        <Users
-                          className="h-5 w-5 sm:h-6 sm:w-6"
-                          style={{ color: "#E84142" }}
-                        />
+                        <Users className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: "#E84142" }} />
                       </div>
                       <div>
                         <h3 className="text-base sm:text-lg font-normal">
@@ -1481,9 +1412,7 @@ export default function CChainValidatorMetrics() {
                           className="w-3 h-3 rounded-full"
                           style={{ backgroundColor: "#E84142" }}
                         />
-                        <span>
-                          Cumulative Delegator Stake Percentage by Rank
-                        </span>
+                        <span>Cumulative Delegator Stake Percentage by Rank</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div
@@ -1511,15 +1440,10 @@ export default function CChainValidatorMetrics() {
                           interval="preserveStartEnd"
                           ticks={Array.from(
                             {
-                              length:
-                                Math.ceil(
-                                  delegatorStakeDistribution.length / 200
-                                ) + 1,
+                              length: Math.ceil(delegatorStakeDistribution.length / 200) + 1,
                             },
                             (_, i) => i * 200
-                          ).filter(
-                            (v) => v <= delegatorStakeDistribution.length
-                          )}
+                          ).filter((v) => v <= delegatorStakeDistribution.length)}
                         />
                         <YAxis
                           yAxisId="left"
@@ -1550,29 +1474,18 @@ export default function CChainValidatorMetrics() {
                             if (!active || !payload?.length) return null;
                             return (
                               <div className="bg-background p-3 border rounded-lg shadow-lg">
-                                <p className="font-semibold">
-                                  Rank: {payload[0].payload.rank}
+                                <p className="font-semibold">Rank: {payload[0].payload.rank}</p>
+                                <p className="text-sm">
+                                  Delegated: {formatStake(payload[0].payload.weight)}
                                 </p>
                                 <p className="text-sm">
-                                  Delegated:{" "}
-                                  {formatStake(payload[0].payload.weight)}
-                                </p>
-                                <p className="text-sm">
-                                  Cumulative:{" "}
-                                  {payload[0].payload.cumulativePercentage.toFixed(
-                                    2
-                                  )}
-                                  %
+                                  Cumulative: {payload[0].payload.cumulativePercentage.toFixed(2)}%
                                 </p>
                               </div>
                             );
                           }}
                         />
-                        <Bar
-                          yAxisId="right"
-                          dataKey="weight"
-                          fill={chainConfig.color}
-                        />
+                        <Bar yAxisId="right" dataKey="weight" fill={chainConfig.color} />
                         <Line
                           yAxisId="left"
                           type="monotone"
@@ -1600,10 +1513,7 @@ export default function CChainValidatorMetrics() {
                         className="rounded-full p-2 sm:p-3 flex items-center justify-center"
                         style={{ backgroundColor: "#E8414220" }}
                       >
-                        <Percent
-                          className="h-5 w-5 sm:h-6 sm:w-6"
-                          style={{ color: "#E84142" }}
-                        />
+                        <Percent className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: "#E84142" }} />
                       </div>
                       <div>
                         <h3 className="text-base sm:text-lg font-normal">
@@ -1639,12 +1549,7 @@ export default function CChainValidatorMetrics() {
                             const value = parseFloat(payload.value);
                             if ([20, 40, 60, 100].includes(value)) {
                               return (
-                                <text
-                                  x={x}
-                                  y={y + 10}
-                                  textAnchor="middle"
-                                  fontSize={11}
-                                >
+                                <text x={x} y={y + 10} textAnchor="middle" fontSize={11}>
                                   {value}
                                 </text>
                               );
@@ -1673,15 +1578,9 @@ export default function CChainValidatorMetrics() {
                             return (
                               <div className="rounded-lg border bg-background p-2 shadow-sm">
                                 <div className="grid gap-2">
-                                  <p className="font-medium text-sm">
-                                    Fee: {data.fee}%
-                                  </p>
-                                  <p className="text-sm">
-                                    Validators: {data.count}
-                                  </p>
-                                  <p className="text-sm">
-                                    Weight: {formatStake(data.totalWeight)}
-                                  </p>
+                                  <p className="font-medium text-sm">Fee: {data.fee}%</p>
+                                  <p className="text-sm">Validators: {data.count}</p>
+                                  <p className="text-sm">Weight: {formatStake(data.totalWeight)}</p>
                                 </div>
                               </div>
                             );
@@ -1704,9 +1603,7 @@ export default function CChainValidatorMetrics() {
 
         <section id="versions" className="space-y-4 sm:space-y-6 scroll-mt-32">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
-              Software Versions
-            </h2>
+            <h2 className="text-lg sm:text-2xl font-medium text-left">Software Versions</h2>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
               Distribution of AvalancheGo versions across validators
             </p>
@@ -1720,15 +1617,10 @@ export default function CChainValidatorMetrics() {
                 <ChartStyle id="pie-count" config={versionsChartConfig} />
                 <CardHeader className="items-center pb-0">
                   <CardTitle className="flex items-center gap-2 font-medium">
-                    <Shield
-                      className="h-5 w-5"
-                      style={{ color: chainConfig.color }}
-                    />
+                    <Shield className="h-5 w-5" style={{ color: chainConfig.color }} />
                     By Validator Count
                   </CardTitle>
-                  <CardDescription>
-                    Distribution by number of validators
-                  </CardDescription>
+                  <CardDescription>Distribution by number of validators</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1 pb-0">
                   <ChartContainer
@@ -1750,8 +1642,7 @@ export default function CChainValidatorMetrics() {
                                       {data.version}
                                     </span>
                                     <span className="font-mono font-bold text-muted-foreground">
-                                      {data.count} validators (
-                                      {data.percentage.toFixed(1)}%)
+                                      {data.count} validators ({data.percentage.toFixed(1)}%)
                                     </span>
                                   </div>
                                 </div>
@@ -1761,11 +1652,7 @@ export default function CChainValidatorMetrics() {
                           return null;
                         }}
                       />
-                      <Pie
-                        data={pieChartData}
-                        dataKey="count"
-                        nameKey="version"
-                      />
+                      <Pie data={pieChartData} dataKey="count" nameKey="version" />
                       <ChartLegend
                         content={<ChartLegendContent nameKey="version" />}
                         className="-translate-y-2 flex-wrap gap-2 *:basis-1/4 *:justify-center"
@@ -1780,15 +1667,10 @@ export default function CChainValidatorMetrics() {
                 <ChartStyle id="pie-stake" config={versionsChartConfig} />
                 <CardHeader className="items-center pb-0">
                   <CardTitle className="flex items-center gap-2 font-medium">
-                    <Shield
-                      className="h-5 w-5"
-                      style={{ color: chainConfig.color }}
-                    />
+                    <Shield className="h-5 w-5" style={{ color: chainConfig.color }} />
                     By Stake Weight
                   </CardTitle>
-                  <CardDescription>
-                    Distribution by amount staked
-                  </CardDescription>
+                  <CardDescription>Distribution by amount staked</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1 pb-0">
                   <ChartContainer
@@ -1810,10 +1692,9 @@ export default function CChainValidatorMetrics() {
                                       {data.version}
                                     </span>
                                     <span className="font-mono font-bold text-muted-foreground">
-                                      {data.amountStaked.toLocaleString(
-                                        undefined,
-                                        { maximumFractionDigits: 0 }
-                                      )}{" "}
+                                      {data.amountStaked.toLocaleString(undefined, {
+                                        maximumFractionDigits: 0,
+                                      })}{" "}
                                       AVAX ({data.stakingPercentage.toFixed(1)}
                                       %)
                                     </span>
@@ -1825,11 +1706,7 @@ export default function CChainValidatorMetrics() {
                           return null;
                         }}
                       />
-                      <Pie
-                        data={pieChartData}
-                        dataKey="amountStaked"
-                        nameKey="version"
-                      />
+                      <Pie data={pieChartData} dataKey="amountStaked" nameKey="version" />
                       <ChartLegend
                         content={<ChartLegendContent nameKey="version" />}
                         className="-translate-y-2 flex-wrap gap-2 *:basis-1/4 *:justify-center"
@@ -1848,10 +1725,7 @@ export default function CChainValidatorMetrics() {
               availableVersions={availableVersions}
               minVersion={minVersion}
               onVersionChange={setMinVersion}
-              totalValidators={validatorVersions.reduce(
-                (sum, v) => sum + v.count,
-                0
-              )}
+              totalValidators={validatorVersions.reduce((sum, v) => sum + v.count, 0)}
               title="Version Breakdown"
               description="Distribution of validator software versions"
             />
@@ -1864,14 +1738,9 @@ export default function CChainValidatorMetrics() {
         </section>
 
         {/* All Validators Table */}
-        <section
-          id="validators"
-          className="space-y-4 sm:space-y-6 scroll-mt-32"
-        >
+        <section id="validators" className="space-y-4 sm:space-y-6 scroll-mt-32">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
-              Validator List
-            </h2>
+            <h2 className="text-lg sm:text-2xl font-medium text-left">Validator List</h2>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
               Complete list of all validators on the Primary Network
             </p>
@@ -1899,8 +1768,7 @@ export default function CChainValidatorMetrics() {
               )}
             </div>
             <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-              {displayedValidators.length} of {sortedValidators.length}{" "}
-              validators
+              {displayedValidators.length} of {sortedValidators.length} validators
             </span>
           </div>
 
@@ -1990,7 +1858,7 @@ export default function CChainValidatorMetrics() {
                             Node ID
                           </span>
                         </th>
-                        <th 
+                        <th
                           className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("amountStaked")}
                         >
@@ -1999,7 +1867,7 @@ export default function CChainValidatorMetrics() {
                             <SortIcon column="amountStaked" />
                           </span>
                         </th>
-                        <th 
+                        <th
                           className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("delegationFee")}
                         >
@@ -2008,7 +1876,7 @@ export default function CChainValidatorMetrics() {
                             <SortIcon column="delegationFee" />
                           </span>
                         </th>
-                        <th 
+                        <th
                           className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("delegatorCount")}
                         >
@@ -2017,7 +1885,7 @@ export default function CChainValidatorMetrics() {
                             <SortIcon column="delegatorCount" />
                           </span>
                         </th>
-                        <th 
+                        <th
                           className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("amountDelegated")}
                         >
@@ -2035,9 +1903,7 @@ export default function CChainValidatorMetrics() {
                             colSpan={6}
                             className="text-center py-8 text-neutral-600 dark:text-neutral-400"
                           >
-                            {searchTerm
-                              ? "No validators match your search"
-                              : "No validators found"}
+                            {searchTerm ? "No validators match your search" : "No validators found"}
                           </td>
                         </tr>
                       ) : (
@@ -2059,10 +1925,7 @@ export default function CChainValidatorMetrics() {
                                     : `Click to copy: ${validator.nodeId}`
                                 }
                                 onClick={() =>
-                                  copyToClipboard(
-                                    validator.nodeId,
-                                    `node-${validator.nodeId}`
-                                  )
+                                  copyToClipboard(validator.nodeId, `node-${validator.nodeId}`)
                                 }
                                 className={`cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
                                   copiedId === `node-${validator.nodeId}`
@@ -2079,8 +1942,7 @@ export default function CChainValidatorMetrics() {
                               </span>
                             </td>
                             <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right font-mono text-sm">
-                              {formatValidatorStake(validator.amountStaked)}{" "}
-                              AVAX
+                              {formatValidatorStake(validator.amountStaked)} AVAX
                             </td>
                             <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right text-sm">
                               {parseFloat(validator.delegationFee).toFixed(1)}%
@@ -2089,8 +1951,7 @@ export default function CChainValidatorMetrics() {
                               {validator.delegatorCount}
                             </td>
                             <td className="px-4 py-2 text-right font-mono text-sm">
-                              {formatValidatorStake(validator.amountDelegated)}{" "}
-                              AVAX
+                              {formatValidatorStake(validator.amountDelegated)} AVAX
                             </td>
                           </tr>
                         ))
@@ -2107,8 +1968,7 @@ export default function CChainValidatorMetrics() {
                     onClick={loadMoreValidators}
                     className="px-6 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors font-medium text-sm"
                   >
-                    Load More ({sortedValidators.length - displayCount}{" "}
-                    remaining)
+                    Load More ({sortedValidators.length - displayCount} remaining)
                   </button>
                 </div>
               )}
@@ -2152,10 +2012,7 @@ function ValidatorChartCard({
   const aggregatedData = useMemo(() => {
     if (period === "D") return rawData;
 
-    const grouped = new Map<
-      string,
-      { sum: number; count: number; date: string }
-    >();
+    const grouped = new Map<string, { sum: number; count: number; date: string }>();
 
     rawData.forEach((point) => {
       const date = new Date(point.day);
@@ -2166,10 +2023,7 @@ function ValidatorChartCard({
         weekStart.setDate(date.getDate() - date.getDay());
         key = weekStart.toISOString().split("T")[0];
       } else if (period === "M") {
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}`;
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       } else if (period === "Q") {
         const quarter = Math.floor(date.getMonth() / 3) + 1;
         key = `${date.getFullYear()}-Q${quarter}`;
@@ -2321,15 +2175,10 @@ function ValidatorChartCard({
               className="rounded-full p-2 sm:p-3 flex items-center justify-center"
               style={{ backgroundColor: `${config.color}20` }}
             >
-              <Icon
-                className="h-5 w-5 sm:h-6 sm:w-6"
-                style={{ color: config.color }}
-              />
+              <Icon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: config.color }} />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-normal">
-                {config.title}
-              </h3>
+              <h3 className="text-base sm:text-lg font-normal">{config.title}</h3>
               <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
                 {config.description}
               </p>
@@ -2345,11 +2194,7 @@ function ValidatorChartCard({
                     ? "text-white dark:text-white"
                     : "text-muted-foreground hover:bg-muted"
                 }`}
-                style={
-                  period === p
-                    ? { backgroundColor: `${config.color}`, opacity: 0.9 }
-                    : {}
-                }
+                style={period === p ? { backgroundColor: `${config.color}`, opacity: 0.9 } : {}}
               >
                 {p}
               </button>
@@ -2362,9 +2207,7 @@ function ValidatorChartCard({
           <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4">
             <div className="text-md sm:text-xl font-mono break-all">
               {formatTooltipValue(
-                typeof currentValue === "string"
-                  ? parseFloat(currentValue)
-                  : currentValue
+                typeof currentValue === "string" ? parseFloat(currentValue) : currentValue
               )}
             </div>
             {dynamicChange.change > 0 && (
@@ -2387,10 +2230,7 @@ function ValidatorChartCard({
           <div className="mb-6">
             <ResponsiveContainer width="100%" height={350}>
               {config.chartType === "bar" ? (
-                <BarChart
-                  data={displayData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
+                <BarChart data={displayData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <CartesianGrid
                     strokeDasharray="3 3"
                     className="stroke-gray-200 dark:stroke-gray-700"
@@ -2413,15 +2253,11 @@ function ValidatorChartCard({
                     cursor={{ fill: `${config.color}20` }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.[0]) return null;
-                      const formattedDate = formatTooltipDate(
-                        payload[0].payload.day
-                      );
+                      const formattedDate = formatTooltipDate(payload[0].payload.day);
                       return (
                         <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                           <div className="grid gap-2">
-                            <div className="font-medium text-sm">
-                              {formattedDate}
-                            </div>
+                            <div className="font-medium text-sm">{formattedDate}</div>
                             <div className="text-sm">
                               {formatTooltipValue(payload[0].value as number)}
                             </div>
@@ -2430,35 +2266,14 @@ function ValidatorChartCard({
                       );
                     }}
                   />
-                  <Bar
-                    dataKey="value"
-                    fill={config.color}
-                    radius={[4, 4, 0, 0]}
-                  />
+                  <Bar dataKey="value" fill={config.color} radius={[4, 4, 0, 0]} />
                 </BarChart>
               ) : (
-                <AreaChart
-                  data={displayData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
+                <AreaChart data={displayData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <defs>
-                    <linearGradient
-                      id={`gradient-${config.metricKey}`}
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="5%"
-                        stopColor={config.color}
-                        stopOpacity={0.3}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor={config.color}
-                        stopOpacity={0}
-                      />
+                    <linearGradient id={`gradient-${config.metricKey}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={config.color} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={config.color} stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid
@@ -2483,15 +2298,11 @@ function ValidatorChartCard({
                     cursor={{ fill: `${config.color}20` }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.[0]) return null;
-                      const formattedDate = formatTooltipDate(
-                        payload[0].payload.day
-                      );
+                      const formattedDate = formatTooltipDate(payload[0].payload.day);
                       return (
                         <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                           <div className="grid gap-2">
-                            <div className="font-medium text-sm">
-                              {formattedDate}
-                            </div>
+                            <div className="font-medium text-sm">{formattedDate}</div>
                             <div className="text-sm">
                               {formatTooltipValue(payload[0].value as number)}
                             </div>
@@ -2515,10 +2326,7 @@ function ValidatorChartCard({
           {/* Brush Slider */}
           <div className="mt-4 bg-white dark:bg-black pl-[60px]">
             <ResponsiveContainer width="100%" height={80}>
-              <LineChart
-                data={aggregatedData}
-                margin={{ top: 0, right: 30, left: 0, bottom: 5 }}
-              >
+              <LineChart data={aggregatedData} margin={{ top: 0, right: 30, left: 0, bottom: 5 }}>
                 <Brush
                   dataKey="day"
                   height={80}
@@ -2528,10 +2336,7 @@ function ValidatorChartCard({
                   startIndex={brushIndexes?.startIndex ?? 0}
                   endIndex={brushIndexes?.endIndex ?? aggregatedData.length - 1}
                   onChange={(e: any) => {
-                    if (
-                      e.startIndex !== undefined &&
-                      e.endIndex !== undefined
-                    ) {
+                    if (e.startIndex !== undefined && e.endIndex !== undefined) {
                       setBrushIndexes({
                         startIndex: e.startIndex,
                         endIndex: e.endIndex,

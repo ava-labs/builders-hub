@@ -1,5 +1,5 @@
-import { useCallback } from 'react';
-import confetti from 'canvas-confetti';
+import { useCallback } from "react";
+import confetti from "canvas-confetti";
 
 export const useConfetti = () => {
   const triggerFireworks = useCallback(() => {
@@ -11,7 +11,7 @@ export const useConfetti = () => {
       return Math.random() * (max - min) + min;
     }
 
-    const interval = setInterval(function() {
+    const interval = setInterval(function () {
       const timeLeft = animationEnd - Date.now();
 
       if (timeLeft <= 0) {
@@ -23,12 +23,12 @@ export const useConfetti = () => {
       confetti({
         ...defaults,
         particleCount,
-        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
       });
       confetti({
         ...defaults,
         particleCount,
-        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
       });
     }, 250);
   }, []);
@@ -37,7 +37,7 @@ export const useConfetti = () => {
     confetti({
       particleCount: 100,
       spread: 70,
-      origin: { y: 0.6 }
+      origin: { y: 0.6 },
     });
   }, []);
 
@@ -45,13 +45,13 @@ export const useConfetti = () => {
     confetti({
       particleCount: 50,
       spread: 60,
-      origin
+      origin,
     });
   }, []);
 
   return {
     triggerFireworks,
     triggerCelebration,
-    triggerBurst
+    triggerBurst,
   };
 };

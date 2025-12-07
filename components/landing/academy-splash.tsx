@@ -12,29 +12,29 @@ const features = [
     title: "Interactive Courses",
     description: "Hands-on blockchain courses",
     icon: BookOpen,
-    href: "/academy"
+    href: "/academy",
   },
   {
     id: 2,
     title: "Hackathons",
     description: "Compete for prizes",
     icon: Trophy,
-    href: "/hackathons"
+    href: "/hackathons",
   },
   {
     id: 3,
     title: "Bounties",
     description: "Earn by contributing",
     icon: Zap,
-    href: "/grants"
+    href: "/grants",
   },
   {
     id: 4,
     title: "Certificates",
     description: "Showcase your skills",
     icon: Award,
-    href: "/login"
-  }
+    href: "/login",
+  },
 ];
 
 export default function AcademySplash() {
@@ -45,21 +45,23 @@ export default function AcademySplash() {
           Avalanche Academy
         </h2>
       </div>
-      
+
       <div className="mx-auto font-geist relative max-w-7xl w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Left - Description */}
-          <div className={cn(
-            "p-8 rounded-lg",
-            "bg-zinc-50/50 dark:bg-zinc-900/50",
-            "border border-zinc-200/50 dark:border-zinc-800/50"
-          )}>
+          <div
+            className={cn(
+              "p-8 rounded-lg",
+              "bg-zinc-50/50 dark:bg-zinc-900/50",
+              "border border-zinc-200/50 dark:border-zinc-800/50"
+            )}
+          >
             <h3 className="text-2xl font-bold text-zinc-900 dark:text-white mb-4">
               Learn. Build. Earn.
             </h3>
             <p className="text-zinc-600 dark:text-zinc-400 mb-6 leading-relaxed">
-              Join thousands of developers learning blockchain through hands-on courses, 
-              hackathons, and real bounties. Track your progress and earn rewards.
+              Join thousands of developers learning blockchain through hands-on courses, hackathons,
+              and real bounties. Track your progress and earn rewards.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
@@ -74,7 +76,7 @@ export default function AcademySplash() {
                 <span>Start Learning</span>
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
-              
+
               <Link
                 href="/login"
                 className={cn(
@@ -91,35 +93,43 @@ export default function AcademySplash() {
 
           {/* Right - Stats */}
           <div className="grid grid-cols-2 gap-4">
-            <div className={cn(
-              "p-6 rounded-lg",
-              "bg-zinc-50/50 dark:bg-zinc-900/50",
-              "border border-zinc-200/50 dark:border-zinc-800/50"
-            )}>
+            <div
+              className={cn(
+                "p-6 rounded-lg",
+                "bg-zinc-50/50 dark:bg-zinc-900/50",
+                "border border-zinc-200/50 dark:border-zinc-800/50"
+              )}
+            >
               <div className="text-3xl font-bold text-zinc-900 dark:text-white mb-2">12+</div>
               <div className="text-sm text-zinc-600 dark:text-zinc-400">Courses</div>
             </div>
-            <div className={cn(
-              "p-6 rounded-lg",
-              "bg-zinc-50/50 dark:bg-zinc-900/50",
-              "border border-zinc-200/50 dark:border-zinc-800/50"
-            )}>
+            <div
+              className={cn(
+                "p-6 rounded-lg",
+                "bg-zinc-50/50 dark:bg-zinc-900/50",
+                "border border-zinc-200/50 dark:border-zinc-800/50"
+              )}
+            >
               <div className="text-3xl font-bold text-zinc-900 dark:text-white mb-2">5K+</div>
               <div className="text-sm text-zinc-600 dark:text-zinc-400">Students</div>
             </div>
-            <div className={cn(
-              "p-6 rounded-lg",
-              "bg-zinc-50/50 dark:bg-zinc-900/50",
-              "border border-zinc-200/50 dark:border-zinc-800/50"
-            )}>
+            <div
+              className={cn(
+                "p-6 rounded-lg",
+                "bg-zinc-50/50 dark:bg-zinc-900/50",
+                "border border-zinc-200/50 dark:border-zinc-800/50"
+              )}
+            >
               <div className="text-3xl font-bold text-zinc-900 dark:text-white mb-2">$50K+</div>
               <div className="text-sm text-zinc-600 dark:text-zinc-400">In Prizes</div>
             </div>
-            <div className={cn(
-              "p-6 rounded-lg",
-              "bg-zinc-50/50 dark:bg-zinc-900/50",
-              "border border-zinc-200/50 dark:border-zinc-800/50"
-            )}>
+            <div
+              className={cn(
+                "p-6 rounded-lg",
+                "bg-zinc-50/50 dark:bg-zinc-900/50",
+                "border border-zinc-200/50 dark:border-zinc-800/50"
+              )}
+            >
               <div className="text-3xl font-bold text-zinc-900 dark:text-white mb-2">100%</div>
               <div className="text-sm text-zinc-600 dark:text-zinc-400">Free</div>
             </div>
@@ -162,4 +172,4 @@ export default function AcademySplash() {
       </div>
     </div>
   );
-} 
+}

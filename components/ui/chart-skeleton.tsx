@@ -33,10 +33,7 @@ export function ChartSkeletonLoader() {
 
           <div className="flex items-end space-x-3 ml-12 flex-1 h-full">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div
-                key={i}
-                className="flex-1 flex flex-col items-center space-y-2"
-              >
+              <div key={i} className="flex-1 flex flex-col items-center space-y-2">
                 <div className="w-full flex flex-col items-end space-y-1">
                   <div
                     className="w-full bg-gradient-to-t from-blue-500 to-blue-400 dark:from-blue-600 dark:to-blue-500 rounded-sm animate-pulse"

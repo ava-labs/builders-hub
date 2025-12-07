@@ -1,38 +1,53 @@
-"use client"
+"use client";
 
-import { Input } from "./Input"
-import { useState, useEffect } from "react"
-import { AlertTriangle, ExternalLink } from "lucide-react"
+import { Input } from "./Input";
+import { useState, useEffect } from "react";
+import { AlertTriangle, ExternalLink } from "lucide-react";
 
 interface RPCURLInputProps {
-  value: string
-  onChange: (value: string) => void
-  label?: string
-  placeholder?: string
-  disabled?: boolean
-  helperText?: string
+  value: string;
+  onChange: (value: string) => void;
+  label?: string;
+  placeholder?: string;
+  disabled?: boolean;
+  helperText?: string;
 }
 
-export function RPCURLInput({ value, onChange, label = "RPC URL", placeholder, disabled, helperText }: RPCURLInputProps) {
-  const [error, setError] = useState<string | null>(null)
+export function RPCURLInput({
+  value,
+  onChange,
+  label = "RPC URL",
+  placeholder,
+  disabled,
+  helperText,
+}: RPCURLInputProps) {
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Only show warning if:
     // 1. The current page is served over HTTPS
     // 2. The input URL starts with http://
-    const isHttps = window.location.protocol === 'https:';
-    const isHttpUrl = value.startsWith('http://');
+    const isHttps = window.location.protocol === "https:";
+    const isHttpUrl = value.startsWith("http://");
 
     if (isHttps && isHttpUrl) {
-      setError('Warning: HTTP URLs are not secure and may not work due to browser security policies. Please use HTTPS or consider the following options:');
+      setError(
+        "Warning: HTTP URLs are not secure and may not work due to browser security policies. Please use HTTPS or consider the following options:"
+      );
     } else {
       setError(null);
     }
-  }, [value])
+  }, [value]);
 
   return (
     <div className="space-y-2">
-      <Input label={label} value={value} onChange={onChange} placeholder={placeholder} disabled={disabled} />
+      <Input
+        label={label}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        disabled={disabled}
+      />
       {helperText && !error && (
         <p className="text-sm text-zinc-600 dark:text-zinc-400">{helperText}</p>
       )}
@@ -43,14 +58,15 @@ export function RPCURLInput({ value, onChange, label = "RPC URL", placeholder, d
             <div className="space-y-2 w-full">
               <p className="font-medium">Warning</p>
               <p className="text-sm text-red-800/90">
-                HTTP URLs are not secure and may not work due to browser security policies. Please use HTTPS or consider
-                the following options:
+                HTTP URLs are not secure and may not work due to browser security policies. Please
+                use HTTPS or consider the following options:
               </p>
               <div className="space-y-3 text-sm mt-3">
                 <div className="border-l-2 border-red-300 pl-3">
                   <h4 className="font-medium">Option 1: Use a Reverse Proxy</h4>
                   <p className="text-red-800/80">
-                    Set up a reverse proxy (like Nginx) to forward HTTPS requests to your HTTP endpoint.
+                    Set up a reverse proxy (like Nginx) to forward HTTPS requests to your HTTP
+                    endpoint.
                   </p>
                 </div>
                 <div className="border-l-2 border-red-300 pl-3">
@@ -74,5 +90,5 @@ export function RPCURLInput({ value, onChange, label = "RPC URL", placeholder, d
         </div>
       )}
     </div>
-  )
+  );
 }

@@ -13,7 +13,7 @@ export function PlaygroundBackground({ id = "playground" }: PlaygroundBackground
       className="absolute inset-0 z-0 h-[32rem] overflow-hidden pointer-events-none"
       style={{
         backgroundImage:
-          'radial-gradient(49.63% 57.02% at 58.99% -7.2%, hsl(var(--primary)/0.1) 39.4%, transparent 100%)',
+          "radial-gradient(49.63% 57.02% at 58.99% -7.2%, hsl(var(--primary)/0.1) 39.4%, transparent 100%)",
       }}
     >
       <svg
@@ -27,7 +27,7 @@ export function PlaygroundBackground({ id = "playground" }: PlaygroundBackground
         <mask
           id={maskId}
           style={{
-            maskType: 'alpha',
+            maskType: "alpha",
           }}
           maskUnits="userSpaceOnUse"
           x="0"
@@ -35,18 +35,51 @@ export function PlaygroundBackground({ id = "playground" }: PlaygroundBackground
           width="936"
           height="861"
         >
-          <ellipse cx="468.373" cy="287.536" rx="467.627" ry="430.464" fill={`url(#${gradientId})`} />
+          <ellipse
+            cx="468.373"
+            cy="287.536"
+            rx="467.627"
+            ry="430.464"
+            fill={`url(#${gradientId})`}
+          />
         </mask>
         <g mask={`url(#${maskId})`} className="fill-primary">
-          <path d="M506.419 281.855L446.417 297.931V359.885L506.419 343.71V281.855Z" fillOpacity="0.05" />
-          <path d="M384.768 188.752L324.766 204.828V266.781L384.768 250.606V188.752Z" fillOpacity="0.05" />
-          <path d="M263.625 347.002L203.623 363.078V425.031L263.625 408.856V347.002Z" fillOpacity="0.05" />
-          <path d="M385.089 440.096L325.087 456.172V518.125L385.089 501.95V440.096Z" fillOpacity="0.05" />
-          <path d="M627.756 123.527L567.754 139.603V201.557L627.756 185.382V123.527Z" fillOpacity="0.05" />
-          <path d="M445.32 46.918L385.318 62.994V124.947L445.32 108.772V46.918Z" fillOpacity="0.05" />
-          <path d="M749.192 279.59L689.19 295.666V357.619L749.192 341.444V279.59Z" fillOpacity="0.05" />
-          <path d="M627.905 437.912L567.903 453.988V515.941L627.905 499.766V437.912Z" fillOpacity="0.05" />
-          <path d="M202.491 175.656L142.489 191.732V253.685L202.491 237.511V175.656Z" fillOpacity="0.05" />
+          <path
+            d="M506.419 281.855L446.417 297.931V359.885L506.419 343.71V281.855Z"
+            fillOpacity="0.05"
+          />
+          <path
+            d="M384.768 188.752L324.766 204.828V266.781L384.768 250.606V188.752Z"
+            fillOpacity="0.05"
+          />
+          <path
+            d="M263.625 347.002L203.623 363.078V425.031L263.625 408.856V347.002Z"
+            fillOpacity="0.05"
+          />
+          <path
+            d="M385.089 440.096L325.087 456.172V518.125L385.089 501.95V440.096Z"
+            fillOpacity="0.05"
+          />
+          <path
+            d="M627.756 123.527L567.754 139.603V201.557L627.756 185.382V123.527Z"
+            fillOpacity="0.05"
+          />
+          <path
+            d="M445.32 46.918L385.318 62.994V124.947L445.32 108.772V46.918Z"
+            fillOpacity="0.05"
+          />
+          <path
+            d="M749.192 279.59L689.19 295.666V357.619L749.192 341.444V279.59Z"
+            fillOpacity="0.05"
+          />
+          <path
+            d="M627.905 437.912L567.903 453.988V515.941L627.905 499.766V437.912Z"
+            fillOpacity="0.05"
+          />
+          <path
+            d="M202.491 175.656L142.489 191.732V253.685L202.491 237.511V175.656Z"
+            fillOpacity="0.05"
+          />
           <path
             fillRule="evenodd"
             clipRule="evenodd"
@@ -71,4 +104,3 @@ export function PlaygroundBackground({ id = "playground" }: PlaygroundBackground
     </span>
   );
 }
-

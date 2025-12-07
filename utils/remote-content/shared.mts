@@ -101,7 +101,7 @@ export function replaceRelativeLinks(content: string, sourceBaseUrl: string): st
           const finalSrc = convertGitHubBlobToRaw(absoluteUrl);
           const cleanAttrs = imgAttrs.trim();
           return `<img${cleanAttrs ? ' ' + cleanAttrs : ''} src="${finalSrc}" />`;
-        } catch (error) {
+        } catch (_error) {
           // If URL construction fails, return original match
           console.warn(`Failed to process img src: ${cleanSrc}`);
           return match;
@@ -120,7 +120,7 @@ export async function updateGitignore(fileConfigs: FileConfig[]): Promise<void> 
   let gitignoreContent = '';
   try {
     gitignoreContent = fs.readFileSync(gitignorePath, 'utf-8');
-  } catch (error) {
+  } catch (_error) {
     console.log('No .gitignore file found, creating new one');
   }
 

@@ -5,27 +5,14 @@ import type { VariantProps } from "class-variance-authority";
 import * as React from "react";
 
 interface LoadingButtonProps
-  extends React.ComponentProps<"button">,
-    VariantProps<typeof buttonVariants> {
+  extends React.ComponentProps<"button">, VariantProps<typeof buttonVariants> {
   isLoading?: boolean;
   loadingText?: string;
   asChild?: boolean;
 }
 
 export const LoadingButton = React.forwardRef<HTMLButtonElement, LoadingButtonProps>(
-  (
-    {
-      isLoading,
-      loadingText,
-      children,
-      disabled,
-      className,
-      variant,
-      size,
-      ...props
-    },
-    ref
-  ) => {
+  ({ isLoading, loadingText, children, disabled, className, variant, size, ...props }, ref) => {
     return (
       <Button
         ref={ref}
@@ -36,7 +23,7 @@ export const LoadingButton = React.forwardRef<HTMLButtonElement, LoadingButtonPr
         {...props}
       >
         {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-        {isLoading ? loadingText ?? "Loading..." : children}
+        {isLoading ? (loadingText ?? "Loading...") : children}
       </Button>
     );
   }

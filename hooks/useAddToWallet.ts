@@ -81,17 +81,19 @@ export function useAddToWallet(): UseAddToWalletReturn {
           // Chain not added yet, proceed to add it
           await window.ethereum.request({
             method: "wallet_addEthereumChain",
-            params: [{
-              chainId: chainIdHex,
-              chainName: chainName || "Unknown Chain",
-              rpcUrls: [rpcUrl],
-              nativeCurrency: nativeCurrency || {
-                name: "AVAX",
-                symbol: "AVAX",
-                decimals: 18,
+            params: [
+              {
+                chainId: chainIdHex,
+                chainName: chainName || "Unknown Chain",
+                rpcUrls: [rpcUrl],
+                nativeCurrency: nativeCurrency || {
+                  name: "AVAX",
+                  symbol: "AVAX",
+                  decimals: 18,
+                },
+                blockExplorerUrls: blockExplorerUrl ? [blockExplorerUrl] : undefined,
               },
-              blockExplorerUrls: blockExplorerUrl ? [blockExplorerUrl] : undefined,
-            }],
+            ],
           });
           toast.success("Chain added", `${chainName || "Chain"} has been added to your wallet`);
           return true;
@@ -104,8 +106,7 @@ export function useAddToWallet(): UseAddToWalletReturn {
         throw switchError;
       }
     } catch (error: any) {
-      console.error("Failed to add chain to wallet:", error);
-      
+      // Handle chain addition error
       if (error.code === 4001) {
         toast.error("Request rejected", "You rejected the request");
       } else {
@@ -123,4 +124,3 @@ export function useAddToWallet(): UseAddToWalletReturn {
     isWalletConnected,
   };
 }
-

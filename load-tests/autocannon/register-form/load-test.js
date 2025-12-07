@@ -24,37 +24,35 @@ const basePayload = {
   utm: "",
 };
 
-
-
 function generatePayload() {
   const uuid = randomUUID().slice(0, 8);
   return {
     ...basePayload,
-    name: `User ${uuid}`,  
-    email:  getRandomEmail(),
+    name: `User ${uuid}`,
+    email: getRandomEmail(),
     telegram_user: `user_${uuid}`,
     github_portfolio: `https://github.com/user_${uuid}`,
   };
 }
 function getRandomEmail() {
-    const index = Math.floor(Math.random() * emails.length);
-    return emails[index];
-  }
+  const index = Math.floor(Math.random() * emails.length);
+  return emails[index];
+}
 
 const emails = [
-    "anotherdev.eth@gmail.com",
-    "team@voyagership.co",
-    "andrea.vargas@avalabs.org",
-    "samuel@insomnialabs.io",
-    "yktzwzsvfgurjcxwzd@poplk.com",
-    "jtcsiqqpeaxuurvfoq@ytnhy.com",
-    "yhhyumvbrjbscupohz@nbmbb.com",
-    "federico.nardelli7@gmail.com",
-    "elmomarioneta@gmail.com",
-    "sebasor@gmail.com",
-    "sebastianmosquera1075@gmail.com",
-    "arkhatraz777@gmail.com"
-  ];
+  "anotherdev.eth@gmail.com",
+  "team@voyagership.co",
+  "andrea.vargas@avalabs.org",
+  "samuel@insomnialabs.io",
+  "yktzwzsvfgurjcxwzd@poplk.com",
+  "jtcsiqqpeaxuurvfoq@ytnhy.com",
+  "yhhyumvbrjbscupohz@nbmbb.com",
+  "federico.nardelli7@gmail.com",
+  "elmomarioneta@gmail.com",
+  "sebasor@gmail.com",
+  "sebastianmosquera1075@gmail.com",
+  "arkhatraz777@gmail.com",
+];
 
 function runLoadTest(connections, duration) {
   const baseUrl = "https://avalanche-docs-eight.vercel.app/";
@@ -73,14 +71,12 @@ function runLoadTest(connections, duration) {
           "Content-Length": Buffer.byteLength(payload).toString(),
           Origin: baseUrl,
           Referer:
-            baseUrl +
-            "hackathons/registration-form?hackathon=26bfce9b-4d44-4d40-8fbe-7903e76d48f1",
+            baseUrl + "hackathons/registration-form?hackathon=26bfce9b-4d44-4d40-8fbe-7903e76d48f1",
           "User-Agent": "curl/8.5.0",
           Connection: "close",
         };
 
         client.setHeadersAndBody(headers, payload);
-      
       },
     });
 

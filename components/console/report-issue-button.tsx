@@ -9,10 +9,7 @@ interface ReportIssueButtonProps {
   toolTitle?: string;
 }
 
-export function ReportIssueButton({
-  className,
-  toolTitle,
-}: ReportIssueButtonProps) {
+export function ReportIssueButton({ className, toolTitle }: ReportIssueButtonProps) {
   const pathname = usePathname();
   const handleReportIssue = () => {
     const currentUrl = `https://build.avax.network${pathname}`;

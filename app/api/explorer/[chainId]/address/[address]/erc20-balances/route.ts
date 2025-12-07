@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 import { Avalanche } from "@avalanche-sdk/chainkit";
 import type { Erc20TokenBalance } from "@avalanche-sdk/chainkit/models/components";
 
@@ -30,22 +30,22 @@ export async function GET(
   { params }: { params: Promise<{ chainId: string; address: string }> }
 ) {
   const startTime = performance.now();
-  
+
   try {
     const { chainId, address } = await params;
     const { searchParams } = new URL(request.url);
-    const pageToken = searchParams.get('pageToken') || undefined;
+    const pageToken = searchParams.get("pageToken") || undefined;
 
     // Validate address format
     if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
-      return NextResponse.json({ error: 'Invalid address format' }, { status: 400 });
+      return NextResponse.json({ error: "Invalid address format" }, { status: 400 });
     }
 
     // Fetch ERC20 balances - returns a PageIterator
     const iterator = await avalanche.data.evm.address.balances.listErc20({
       address: address,
       chainId: chainId,
-      currency: 'usd',
+      currency: "usd",
       filterSpamTokens: true,
       pageSize: 200,
       pageToken: pageToken,
@@ -53,7 +53,7 @@ export async function GET(
 
     // Get first page from the async iterator
     const { value: page, done } = await iterator[Symbol.asyncIterator]().next();
-    
+
     if (done || !page) {
       return NextResponse.json({
         balances: [],
@@ -73,7 +73,11 @@ export async function GET(
       const balance = token.balance;
       const balanceFormatted = (Number(balance) / Math.pow(10, decimals)).toFixed(6);
       const priceValue = token.price?.value;
-      const price = priceValue ? (typeof priceValue === 'string' ? parseFloat(priceValue) : priceValue) : undefined;
+      const price = priceValue
+        ? typeof priceValue === "string"
+          ? parseFloat(priceValue)
+          : priceValue
+        : undefined;
       const valueUsd = price ? parseFloat(balanceFormatted) * price : undefined;
 
       return {
@@ -94,9 +98,11 @@ export async function GET(
 
     // Sort by value (highest first) within this page
     balances.sort((a, b) => (b.valueUsd || 0) - (a.valueUsd || 0));
-    
+
     const duration = performance.now() - startTime;
-    console.log(`[ERC20 Balances API] ${address} on chain ${chainId} - ${duration.toFixed(0)}ms, ${balances.length} tokens${nextPageToken ? ', has more pages' : ''}`);
+    console.log(
+      `[ERC20 Balances API] ${address} on chain ${chainId} - ${duration.toFixed(0)}ms, ${balances.length} tokens${nextPageToken ? ", has more pages" : ""}`
+    );
 
     return NextResponse.json({
       balances,
@@ -106,6 +112,6 @@ export async function GET(
   } catch (error) {
     const duration = performance.now() - startTime;
     console.error(`[ERC20 Balances API] Error after ${duration.toFixed(0)}ms:`, error);
-    return NextResponse.json({ error: 'Failed to fetch ERC20 balances' }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch ERC20 balances" }, { status: 500 });
   }
 }

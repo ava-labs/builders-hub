@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
-import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { Input } from '@/components/toolbox/components/Input';
-import { Button } from '@/components/toolbox/components/Button';
-import SelectValidationID, { ValidationSelection } from '@/components/toolbox/components/SelectValidationID';
-import { getValidatorWeight } from '@/components/toolbox/coreViem/hooks/getValidatorWeight';
-import { validateStakePercentage } from '@/components/toolbox/coreViem/hooks/getTotalStake';
-import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
-import { Success } from '@/components/toolbox/components/Success';
-import { Alert } from '@/components/toolbox/components/Alert';
-import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import React, { useState, useEffect } from "react";
+import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
+import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { Input } from "@/components/toolbox/components/Input";
+import { Button } from "@/components/toolbox/components/Button";
+import SelectValidationID, {
+  ValidationSelection,
+} from "@/components/toolbox/components/SelectValidationID";
+import { getValidatorWeight } from "@/components/toolbox/coreViem/hooks/getValidatorWeight";
+import { validateStakePercentage } from "@/components/toolbox/coreViem/hooks/getTotalStake";
+import validatorManagerAbi from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
+import { Success } from "@/components/toolbox/components/Success";
+import { Alert } from "@/components/toolbox/components/Alert";
+import { MultisigOption } from "@/components/toolbox/components/MultisigOption";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 interface InitiateChangeWeightProps {
   subnetId: string;
@@ -26,7 +28,7 @@ interface InitiateChangeWeightProps {
   initialNodeId?: string;
   initialValidationId?: string;
   initialWeight?: string;
-  ownershipState: 'contract' | 'currentWallet' | 'differentEOA' | 'loading';
+  ownershipState: "contract" | "currentWallet" | "differentEOA" | "loading";
   contractTotalWeight: bigint;
 }
 
@@ -46,10 +48,10 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const [validation, setValidation] = useState<ValidationSelection>({
-    validationId: initialValidationId || '',
-    nodeId: initialNodeId || ''
+    validationId: initialValidationId || "",
+    nodeId: initialNodeId || "",
   });
-  const [weight, setWeight] = useState(initialWeight || '');
+  const [weight, setWeight] = useState(initialWeight || "");
   const [componentKey, setComponentKey] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -57,9 +59,9 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
 
   useEffect(() => {
     if (resetForm) {
-      setValidation({ validationId: initialValidationId || '', nodeId: initialNodeId || '' });
-      setWeight(initialWeight || '');
-      setComponentKey(prevKey => prevKey + 1);
+      setValidation({ validationId: initialValidationId || "", nodeId: initialNodeId || "" });
+      setWeight(initialWeight || "");
+      setComponentKey((prevKey) => prevKey + 1);
       setIsProcessing(false);
       setErrorState(null);
       setTxSuccess(null);
@@ -76,26 +78,35 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
     }
 
     if (!validation.validationId.trim()) {
-      setErrorState("Validation ID is required"); return;
+      setErrorState("Validation ID is required");
+      return;
     }
     if (!validation.nodeId.trim()) {
-      setErrorState("Node ID is required"); return;
+      setErrorState("Node ID is required");
+      return;
     }
     if (!weight.trim()) {
-      setErrorState("Weight is required"); return;
+      setErrorState("Weight is required");
+      return;
     }
     const weightNum = Number(weight);
     if (isNaN(weightNum) || weightNum <= 0) {
-      setErrorState("Weight must be a positive number"); return;
+      setErrorState("Weight must be a positive number");
+      return;
     }
     if (!validatorManagerAddress) {
-      setErrorState("Validator Manager Address is required. Please select a valid L1 subnet."); return;
+      setErrorState("Validator Manager Address is required. Please select a valid L1 subnet.");
+      return;
     }
-    if (ownershipState === 'differentEOA') {
-      setErrorState("You are not the owner of this contract. Only the contract owner can change validator weights."); return;
+    if (ownershipState === "differentEOA") {
+      setErrorState(
+        "You are not the owner of this contract. Only the contract owner can change validator weights."
+      );
+      return;
     }
-    if (ownershipState === 'loading') {
-      setErrorState("Verifying contract ownership... please wait."); return;
+    if (ownershipState === "loading") {
+      setErrorState("Verifying contract ownership... please wait.");
+      return;
     }
 
     setIsProcessing(true);
@@ -129,23 +140,27 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
       const writeContractPromise = coreWalletClient.writeContract({
         address: validatorManagerAddress as `0x${string}`,
         abi: validatorManagerAbi.abi,
-        functionName: 'initiateValidatorWeightUpdate',
+        functionName: "initiateValidatorWeightUpdate",
         args: [validation.validationId, weightBigInt],
         chain: viemChain,
         account: coreWalletClient.account,
       });
-      notify({
-        type: 'call',
-        name: 'Initiate Validator Weight Update'
-      }, writeContractPromise, viemChain ?? undefined);
+      notify(
+        {
+          type: "call",
+          name: "Initiate Validator Weight Update",
+        },
+        writeContractPromise,
+        viemChain ?? undefined
+      );
 
       // Wait for transaction receipt to check if it was successful
       const hash = await writeContractPromise;
       const receipt = await publicClient.waitForTransactionReceipt({
-        hash
+        hash,
       });
 
-      if (receipt.status === 'reverted') {
+      if (receipt.status === "reverted") {
         setErrorState(`Transaction reverted. Hash: ${hash}`);
         onError(`Transaction reverted. Hash: ${hash}`);
         return;
@@ -162,14 +177,14 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
       let message = err instanceof Error ? err.message : String(err);
 
       // Handle specific error types
-      if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
-      } else if (message.includes('insufficient funds')) {
-        message = 'Insufficient funds for transaction';
-      } else if (message.includes('execution reverted')) {
+      if (message.includes("User rejected")) {
+        message = "Transaction was rejected by user";
+      } else if (message.includes("insufficient funds")) {
+        message = "Insufficient funds for transaction";
+      } else if (message.includes("execution reverted")) {
         message = `Transaction reverted: ${message}`;
-      } else if (message.includes('nonce')) {
-        message = 'Transaction nonce error. Please try again.';
+      } else if (message.includes("nonce")) {
+        message = "Transaction nonce error. Please try again.";
       }
 
       setErrorState(`Transaction failed: ${message}`);
@@ -221,65 +236,100 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
         placeholder="Enter new weight"
         label="New Weight"
         disabled={isProcessing || !subnetId}
-        error={error && (error.includes("Weight") || error.includes("positive number")) ? error : undefined}
+        error={
+          error && (error.includes("Weight") || error.includes("positive number"))
+            ? error
+            : undefined
+        }
       />
 
-      {ownershipState === 'contract' && (
+      {ownershipState === "contract" && (
         <MultisigOption
           validatorManagerAddress={validatorManagerAddress}
           functionName="initiateValidatorWeightUpdate"
           args={[validation.validationId, BigInt(weight || 0)]}
           onSuccess={handleMultisigSuccess}
           onError={handleMultisigError}
-          disabled={isProcessing || !validation.validationId || !validation.nodeId || !weight || !validatorManagerAddress || txSuccess !== null}
+          disabled={
+            isProcessing ||
+            !validation.validationId ||
+            !validation.nodeId ||
+            !weight ||
+            !validatorManagerAddress ||
+            txSuccess !== null
+          }
         >
           <Button
             onClick={handleInitiateChangeWeight}
-            disabled={isProcessing || !validation.validationId || !validation.nodeId || !weight || !validatorManagerAddress || txSuccess !== null}
+            disabled={
+              isProcessing ||
+              !validation.validationId ||
+              !validation.nodeId ||
+              !weight ||
+              !validatorManagerAddress ||
+              txSuccess !== null
+            }
           >
             Initiate Change Weight
           </Button>
         </MultisigOption>
       )}
 
-      {ownershipState === 'currentWallet' && (
+      {ownershipState === "currentWallet" && (
         <Button
           onClick={handleInitiateChangeWeight}
-          disabled={isProcessing || !validation.validationId || !validation.nodeId || !weight || !validatorManagerAddress || txSuccess !== null}
-          error={!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined}
+          disabled={
+            isProcessing ||
+            !validation.validationId ||
+            !validation.nodeId ||
+            !weight ||
+            !validatorManagerAddress ||
+            txSuccess !== null
+          }
+          error={
+            !validatorManagerAddress && subnetId
+              ? "Could not find Validator Manager for this L1."
+              : undefined
+          }
         >
-          {txSuccess ? 'Transaction Completed' : (isProcessing ? 'Processing...' : 'Initiate Change Weight')}
+          {txSuccess
+            ? "Transaction Completed"
+            : isProcessing
+              ? "Processing..."
+              : "Initiate Change Weight"}
         </Button>
       )}
 
-      {(ownershipState === 'differentEOA' || ownershipState === 'loading') && (
+      {(ownershipState === "differentEOA" || ownershipState === "loading") && (
         <Button
           onClick={handleInitiateChangeWeight}
           disabled={true}
           error={
-            ownershipState === 'differentEOA'
+            ownershipState === "differentEOA"
               ? "You are not the owner of this contract. Only the contract owner can change validator weights."
-              : ownershipState === 'loading'
+              : ownershipState === "loading"
                 ? "Verifying ownership..."
-                : (!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined)
+                : !validatorManagerAddress && subnetId
+                  ? "Could not find Validator Manager for this L1."
+                  : undefined
           }
         >
-          {ownershipState === 'loading' ? 'Verifying...' : 'Initiate Change Weight'}
+          {ownershipState === "loading" ? "Verifying..." : "Initiate Change Weight"}
         </Button>
       )}
 
-      {error && (
-        <Alert variant="error">{error}</Alert>
-      )}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {txSuccess && (
         <Success
           label="Transaction Hash"
-          value={txSuccess.replace('Transaction successful! Hash: ', '').replace('Multisig transaction proposed! Hash: ', '')}
+          value={txSuccess
+            .replace("Transaction successful! Hash: ", "")
+            .replace("Multisig transaction proposed! Hash: ", "")}
         />
       )}
     </div>
   );
 };
 
-export default InitiateChangeWeight; 
+export default InitiateChangeWeight;

@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
-import { Button } from '@/components/toolbox/components/Button';
-import { Input } from '@/components/toolbox/components/Input';
-import { Success } from '@/components/toolbox/components/Success';
-import { Alert } from '@/components/toolbox/components/Alert';
-import { bytesToHex, hexToBytes } from 'viem';
-import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
-import poaManagerAbi from '@/contracts/icm-contracts/compiled/PoAManager.json';
-import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/justification';
-import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
-import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp';
-import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import React, { useState, useEffect } from "react";
+import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
+import { Button } from "@/components/toolbox/components/Button";
+import { Input } from "@/components/toolbox/components/Input";
+import { Success } from "@/components/toolbox/components/Success";
+import { Alert } from "@/components/toolbox/components/Alert";
+import { bytesToHex, hexToBytes } from "viem";
+import validatorManagerAbi from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
+import poaManagerAbi from "@/contracts/icm-contracts/compiled/PoAManager.json";
+import { GetRegistrationJustification } from "@/components/toolbox/console/permissioned-l1s/ValidatorManager/justification";
+import { packL1ValidatorWeightMessage } from "@/components/toolbox/coreViem/utils/convertWarp";
+import { packWarpIntoAccessList } from "@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp";
+import { useAvalancheSDKChainkit } from "@/components/toolbox/stores/useAvalancheSDKChainkit";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 interface CompleteChangeWeightProps {
   subnetIdL1: string;
@@ -24,7 +24,7 @@ interface CompleteChangeWeightProps {
   signingSubnetId: string;
   contractOwner: string | null;
   isLoadingOwnership: boolean;
-  ownerType: 'PoAManager' | 'StakingManager' | 'EOA' | null;
+  ownerType: "PoAManager" | "StakingManager" | "EOA" | null;
 }
 
 const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
@@ -43,7 +43,7 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
   const { aggregateSignature } = useAvalancheSDKChainkit();
   const { notify } = useConsoleNotifications();
   const viemChain = useViemChainStore();
-  const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || '');
+  const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || "");
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -57,7 +57,7 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
   } | null>(null);
 
   // Determine target contract and ABI based on ownerType
-  const useMultisig = ownerType === 'PoAManager';
+  const useMultisig = ownerType === "PoAManager";
   const targetContractAddress = useMultisig ? contractOwner : validatorManagerAddress;
   const targetAbi = useMultisig ? poaManagerAbi.abi : validatorManagerAbi.abi;
 
@@ -93,8 +93,12 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
       return;
     }
     if (useMultisig && !contractOwner?.trim()) {
-      setErrorState("PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager.");
-      onError("PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager.");
+      setErrorState(
+        "PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager."
+      );
+      onError(
+        "PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager."
+      );
       return;
     }
     if (!coreWalletClient || !publicClient || !viemChain) {
@@ -107,13 +111,13 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
     try {
       // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
       const weightMessageData = await coreWalletClient.extractL1ValidatorWeightMessage({
-        txId: pChainTxId
+        txId: pChainTxId,
       });
 
       setExtractedData({
         validationID: weightMessageData.validationID,
         nonce: weightMessageData.nonce,
-        weight: weightMessageData.weight
+        weight: weightMessageData.weight,
       });
 
       // Step 2: Get justification for the validation (using the extracted validation ID)
@@ -148,10 +152,13 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
         signingSubnetId: signingSubnetId || subnetIdL1,
         quorumPercentage: 67,
       });
-      notify({
-        type: 'local',
-        name: 'Aggregate Signatures'
-      }, aggregateSignaturePromise);
+      notify(
+        {
+          type: "local",
+          name: "Aggregate Signatures",
+        },
+        aggregateSignaturePromise
+      );
       const signature = await aggregateSignaturePromise;
       setPChainSignature(signature.signedMessage);
 
@@ -168,14 +175,18 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
         account: walletEVMAddress as `0x${string}`,
         chain: viemChain,
       });
-      notify({
-        type: 'call',
-        name: 'Complete Validator Weight Update'
-      }, writePromise, viemChain ?? undefined);
+      notify(
+        {
+          type: "call",
+          name: "Complete Validator Weight Update",
+        },
+        writePromise,
+        viemChain ?? undefined
+      );
 
       const hash = await writePromise;
       const finalReceipt = await publicClient.waitForTransactionReceipt({ hash });
-      if (finalReceipt.status !== 'success') {
+      if (finalReceipt.status !== "success") {
         throw new Error(`Transaction failed with status: ${finalReceipt.status}`);
       }
 
@@ -203,9 +214,7 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
 
   return (
     <div className="space-y-4">
-      {error && (
-        <Alert variant="error">{error}</Alert>
-      )}
+      {error && <Alert variant="error">{error}</Alert>}
 
       <Input
         label="P-Chain SetL1ValidatorWeightTx ID"
@@ -223,19 +232,24 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
 
       <Button
         onClick={handleCompleteChangeWeight}
-        disabled={isProcessing || !pChainTxId.trim() || !!successMessage || (isContractOwner === false && !useMultisig) || isLoadingOwnership}
+        disabled={
+          isProcessing ||
+          !pChainTxId.trim() ||
+          !!successMessage ||
+          (isContractOwner === false && !useMultisig) ||
+          isLoadingOwnership
+        }
       >
-        {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : 'Sign & Complete Weight Change')}
+        {isLoadingOwnership
+          ? "Checking ownership..."
+          : isProcessing
+            ? "Processing..."
+            : "Sign & Complete Weight Change"}
       </Button>
 
-      {transactionHash && (
-        <Success
-          label="Transaction Hash"
-          value={transactionHash}
-        />
-      )}
+      {transactionHash && <Success label="Transaction Hash" value={transactionHash} />}
     </div>
   );
 };
 
-export default CompleteChangeWeight; 
+export default CompleteChangeWeight;

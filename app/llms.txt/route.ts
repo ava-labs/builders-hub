@@ -1,12 +1,14 @@
-import { documentation, academy, integration, blog } from '@/lib/source';
+import { documentation, academy, integration, blog } from "@/lib/source";
 
 // Helper to group pages by top-level section
-function groupPagesBySection(pages: Array<{ url: string; data: { title: string; description?: string } }>) {
+function groupPagesBySection(
+  pages: Array<{ url: string; data: { title: string; description?: string } }>
+) {
   const sections: Record<string, Array<{ url: string; title: string; description?: string }>> = {};
 
   for (const page of pages) {
     // Extract top-level section from URL (e.g., /docs/primary-network/... -> primary-network)
-    const parts = page.url.split('/').filter(Boolean);
+    const parts = page.url.split("/").filter(Boolean);
     if (parts.length < 2) continue;
 
     const section = parts[1]; // First part after /docs/, /academy/, etc.
@@ -17,7 +19,7 @@ function groupPagesBySection(pages: Array<{ url: string; data: { title: string; 
 
     sections[section].push({
       url: page.url,
-      title: page.data.title || 'Untitled',
+      title: page.data.title || "Untitled",
       description: page.data.description,
     });
   }
@@ -28,13 +30,13 @@ function groupPagesBySection(pages: Array<{ url: string; data: { title: string; 
 // Format section name for display (e.g., "primary-network" -> "Primary Network")
 function formatSectionName(section: string): string {
   return section
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
-export async function GET() {
-  const baseUrl = 'https://build.avax.network';
+export function GET() {
+  const baseUrl = "https://build.avax.network";
 
   // Get all pages from each source
   const docPages = documentation.getPages();
@@ -64,12 +66,12 @@ Core technical documentation for building on Avalanche:
 
   // Define priority sections for docs (order matters)
   const docPrioritySections = [
-    'primary-network',
-    'avalanche-l1s',
-    'cross-chain',
-    'nodes',
-    'virtual-machines',
-    'dapps',
+    "primary-network",
+    "avalanche-l1s",
+    "cross-chain",
+    "nodes",
+    "virtual-machines",
+    "dapps",
   ];
 
   // Add priority documentation sections first
@@ -79,10 +81,10 @@ Core technical documentation for building on Avalanche:
       // Show top 5 pages per section to keep index manageable
       const topPages = docSections[section].slice(0, 5);
       for (const page of topPages) {
-        const desc = page.description ? `: ${page.description}` : '';
+        const desc = page.description ? `: ${page.description}` : "";
         content += `- [${page.title}](${baseUrl}${page.url})${desc}\n`;
       }
-      content += '\n';
+      content += "\n";
       delete docSections[section];
     }
   }
@@ -98,11 +100,11 @@ Structured learning paths and interactive tutorials:
 
   // Define priority academy courses
   const academyPrioritySections = [
-    'blockchain-fundamentals',
-    'avalanche-l1',
-    'interchain-messaging',
-    'interchain-token-transfer',
-    'customizing-evm',
+    "blockchain-fundamentals",
+    "avalanche-l1",
+    "interchain-messaging",
+    "interchain-token-transfer",
+    "customizing-evm",
   ];
 
   for (const section of academyPrioritySections) {
@@ -110,10 +112,10 @@ Structured learning paths and interactive tutorials:
       content += `### ${formatSectionName(section)}\n`;
       const topPages = academySections[section].slice(0, 3);
       for (const page of topPages) {
-        const desc = page.description ? `: ${page.description}` : '';
+        const desc = page.description ? `: ${page.description}` : "";
         content += `- [${page.title}](${baseUrl}${page.url})${desc}\n`;
       }
-      content += '\n';
+      content += "\n";
       delete academySections[section];
     }
   }
@@ -128,7 +130,7 @@ Third-party tools and services for the Avalanche ecosystem:
   // Add top integrations by category
   const topIntegrations = integrationPages.slice(0, 10);
   for (const page of topIntegrations) {
-    const desc = page.data.description ? `: ${page.data.description}` : '';
+    const desc = page.data.description ? `: ${page.data.description}` : "";
     content += `- [${page.data.title}](${baseUrl}${page.url})${desc}\n`;
   }
 
@@ -142,7 +144,7 @@ Latest announcements, tutorials, and ecosystem updates:
   // Add recent blog posts
   const recentBlogs = blogPages.slice(0, 5);
   for (const page of recentBlogs) {
-    const desc = page.data.description ? `: ${page.data.description}` : '';
+    const desc = page.data.description ? `: ${page.data.description}` : "";
     content += `- [${page.data.title}](${baseUrl}${page.url})${desc}\n`;
   }
 
@@ -165,44 +167,44 @@ Additional resources and reference documentation:
 `;
 
   // Add API reference sections
-  if (docSections['api-reference']) {
-    const apiPages = docSections['api-reference'].slice(0, 5);
+  if (docSections["api-reference"]) {
+    const apiPages = docSections["api-reference"].slice(0, 5);
     for (const page of apiPages) {
       content += `- [${page.title}](${baseUrl}${page.url})\n`;
     }
-    delete docSections['api-reference'];
+    delete docSections["api-reference"];
   }
 
   content += `
 ### RPC Methods
 `;
 
-  if (docSections['rpcs']) {
-    const rpcPages = docSections['rpcs'].slice(0, 5);
+  if (docSections["rpcs"]) {
+    const rpcPages = docSections["rpcs"].slice(0, 5);
     for (const page of rpcPages) {
       content += `- [${page.title}](${baseUrl}${page.url})\n`;
     }
-    delete docSections['rpcs'];
+    delete docSections["rpcs"];
   }
 
   content += `
 ### Tooling & SDKs
 `;
 
-  if (docSections['tooling']) {
-    const toolingPages = docSections['tooling'].slice(0, 5);
+  if (docSections["tooling"]) {
+    const toolingPages = docSections["tooling"].slice(0, 5);
     for (const page of toolingPages) {
       content += `- [${page.title}](${baseUrl}${page.url})\n`;
     }
-    delete docSections['tooling'];
+    delete docSections["tooling"];
   }
 
   content += `
 ### Avalanche Community Proposals (ACPs)
 `;
 
-  if (docSections['acps']) {
-    const acpPages = docSections['acps'].slice(0, 5);
+  if (docSections["acps"]) {
+    const acpPages = docSections["acps"].slice(0, 5);
     for (const page of acpPages) {
       content += `- [${page.title}](${baseUrl}${page.url})\n`;
     }
@@ -219,8 +221,8 @@ Additional resources and reference documentation:
 
   return new Response(content, {
     headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "public, max-age=3600, s-maxage=3600",
     },
   });
 }

@@ -29,31 +29,32 @@ export const StepNavigation = ({
   const form = useFormContext<SubmissionForm>();
   const [isSavingLater, setIsSavingLater] = useState(false);
 
-
-
   const validateStep1 = (): boolean => {
     const values = form.getValues();
     let hasErrors = false;
 
-    if (!values.project_name || values.project_name.trim() === '') {
-      form.setError('project_name', { type: 'manual', message: 'Project name is required' });
+    if (!values.project_name || values.project_name.trim() === "") {
+      form.setError("project_name", { type: "manual", message: "Project name is required" });
       hasErrors = true;
     }
 
-    if (!values.short_description || values.short_description.trim() === '') {
-      form.setError('short_description', { type: 'manual', message: 'Short description is required' });
+    if (!values.short_description || values.short_description.trim() === "") {
+      form.setError("short_description", {
+        type: "manual",
+        message: "Short description is required",
+      });
       hasErrors = true;
     }
 
     if (!values.tracks || values.tracks.length === 0) {
-      form.setError('tracks', { type: 'manual', message: 'Please select at least one track' });
+      form.setError("tracks", { type: "manual", message: "Please select at least one track" });
       hasErrors = true;
     }
 
     return !hasErrors;
   };
 
-  const handleNext = async () => {
+  const handleNext = () => {
     if (currentStep >= 3) return;
 
     if (currentStep === 1 && !validateStep1()) {
@@ -76,7 +77,7 @@ export const StepNavigation = ({
         <LoadingButton
           isLoading={form.formState.isSubmitting}
           loadingText="Saving..."
-          type={isLastStep ? 'submit' : 'button'}
+          type={isLastStep ? "submit" : "button"}
           variant="red"
           className="px-4 py-2 cursor-pointer"
           onClick={(e) => {
@@ -86,7 +87,7 @@ export const StepNavigation = ({
             }
           }}
         >
-          {isLastStep ? 'Final Submit' : 'Continue'}
+          {isLastStep ? "Final Submit" : "Continue"}
         </LoadingButton>
 
         <LoadingButton
@@ -138,9 +139,7 @@ export const StepNavigation = ({
           )}
         </div>
         <div className="mt-2 md:mt-0 md:ml-4">
-          <span className="font-Aeonik text-xs sm:text-sm">
-            Step {currentStep} of 3
-          </span>
+          <span className="font-Aeonik text-xs sm:text-sm">Step {currentStep} of 3</span>
         </div>
       </div>
     </div>

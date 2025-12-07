@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from '@/hooks/use-toast';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "@/hooks/use-toast";
 
 interface UseCertificatesReturn {
   isGenerating: boolean;
@@ -17,10 +17,10 @@ export function useCertificates(): UseCertificatesReturn {
     setIsGenerating(true);
 
     try {
-      const response = await fetch('/api/generate-certificate', {
-        method: 'POST',
+      const response = await fetch("/api/generate-certificate", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           courseId,
@@ -43,14 +43,13 @@ export function useCertificates(): UseCertificatesReturn {
           }, 2000);
           return;
         }
-        
+
         // Try to get error details from response
         try {
           const errorData = await response.json();
-          console.error('Server error details:', errorData);
-          
+
           // Check for specific error types
-          if (errorData.error?.includes('Email address required')) {
+          if (errorData.error?.includes("Email address required")) {
             toast({
               title: "Email Required",
               description: "Please ensure your BuilderHub account has a valid email address.",
@@ -59,8 +58,8 @@ export function useCertificates(): UseCertificatesReturn {
             setIsGenerating(false);
             return;
           }
-          
-          throw new Error(errorData.error || errorData.details || 'Failed to generate certificate');
+
+          throw new Error(errorData.error || errorData.details || "Failed to generate certificate");
         } catch (jsonError) {
           throw new Error(`Failed to generate certificate (${response.status})`);
         }
@@ -68,41 +67,39 @@ export function useCertificates(): UseCertificatesReturn {
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      
+
       // Store the PDF URL for sharing
       setCertificatePdfUrl(url);
-      
+
       // Download the PDF
-      const a = document.createElement('a');
-      a.style.display = 'none';
+      const a = document.createElement("a");
+      a.style.display = "none";
       a.href = url;
       a.download = `${courseId}_certificate.pdf`;
       document.body.appendChild(a);
       a.click();
       // Don't revoke the URL immediately as we need it for sharing
-      
+
       // Show success message
       toast({
         title: "Certificate Downloaded!",
         description: "Your certificate has been successfully generated and downloaded.",
       });
-      
+
       // Redirect after success
       setTimeout(() => {
         // Redirect to the appropriate academy page
         if (
-          courseId.startsWith('codebase-entrepreneur-') ||
-          courseId.startsWith('avalanche-entrepreneur-') ||
-          courseId.startsWith('entrepreneur-')
+          courseId.startsWith("codebase-entrepreneur-") ||
+          courseId.startsWith("avalanche-entrepreneur-") ||
+          courseId.startsWith("entrepreneur-")
         ) {
-          router.push('/academy/entrepreneur');
+          router.push("/academy/entrepreneur");
         } else {
-          router.push('/academy');
+          router.push("/academy");
         }
       }, 3000);
     } catch (error: any) {
-      console.error('Error generating certificate:', error);
-      
       // Generic error handling for unexpected errors
       toast({
         title: "Certificate Generation Failed",

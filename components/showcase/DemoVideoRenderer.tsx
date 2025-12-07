@@ -1,8 +1,7 @@
 import React from "react";
 
 function convertToEmbed(url: string): string {
-  const youtubeRegex =
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+  const youtubeRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
   const loomRegex = /loom\.com\/share\/([a-zA-Z0-9]+)/;
 
   const youtubeMatch = url.match(youtubeRegex);

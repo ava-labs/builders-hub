@@ -1,9 +1,9 @@
-import versionsData from '@/scripts/versions.json';
+import versionsData from "@/scripts/versions.json";
 
 export type ContainerVersions = {
-    'avaplatform/avalanchego': string;
-    'avaplatform/subnet-evm_avalanchego': string;
-    'avaplatform/icm-relayer': string;
+  "avaplatform/avalanchego": string;
+  "avaplatform/subnet-evm_avalanchego": string;
+  "avaplatform/icm-relayer": string;
 };
 
 /**
@@ -12,5 +12,5 @@ export type ContainerVersions = {
  * @returns Container versions object for the specified network
  */
 export const getContainerVersions = (isTestnet: boolean): ContainerVersions => {
-    return isTestnet ? versionsData.testnet : versionsData.mainnet;
+  return isTestnet ? versionsData.testnet : versionsData.mainnet;
 };

@@ -1,10 +1,5 @@
 import type { Metadata } from "next";
-import {
-  DocsPage,
-  DocsBody,
-  DocsTitle,
-  DocsDescription,
-} from "fumadocs-ui/page";
+import { DocsPage, DocsBody, DocsTitle, DocsDescription } from "fumadocs-ui/page";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import defaultComponents from "fumadocs-ui/mdx";
 import { notFound } from "next/navigation";
@@ -27,11 +22,7 @@ import { Heading } from "fumadocs-ui/components/heading";
 import Quiz from "@/components/quizzes/quiz";
 import YouTube from "@/components/content-design/youtube";
 import Gallery from "@/components/content-design/gallery";
-import {
-  CodeBlock,
-  type CodeBlockProps,
-  Pre,
-} from "fumadocs-ui/components/codeblock";
+import { CodeBlock, type CodeBlockProps, Pre } from "fumadocs-ui/components/codeblock";
 import Mermaid from "@/components/content-design/mermaid";
 import { Feedback } from "@/components/ui/feedback";
 import { SidebarActions } from "@/components/ui/sidebar-actions";
@@ -75,21 +66,20 @@ const toolboxComponents = {
   Faucet,
 };
 
-export default async function Page(props: {
-  params: Promise<{ slug?: string[] }>;
-}) {
+export default async function Page(props: { params: Promise<{ slug?: string[] }> }) {
   const params = await props.params;
   const page = academy.getPage(params.slug);
 
   if (!page) notFound();
 
-  const path = `content/academy${page.url.replace('/academy/', '/')}.mdx`;
+  const path = `content/academy${page.url.replace("/academy/", "/")}.mdx`;
   const editUrl = `https://github.com/ava-labs/builders-hub/edit/master/${path}`;
   const MDX = page.data.body;
   // Check both official courses and entrepreneur courses
   // page.slugs[1] contains the course slug (e.g., "avalanche-fundamentals", "foundations-web3-venture")
-  const course = COURSES.official.find((c) => c.slug === page.slugs[1]) 
-    || COURSES.avalancheEntrepreneur.find((c) => c.slug === page.slugs[1]);
+  const course =
+    COURSES.official.find((c) => c.slug === page.slugs[1]) ||
+    COURSES.avalancheEntrepreneur.find((c) => c.slug === page.slugs[1]);
 
   return (
     <DocsPage
@@ -114,9 +104,7 @@ export default async function Page(props: {
               <Link
                 href="https://t.me/avalancheacademy"
                 target="_blank"
-                className={cn(
-                  buttonVariants({ size: "lg", variant: "secondary" })
-                )}
+                className={cn(buttonVariants({ size: "lg", variant: "secondary" }))}
               >
                 Join Telegram Course Chat
               </Link>
@@ -126,9 +114,7 @@ export default async function Page(props: {
       }}
     >
       <DocsTitle>{page.data.title || "Untitled"}</DocsTitle>
-      {page.data.description && (
-        <DocsDescription>{page.data.description}</DocsDescription>
-      )}
+      {page.data.description && <DocsDescription>{page.data.description}</DocsDescription>}
       <DocsBody className="text-fd-foreground/80">
         <IndexedDBComponent />
         <MDX
@@ -160,18 +146,9 @@ export default async function Page(props: {
             Tabs,
             TypeTable,
             YouTube,
-            pre: ({
-              title,
-              className,
-              icon,
-              allowCopy,
-              ...props
-            }: CodeBlockProps) => (
+            pre: ({ title, className, icon, allowCopy, ...props }: CodeBlockProps) => (
               <CodeBlock title={title} icon={icon} allowCopy={allowCopy}>
-                <Pre
-                  className={cn("max-h-[1200px]", className)}
-                  {...(props as any)}
-                />
+                <Pre className={cn("max-h-[1200px]", className)} {...(props as any)} />
               </CodeBlock>
             ),
           }}
@@ -199,8 +176,7 @@ export async function generateMetadata(props: {
   if (!page) notFound();
 
   const description =
-    page.data.description ??
-    "Learn how to build on Avalanche blockchain with Academy";
+    page.data.description ?? "Learn how to build on Avalanche blockchain with Academy";
 
   const imageParams = new URLSearchParams();
   imageParams.set("title", `${page.data.title} | Avalanche Builder Hub`);
@@ -226,7 +202,7 @@ export async function generateMetadata(props: {
   });
 }
 
-export async function generateStaticParams() {
+export function generateStaticParams() {
   return academy.getPages().map((page) => ({
     slug: page.slugs,
   }));

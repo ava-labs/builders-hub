@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
-import { useImageValidation } from './useImageValidation';
-import { ALLOWED_FILE_TYPES } from '@/constants/upload';
+import { useState, useEffect, useRef } from "react";
+import { useImageValidation } from "./useImageValidation";
+import { ALLOWED_FILE_TYPES } from "@/constants/upload";
 
 interface UploadState {
-  status: 'initial' | 'uploading' | 'success' | 'error';
-  source: 'drag' | 'url' | null;
+  status: "initial" | "uploading" | "success" | "error";
+  source: "drag" | "url" | null;
   fileInfo?: {
     name: string;
     size: number;
@@ -24,10 +24,10 @@ interface UseUploadStateProps {
 
 export const useUploadState = ({ onFileSelect, onUrlUpload }: UseUploadStateProps) => {
   const [uploadState, setUploadState] = useState<UploadState>({
-    status: 'initial',
+    status: "initial",
     source: null,
   });
-  const [fileUrl, setFileUrl] = useState('');
+  const [fileUrl, setFileUrl] = useState("");
   const [isReplacing, setIsReplacing] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const { validateImage, validateUrl } = useImageValidation();
@@ -35,12 +35,12 @@ export const useUploadState = ({ onFileSelect, onUrlUpload }: UseUploadStateProp
   const handleUrlUpload = async () => {
     if (!validateUrl(fileUrl)) {
       setUploadState({
-        status: 'error',
-        source: 'url',
+        status: "error",
+        source: "url",
         error: {
-          message: 'Invalid URL.',
-          subMessage: 'Make sure the link points to a valid image.'
-        }
+          message: "Invalid URL.",
+          subMessage: "Make sure the link points to a valid image.",
+        },
       });
       return;
     }
@@ -48,31 +48,31 @@ export const useUploadState = ({ onFileSelect, onUrlUpload }: UseUploadStateProp
     abortControllerRef.current = new AbortController();
 
     setUploadState({
-      status: 'uploading',
-      source: 'url',
+      status: "uploading",
+      source: "url",
     });
 
     try {
       const response = await fetch(fileUrl, {
-        signal: abortControllerRef.current.signal
+        signal: abortControllerRef.current.signal,
       });
-      if (!response.ok) throw new Error('Failed to fetch image');
-      
+      if (!response.ok) throw new Error("Failed to fetch image");
+
       const blob = await response.blob();
       if (!ALLOWED_FILE_TYPES.includes(blob.type)) {
-        throw new Error('Invalid file type');
+        throw new Error("Invalid file type");
       }
-      
-      const file = new File([blob], fileUrl.split('/').pop() || 'image.jpg', { type: blob.type });
+
+      const file = new File([blob], fileUrl.split("/").pop() || "image.jpg", { type: blob.type });
       const objectUrl = URL.createObjectURL(blob);
-      
+
       const validation = await validateImage(file);
       if (!validation.valid) {
         URL.revokeObjectURL(objectUrl);
         setUploadState({
-          status: 'error',
-          source: 'url',
-          error: validation.error
+          status: "error",
+          source: "url",
+          error: validation.error,
         });
         return;
       }
@@ -82,31 +82,31 @@ export const useUploadState = ({ onFileSelect, onUrlUpload }: UseUploadStateProp
       }
 
       setUploadState({
-        status: 'success',
-        source: 'url',
+        status: "success",
+        source: "url",
         fileInfo: {
           name: file.name,
           size: file.size,
           url: objectUrl,
-          type: file.type
-        }
+          type: file.type,
+        },
       });
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (error instanceof Error && error.name === "AbortError") {
         setUploadState({
-          status: 'initial',
-          source: null
+          status: "initial",
+          source: null,
         });
         return;
       }
 
       setUploadState({
-        status: 'error',
-        source: 'url',
+        status: "error",
+        source: "url",
         error: {
-          message: 'Invalid URL.',
-          subMessage: 'Make sure the link points to a valid image.'
-        }
+          message: "Invalid URL.",
+          subMessage: "Make sure the link points to a valid image.",
+        },
       });
     } finally {
       abortControllerRef.current = null;
@@ -116,8 +116,8 @@ export const useUploadState = ({ onFileSelect, onUrlUpload }: UseUploadStateProp
   const handleFileSelect = async (file: File | null) => {
     if (!file) {
       setUploadState({
-        status: 'initial',
-        source: null
+        status: "initial",
+        source: null,
       });
       return;
     }
@@ -125,35 +125,35 @@ export const useUploadState = ({ onFileSelect, onUrlUpload }: UseUploadStateProp
     const validation = await validateImage(file);
     if (!validation.valid) {
       setUploadState({
-        status: 'error',
-        source: 'drag',
-        error: validation.error
+        status: "error",
+        source: "drag",
+        error: validation.error,
       });
       return;
     }
 
     const objectUrl = URL.createObjectURL(file);
     setUploadState({
-      status: 'uploading',
-      source: 'drag',
+      status: "uploading",
+      source: "drag",
       fileInfo: {
         name: file.name,
         size: file.size,
         url: objectUrl,
-        type: file.type
-      }
+        type: file.type,
+      },
     });
 
     const timeoutId = setTimeout(() => {
-      setUploadState(prev => ({
+      setUploadState((prev) => ({
         ...prev,
-        status: 'success'
+        status: "success",
       }));
       if (onFileSelect) onFileSelect(file);
     }, 2000);
 
     abortControllerRef.current = {
-      abort: () => clearTimeout(timeoutId)
+      abort: () => clearTimeout(timeoutId),
     } as AbortController;
   };
 
@@ -172,10 +172,10 @@ export const useUploadState = ({ onFileSelect, onUrlUpload }: UseUploadStateProp
     }
 
     setUploadState({
-      status: 'initial',
+      status: "initial",
       source: null,
     });
-    setFileUrl('');
+    setFileUrl("");
   };
 
   const handleDone = () => {
@@ -188,10 +188,10 @@ export const useUploadState = ({ onFileSelect, onUrlUpload }: UseUploadStateProp
       URL.revokeObjectURL(uploadState.fileInfo.url);
     }
     setUploadState({
-      status: 'initial',
-      source: null
+      status: "initial",
+      source: null,
     });
-    setFileUrl('');
+    setFileUrl("");
     if (onFileSelect) {
       onFileSelect(null);
     }
@@ -200,10 +200,10 @@ export const useUploadState = ({ onFileSelect, onUrlUpload }: UseUploadStateProp
   const handleReplace = () => {
     setIsReplacing(true);
     setUploadState({
-      status: 'initial',
-      source: null
+      status: "initial",
+      source: null,
     });
-    setFileUrl('');
+    setFileUrl("");
   };
 
   useEffect(() => {
@@ -229,6 +229,6 @@ export const useUploadState = ({ onFileSelect, onUrlUpload }: UseUploadStateProp
     handleDelete,
     handleReplace,
     setIsReplacing,
-    setUploadState
+    setUploadState,
   };
-}; 
+};

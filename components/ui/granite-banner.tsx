@@ -24,7 +24,12 @@ function RollingDigit({ value }: { value: number }) {
 
   return (
     <span className="relative inline-block w-[0.6em] h-[1.2em] overflow-hidden">
-      <span key={displayValue} className="absolute inset-0 flex items-center justify-center animate-[slideUp_0.5s_ease-out]">{displayValue}</span>
+      <span
+        key={displayValue}
+        className="absolute inset-0 flex items-center justify-center animate-[slideUp_0.5s_ease-out]"
+      >
+        {displayValue}
+      </span>
       <style jsx>{`
         @keyframes slideUp {
           from {
@@ -56,7 +61,13 @@ function TimeDisplay({ label, value }: { label: string; value: number }) {
   );
 }
 
-function CountdownTimer({ targetDate, onComplete }: { targetDate: string; onComplete?: () => void }) {
+function CountdownTimer({
+  targetDate,
+  onComplete,
+}: {
+  targetDate: string;
+  onComplete?: () => void;
+}) {
   function calculateTimeLeft(): TimeUnit {
     const difference = +new Date(targetDate) - +new Date();
     let timeLeft: TimeUnit = { days: 0, hours: 0, minutes: 0, seconds: 0 };
@@ -126,14 +137,23 @@ export function GraniteBanner() {
   }, []);
 
   return (
-    <Banner id="granite-banner" variant="rainbow" changeLayout={false} data-granite-banner style={{ background: "linear-gradient(90deg, #FFB3F0 0%, #8FC5E6 100%)" }}>
+    <Banner
+      id="granite-banner"
+      variant="rainbow"
+      changeLayout={false}
+      data-granite-banner
+      style={{ background: "linear-gradient(90deg, #FFB3F0 0%, #8FC5E6 100%)" }}
+    >
       {activated ? (
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-center px-2">
           <span className="text-sm sm:text-base">
             Avalanche Network <strong>Granite upgrade</strong> activated.
           </span>
           <span className="hidden sm:inline">•</span>
-          <Link href="/blog/granite-upgrade" className="text-sm sm:text-base underline underline-offset-4 hover:text-fd-primary transition-colors">
+          <Link
+            href="/blog/granite-upgrade"
+            className="text-sm sm:text-base underline underline-offset-4 hover:text-fd-primary transition-colors"
+          >
             Learn more
           </Link>
         </div>
@@ -142,21 +162,27 @@ export function GraniteBanner() {
           <div className="lg:hidden flex flex-col items-center justify-center gap-1.5 text-center px-2 py-1">
             <span className="text-sm">Granite Upgrade Activates in</span>
             <CountdownTimer targetDate={activationDate} onComplete={() => setActivated(true)} />
-            <Link href="/blog/granite-upgrade" className="text-xs underline underline-offset-4 hover:text-fd-primary transition-colors">
+            <Link
+              href="/blog/granite-upgrade"
+              className="text-xs underline underline-offset-4 hover:text-fd-primary transition-colors"
+            >
               Learn more
             </Link>
           </div>
 
           <div className="hidden lg:flex flex-row items-center justify-center gap-2 text-center">
             <span>
-              Avalanche Network <strong>Granite upgrade</strong> released. All Mainnet
-              nodes must upgrade by <strong>11 AM ET, November 19, 2025</strong>
+              Avalanche Network <strong>Granite upgrade</strong> released. All Mainnet nodes must
+              upgrade by <strong>11 AM ET, November 19, 2025</strong>
             </span>
             <span className="flex items-center gap-2">
               <span>•</span>
               <CountdownTimer targetDate={activationDate} onComplete={() => setActivated(true)} />
               <span>•</span>
-              <Link href="/blog/granite-upgrade" className="underline underline-offset-4 hover:text-fd-primary transition-colors">
+              <Link
+                href="/blog/granite-upgrade"
+                className="underline underline-offset-4 hover:text-fd-primary transition-colors"
+              >
                 Learn more
               </Link>
             </span>

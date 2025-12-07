@@ -30,27 +30,28 @@ import ProcessCompletedDialog from "./ProcessCompletedDialog";
 import { useUTMPreservation } from "@/hooks/use-utm-preservation";
 
 // Esquema de validación
-const createRegisterSchema = (isOnline: boolean) => z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email"),
-  company_name: z.string().optional(),
-  telegram_user: z.string().min(1, "Telegram username is required"),
-  role: z.string().optional(),
-  city: z.string().min(1, "City is required"),
-  interests: z.array(z.string()).optional(),
-  web3_proficiency: z.string().optional(),
-  tools: z.array(z.string()).optional(),
-  roles: z.array(z.string()).optional(),
-  languages: z.array(z.string()).optional(),
-  hackathon_participation: z.string().optional(),
-  dietary: z.string().optional().default(""),
-  github_portfolio: z.string().optional(),
-  terms_event_conditions: z.boolean().optional(),
-  newsletter_subscription: z.boolean().default(false).optional(),
-  prohibited_items: z.boolean().optional(),
-  founder_check: z.boolean().optional(),
-  avalanche_ecosystem_member: z.boolean().optional(),
-});
+const createRegisterSchema = (isOnline: boolean) =>
+  z.object({
+    name: z.string().min(1, "Name is required"),
+    email: z.string().email("Invalid email"),
+    company_name: z.string().optional(),
+    telegram_user: z.string().min(1, "Telegram username is required"),
+    role: z.string().optional(),
+    city: z.string().min(1, "City is required"),
+    interests: z.array(z.string()).optional(),
+    web3_proficiency: z.string().optional(),
+    tools: z.array(z.string()).optional(),
+    roles: z.array(z.string()).optional(),
+    languages: z.array(z.string()).optional(),
+    hackathon_participation: z.string().optional(),
+    dietary: z.string().optional().default(""),
+    github_portfolio: z.string().optional(),
+    terms_event_conditions: z.boolean().optional(),
+    newsletter_subscription: z.boolean().default(false).optional(),
+    prohibited_items: z.boolean().optional(),
+    founder_check: z.boolean().optional(),
+    avalanche_ecosystem_member: z.boolean().optional(),
+  });
 
 export const registerSchema = createRegisterSchema(false); // Default schema for TypeScript inference
 
@@ -68,19 +69,17 @@ export function RegisterForm({
   let hackathon_id = searchParams?.hackathon ?? "";
   const utm = searchParams?.utm ?? "";
   const [hackathon, setHackathon] = useState<HackathonHeader | null>(null);
-  const [formLoaded, setRegistrationForm] = useState<RegistrationForm | null>(
-    null
-  );
+  const [formLoaded, setRegistrationForm] = useState<RegistrationForm | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const router = useRouter();
   const [isSavingLater, setIsSavingLater] = useState(false);
-  
+
   // Use UTM preservation hook
   const { getPreservedUTMs } = useUTMPreservation();
 
   // Determine if hackathon is online based on location
   const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;
-  
+
   const getDefaultValues = () => ({
     name: currentUser?.name || "",
     email: currentUser?.email || "",
@@ -113,8 +112,7 @@ export function RegisterForm({
       const savedData = localStorage.getItem(`formData_${hackathon_id}`);
 
       if (savedData) {
-        const { utm: utm_local, hackathon_id: hackathon_id_local } =
-          JSON.parse(savedData);
+        const { utm: utm_local, hackathon_id: hackathon_id_local } = JSON.parse(savedData);
         try {
           const parsedData: RegisterFormValues = JSON.parse(savedData);
 
@@ -153,20 +151,16 @@ export function RegisterForm({
           city: loadedData.city || "",
           dietary: loadedData.dietary || "",
           telegram_user: loadedData.telegram_user || "",
-          interests: loadedData.interests
-            ? parseArrayField(loadedData.interests)
-            : [],
+          interests: loadedData.interests ? parseArrayField(loadedData.interests) : [],
           web3_proficiency: loadedData.web3_proficiency || "",
           tools: loadedData.tools ? parseArrayField(loadedData.tools) : [],
           roles: loadedData.roles ? parseArrayField(loadedData.roles) : [],
-          languages: loadedData.languages
-            ? parseArrayField(loadedData.languages)
-            : [],
+          languages: loadedData.languages ? parseArrayField(loadedData.languages) : [],
           hackathon_participation: loadedData.hackathon_participation || "",
           github_portfolio: loadedData.github_portfolio || "",
           terms_event_conditions: loadedData.terms_event_conditions || false,
           newsletter_subscription: loadedData.newsletter_subscription || false,
-          prohibited_items: !isOnlineHackathon ? (loadedData.prohibited_items || false) : false,
+          prohibited_items: !isOnlineHackathon ? loadedData.prohibited_items || false : false,
           founder_check: loadedData.founder_check || false,
           avalanche_ecosystem_member: loadedData.avalanche_ecosystem_member || false,
         };
@@ -241,23 +235,19 @@ export function RegisterForm({
   const onSaveLater = () => {
     const preservedUTMs = getPreservedUTMs();
     const effectiveUTM = utm || preservedUTMs.utm || "";
-    
+
     const formValues = {
       ...form.getValues(),
       hackathon_id: hackathon_id,
       utm: effectiveUTM,
     };
     if (typeof window !== "undefined") {
-      localStorage.setItem(
-        `formData_${hackathon_id}`,
-        JSON.stringify(formValues)
-      );
+      localStorage.setItem(`formData_${hackathon_id}`, JSON.stringify(formValues));
     }
     router.push(`/hackathons/${hackathon_id}`);
   };
 
   const onSubmit = async (data: RegisterFormValues) => {
-    
     if (step < 3) {
       setStep(step + 1);
     } else {
@@ -266,20 +256,20 @@ export function RegisterForm({
       if (!data.terms_event_conditions) {
         errors.terms_event_conditions = {
           type: "custom",
-          message: "You must agree to participate in any Builder Hub events. Event Terms and Conditions."
+          message:
+            "You must agree to participate in any Builder Hub events. Event Terms and Conditions.",
         };
       }
 
       if (!isOnlineHackathon && !data.prohibited_items) {
         errors.prohibited_items = {
           type: "custom",
-          message: "You must agree not to bring prohibited items to continue."
+          message: "You must agree not to bring prohibited items to continue.",
         };
       }
 
-
       if (Object.keys(errors).length > 0) {
-        Object.keys(errors).forEach(field => {
+        Object.keys(errors).forEach((field) => {
           form.setError(field as keyof RegisterFormValues, errors[field]);
         });
         return;
@@ -287,7 +277,7 @@ export function RegisterForm({
       setFormData((prevData) => ({ ...prevData, ...data }));
       const preservedUTMs = getPreservedUTMs();
       const effectiveUTM = utm || preservedUTMs.utm || "";
-      
+
       const finalData = {
         ...data,
         hackathon_id: hackathon_id,
@@ -327,47 +317,40 @@ export function RegisterForm({
   const onNextStep = async () => {
     let fieldsToValidate: (keyof RegisterFormValues)[] = [];
     if (step === 1) {
-      fieldsToValidate = [
-        "name",
-        "email",
-        "company_name",
-        "telegram_user",
-        "role",
-        "city",
-      ];
+      fieldsToValidate = ["name", "email", "company_name", "telegram_user", "role", "city"];
       const formValues = form.getValues();
       const errors: any = {};
 
       if (!formValues.name || formValues.name.trim() === "") {
         errors.name = {
           type: "custom",
-          message: "Name is required"
+          message: "Name is required",
         };
       }
 
       if (!formValues.email || formValues.email.trim() === "") {
         errors.email = {
           type: "custom",
-          message: "Invalid email"
+          message: "Invalid email",
         };
       }
 
       if (!formValues.telegram_user || formValues.telegram_user.trim() === "") {
         errors.telegram_user = {
           type: "custom",
-          message: "Telegram username is required"
+          message: "Telegram username is required",
         };
       }
 
       if (!formValues.city || formValues.city.trim() === "") {
         errors.city = {
           type: "custom",
-          message: "City is required"
+          message: "City is required",
         };
       }
 
       if (Object.keys(errors).length > 0) {
-        Object.keys(errors).forEach(field => {
+        Object.keys(errors).forEach((field) => {
           form.setError(field as keyof RegisterFormValues, errors[field]);
         });
         return;
@@ -383,10 +366,7 @@ export function RegisterForm({
         "github_portfolio",
       ];
     } else if (step === 3) {
-      fieldsToValidate = [
-        "newsletter_subscription",
-        "terms_event_conditions",
-      ];
+      fieldsToValidate = ["newsletter_subscription", "terms_event_conditions"];
       // Only validate prohibited_items if it's not an online hackathon
       if (!isOnlineHackathon) {
         fieldsToValidate.push("prohibited_items");
@@ -398,20 +378,20 @@ export function RegisterForm({
       if (!formValues.terms_event_conditions) {
         errors.terms_event_conditions = {
           type: "custom",
-          message: "You must agree to participate in any Builder Hub events. Event Terms and Conditions."
+          message:
+            "You must agree to participate in any Builder Hub events. Event Terms and Conditions.",
         };
       }
-
 
       if (!isOnlineHackathon && !formValues.prohibited_items) {
         errors.prohibited_items = {
           type: "custom",
-          message: "You must agree not to bring prohibited items to continue."
+          message: "You must agree not to bring prohibited items to continue.",
         };
       }
 
       if (Object.keys(errors).length > 0) {
-        Object.keys(errors).forEach(field => {
+        Object.keys(errors).forEach((field) => {
           form.setError(field as keyof RegisterFormValues, errors[field]);
         });
         return;
@@ -427,9 +407,7 @@ export function RegisterForm({
     <div className="w-full items-center justify-center">
       <h2 className="text-2xl font-bold mb-6 text-foreground">
         Registration form for{" "}
-        {hackathon
-          ? `${hackathon.title} (Step ${step}/3)`
-          : `... (Step ${step}/3)`}
+        {hackathon ? `${hackathon.title} (Step ${step}/3)` : `... (Step ${step}/3)`}
       </h2>
       <div className="relative w-full h-1 bg-zinc-300 dark:bg-zinc-900 mb-4">
         <div

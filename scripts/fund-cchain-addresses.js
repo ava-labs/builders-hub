@@ -48,9 +48,9 @@ const cHexAddresses = [
   "0x61e0b3cd93f36847abbd5d40d6f00a8ec6f3cffb",
   "0x0fa8ea536be85f32724d57a37758761b86416123",
 ];
-const cChainBlockchainID = utils_1.Defaults.network[networkID].C.blockchainID
+const cChainBlockchainID = utils_1.Defaults.network[networkID].C.blockchainID;
 const cChainBlockchainIdBuf = bintools.cb58Decode(cChainBlockchainID);
-const xChainBlockchainID = utils_1.Defaults.network[networkID].X.blockchainID
+const xChainBlockchainID = utils_1.Defaults.network[networkID].X.blockchainID;
 const xChainBlockchainIdBuf = bintools.cb58Decode(xChainBlockchainID);
 const exportedOuts = [];
 const outputs = [];
@@ -94,10 +94,7 @@ const main = async () => {
     locktime,
     threshold
   );
-  let transferableOutput = new avm_1.TransferableOutput(
-    avaxAssetID,
-    secpTransferOutput
-  );
+  let transferableOutput = new avm_1.TransferableOutput(avaxAssetID, secpTransferOutput);
   exportedOuts.push(transferableOutput);
   secpTransferOutput = new avm_1.SECPTransferOutput(
     balance.sub(amount.mul(new avalanche_1.BN(10))).sub(fee),
@@ -105,10 +102,7 @@ const main = async () => {
     locktime,
     threshold
   );
-  transferableOutput = new avm_1.TransferableOutput(
-    avaxAssetID,
-    secpTransferOutput
-  );
+  transferableOutput = new avm_1.TransferableOutput(avaxAssetID, secpTransferOutput);
   outputs.push(transferableOutput);
   avmUTXOs.forEach((utxo) => {
     const amountOutput = utxo.getOutput();
@@ -117,12 +111,7 @@ const main = async () => {
     const outputidx = utxo.getOutputIdx();
     const secpTransferInput = new avm_1.SECPTransferInput(amt);
     secpTransferInput.addSignatureIdx(0, xAddresses[0]);
-    const input = new avm_1.TransferableInput(
-      txid,
-      outputidx,
-      avaxAssetID,
-      secpTransferInput
-    );
+    const input = new avm_1.TransferableInput(txid, outputidx, avaxAssetID, secpTransferInput);
     inputs.push(input);
   });
 
@@ -156,11 +145,7 @@ const main = async () => {
     importedIns.push(xferin);
 
     cHexAddresses.forEach((cHexAddress) => {
-      const evmOutput = new evm_1.EVMOutput(
-        cHexAddress,
-        new avalanche_1.BN(1000000000),
-        assetID
-      );
+      const evmOutput = new evm_1.EVMOutput(cHexAddress, new avalanche_1.BN(1000000000), assetID);
       evmOutputs.push(evmOutput);
     });
   });

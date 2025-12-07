@@ -35,13 +35,13 @@ export type Member = {
 };
 
 export type ProjectPrize = {
-  icon: string
-  prize: number
-  track: string
-}
+  icon: string;
+  prize: number;
+  track: string;
+};
 
 export type ProjectResource = {
-  icon: string
-  title: string
-  link: string
-}
+  icon: string;
+  title: string;
+  link: string;
+};

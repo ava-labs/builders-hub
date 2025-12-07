@@ -1,7 +1,19 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { ArrowRightLeft, ArrowRight, Clock, Fuel, Box, Layers, DollarSign, Globe, Circle, Link2, Info } from "lucide-react";
+import {
+  ArrowRightLeft,
+  ArrowRight,
+  Clock,
+  Fuel,
+  Box,
+  Layers,
+  DollarSign,
+  Globe,
+  Circle,
+  Link2,
+  Info,
+} from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -20,51 +32,51 @@ import { convertL1ListItemToL1Chain } from "@/components/explorer/utils/chainCon
 // Get chain info from hex blockchain ID (checks both static and custom chains)
 function getChainFromBlockchainId(hexBlockchainId: string): ChainInfo | null {
   const normalizedHex = hexBlockchainId.toLowerCase();
-  
+
   // First, check static chains from l1ChainsData
-  const staticChain = (l1ChainsData as any[]).find(c => 
-    c.blockchainId?.toLowerCase() === normalizedHex
+  const staticChain = (l1ChainsData as any[]).find(
+    (c) => c.blockchainId?.toLowerCase() === normalizedHex
   );
-  
+
   if (staticChain) {
     return {
       chainId: staticChain.chainId,
       chainName: staticChain.chainName,
       chainSlug: staticChain.slug,
-      chainLogoURI: staticChain.chainLogoURI || '',
-      color: staticChain.color || '#6B7280',
-      tokenSymbol: staticChain.networkToken?.symbol || '',
+      chainLogoURI: staticChain.chainLogoURI || "",
+      color: staticChain.color || "#6B7280",
+      tokenSymbol: staticChain.networkToken?.symbol || "",
     };
   }
-  
+
   // If not found in static chains, check custom chains from localStorage
   try {
     const testnetStore = getL1ListStore(true);
     const mainnetStore = getL1ListStore(false);
-    
+
     const testnetChains: L1ListItem[] = testnetStore.getState().l1List;
     const mainnetChains: L1ListItem[] = mainnetStore.getState().l1List;
-    
+
     const allCustomChains = [...testnetChains, ...mainnetChains];
-    
+
     // Convert each custom chain and check if blockchainId matches
     for (const customChain of allCustomChains) {
       const converted = convertL1ListItemToL1Chain(customChain);
       if (converted.blockchainId?.toLowerCase() === normalizedHex) {
-  return {
+        return {
           chainId: converted.chainId,
           chainName: converted.chainName,
           chainSlug: converted.slug,
-          chainLogoURI: converted.chainLogoURI || '',
-          color: converted.color || '#6B7280',
-          tokenSymbol: converted.networkToken?.symbol || '',
-  };
+          chainLogoURI: converted.chainLogoURI || "",
+          color: converted.color || "#6B7280",
+          tokenSymbol: converted.networkToken?.symbol || "",
+        };
       }
     }
   } catch (e) {
     // localStorage might not be available (SSR), silently fail
   }
-  
+
   return null;
 }
 
@@ -160,7 +172,7 @@ function formatTimeAgo(timestamp: string): string {
 }
 
 function shortenAddress(address: string | null): string {
-  if (!address) return '';
+  if (!address) return "";
   if (address.length < 12) return address;
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
@@ -172,7 +184,6 @@ function formatNumber(num: number): string {
   if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
   return num.toLocaleString();
 }
-
 
 function formatMarketCap(num: number): string {
   if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
@@ -214,11 +225,11 @@ function AnimatedBlockNumber({ value }: { value: number }) {
     const animate = (timestamp: number) => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
-      
+
       // Easing function for smooth animation
       const easeOut = 1 - Math.pow(1 - progress, 3);
       const currentValue = Math.floor(startValue + (endValue - startValue) * easeOut);
-      
+
       setDisplayValue(currentValue);
 
       if (progress < 1) {
@@ -245,7 +256,7 @@ function AnimatedBlockNumber({ value }: { value: number }) {
   }, [value]);
 
   return (
-    <span className={`transition-colors duration-300 ${isAnimating ? 'text-green-500' : ''}`}>
+    <span className={`transition-colors duration-300 ${isAnimating ? "text-green-500" : ""}`}>
       {displayValue.toLocaleString()}
     </span>
   );
@@ -325,8 +336,13 @@ export default function L1ExplorerPage({
 }: L1ExplorerPageProps) {
   const router = useRouter();
   // Get token data from shared context (avoids duplicate fetches across explorer pages)
-  const { tokenSymbol: contextTokenSymbol, priceData: contextPriceData, glacierSupported, buildApiUrl } = useExplorer();
-  
+  const {
+    tokenSymbol: contextTokenSymbol,
+    priceData: contextPriceData,
+    glacierSupported,
+    buildApiUrl,
+  } = useExplorer();
+
   const [data, setData] = useState<ExplorerData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -360,115 +376,115 @@ export default function L1ExplorerPage({
     if (isFetchingRef.current || !isMountedRef.current) {
       return;
     }
-    
+
     // Clear any pending timeout
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current);
       refreshTimeoutRef.current = null;
     }
-    
+
     isFetchingRef.current = true;
     let shouldScheduleNext = false;
     let nextIsRateLimited = false;
-    
+
     try {
       setIsRefreshing(true);
-      
+
       // Build URL with query parameters using context helper (includes rpcUrl for custom chains)
       const additionalParams: Record<string, string> = {};
       if (isFirstLoadRef.current) {
-        additionalParams.initialLoad = 'true';
+        additionalParams.initialLoad = "true";
       } else if (lastFetchedBlockRef.current) {
         // Send last fetched block for incremental updates
         additionalParams.lastFetchedBlock = lastFetchedBlockRef.current;
       }
       const url = buildApiUrl(`/api/explorer/${chainId}`, additionalParams);
-      
+
       // Create timeout promise that resolves to null (silent timeout)
       const timeoutPromise = new Promise<null>((resolve) => {
         setTimeout(() => resolve(null), FETCH_TIMEOUT * 2);
       });
-      
+
       // Race fetch against timeout
-      const response = await Promise.race([
-        fetch(url),
-        timeoutPromise
-      ]);
-      
+      const response = await Promise.race([fetch(url), timeoutPromise]);
+
       // If timeout occurred, silently schedule next fetch
       if (response === null) {
         shouldScheduleNext = true;
         nextIsRateLimited = true; // Use longer interval after timeout
         return;
       }
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to fetch data");
       }
       const result = await response.json();
-      
+
       // Update last fetched block from the response
       if (result.blocks && result.blocks.length > 0) {
         // Get the highest block number from the response
-        const highestBlock = result.blocks.reduce((max: string, b: Block) => 
-          parseInt(b.number) > parseInt(max) ? b.number : max, 
+        const highestBlock = result.blocks.reduce(
+          (max: string, b: Block) => (parseInt(b.number) > parseInt(max) ? b.number : max),
           result.blocks[0].number
         );
         lastFetchedBlockRef.current = highestBlock;
       }
-      
+
       // Accumulate blocks from API response
       setAccumulatedBlocks((prevBlocks) => {
-        const existingNumbers = new Set(prevBlocks.map(b => b.number));
-        const newBlocks = (result.blocks || []).filter((b: Block) => 
-          !existingNumbers.has(b.number)
+        const existingNumbers = new Set(prevBlocks.map((b) => b.number));
+        const newBlocks = (result.blocks || []).filter(
+          (b: Block) => !existingNumbers.has(b.number)
         );
-        
+
         // Detect new blocks for animation
         if (newBlocks.length > 0) {
           setNewBlockNumbers(new Set(newBlocks.map((b: Block) => b.number)));
           setTimeout(() => setNewBlockNumbers(new Set()), 1000);
         }
-        
+
         // Add new blocks to the beginning (most recent first) and sort by block number
-        const updatedBlocks = [...newBlocks, ...prevBlocks]
-          .sort((a, b) => parseInt(b.number) - parseInt(a.number));
-        
+        const updatedBlocks = [...newBlocks, ...prevBlocks].sort(
+          (a, b) => parseInt(b.number) - parseInt(a.number)
+        );
+
         // Apply limit - keep only the most recent blocks
         return updatedBlocks.slice(0, BLOCK_LIMIT);
       });
-      
+
       // Accumulate transactions from API response
       setAccumulatedTransactions((prevTxs) => {
-        const existingHashes = new Set(prevTxs.map(tx => tx.hash));
-        const newTxs = (result.transactions || []).filter((tx: Transaction) => 
-          !existingHashes.has(tx.hash)
+        const existingHashes = new Set(prevTxs.map((tx) => tx.hash));
+        const newTxs = (result.transactions || []).filter(
+          (tx: Transaction) => !existingHashes.has(tx.hash)
         );
-        
+
         // Detect new transactions for animation
         if (newTxs.length > 0) {
           setNewTxHashes(new Set(newTxs.map((tx: Transaction) => tx.hash)));
           setTimeout(() => setNewTxHashes(new Set()), 1000);
         }
-        
+
         // Add new transactions to the beginning (most recent first)
         const updatedTxs = [...newTxs, ...prevTxs];
-        
+
         // Apply limit - keep only the most recent transactions
         return updatedTxs.slice(0, TRANSACTION_LIMIT);
       });
-      
+
       // Accumulate ICM messages from API response
       setIcmMessages((prevIcmMessages) => {
-        const existingHashes = new Set(prevIcmMessages.map(tx => tx.hash));
-        const newIcmTransactions = (result.icmMessages || []).filter((tx: Transaction) => 
-          !existingHashes.has(tx.hash)
+        const existingHashes = new Set(prevIcmMessages.map((tx) => tx.hash));
+        const newIcmTransactions = (result.icmMessages || []).filter(
+          (tx: Transaction) => !existingHashes.has(tx.hash)
         );
-        
+
         // Detect new ICM messages for animation
         if (newIcmTransactions.length > 0) {
-          const newIcmHashes = new Set<string>(newIcmTransactions.map((tx: Transaction) => tx.hash));
+          const newIcmHashes = new Set<string>(
+            newIcmTransactions.map((tx: Transaction) => tx.hash)
+          );
           setNewTxHashes((prev) => {
             const combined = new Set<string>(prev);
             newIcmHashes.forEach((hash: string) => combined.add(hash));
@@ -482,17 +498,17 @@ export default function L1ExplorerPage({
             });
           }, 1000);
         }
-        
+
         // Add new ICM messages to the beginning (most recent first)
         const updatedIcmMessages = [...newIcmTransactions, ...prevIcmMessages];
-        
+
         // Apply limit - keep only the most recent messages
         return updatedIcmMessages.slice(0, ICM_MESSAGE_LIMIT);
       });
-      
+
       previousDataRef.current = result;
       // Only update data if there's new content, preserve existing data otherwise
-      setData(prevData => {
+      setData((prevData) => {
         // If no new blocks/transactions, preserve existing data but update stats if needed
         if (result.blocks?.length === 0 && result.transactions?.length === 0) {
           // Nothing new - keep previous data as is
@@ -507,7 +523,7 @@ export default function L1ExplorerPage({
       setError(null);
       setIsRateLimited(false);
       nextIsRateLimited = false;
-      
+
       // Mark first load as complete and schedule next fetch
       if (isFirstLoadRef.current) {
         isFirstLoadRef.current = false;
@@ -515,14 +531,14 @@ export default function L1ExplorerPage({
       shouldScheduleNext = true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An error occurred";
-      const rateLimited = errorMessage.includes('429');
-      
+      const rateLimited = errorMessage.includes("429");
+
       // Set rate limit flag for longer retry interval
       if (rateLimited) {
         setIsRateLimited(true);
         nextIsRateLimited = true;
       }
-      
+
       // Only show error if we don't have existing data to display
       if (!data) {
         setError(errorMessage);
@@ -533,7 +549,7 @@ export default function L1ExplorerPage({
       isFetchingRef.current = false;
       setLoading(false);
       setIsRefreshing(false);
-      
+
       // Schedule next fetch AFTER this one completes (wait full interval after response)
       if (shouldScheduleNext && isMountedRef.current) {
         const intervalTime = nextIsRateLimited ? RATE_LIMITED_INTERVAL : NORMAL_INTERVAL;
@@ -544,7 +560,7 @@ export default function L1ExplorerPage({
         }, intervalTime);
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chainId]);
 
   // Track mount state
@@ -562,22 +578,22 @@ export default function L1ExplorerPage({
       clearTimeout(refreshTimeoutRef.current);
       refreshTimeoutRef.current = null;
     }
-    
+
     // Reset refs for new chain
     isFirstLoadRef.current = true;
     lastFetchedBlockRef.current = null;
     isFetchingRef.current = false;
-    
+
     // Clear accumulated data
     setAccumulatedBlocks([]);
     setAccumulatedTransactions([]);
     setIcmMessages([]);
     setData(null);
     setLoading(true);
-    
+
     // Start fetching for this chain
     fetchData();
-    
+
     // Cleanup: clear timeout when chain changes
     return () => {
       if (refreshTimeoutRef.current) {
@@ -593,7 +609,7 @@ export default function L1ExplorerPage({
     if (data?.transactionHistory && data.transactionHistory.length > 0) {
       return data.transactionHistory;
     }
-    
+
     // Return zeros as placeholder when no indexed data
     const history: TransactionHistoryPoint[] = [];
     const now = new Date();
@@ -601,7 +617,7 @@ export default function L1ExplorerPage({
       const date = new Date(now);
       date.setDate(date.getDate() - i);
       history.push({
-        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
         transactions: 0,
       });
     }
@@ -610,8 +626,11 @@ export default function L1ExplorerPage({
 
   // Check if we have real indexed transaction history data
   const hasIndexedTransactionHistory = useMemo(() => {
-    return data?.transactionHistory && data.transactionHistory.length > 0 && 
-           data.transactionHistory.some(point => point.transactions > 0);
+    return (
+      data?.transactionHistory &&
+      data.transactionHistory.length > 0 &&
+      data.transactionHistory.some((point) => point.transactions > 0)
+    );
   }, [data?.transactionHistory]);
 
   // Calculate TPS from accumulated blocks
@@ -621,13 +640,13 @@ export default function L1ExplorerPage({
     }
 
     // Get timestamps (blocks are sorted by block number descending - newest first)
-    const timestamps = accumulatedBlocks.map(b => new Date(b.timestamp).getTime() / 1000);
+    const timestamps = accumulatedBlocks.map((b) => new Date(b.timestamp).getTime() / 1000);
     const firstBlockTime = timestamps[0]; // Newest block
     const lastBlockTime = timestamps[timestamps.length - 1]; // Oldest block
-    
+
     // Calculate total time as difference between first and last block
     const totalTime = firstBlockTime - lastBlockTime;
-    
+
     if (totalTime <= 0) {
       return 0;
     }
@@ -643,27 +662,27 @@ export default function L1ExplorerPage({
   // Wait for 2x initial blocks before showing the calculation
   const INITIAL_BLOCKS_COUNT = 10;
   const MIN_BLOCKS_FOR_BPS = INITIAL_BLOCKS_COUNT * 2;
-  
+
   const avalancheBlocksPerSecond = useMemo(() => {
     // Need at least MIN_BLOCKS_FOR_BPS blocks with timestampMilliseconds for accurate calculation
-    const blocksWithTime = accumulatedBlocks.filter(b => b.timestampMilliseconds !== undefined);
+    const blocksWithTime = accumulatedBlocks.filter((b) => b.timestampMilliseconds !== undefined);
     if (blocksWithTime.length < MIN_BLOCKS_FOR_BPS) return null;
-    
+
     // Get timestampMilliseconds (blocks are sorted descending - newest first)
-    const timestamps = blocksWithTime.map(b => b.timestampMilliseconds!);
+    const timestamps = blocksWithTime.map((b) => b.timestampMilliseconds!);
     const newestTime = timestamps[0];
     const oldestTime = timestamps[timestamps.length - 1];
-    
+
     // Calculate time span in seconds
     const timeSpanMs = newestTime - oldestTime;
     if (timeSpanMs <= 0) return null;
-    
+
     const timeSpanSec = timeSpanMs / 1000;
-    
+
     // blocks/sec = (number of blocks - 1) / time span
     // We use (length - 1) because the time span covers the intervals between blocks
     const bps = (blocksWithTime.length - 1) / timeSpanSec;
-    
+
     return Math.round(bps * 100) / 100;
   }, [chainId, accumulatedBlocks]);
 
@@ -690,7 +709,10 @@ export default function L1ExplorerPage({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {[1, 2].map((i) => (
-              <div key={i} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+              <div
+                key={i}
+                className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden"
+              >
                 <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
                   <div className="h-5 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
                 </div>
@@ -736,7 +758,7 @@ export default function L1ExplorerPage({
             <div className="lg:col-span-2 grid grid-cols-2 md:grid-cols-3 gap-x-5 gap-y-4">
               {/* Token Price */}
               <div className="flex items-center gap-2.5">
-                <div 
+                <div
                   className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: `${themeColor}15` }}
                 >
@@ -760,8 +782,11 @@ export default function L1ExplorerPage({
                           @ {formatAvaxPrice(data.price.priceInAvax)} AVAX
                         </span>
                       )}
-                      <span className={`text-[11px] ${data.price.change24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        ({data.price.change24h >= 0 ? '+' : ''}{data.price.change24h.toFixed(2)}%)
+                      <span
+                        className={`text-[11px] ${data.price.change24h >= 0 ? "text-green-500" : "text-red-500"}`}
+                      >
+                        ({data.price.change24h >= 0 ? "+" : ""}
+                        {data.price.change24h.toFixed(2)}%)
                       </span>
                     </div>
                   ) : (
@@ -772,7 +797,7 @@ export default function L1ExplorerPage({
 
               {/* Market Cap */}
               <div className="flex items-center gap-2.5">
-                <div 
+                <div
                   className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: `${themeColor}15` }}
                 >
@@ -783,14 +808,14 @@ export default function L1ExplorerPage({
                     Market Cap
                   </div>
                   <div className="text-base font-bold text-zinc-900 dark:text-white">
-                    {data?.price?.marketCap ? formatMarketCap(data.price.marketCap) : 'N/A'}
+                    {data?.price?.marketCap ? formatMarketCap(data.price.marketCap) : "N/A"}
                   </div>
                 </div>
               </div>
 
               {/* Transactions */}
               <div className="flex items-center gap-2.5">
-                <div 
+                <div
                   className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: `${themeColor}15` }}
                 >
@@ -806,14 +831,15 @@ export default function L1ExplorerPage({
                     </span>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span 
-                          className="text-[11px] text-zinc-500 cursor-help border-b border-dashed border-zinc-400 dark:border-zinc-500"
-                        >
+                        <span className="text-[11px] text-zinc-500 cursor-help border-b border-dashed border-zinc-400 dark:border-zinc-500">
                           ({calculatedTps} TPS)
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Calculated from last {accumulatedBlocks.length} block{accumulatedBlocks.length !== 1 ? 's' : ''}</p>
+                        <p>
+                          Calculated from last {accumulatedBlocks.length} block
+                          {accumulatedBlocks.length !== 1 ? "s" : ""}
+                        </p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -822,7 +848,7 @@ export default function L1ExplorerPage({
 
               {/* Gas Price */}
               <div className="flex items-center gap-2.5">
-                <div 
+                <div
                   className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: `${themeColor}15` }}
                 >
@@ -840,7 +866,7 @@ export default function L1ExplorerPage({
 
               {/* Last Block */}
               <div className="flex items-center gap-2.5">
-                <div 
+                <div
                   className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: `${themeColor}15` }}
                 >
@@ -855,30 +881,36 @@ export default function L1ExplorerPage({
                       <AnimatedBlockNumber value={data?.stats.latestBlock || 0} />
                     </span>
                     {/* Show blocks/sec for Avalanche C-Chain */}
-                    {(
-                      avalancheBlocksPerSecond !== null ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="text-[11px] text-zinc-500 cursor-help border-b border-dashed border-zinc-400 dark:border-zinc-500">
-                              ({avalancheBlocksPerSecond} blks/s)
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Calculated from {accumulatedBlocks.filter(b => b.timestampMilliseconds).length} blocks using timestampMilliseconds</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="text-[11px] text-zinc-500 cursor-help">
-                              (<JumpingDots /> blks/s)
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Warming up: {accumulatedBlocks.filter(b => b.timestampMilliseconds).length} / {MIN_BLOCKS_FOR_BPS} blocks</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      )
+                    {avalancheBlocksPerSecond !== null ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-[11px] text-zinc-500 cursor-help border-b border-dashed border-zinc-400 dark:border-zinc-500">
+                            ({avalancheBlocksPerSecond} blks/s)
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            Calculated from{" "}
+                            {accumulatedBlocks.filter((b) => b.timestampMilliseconds).length} blocks
+                            using timestampMilliseconds
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-[11px] text-zinc-500 cursor-help">
+                            (<JumpingDots /> blks/s)
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            Warming up:{" "}
+                            {accumulatedBlocks.filter((b) => b.timestampMilliseconds).length} /{" "}
+                            {MIN_BLOCKS_FOR_BPS} blocks
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
                     )}
                   </div>
                 </div>
@@ -887,7 +919,7 @@ export default function L1ExplorerPage({
               {/* Average Block Time */}
               {data?.stats.avgBlockTime !== undefined && (
                 <div className="flex items-center gap-2.5">
-                  <div 
+                  <div
                     className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: `${themeColor}15` }}
                   >
@@ -903,18 +935,19 @@ export default function L1ExplorerPage({
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Calculated from the last {data.stats.avgBlockTimeBlockSpan?.toLocaleString() || '5,000'} blocks</p>
+                          <p>
+                            Calculated from the last{" "}
+                            {data.stats.avgBlockTimeBlockSpan?.toLocaleString() || "5,000"} blocks
+                          </p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
                     <div className="text-base font-bold text-zinc-900 dark:text-white">
-                      {data.stats.avgBlockTimeMs !== undefined ? (
-                        // Show millisecond precision for Avalanche
-                        `${data.stats.avgBlockTimeMs.toFixed(2)} ms`
-                      ) : (
-                        // Show second precision for other chains
-                        `${data.stats.avgBlockTime.toFixed(3)} s`
-                      )}
+                      {data.stats.avgBlockTimeMs !== undefined
+                        ? // Show millisecond precision for Avalanche
+                          `${data.stats.avgBlockTimeMs.toFixed(2)} ms`
+                        : // Show second precision for other chains
+                          `${data.stats.avgBlockTime.toFixed(3)} s`}
                     </div>
                   </div>
                 </div>
@@ -929,36 +962,45 @@ export default function L1ExplorerPage({
                 </span>
               </div>
               <div className="relative">
-                <div className={`h-14 ${!hasIndexedTransactionHistory ? 'blur-[2px] opacity-50' : ''}`}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={transactionHistory}>
-                      <YAxis hide domain={hasIndexedTransactionHistory ? ['dataMin', 'dataMax'] : [0, 100]} />
+                <div
+                  className={`h-14 ${!hasIndexedTransactionHistory ? "blur-[2px] opacity-50" : ""}`}
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={transactionHistory}>
+                      <YAxis
+                        hide
+                        domain={hasIndexedTransactionHistory ? ["dataMin", "dataMax"] : [0, 100]}
+                      />
                       {hasIndexedTransactionHistory && (
-                    <RechartsTooltip
-                      content={({ active, payload }) => {
-                        if (!active || !payload?.[0]) return null;
-                        return (
-                          <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1 shadow-lg">
-                            <p className="text-[10px] text-zinc-500">{payload[0].payload.date}</p>
-                            <p className="text-xs font-semibold" style={{ color: themeColor }}>
-                              {payload[0].value?.toLocaleString()} txns
-                            </p>
-                          </div>
-                        );
-                      }}
-                    />
+                        <RechartsTooltip
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.[0]) return null;
+                            return (
+                              <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1 shadow-lg">
+                                <p className="text-[10px] text-zinc-500">
+                                  {payload[0].payload.date}
+                                </p>
+                                <p className="text-xs font-semibold" style={{ color: themeColor }}>
+                                  {payload[0].value?.toLocaleString()} txns
+                                </p>
+                              </div>
+                            );
+                          }}
+                        />
                       )}
-                    <Line
-                      type="monotone"
-                      dataKey="transactions"
-                        stroke={hasIndexedTransactionHistory ? themeColor : '#9CA3AF'}
-                      strokeWidth={1.5}
-                      dot={false}
-                        activeDot={hasIndexedTransactionHistory ? { r: 3, fill: themeColor } : false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+                      <Line
+                        type="monotone"
+                        dataKey="transactions"
+                        stroke={hasIndexedTransactionHistory ? themeColor : "#9CA3AF"}
+                        strokeWidth={1.5}
+                        dot={false}
+                        activeDot={
+                          hasIndexedTransactionHistory ? { r: 3, fill: themeColor } : false
+                        }
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
                 {/* Overlay for non-indexed chains */}
                 {!hasIndexedTransactionHistory && (
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -968,7 +1010,9 @@ export default function L1ExplorerPage({
                   </div>
                 )}
               </div>
-              <div className={`flex justify-between text-[11px] text-zinc-400 mt-1.5 ${!hasIndexedTransactionHistory ? 'opacity-50' : ''}`}>
+              <div
+                className={`flex justify-between text-[11px] text-zinc-400 mt-1.5 ${!hasIndexedTransactionHistory ? "opacity-50" : ""}`}
+              >
                 <span>{transactionHistory[0]?.date}</span>
                 <span>{transactionHistory[transactionHistory.length - 1]?.date}</span>
               </div>
@@ -980,140 +1024,154 @@ export default function L1ExplorerPage({
       {/* Blocks, Transactions, and ICM Messages Tables */}
       {(() => {
         const hasIcmMessages = icmMessages.length > 0;
-        
-        return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-            <div className={`grid grid-cols-1 gap-6 ${hasIcmMessages ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
-          {/* Latest Blocks */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800">
-              <h2 className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
-                <Box className="w-4 h-4" style={{ color: themeColor }} />
-                Latest Blocks
-              </h2>
-              <div className="flex items-center gap-1.5">
-                <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
-                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Live</span>
-              </div>
-            </div>
-            <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
-              {accumulatedBlocks.slice(0, 10).map((block) => (
-                <Link 
-                  key={block.number}
-                  href={buildBlockUrl(`/explorer/${chainSlug}`, block.number)}
-                  className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
-                    newBlockNumbers.has(block.number) ? 'new-item' : ''
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div 
-                        className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: `${themeColor}15` }}
-                      >
-                        <Box className="w-4 h-4" style={{ color: themeColor }} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm hover:underline" style={{ color: themeColor }}>
-                            {block.number}
-                          </span>
-                          <span className="text-xs text-zinc-400">
-                            {formatTimeAgo(block.timestamp)}
-                          </span>
-                        </div>
-                        <div className="text-xs text-zinc-500 mt-0.5">
-                          <span style={{ color: themeColor }}>{block.transactionCount} txns</span>
-                          <span className="text-zinc-400"> • {block.gasUsed} gas</span>
-                        </div>
-                      </div>
-                    </div>
-                    {block.gasFee && parseFloat(block.gasFee) > 0 && (
-                      <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex-shrink-0">
-                        {chainId === "43114" && <span className="mr-1">🔥</span>}
-                            {formatTokenValue(block.gasFee)} <TokenDisplay symbol={tokenSymbol} />
-                      </div>
-                    )}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
 
-          {/* Latest Transactions */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800">
-              <h2 className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
-                <ArrowRightLeft className="w-4 h-4" style={{ color: themeColor }} />
-                Latest Transactions
-              </h2>
-              <div className="flex items-center gap-1.5">
-                <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
-                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Live</span>
-              </div>
-            </div>
-            <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
-              {accumulatedTransactions.slice(0, 10).map((tx, index) => (
-                <div 
-                  key={`${tx.hash}-${index}`}
-                  onClick={() => router.push(buildTxUrl(`/explorer/${chainSlug}`, tx.hash))}
-                  className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
-                    newTxHashes.has(tx.hash) ? 'new-item' : ''
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div 
-                        className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: `${themeColor}15` }}
-                      >
-                        <ArrowRightLeft className="w-4 h-4" style={{ color: themeColor }} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-xs hover:underline" style={{ color: themeColor }}>
-                            {tx.hash.slice(0, 16)}...
-                          </span>
-                          <span className="text-xs text-zinc-400">
-                            {formatTimeAgo(tx.timestamp)}
-                          </span>
-                        </div>
-                        <div className="text-xs text-zinc-500 mt-0.5">
-                          <span className="text-zinc-400">From </span>
-                          <Link 
-                            href={buildAddressUrl(`/explorer/${chainSlug}`, tx.from)} 
-                                className="font-mono hover:underline cursor-pointer" 
-                            style={{ color: themeColor }}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {shortenAddress(tx.from)}
-                          </Link>
-                        </div>
-                        <div className="text-xs text-zinc-500">
-                          <span className="text-zinc-400">To </span>
-                          {tx.to ? (
-                            <Link 
-                              href={buildAddressUrl(`/explorer/${chainSlug}`, tx.to)} 
-                                  className="font-mono hover:underline cursor-pointer" 
-                              style={{ color: themeColor }}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {shortenAddress(tx.to)}
-                            </Link>
-                          ) : (
-                            <span className="font-mono text-zinc-400">Contract Creation</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 flex-shrink-0">
-                          {formatTokenValue(tx.value)} <TokenDisplay symbol={tokenSymbol} />
-                    </div>
+        return (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+            <div
+              className={`grid grid-cols-1 gap-6 ${hasIcmMessages ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}
+            >
+              {/* Latest Blocks */}
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800">
+                  <h2 className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
+                    <Box className="w-4 h-4" style={{ color: themeColor }} />
+                    Latest Blocks
+                  </h2>
+                  <div className="flex items-center gap-1.5">
+                    <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">
+                      Live
+                    </span>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+                <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
+                  {accumulatedBlocks.slice(0, 10).map((block) => (
+                    <Link
+                      key={block.number}
+                      href={buildBlockUrl(`/explorer/${chainSlug}`, block.number)}
+                      className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
+                        newBlockNumbers.has(block.number) ? "new-item" : ""
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{ backgroundColor: `${themeColor}15` }}
+                          >
+                            <Box className="w-4 h-4" style={{ color: themeColor }} />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="font-medium text-sm hover:underline"
+                                style={{ color: themeColor }}
+                              >
+                                {block.number}
+                              </span>
+                              <span className="text-xs text-zinc-400">
+                                {formatTimeAgo(block.timestamp)}
+                              </span>
+                            </div>
+                            <div className="text-xs text-zinc-500 mt-0.5">
+                              <span style={{ color: themeColor }}>
+                                {block.transactionCount} txns
+                              </span>
+                              <span className="text-zinc-400"> • {block.gasUsed} gas</span>
+                            </div>
+                          </div>
+                        </div>
+                        {block.gasFee && parseFloat(block.gasFee) > 0 && (
+                          <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex-shrink-0">
+                            {chainId === "43114" && <span className="mr-1">🔥</span>}
+                            {formatTokenValue(block.gasFee)} <TokenDisplay symbol={tokenSymbol} />
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              {/* Latest Transactions */}
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800">
+                  <h2 className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
+                    <ArrowRightLeft className="w-4 h-4" style={{ color: themeColor }} />
+                    Latest Transactions
+                  </h2>
+                  <div className="flex items-center gap-1.5">
+                    <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">
+                      Live
+                    </span>
+                  </div>
+                </div>
+                <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
+                  {accumulatedTransactions.slice(0, 10).map((tx, index) => (
+                    <div
+                      key={`${tx.hash}-${index}`}
+                      onClick={() => router.push(buildTxUrl(`/explorer/${chainSlug}`, tx.hash))}
+                      className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
+                        newTxHashes.has(tx.hash) ? "new-item" : ""
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{ backgroundColor: `${themeColor}15` }}
+                          >
+                            <ArrowRightLeft className="w-4 h-4" style={{ color: themeColor }} />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className="font-mono text-xs hover:underline"
+                                style={{ color: themeColor }}
+                              >
+                                {tx.hash.slice(0, 16)}...
+                              </span>
+                              <span className="text-xs text-zinc-400">
+                                {formatTimeAgo(tx.timestamp)}
+                              </span>
+                            </div>
+                            <div className="text-xs text-zinc-500 mt-0.5">
+                              <span className="text-zinc-400">From </span>
+                              <Link
+                                href={buildAddressUrl(`/explorer/${chainSlug}`, tx.from)}
+                                className="font-mono hover:underline cursor-pointer"
+                                style={{ color: themeColor }}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {shortenAddress(tx.from)}
+                              </Link>
+                            </div>
+                            <div className="text-xs text-zinc-500">
+                              <span className="text-zinc-400">To </span>
+                              {tx.to ? (
+                                <Link
+                                  href={buildAddressUrl(`/explorer/${chainSlug}`, tx.to)}
+                                  className="font-mono hover:underline cursor-pointer"
+                                  style={{ color: themeColor }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {shortenAddress(tx.to)}
+                                </Link>
+                              ) : (
+                                <span className="font-mono text-zinc-400">Contract Creation</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 flex-shrink-0">
+                          {formatTokenValue(tx.value)} <TokenDisplay symbol={tokenSymbol} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               {/* ICM Messages - Only show if there are cross-chain transactions */}
               {hasIcmMessages && (
@@ -1125,21 +1183,23 @@ export default function L1ExplorerPage({
                     </h2>
                     <div className="flex items-center gap-1.5">
                       <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
-                      <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Live</span>
-        </div>
-      </div>
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">
+                        Live
+                      </span>
+                    </div>
+                  </div>
                   <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
                     {icmMessages.map((tx, index) => (
-                      <div 
+                      <div
                         key={`icm-${tx.hash}-${index}`}
                         onClick={() => router.push(buildTxUrl(`/explorer/${chainSlug}`, tx.hash))}
                         className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
-                          newTxHashes.has(tx.hash) ? 'new-item' : ''
+                          newTxHashes.has(tx.hash) ? "new-item" : ""
                         }`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-3">
-                            <div 
+                            <div
                               className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                               style={{ backgroundColor: `${themeColor}15` }}
                             >
@@ -1147,7 +1207,10 @@ export default function L1ExplorerPage({
                             </div>
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5">
-                                <span className="font-mono text-xs hover:underline" style={{ color: themeColor }}>
+                                <span
+                                  className="font-mono text-xs hover:underline"
+                                  style={{ color: themeColor }}
+                                >
                                   {tx.hash.slice(0, 16)}...
                                 </span>
                                 <span className="text-xs text-zinc-400">
@@ -1156,17 +1219,23 @@ export default function L1ExplorerPage({
                               </div>
                               {/* Cross-chain transfer chips */}
                               {(() => {
-                                const sourceChain = tx.sourceBlockchainId ? getChainFromBlockchainId(tx.sourceBlockchainId) : null;
-                                const destChain = tx.destinationBlockchainId ? getChainFromBlockchainId(tx.destinationBlockchainId) : null;
-                                
+                                const sourceChain = tx.sourceBlockchainId
+                                  ? getChainFromBlockchainId(tx.sourceBlockchainId)
+                                  : null;
+                                const destChain = tx.destinationBlockchainId
+                                  ? getChainFromBlockchainId(tx.destinationBlockchainId)
+                                  : null;
+
                                 return (
                                   <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                     {/* Source Chain Chip */}
                                     {sourceChain ? (
-                                      <ChainChip 
-                                        chain={sourceChain} 
-                                        size="xs" 
-                                        onClick={() => router.push(`/explorer/${sourceChain.chainSlug}`)} 
+                                      <ChainChip
+                                        chain={sourceChain}
+                                        size="xs"
+                                        onClick={() =>
+                                          router.push(`/explorer/${sourceChain.chainSlug}`)
+                                        }
                                       />
                                     ) : (
                                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500 dark:text-zinc-400">
@@ -1174,15 +1243,17 @@ export default function L1ExplorerPage({
                                         Unknown
                                       </span>
                                     )}
-                                    
+
                                     <span className="text-zinc-400">→</span>
-                                    
+
                                     {/* Destination Chain Chip */}
                                     {destChain ? (
-                                      <ChainChip 
-                                        chain={destChain} 
-                                        size="xs" 
-                                        onClick={() => router.push(`/explorer/${destChain.chainSlug}`)} 
+                                      <ChainChip
+                                        chain={destChain}
+                                        size="xs"
+                                        onClick={() =>
+                                          router.push(`/explorer/${destChain.chainSlug}`)
+                                        }
                                       />
                                     ) : (
                                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500 dark:text-zinc-400">
@@ -1205,7 +1276,7 @@ export default function L1ExplorerPage({
                 </div>
               )}
             </div>
-    </div>
+          </div>
         );
       })()}
     </>

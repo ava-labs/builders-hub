@@ -24,7 +24,7 @@ export function useBreadcrumbs(routeMetadata: RouteMetadata): BreadcrumbItem[] {
   return useMemo(() => {
     // Get the breadcrumb array for the current path
     const breadcrumbLabels = routeMetadata[pathname];
-    
+
     if (!breadcrumbLabels || breadcrumbLabels.length === 0) {
       // Fallback: generate breadcrumbs from pathname segments
       return generateFallbackBreadcrumbs(pathname);
@@ -32,12 +32,12 @@ export function useBreadcrumbs(routeMetadata: RouteMetadata): BreadcrumbItem[] {
 
     // Generate breadcrumb items - only the first (Console) and last (current page) are clickable
     const breadcrumbs: BreadcrumbItem[] = [];
-    
+
     for (let i = 0; i < breadcrumbLabels.length; i++) {
       const label = breadcrumbLabels[i];
       const isFirst = i === 0;
       const isLast = i === breadcrumbLabels.length - 1;
-      
+
       let href: string;
       if (isFirst) {
         // First item always links to console root
@@ -67,14 +67,14 @@ export function useBreadcrumbs(routeMetadata: RouteMetadata): BreadcrumbItem[] {
  */
 function generateFallbackBreadcrumbs(pathname: string): BreadcrumbItem[] {
   const segments = pathname.split("/").filter(Boolean);
-  
+
   if (segments.length === 0 || segments[0] !== "console") {
     return [{ label: "Console", href: "/console", isCurrentPage: pathname === "/console" }];
   }
 
   // For fallback, just show Console > Current Page
   const breadcrumbs: BreadcrumbItem[] = [
-    { label: "Console", href: "/console", isCurrentPage: false }
+    { label: "Console", href: "/console", isCurrentPage: false },
   ];
 
   if (pathname !== "/console") {
@@ -82,7 +82,7 @@ function generateFallbackBreadcrumbs(pathname: string): BreadcrumbItem[] {
     const currentPageSegment = segments[segments.length - 1];
     const currentPageLabel = currentPageSegment
       .split("-")
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
 
     breadcrumbs.push({

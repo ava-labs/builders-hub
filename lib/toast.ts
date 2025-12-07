@@ -25,13 +25,16 @@ export const toast = {
     return sonnerToast(message, { description });
   },
 
-  action: (message: string, options: { 
-    description?: string; 
-    action: { 
-      label: string; 
-      onClick: () => void; 
-    }; 
-  }) => {
+  action: (
+    message: string,
+    options: {
+      description?: string;
+      action: {
+        label: string;
+        onClick: () => void;
+      };
+    }
+  ) => {
     return sonnerToast(message, {
       description: options.description,
       action: options.action,

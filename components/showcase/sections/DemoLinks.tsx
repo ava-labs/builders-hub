@@ -1,12 +1,29 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Separator } from '@/components/ui/separator';
-import { ExternalLink, Play, FileText, Globe, Camera, Video, ChevronLeft, ChevronRight } from 'lucide-react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { useState } from "react";
+import { Separator } from "@/components/ui/separator";
+import {
+  ExternalLink,
+  Play,
+  FileText,
+  Globe,
+  Camera,
+  Video,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
-type LinkType = 'youtube' | 'vimeo' | 'loom' | 'instagram' | 'video-file' | 'drive' | 'figma' | 'website';
+type LinkType =
+  | "youtube"
+  | "vimeo"
+  | "loom"
+  | "instagram"
+  | "video-file"
+  | "drive"
+  | "figma"
+  | "website";
 
 type LinkInfo = {
   url: string;
@@ -16,7 +33,10 @@ type LinkInfo = {
   embedUrl?: string;
 };
 
-const EMBED_PATTERNS: Record<string, { regex: RegExp; getEmbed: (match: RegExpMatchArray) => string }> = {
+const EMBED_PATTERNS: Record<
+  string,
+  { regex: RegExp; getEmbed: (match: RegExpMatchArray) => string }
+> = {
   youtube: {
     regex: /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
     getEmbed: (match) => `https://www.youtube.com/embed/${match[1]}`,
@@ -42,28 +62,67 @@ const LINK_MATCHERS: Array<{
   icon: React.ReactNode;
   embedKey?: string;
 }> = [
-  { test: (url) => /youtube\.com|youtu\.be/.test(url), type: 'youtube', label: 'YouTube', icon: <Play className="w-5 h-5" />, embedKey: 'youtube' },
-  { test: (url) => /vimeo\.com/.test(url), type: 'vimeo', label: 'Vimeo', icon: <Play className="w-5 h-5" />, embedKey: 'vimeo' },
-  { test: (url) => /loom\.com/.test(url), type: 'loom', label: 'Loom', icon: <Play className="w-5 h-5" />, embedKey: 'loom' },
-  { test: (url) => /instagram\.com|instagr\.am/.test(url), type: 'instagram', label: 'Instagram', icon: <Camera className="w-5 h-5" />, embedKey: 'instagram' },
-  { test: (url) => /\.(mp4|mov|webm|avi|mkv)(\?|$)/i.test(url), type: 'video-file', label: 'Video', icon: <Video className="w-5 h-5" /> },
-  { test: (url) => /drive\.google\.com|docs\.google\.com/.test(url), type: 'drive', label: 'Google Drive', icon: <FileText className="w-5 h-5" /> },
-  { test: (url) => /figma\.com/.test(url), type: 'figma', label: 'Figma', icon: <FileText className="w-5 h-5" /> },
+  {
+    test: (url) => /youtube\.com|youtu\.be/.test(url),
+    type: "youtube",
+    label: "YouTube",
+    icon: <Play className="w-5 h-5" />,
+    embedKey: "youtube",
+  },
+  {
+    test: (url) => /vimeo\.com/.test(url),
+    type: "vimeo",
+    label: "Vimeo",
+    icon: <Play className="w-5 h-5" />,
+    embedKey: "vimeo",
+  },
+  {
+    test: (url) => /loom\.com/.test(url),
+    type: "loom",
+    label: "Loom",
+    icon: <Play className="w-5 h-5" />,
+    embedKey: "loom",
+  },
+  {
+    test: (url) => /instagram\.com|instagr\.am/.test(url),
+    type: "instagram",
+    label: "Instagram",
+    icon: <Camera className="w-5 h-5" />,
+    embedKey: "instagram",
+  },
+  {
+    test: (url) => /\.(mp4|mov|webm|avi|mkv)(\?|$)/i.test(url),
+    type: "video-file",
+    label: "Video",
+    icon: <Video className="w-5 h-5" />,
+  },
+  {
+    test: (url) => /drive\.google\.com|docs\.google\.com/.test(url),
+    type: "drive",
+    label: "Google Drive",
+    icon: <FileText className="w-5 h-5" />,
+  },
+  {
+    test: (url) => /figma\.com/.test(url),
+    type: "figma",
+    label: "Figma",
+    icon: <FileText className="w-5 h-5" />,
+  },
 ];
 
 function parseLinks(demoLink: string): string[] {
   if (!demoLink) return [];
   return demoLink
     .split(/[,\s\n]+/)
-    .map(link => link.trim())
-    .filter(link => link.startsWith('http://') || link.startsWith('https://'));
+    .map((link) => link.trim())
+    .filter((link) => link.startsWith("http://") || link.startsWith("https://"));
 }
 
 function getDomainName(url: string): string {
   try {
-    return new URL(url).hostname.replace('www.', '');
+    return new URL(url).hostname.replace("www.", "");
   } catch {
-    return 'Link';
+    return "Link";
   }
 }
 
@@ -77,7 +136,7 @@ function getEmbedUrl(url: string, embedKey?: string): string | undefined {
 
 function identifyLinkType(url: string): LinkInfo {
   const lowerUrl = url.toLowerCase();
-  const matcher = LINK_MATCHERS.find(m => m.test(lowerUrl));
+  const matcher = LINK_MATCHERS.find((m) => m.test(lowerUrl));
 
   if (matcher) {
     return {
@@ -91,7 +150,7 @@ function identifyLinkType(url: string): LinkInfo {
 
   return {
     url,
-    type: 'website',
+    type: "website",
     label: getDomainName(url),
     icon: <Globe className="w-5 h-5" />,
   };
@@ -126,7 +185,9 @@ export default function DemoLinks({ demoLink }: Props) {
                 variant="outline"
                 size="icon"
                 className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 z-10"
-                onClick={() => setCurrentIndex(prev => prev === 0 ? linkInfos.length - 1 : prev - 1)}
+                onClick={() =>
+                  setCurrentIndex((prev) => (prev === 0 ? linkInfos.length - 1 : prev - 1))
+                }
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -134,7 +195,9 @@ export default function DemoLinks({ demoLink }: Props) {
                 variant="outline"
                 size="icon"
                 className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 z-10"
-                onClick={() => setCurrentIndex(prev => prev === linkInfos.length - 1 ? 0 : prev + 1)}
+                onClick={() =>
+                  setCurrentIndex((prev) => (prev === linkInfos.length - 1 ? 0 : prev + 1))
+                }
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -166,8 +229,8 @@ export default function DemoLinks({ demoLink }: Props) {
                     onClick={() => setCurrentIndex(index)}
                     className={`w-2 h-2 rounded-full transition-colors ${
                       index === currentIndex
-                        ? 'bg-red-500'
-                        : 'bg-zinc-300 dark:bg-zinc-600 hover:bg-zinc-400 dark:hover:bg-zinc-500'
+                        ? "bg-red-500"
+                        : "bg-zinc-300 dark:bg-zinc-600 hover:bg-zinc-400 dark:hover:bg-zinc-500"
                     }`}
                   />
                 ))}
@@ -181,10 +244,11 @@ export default function DemoLinks({ demoLink }: Props) {
 }
 
 function MediaPreview({ linkInfo }: { linkInfo: LinkInfo }) {
-  const videoContainerClass = "relative w-full aspect-video rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-900";
+  const videoContainerClass =
+    "relative w-full aspect-video rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-900";
 
   // Embeddable video (YouTube, Vimeo, Loom)
-  if (['youtube', 'vimeo', 'loom'].includes(linkInfo.type) && linkInfo.embedUrl) {
+  if (["youtube", "vimeo", "loom"].includes(linkInfo.type) && linkInfo.embedUrl) {
     return (
       <div className={videoContainerClass}>
         <iframe
@@ -199,7 +263,7 @@ function MediaPreview({ linkInfo }: { linkInfo: LinkInfo }) {
   }
 
   // Instagram embed
-  if (linkInfo.type === 'instagram' && linkInfo.embedUrl) {
+  if (linkInfo.type === "instagram" && linkInfo.embedUrl) {
     return (
       <div className="relative w-full max-w-[540px] mx-auto rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-900">
         <iframe
@@ -213,10 +277,15 @@ function MediaPreview({ linkInfo }: { linkInfo: LinkInfo }) {
   }
 
   // Video file
-  if (linkInfo.type === 'video-file') {
+  if (linkInfo.type === "video-file") {
     return (
       <div className={videoContainerClass}>
-        <video src={linkInfo.url} className="w-full h-full object-contain" controls preload="metadata">
+        <video
+          src={linkInfo.url}
+          className="w-full h-full object-contain"
+          controls
+          preload="metadata"
+        >
           Your browser does not support the video tag.
         </video>
       </div>

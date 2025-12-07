@@ -1,6 +1,6 @@
-import { generate6DigitCode } from '@/lib/auth/authOptions';
-import { prisma } from '@/prisma/prisma';
-import sgMail from '@sendgrid/mail';
+import { generate6DigitCode } from "@/lib/auth/authOptions";
+import { prisma } from "@/prisma/prisma";
+import sgMail from "@sendgrid/mail";
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
 
@@ -21,24 +21,25 @@ export async function sendOTP(email: string) {
 
   const from = {
     email: process.env.EMAIL_FROM as string,
-    name: "Avalanche Builder's Hub"
+    name: "Avalanche Builder's Hub",
   };
 
-  if (process.env.NODE_ENV === 'development') {
-    console.log('\n' + '='.repeat(50));
-    console.log('📧 \x1b[36m%s\x1b[0m', 'OTP EMAIL (DEVELOPMENT MODE)');
-    console.log('='.repeat(50));
-    console.log('📬 To: \x1b[33m%s\x1b[0m', email);
-    console.log('🔑 Code: \x1b[1m\x1b[32m%s\x1b[0m', code);
-    console.log('⏰ Expires: \x1b[31m%s\x1b[0m', '3 minutes');
-    console.log('='.repeat(50) + '\n');
+  if (process.env.NODE_ENV === "development") {
+    // In development mode, we log the OTP instead of sending email
+    console.info("\n" + "=".repeat(50));
+    console.info("📧 \x1b[36m%s\x1b[0m", "OTP EMAIL (DEVELOPMENT MODE)");
+    console.info("=".repeat(50));
+    console.info("📬 To: \x1b[33m%s\x1b[0m", email);
+    console.info("🔑 Code: \x1b[1m\x1b[32m%s\x1b[0m", code);
+    console.info("⏰ Expires: \x1b[31m%s\x1b[0m", "3 minutes");
+    console.info("=".repeat(50) + "\n");
     return;
   }
 
   const msg = {
     to: email,
     from: from,
-    subject: 'Verify Your Account',
+    subject: "Verify Your Account",
     text: `Your verification code is: ${code}. It expires in 3 minutes.`,
     html: `
     <div style="background-color: #18181B; color: white; font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border-radius: 8px; border: 1px solid #EF4444; text-align: center;">

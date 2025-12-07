@@ -53,7 +53,9 @@ const Field = ({
   onBlur?: () => void;
 }) => (
   <div className="space-y-1 text-[13px]">
-    <label className="block text-sm font-medium text-zinc-800 dark:text-zinc-200" htmlFor={id}>{label}</label>
+    <label className="block text-sm font-medium text-zinc-800 dark:text-zinc-200" htmlFor={id}>
+      {label}
+    </label>
     <RawInput
       id={id}
       type="text"
@@ -70,8 +72,8 @@ const Field = ({
       autoComplete="off"
     />
     <div className="min-h-[16px]">
-    {error && <div className="text-xs text-red-500">{error}</div>}
-    {!error && warning && <div className="text-xs text-amber-500">⚠️ {warning}</div>}
+      {error && <div className="text-xs text-red-500">{error}</div>}
+      {!error && warning && <div className="text-xs text-amber-500">⚠️ {warning}</div>}
     </div>
   </div>
 );
@@ -83,7 +85,7 @@ function FeeConfigBase({
   feeConfig,
   onFeeConfigChange,
   validationMessages,
-  compact
+  compact,
 }: FeeConfigProps) {
   const { setHighlightPath } = useGenesisHighlight();
 
@@ -96,126 +98,190 @@ function FeeConfigBase({
 
   // Local string state for smooth typing
   const [gasLimitInput, setGasLimitInput] = useState(gasLimit.toString());
-  const [minBaseFeeInput, setMinBaseFeeInput] = useState((feeConfig.minBaseFee / 1000000000).toString());
-  const [baseFeeChangeDenominatorInput, setBaseFeeChangeDenominatorInput] = useState(feeConfig.baseFeeChangeDenominator.toString());
-  const [minBlockGasCostInput, setMinBlockGasCostInput] = useState(feeConfig.minBlockGasCost.toString());
-  const [maxBlockGasCostInput, setMaxBlockGasCostInput] = useState(feeConfig.maxBlockGasCost.toString());
-  const [blockGasCostStepInput, setBlockGasCostStepInput] = useState(feeConfig.blockGasCostStep.toString());
+  const [minBaseFeeInput, setMinBaseFeeInput] = useState(
+    (feeConfig.minBaseFee / 1000000000).toString()
+  );
+  const [baseFeeChangeDenominatorInput, setBaseFeeChangeDenominatorInput] = useState(
+    feeConfig.baseFeeChangeDenominator.toString()
+  );
+  const [minBlockGasCostInput, setMinBlockGasCostInput] = useState(
+    feeConfig.minBlockGasCost.toString()
+  );
+  const [maxBlockGasCostInput, setMaxBlockGasCostInput] = useState(
+    feeConfig.maxBlockGasCost.toString()
+  );
+  const [blockGasCostStepInput, setBlockGasCostStepInput] = useState(
+    feeConfig.blockGasCostStep.toString()
+  );
   const [targetGasInput, setTargetGasInput] = useState(feeConfig.targetGas.toString());
 
   // Sync local strings from props when not actively editing the field
   useEffect(() => {
-    if (focusedField !== 'gasLimit') setGasLimitInput(gasLimit.toString());
+    if (focusedField !== "gasLimit") setGasLimitInput(gasLimit.toString());
   }, [gasLimit, focusedField]);
   useEffect(() => {
-    if (focusedField !== 'minBaseFee') setMinBaseFeeInput((feeConfig.minBaseFee / 1000000000).toString());
+    if (focusedField !== "minBaseFee") {
+      setMinBaseFeeInput((feeConfig.minBaseFee / 1000000000).toString());
+    }
   }, [feeConfig.minBaseFee, focusedField]);
   useEffect(() => {
-    if (focusedField !== 'baseFeeChangeDenominator') setBaseFeeChangeDenominatorInput(feeConfig.baseFeeChangeDenominator.toString());
+    if (focusedField !== "baseFeeChangeDenominator") {
+      setBaseFeeChangeDenominatorInput(feeConfig.baseFeeChangeDenominator.toString());
+    }
   }, [feeConfig.baseFeeChangeDenominator, focusedField]);
   useEffect(() => {
-    if (focusedField !== 'minBlockGasCost') setMinBlockGasCostInput(feeConfig.minBlockGasCost.toString());
+    if (focusedField !== "minBlockGasCost") {
+      setMinBlockGasCostInput(feeConfig.minBlockGasCost.toString());
+    }
   }, [feeConfig.minBlockGasCost, focusedField]);
   useEffect(() => {
-    if (focusedField !== 'maxBlockGasCost') setMaxBlockGasCostInput(feeConfig.maxBlockGasCost.toString());
+    if (focusedField !== "maxBlockGasCost") {
+      setMaxBlockGasCostInput(feeConfig.maxBlockGasCost.toString());
+    }
   }, [feeConfig.maxBlockGasCost, focusedField]);
   useEffect(() => {
-    if (focusedField !== 'blockGasCostStep') setBlockGasCostStepInput(feeConfig.blockGasCostStep.toString());
+    if (focusedField !== "blockGasCostStep") {
+      setBlockGasCostStepInput(feeConfig.blockGasCostStep.toString());
+    }
   }, [feeConfig.blockGasCostStep, focusedField]);
   useEffect(() => {
-    if (focusedField !== 'targetGas') setTargetGasInput(feeConfig.targetGas.toString());
+    if (focusedField !== "targetGas") setTargetGasInput(feeConfig.targetGas.toString());
   }, [feeConfig.targetGas, focusedField]);
 
   // Change handlers: update local immediately and parent when valid number
-  const handleGasLimitChange = useCallback((value: string) => {
-    setGasLimitInput(value);
-    const parsed = parseInt(value);
-    if (!isNaN(parsed)) {
-      setGasLimit(parsed);
-    }
-  }, [setGasLimit]);
-
-  const handleMinBaseFeeChange = useCallback((value: string) => {
-    setMinBaseFeeInput(value);
-    const parsed = parseFloat(value);
-    if (!isNaN(parsed)) {
-      onFeeConfigChange({ ...feeConfig, minBaseFee: gweiToWei(parsed) });
-    }
-  }, [feeConfig, onFeeConfigChange]);
-
-  const handleFeeConfigNumberChange = useCallback((key: keyof FeeConfigType, value: string, min: number = 0) => {
-    const setLocal = (v: string) => {
-      switch (key) {
-        case 'baseFeeChangeDenominator': setBaseFeeChangeDenominatorInput(v); break;
-        case 'minBlockGasCost': setMinBlockGasCostInput(v); break;
-        case 'maxBlockGasCost': setMaxBlockGasCostInput(v); break;
-        case 'blockGasCostStep': setBlockGasCostStepInput(v); break;
-        case 'targetGas': setTargetGasInput(v); break;
+  const handleGasLimitChange = useCallback(
+    (value: string) => {
+      setGasLimitInput(value);
+      const parsed = parseInt(value);
+      if (!isNaN(parsed)) {
+        setGasLimit(parsed);
       }
-    };
-    setLocal(value);
-    const parsed = parseInt(value);
-    if (!isNaN(parsed)) {
-      onFeeConfigChange({ ...feeConfig, [key]: parsed });
-    }
-  }, [feeConfig, onFeeConfigChange]);
+    },
+    [setGasLimit]
+  );
+
+  const handleMinBaseFeeChange = useCallback(
+    (value: string) => {
+      setMinBaseFeeInput(value);
+      const parsed = parseFloat(value);
+      if (!isNaN(parsed)) {
+        onFeeConfigChange({ ...feeConfig, minBaseFee: gweiToWei(parsed) });
+      }
+    },
+    [feeConfig, onFeeConfigChange]
+  );
+
+  const handleFeeConfigNumberChange = useCallback(
+    (key: keyof FeeConfigType, value: string, min: number = 0) => {
+      const setLocal = (v: string) => {
+        switch (key) {
+          case "baseFeeChangeDenominator":
+            setBaseFeeChangeDenominatorInput(v);
+            break;
+          case "minBlockGasCost":
+            setMinBlockGasCostInput(v);
+            break;
+          case "maxBlockGasCost":
+            setMaxBlockGasCostInput(v);
+            break;
+          case "blockGasCostStep":
+            setBlockGasCostStepInput(v);
+            break;
+          case "targetGas":
+            setTargetGasInput(v);
+            break;
+        }
+      };
+      setLocal(value);
+      const parsed = parseInt(value);
+      if (!isNaN(parsed)) {
+        onFeeConfigChange({ ...feeConfig, [key]: parsed });
+      }
+    },
+    [feeConfig, onFeeConfigChange]
+  );
 
   // Blur handlers: normalize empty/invalid to current committed value
-  const normalizeOnBlur = useCallback((field: string) => {
-    switch (field) {
-      case 'gasLimit': {
-        const parsed = parseInt(gasLimitInput);
-        if (gasLimitInput === '' || isNaN(parsed)) setGasLimitInput(gasLimit.toString());
-        break;
+  const normalizeOnBlur = useCallback(
+    (field: string) => {
+      switch (field) {
+        case "gasLimit": {
+          const parsed = parseInt(gasLimitInput);
+          if (gasLimitInput === "" || isNaN(parsed)) setGasLimitInput(gasLimit.toString());
+          break;
+        }
+        case "minBaseFee": {
+          const parsed = parseFloat(minBaseFeeInput);
+          if (minBaseFeeInput === "" || isNaN(parsed)) {
+            setMinBaseFeeInput((feeConfig.minBaseFee / 1000000000).toString());
+          }
+          break;
+        }
+        case "baseFeeChangeDenominator": {
+          const parsed = parseInt(baseFeeChangeDenominatorInput);
+          if (baseFeeChangeDenominatorInput === "" || isNaN(parsed)) {
+            setBaseFeeChangeDenominatorInput(feeConfig.baseFeeChangeDenominator.toString());
+          }
+          break;
+        }
+        case "minBlockGasCost": {
+          const parsed = parseInt(minBlockGasCostInput);
+          if (minBlockGasCostInput === "" || isNaN(parsed)) {
+            setMinBlockGasCostInput(feeConfig.minBlockGasCost.toString());
+          }
+          break;
+        }
+        case "maxBlockGasCost": {
+          const parsed = parseInt(maxBlockGasCostInput);
+          if (maxBlockGasCostInput === "" || isNaN(parsed)) {
+            setMaxBlockGasCostInput(feeConfig.maxBlockGasCost.toString());
+          }
+          break;
+        }
+        case "blockGasCostStep": {
+          const parsed = parseInt(blockGasCostStepInput);
+          if (blockGasCostStepInput === "" || isNaN(parsed)) {
+            setBlockGasCostStepInput(feeConfig.blockGasCostStep.toString());
+          }
+          break;
+        }
+        case "targetGas": {
+          const parsed = parseInt(targetGasInput);
+          if (targetGasInput === "" || isNaN(parsed)) {
+            setTargetGasInput(feeConfig.targetGas.toString());
+          }
+          break;
+        }
       }
-      case 'minBaseFee': {
-        const parsed = parseFloat(minBaseFeeInput);
-        if (minBaseFeeInput === '' || isNaN(parsed)) setMinBaseFeeInput((feeConfig.minBaseFee / 1000000000).toString());
-        break;
-      }
-      case 'baseFeeChangeDenominator': {
-        const parsed = parseInt(baseFeeChangeDenominatorInput);
-        if (baseFeeChangeDenominatorInput === '' || isNaN(parsed)) setBaseFeeChangeDenominatorInput(feeConfig.baseFeeChangeDenominator.toString());
-        break;
-      }
-      case 'minBlockGasCost': {
-        const parsed = parseInt(minBlockGasCostInput);
-        if (minBlockGasCostInput === '' || isNaN(parsed)) setMinBlockGasCostInput(feeConfig.minBlockGasCost.toString());
-        break;
-      }
-      case 'maxBlockGasCost': {
-        const parsed = parseInt(maxBlockGasCostInput);
-        if (maxBlockGasCostInput === '' || isNaN(parsed)) setMaxBlockGasCostInput(feeConfig.maxBlockGasCost.toString());
-        break;
-      }
-      case 'blockGasCostStep': {
-        const parsed = parseInt(blockGasCostStepInput);
-        if (blockGasCostStepInput === '' || isNaN(parsed)) setBlockGasCostStepInput(feeConfig.blockGasCostStep.toString());
-        break;
-      }
-      case 'targetGas': {
-        const parsed = parseInt(targetGasInput);
-        if (targetGasInput === '' || isNaN(parsed)) setTargetGasInput(feeConfig.targetGas.toString());
-        break;
-      }
-    }
-    setFocusedField(null);
-  }, [gasLimitInput, gasLimit, minBaseFeeInput, feeConfig, baseFeeChangeDenominatorInput, minBlockGasCostInput, maxBlockGasCostInput, blockGasCostStepInput, targetGasInput]);
+      setFocusedField(null);
+    },
+    [
+      gasLimitInput,
+      gasLimit,
+      minBaseFeeInput,
+      feeConfig,
+      baseFeeChangeDenominatorInput,
+      minBlockGasCostInput,
+      maxBlockGasCostInput,
+      blockGasCostStepInput,
+      targetGasInput,
+    ]
+  );
 
   return (
     <div className="space-y-6">
       {/* Advanced Mode with All Fields */}
-        <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-md p-3">
-          <h4 className="text-[13px] font-medium mb-2">Fee Configuration</h4>
-          <div className={`grid grid-cols-1 md:grid-cols-2 ${compact ? 'gap-3' : 'gap-4'}`}>
+      <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-md p-3">
+        <h4 className="text-[13px] font-medium mb-2">Fee Configuration</h4>
+        <div className={`grid grid-cols-1 md:grid-cols-2 ${compact ? "gap-3" : "gap-4"}`}>
           <div key="gasLimit">
             <Field
               id="gasLimit"
               label="Gas Limit"
               value={gasLimitInput}
               onChange={handleGasLimitChange}
-              onFocus={() => handleFocus('gasLimit')}
-              onBlur={() => normalizeOnBlur('gasLimit')}
+              onFocus={() => handleFocus("gasLimit")}
+              onBlur={() => normalizeOnBlur("gasLimit")}
               placeholder="15000000"
               error={validationMessages.errors.gasLimit}
               warning={validationMessages.warnings.gasLimit}
@@ -227,8 +293,8 @@ function FeeConfigBase({
               label="Min Base Fee (gwei)"
               value={minBaseFeeInput}
               onChange={handleMinBaseFeeChange}
-              onFocus={() => handleFocus('minBaseFee')}
-              onBlur={() => normalizeOnBlur('minBaseFee')}
+              onFocus={() => handleFocus("minBaseFee")}
+              onBlur={() => normalizeOnBlur("minBaseFee")}
               placeholder="25"
               type="text"
               error={validationMessages.errors.minBaseFee}
@@ -240,9 +306,9 @@ function FeeConfigBase({
               id="baseFeeChangeDenominator"
               label="Base Fee Change Denominator"
               value={baseFeeChangeDenominatorInput}
-              onChange={(v) => handleFeeConfigNumberChange('baseFeeChangeDenominator', v, 2)}
-              onFocus={() => handleFocus('baseFeeChangeDenominator')}
-              onBlur={() => normalizeOnBlur('baseFeeChangeDenominator')}
+              onChange={(v) => handleFeeConfigNumberChange("baseFeeChangeDenominator", v, 2)}
+              onFocus={() => handleFocus("baseFeeChangeDenominator")}
+              onBlur={() => normalizeOnBlur("baseFeeChangeDenominator")}
               placeholder="48"
               error={validationMessages.errors.baseFeeChangeDenominator}
               warning={validationMessages.warnings.baseFeeChangeDenominator}
@@ -253,9 +319,9 @@ function FeeConfigBase({
               id="minBlockGasCost"
               label="Min Block Gas Cost"
               value={minBlockGasCostInput}
-              onChange={(v) => handleFeeConfigNumberChange('minBlockGasCost', v, 0)}
-              onFocus={() => handleFocus('minBlockGasCost')}
-              onBlur={() => normalizeOnBlur('minBlockGasCost')}
+              onChange={(v) => handleFeeConfigNumberChange("minBlockGasCost", v, 0)}
+              onFocus={() => handleFocus("minBlockGasCost")}
+              onBlur={() => normalizeOnBlur("minBlockGasCost")}
               placeholder="0"
               error={validationMessages.errors.minBlockGasCost}
               warning={validationMessages.warnings.minBlockGasCost}
@@ -266,9 +332,11 @@ function FeeConfigBase({
               id="maxBlockGasCost"
               label="Max Block Gas Cost"
               value={maxBlockGasCostInput}
-              onChange={(v) => handleFeeConfigNumberChange('maxBlockGasCost', v, feeConfig.minBlockGasCost)}
-              onFocus={() => handleFocus('maxBlockGasCost')}
-              onBlur={() => normalizeOnBlur('maxBlockGasCost')}
+              onChange={(v) =>
+                handleFeeConfigNumberChange("maxBlockGasCost", v, feeConfig.minBlockGasCost)
+              }
+              onFocus={() => handleFocus("maxBlockGasCost")}
+              onBlur={() => normalizeOnBlur("maxBlockGasCost")}
               placeholder="1000000"
               error={validationMessages.errors.maxBlockGasCost}
               warning={validationMessages.warnings.maxBlockGasCost}
@@ -279,9 +347,9 @@ function FeeConfigBase({
               id="blockGasCostStep"
               label="Block Gas Cost Step"
               value={blockGasCostStepInput}
-              onChange={(v) => handleFeeConfigNumberChange('blockGasCostStep', v, 0)}
-              onFocus={() => handleFocus('blockGasCostStep')}
-              onBlur={() => normalizeOnBlur('blockGasCostStep')}
+              onChange={(v) => handleFeeConfigNumberChange("blockGasCostStep", v, 0)}
+              onFocus={() => handleFocus("blockGasCostStep")}
+              onBlur={() => normalizeOnBlur("blockGasCostStep")}
               placeholder="200000"
               error={validationMessages.errors.blockGasCostStep}
               warning={validationMessages.warnings.blockGasCostStep}
@@ -292,9 +360,9 @@ function FeeConfigBase({
               id="targetGas"
               label="Target Gas (per 10s window)"
               value={targetGasInput}
-              onChange={(v) => handleFeeConfigNumberChange('targetGas', v, 100000)}
-              onFocus={() => handleFocus('targetGas')}
-              onBlur={() => normalizeOnBlur('targetGas')}
+              onChange={(v) => handleFeeConfigNumberChange("targetGas", v, 100000)}
+              onFocus={() => handleFocus("targetGas")}
+              onBlur={() => normalizeOnBlur("targetGas")}
               placeholder="15000000"
               error={validationMessages.errors.targetGas}
               warning={validationMessages.warnings.targetGas}
@@ -302,16 +370,20 @@ function FeeConfigBase({
           </div>
         </div>
 
-      {/* Static Gas Price Info */}
+        {/* Static Gas Price Info */}
         <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-md p-3 mt-3">
           <div className="flex gap-2">
             <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
             <div className="text-xs space-y-1">
-              <div className="font-medium text-blue-900 dark:text-blue-100">Tip: Static Gas Price</div>
+              <div className="font-medium text-blue-900 dark:text-blue-100">
+                Tip: Static Gas Price
+              </div>
               <div className="text-blue-800 dark:text-blue-200">
-                For static gas pricing (no congestion-based adjustments), set Target Gas &gt; (Gas Limit × 10 ÷ Block Time).
-                Current threshold: &gt;{Math.ceil((gasLimit * 10) / targetBlockRate)} gas (~{Math.ceil((gasLimit * 10) / targetBlockRate / 1000000)}M).
-                Useful for permissioned chains where congestion pricing isn't needed.
+                For static gas pricing (no congestion-based adjustments), set Target Gas &gt; (Gas
+                Limit × 10 ÷ Block Time). Current threshold: &gt;
+                {Math.ceil((gasLimit * 10) / targetBlockRate)} gas (~
+                {Math.ceil((gasLimit * 10) / targetBlockRate / 1000000)}M). Useful for permissioned
+                chains where congestion pricing isn't needed.
               </div>
             </div>
           </div>

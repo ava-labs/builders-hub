@@ -50,7 +50,7 @@ export default function StepFlow({
       return {
         currentIndex: singleStepIndex,
         currentStep: steps[singleStepIndex],
-        selectedBranchOption: undefined
+        selectedBranchOption: undefined,
       };
     }
 
@@ -58,12 +58,12 @@ export default function StepFlow({
     for (let i = 0; i < steps.length; i++) {
       const step = steps[i];
       if (step.type === "branch") {
-        const option = step.options.find(opt => opt.key === currentStepKey);
+        const option = step.options.find((opt) => opt.key === currentStepKey);
         if (option) {
           return {
             currentIndex: i,
             currentStep: step,
-            selectedBranchOption: option
+            selectedBranchOption: option,
           };
         }
       }
@@ -150,9 +150,7 @@ export default function StepFlow({
                     </span>
                     <span>{s.title}</span>
                   </Link>
-                  {stepIdx < steps.length - 1 && (
-                    <span className="text-zinc-400 ml-3">→</span>
-                  )}
+                  {stepIdx < steps.length - 1 && <span className="text-zinc-400 ml-3">→</span>}
                 </li>
               );
             } else {
@@ -171,11 +169,9 @@ export default function StepFlow({
                               isOptionActive
                                 ? "border-blue-500 text-blue-600 dark:text-blue-400"
                                 : isDoneStep
-                                ? "border-green-500 text-green-600 dark:text-green-400"
-                                : "border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300",
-                              s.optional
-                                ? "border-dashed"
-                                : "",
+                                  ? "border-green-500 text-green-600 dark:text-green-400"
+                                  : "border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300",
+                              s.optional ? "border-dashed" : "",
                             ].join(" ")}
                             style={{ display: "inline-flex", visibility: "visible", opacity: 1 }}
                           >
@@ -185,8 +181,8 @@ export default function StepFlow({
                                 isOptionActive
                                   ? "bg-blue-600 text-white"
                                   : isDoneStep
-                                  ? "bg-green-600 text-white"
-                                  : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200",
+                                    ? "bg-green-600 text-white"
+                                    : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200",
                               ].join(" ")}
                             >
                               {stepIdx + 1}
@@ -202,9 +198,7 @@ export default function StepFlow({
                       );
                     })}
                   </div>
-                  {stepIdx < steps.length - 1 && (
-                    <span className="text-zinc-400 ml-3">→</span>
-                  )}
+                  {stepIdx < steps.length - 1 && <span className="text-zinc-400 ml-3">→</span>}
                 </li>
               );
             }
@@ -268,5 +262,3 @@ export default function StepFlow({
     </div>
   );
 }
-
-

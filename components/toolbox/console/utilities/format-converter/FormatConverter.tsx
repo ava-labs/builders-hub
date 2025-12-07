@@ -108,8 +108,7 @@ const cb58ToHexWithChecksum = (cb58: string): string => {
     }
 
     // Step 1: Decode from Base58 (without check) to get raw bytes including checksum
-    const base58Alphabet =
-      "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+    const base58Alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
     let value = 0n;
     let base = 1n;
 
@@ -149,13 +148,7 @@ const cb58ToHexWithChecksum = (cb58: string): string => {
 };
 
 // CopyableSuccess component with clipboard functionality
-const CopyableSuccess = ({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) => {
+const CopyableSuccess = ({ label, value }: { label: string; value: string }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(() => {
@@ -168,9 +161,7 @@ const CopyableSuccess = ({
     <div className="p-4 bg-white dark:bg-zinc-800 rounded-lg space-y-2 border border-zinc-200 dark:border-zinc-700">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <p className="text-zinc-700 dark:text-zinc-200 font-semibold">
-            {label}:
-          </p>
+          <p className="text-zinc-700 dark:text-zinc-200 font-semibold">{label}:</p>
           <Check className="h-5 w-5 text-green-500" />
         </div>
         <button
@@ -192,9 +183,7 @@ const CopyableSuccess = ({
         onClick={handleCopy}
         title="Click to copy"
       >
-        <p className="font-mono text-sm break-all dark:text-zinc-200">
-          {value}
-        </p>
+        <p className="font-mono text-sm break-all dark:text-zinc-200">{value}</p>
       </div>
     </div>
   );
@@ -204,24 +193,21 @@ export default function FormatConverter() {
   // State for different conversion types
   const [hexToConvert, setHexToConvert] = useState<string>("");
   const [cb58ToConvert, setCb58ToConvert] = useState<string>("");
-  const [cb58WithChecksumToConvert, setCb58WithChecksumToConvert] =
-    useState<string>("");
+  const [cb58WithChecksumToConvert, setCb58WithChecksumToConvert] = useState<string>("");
   const [hexToClean, setHexToClean] = useState<string>("");
   const [hexToUnformat, setHexToUnformat] = useState<string>("");
 
   // Results
   const [hexToCb58Result, setHexToCb58Result] = useState<string>("");
   const [cb58ToHexResult, setCb58ToHexResult] = useState<string>("");
-  const [cb58ToHexWithChecksumResult, setCb58ToHexWithChecksumResult] =
-    useState<string>("");
+  const [cb58ToHexWithChecksumResult, setCb58ToHexWithChecksumResult] = useState<string>("");
   const [cleanHexResult, setCleanHexResult] = useState<string>("");
   const [unformatHexResult, setUnformatHexResult] = useState<string>("");
 
   // Error states
   const [hexToCb58Error, setHexToCb58Error] = useState<string>("");
   const [cb58ToHexError, setCb58ToHexError] = useState<string>("");
-  const [cb58ToHexWithChecksumError, setCb58ToHexWithChecksumError] =
-    useState<string>("");
+  const [cb58ToHexWithChecksumError, setCb58ToHexWithChecksumError] = useState<string>("");
 
   // Conversion handlers
   const handleHexToCb58Convert = useCallback(() => {
@@ -230,9 +216,7 @@ export default function FormatConverter() {
       const result = hexToCB58(hexToConvert);
       setHexToCb58Result(result);
     } catch (error) {
-      setHexToCb58Error(
-        error instanceof Error ? error.message : "Conversion failed"
-      );
+      setHexToCb58Error(error instanceof Error ? error.message : "Conversion failed");
       setHexToCb58Result("");
     }
   }, [hexToConvert]);
@@ -243,9 +227,7 @@ export default function FormatConverter() {
       const result = cb58ToHex(cb58ToConvert);
       setCb58ToHexResult(result);
     } catch (error) {
-      setCb58ToHexError(
-        error instanceof Error ? error.message : "Conversion failed"
-      );
+      setCb58ToHexError(error instanceof Error ? error.message : "Conversion failed");
       setCb58ToHexResult("");
     }
   }, [cb58ToConvert]);
@@ -256,9 +238,7 @@ export default function FormatConverter() {
       const result = cb58ToHexWithChecksum(cb58WithChecksumToConvert);
       setCb58ToHexWithChecksumResult(result);
     } catch (error) {
-      setCb58ToHexWithChecksumError(
-        error instanceof Error ? error.message : "Conversion failed"
-      );
+      setCb58ToHexWithChecksumError(error instanceof Error ? error.message : "Conversion failed");
       setCb58ToHexWithChecksumResult("");
     }
   }, [cb58WithChecksumToConvert]);
@@ -298,10 +278,7 @@ export default function FormatConverter() {
             Convert
           </Button>
           {hexToCb58Result && !hexToCb58Error && (
-            <CopyableSuccess
-              label="CB58 Encoded Result"
-              value={hexToCb58Result}
-            />
+            <CopyableSuccess label="CB58 Encoded Result" value={hexToCb58Result} />
           )}
         </div>
 
@@ -325,35 +302,24 @@ export default function FormatConverter() {
 
         {/* CB58 to Hex with Checksum */}
         <div className="space-y-4 p-4 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
-          <h3 className="text-base font-semibold">
-            CB58 Encoded to Hex with Checksum
-          </h3>
+          <h3 className="text-base font-semibold">CB58 Encoded to Hex with Checksum</h3>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            This tool converts a CB58 encoded string to a hex string with
-            checksum. It has 0x as prefix and 4 bytes checksum at the end. It
-            won't work if you just copy+paste the hex string into "Hex to CB58
-            encoded" tool.
+            This tool converts a CB58 encoded string to a hex string with checksum. It has 0x as
+            prefix and 4 bytes checksum at the end. It won't work if you just copy+paste the hex
+            string into "Hex to CB58 encoded" tool.
           </p>
           <Input
             label="CB58"
             value={cb58WithChecksumToConvert}
             onChange={(value) => setCb58WithChecksumToConvert(value)}
             placeholder="Enter CB58 encoded value"
-            helperText={
-              cb58ToHexWithChecksumError ? cb58ToHexWithChecksumError : ""
-            }
+            helperText={cb58ToHexWithChecksumError ? cb58ToHexWithChecksumError : ""}
           />
-          <Button
-            onClick={handleCb58ToHexWithChecksumConvert}
-            variant="primary"
-          >
+          <Button onClick={handleCb58ToHexWithChecksumConvert} variant="primary">
             Convert
           </Button>
           {cb58ToHexWithChecksumResult && !cb58ToHexWithChecksumError && (
-            <CopyableSuccess
-              label="Hex Result with Checksum"
-              value={cb58ToHexWithChecksumResult}
-            />
+            <CopyableSuccess label="Hex Result with Checksum" value={cb58ToHexWithChecksumResult} />
           )}
         </div>
 
@@ -361,8 +327,7 @@ export default function FormatConverter() {
         <div className="space-y-4 p-4 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
           <h3 className="text-base font-semibold">Clean Hex String</h3>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Formats hex by adding spaces between each byte. Preserves 0x prefix
-            if present.
+            Formats hex by adding spaces between each byte. Preserves 0x prefix if present.
           </p>
           <Input
             label="Hex"
@@ -374,10 +339,7 @@ export default function FormatConverter() {
             Format
           </Button>
           {cleanHexResult && (
-            <CopyableSuccess
-              label="Formatted Hex Result"
-              value={cleanHexResult}
-            />
+            <CopyableSuccess label="Formatted Hex Result" value={cleanHexResult} />
           )}
         </div>
 
@@ -397,10 +359,7 @@ export default function FormatConverter() {
             Unformat
           </Button>
           {unformatHexResult && (
-            <CopyableSuccess
-              label="Unformatted Hex Result"
-              value={unformatHexResult}
-            />
+            <CopyableSuccess label="Unformatted Hex Result" value={unformatHexResult} />
           )}
         </div>
       </div>

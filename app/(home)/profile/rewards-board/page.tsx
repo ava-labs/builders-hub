@@ -1,7 +1,7 @@
-import { getAuthSession } from '@/lib/auth/authSession';
+import { getAuthSession } from "@/lib/auth/authSession";
 import ProfileForm from "@/components/profile/ProfileForm";
 import { getProfile } from "@/server/services/profile";
-import RewardBoard from '@/components/profile/reward-board/component/reward-board';
+import RewardBoard from "@/components/profile/reward-board/component/reward-board";
 
 export default async function RewardsBoardWrapper() {
   const session = await getAuthSession();
@@ -9,7 +9,7 @@ export default async function RewardsBoardWrapper() {
 
   return (
     <div>
-      <RewardBoard/>
+      <RewardBoard />
     </div>
   );
 }

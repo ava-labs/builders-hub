@@ -1,9 +1,4 @@
-import {
-  hasAtLeastOne,
-  requiredField,
-  validateEntity,
-  Validation,
-} from "./base";
+import { hasAtLeastOne, requiredField, validateEntity, Validation } from "./base";
 import { revalidatePath } from "next/cache";
 import { ValidationError } from "./hackathons";
 import { prisma } from "@/prisma/prisma";
@@ -19,8 +14,7 @@ export const projectValidations: Validation[] = [
   {
     field: "short_description",
     message: "Short description is required.",
-    validation: (project: Project) =>
-      requiredField(project, "short_description"),
+    validation: (project: Project) => requiredField(project, "short_description"),
   },
   {
     field: "hackaton_id",
@@ -37,103 +31,106 @@ export const projectValidations: Validation[] = [
 export const validateProject = (projectData: Partial<Project>): Validation[] =>
   validateEntity(projectValidations, projectData);
 
-export async function createProject(
-  projectData: Partial<Project>
-): Promise<Project> {
+export function createProject(projectData: Partial<Project>): Promise<Project> {
   // Atomic transaction to prevent race conditions and duplication
-  return await prisma.$transaction(async (tx) => {
-    const isDraft = projectData.isDraft ?? false;
-    if (!isDraft) {
-      const errors = validateProject(projectData);
-      console.log("errors", errors);
-      if (errors.length > 0) {
-        throw new ValidationError("Project validation failed", errors);
+  return prisma.$transaction(
+    async (tx) => {
+      const isDraft = projectData.isDraft ?? false;
+      if (!isDraft) {
+        const errors = validateProject(projectData);
+        if (errors.length > 0) {
+          throw new ValidationError("Project validation failed", errors);
+        }
       }
-    }
 
-    //Find existing project WITHIN transaction
-    const existingProject = await tx.project.findFirst({
-      where: {
-        hackaton_id: projectData.hackaton_id,
-        members: {
-          some: {
-            user_id: projectData.user_id,
-            status: "Confirmed",
-          },
-        },
-      },
-      include: {
-        members: true,
-      },
-    });
-
-    if (existingProject) {
-      // Update existing project
-      const updatedProject = await tx.project.update({
-        where: { id: existingProject.id },
-        data: {
-          project_name: projectData.project_name ?? "",
-          short_description: projectData.short_description ?? "",
-          full_description: projectData.full_description ?? "",
-          tech_stack: projectData.tech_stack ?? "",
-          github_repository: projectData.github_repository ?? "",
-          demo_link: projectData.demo_link ?? "",
-          explanation: projectData.explanation ?? "",
-          is_preexisting_idea: projectData.is_preexisting_idea ?? false,
-          logo_url: projectData.logo_url ?? "",
-          cover_url: projectData.cover_url ?? "",
-          demo_video_link: projectData.demo_video_link ?? "",
-          screenshots: projectData.screenshots ?? [],
-          tracks: projectData.tracks ?? [],
-        },
-      });
-
-      projectData.id = updatedProject.id;
-      revalidatePath("/api/projects/");
-      return updatedProject as unknown as Project;
-    } else {
-      // Create new project AND member atomically
-      const newProjectData = await tx.project.create({
-        data: {
-          hackathon: {
-            connect: { id: projectData.hackaton_id },
-          },
-          project_name: projectData.project_name ?? "",
-          short_description: projectData.short_description ?? "",
-          full_description: projectData.full_description ?? "",
-          tech_stack: projectData.tech_stack ?? "",
-          github_repository: projectData.github_repository ?? "",
-          demo_link: projectData.demo_link ?? "",
-          is_preexisting_idea: projectData.is_preexisting_idea ?? false,
-          logo_url: projectData.logo_url ?? "",
-          cover_url: projectData.cover_url ?? "",
-          demo_video_link: projectData.demo_video_link ?? "",
-          screenshots: projectData.screenshots ?? [],
-          tracks: projectData.tracks ?? [],
-          explanation: projectData.explanation ?? "",
-          // Member created together with project
+      //Find existing project WITHIN transaction
+      const existingProject = await tx.project.findFirst({
+        where: {
+          hackaton_id: projectData.hackaton_id,
           members: {
-            create: {
-              user_id: projectData.user_id as string,
-              role: "Member",
+            some: {
+              user_id: projectData.user_id,
               status: "Confirmed",
-              email: (await tx.user.findUnique({
-                where: { id: projectData.user_id as string },
-              }))?.email ?? "",
             },
           },
         },
+        include: {
+          members: true,
+        },
       });
 
-      projectData.id = newProjectData.id;
-      revalidatePath("/api/projects/");
-      return newProjectData as unknown as Project;
+      if (existingProject) {
+        // Update existing project
+        const updatedProject = await tx.project.update({
+          where: { id: existingProject.id },
+          data: {
+            project_name: projectData.project_name ?? "",
+            short_description: projectData.short_description ?? "",
+            full_description: projectData.full_description ?? "",
+            tech_stack: projectData.tech_stack ?? "",
+            github_repository: projectData.github_repository ?? "",
+            demo_link: projectData.demo_link ?? "",
+            explanation: projectData.explanation ?? "",
+            is_preexisting_idea: projectData.is_preexisting_idea ?? false,
+            logo_url: projectData.logo_url ?? "",
+            cover_url: projectData.cover_url ?? "",
+            demo_video_link: projectData.demo_video_link ?? "",
+            screenshots: projectData.screenshots ?? [],
+            tracks: projectData.tracks ?? [],
+          },
+        });
+
+        projectData.id = updatedProject.id;
+        revalidatePath("/api/projects/");
+        return updatedProject as unknown as Project;
+      } else {
+        // Create new project AND member atomically
+        const newProjectData = await tx.project.create({
+          data: {
+            hackathon: {
+              connect: { id: projectData.hackaton_id },
+            },
+            project_name: projectData.project_name ?? "",
+            short_description: projectData.short_description ?? "",
+            full_description: projectData.full_description ?? "",
+            tech_stack: projectData.tech_stack ?? "",
+            github_repository: projectData.github_repository ?? "",
+            demo_link: projectData.demo_link ?? "",
+            is_preexisting_idea: projectData.is_preexisting_idea ?? false,
+            logo_url: projectData.logo_url ?? "",
+            cover_url: projectData.cover_url ?? "",
+            demo_video_link: projectData.demo_video_link ?? "",
+            screenshots: projectData.screenshots ?? [],
+            tracks: projectData.tracks ?? [],
+            explanation: projectData.explanation ?? "",
+            // Member created together with project
+            members: {
+              create: {
+                user_id: projectData.user_id as string,
+                role: "Member",
+                status: "Confirmed",
+                email:
+                  (
+                    await tx.user.findUnique({
+                      where: { id: projectData.user_id as string },
+                    })
+                  )?.email ?? "",
+              },
+            },
+          },
+        });
+
+        projectData.id = newProjectData.id;
+        revalidatePath("/api/projects/");
+        return newProjectData as unknown as Project;
+      }
+    },
+    {
+      // Transaction configuration for better performance
+      maxWait: 5000, // Maximum 5 seconds waiting for lock
+      timeout: 10000, // Maximum 10 seconds executing transaction
     }
-  }, {
-    // Transaction configuration for better performance
-    maxWait: 5000, // Maximum 5 seconds waiting for lock
-    timeout: 10000, // Maximum 10 seconds executing transaction
-  });
+  );
 }
 
 function normalizeUser(user: Partial<User>): User {

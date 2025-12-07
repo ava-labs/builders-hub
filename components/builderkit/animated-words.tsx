@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export const AnimatedWords = ({ words }: { words: string[] }) => {
   const [index, setIndex] = React.useState(0);

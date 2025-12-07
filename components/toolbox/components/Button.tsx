@@ -1,21 +1,21 @@
-"use client"
+"use client";
 
-import type { ReactNode } from "react"
-import { Loader2 } from "lucide-react"
-import { cn } from "../lib/utils"
+import type { ReactNode } from "react";
+import { Loader2 } from "lucide-react";
+import { cn } from "../lib/utils";
 
 interface ButtonProps {
-  children: ReactNode
-  onClick?: () => void
-  loading?: boolean
-  loadingText?: string
-  icon?: ReactNode
-  disabled?: boolean
-  variant?: "primary" | "secondary" | "outline" | "danger" | "outline-danger" | "light-danger"
-  size?: "default" | "sm" | "lg"
-  className?: string
-  stickLeft?: boolean
-  error?: string
+  children: ReactNode;
+  onClick?: () => void;
+  loading?: boolean;
+  loadingText?: string;
+  icon?: ReactNode;
+  disabled?: boolean;
+  variant?: "primary" | "secondary" | "outline" | "danger" | "outline-danger" | "light-danger";
+  size?: "default" | "sm" | "lg";
+  className?: string;
+  stickLeft?: boolean;
+  error?: string;
 }
 
 export function Button({
@@ -58,36 +58,31 @@ export function Button({
   // Variant-specific classes
   let variantClasses = "";
   if (variant === "primary") {
-    variantClasses = "bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600";
+    variantClasses =
+      "bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600";
   } else if (variant === "secondary") {
-    variantClasses = "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 hover:text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800 dark:hover:bg-blue-900/50";
+    variantClasses =
+      "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 hover:text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800 dark:hover:bg-blue-900/50";
   } else if (variant === "outline") {
-    variantClasses = "border-2 border-zinc-300 bg-transparent text-zinc-800 hover:bg-zinc-100 hover:border-zinc-400 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:border-zinc-500";
+    variantClasses =
+      "border-2 border-zinc-300 bg-transparent text-zinc-800 hover:bg-zinc-100 hover:border-zinc-400 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:border-zinc-500";
   } else if (variant === "danger") {
     variantClasses = "bg-red-600 text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600";
   } else if (variant === "light-danger") {
-    variantClasses = "bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50 dark:border-red-900/50";
+    variantClasses =
+      "bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50 dark:border-red-900/50";
   }
 
   // State classes (disabled)
-  const stateClasses = "disabled:bg-zinc-200 disabled:text-zinc-500 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-400 disabled:cursor-not-allowed";
+  const stateClasses =
+    "disabled:bg-zinc-200 disabled:text-zinc-500 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-400 disabled:cursor-not-allowed";
 
   // Combine all classes
-  const buttonClasses = cn(
-    ...baseClasses,
-    sizeClasses,
-    variantClasses,
-    stateClasses,
-    className
-  );
+  const buttonClasses = cn(...baseClasses, sizeClasses, variantClasses, stateClasses, className);
 
   return (
     <>
-      <button
-        onClick={onClick}
-        disabled={disabled || loading}
-        className={buttonClasses}
-      >
+      <button onClick={onClick} disabled={disabled || loading} className={buttonClasses}>
         {loading ? (
           <>
             <Loader2 className="w-5 h-5 animate-spin" />
@@ -102,6 +97,5 @@ export function Button({
       </button>
       {error && <p className="text-red-500 text-sm">{error}</p>}
     </>
-  )
+  );
 }
-

@@ -1,45 +1,45 @@
-'use client'
-import Image from 'next/image'
-import { Button } from "@/components/ui/button"
-import { ArrowRight } from 'lucide-react'
-import { useTheme } from 'next-themes'
-import Link from 'next/link'
-import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+"use client";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
+import { useTheme } from "next-themes";
+import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function StudentLaunchpadPage() {
-  const { resolvedTheme } = useTheme()
-  const arrowColor = resolvedTheme === "dark" ? "white" : "black"
-  const [iframeLoaded, setIframeLoaded] = useState(false)
-  const { data: session, status } = useSession()
-  const router = useRouter()
+  const { resolvedTheme } = useTheme();
+  const arrowColor = resolvedTheme === "dark" ? "white" : "black";
+  const [iframeLoaded, setIframeLoaded] = useState(false);
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
   const handleIframeLoad = () => {
-    setIframeLoaded(true)
-  }
+    setIframeLoaded(true);
+  };
 
   // Redirect to login if not authenticated
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      const currentUrl = window.location.href
-      const loginUrl = `/login?callbackUrl=${encodeURIComponent(currentUrl)}`
-      router.push(loginUrl)
+    if (status === "unauthenticated") {
+      const currentUrl = window.location.href;
+      const loginUrl = `/login?callbackUrl=${encodeURIComponent(currentUrl)}`;
+      router.push(loginUrl);
     }
-  }, [status, router])
+  }, [status, router]);
 
   // Show loading state while checking authentication
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
-    )
+    );
   }
 
   // Don't render the form if not authenticated (will redirect)
-  if (status === 'unauthenticated') {
-    return null
+  if (status === "unauthenticated") {
+    return null;
   }
 
   return (
@@ -64,12 +64,11 @@ export default function StudentLaunchpadPage() {
           </div>
           <h1 className="text-4xl md:text-7xl font-bold tracking-tighter">
             Student
-            <span className="block pb-1 text-[#EB4C50]">
-              Launchpad
-            </span>
+            <span className="block pb-1 text-[#EB4C50]">Launchpad</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
-            Get access to resources for your university or club, from guest speakers to teaching materials and funding for your event.
+            Get access to resources for your university or club, from guest speakers to teaching
+            materials and funding for your event.
           </p>
         </section>
 
@@ -81,25 +80,25 @@ export default function StudentLaunchpadPage() {
                   <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
                 </div>
               )}
-            
-              <div 
-                className={`transition-opacity duration-300 ${iframeLoaded ? 'opacity-100' : 'opacity-0'} w-full`}
+
+              <div
+                className={`transition-opacity duration-300 ${iframeLoaded ? "opacity-100" : "opacity-0"} w-full`}
                 style={{
-                  scrollbarWidth: 'thin',
-                  scrollbarColor: '#EB4C50 #f1f1f1'
+                  scrollbarWidth: "thin",
+                  scrollbarColor: "#EB4C50 #f1f1f1",
                 }}
               >
-                <iframe 
-                  src="https://share.hsforms.com/24d6eyOMzSEWf39QaWHf5PA4h8ew" 
-                  width="100%" 
-                  height="800px" 
-                  style={{ 
+                <iframe
+                  src="https://share.hsforms.com/24d6eyOMzSEWf39QaWHf5PA4h8ew"
+                  width="100%"
+                  height="800px"
+                  style={{
                     border: "none",
                     backgroundColor: "transparent",
                     margin: "-20px 0",
                     width: "100%",
-                    overflow: "auto"
-                  }} 
+                    overflow: "auto",
+                  }}
                   title="Student Launchpad Form"
                   onLoad={handleIframeLoad}
                 />
@@ -113,16 +112,21 @@ export default function StudentLaunchpadPage() {
           <div className="relative px-6 py-12 text-center space-y-6 rounded-3xl border border-yellow-500/30 backdrop-blur-xs shadow-2xl">
             <h2 className="text-3xl font-bold">Explore More Opportunities</h2>
             <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-              Discover more ways to get involved with Avalanche. From learning resources to community events, there's something for every student.
+              Discover more ways to get involved with Avalanche. From learning resources to
+              community events, there&apos;s something for every student.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/academy">
                 <Button className="rounded-full px-8 py-6 bg-red-500 hover:bg-red-600 transition-all duration-300 shadow-lg hover:shadow-xl text-white">
-                  Explore Avalanche Academy<ArrowRight color="white" className="ml-2 h-5 w-5" />
+                  Explore Avalanche Academy
+                  <ArrowRight color="white" className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <Link href="/university">
-                <Button variant="outline" className="rounded-full px-8 py-6 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300">
+                <Button
+                  variant="outline"
+                  className="rounded-full px-8 py-6 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300"
+                >
                   Back to University Program
                 </Button>
               </Link>
@@ -131,5 +135,5 @@ export default function StudentLaunchpadPage() {
         </section>
       </main>
     </div>
-  )
+  );
 }

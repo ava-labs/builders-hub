@@ -15,8 +15,7 @@ export default function Resources({ resources }: Props) {
       <h2 className="text-2xl font-bold mb-6">Project Resources</h2>
       <Separator className="my-8 bg-zinc-300 dark:bg-zinc-800" />
       <p className="text-lg mb-6">
-        Explore key links to learn more, connect with the team, and access
-        essential resources.
+        Explore key links to learn more, connect with the team, and access essential resources.
       </p>
 
       <div className="flex flex-col items-center md:flex-row justify-center gap-4">
@@ -40,9 +39,7 @@ export default function Resources({ resources }: Props) {
                   className="w-5 sm:w-7 h-5 sm:h-7"
                 />
               </div>
-              <h3 className="text-black dark:text-white sm:text-lg font-semibold">
-                {item.title}
-              </h3>
+              <h3 className="text-black dark:text-white sm:text-lg font-semibold">{item.title}</h3>
             </Card>
           </a>
         ))}

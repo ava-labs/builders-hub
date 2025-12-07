@@ -1,22 +1,38 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 import { Avalanche } from "@avalanche-sdk/chainkit";
-import { type ActiveValidatorDetails } from '@avalanche-sdk/chainkit/models/components/activevalidatordetails.js';
-import { type Subnet } from '@avalanche-sdk/chainkit/models/components/subnet.js';
-import { type SimpleValidator, type ValidatorVersion, type SubnetStats } from '@/types/validator-stats';
-import { MAINNET_VALIDATOR_DISCOVERY_URL, FUJI_VALIDATOR_DISCOVERY_URL } from '@/constants/validator-discovery';
+import { type ActiveValidatorDetails } from "@avalanche-sdk/chainkit/models/components/activevalidatordetails.js";
+import { type Subnet } from "@avalanche-sdk/chainkit/models/components/subnet.js";
+import {
+  type SimpleValidator,
+  type ValidatorVersion,
+  type SubnetStats,
+} from "@/types/validator-stats";
+import {
+  MAINNET_VALIDATOR_DISCOVERY_URL,
+  FUJI_VALIDATOR_DISCOVERY_URL,
+} from "@/constants/validator-discovery";
 import l1ChainsData from "@/constants/l1-chains.json";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 const VERSION_CACHE_DURATION = 24 * 60 * 60 * 1000;
 const PAGE_SIZE = 100;
 const FETCH_TIMEOUT = 10000;
-const CACHE_CONTROL_HEADER = 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=172800';
+const CACHE_CONTROL_HEADER = "public, max-age=86400, s-maxage=86400, stale-while-revalidate=172800";
 
-const validatorsCached: Partial<Record<string, { data: SimpleValidator[]; timestamp: number; promise?: Promise<SimpleValidator[]> }>> = {};
-const subnetsCached: Partial<Record<string, { data: Subnet[]; timestamp: number; promise?: Promise<Subnet[]> }>> = {};
-const validatorVersionsCached: Partial<Record<string, { data: Map<string, string>; timestamp: number }>> = {};
+const validatorsCached: Partial<
+  Record<
+    string,
+    { data: SimpleValidator[]; timestamp: number; promise?: Promise<SimpleValidator[]> }
+  >
+> = {};
+const subnetsCached: Partial<
+  Record<string, { data: Subnet[]; timestamp: number; promise?: Promise<Subnet[]> }>
+> = {};
+const validatorVersionsCached: Partial<
+  Record<string, { data: Map<string, string>; timestamp: number }>
+> = {};
 const statsCached: Partial<Record<string, { data: SubnetStats[]; timestamp: number }>> = {};
 const revalidatingKeys = new Set<string>();
 const pendingStatsRequests = new Map<string, Promise<SubnetStats[]>>();
@@ -27,7 +43,7 @@ async function fetchWithTimeout(url: string, timeout: number = FETCH_TIMEOUT): P
   try {
     const response = await fetch(url, {
       signal: controller.signal,
-      headers: { 'Accept': 'application/json' },
+      headers: { Accept: "application/json" },
     });
     return response;
   } finally {
@@ -38,7 +54,7 @@ async function fetchWithTimeout(url: string, timeout: number = FETCH_TIMEOUT): P
 async function listClassicValidators(network: "mainnet" | "fuji"): Promise<SimpleValidator[]> {
   const avalancheSDK = new Avalanche({ network });
   const validators: SimpleValidator[] = [];
-  
+
   const result = await avalancheSDK.data.primaryNetwork.listValidators({
     pageSize: PAGE_SIZE,
     network,
@@ -47,11 +63,13 @@ async function listClassicValidators(network: "mainnet" | "fuji"): Promise<Simpl
 
   for await (const page of result) {
     const activeValidators = page.result.validators as ActiveValidatorDetails[];
-    validators.push(...activeValidators.map(v => ({
-      nodeId: v.nodeId,
-      subnetId: v.subnetId,
-      weight: Number(v.amountStaked)
-    })));
+    validators.push(
+      ...activeValidators.map((v) => ({
+        nodeId: v.nodeId,
+        subnetId: v.subnetId,
+        weight: Number(v.amountStaked),
+      }))
+    );
   }
 
   return validators;
@@ -60,7 +78,7 @@ async function listClassicValidators(network: "mainnet" | "fuji"): Promise<Simpl
 async function listL1Validators(network: "mainnet" | "fuji"): Promise<SimpleValidator[]> {
   const avalancheSDK = new Avalanche({ network });
   const validators: SimpleValidator[] = [];
-  
+
   const result = await avalancheSDK.data.primaryNetwork.listL1Validators({
     pageSize: PAGE_SIZE,
     includeInactiveL1Validators: false,
@@ -68,25 +86,27 @@ async function listL1Validators(network: "mainnet" | "fuji"): Promise<SimpleVali
   });
 
   for await (const page of result) {
-    validators.push(...page.result.validators
-      .filter(v => v.remainingBalance > 0)
-      .map(v => ({
-        nodeId: v.nodeId,
-        subnetId: v.subnetId,
-        weight: v.weight
-      })));
+    validators.push(
+      ...page.result.validators
+        .filter((v) => v.remainingBalance > 0)
+        .map((v) => ({
+          nodeId: v.nodeId,
+          subnetId: v.subnetId,
+          weight: v.weight,
+        }))
+    );
   }
 
   return validators;
 }
 
-async function getAllValidators(network: "mainnet" | "fuji"): Promise<SimpleValidator[]> {
+function getAllValidators(network: "mainnet" | "fuji"): Promise<SimpleValidator[]> {
   const now = Date.now();
   const cache = validatorsCached[network];
 
   // Return cached data if still valid
-  if (cache && (now - cache.timestamp) < CACHE_DURATION) {
-    return cache.data;
+  if (cache && now - cache.timestamp < CACHE_DURATION) {
+    return Promise.resolve(cache.data);
   }
 
   // If a fetch is already in progress, wait for it
@@ -98,17 +118,17 @@ async function getAllValidators(network: "mainnet" | "fuji"): Promise<SimpleVali
   const promise = (async () => {
     const [l1Validators, classicValidators] = await Promise.all([
       listL1Validators(network),
-      listClassicValidators(network)
+      listClassicValidators(network),
     ]);
 
     const allValidators = [...l1Validators, ...classicValidators];
-    
+
     // Store in cache with timestamp
     validatorsCached[network] = {
       data: allValidators,
       timestamp: Date.now(),
     };
-    
+
     return allValidators;
   })();
 
@@ -127,12 +147,12 @@ async function getAllValidators(network: "mainnet" | "fuji"): Promise<SimpleVali
   return promise;
 }
 
-async function getAllSubnets(network: "mainnet" | "fuji"): Promise<Subnet[]> {
+function getAllSubnets(network: "mainnet" | "fuji"): Promise<Subnet[]> {
   const now = Date.now();
   const cache = subnetsCached[network];
 
-  if (cache && (now - cache.timestamp) < CACHE_DURATION) {
-    return cache.data;
+  if (cache && now - cache.timestamp < CACHE_DURATION) {
+    return Promise.resolve(cache.data);
   }
 
   if (cache?.promise) {
@@ -143,7 +163,7 @@ async function getAllSubnets(network: "mainnet" | "fuji"): Promise<Subnet[]> {
   const promise = (async () => {
     const avalancheSDK = new Avalanche({ network });
     const allSubnets: Subnet[] = [];
-    
+
     const result = await avalancheSDK.data.primaryNetwork.listSubnets({
       pageSize: PAGE_SIZE,
       network,
@@ -157,7 +177,7 @@ async function getAllSubnets(network: "mainnet" | "fuji"): Promise<Subnet[]> {
       data: allSubnets,
       timestamp: Date.now(),
     };
-    
+
     return allSubnets;
   })();
 
@@ -181,15 +201,16 @@ async function getValidatorVersions(network: "mainnet" | "fuji"): Promise<Map<st
   const cache = validatorVersionsCached[network];
 
   // Check if cache exists and is still valid
-  if (cache && (now - cache.timestamp) < VERSION_CACHE_DURATION) {
+  if (cache && now - cache.timestamp < VERSION_CACHE_DURATION) {
     return cache.data;
   }
 
-  const url = network === "mainnet" ? MAINNET_VALIDATOR_DISCOVERY_URL : FUJI_VALIDATOR_DISCOVERY_URL;
-  
+  const url =
+    network === "mainnet" ? MAINNET_VALIDATOR_DISCOVERY_URL : FUJI_VALIDATOR_DISCOVERY_URL;
+
   try {
     const response = await fetchWithTimeout(url);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch validator versions: ${response.status}`);
     }
@@ -204,7 +225,7 @@ async function getValidatorVersions(network: "mainnet" | "fuji"): Promise<Map<st
     // Update cache
     validatorVersionsCached[network] = {
       data: versionMap,
-      timestamp: now
+      timestamp: now,
     };
 
     return versionMap;
@@ -221,16 +242,19 @@ async function getNetworkStatsInternal(network: "mainnet" | "fuji"): Promise<Sub
   const [validators, subnets, versionMap] = await Promise.all([
     getAllValidators(network),
     getAllSubnets(network),
-    getValidatorVersions(network)
+    getValidatorVersions(network),
   ]);
 
-  const subnetAccumulators: Record<string, {
-    name: string;
-    id: string;
-    totalStake: bigint;
-    byClientVersion: Record<string, { stake: bigint; nodes: number }>;
-    isL1: boolean;
-  }> = {};
+  const subnetAccumulators: Record<
+    string,
+    {
+      name: string;
+      id: string;
+      totalStake: bigint;
+      byClientVersion: Record<string, { stake: bigint; nodes: number }>;
+      isL1: boolean;
+    }
+  > = {};
 
   // Create a map of subnetId to isL1 from subnets
   const subnetIsL1Map = new Map<string, boolean>();
@@ -238,7 +262,7 @@ async function getNetworkStatsInternal(network: "mainnet" | "fuji"): Promise<Sub
     subnetIsL1Map.set(subnet.subnetId, subnet.isL1);
     if (subnetAccumulators[subnet.subnetId]) continue;
     subnetAccumulators[subnet.subnetId] = {
-      name: subnet.blockchains.map(blockchain => blockchain.blockchainName).join('/'),
+      name: subnet.blockchains.map((blockchain) => blockchain.blockchainName).join("/"),
       id: subnet.subnetId,
       byClientVersion: {},
       totalStake: 0n,
@@ -267,7 +291,7 @@ async function getNetworkStatsInternal(network: "mainnet" | "fuji"): Promise<Sub
     if (!subnetAccumulators[subnetId].byClientVersion[version]) {
       subnetAccumulators[subnetId].byClientVersion[version] = {
         stake: 0n,
-        nodes: 0
+        nodes: 0,
       };
     }
     subnetAccumulators[subnetId].byClientVersion[version].stake += stake;
@@ -296,7 +320,7 @@ async function getNetworkStatsInternal(network: "mainnet" | "fuji"): Promise<Sub
     for (const [version, data] of Object.entries(subnet.byClientVersion)) {
       byClientVersion[version] = {
         stakeString: data.stake.toString(),
-        nodes: data.nodes
+        nodes: data.nodes,
       };
     }
 
@@ -308,7 +332,7 @@ async function getNetworkStatsInternal(network: "mainnet" | "fuji"): Promise<Sub
       totalStakeString: subnet.totalStake.toString(),
       byClientVersion,
       chainLogoURI: subnetLogoMap.get(subnet.id) || undefined,
-      isL1: subnet.isL1
+      isL1: subnet.isL1,
     });
   }
 
@@ -324,7 +348,7 @@ async function getNetworkStats(network: "mainnet" | "fuji"): Promise<SubnetStats
 
   if (isCacheStale && !revalidatingKeys.has(network)) {
     revalidatingKeys.add(network);
-    
+
     // Background refresh
     (async () => {
       try {
@@ -336,22 +360,24 @@ async function getNetworkStats(network: "mainnet" | "fuji"): Promise<SubnetStats
         revalidatingKeys.delete(network);
       }
     })();
-    
+
     return cache.data;
   }
-  
+
   // Return valid cache
-  if (isCacheValid && cache) { return cache.data; }
-  
+  if (isCacheValid && cache) {
+    return cache.data;
+  }
+
   let pendingPromise = pendingStatsRequests.get(network);
-  
+
   if (!pendingPromise) {
     pendingPromise = getNetworkStatsInternal(network);
     pendingStatsRequests.set(network, pendingPromise);
     pendingPromise.finally(() => pendingStatsRequests.delete(network));
   }
-  
-  const freshData = await pendingPromise; 
+
+  const freshData = await pendingPromise;
   statsCached[network] = { data: freshData, timestamp: Date.now() };
   return freshData;
 }
@@ -361,25 +387,25 @@ function createResponse(
   meta: { source: string; network?: string; cacheAge?: number; fetchTime?: number },
   status = 200
 ) {
-  const headers: Record<string, string> = { 
-    'Cache-Control': CACHE_CONTROL_HEADER, 
-    'X-Data-Source': meta.source 
+  const headers: Record<string, string> = {
+    "Cache-Control": CACHE_CONTROL_HEADER,
+    "X-Data-Source": meta.source,
   };
-  if (meta.network) headers['X-Network'] = meta.network;
-  if (meta.cacheAge !== undefined) headers['X-Cache-Age'] = `${Math.round(meta.cacheAge / 1000)}s`;
-  if (meta.fetchTime !== undefined) headers['X-Fetch-Time'] = `${meta.fetchTime}ms`;
+  if (meta.network) headers["X-Network"] = meta.network;
+  if (meta.cacheAge !== undefined) headers["X-Cache-Age"] = `${Math.round(meta.cacheAge / 1000)}s`;
+  if (meta.fetchTime !== undefined) headers["X-Fetch-Time"] = `${meta.fetchTime}ms`;
   return NextResponse.json(data, { status, headers });
 }
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const network = searchParams.get('network');
+    const network = searchParams.get("network");
 
-    if (!network || (network !== 'mainnet' && network !== 'fuji')) {
+    if (!network || (network !== "mainnet" && network !== "fuji")) {
       return createResponse(
-        { error: 'Invalid or missing network parameter. Use ?network=mainnet or ?network=fuji' },
-        { source: 'error' },
+        { error: "Invalid or missing network parameter. Use ?network=mainnet or ?network=fuji" },
+        { source: "error" },
         400
       );
     }
@@ -387,42 +413,51 @@ export async function GET(request: Request) {
     const startTime = Date.now();
     const cache = statsCached[network];
     const cacheAge = cache ? Date.now() - cache.timestamp : undefined;
-    
+
     const stats = await getNetworkStats(network);
     const fetchTime = Date.now() - startTime;
 
-    const source = fetchTime < 50 && cache ? 
-      (cacheAge && cacheAge < CACHE_DURATION ? 'cache' : 'stale-while-revalidate') : 
-      'fresh';
-    
-    console.log(`[GET /api/validator-stats] Network: ${network}, Source: ${source}, fetchTime: ${fetchTime}ms`);
+    const source =
+      fetchTime < 50 && cache
+        ? cacheAge && cacheAge < CACHE_DURATION
+          ? "cache"
+          : "stale-while-revalidate"
+        : "fresh";
 
-    return createResponse(stats, { 
-      source, 
-      network, 
+    console.log(
+      `[GET /api/validator-stats] Network: ${network}, Source: ${source}, fetchTime: ${fetchTime}ms`
+    );
+
+    return createResponse(stats, {
+      source,
+      network,
       cacheAge,
-      fetchTime 
+      fetchTime,
     });
   } catch (error: any) {
     const { searchParams } = new URL(request.url);
-    const network = searchParams.get('network') || 'unknown';
+    const network = searchParams.get("network") || "unknown";
     console.error(`[GET /api/validator-stats] Error (${network}):`, error);
 
-    if (network === 'mainnet' || network === 'fuji') {
+    if (network === "mainnet" || network === "fuji") {
       const cache = statsCached[network];
       if (cache) {
         console.log(`[GET /api/validator-stats] Network: ${network}, Source: error-fallback-cache`);
-        return createResponse(cache.data, { 
-          source: 'error-fallback-cache', 
-          network,
-          cacheAge: Date.now() - cache.timestamp
-        }, 206);
+        return createResponse(
+          cache.data,
+          {
+            source: "error-fallback-cache",
+            network,
+            cacheAge: Date.now() - cache.timestamp,
+          },
+          206
+        );
       }
     }
-    
+
     return createResponse(
       { error: error?.message || `Failed to fetch validator stats for ${network}` },
-      { source: 'error', network },
+      { source: "error", network },
       500
     );
   }

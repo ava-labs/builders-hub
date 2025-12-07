@@ -2,13 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import createGlobe from "cobe";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, MapPin, Globe as GlobeIcon } from "lucide-react";
 
 interface CountryData {
@@ -106,8 +100,7 @@ function Globe({ className, markers = [], autoRotate = true }: GlobeProps) {
       <canvas
         ref={canvasRef}
         onPointerDown={(e) => {
-          pointerInteracting.current =
-            e.clientX - pointerInteractionMovement.current;
+          pointerInteracting.current = e.clientX - pointerInteractionMovement.current;
           if (canvasRef.current) {
             canvasRef.current.style.cursor = "grabbing";
           }
@@ -233,8 +226,7 @@ export function ValidatorWorldMap() {
             Global Validator Distribution
           </CardTitle>
           <CardDescription>
-            Geographic distribution of Avalanche Primary Network validators
-            worldwide
+            Geographic distribution of Avalanche Primary Network validators worldwide
           </CardDescription>
         </CardHeader>
         <CardContent className="h-[500px] flex items-center justify-center">
@@ -253,16 +245,13 @@ export function ValidatorWorldMap() {
             Global Validator Distribution
           </CardTitle>
           <CardDescription>
-            Geographic distribution of Avalanche Primary Network validators
-            worldwide
+            Geographic distribution of Avalanche Primary Network validators worldwide
           </CardDescription>
         </CardHeader>
         <CardContent className="h-[500px] flex items-center justify-center">
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="h-8 w-8 animate-spin" />
-            <p className="text-sm text-muted-foreground">
-              Loading validator locations...
-            </p>
+            <p className="text-sm text-muted-foreground">Loading validator locations...</p>
           </div>
         </CardContent>
       </Card>
@@ -316,8 +305,7 @@ export function ValidatorWorldMap() {
               Global Validator Distribution
             </CardTitle>
             <CardDescription>
-              Geographic distribution of Avalanche Primary Network validators
-              worldwide
+              Geographic distribution of Avalanche Primary Network validators worldwide
             </CardDescription>
           </div>
           <div className="flex gap-1">
@@ -329,9 +317,7 @@ export function ValidatorWorldMap() {
                   : "text-muted-foreground hover:bg-muted"
               }`}
               style={
-                visualMode === "validators"
-                  ? { backgroundColor: themeColor, opacity: 0.9 }
-                  : {}
+                visualMode === "validators" ? { backgroundColor: themeColor, opacity: 0.9 } : {}
               }
             >
               Validators
@@ -343,11 +329,7 @@ export function ValidatorWorldMap() {
                   ? "text-white dark:text-white"
                   : "text-muted-foreground hover:bg-muted"
               }`}
-              style={
-                visualMode === "stake"
-                  ? { backgroundColor: themeColor, opacity: 0.9 }
-                  : {}
-              }
+              style={visualMode === "stake" ? { backgroundColor: themeColor, opacity: 0.9 } : {}}
             >
               Stake
             </button>
@@ -364,8 +346,7 @@ export function ValidatorWorldMap() {
           {/* Country list on the right */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-4">
-              Top Countries by{" "}
-              {visualMode === "validators" ? "Validator Count" : "Total Stake"}
+              Top Countries by {visualMode === "validators" ? "Validator Count" : "Total Stake"}
             </h3>
             <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
               {sortedCountries.map((country, index) => (

@@ -22,9 +22,13 @@ interface ProjectMemberWarningDialogProps {
   setLoadData: (accepted: boolean) => void;
 }
 
-export const ProjectMemberWarningDialog: React.FC<
-  ProjectMemberWarningDialogProps
-> = ({ open, onOpenChange, projectName, hackathonId, setLoadData }) => {
+export const ProjectMemberWarningDialog: React.FC<ProjectMemberWarningDialogProps> = ({
+  open,
+  onOpenChange,
+  projectName,
+  hackathonId,
+  setLoadData,
+}) => {
   const router = useRouter();
   const { toast } = useToast();
   const wasActionTaken = useRef(false);
@@ -56,13 +60,13 @@ export const ProjectMemberWarningDialog: React.FC<
         description: "You will be redirected to hackathon",
         duration: 3000,
       });
-      
+
       // Small delay to show the toast before redirecting
       setTimeout(() => {
         router.push(`/hackathons/${hackathonId}`);
       }, 1000);
     }
-    
+
     onOpenChange(open);
   };
 
@@ -86,9 +90,7 @@ export const ProjectMemberWarningDialog: React.FC<
           </Button>
         </DialogClose>
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold">
-            Project Membership Warning
-          </DialogTitle>
+          <DialogTitle className="text-lg font-semibold">Project Membership Warning</DialogTitle>
         </DialogHeader>
         <Card className="border border-red-500 dark:bg-zinc-800 rounded-md">
           <div className="flex flex-col px-4">
@@ -96,15 +98,14 @@ export const ProjectMemberWarningDialog: React.FC<
               You are currently a member of <b>{projectName.toUpperCase()}</b>.
             </p>
             <p className="text-md  text-red-500">
-              If you accept this invitation, you will be removed from your
-              current project and will lose all access to its information.
+              If you accept this invitation, you will be removed from your current project and will
+              lose all access to its information.
               <br />
-              If you are the only member of your current project, accepting this
-              invitation will result in the permanent deletion of that project.
+              If you are the only member of your current project, accepting this invitation will
+              result in the permanent deletion of that project.
             </p>
           </div>
           <div className="flex flex-row items-center justify-center gap-4 py-4">
-
             <Button
               onClick={handleAcceptInvite}
               type="button"

@@ -1,18 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
-import { Dialog, DialogOverlay, DialogContent, DialogTitle } from '../toolbox/components/ui/dialog';
+import { Dialog, DialogOverlay, DialogContent, DialogTitle } from "../toolbox/components/ui/dialog";
 import { Input } from "../ui/input";
 import { LoadingButton } from "../ui/loading-button";
 import SocialLogin from "./social-login/SocialLogin";
 import { VerifyEmail } from "./verify/VerifyEmail";
-import { useLoginModalState } from '@/hooks/useLoginModal';
+import { useLoginModalState } from "@/hooks/useLoginModal";
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -23,7 +23,13 @@ export function LoginModal() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [email, setEmail] = useState("");
 
-  const { control, handleSubmit, setError, reset, formState: { errors, isSubmitting } } = useForm<z.infer<typeof formSchema>>({
+  const {
+    control,
+    handleSubmit,
+    setError,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { email: "" },
   });
@@ -61,7 +67,7 @@ export function LoginModal() {
     <Dialog.Root open={true} onOpenChange={closeLoginModal}>
       <Dialog.Portal>
         <DialogOverlay />
-        <DialogContent 
+        <DialogContent
           className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl focus:outline-none w-[90vw] max-w-[400px] max-h-[90vh] overflow-hidden z-[10000] p-0"
           showCloseButton={true}
         >
@@ -115,9 +121,7 @@ export function LoginModal() {
                           {...field}
                         />
                         {errors.email && (
-                          <p className="text-red-500 text-xs px-1">
-                            {errors.email.message}
-                          </p>
+                          <p className="text-red-500 text-xs px-1">{errors.email.message}</p>
                         )}
                       </div>
                     )}
@@ -165,4 +169,3 @@ export function LoginModal() {
     </Dialog.Root>
   );
 }
-

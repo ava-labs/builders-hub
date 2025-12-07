@@ -12,10 +12,10 @@ interface AddToWalletButtonProps {
   variant?: "default" | "outline" | "ghost";
 }
 
-export function AddToWalletButton({ 
-  rpcUrl, 
-  chainName, 
-  chainId, 
+export function AddToWalletButton({
+  rpcUrl,
+  chainName,
+  chainId,
   tokenSymbol = "AVAX",
   className = "",
   variant = "default",
@@ -36,8 +36,10 @@ export function AddToWalletButton({
   };
 
   const variantStyles = {
-    default: "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 shadow-sm hover:shadow-md",
-    outline: "border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 shadow-sm hover:shadow-md",
+    default:
+      "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 shadow-sm hover:shadow-md",
+    outline:
+      "border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 shadow-sm hover:shadow-md",
     ghost: "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800",
   };
 
@@ -48,13 +50,8 @@ export function AddToWalletButton({
       className={`inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${variantStyles[variant]} ${className}`}
       title="Add chain to wallet"
     >
-      {isAdding ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
-      ) : (
-        <Wallet className="w-4 h-4" />
-      )}
+      {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wallet className="w-4 h-4" />}
       <span>Add to Wallet</span>
     </button>
   );
 }
-

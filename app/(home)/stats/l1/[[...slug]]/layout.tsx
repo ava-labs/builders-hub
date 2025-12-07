@@ -5,9 +5,5 @@ interface L1StatsLayoutProps {
 }
 
 export default function L1StatsLayout({ children }: L1StatsLayoutProps) {
-  return (
-    <div className="min-h-screen bg-white">
-      {children}
-    </div>
-  );
+  return <div className="min-h-screen bg-white">{children}</div>;
 }

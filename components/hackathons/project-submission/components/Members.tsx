@@ -60,13 +60,7 @@ export default function MembersComponent({
   const [isValidingEmail, setIsValidingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [invitationResult, setInvitationResult] = useState<any>(null);
-  const roles: string[] = [
-    "Member",
-    "Developer",
-    "PM",
-    "Researcher",
-    "Designer",
-  ];
+  const roles: string[] = ["Member", "Developer", "PM", "Researcher", "Designer"];
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -90,7 +84,7 @@ export default function MembersComponent({
     setInvalidEmails(invalidEmails.filter((e) => e !== email));
   };
 
-  const handleCloseModal = (b:boolean) => {
+  const handleCloseModal = (b: boolean) => {
     setOpenModal(b);
     setEmails([]);
     setNewEmail("");
@@ -164,16 +158,14 @@ export default function MembersComponent({
       });
 
       setMembers((prevMembers) =>
-        prevMembers.map((m) =>
-          m.id === member.id ? { ...m, role: newRole } : m
-        )
+        prevMembers.map((m) => (m.id === member.id ? { ...m, role: newRole } : m))
       );
     } catch (error) {
       console.error("Error updating role:", error);
     }
   };
 
-  const handleAcceptJoinTeam = async (result: boolean) => {
+  const handleAcceptJoinTeam = (result: boolean) => {
     if (result) {
       setMembers((prevMembers) =>
         prevMembers.map((m) =>
@@ -201,10 +193,7 @@ export default function MembersComponent({
     handleAcceptJoinTeam(true);
   };
 
-  const updateMemberStatus = async (
-    status: string,
-    wasInOtherProject: boolean
-  ) => {
+  const updateMemberStatus = (status: string, wasInOtherProject: boolean) => {
     try {
       axios
         .patch(`/api/project/${project_id}/members/status`, {
@@ -240,7 +229,7 @@ export default function MembersComponent({
   return (
     <>
       <div className="flex justify-end mt-4">
-        <Dialog open={openModal} onOpenChange={handleCloseModal} >
+        <Dialog open={openModal} onOpenChange={handleCloseModal}>
           <DialogTrigger asChild>
             <Button variant="outline" type="button">
               Invite Team Member
@@ -264,30 +253,32 @@ export default function MembersComponent({
                 </Button>
               </DialogClose>
               <DialogHeader>
-                <DialogTitle className="text-lg font-semibold">
-                  Invite Member
-                </DialogTitle>
+                <DialogTitle className="text-lg font-semibold">Invite Member</DialogTitle>
                 <DialogDescription className="text-sm text-zinc-400 mt-0 pt-0">
-                  Enter the email addresses of the persons you want to invite to
-                  your team and then press <strong>Enter</strong>. When you've
-                  added all emails, click on <strong>Send Invitation</strong>.
+                  Enter the email addresses of the persons you want to invite to your team and then
+                  press <strong>Enter</strong>. When you've added all emails, click on{" "}
+                  <strong>Send Invitation</strong>.
                 </DialogDescription>
               </DialogHeader>
               <Card className="border border-red-500 dark:bg-zinc-800 rounded-md">
                 <div className="mt-2 mx-4 ">
                   <div
                     className="flex flex-wrap items-center gap-2 dark:bg-zinc-950 px-3  py-2 rounded-md min-h-[42px] focus-within:ring-2 focus-within:ring-zinc-600 border border-zinc-700"
-                    onClick={() =>
-                      document.getElementById("email-input")?.focus()
-                    }
+                    onClick={() => document.getElementById("email-input")?.focus()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        document.getElementById("email-input")?.focus();
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                   >
                     {emails.map((email) => (
                       <div
                         key={email}
                         className={`flex items-center bg-transparent text-white text-sm rounded-full px-2 py-1 ${
-                          invalidEmails.includes(email)
-                            ? "border border-red-500"
-                            : ""
+                          invalidEmails.includes(email) ? "border border-red-500" : ""
                         }`}
                       >
                         <span className="text-zinc-400">{email}</span>
@@ -357,9 +348,7 @@ export default function MembersComponent({
                   ✕
                 </Button>
               </DialogClose>
-              <DialogTitle className="text-lg font-semibold">
-                Invitation Sent!
-              </DialogTitle>
+              <DialogTitle className="text-lg font-semibold">Invitation Sent!</DialogTitle>
               <Card className="border border-red-500 dark:bg-zinc-800 rounded-md mt-4">
                 <div className="flex flex-col  px-4 py-2 gap-4">
                   <div className="flex items-center justify-center text-center">
@@ -367,18 +356,14 @@ export default function MembersComponent({
                   </div>
                   <p className=" text-md ">
                     Invitation sent successfully to{" "}
-                    <span className="font-semibold gap-2 text-md">
-                      {emails.join("; ")}
-                    </span>
-                    . They will receive an email to join your team. You can also
-                    copy the links and send them manually.
+                    <span className="font-semibold gap-2 text-md">{emails.join("; ")}</span>. They
+                    will receive an email to join your team. You can also copy the links and send
+                    them manually.
                   </p>
                   {invitationResult &&
                     invitationResult?.InviteLinks &&
                     invitationResult?.InviteLinks.length > 0 && (
-                      <InvitationLinksMember
-                        invitationResult={invitationResult}
-                      />
+                      <InvitationLinksMember invitationResult={invitationResult} />
                     )}
                   <div className="items-center justify-center text-center">
                     <DialogClose asChild>
@@ -411,17 +396,15 @@ export default function MembersComponent({
                   ✕
                 </Button>
               </DialogClose>
-              <DialogTitle className="text-lg font-semibold">
-                Invitation Failed!
-              </DialogTitle>
+              <DialogTitle className="text-lg font-semibold">Invitation Failed!</DialogTitle>
               <Card className="border border-red-500 dark:bg-zinc-800 rounded-md mt-4">
                 <div className="flex flex-col  px-4 py-2 gap-4">
                   <div className="flex items-center justify-center text-center">
                     <BadgeCheck width={35} height={35} color="#FF394A" />
                   </div>
                   <p className=" text-md ">
-                    We've got some errors sending the invitations, but here are
-                    the links for you to send them manually:{" "}
+                    We've got some errors sending the invitations, but here are the links for you to
+                    send them manually:{" "}
                   </p>
                   <InvitationLinksMember invitationResult={invitationResult} />
                   <div className="items-center justify-center text-center">
@@ -508,9 +491,7 @@ export default function MembersComponent({
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="p-2 hover:bg-zinc-700 cursor-pointer rounded text-red-400"
-                          onSelect={() =>
-                            handleRemoveMember(member.email, member.user_id)
-                          }
+                          onSelect={() => handleRemoveMember(member.email, member.user_id)}
                         >
                           Remove Member
                         </DropdownMenuItem>

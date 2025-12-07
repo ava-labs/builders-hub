@@ -1,6 +1,6 @@
-import Hero, { HeroBackground } from '@/components/landing/hero';
-import Paths from '@/components/landing/paths';
-import QuickLinks from '@/components/landing/quicklinks';
+import Hero, { HeroBackground } from "@/components/landing/hero";
+import Paths from "@/components/landing/paths";
+import QuickLinks from "@/components/landing/quicklinks";
 
 export default function HomePage(): React.ReactElement {
   return (

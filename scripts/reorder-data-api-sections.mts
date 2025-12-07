@@ -1,5 +1,4 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { join } from 'path';
 
 async function reorderDataApiSections() {
   const dataApiMetaPath = 'content/docs/api-reference/data-api/meta.json';

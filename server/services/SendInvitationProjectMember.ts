@@ -1,5 +1,10 @@
-import { sendMail } from './mail';
-export async function sendInvitation(email: string, projectName: string, inviterName: string, inviteLink: string) {
+import { sendMail } from "./mail";
+export async function sendInvitation(
+  email: string,
+  projectName: string,
+  inviterName: string,
+  inviteLink: string
+) {
   const text = `${inviterName} has invited you to join the project "${projectName}" on Avalanche Builder's Hub. Click the link below to accept the invitation:\n\n${inviteLink}`;
   const subject = `You're invited to collaborate on "${projectName}"`;
   const html = `
@@ -27,6 +32,6 @@ export async function sendInvitation(email: string, projectName: string, inviter
   try {
     await sendMail(email, html, subject, text);
   } catch (error) {
-    throw new Error('Error sending project invitation email');
+    throw new Error("Error sending project invitation email");
   }
 }

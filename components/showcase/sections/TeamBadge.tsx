@@ -2,12 +2,7 @@ import { Separator } from "@/components/ui/separator";
 import { BadgesByTeam } from "@/types/badgesByTeam";
 import Image from "next/image";
 import React from "react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar } from "@/components/ui/avatar";
 
 type Props = {
@@ -59,8 +54,7 @@ export const TeamBadge = ({ Badge }: Props) => {
         name: "Best Team",
         description: "For the best UI/UX design",
         points: 100,
-        image_path:
-          "https://49ci7gswyprqetfg.public.blob.vercel-storage.com/badges/BestTeamEN.png",
+        image_path: "https://49ci7gswyprqetfg.public.blob.vercel-storage.com/badges/BestTeamEN.png",
         category: "UI/UX",
         metadata: null,
       },
@@ -76,10 +70,7 @@ export const TeamBadge = ({ Badge }: Props) => {
 
       <div className="flex flex-wrap justify-center gap-8 mt-8">
         {DataDummy.map((item, index) => (
-          <div
-            key={index}
-            className="flex flex-col justify-center items-center gap-4"
-          >
+          <div key={index} className="flex flex-col justify-center items-center gap-4">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -110,7 +101,6 @@ export const TeamBadge = ({ Badge }: Props) => {
             </TooltipProvider>
           </div>
         ))}
- 
       </div>
     </div>
   );

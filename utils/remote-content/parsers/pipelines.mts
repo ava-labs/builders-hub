@@ -191,9 +191,7 @@ export const escapeJSXExpressions: TransformFunction = (content) => {
     
     // Check if we're inside an inline code span
     const beforeCode = text.substring(0, offset);
-    const afterCode = text.substring(offset);
     const beforeBackticks = (beforeCode.match(/`/g) || []).length;
-    const afterBackticks = (afterCode.match(/`/g) || []).length;
     if (beforeBackticks % 2 === 1) {
       return true;
     }

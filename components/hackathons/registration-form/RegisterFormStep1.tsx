@@ -1,10 +1,4 @@
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-} from "@/components/ui/form";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -31,9 +25,7 @@ export default function RegisterFormStep1({ user }: Step1Props) {
   return (
     <>
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-foreground">
-          Step 1: Personal Information
-        </h3>
+        <h3 className="text-lg font-semibold text-foreground">Step 1: Personal Information</h3>
         <p className="text-zinc-600">
           Provide your personal details to create your Builder Hub profile.
         </p>
@@ -101,8 +93,8 @@ export default function RegisterFormStep1({ user }: Step1Props) {
                   />
                 </FormControl>
                 <FormMessage className="text-zinc-600">
-                  If you are part of a company or affiliated with a university, mention it here. Otherwise,
-                  leave blank.
+                  If you are part of a company or affiliated with a university, mention it here.
+                  Otherwise, leave blank.
                 </FormMessage>
               </FormItem>
             )}
@@ -180,17 +172,14 @@ export default function RegisterFormStep1({ user }: Step1Props) {
                     {...field}
                   />
                 </FormControl>
-                <FormMessage className="text-zinc-600">
-                </FormMessage>
+                <FormMessage className="text-zinc-600"></FormMessage>
               </FormItem>
             )}
           />
         </div>
       </div>
       <div className="mt-8 mb-6">
-        <h3 className="text-lg font-semibold text-foreground mb-4">
-          Additional Information
-        </h3>
+        <h3 className="text-lg font-semibold text-foreground mb-4">Additional Information</h3>
         <div className="w-full h-px bg-zinc-300 mb-6" />
       </div>
 
@@ -202,11 +191,7 @@ export default function RegisterFormStep1({ user }: Step1Props) {
           render={({ field }) => (
             <FormItem className="flex items-center space-x-3">
               <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  className="mt-1"
-                />
+                <Checkbox checked={field.value} onCheckedChange={field.onChange} className="mt-1" />
               </FormControl>
               <div className="flex-1">
                 <FormLabel className="text-base font-medium cursor-pointer">
@@ -224,11 +209,7 @@ export default function RegisterFormStep1({ user }: Step1Props) {
           render={({ field }) => (
             <FormItem className="flex items-center space-x-3">
               <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  className="mt-1"
-                />
+                <Checkbox checked={field.value} onCheckedChange={field.onChange} className="mt-1" />
               </FormControl>
               <div className="flex-1">
                 <FormLabel className="text-base font-medium cursor-pointer">

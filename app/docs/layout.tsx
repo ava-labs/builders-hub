@@ -1,17 +1,17 @@
-import type { ReactNode } from 'react';
-import { baseOptions } from '@/app/layout.config';
+import type { ReactNode } from "react";
+import { baseOptions } from "@/app/layout.config";
 import {
   getDocumentationTree,
   getApiReferenceTree,
   getRpcsTree,
   getToolingTree,
-  getAcpsTree
-} from '@/lib/source';
-import { DocsLayoutWrapper } from './docs-layout-wrapper';
-import { LayoutWrapper } from '@/app/layout-wrapper.client';
-import 'fumadocs-twoslash/twoslash.css';
-import './critical.css';
-import './styles.css';
+  getAcpsTree,
+} from "@/lib/source";
+import { DocsLayoutWrapper } from "./docs-layout-wrapper";
+import { LayoutWrapper } from "@/app/layout-wrapper.client";
+import "fumadocs-twoslash/twoslash.css";
+import "./critical.css";
+import "./styles.css";
 
 export default function Layout({ children }: { children: ReactNode }) {
   // Generate all filtered trees server-side

@@ -11,7 +11,7 @@ interface TransactionDetailPageClientProps {
 export function TransactionDetailPageClient({ txHash }: TransactionDetailPageClientProps) {
   const chain = useChainContext();
   const shortHash = `${txHash.slice(0, 10)}...${txHash.slice(-8)}`;
-  
+
   return (
     <ExplorerLayout
       chainId={chain.chainId}
@@ -41,4 +41,3 @@ export function TransactionDetailPageClient({ txHash }: TransactionDetailPageCli
     </ExplorerLayout>
   );
 }
-

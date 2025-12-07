@@ -13,9 +13,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   return createOGResponse({
     title: title ?? "Stats",
-    description:
-      description ??
-      "Real-time metrics and analytics for the Avalanche ecosystem",
+    description: description ?? "Real-time metrics and analytics for the Avalanche ecosystem",
     path: "stats",
     fonts,
   });

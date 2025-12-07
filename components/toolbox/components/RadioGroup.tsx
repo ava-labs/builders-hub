@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import * as RadioGroupPrimitive from "@radix-ui/react-radio-group"
-import { CircleIcon } from "lucide-react"
-import { Label } from "@radix-ui/react-label"
-import { cn } from "../lib/utils"
-import { ReactNode } from "react"
+import * as RadioGroupPrimitive from "@radix-ui/react-radio-group";
+import { CircleIcon } from "lucide-react";
+import { Label } from "@radix-ui/react-label";
+import { cn } from "../lib/utils";
+import { ReactNode } from "react";
 
 type RadioItem = {
   value: string;
@@ -21,13 +21,7 @@ type RadioGroupProps = {
   idPrefix?: string;
 };
 
-function RadioGroup({
-  items,
-  value,
-  onChange,
-  className,
-  idPrefix = "",
-}: RadioGroupProps) {
+function RadioGroup({ items, value, onChange, className, idPrefix = "" }: RadioGroupProps) {
   return (
     <RadioGroupPrimitive.Root
       data-slot="radio-group"
@@ -53,19 +47,20 @@ function RadioGroup({
             </RadioGroupPrimitive.Indicator>
           </RadioGroupPrimitive.Item>
           <div className="flex-1">
-            <Label htmlFor={`${idPrefix}${item.value}`} className={item.isDisabled ? "text-gray-500" : ""}>
+            <Label
+              htmlFor={`${idPrefix}${item.value}`}
+              className={item.isDisabled ? "text-gray-500" : ""}
+            >
               {item.label}
             </Label>
             {item.details && (
-              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {item.details}
-              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">{item.details}</div>
             )}
           </div>
         </div>
       ))}
     </RadioGroupPrimitive.Root>
-  )
+  );
 }
 
-export { RadioGroup }
+export { RadioGroup };

@@ -5,10 +5,5 @@ interface ExplorerRootLayoutProps {
 }
 
 export default function ExplorerRootLayout({ children }: ExplorerRootLayoutProps) {
-  return (
-    <div className="min-h-screen bg-white">
-      {children}
-    </div>
-  );
+  return <div className="min-h-screen bg-white">{children}</div>;
 }
-

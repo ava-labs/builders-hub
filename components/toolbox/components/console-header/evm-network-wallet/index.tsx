@@ -1,78 +1,76 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu'
-import { useL1ListStore } from '@/components/toolbox/stores/l1ListStore'
-import { Button } from '@/components/ui/button'
-import { useWalletConnect } from '@/components/toolbox/hooks/useWalletConnect'
+import { useEffect, useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+} from "@/components/ui/dropdown-menu";
+import { useL1ListStore } from "@/components/toolbox/stores/l1ListStore";
+import { Button } from "@/components/ui/button";
+import { useWalletConnect } from "@/components/toolbox/hooks/useWalletConnect";
 
-import { useNetworkData } from './hooks/useNetworkData'
-import { useNetworkActions } from './hooks/useNetworkActions'
-import { NetworkList } from './components/NetworkList'
-import { NetworkActions } from './components/NetworkActions'
-import { WalletInfo } from './components/WalletInfo'
-import { ChainLogo } from './components/ChainLogo'
+import { useNetworkData } from "./hooks/useNetworkData";
+import { useNetworkActions } from "./hooks/useNetworkActions";
+import { NetworkList } from "./components/NetworkList";
+import { NetworkActions } from "./components/NetworkActions";
+import { WalletInfo } from "./components/WalletInfo";
+import { ChainLogo } from "./components/ChainLogo";
 
 export function EvmNetworkWallet() {
-  const [isEditMode, setIsEditMode] = useState(false)
-  const [isCoreWalletAvailable, setIsCoreWalletAvailable] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isCoreWalletAvailable, setIsCoreWalletAvailable] = useState(false);
 
-  const l1ListStore = useL1ListStore()
-  const removeL1 = l1ListStore((s: any) => s.removeL1)
+  const l1ListStore = useL1ListStore();
+  const removeL1 = l1ListStore((s: any) => s.removeL1);
 
-  const {
-    currentNetwork,
-    getNetworkBalance,
-    isNetworkActive,
-    walletEVMAddress,
-  } = useNetworkData()
+  const { currentNetwork, getNetworkBalance, isNetworkActive, walletEVMAddress } = useNetworkData();
 
-  const l1List = l1ListStore((s: any) => s.l1List)
+  const l1List = l1ListStore((s: any) => s.l1List);
 
-  const {
-    handleNetworkChange,
-    copyAddress,
-    openExplorer,
-    updateAllBalances,
-  } = useNetworkActions()
+  const { handleNetworkChange, copyAddress, openExplorer, updateAllBalances } = useNetworkActions();
 
-  const { connectWallet } = useWalletConnect()
+  const { connectWallet } = useWalletConnect();
 
   useEffect(() => {
-    const isCoreWalletInjected = (): boolean => (
-      typeof window !== 'undefined' && !!window.avalanche?.request
-    )
+    const isCoreWalletInjected = (): boolean =>
+      typeof window !== "undefined" && !!window.avalanche?.request;
 
-    setIsCoreWalletAvailable(isCoreWalletInjected())
-  }, [])
+    setIsCoreWalletAvailable(isCoreWalletInjected());
+  }, []);
 
   const handlePrimaryButtonClick = (): void => {
     if (isCoreWalletAvailable) {
-      void connectWallet()
-      return
+      void connectWallet();
+      return;
     }
-    if (typeof window !== 'undefined') {
-      window.open('https://core.app/download', '_blank', 'noopener,noreferrer')
+    if (typeof window !== "undefined") {
+      window.open("https://core.app/download", "_blank", "noopener,noreferrer");
     }
-  }
+  };
 
   const handleRemoveNetwork = (network: any) => {
-    removeL1(network.id)
-  }
+    removeL1(network.id);
+  };
 
   // Show connect wallet button if no wallet is connected
   if (!walletEVMAddress) {
-    const buttonLabel = isCoreWalletAvailable ? 'Connect Core Wallet' : 'Download Core Wallet'
+    const buttonLabel = isCoreWalletAvailable ? "Connect Core Wallet" : "Download Core Wallet";
     return (
-      <Button
-        onClick={handlePrimaryButtonClick}
-        size="sm"
-      >
-        <img src="/core-logo-dark.svg" alt="Core logo" className="mr-2 h-4 w-4 object-contain dark:hidden" />
-        <img src="/core-logo.svg" alt="Core logo" className="mr-2 h-4 w-4 object-contain hidden dark:block" />
+      <Button onClick={handlePrimaryButtonClick} size="sm">
+        <img
+          src="/core-logo-dark.svg"
+          alt="Core logo"
+          className="mr-2 h-4 w-4 object-contain dark:hidden"
+        />
+        <img
+          src="/core-logo.svg"
+          alt="Core logo"
+          className="mr-2 h-4 w-4 object-contain hidden dark:block"
+        />
         <span className="text-sm">{buttonLabel}</span>
       </Button>
-    )
+    );
   }
   return (
     <>
@@ -89,7 +87,10 @@ export function EvmNetworkWallet() {
               <div className="flex gap-2 items-center">
                 <span className="text-sm font-medium leading-none">{currentNetwork.name}</span>
                 <span className="text-xs text-muted-foreground leading-none">
-                  {typeof currentNetwork.balance === 'string' ? parseFloat(currentNetwork.balance).toFixed(4) : (currentNetwork.balance || 0).toFixed(4)} {(currentNetwork as any).coinName}
+                  {typeof currentNetwork.balance === "string"
+                    ? parseFloat(currentNetwork.balance).toFixed(4)
+                    : (currentNetwork.balance || 0).toFixed(4)}{" "}
+                  {(currentNetwork as any).coinName}
                 </span>
               </div>
             </div>
@@ -112,7 +113,7 @@ export function EvmNetworkWallet() {
           />
 
           <WalletInfo
-            walletAddress={walletEVMAddress || ''}
+            walletAddress={walletEVMAddress || ""}
             currentNetworkExplorerUrl={(currentNetwork as any)?.explorerUrl}
             currentNetwork={currentNetwork as any}
             onCopyAddress={copyAddress}
@@ -121,9 +122,8 @@ export function EvmNetworkWallet() {
           />
         </DropdownMenuContent>
       </DropdownMenu>
-
     </>
-  )
+  );
 }
 
-export default EvmNetworkWallet
+export default EvmNetworkWallet;

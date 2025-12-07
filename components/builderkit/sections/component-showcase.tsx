@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/utils/cn';
-import { CodeSnippet } from '@/components/builderkit/code-snippet';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/utils/cn";
+import { CodeSnippet } from "@/components/builderkit/code-snippet";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 const components = {
   ictt: {
-    name: 'ICTT',
+    name: "ICTT",
     code: `import { ICTT } from '@avalabs/builderkit';
 
 function App() {
@@ -17,10 +17,10 @@ function App() {
     </div>
   );
 }`,
-    preview: (<></>)
+    preview: <></>,
   },
   faucet: {
-    name: 'Faucet',
+    name: "Faucet",
     code: `import { Faucet } from '@avalabs/builderkit';
 
 function App() {
@@ -30,24 +30,23 @@ function App() {
     </div>
   );
 }`,
-    preview: (<></>)
-  }
+    preview: <></>,
+  },
 };
 
 export const ComponentShowcase = () => {
-  const [activeComponent, setActiveComponent] = useState<keyof typeof components>('ictt');
-  const [activeTab, setActiveTab] = useState<'preview' | 'code'>('code');
+  const [activeComponent, setActiveComponent] = useState<keyof typeof components>("ictt");
+  const [activeTab, setActiveTab] = useState<"preview" | "code">("code");
 
   return (
     <section className="py-20">
       <div className="max-w-6xl mx-auto px-4">
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           <div>
-            <h2 className="text-4xl font-bold mb-6">
-              Modern and Practical Components
-            </h2>
+            <h2 className="text-4xl font-bold mb-6">Modern and Practical Components</h2>
             <p className="text-md text-muted-foreground mb-8">
-              Start building quickly with ready-to-use components. Written in TypeScript, modern and customizable.
+              Start building quickly with ready-to-use components. Written in TypeScript, modern and
+              customizable.
             </p>
             <div className="flex flex-wrap gap-2">
               {Object.entries(components).map(([key, component]) => (
@@ -56,8 +55,8 @@ export const ComponentShowcase = () => {
                   onClick={() => setActiveComponent(key as keyof typeof components)}
                   className={cn(
                     "relative px-4 py-2 rounded-full text-sm font-medium transition-all border",
-                    activeComponent === key 
-                      ? "bg-[#1f66f4] text-white" 
+                    activeComponent === key
+                      ? "bg-[#1f66f4] text-white"
                       : "text-gray-400 hover:text-muted-foreground"
                   )}
                 >
@@ -69,10 +68,7 @@ export const ComponentShowcase = () => {
           <div className="bg-white/20 dark:bg-black/20 backdrop-blur-xs rounded-xl border border-black/10 dark:border-white/10 overflow-hidden">
             <div className="border-b border-black/10 dark:border-white/10">
               <div className="flex">
-                <TabButton
-                  active={activeTab === 'code'}
-                  onClick={() => setActiveTab('code')}
-                >
+                <TabButton active={activeTab === "code"} onClick={() => setActiveTab("code")}>
                   Code
                 </TabButton>
               </div>
@@ -87,7 +83,7 @@ export const ComponentShowcase = () => {
                   transition={{ duration: 0.2 }}
                   className="h-full"
                 >
-                  {activeTab === 'preview' ? (
+                  {activeTab === "preview" ? (
                     <div className="p-8 flex items-center justify-center h-full">
                       {components[activeComponent].preview}
                     </div>
@@ -110,13 +106,13 @@ export const ComponentShowcase = () => {
   );
 };
 
-const TabButton = ({ 
-  children, 
-  active, 
-  onClick 
-}: { 
-  children: React.ReactNode; 
-  active: boolean; 
+const TabButton = ({
+  children,
+  active,
+  onClick,
+}: {
+  children: React.ReactNode;
+  active: boolean;
   onClick: () => void;
 }) => (
   <button

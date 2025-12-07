@@ -1,22 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { Button } from '@/components/toolbox/components/Button';
-import { Input } from '@/components/toolbox/components/Input';
-import { Success } from '@/components/toolbox/components/Success';
-import { Alert } from '@/components/toolbox/components/Alert';
-import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import React, { useState, useEffect } from "react";
+import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { Button } from "@/components/toolbox/components/Button";
+import { Input } from "@/components/toolbox/components/Input";
+import { Success } from "@/components/toolbox/components/Success";
+import { Alert } from "@/components/toolbox/components/Alert";
+import { useAvalancheSDKChainkit } from "@/components/toolbox/stores/useAvalancheSDKChainkit";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 interface SubmitPChainTxRemovalProps {
   subnetIdL1: string;
   initialEvmTxHash?: string;
   signingSubnetId: string;
-  onSuccess: (pChainTxId: string, eventData: {
-    validationID: `0x${string}`;
-    validatorWeightMessageID: `0x${string}`;
-    weight: bigint;
-    endTime: bigint;
-  }) => void;
+  onSuccess: (
+    pChainTxId: string,
+    eventData: {
+      validationID: `0x${string}`;
+      validatorWeightMessageID: `0x${string}`;
+      weight: bigint;
+      endTime: bigint;
+    }
+  ) => void;
   onError: (message: string) => void;
 }
 
@@ -30,7 +33,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
   const { coreWalletClient, pChainAddress, publicClient } = useWalletStore();
   const { aggregateSignature } = useAvalancheSDKChainkit();
   const { notify } = useConsoleNotifications();
-  const [evmTxHash, setEvmTxHash] = useState(initialEvmTxHash || '');
+  const [evmTxHash, setEvmTxHash] = useState(initialEvmTxHash || "");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
@@ -53,7 +56,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
   const validateAndCleanTxHash = (hash: string): `0x${string}` | null => {
     if (!hash) return null;
     const cleanHash = hash.trim().toLowerCase();
-    if (!cleanHash.startsWith('0x')) return null;
+    if (!cleanHash.startsWith("0x")) return null;
     if (cleanHash.length !== 66) return null;
     return cleanHash as `0x${string}`;
   };
@@ -92,12 +95,19 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
 
         // Method 1: Look for the warp message topic (most reliable)
         // This works for both direct and multisig transactions when the warp precompile emits the event
-        const warpMessageTopic = "0x56600c567728a800c0aa927500f831cb451df66a7af570eb4df4dfbf4674887d";
+        const warpMessageTopic =
+          "0x56600c567728a800c0aa927500f831cb451df66a7af570eb4df4dfbf4674887d";
         const warpPrecompileAddress = "0x0200000000000000000000000000000000000005";
 
         const warpEventLog = receipt.logs.find((log) => {
-          return log && log.address && log.address.toLowerCase() === warpPrecompileAddress.toLowerCase() &&
-            log.topics && log.topics[0] && log.topics[0].toLowerCase() === warpMessageTopic.toLowerCase();
+          return (
+            log &&
+            log.address &&
+            log.address.toLowerCase() === warpPrecompileAddress.toLowerCase() &&
+            log.topics &&
+            log.topics[0] &&
+            log.topics[0].toLowerCase() === warpMessageTopic.toLowerCase()
+          );
         });
 
         if (warpEventLog && warpEventLog.data) {
@@ -108,7 +118,9 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
           // Multisig transactions often have different log ordering due to Safe contract interactions
           // The actual validator manager event may be in a different position
           if (receipt.logs.length > 1 && receipt.logs[1].data) {
-            console.log("🔍 [SubmitPChainTxRemoval] Using receipt.logs[1].data for potential multisig transaction");
+            console.log(
+              "🔍 [SubmitPChainTxRemoval] Using receipt.logs[1].data for potential multisig transaction"
+            );
             unsignedWarpMessage = receipt.logs[1].data;
           } else if (receipt.logs[0].data) {
             // Method 3: Fallback to first log data (original approach for direct transactions)
@@ -118,21 +130,31 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
         }
 
         if (!unsignedWarpMessage) {
-          throw new Error("Could not extract warp message from any log in the transaction receipt.");
+          throw new Error(
+            "Could not extract warp message from any log in the transaction receipt."
+          );
         }
 
-        console.log("🔍 [SubmitPChainTxRemoval] Extracted warp message:", unsignedWarpMessage.substring(0, 60) + "...");
+        console.log(
+          "🔍 [SubmitPChainTxRemoval] Extracted warp message:",
+          unsignedWarpMessage.substring(0, 60) + "..."
+        );
         setUnsignedWarpMessage(unsignedWarpMessage);
 
         // Extract event data for both InitiatedValidatorRemoval and InitiatedValidatorWeightUpdate
         // InitiatedValidatorRemoval: when initiateValidatorRemoval is used
         // InitiatedValidatorWeightUpdate: when resendValidatorRemovalMessage is used (fallback)
-        const removalEventTopic = "0x9e51aa28092b7ac0958967564371c129b31b238c0c0bdb0eb9cb4d1e40d724dc";
-        const weightUpdateEventTopic = "0x6e350dd49b060d87f297206fd309234ed43156d890ced0f139ecf704310481d3";
+        const removalEventTopic =
+          "0x9e51aa28092b7ac0958967564371c129b31b238c0c0bdb0eb9cb4d1e40d724dc";
+        const weightUpdateEventTopic =
+          "0x6e350dd49b060d87f297206fd309234ed43156d890ced0f139ecf704310481d3";
 
         console.log("🔍 [SubmitPChainTxRemoval] Looking for event topics:");
         console.log("🔍 [SubmitPChainTxRemoval] - InitiatedValidatorRemoval:", removalEventTopic);
-        console.log("🔍 [SubmitPChainTxRemoval] - InitiatedValidatorWeightUpdate:", weightUpdateEventTopic);
+        console.log(
+          "🔍 [SubmitPChainTxRemoval] - InitiatedValidatorWeightUpdate:",
+          weightUpdateEventTopic
+        );
         console.log("🔍 [SubmitPChainTxRemoval] - Warp Message:", warpMessageTopic);
 
         // First try to find the Warp message event from the precompile (already found above)
@@ -147,14 +169,26 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
         } else {
           // Fallback to looking for validator manager events
           eventLog = receipt.logs.find((log) => {
-            return log && log.topics && log.topics[0] && log.topics[0].toLowerCase() === removalEventTopic.toLowerCase();
+            return (
+              log &&
+              log.topics &&
+              log.topics[0] &&
+              log.topics[0].toLowerCase() === removalEventTopic.toLowerCase()
+            );
           });
 
           if (!eventLog) {
-            console.log("🔍 [SubmitPChainTxRemoval] InitiatedValidatorRemoval event not found, trying InitiatedValidatorWeightUpdate...");
+            console.log(
+              "🔍 [SubmitPChainTxRemoval] InitiatedValidatorRemoval event not found, trying InitiatedValidatorWeightUpdate..."
+            );
             // Try to find InitiatedValidatorWeightUpdate event (for resend fallback)
             eventLog = receipt.logs.find((log) => {
-              return log && log.topics && log.topics[0] && log.topics[0].toLowerCase() === weightUpdateEventTopic.toLowerCase();
+              return (
+                log &&
+                log.topics &&
+                log.topics[0] &&
+                log.topics[0].toLowerCase() === weightUpdateEventTopic.toLowerCase()
+              );
             });
             isWeightUpdateEvent = true;
           } else {
@@ -168,7 +202,9 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
                 console.error(`🔍 [SubmitPChainTxRemoval] Log ${index} topic[0]:`, log.topics[0]);
               }
             });
-            throw new Error("Failed to find InitiatedValidatorRemoval, InitiatedValidatorWeightUpdate, or Warp message event log.");
+            throw new Error(
+              "Failed to find InitiatedValidatorRemoval, InitiatedValidatorWeightUpdate, or Warp message event log."
+            );
           }
         }
 
@@ -182,7 +218,9 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
         // For Warp message events, we don't need to parse event data - we just need the warp message
         let parsedEventData;
         if (isWarpMessageEvent) {
-          console.log("🔍 [SubmitPChainTxRemoval] Using Warp message event - creating minimal event data");
+          console.log(
+            "🔍 [SubmitPChainTxRemoval] Using Warp message event - creating minimal event data"
+          );
           // For Warp message events, create minimal event data since we mainly need the warp message
           parsedEventData = {
             validationID: eventLog.topics[2] as `0x${string}`, // validation ID might be in topics[2]
@@ -237,7 +275,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
   const handleSubmitPChainTx = async () => {
     setErrorState(null);
     setTxSuccess(null);
-    
+
     if (!coreWalletClient) {
       setErrorState("Core wallet not found");
       return;
@@ -263,7 +301,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
       onError("Event data not found. Check the transaction hash.");
       return;
     }
-    if (typeof window === 'undefined' || !window.avalanche) {
+    if (typeof window === "undefined" || !window.avalanche) {
       setErrorState("Core wallet not found. Please ensure Core is installed and active.");
       onError("Core wallet not found. Please ensure Core is installed and active.");
       return;
@@ -282,10 +320,13 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
         signingSubnetId: signingSubnetId || subnetIdL1,
         quorumPercentage: 67,
       });
-      notify({
-        type: 'local',
-        name: 'Aggregate Signatures'
-      }, aggregateSignaturePromise);
+      notify(
+        {
+          type: "local",
+          name: "Aggregate Signatures",
+        },
+        aggregateSignaturePromise
+      );
       const { signedMessage } = await aggregateSignaturePromise;
 
       setSignedWarpMessage(signedMessage);
@@ -294,7 +335,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
       const pChainTxIdPromise = coreWalletClient.setL1ValidatorWeight({
         signedWarpMessage: signedMessage,
       });
-      notify('setL1ValidatorWeight', pChainTxIdPromise);
+      notify("setL1ValidatorWeight", pChainTxIdPromise);
       const pChainTxId = await pChainTxIdPromise;
 
       setTxSuccess(`P-Chain transaction successful! ID: ${pChainTxId}`);
@@ -303,14 +344,14 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
       let message = err instanceof Error ? err.message : String(err);
 
       // Handle specific error types
-      if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
-      } else if (message.includes('insufficient funds')) {
-        message = 'Insufficient funds for transaction';
-      } else if (message.includes('execution reverted')) {
+      if (message.includes("User rejected")) {
+        message = "Transaction was rejected by user";
+      } else if (message.includes("insufficient funds")) {
+        message = "Insufficient funds for transaction";
+      } else if (message.includes("execution reverted")) {
         message = `Transaction reverted: ${message}`;
-      } else if (message.includes('nonce')) {
-        message = 'Transaction nonce error. Please try again.';
+      } else if (message.includes("nonce")) {
+        message = "Transaction nonce error. Please try again.";
       }
 
       setErrorState(`P-Chain transaction failed: ${message}`);
@@ -348,23 +389,27 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
 
       <Button
         onClick={handleSubmitPChainTx}
-        disabled={isProcessing || !evmTxHash.trim() || !unsignedWarpMessage || !eventData || txSuccess !== null}
+        disabled={
+          isProcessing ||
+          !evmTxHash.trim() ||
+          !unsignedWarpMessage ||
+          !eventData ||
+          txSuccess !== null
+        }
       >
-        {isProcessing ? 'Processing...' : 'Sign & Submit to P-Chain'}
+        {isProcessing ? "Processing..." : "Sign & Submit to P-Chain"}
       </Button>
 
-      {error && (
-        <Alert variant="error">{error}</Alert>
-      )}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {txSuccess && (
         <Success
           label="Transaction Hash"
-          value={txSuccess.replace('P-Chain transaction successful! ID: ', '')}
+          value={txSuccess.replace("P-Chain transaction successful! ID: ", "")}
         />
       )}
     </div>
   );
 };
 
-export default SubmitPChainTxRemoval; 
+export default SubmitPChainTxRemoval;

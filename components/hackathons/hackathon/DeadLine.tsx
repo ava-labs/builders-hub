@@ -16,12 +16,8 @@ export default function DeadLine({ deadline }: Props) {
             // Convertimos ambas fechas a UTC para evitar desajustes de zona horaria
             const diffMs = deadLineDate.getTime() - now.getTime();
             const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-            const diffHours = Math.floor(
-              (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
-            );
-            const diffMinutes = Math.floor(
-              (diffMs % (1000 * 60 * 60)) / (1000 * 60)
-            );
+            const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
             if (diffMs < 0) {
               return "Deadline has passed"; // Opcional: mensaje si la fecha ya pasó

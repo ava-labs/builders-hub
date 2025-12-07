@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 
 export function useUTMPreservation() {
   const searchParams = useSearchParams();
@@ -7,10 +7,17 @@ export function useUTMPreservation() {
 
   useEffect(() => {
     // Store UTM parameters in sessionStorage when they're present
-    const utmParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm'];
+    const utmParams = [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_term",
+      "utm_content",
+      "utm",
+    ];
     const currentUTMs: Record<string, string> = {};
-    
-    utmParams.forEach(param => {
+
+    utmParams.forEach((param) => {
       const value = searchParams.get(param);
       if (value) {
         currentUTMs[param] = value;
@@ -23,7 +30,7 @@ export function useUTMPreservation() {
       const storedUTMs: Record<string, string> = {};
       let hasStoredUTMs = false;
 
-      utmParams.forEach(param => {
+      utmParams.forEach((param) => {
         const stored = sessionStorage.getItem(`preserved_${param}`);
         if (stored) {
           storedUTMs[param] = stored;
@@ -34,12 +41,12 @@ export function useUTMPreservation() {
       // Only restore UTMs on specific pages where they matter
       const currentPath = window.location.pathname;
       const utmImportantPaths = [
-        '/hackathons/registration-form',
-        '/hackathons/project-submission',
-        '/profile'
+        "/hackathons/registration-form",
+        "/hackathons/project-submission",
+        "/profile",
       ];
 
-      if (hasStoredUTMs && utmImportantPaths.some(path => currentPath.startsWith(path))) {
+      if (hasStoredUTMs && utmImportantPaths.some((path) => currentPath.startsWith(path))) {
         const currentUrl = new URL(window.location.href);
         Object.entries(storedUTMs).forEach(([key, value]) => {
           if (!currentUrl.searchParams.has(key)) {
@@ -49,7 +56,7 @@ export function useUTMPreservation() {
 
         // Only update if we actually added UTM parameters
         if (currentUrl.searchParams.toString() !== searchParams.toString()) {
-          router.replace(currentUrl.pathname + '?' + currentUrl.searchParams.toString());
+          router.replace(currentUrl.pathname + "?" + currentUrl.searchParams.toString());
         }
       }
     }
@@ -57,37 +64,51 @@ export function useUTMPreservation() {
 
   // Function to get preserved UTM parameters
   const getPreservedUTMs = (): Record<string, string> => {
-    if (typeof window === 'undefined') return {};
-    
-    const utmParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm'];
+    if (typeof window === "undefined") return {};
+
+    const utmParams = [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_term",
+      "utm_content",
+      "utm",
+    ];
     const preservedUTMs: Record<string, string> = {};
-    
-    utmParams.forEach(param => {
+
+    utmParams.forEach((param) => {
       const current = searchParams.get(param);
       const stored = sessionStorage.getItem(`preserved_${param}`);
-      
+
       if (current) {
         preservedUTMs[param] = current;
       } else if (stored) {
         preservedUTMs[param] = stored;
       }
     });
-    
+
     return preservedUTMs;
   };
 
   // Function to clear stored UTM parameters
   const clearPreservedUTMs = () => {
-    if (typeof window === 'undefined') return;
-    
-    const utmParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm'];
-    utmParams.forEach(param => {
+    if (typeof window === "undefined") return;
+
+    const utmParams = [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_term",
+      "utm_content",
+      "utm",
+    ];
+    utmParams.forEach((param) => {
       sessionStorage.removeItem(`preserved_${param}`);
     });
   };
 
   return {
     getPreservedUTMs,
-    clearPreservedUTMs
+    clearPreservedUTMs,
   };
-} 
+}

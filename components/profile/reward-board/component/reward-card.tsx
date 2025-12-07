@@ -31,7 +31,7 @@ export const RewardCard = ({
             priority={false}
             unoptimized={false}
             style={{
-              imageRendering: 'crisp-edges',
+              imageRendering: "crisp-edges",
             }}
           />
         </div>

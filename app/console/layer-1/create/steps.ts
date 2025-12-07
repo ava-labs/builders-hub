@@ -5,25 +5,29 @@ import ConvertSubnetToL1 from "@/components/toolbox/console/layer-1/create/Conve
 import CreateManagedTestnetNode from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/CreateManagedTestnetNode";
 
 export const steps: StepDefinition[] = [
-    {
-      type: "single",
-      key: "create-chain",
-      title: "Create Chain",
-      component: CreateChain,
-    },
-    {
-      type: "branch",
-      key: "node-setup",
-      title: "Set Up a Node",
-      options: [
-        { key: "managed-testnet-l1-nodes", label: "Managed Testnet L1 Nodes", component: CreateManagedTestnetNode },
-        { key: "l1-node-setup", label: "L1 Node Setup with Docker", component: AvalancheGoDockerL1 },
-      ],
-    },
-    {
-      type: "single",
-      key: "convert-to-l1",
-      title: "Convert to L1",
-      component: ConvertSubnetToL1,
-    },
+  {
+    type: "single",
+    key: "create-chain",
+    title: "Create Chain",
+    component: CreateChain,
+  },
+  {
+    type: "branch",
+    key: "node-setup",
+    title: "Set Up a Node",
+    options: [
+      {
+        key: "managed-testnet-l1-nodes",
+        label: "Managed Testnet L1 Nodes",
+        component: CreateManagedTestnetNode,
+      },
+      { key: "l1-node-setup", label: "L1 Node Setup with Docker", component: AvalancheGoDockerL1 },
+    ],
+  },
+  {
+    type: "single",
+    key: "convert-to-l1",
+    title: "Convert to L1",
+    component: ConvertSubnetToL1,
+  },
 ];

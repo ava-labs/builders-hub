@@ -1,7 +1,7 @@
 // Common configuration for Avalanche node setup
 
-import { SUBNET_EVM_VM_ID } from '@/constants/console';
-import { getContainerVersions } from '@/components/toolbox/utils/containerVersions';
+import { SUBNET_EVM_VM_ID } from "@/constants/console";
+import { getContainerVersions } from "@/components/toolbox/utils/containerVersions";
 
 // Constants
 export const C_CHAIN_ID = "C";
@@ -47,8 +47,8 @@ const generateVMConfig = (
         "debug",
         "debug-tracer",
         "debug-file-tracer",
-        "debug-handler"
-      ]
+        "debug-handler",
+      ],
     };
   }
 
@@ -74,7 +74,7 @@ export const nodeConfigBase64 = (
   // First encode the inner config object
   const vmConfigEncoded = btoa(JSON.stringify(vmConfig));
 
-  const configMap: Record<string, { Config: string, Upgrade: any }> = {};
+  const configMap: Record<string, { Config: string; Upgrade: any }> = {};
   configMap[chainId] = { Config: vmConfigEncoded, Upgrade: null };
 
   return btoa(JSON.stringify(configMap));
@@ -115,27 +115,36 @@ export const generateDockerCommand = (
   }
 
   // Add subnets to track if provided and not empty
-  subnets = subnets.filter(subnet => subnet !== "");
+  subnets = subnets.filter((subnet) => subnet !== "");
   if (subnets.length !== 0) {
     env.AVAGO_TRACK_SUBNETS = subnets.join(",");
   }
 
   // Set network ID
-  if (networkID === 5) { // Fuji
+  if (networkID === 5) {
+    // Fuji
     env.AVAGO_NETWORK_ID = "fuji";
-  } else if (networkID === 1) { // Mainnet
+  } else if (networkID === 1) {
+    // Mainnet
     // Default is mainnet, no need to set
   } else {
-    throw new Error(`This tool only supports Fuji (5) and Mainnet (1). Network ID ${networkID} is not supported.`);
+    throw new Error(
+      `This tool only supports Fuji (5) and Mainnet (1). Network ID ${networkID} is not supported.`
+    );
   }
 
   // Configure RPC settings
   if (isRPC) {
-    env.AVAGO_HTTP_ALLOWED_HOSTS = "\"*\"";
+    env.AVAGO_HTTP_ALLOWED_HOSTS = '"*"';
   }
 
   // Add chain config
-  env.AVAGO_CHAIN_CONFIG_CONTENT = nodeConfigBase64(chainId, debugEnabled, pruningEnabled, minDelayTarget);
+  env.AVAGO_CHAIN_CONFIG_CONTENT = nodeConfigBase64(
+    chainId,
+    debugEnabled,
+    pruningEnabled,
+    minDelayTarget
+  );
 
   // Check if this is a custom VM (not the standard subnet-evm)
   const isCustomVM = vmId !== SUBNET_EVM_VM_ID;
@@ -143,7 +152,7 @@ export const generateDockerCommand = (
   if (isCustomVM && !isPrimaryNetwork) {
     // Add VM aliases as an environment variable
     const vmAliases = {
-      [vmId]: [SUBNET_EVM_VM_ID]
+      [vmId]: [SUBNET_EVM_VM_ID],
     };
     const base64Content = btoa(JSON.stringify(vmAliases, null, 2));
     env.AVAGO_VM_ALIASES_FILE_CONTENT = base64Content;
@@ -162,10 +171,15 @@ export const generateDockerCommand = (
   const isTestnet = networkID === 5; // Fuji is testnet
   const versions = getContainerVersions(isTestnet);
   if (isPrimaryNetwork) {
-    chunks.push(`avaplatform/avalanchego:${versions['avaplatform/avalanchego']}`);
+    chunks.push(`avaplatform/avalanchego:${versions["avaplatform/avalanchego"]}`);
   } else {
-    chunks.push(`avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}`);
+    chunks.push(
+      `avaplatform/subnet-evm_avalanchego:${versions["avaplatform/subnet-evm_avalanchego"]}`
+    );
   }
 
-  return chunks.map(chunk => `    ${chunk}`).join(" \\\n").trim();
-}; 
+  return chunks
+    .map((chunk) => `    ${chunk}`)
+    .join(" \\\n")
+    .trim();
+};

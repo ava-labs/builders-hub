@@ -1,22 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { Button } from '@/components/toolbox/components/Button';
-import { Input } from '@/components/toolbox/components/Input';
-import { Success } from '@/components/toolbox/components/Success';
-import { Alert } from '@/components/toolbox/components/Alert';
-import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import React, { useState, useEffect } from "react";
+import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { Button } from "@/components/toolbox/components/Button";
+import { Input } from "@/components/toolbox/components/Input";
+import { Success } from "@/components/toolbox/components/Success";
+import { Alert } from "@/components/toolbox/components/Alert";
+import { useAvalancheSDKChainkit } from "@/components/toolbox/stores/useAvalancheSDKChainkit";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 interface SubmitPChainTxChangeWeightProps {
   subnetIdL1: string;
   initialEvmTxHash?: string;
   signingSubnetId: string;
-  onSuccess: (pChainTxId: string, eventData: {
-    validationID: `0x${string}`;
-    nonce: bigint;
-    weight: bigint;
-    messageID: `0x${string}`;
-  }) => void;
+  onSuccess: (
+    pChainTxId: string,
+    eventData: {
+      validationID: `0x${string}`;
+      nonce: bigint;
+      weight: bigint;
+      messageID: `0x${string}`;
+    }
+  ) => void;
   onError: (message: string) => void;
 }
 
@@ -30,7 +33,7 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
   const { coreWalletClient, pChainAddress, publicClient } = useWalletStore();
   const { aggregateSignature } = useAvalancheSDKChainkit();
   const { notify } = useConsoleNotifications();
-  const [evmTxHash, setEvmTxHash] = useState(initialEvmTxHash || '');
+  const [evmTxHash, setEvmTxHash] = useState(initialEvmTxHash || "");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
@@ -53,7 +56,7 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
   const validateAndCleanTxHash = (hash: string): `0x${string}` | null => {
     if (!hash) return null;
     const cleanHash = hash.trim().toLowerCase();
-    if (!cleanHash.startsWith('0x')) return null;
+    if (!cleanHash.startsWith("0x")) return null;
     if (cleanHash.length !== 66) return null;
     return cleanHash as `0x${string}`;
   };
@@ -94,12 +97,19 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
 
         // Method 1: Look for the warp message topic (most reliable)
         // This works for both direct and multisig transactions when the warp precompile emits the event
-        const warpMessageTopic = "0x56600c567728a800c0aa927500f831cb451df66a7af570eb4df4dfbf4674887d";
+        const warpMessageTopic =
+          "0x56600c567728a800c0aa927500f831cb451df66a7af570eb4df4dfbf4674887d";
         const warpPrecompileAddress = "0x0200000000000000000000000000000000000005";
 
         const warpEventLog = receipt.logs.find((log) => {
-          return log && log.address && log.address.toLowerCase() === warpPrecompileAddress.toLowerCase() &&
-            log.topics && log.topics[0] && log.topics[0].toLowerCase() === warpMessageTopic.toLowerCase();
+          return (
+            log &&
+            log.address &&
+            log.address.toLowerCase() === warpPrecompileAddress.toLowerCase() &&
+            log.topics &&
+            log.topics[0] &&
+            log.topics[0].toLowerCase() === warpMessageTopic.toLowerCase()
+          );
         });
 
         if (warpEventLog && warpEventLog.data) {
@@ -110,7 +120,9 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
           // Multisig transactions often have different log ordering due to Safe contract interactions
           // The actual validator manager event may be in a different position
           if (receipt.logs.length > 1 && receipt.logs[1].data) {
-            console.log("[WarpExtract] Using receipt.logs[1].data for potential multisig transaction");
+            console.log(
+              "[WarpExtract] Using receipt.logs[1].data for potential multisig transaction"
+            );
             unsignedWarpMessage = receipt.logs[1].data;
           } else if (receipt.logs[0].data) {
             // Method 3: Fallback to first log data (original approach for direct transactions)
@@ -120,16 +132,26 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
         }
 
         if (!unsignedWarpMessage) {
-          throw new Error("Could not extract warp message from any log in the transaction receipt.");
+          throw new Error(
+            "Could not extract warp message from any log in the transaction receipt."
+          );
         }
 
-        console.log("[WarpExtract] Extracted warp message:", unsignedWarpMessage.substring(0, 60) + "...");
+        console.log(
+          "[WarpExtract] Extracted warp message:",
+          unsignedWarpMessage.substring(0, 60) + "..."
+        );
         setUnsignedWarpMessage(unsignedWarpMessage);
 
         // Extract event data
         const eventTopic = "0x6e350dd49b060d87f297206fd309234ed43156d890ced0f139ecf704310481d3";
         const eventLog = receipt.logs.find((log) => {
-          return log && log.topics && log.topics[0] && log.topics[0].toLowerCase() === eventTopic.toLowerCase();
+          return (
+            log &&
+            log.topics &&
+            log.topics[0] &&
+            log.topics[0].toLowerCase() === eventTopic.toLowerCase()
+          );
         });
 
         if (!eventLog) {
@@ -190,7 +212,7 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
       onError("Event data not found. Check the transaction hash.");
       return;
     }
-    if (typeof window === 'undefined' || !window.avalanche) {
+    if (typeof window === "undefined" || !window.avalanche) {
       setErrorState("Core wallet not found. Please ensure Core is installed and active.");
       onError("Core wallet not found. Please ensure Core is installed and active.");
       return;
@@ -209,10 +231,13 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
         signingSubnetId: signingSubnetId || subnetIdL1,
         quorumPercentage: 67,
       });
-      notify({
-        type: 'local',
-        name: 'Aggregate Signatures'
-      }, aggregateSignaturePromise);
+      notify(
+        {
+          type: "local",
+          name: "Aggregate Signatures",
+        },
+        aggregateSignaturePromise
+      );
       const { signedMessage } = await aggregateSignaturePromise;
 
       setSignedWarpMessage(signedMessage);
@@ -221,7 +246,7 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
       const pChainTxIdPromise = coreWalletClient.setL1ValidatorWeight({
         signedWarpMessage: signedMessage,
       });
-      notify('setL1ValidatorWeight', pChainTxIdPromise);
+      notify("setL1ValidatorWeight", pChainTxIdPromise);
       const pChainTxId = await pChainTxIdPromise;
       setTxSuccess(`P-Chain transaction successful! ID: ${pChainTxId}`);
       onSuccess(pChainTxId, eventData);
@@ -229,14 +254,14 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
       let message = err instanceof Error ? err.message : String(err);
 
       // Handle specific error types
-      if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
-      } else if (message.includes('insufficient funds')) {
-        message = 'Insufficient funds for transaction';
-      } else if (message.includes('execution reverted')) {
+      if (message.includes("User rejected")) {
+        message = "Transaction was rejected by user";
+      } else if (message.includes("insufficient funds")) {
+        message = "Insufficient funds for transaction";
+      } else if (message.includes("execution reverted")) {
         message = `Transaction reverted: ${message}`;
-      } else if (message.includes('nonce')) {
-        message = 'Transaction nonce error. Please try again.';
+      } else if (message.includes("nonce")) {
+        message = "Transaction nonce error. Please try again.";
       }
 
       setErrorState(`P-Chain transaction failed: ${message}`);
@@ -274,23 +299,27 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
 
       <Button
         onClick={handleSubmitPChainTx}
-        disabled={isProcessing || !evmTxHash.trim() || !unsignedWarpMessage || !eventData || txSuccess !== null}
+        disabled={
+          isProcessing ||
+          !evmTxHash.trim() ||
+          !unsignedWarpMessage ||
+          !eventData ||
+          txSuccess !== null
+        }
       >
-        {isProcessing ? 'Processing...' : 'Sign & Submit to P-Chain'}
+        {isProcessing ? "Processing..." : "Sign & Submit to P-Chain"}
       </Button>
 
-      {error && (
-        <Alert variant="error">{error}</Alert>
-      )}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {txSuccess && (
         <Success
           label="Transaction Hash"
-          value={txSuccess.replace('P-Chain transaction successful! ID: ', '')}
+          value={txSuccess.replace("P-Chain transaction successful! ID: ", "")}
         />
       )}
     </div>
   );
 };
 
-export default SubmitPChainTxChangeWeight; 
+export default SubmitPChainTxChangeWeight;

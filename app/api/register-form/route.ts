@@ -8,11 +8,11 @@ export const POST = withAuth(async (req: NextRequest) => {
     const newHackathon = await createRegisterForm(body);
 
     return NextResponse.json(
-      { message: 'registration form created', hackathon: newHackathon },
+      { message: "registration form created", hackathon: newHackathon },
       { status: 201 }
     );
   } catch (error: any) {
-    console.error('Error POST /api/register-form:', error.message);
+    console.error("Error POST /api/register-form:", error.message);
     const wrappedError = error as Error;
     return NextResponse.json(
       {
@@ -20,10 +20,10 @@ export const POST = withAuth(async (req: NextRequest) => {
           message: wrappedError.message,
           stack: wrappedError.stack,
           cause: wrappedError.cause,
-          name: wrappedError.name
-        }
+          name: wrappedError.name,
+        },
       },
-      { status: wrappedError.cause === 'ValidationError' ? 400 : 500 }
+      { status: wrappedError.cause === "ValidationError" ? 400 : 500 }
     );
   }
 });
@@ -46,9 +46,6 @@ export const GET = withAuth(async (req: NextRequest) => {
     return NextResponse.json(registerFormLoaded);
   } catch (error) {
     console.error("Error in GET /api/register-form/", error);
-    return NextResponse.json(
-      { error: (error as Error).message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 });

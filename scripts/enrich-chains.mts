@@ -9,7 +9,6 @@
 
 import fs from 'fs';
 import path from 'path';
-import { sha256 } from '@noble/hashes/sha256';
 import { bytesToHex } from '@noble/hashes/utils';
 import { base58 } from '@scure/base';
 

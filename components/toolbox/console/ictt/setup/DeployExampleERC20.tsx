@@ -1,10 +1,7 @@
 "use client";
 
 import ExampleERC20 from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
-import {
-  useToolboxStore,
-  useViemChainStore,
-} from "@/components/toolbox/stores/toolboxStore";
+import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState } from "react";
 import { Button } from "@/components/toolbox/components/Button";
@@ -13,16 +10,18 @@ import { http, createPublicClient } from "viem";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { ExternalLink } from "lucide-react";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
+import {
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from "@/components/toolbox/components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 
 const metadata: ConsoleToolMetadata = {
   title: "Deploy Example ERC20",
-  description: "Deploy an ERC20 token contract for testing. If you want to use an existing token like USDC, you can skip this step.",
-  toolRequirements: [
-    WalletRequirementsConfigKey.EVMChainBalance
-  ],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  description:
+    "Deploy an ERC20 token contract for testing. If you want to use an existing token like USDC, you can skip this step.",
+  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 function DeployExampleERC20() {
@@ -78,9 +77,7 @@ function DeployExampleERC20() {
 
       setExampleErc20Address(receipt.contractAddress);
     } catch (error) {
-      setCriticalError(
-        error instanceof Error ? error : new Error(String(error))
-      );
+      setCriticalError(error instanceof Error ? error : new Error(String(error)));
     } finally {
       setIsDeploying(false);
     }
@@ -89,11 +86,10 @@ function DeployExampleERC20() {
   return (
     <div className="space-y-4">
       <div className="">
-        This will deploy an ERC20 token contract to your connected network
-        (Chain ID: <code>{walletChainId}</code>). You can use this token for
-        testing token transfers and other ERC20 interactions, where a total
-        supply of 1,000,000 tokens will be minted to your wallet - view the
-        contract{" "}
+        This will deploy an ERC20 token contract to your connected network (Chain ID:{" "}
+        <code>{walletChainId}</code>). You can use this token for testing token transfers and other
+        ERC20 interactions, where a total supply of 1,000,000 tokens will be minted to your wallet -
+        view the contract{" "}
         <a
           href="https://github.com/ava-labs/icm-contracts/blob/51dd21550444e7141d938fd721d994e29a58f7af/contracts/mocks/ExampleERC20.sol"
           target="_blank"
@@ -125,10 +121,7 @@ function DeployExampleERC20() {
         {exampleErc20Address ? "Re-Deploy ERC20 Token" : "Deploy ERC20 Token"}
       </Button>
 
-      <Success
-        label="ERC20 Token Address"
-        value={exampleErc20Address || ""}
-      />
+      <Success label="ERC20 Token Address" value={exampleErc20Address || ""} />
     </div>
   );
 }

@@ -1,10 +1,10 @@
-import { dataApi, metricsApi, pChainApi, cChainApi, xChainApi } from '@/lib/openapi';
-import { createAPIPage } from 'fumadocs-openapi/ui';
-import dataApiClient from './data-api-page.client';
-import metricsApiClient from './metrics-api-page.client';
-import pchainApiClient from './pchain-api-page.client';
-import cchainApiClient from './cchain-api-page.client';
-import xchainApiClient from './xchain-api-page.client';
+import { dataApi, metricsApi, pChainApi, cChainApi, xChainApi } from "@/lib/openapi";
+import { createAPIPage } from "fumadocs-openapi/ui";
+import dataApiClient from "./data-api-page.client";
+import metricsApiClient from "./metrics-api-page.client";
+import pchainApiClient from "./pchain-api-page.client";
+import cchainApiClient from "./cchain-api-page.client";
+import xchainApiClient from "./xchain-api-page.client";
 
 const DataAPIPageBase = createAPIPage(dataApi, {
   client: dataApiClient,
@@ -65,4 +65,3 @@ export function XChainAPIPage(props: any) {
     </div>
   );
 }
-

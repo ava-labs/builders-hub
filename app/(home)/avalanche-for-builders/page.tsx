@@ -1,7 +1,19 @@
 "use client";
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, TrendingUp, DollarSign, LinkIcon, Bitcoin, Zap, Shield, Wrench, Coins, Flame, Globe } from "lucide-react";
+import {
+  ArrowRight,
+  TrendingUp,
+  DollarSign,
+  LinkIcon,
+  Bitcoin,
+  Zap,
+  Shield,
+  Wrench,
+  Coins,
+  Flame,
+  Globe,
+} from "lucide-react";
 import Link from "next/link";
 import { HeroBackground } from "@/components/landing/hero";
 
@@ -71,18 +83,16 @@ function MetricCard({
   return (
     <div
       className={`group relative rounded-2xl p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10 ${
-        featured ? "bg-gradient-to-br from-red-50/70 to-rose-100/70 border-red-200/50 dark:from-red-950/30 dark:to-rose-950/40 dark:border-red-800/40" : gradients[gradientIndex]
+        featured
+          ? "bg-gradient-to-br from-red-50/70 to-rose-100/70 border-red-200/50 dark:from-red-950/30 dark:to-rose-950/40 dark:border-red-800/40"
+          : gradients[gradientIndex]
       }`}
     >
-      {featured && (
-        <div className="absolute top-0 left-0 right-0 h-1 bg-avax-red rounded-t-2xl" />
-      )}
+      {featured && <div className="absolute top-0 left-0 right-0 h-1 bg-avax-red rounded-t-2xl" />}
       <div className="text-3xl mb-5 transition-transform duration-300 group-hover:scale-110">
         {icon}
       </div>
-      <h3 className="text-base font-medium text-muted-foreground mb-3">
-        {title}
-      </h3>
+      <h3 className="text-base font-medium text-muted-foreground mb-3">{title}</h3>
       <div className="text-4xl font-bold mb-4">{number}</div>
       <p className="text-muted-foreground text-sm">{description}</p>
     </div>
@@ -125,8 +135,7 @@ export default function AvalancheForBuildersPage() {
             </div>
 
             <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight leading-[1.1] text-balance max-w-5xl mx-auto">
-              Get Funded to{" "}
-              <span className="text-avax-red">Build the Future</span>
+              Get Funded to <span className="text-avax-red">Build the Future</span>
             </h1>
 
             <p className="text-lg md:text-xl text-muted-foreground font-medium leading-relaxed max-w-3xl mx-auto text-balance">
@@ -134,10 +143,9 @@ export default function AvalancheForBuildersPage() {
             </p>
 
             <p className="text-sm md:text-base text-muted-foreground leading-relaxed max-w-2xl mx-auto text-pretty">
-              Stop waiting for the perfect moment. Join the most successful
-              builders who are already funded and shipping. From breakthrough
-              infrastructure to viral consumer apps - we're backing the teams
-              that will define Web3's next chapter.
+              Stop waiting for the perfect moment. Join the most successful builders who are already
+              funded and shipping. From breakthrough infrastructure to viral consumer apps -
+              we&apos;re backing the teams that will define Web3&apos;s next chapter.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
@@ -177,8 +185,8 @@ export default function AvalancheForBuildersPage() {
                 Momentum is Everything
               </h2>
               <p className="text-base md:text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed text-pretty">
-                September 2025 proves it: builders who choose Avalanche see
-                explosive growth and real adoption
+                September 2025 proves it: builders who choose Avalanche see explosive growth and
+                real adoption
               </p>
             </div>
 
@@ -215,9 +223,9 @@ export default function AvalancheForBuildersPage() {
 
             <div className="text-center max-w-4xl mx-auto p-8 bg-gradient-to-br from-violet-50/60 to-purple-100/60 border border-violet-200/40 rounded-2xl dark:from-violet-950/20 dark:to-purple-950/30 dark:border-violet-800/30">
               <p className="text-foreground/90 text-sm md:text-base leading-relaxed text-pretty">
-                Smart builders recognize momentum when they see it. Avalanche
-                isn't just growing - it's becoming the platform where serious
-                projects get built, funded, and adopted at scale.
+                Smart builders recognize momentum when they see it. Avalanche isn&apos;t just
+                growing - it&apos;s becoming the platform where serious projects get built, funded,
+                and adopted at scale.
               </p>
             </div>
 
@@ -233,9 +241,8 @@ export default function AvalancheForBuildersPage() {
                 Your Peers Are Shipping
               </h2>
               <p className="text-base md:text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed text-pretty">
-                While others talk, these funded teams are building applications
-                that governments, institutions, and millions of users actually
-                adopt
+                While others talk, these funded teams are building applications that governments,
+                institutions, and millions of users actually adopt
               </p>
             </div>
 
@@ -286,8 +293,8 @@ export default function AvalancheForBuildersPage() {
                 Why Top Builders Choose Avalanche
               </h2>
               <p className="text-base md:text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed text-pretty">
-                The only blockchain that doesn't force you to compromise between
-                performance, decentralization, and customization
+                The only blockchain that doesn&apos;t force you to compromise between performance,
+                decentralization, and customization
               </p>
             </div>
 
@@ -338,10 +345,9 @@ export default function AvalancheForBuildersPage() {
                 Your Project Could Be Next
               </h2>
               <p className="text-base md:text-lg text-muted-foreground leading-relaxed text-pretty">
-                The best builders in Web3 are already here and funded. Don't
-                watch from the sidelines while your competitors get the
-                resources, mentorship, and ecosystem access that could have been
-                yours.
+                The best builders in Web3 are already here and funded. Don&apos;t watch from the
+                sidelines while your competitors get the resources, mentorship, and ecosystem access
+                that could have been yours.
               </p>
               <div className="pt-4">
                 <Link

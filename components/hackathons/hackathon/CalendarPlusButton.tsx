@@ -1,5 +1,3 @@
 export default function CalendarPlusButton() {
-  return (
-    <div>CalendarPlusButton</div>
-  )
+  return <div>CalendarPlusButton</div>;
 }

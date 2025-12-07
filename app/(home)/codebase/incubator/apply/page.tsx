@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import type React from "react";
 import { useState } from "react";
@@ -17,25 +17,25 @@ export default function Page() {
     experience: "",
     motivation: "",
     availability: "",
-  })
+  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log("Codebase application submitted:", formData)
-  }
+    e.preventDefault();
+    console.log("Codebase application submitted:", formData);
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground p-6 md:p-12 flex flex-col items-center">
       <div className="w-full max-w-3xl">
         <h1 className="text-5xl font-semibold mb-6">Apply to Codebase Incubator Season 4</h1>
         <p className="text-muted-foreground mb-12">
-          Join our incubator program to turn your innovative ideas into reality. We provide mentorship, resources, and a
-          supportive community.
+          Join our incubator program to turn your innovative ideas into reality. We provide
+          mentorship, resources, and a supportive community.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -159,5 +159,5 @@ export default function Page() {
         </form>
       </div>
     </div>
-  )
+  );
 }

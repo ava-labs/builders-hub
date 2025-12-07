@@ -24,11 +24,6 @@ export const metadata: Metadata = createMetadata({
   },
 });
 
-export default function ChainListLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function ChainListLayout({ children }: { children: React.ReactNode }) {
   return children;
 }
-

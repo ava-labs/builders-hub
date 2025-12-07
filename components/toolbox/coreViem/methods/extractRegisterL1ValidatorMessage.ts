@@ -2,15 +2,15 @@ import type { AvalancheWalletClient } from "@avalanche-sdk/client";
 import { getTx } from "@avalanche-sdk/client/methods/pChain";
 import { isTestnet } from "./isTestnet";
 import { networkIDs, utils } from "@avalabs/avalanchejs";
-import { 
+import {
   unpackRegisterL1ValidatorPayload,
   extractPayloadFromWarpMessage,
-  extractPayloadFromAddressedCall 
+  extractPayloadFromAddressedCall,
 } from "../utils/convertWarp";
 
 export type ExtractRegisterL1ValidatorMessageParams = {
   txId: string;
-}
+};
 
 export type ExtractRegisterL1ValidatorMessageResponse = {
   message: string;
@@ -20,7 +20,7 @@ export type ExtractRegisterL1ValidatorMessageResponse = {
   expiry: bigint;
   weight: bigint;
   networkId: typeof networkIDs.FujiID | typeof networkIDs.MainnetID;
-}
+};
 
 /**
  * Extracts RegisterL1ValidatorMessage from a P-Chain RegisterL1ValidatorTx
@@ -38,15 +38,15 @@ export async function extractRegisterL1ValidatorMessage(
   // Use SDK's getTx method to fetch the transaction
   const txData = await getTx(client.pChainClient, {
     txID: txId,
-    encoding: 'json'
+    encoding: "json",
   });
 
   // The SDK returns the transaction data directly
   const data = txData as any;
 
   if (!data?.tx?.unsignedTx) {
-    console.log('txId', txId);
-    console.log('data', data);
+    console.log("txId", txId);
+    console.log("data", data);
     throw new Error("Invalid transaction data, are you sure this is a RegisterL1ValidatorTx?");
   }
 
@@ -54,7 +54,7 @@ export async function extractRegisterL1ValidatorMessage(
 
   // Extract the WarpMessage from the transaction
   if (!unsignedTx.message) {
-    console.log('Transaction structure:', JSON.stringify(unsignedTx, null, 2));
+    console.log("Transaction structure:", JSON.stringify(unsignedTx, null, 2));
     throw new Error("Transaction does not contain a WarpMessage");
   }
 
@@ -78,8 +78,6 @@ export async function extractRegisterL1ValidatorMessage(
     blsPublicKey: utils.bufferToHex(Buffer.from(parsedData.blsPublicKey)),
     expiry: parsedData.registrationExpiry,
     weight: parsedData.weight,
-    networkId
+    networkId,
   };
 }
-
-

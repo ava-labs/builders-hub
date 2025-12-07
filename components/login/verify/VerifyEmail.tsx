@@ -7,27 +7,16 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Form } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import Link from "next/link";
 import { VerifyEmailProps } from "@/types/verifyEmailProps";
 import axios from "axios";
 import { LoadingButton } from "@/components/ui/loading-button";
 const verifySchema = z.object({
-  code: z
-    .string()
-    .length(6, "Code must be 6 digits")
-    .regex(/^\d+$/, "Code must be only numbers"),
+  code: z.string().length(6, "Code must be 6 digits").regex(/^\d+$/, "Code must be only numbers"),
 });
 
-export function VerifyEmail({
-  email,
-  onBack,
-  callbackUrl = "/",
-}: VerifyEmailProps) {
+export function VerifyEmail({ email, onBack, callbackUrl = "/" }: VerifyEmailProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(60);
   const [isResending, setIsResending] = useState(false);
@@ -123,19 +112,14 @@ export function VerifyEmail({
   return (
     <div className="flex gap-[10px] justify-center border-none">
       <div className="w-[400px]  p-6 rounded-lg border-none ">
-        <h1 className="text-2xl font-semibold text-center mb-4 border-none">
-          Verify Your Email
-        </h1>
+        <h1 className="text-2xl font-semibold text-center mb-4 border-none">Verify Your Email</h1>
         <p className="text-sm text-gray-400 mb-6">
           Enter the 6-digit sent to you at <br />
           <strong>{email}</strong>. It expires in 3 minutes.
         </p>
 
         <Form {...formMethods}>
-          <form
-            onSubmit={formMethods.handleSubmit(handleVerify)}
-            className="space-y-4"
-          >
+          <form onSubmit={formMethods.handleSubmit(handleVerify)} className="space-y-4">
             <div className="flex flex-col items-center space-y-2">
               <InputOTP
                 className="w-[350px] h-10 flex justify-between text-white"
@@ -225,8 +209,7 @@ export function VerifyEmail({
           <div className="mt-6 px-8 gap-2 text-sm justify-center text-center">
             <p>
               You can request a new code in 00:
-              {resendCooldown > 9 ? resendCooldown : "0" + resendCooldown}{" "}
-              seconds.
+              {resendCooldown > 9 ? resendCooldown : "0" + resendCooldown} seconds.
             </p>
           </div>
         )}

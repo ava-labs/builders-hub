@@ -44,9 +44,8 @@ export default function ContactPage() {
               </span>
             </h1>
             <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
-              Apply for funding to build innovative projects on Avalanche. Join
-              our ecosystem and help shape the future of decentralized
-              applications.
+              Apply for funding to build innovative projects on Avalanche. Join our ecosystem and
+              help shape the future of decentralized applications.
             </p>
           </div>
         </section>

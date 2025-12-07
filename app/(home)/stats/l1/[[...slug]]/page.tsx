@@ -7,7 +7,7 @@ import { L1Chain } from "@/types/stats";
 // Helper function to find chain by slug
 function findChainBySlug(slug?: string): L1Chain | null {
   if (!slug) return null;
-  return l1ChainsData.find((c) => c.slug === slug) as L1Chain || null;
+  return (l1ChainsData.find((c) => c.slug === slug) as L1Chain) || null;
 }
 
 export async function generateMetadata({
@@ -18,7 +18,7 @@ export async function generateMetadata({
   const resolvedParams = await params;
   const slugArray = resolvedParams.slug || [];
   const chainSlug = slugArray[0];
-  
+
   const currentChain = l1ChainsData.find((c) => c.slug === chainSlug) as L1Chain;
 
   if (!currentChain) {
@@ -28,9 +28,9 @@ export async function generateMetadata({
     };
   }
 
-  let title = `${currentChain.chainName} Metrics`;
-  let description = `Track ${currentChain.chainName} L1 activity with real-time metrics including active addresses, transactions, gas usage, fees, and network performance data.`;
-  let url = `/stats/l1/${chainSlug}`;
+  const title = `${currentChain.chainName} Metrics`;
+  const description = `Track ${currentChain.chainName} L1 activity with real-time metrics including active addresses, transactions, gas usage, fees, and network performance data.`;
+  const url = `/stats/l1/${chainSlug}`;
 
   const imageParams = new URLSearchParams();
   imageParams.set("title", title);
@@ -56,11 +56,7 @@ export async function generateMetadata({
   };
 }
 
-export default async function L1Page({
-  params,
-}: {
-  params: Promise<{ slug?: string[] }>;
-}) {
+export default async function L1Page({ params }: { params: Promise<{ slug?: string[] }> }) {
   const resolvedParams = await params;
   const slugArray = resolvedParams.slug || [];
   const chainSlug = slugArray[0];
@@ -73,7 +69,9 @@ export default async function L1Page({
   const txHash = isTx ? slugArray[3] : undefined;
   const address = isAddress ? slugArray[3] : undefined;
 
-  if (!chainSlug) { notFound(); }
+  if (!chainSlug) {
+    notFound();
+  }
 
   // Redirect explorer routes to new /explorer/ prefix
   if (isExplorer) {
@@ -90,7 +88,9 @@ export default async function L1Page({
 
   const currentChain = l1ChainsData.find((c) => c.slug === chainSlug) as L1Chain;
 
-  if (!currentChain) { notFound(); }
+  if (!currentChain) {
+    notFound();
+  }
 
   // L1 Metrics page: /stats/l1/{chainSlug} (also handle legacy /stats/l1/{chainSlug}/stats)
   if (slugArray.length === 1 || secondSegment === "stats") {

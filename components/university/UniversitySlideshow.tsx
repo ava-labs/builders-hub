@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import Image from 'next/image';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface SlideshowImage {
   url: string;
@@ -25,15 +25,15 @@ export default function UniversitySlideshow({ className = "" }: UniversitySlides
   useEffect(() => {
     const fetchImages = async () => {
       try {
-        const response = await fetch('/api/university/slideshow');
+        const response = await fetch("/api/university/slideshow");
         if (!response.ok) {
-          throw new Error('Failed to fetch slideshow images');
+          throw new Error("Failed to fetch slideshow images");
         }
         const data = await response.json();
         setImages(data.images || []);
       } catch (err) {
-        console.error('Error fetching slideshow images:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load images');
+        console.error("Error fetching slideshow images:", err);
+        setError(err instanceof Error ? err.message : "Failed to load images");
       } finally {
         setLoading(false);
       }
@@ -137,9 +137,7 @@ export default function UniversitySlideshow({ className = "" }: UniversitySlides
                 />
               </svg>
             </div>
-            <p className="text-muted-foreground">
-              No slideshow images found
-            </p>
+            <p className="text-muted-foreground">No slideshow images found</p>
           </div>
         </div>
       </div>
@@ -158,7 +156,7 @@ export default function UniversitySlideshow({ className = "" }: UniversitySlides
             className="object-cover"
             priority={currentIndex === 0}
           />
-          
+
           {/* Navigation Arrows */}
           {images.length > 1 && (
             <>
@@ -190,8 +188,8 @@ export default function UniversitySlideshow({ className = "" }: UniversitySlides
                 key={index}
                 className={`w-3 h-3 rounded-full transition-all duration-200 ${
                   index === currentIndex
-                    ? 'bg-white shadow-lg scale-110'
-                    : 'bg-white/60 hover:bg-white/80 hover:scale-105'
+                    ? "bg-white shadow-lg scale-110"
+                    : "bg-white/60 hover:bg-white/80 hover:scale-105"
                 }`}
                 onClick={() => goToImage(index)}
                 aria-label={`Go to slide ${index + 1}`}

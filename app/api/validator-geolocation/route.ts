@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 import { Avalanche } from "@avalanche-sdk/chainkit";
 
 const avalanche = new Avalanche({
@@ -36,7 +36,7 @@ interface CountryData {
 
 let cachedGeoData: { data: CountryData[]; timestamp: number } | null = null;
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-const CACHE_CONTROL_HEADER = 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=172800';
+const CACHE_CONTROL_HEADER = "public, max-age=86400, s-maxage=86400, stale-while-revalidate=172800";
 
 async function fetchAllValidators(): Promise<Validator[]> {
   try {
@@ -48,48 +48,53 @@ async function fetchAllValidators(): Promise<Validator[]> {
 
     for await (const page of result) {
       if (!page?.result?.validators || !Array.isArray(page.result.validators)) {
-        console.warn('Invalid page structure:', page);
+        console.warn("Invalid page structure:", page);
         continue;
       }
 
       const validatorsWithGeo = page.result.validators
         .filter((v: any) => v.geolocation && v.geolocation.country)
-        .map((v: any): Validator => ({
-          nodeId: v.nodeId,
-          amountStaked: v.amountStaked,
-          validationStatus: v.validationStatus,
-          avalancheGoVersion: v.avalancheGoVersion || 'unknown',
-          geolocation: {
-            city: v.geolocation.city,
-            country: v.geolocation.country,
-            countryCode: v.geolocation.countryCode,
-            latitude: v.geolocation.latitude,
-            longitude: v.geolocation.longitude,
-          }
-        }));
-      
+        .map(
+          (v: any): Validator => ({
+            nodeId: v.nodeId,
+            amountStaked: v.amountStaked,
+            validationStatus: v.validationStatus,
+            avalancheGoVersion: v.avalancheGoVersion || "unknown",
+            geolocation: {
+              city: v.geolocation.city,
+              country: v.geolocation.country,
+              countryCode: v.geolocation.countryCode,
+              latitude: v.geolocation.latitude,
+              longitude: v.geolocation.longitude,
+            },
+          })
+        );
+
       allValidators.push(...validatorsWithGeo);
     }
     return allValidators;
   } catch (error) {
-    console.error('Error fetching validators with SDK:', error);
+    console.error("Error fetching validators with SDK:", error);
     return [];
   }
 }
 
 function aggregateByCountry(validators: Validator[]): CountryData[] {
-  const countryMap = new Map<string, {
-    validators: number;
-    totalStaked: bigint;
-    latSum: number;
-    lngSum: number;
-    countryCode: string;
-  }>();
+  const countryMap = new Map<
+    string,
+    {
+      validators: number;
+      totalStaked: bigint;
+      latSum: number;
+      lngSum: number;
+      countryCode: string;
+    }
+  >();
 
-  let totalValidators = validators.length;
+  const totalValidators = validators.length;
   let totalStaked = BigInt(0);
 
-  validators.forEach(validator => {
+  validators.forEach((validator) => {
     const country = validator.geolocation.country;
     const staked = BigInt(validator.amountStaked);
     totalStaked += staked;
@@ -112,7 +117,7 @@ function aggregateByCountry(validators: Validator[]): CountryData[] {
   });
 
   const result: CountryData[] = [];
-  
+
   countryMap.forEach((data, country) => {
     const percentage = totalValidators > 0 ? (data.validators / totalValidators) * 100 : 0;
     const avgLat = data.validators > 0 ? data.latSum / data.validators : 0;
@@ -136,7 +141,7 @@ function aggregateByCountry(validators: Validator[]): CountryData[] {
 function latLngToSVG(lat: number, lng: number): { x: number; y: number } {
   const x = ((lng + 180) / 360) * 900;
   const y = ((90 - lat) / 180) * 400;
-  
+
   return { x, y };
 }
 
@@ -146,62 +151,61 @@ export async function GET() {
       console.log(`[GET /api/validator-geolocation] Source: cache`);
       return NextResponse.json(cachedGeoData.data, {
         headers: {
-          'Cache-Control': CACHE_CONTROL_HEADER,
-          'X-Data-Source': 'cache',
-          'X-Cache-Timestamp': new Date(cachedGeoData.timestamp).toISOString(),
-        }
+          "Cache-Control": CACHE_CONTROL_HEADER,
+          "X-Data-Source": "cache",
+          "X-Cache-Timestamp": new Date(cachedGeoData.timestamp).toISOString(),
+        },
       });
     }
 
     const startTime = Date.now();
 
     const validators = await fetchAllValidators();
-    
+
     if (validators.length === 0) {
       return NextResponse.json([], {
         headers: {
-          'X-Error': 'No validators found',
-        }
+          "X-Error": "No validators found",
+        },
       });
     }
 
-    const countryData = aggregateByCountry(validators);    
-    const countryDataWithCoords = countryData.map(country => ({
+    const countryData = aggregateByCountry(validators);
+    const countryDataWithCoords = countryData.map((country) => ({
       ...country,
-      ...latLngToSVG(country.latitude, country.longitude)
+      ...latLngToSVG(country.latitude, country.longitude),
     }));
     cachedGeoData = {
       data: countryDataWithCoords,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     const fetchTime = Date.now() - startTime;
     console.log(`[GET /api/validator-geolocation] Source: fresh, fetchTime: ${fetchTime}ms`);
     return NextResponse.json(countryDataWithCoords, {
       headers: {
-        'Cache-Control': CACHE_CONTROL_HEADER,
-        'X-Data-Source': 'fresh',
-        'X-Fetch-Time': `${fetchTime}ms`,
-        'X-Total-Validators': validators.length.toString(),
-        'X-Total-Countries': countryData.length.toString(),
-      }
+        "Cache-Control": CACHE_CONTROL_HEADER,
+        "X-Data-Source": "fresh",
+        "X-Fetch-Time": `${fetchTime}ms`,
+        "X-Total-Validators": validators.length.toString(),
+        "X-Total-Countries": countryData.length.toString(),
+      },
     });
-
   } catch (error) {
-    console.error('Error in validator geolocation API:', error);
-    
+    console.error("Error in validator geolocation API:", error);
+
     if (cachedGeoData) {
       console.log(`[GET /api/validator-geolocation] Source: cache-fallback`);
       return NextResponse.json(cachedGeoData.data, {
         headers: {
-          'X-Data-Source': 'cache-fallback',
-          'X-Error': 'true',
-        }
+          "X-Data-Source": "cache-fallback",
+          "X-Error": "true",
+        },
       });
     }
-    
+
     return NextResponse.json(
-      { error: 'Failed to fetch validator geolocation data' },
+      { error: "Failed to fetch validator geolocation data" },
       { status: 500 }
     );
   }

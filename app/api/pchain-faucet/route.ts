@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 import { TransferableOutput, addTxSignatures, pvm, utils, Context } from "@avalabs/avalanchejs";
-import { getAuthSession } from '@/lib/auth/authSession';
-import { rateLimit } from '@/lib/rateLimit';
+import { getAuthSession } from "@/lib/auth/authSession";
+import { rateLimit } from "@/lib/rateLimit";
 
 const SERVER_PRIVATE_KEY = process.env.SERVER_PRIVATE_KEY;
 const FAUCET_P_CHAIN_ADDRESS = process.env.FAUCET_P_CHAIN_ADDRESS;
-const NETWORK_API = 'https://api.avax-test.network';
+const NETWORK_API = "https://api.avax-test.network";
 const FIXED_AMOUNT = 0.5;
 
 if (!SERVER_PRIVATE_KEY || !FAUCET_P_CHAIN_ADDRESS) {
-  console.error('necessary environment variables are not set');
+  console.error("necessary environment variables are not set");
 }
 
 interface TransferResponse {
@@ -22,7 +22,7 @@ interface TransferResponse {
 }
 
 async function transferPToP(
-  sourcePrivateKey: string, 
+  sourcePrivateKey: string,
   sourceAddress: string,
   destinationAddress: string
 ): Promise<{ txID: string }> {
@@ -30,7 +30,7 @@ async function transferPToP(
   const context = await Context.getContextFromURI(NETWORK_API);
   const { utxos } = await pvmApi.getUTXOs({ addresses: [sourceAddress] });
   if (utxos.length === 0) {
-    throw new Error('No UTXOs found for source address');
+    throw new Error("No UTXOs found for source address");
   }
 
   const feeState = await pvmApi.getFeeState();
@@ -40,15 +40,13 @@ async function transferPToP(
       feeState,
       fromAddressesBytes: [utils.bech32ToBytes(sourceAddress)],
       outputs: [
-        TransferableOutput.fromNative(
-          context.avaxAssetID,
-          amountNAvax,
-          [utils.bech32ToBytes(destinationAddress)],
-        ),
+        TransferableOutput.fromNative(context.avaxAssetID, amountNAvax, [
+          utils.bech32ToBytes(destinationAddress),
+        ]),
       ],
       utxos,
     },
-    context,
+    context
   );
 
   await addTxSignatures({
@@ -61,44 +59,44 @@ async function transferPToP(
 
 async function validateFaucetRequest(request: NextRequest): Promise<NextResponse | null> {
   try {
-    const session = await getAuthSession();    
+    const session = await getAuthSession();
     if (!session?.user) {
       return NextResponse.json(
-        { success: false, message: 'Authentication required' },
+        { success: false, message: "Authentication required" },
         { status: 401 }
       );
     }
-    
+
     if (!SERVER_PRIVATE_KEY || !FAUCET_P_CHAIN_ADDRESS) {
       return NextResponse.json(
-        { success: false, message: 'Server not properly configured' },
+        { success: false, message: "Server not properly configured" },
         { status: 500 }
       );
     }
-      
+
     const searchParams = request.nextUrl.searchParams;
-    const destinationAddress = searchParams.get('address');
+    const destinationAddress = searchParams.get("address");
 
     if (!destinationAddress) {
       return NextResponse.json(
-        { success: false, message: 'Destination address is required' },
+        { success: false, message: "Destination address is required" },
         { status: 400 }
       );
     }
-    
+
     if (destinationAddress === FAUCET_P_CHAIN_ADDRESS) {
       return NextResponse.json(
-        { success: false, message: 'Cannot send tokens to the faucet address' },
+        { success: false, message: "Cannot send tokens to the faucet address" },
         { status: 400 }
       );
     }
     return null;
   } catch (error) {
-    console.error('Validation failed:', error);
+    console.error("Validation failed:", error);
     return NextResponse.json(
-      { 
-        success: false, 
-        message: error instanceof Error ? error.message : 'Failed to validate request' 
+      {
+        success: false,
+        message: error instanceof Error ? error.message : "Failed to validate request",
       },
       { status: 500 }
     );
@@ -108,32 +106,27 @@ async function validateFaucetRequest(request: NextRequest): Promise<NextResponse
 async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const destinationAddress = searchParams.get('address')!;
-    
-    const tx = await transferPToP(
-      SERVER_PRIVATE_KEY!,
-      FAUCET_P_CHAIN_ADDRESS!,
-      destinationAddress
-    );
+    const destinationAddress = searchParams.get("address")!;
+
+    const tx = await transferPToP(SERVER_PRIVATE_KEY!, FAUCET_P_CHAIN_ADDRESS!, destinationAddress);
 
     const response: TransferResponse = {
       success: true,
       txID: tx.txID,
       sourceAddress: FAUCET_P_CHAIN_ADDRESS,
       destinationAddress,
-      amount: FIXED_AMOUNT.toString()
+      amount: FIXED_AMOUNT.toString(),
     };
-        
+
     return NextResponse.json(response);
-      
   } catch (error) {
-    console.error('Transfer failed:', error);
-        
+    console.error("Transfer failed:", error);
+
     const response: TransferResponse = {
       success: false,
-      message: error instanceof Error ? error.message : 'Failed to complete transfer'
+      message: error instanceof Error ? error.message : "Failed to complete transfer",
     };
-        
+
     return NextResponse.json(response, { status: 500 });
   }
 }
@@ -147,8 +140,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const rateLimitHandler = rateLimit(handleFaucetRequest, {
     windowMs: 24 * 60 * 60 * 1000,
-    maxRequests: 1
+    maxRequests: 1,
   });
- 
+
   return rateLimitHandler(request);
 }

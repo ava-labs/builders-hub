@@ -23,7 +23,8 @@ export default function ProjectOverview({ project }: Props) {
             src={
               project.cover_url && project.cover_url.trim().length > 0
                 ? project.cover_url
-                : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/project-overview-banner-ooDsB4WqP31ppIqhuzzgCBb5eooIPE.svg"}
+                : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/project-overview-banner-ooDsB4WqP31ppIqhuzzgCBb5eooIPE.svg"
+            }
             alt="project-banner"
             width={100}
             height={635}
@@ -44,25 +45,14 @@ export default function ProjectOverview({ project }: Props) {
 
         <div className="mt-12 sm:mt-28 md:mt-40 flex flex-col gap-16">
           <Info project={project} />
-          {project.screenshots && (
-            <Gallery projectGallery={project.screenshots} />
-          )}
-          {project.demo_video_link && (
-            <VideoRenderer link={project.demo_video_link} />
-          )}
-          {project.demo_link && (
-            <DemoLinks demoLink={project.demo_link} />
-          )}
+          {project.screenshots && <Gallery projectGallery={project.screenshots} />}
+          {project.demo_video_link && <VideoRenderer link={project.demo_video_link} />}
+          {project.demo_link && <DemoLinks demoLink={project.demo_link} />}
 
           {project.prizes?.length > 0 && <Prizes prizes={project.prizes} />}
-          {project.full_description && (
-            <Description description={project.full_description} />
-          )}
+          {project.full_description && <Description description={project.full_description} />}
           {project.members && (
-            <TeamMembers
-              members={project.members}
-              projectName={project.project_name}
-            />
+            <TeamMembers members={project.members} projectName={project.project_name} />
           )}
           {/* <TeamBadge Badge={[]} /> */}
           {/* {resources && <Resources resources={resources} />} */}

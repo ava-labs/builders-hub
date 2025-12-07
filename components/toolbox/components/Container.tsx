@@ -13,12 +13,7 @@ interface ContainerProps {
 
 // simplified container does not use color themes currently
 
-export function Container({
-  title,
-  children,
-  description,
-  githubUrl,
-}: ContainerProps) {
+export function Container({ title, children, description, githubUrl }: ContainerProps) {
   return (
     <>
       <div className="space-y-3 prose">
@@ -28,9 +23,7 @@ export function Container({
               {title}
             </h3>
             {description && (
-              <div className="text-sm text-muted-foreground leading-relaxed">
-                {description}
-              </div>
+              <div className="text-sm text-muted-foreground leading-relaxed">{description}</div>
             )}
           </div>
           <div className="flex items-center gap-2">

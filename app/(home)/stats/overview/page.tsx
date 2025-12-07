@@ -25,19 +25,9 @@ import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
-import NetworkDiagram, {
-  ChainCosmosData,
-  ICMFlowRoute,
-} from "@/components/stats/NetworkDiagram";
-import {
-  CategoryChip,
-  getCategoryColor,
-} from "@/components/stats/CategoryChip";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import NetworkDiagram, { ChainCosmosData, ICMFlowRoute } from "@/components/stats/NetworkDiagram";
+import { CategoryChip, getCategoryColor } from "@/components/stats/CategoryChip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Time range types matching the API
 type TimeRangeKey = "day" | "week" | "month";
@@ -56,13 +46,7 @@ const TIME_RANGE_CONFIG: Record<
 };
 
 // Animated number component - continuously increasing
-function AnimatedNumber({
-  value,
-  duration = 2000,
-}: {
-  value: number;
-  duration?: number;
-}) {
+function AnimatedNumber({ value, duration = 2000 }: { value: number; duration?: number }) {
   const [displayValue, setDisplayValue] = useState(0);
   const startTime = useRef<number | null>(null);
   const lastIncrementTime = useRef<number | null>(null);
@@ -81,10 +65,7 @@ function AnimatedNumber({
 
       if (!hasReachedTarget.current) {
         // Initial animation to reach target value
-        const progress = Math.min(
-          (timestamp - startTime.current) / duration,
-          1
-        );
+        const progress = Math.min((timestamp - startTime.current) / duration, 1);
         const easeOut = 1 - Math.pow(1 - progress, 3);
         const currentValue = Math.floor(easeOut * value);
         setDisplayValue(currentValue);
@@ -127,9 +108,7 @@ function AnimatedNumber({
 // Speed gauge component for TPS - needle always at max, vibrating
 function SpeedGauge({ value }: { value: number }) {
   const [vibration, setVibration] = useState(0);
-  const gaugeId = useRef(
-    `gauge-${Math.random().toString(36).substr(2, 9)}`
-  ).current;
+  const gaugeId = useRef(`gauge-${Math.random().toString(36).substr(2, 9)}`).current;
 
   // Vibration effect - needle shakes at the limit
   useEffect(() => {
@@ -245,8 +224,7 @@ type SortDirection = "asc" | "desc";
 export default function AvalancheMetrics() {
   const { resolvedTheme } = useTheme();
   const [isMounted, setIsMounted] = useState(false);
-  const [overviewMetrics, setOverviewMetrics] =
-    useState<OverviewMetrics | null>(null);
+  const [overviewMetrics, setOverviewMetrics] = useState<OverviewMetrics | null>(null);
   const [initialLoading, setInitialLoading] = useState(true); // For first load only
   const [tableLoading, setTableLoading] = useState(false); // For time range changes
   const [error, setError] = useState<string | null>(null);
@@ -271,9 +249,7 @@ export default function AvalancheMetrics() {
   const fetchIcmFlows = useCallback(async () => {
     try {
       setIcmLoading(true);
-      const icmResponse = await fetch("/api/icm-flow?days=30").catch(
-        () => null
-      );
+      const icmResponse = await fetch("/api/icm-flow?days=30").catch(() => null);
 
       if (icmResponse && icmResponse.ok) {
         try {
@@ -307,9 +283,7 @@ export default function AvalancheMetrics() {
 
   const getChainSlug = (chainId: string, chainName: string): string | null => {
     const chain = l1ChainsData.find(
-      (c) =>
-        c.chainId === chainId ||
-        c.chainName.toLowerCase() === chainName.toLowerCase()
+      (c) => c.chainId === chainId || c.chainName.toLowerCase() === chainName.toLowerCase()
     );
     return chain?.slug || null;
   };
@@ -337,8 +311,7 @@ export default function AvalancheMetrics() {
             c.chainName.toLowerCase() === chain.chainName.toLowerCase()
         );
 
-        const validatorCount =
-          typeof chain.validatorCount === "number" ? chain.validatorCount : 0;
+        const validatorCount = typeof chain.validatorCount === "number" ? chain.validatorCount : 0;
         if (validatorCount === 0) return null;
 
         return {
@@ -349,11 +322,9 @@ export default function AvalancheMetrics() {
           color: l1Chain?.color || generateColorFromName(chain.chainName),
           validatorCount,
           subnetId: l1Chain?.subnetId,
-          activeAddresses:
-            chain.activeAddresses > 0 ? chain.activeAddresses : undefined,
+          activeAddresses: chain.activeAddresses > 0 ? chain.activeAddresses : undefined,
           txCount: chain.txCount > 0 ? Math.round(chain.txCount) : undefined,
-          icmMessages:
-            chain.icmMessages > 0 ? Math.round(chain.icmMessages) : undefined,
+          icmMessages: chain.icmMessages > 0 ? Math.round(chain.icmMessages) : undefined,
           tps: chain.tps > 0 ? parseFloat(chain.tps.toFixed(2)) : undefined,
           category: l1Chain?.category || "General",
         } as ChainCosmosData;
@@ -379,11 +350,10 @@ export default function AvalancheMetrics() {
       }
       setError(null);
       try {
-        const response = await fetch(
-          `/api/overview-stats?timeRange=${timeRange}`
-        );
-        if (!response.ok)
+        const response = await fetch(`/api/overview-stats?timeRange=${timeRange}`);
+        if (!response.ok) {
           throw new Error(`Failed to fetch metrics: ${response.status}`);
+        }
         const metrics = await response.json();
         setOverviewMetrics(metrics);
       } catch (err: any) {
@@ -397,8 +367,9 @@ export default function AvalancheMetrics() {
   }, [timeRange]);
 
   const formatNumber = (num: number | string): string => {
-    if (num === "N/A" || num === "" || num === null || num === undefined)
+    if (num === "N/A" || num === "" || num === null || num === undefined) {
       return "N/A";
+    }
     const numValue = typeof num === "string" ? Number.parseFloat(num) : num;
     if (isNaN(numValue)) return "N/A";
     if (numValue >= 1e12) return `${(numValue / 1e12).toFixed(1)}T`;
@@ -422,9 +393,7 @@ export default function AvalancheMetrics() {
 
   const getChainCategory = (chainId: string, chainName: string): string => {
     const chain = l1ChainsData.find(
-      (c) =>
-        c.chainId === chainId ||
-        c.chainName.toLowerCase() === chainName.toLowerCase()
+      (c) => c.chainId === chainId || c.chainName.toLowerCase() === chainName.toLowerCase()
     );
     return chain?.category || "General";
   };
@@ -436,30 +405,29 @@ export default function AvalancheMetrics() {
   const chains = overviewMetrics?.chains || [];
 
   // Extract unique categories sorted by count (descending)
-  const { sortedCategories, visibleCategories, overflowCategories } =
-    useMemo(() => {
-      const catCounts = new Map<string, number>();
-      chains.forEach((chain) => {
-        const category = getChainCategory(chain.chainId, chain.chainName);
-        catCounts.set(category, (catCounts.get(category) || 0) + 1);
-      });
+  const { sortedCategories, visibleCategories, overflowCategories } = useMemo(() => {
+    const catCounts = new Map<string, number>();
+    chains.forEach((chain) => {
+      const category = getChainCategory(chain.chainId, chain.chainName);
+      catCounts.set(category, (catCounts.get(category) || 0) + 1);
+    });
 
-      // Sort by count descending
-      const sorted = Array.from(catCounts.entries())
-        .sort((a, b) => b[1] - a[1])
-        .map(([cat]) => cat);
+    // Sort by count descending
+    const sorted = Array.from(catCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([cat]) => cat);
 
-      // Show "All" + top 4 categories as buttons, rest in dropdown
-      const MAX_VISIBLE = 4;
-      const visible = ["All", ...sorted.slice(0, MAX_VISIBLE)];
-      const overflow = sorted.slice(MAX_VISIBLE);
+    // Show "All" + top 4 categories as buttons, rest in dropdown
+    const MAX_VISIBLE = 4;
+    const visible = ["All", ...sorted.slice(0, MAX_VISIBLE)];
+    const overflow = sorted.slice(MAX_VISIBLE);
 
-      return {
-        sortedCategories: ["All", ...sorted],
-        visibleCategories: visible,
-        overflowCategories: overflow,
-      };
-    }, [chains]);
+    return {
+      sortedCategories: ["All", ...sorted],
+      visibleCategories: visible,
+      overflowCategories: overflow,
+    };
+  }, [chains]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -478,11 +446,8 @@ export default function AvalancheMetrics() {
   // Filter by category first, then by search term
   const filteredData = chains.filter((chain) => {
     const chainCategory = getChainCategory(chain.chainId, chain.chainName);
-    const matchesCategory =
-      selectedCategory === "All" || chainCategory === selectedCategory;
-    const matchesSearch = chain.chainName
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === "All" || chainCategory === selectedCategory;
+    const matchesSearch = chain.chainName.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -522,19 +487,14 @@ export default function AvalancheMetrics() {
         bValue = 0;
     }
     if (typeof aValue === "string" && typeof bValue === "string") {
-      return sortDirection === "asc"
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
+      return sortDirection === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
     }
-    return sortDirection === "asc"
-      ? (aValue || 0) - (bValue || 0)
-      : (bValue || 0) - (aValue || 0);
+    return sortDirection === "asc" ? (aValue || 0) - (bValue || 0) : (bValue || 0) - (aValue || 0);
   });
 
   const visibleData = sortedData.slice(0, visibleCount);
   const hasMoreData = visibleCount < sortedData.length;
-  const handleLoadMore = () =>
-    setVisibleCount((prev) => Math.min(prev + 25, sortedData.length));
+  const handleLoadMore = () => setVisibleCount((prev) => Math.min(prev + 25, sortedData.length));
 
   const SortButton = ({
     field,
@@ -547,11 +507,7 @@ export default function AvalancheMetrics() {
   }) => (
     <button
       className={`w-full flex items-center gap-1.5 transition-colors hover:text-black dark:hover:text-white ${
-        align === "right"
-          ? "justify-end"
-          : align === "center"
-          ? "justify-center"
-          : "justify-start"
+        align === "right" ? "justify-end" : align === "center" ? "justify-center" : "justify-start"
       }`}
       onClick={() => handleSort(field)}
     >
@@ -684,10 +640,7 @@ export default function AvalancheMetrics() {
             <div className="space-y-4 sm:space-y-6 flex-1">
               <div>
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <AvalancheLogo
-                    className="w-5 h-5 sm:w-6 sm:h-6"
-                    fill="currentColor"
-                  />
+                  <AvalancheLogo className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" />
                   <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
                     Avalanche Ecosystem
                   </p>
@@ -772,10 +725,7 @@ export default function AvalancheMetrics() {
                 Validation Fees:
               </span>
               <div className="flex items-center gap-1">
-                <AvalancheLogo
-                  className="w-3 h-3 sm:w-4 sm:h-4"
-                  fill="currentColor"
-                />
+                <AvalancheLogo className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" />
                 <span className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-white">
                   8,310
                 </span>
@@ -787,10 +737,7 @@ export default function AvalancheMetrics() {
                 Fees Burned:
               </span>
               <div className="flex items-center gap-1">
-                <AvalancheLogo
-                  className="w-3 h-3 sm:w-4 sm:h-4"
-                  fill="currentColor"
-                />
+                <AvalancheLogo className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" />
                 <span className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-white">
                   {formatNumber(4930978)}
                 </span>
@@ -859,10 +806,8 @@ export default function AvalancheMetrics() {
                 const count =
                   category === "All"
                     ? chains.length
-                    : chains.filter(
-                        (c) =>
-                          getChainCategory(c.chainId, c.chainName) === category
-                      ).length;
+                    : chains.filter((c) => getChainCategory(c.chainId, c.chainName) === category)
+                        .length;
 
                 return (
                   <CategoryChip
@@ -882,18 +827,14 @@ export default function AvalancheMetrics() {
               {overflowCategories.length > 0 && (
                 <div className="relative" ref={categoryDropdownRef}>
                   <button
-                    onClick={() =>
-                      setCategoryDropdownOpen(!categoryDropdownOpen)
-                    }
+                    onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
                     className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full border transition-all flex items-center gap-1 ${
                       overflowCategories.includes(selectedCategory)
                         ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent"
                         : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700"
                     }`}
                   >
-                    {overflowCategories.includes(selectedCategory)
-                      ? selectedCategory
-                      : "More"}
+                    {overflowCategories.includes(selectedCategory) ? selectedCategory : "More"}
                     <ChevronDown
                       className={`h-3 w-3 transition-transform ${
                         categoryDropdownOpen ? "rotate-180" : ""
@@ -906,9 +847,7 @@ export default function AvalancheMetrics() {
                       {overflowCategories.map((category) => {
                         const isSelected = selectedCategory === category;
                         const count = chains.filter(
-                          (c) =>
-                            getChainCategory(c.chainId, c.chainName) ===
-                            category
+                          (c) => getChainCategory(c.chainId, c.chainName) === category
                         ).length;
 
                         return (
@@ -927,9 +866,7 @@ export default function AvalancheMetrics() {
                           >
                             <span className="flex items-center justify-between">
                               <span>{category}</span>
-                              <span className="text-zinc-400 dark:text-zinc-500">
-                                ({count})
-                              </span>
+                              <span className="text-zinc-400 dark:text-zinc-500">({count})</span>
                             </span>
                           </button>
                         );
@@ -1028,10 +965,7 @@ export default function AvalancheMetrics() {
                   <TableSkeleton />
                 ) : (
                   visibleData.map((chain) => {
-                    const chainSlug = getChainSlug(
-                      chain.chainId,
-                      chain.chainName
-                    );
+                    const chainSlug = getChainSlug(chain.chainId, chain.chainName);
                     return (
                       <tr
                         key={chain.chainId}
@@ -1039,8 +973,7 @@ export default function AvalancheMetrics() {
                           chainSlug ? "cursor-pointer" : ""
                         }`}
                         onClick={() =>
-                          chainSlug &&
-                          (window.location.href = `/stats/l1/${chainSlug}`)
+                          chainSlug && (window.location.href = `/stats/l1/${chainSlug}`)
                         }
                       >
                         <td className="px-4 sm:px-6 py-4">
@@ -1048,10 +981,7 @@ export default function AvalancheMetrics() {
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 flex-shrink-0 overflow-hidden">
                               {chain.chainLogoURI ? (
                                 <Image
-                                  src={
-                                    getThemedLogoUrl(chain.chainLogoURI) ||
-                                    "/placeholder.svg"
-                                  }
+                                  src={getThemedLogoUrl(chain.chainLogoURI) || "/placeholder.svg"}
                                   alt={chain.chainName}
                                   width={40}
                                   height={40}
@@ -1137,8 +1067,8 @@ export default function AvalancheMetrics() {
               className="px-4 sm:px-8 py-2 sm:py-3 text-sm sm:text-base border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-900 text-black dark:text-white transition-colors hover:border-black dark:hover:border-white hover:bg-[#fcfcfd] dark:hover:bg-neutral-900"
             >
               <span className="hidden sm:inline">Load More Chains </span>
-              <span className="sm:hidden">Load More </span>(
-              {sortedData.length - visibleCount} remaining)
+              <span className="sm:hidden">Load More </span>({sortedData.length - visibleCount}{" "}
+              remaining)
             </Button>
           </div>
         )}

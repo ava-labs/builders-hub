@@ -7,8 +7,7 @@ import { Suspense } from "react";
 
 export const metadata: Metadata = createMetadata({
   title: "Blockchain Academy",
-  description:
-    "Master blockchain fundamentals and smart contract development from the ground up",
+  description: "Master blockchain fundamentals and smart contract development from the ground up",
   openGraph: {
     url: "/academy/blockchain",
     images: {
@@ -56,7 +55,13 @@ export default function BlockchainAcademyPage(): React.ReactElement {
   }));
 
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="text-zinc-600 dark:text-zinc-400">Loading...</div></div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-zinc-600 dark:text-zinc-400">Loading...</div>
+        </div>
+      }
+    >
       <AcademyLayout
         config={blockchainAcademyLandingPageConfig}
         blogs={blogs}
@@ -69,4 +74,3 @@ export default function BlockchainAcademyPage(): React.ReactElement {
     </Suspense>
   );
 }
-

@@ -10,7 +10,7 @@ interface ChainExplorerPageClientProps {
 
 export function ChainExplorerPageClient({ chainSlug }: ChainExplorerPageClientProps) {
   const chain = useChainContext();
-  
+
   return (
     <ExplorerLayout
       chainId={chain.chainId}
@@ -39,4 +39,3 @@ export function ChainExplorerPageClient({ chainSlug }: ChainExplorerPageClientPr
     </ExplorerLayout>
   );
 }
-

@@ -4,24 +4,21 @@ import { useState, useEffect } from "react";
 import { Container } from "@/components/toolbox/components/Container";
 import { Button } from "@/components/toolbox/components/Button";
 import { Plus } from "lucide-react";
-import { toast } from 'sonner';
+import { toast } from "sonner";
 
-import { GlacierApiClient } from './api';
-import { ApiKeyListItem, CreateApiKeyResponse } from './types';
-import ApiKeysList from './ApiKeysList';
-import CreateApiKeyModal from './CreateApiKeyModal';
-import ApiKeyCreatedModal from './ApiKeyCreatedModal';
-import DeleteConfirmDialog from './DeleteConfirmDialog';
+import { GlacierApiClient } from "./api";
+import { ApiKeyListItem, CreateApiKeyResponse } from "./types";
+import ApiKeysList from "./ApiKeysList";
+import CreateApiKeyModal from "./CreateApiKeyModal";
+import ApiKeyCreatedModal from "./ApiKeyCreatedModal";
+import DeleteConfirmDialog from "./DeleteConfirmDialog";
 
 interface TokenManagementProps {
   glacierJwt: string;
   endpoint: string;
 }
 
-export default function TokenManagement({
-  glacierJwt,
-  endpoint,
-}: TokenManagementProps) {
+export default function TokenManagement({ glacierJwt, endpoint }: TokenManagementProps) {
   // API client
   const apiClient = new GlacierApiClient(glacierJwt, endpoint);
 
@@ -41,7 +38,6 @@ export default function TokenManagement({
   const [keyToDelete, setKeyToDelete] = useState<ApiKeyListItem | null>(null);
   const [deletingKeys, setDeletingKeys] = useState<Set<string>>(new Set());
 
-
   // Load API keys
   const fetchApiKeys = async () => {
     setIsLoading(true);
@@ -52,8 +48,8 @@ export default function TokenManagement({
       setApiKeys(response.keys);
       setMaxApiKeysAllowed(response.maxApiKeysAllowed);
     } catch (err) {
-      console.error('Failed to fetch API keys:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load API keys');
+      console.error("Failed to fetch API keys:", err);
+      setError(err instanceof Error ? err.message : "Failed to load API keys");
     } finally {
       setIsLoading(false);
     }
@@ -69,15 +65,14 @@ export default function TokenManagement({
       // Close create modal and show created key modal
       setShowCreateModal(false);
 
-
-      toast.success('API key created successfully');
+      toast.success("API key created successfully");
 
       //dirty hack if API is not updated immediately
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       await fetchApiKeys();
     } catch (err) {
-      console.error('Failed to create API key:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create API key';
+      console.error("Failed to create API key:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to create API key";
       toast.error(errorMessage);
       throw err; // Let the modal handle the error too
     } finally {
@@ -87,7 +82,7 @@ export default function TokenManagement({
 
   // Delete API key
   const handleDeleteApiKey = (keyId: string) => {
-    const apiKey = apiKeys.find(k => k.keyId === keyId);
+    const apiKey = apiKeys.find((k) => k.keyId === keyId);
     if (apiKey) {
       setKeyToDelete(apiKey);
       setShowDeleteDialog(true);
@@ -97,26 +92,24 @@ export default function TokenManagement({
   const confirmDeleteApiKey = async () => {
     if (!keyToDelete) return;
 
-    setDeletingKeys(prev => new Set(prev).add(keyToDelete.keyId));
+    setDeletingKeys((prev) => new Set(prev).add(keyToDelete.keyId));
 
     try {
       await apiClient.deleteApiKey(keyToDelete.keyId);
 
-
       setShowDeleteDialog(false);
       setKeyToDelete(null);
-      toast.success('API key deleted successfully');
-
+      toast.success("API key deleted successfully");
 
       //dirty hack if API is not updated immediately
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       await fetchApiKeys();
     } catch (err) {
-      console.error('Failed to delete API key:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete API key';
+      console.error("Failed to delete API key:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to delete API key";
       toast.error(errorMessage);
     } finally {
-      setDeletingKeys(prev => {
+      setDeletingKeys((prev) => {
         const newSet = new Set(prev);
         newSet.delete(keyToDelete.keyId);
         return newSet;
@@ -160,7 +153,7 @@ export default function TokenManagement({
           setShowDeleteDialog(false);
           setKeyToDelete(null);
         }}
-        isDeleting={deletingKeys.has(keyToDelete?.keyId || '')}
+        isDeleting={deletingKeys.has(keyToDelete?.keyId || "")}
       />
 
       <Container
@@ -191,7 +184,6 @@ export default function TokenManagement({
             </Button>
           </div>
         </div>
-
 
         {/* API Keys List */}
         <div className="not-prose">
