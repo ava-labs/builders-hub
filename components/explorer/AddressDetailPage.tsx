@@ -10,6 +10,7 @@ import { getFunctionBySelector } from "@/abi/event-signatures.generated";
 import { formatTokenValue } from "@/utils/formatTokenValue";
 import l1ChainsData from "@/constants/l1-chains.json";
 import ContractReadSection from "@/components/explorer/ContractReadSection";
+import ContractWriteSection from "@/components/explorer/ContractWriteSection";
 import SourceCodeViewer from "@/components/explorer/SourceCodeViewer";
 
 interface NativeBalance {
@@ -467,11 +468,11 @@ export default function AddressDetailPage({
     fetchSourcifyData();
   }, [data?.isContract, sourcifySupport, chainId, address]);
 
-  // Fetch implementation ABI for proxy contracts when on read-proxy tab
+  // Fetch implementation ABI for proxy contracts when on read-proxy or write-proxy tab
   useEffect(() => {
     const fetchImplementationAbi = async () => {
-      // Only fetch if we're on read-proxy tab and it's a proxy contract
-      if (contractSubTab !== 'read-proxy') return;
+      // Only fetch if we're on read-proxy or write-proxy tab and it's a proxy contract
+      if (contractSubTab !== 'read-proxy' && contractSubTab !== 'write-proxy') return;
       if (!sourcifyData?.proxyResolution?.isProxy) return;
       if (!sourcifyData.proxyResolution.implementations?.length) return;
       
@@ -1710,16 +1711,29 @@ export default function AddressDetailPage({
 
                     {/* Write Contract Sub-tab */}
                     {contractSubTab === 'write' && (
-                      <div className="p-6">
-                        <div className="text-center py-8">
-                          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 mb-4">
-                            <FileCode className="w-6 h-6 text-zinc-400" />
+                      <div>
+                        {!sourcifyData?.abi || sourcifyData.abi.length === 0 ? (
+                          <div className="p-6">
+                            <div className="flex items-start gap-3 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                              <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">ABI Not Available</span>
+                                <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                                  Contract ABI is required to write contract functions.
+                                </p>
+                              </div>
+                            </div>
                           </div>
-                          <h3 className="text-lg font-medium text-zinc-900 dark:text-white mb-2">Write Contract</h3>
-                          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                            Contract write functionality coming soon. Use the ABI to interact with the contract directly.
-                          </p>
-                        </div>
+                        ) : (
+                          <ContractWriteSection
+                            abi={sourcifyData.abi}
+                            address={address}
+                            chainId={chainId}
+                            chainSlug={chainSlug}
+                            rpcUrl={rpcUrl}
+                            themeColor={themeColor}
+                          />
+                        )}
                       </div>
                     )}
 
@@ -1790,16 +1804,68 @@ export default function AddressDetailPage({
 
                     {/* Write as Proxy Sub-tab */}
                     {contractSubTab === 'write-proxy' && sourcifyData.proxyResolution?.isProxy && (
-                      <div className="p-6">
-                        <div className="text-center py-8">
-                          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 mb-4">
-                            <FileCode className="w-6 h-6 text-zinc-400" />
+                      <div>
+                        <div className="flex items-start gap-3 p-4 bg-blue-50/50 dark:bg-blue-900/10 border-b border-zinc-100 dark:border-zinc-800">
+                          <FileCode className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Writing Through Proxy</span>
+                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                              Calling implementation contract functions through the proxy address.
+                              {sourcifyData.proxyResolution.implementations?.[0] && (
+                                <span className="block mt-1">
+                                  Implementation: 
+                                  <Link
+                                    href={buildAddressUrl(`/explorer/${chainSlug}`, sourcifyData.proxyResolution.implementations[0].address)}
+                                    className="font-mono ml-1 hover:underline cursor-pointer"
+                                    style={{ color: themeColor }}
+                                  >
+                                    {sourcifyData.proxyResolution.implementations[0].name || formatAddressShort(sourcifyData.proxyResolution.implementations[0].address)}
+                                  </Link>
+                                </span>
+                              )}
+                            </p>
                           </div>
-                          <h3 className="text-lg font-medium text-zinc-900 dark:text-white mb-2">Write as Proxy</h3>
-                          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                            Write through proxy functionality coming soon.
-                          </p>
                         </div>
+                        {implementationAbiLoading ? (
+                          <div className="p-6 flex items-center justify-center">
+                            <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+                              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                              <span className="text-sm">Loading implementation ABI...</span>
+                            </div>
+                          </div>
+                        ) : implementationAbi && implementationAbi.length > 0 ? (
+                          <ContractWriteSection
+                            abi={implementationAbi}
+                            address={address}
+                            chainId={chainId}
+                            chainSlug={chainSlug}
+                            rpcUrl={rpcUrl}
+                            themeColor={themeColor}
+                          />
+                        ) : (
+                          <div className="p-6">
+                            <div className="flex items-start gap-3 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                              <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">Implementation ABI Not Available</span>
+                                <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                                  The implementation contract is not verified on Sourcify. Visit the implementation to verify it:
+                                </p>
+                                {sourcifyData.proxyResolution.implementations?.map((impl, idx) => (
+                                  <Link
+                                    key={idx}
+                                    href={buildAddressUrl(`/explorer/${chainSlug}`, impl.address)}
+                                    className="inline-flex items-center gap-1 text-sm font-mono mt-2 hover:underline cursor-pointer"
+                                    style={{ color: themeColor }}
+                                  >
+                                    {impl.name || formatAddressShort(impl.address)}
+                                    <ArrowUpRight className="w-3 h-3" />
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </>

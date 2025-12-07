@@ -72,7 +72,9 @@ export default async function Page(props: {
       }}
     >
       <DocsTitle>{page.data.title || "Untitled"}</DocsTitle>
-      <DocsDescription>{page.data.description}</DocsDescription>
+      {page.data.description && (
+        <DocsDescription>{page.data.description}</DocsDescription>
+      )}
       <DocsBody className="text-fd-foreground/80">
         <MDX
           components={{
@@ -142,7 +144,9 @@ export default async function Page(props: {
                 return <DataAPIPage {...props} />;
               }
             },
-            blockquote: Callout as unknown as FC<ComponentProps<"blockquote">>,
+            blockquote: (props: ComponentProps<"blockquote">) => (
+              <Callout>{props.children}</Callout>
+            ),
           }}
         />
       </DocsBody>

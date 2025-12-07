@@ -17,6 +17,7 @@ interface Block {
   gasLimit: string;
   baseFeePerGas?: string;
   gasFee?: string; // Total gas fee in native token (sum of all tx fees)
+  timestampMilliseconds?: number; // Avalanche-specific: block timestamp in milliseconds
 }
 
 interface RpcTransaction {
@@ -84,6 +85,10 @@ interface RpcBlock {
   gasUsed: string;
   gasLimit: string;
   baseFeePerGas?: string;
+  blockGasCost?: string; // Avalanche-specific
+  extDataGasUsed?: string; // Avalanche-specific
+  extDataHash?: string; // Avalanche-specific
+  timestampMilliseconds?: string; // Avalanche-specific: block timestamp in milliseconds (hex)
 }
 
 interface Transaction {
@@ -104,7 +109,9 @@ interface Transaction {
 interface ExplorerStats {
   latestBlock: number;
   totalTransactions: number;
-  avgBlockTime: number;
+  avgBlockTime?: number; // Average block time in seconds (based on last 5000 blocks or fewer)
+  avgBlockTimeMs?: number; // Average block time in milliseconds (Avalanche-specific, based on timestampMilliseconds)
+  avgBlockTimeBlockSpan?: number; // Number of blocks used to calculate avgBlockTime
   gasPrice: string;
   lastFinalizedBlock?: number;
   totalGasFeesInBlocks?: string; // Total gas fees for latest blocks in native token
@@ -518,7 +525,6 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
       stats: {
         latestBlock: latestBlockNumber,
         totalTransactions: 0,
-        avgBlockTime: 0,
         gasPrice: "0",
       },
       blocks: [],
@@ -619,6 +625,11 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     const gasFeeWei = blockGasFees.get(blockIndex) || BigInt(0);
     const gasFee = gasFeeWei > 0 ? (Number(gasFeeWei) / 1e18).toFixed(6) : undefined;
 
+    // Parse timestampMilliseconds for Avalanche (hex string to number)
+    const timestampMilliseconds = block.timestampMilliseconds 
+      ? parseInt(block.timestampMilliseconds, 16) 
+      : undefined;
+
     return {
       number: hexToNumber(block.number).toString(),
       hash: block.hash,
@@ -629,6 +640,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
       gasLimit: hexToNumber(block.gasLimit).toLocaleString(),
       baseFeePerGas: block.baseFeePerGas ? formatGasPrice(block.baseFeePerGas) : undefined,
       gasFee,
+      timestampMilliseconds,
     };
   });
 
@@ -759,15 +771,42 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     timing.gasPrice = Date.now() - gasPriceStart;
   }
 
-  // Calculate average block time from last 10 blocks
-  let avgBlockTime = 2; // Default
-  if (blocks.length >= 2) {
-    const timestamps = blocks.map(b => new Date(b.timestamp).getTime() / 1000);
-    const timeDiffs: number[] = [];
-    for (let i = 0; i < timestamps.length - 1; i++) {
-      timeDiffs.push(timestamps[i] - timestamps[i + 1]);
+  // Calculate average block time based on last 5000 blocks (or all blocks if chain has fewer)
+  // Fetch block at (latest - 5000) or block 1 if chain has fewer blocks
+  let avgBlockTime: number | undefined;
+  let avgBlockTimeMs: number | undefined; // Millisecond precision for Avalanche
+  let avgBlockTimeBlockSpan: number | undefined; // Track the actual block span used
+
+  if (latestBlockNumber > 1 && validBlocks.length > 0) {
+    // Use block (latest - 5000) or block 1 if chain has fewer than 5000 blocks
+    const historicalBlockNum = latestBlockNumber > 5000 ? latestBlockNumber - 5000 : 1;
+    const blockSpan = latestBlockNumber - historicalBlockNum;
+    
+    try {
+      const historicalBlock = await fetchFromRPC(rpcUrl, "eth_getBlockByNumber", [`0x${historicalBlockNum.toString(16)}`, false]) as RpcBlock | null;
+      
+      if (historicalBlock) {
+        const latestBlock = validBlocks[0];
+        avgBlockTimeBlockSpan = blockSpan; // Store the block span used
+        
+        // Try millisecond precision first (Avalanche)
+        if (latestBlock?.timestampMilliseconds && historicalBlock.timestampMilliseconds) {
+          const latestTimeMs = parseInt(latestBlock.timestampMilliseconds, 16);
+          const historicalTimeMs = parseInt(historicalBlock.timestampMilliseconds, 16);
+          const timeDiffMs = latestTimeMs - historicalTimeMs;
+          avgBlockTimeMs = timeDiffMs / blockSpan;
+          avgBlockTime = avgBlockTimeMs / 1000; // Convert to seconds
+        } else {
+          // Fall back to second precision
+          const latestTimeSec = parseInt(latestBlock!.timestamp, 16);
+          const historicalTimeSec = parseInt(historicalBlock.timestamp, 16);
+          const timeDiffSec = latestTimeSec - historicalTimeSec;
+          avgBlockTime = timeDiffSec / blockSpan;
+        }
+      }
+    } catch (error) {
+      console.warn('[Explorer API] Failed to fetch historical block for avgBlockTime:', error);
     }
-    avgBlockTime = timeDiffs.reduce((a, b) => a + b, 0) / timeDiffs.length;
   }
 
   // Fetch real cumulative transactions from API
@@ -786,7 +825,9 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
   const stats: ExplorerStats = {
     latestBlock: latestBlockNumber,
     totalTransactions,
-    avgBlockTime: Math.round(avgBlockTime * 100) / 100,
+    avgBlockTime: avgBlockTime !== undefined ? Math.round(avgBlockTime * 1000) / 1000 : undefined, // 3 decimal places for seconds
+    avgBlockTimeMs: avgBlockTimeMs !== undefined ? Math.round(avgBlockTimeMs * 100) / 100 : undefined, // 2 decimal places for ms
+    avgBlockTimeBlockSpan,
     totalGasFeesInBlocks,
     gasPrice: `${gasPrice} Gwei`,
     lastFinalizedBlock: latestBlockNumber - 2, // Approximate finalized block
