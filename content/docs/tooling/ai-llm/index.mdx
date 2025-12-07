@@ -48,24 +48,36 @@ Supports `/docs/`, `/academy/`, `/integrations/`, and `/blog/` paths.
 
 ## MCP Server
 
-The [Model Context Protocol](https://modelcontextprotocol.io/) server enables AI systems to search and retrieve documentation dynamically.
+The [Model Context Protocol](https://modelcontextprotocol.io/) server enables AI systems to search and retrieve documentation dynamically with intelligent search capabilities.
 
 **Endpoint:** `https://build.avax.network/api/mcp`
+
+### Features
+
+- **Synonym-aware search**: Automatically maps Avalanche terminology (subnet↔L1, AWM↔Warp↔ICM, etc.)
+- **Code-focused search**: Find code examples filtered by language (Solidity, TypeScript, Go, Bash, etc.)
+- **Fuzzy matching**: Handles typos and partial matches
+- **Multi-source search**: Searches across docs, academy, integrations, and blog
+- **Related content discovery**: Find related pages to explore topics further
+- **Section browsing**: Browse all content within a topic area
 
 ### Tools
 
 | Tool | Purpose |
 | :--- | :------ |
-| `avalanche_docs_search` | Search docs by query with optional source filter |
+| `avalanche_docs_search` | Search docs by query with synonym expansion and fuzzy matching |
+| `avalanche_docs_search_code` | Search specifically for code examples with language filtering |
 | `avalanche_docs_fetch` | Get a specific page by URL path |
-| `avalanche_docs_list_sections` | List all sections with page counts |
+| `avalanche_docs_list_sections` | List all sections with page counts and descriptions |
+| `avalanche_docs_get_related` | Find pages related to a specific page |
+| `avalanche_docs_get_section` | Get all pages within a documentation section |
 
 ### Claude Code Setup
 
-Add the MCP server to your project:
+Add the MCP server to your project with a single command:
 
 ```bash
-claude mcp add avalanche-docs --transport http --url https://build.avax.network/api/mcp
+claude mcp add builders-hub --transport http --url https://build.avax.network/api/mcp
 ```
 
 Or add to your `.claude/settings.json`:
@@ -73,7 +85,7 @@ Or add to your `.claude/settings.json`:
 ```json
 {
   "mcpServers": {
-    "avalanche-docs": {
+    "builders-hub": {
       "transport": {
         "type": "http",
         "url": "https://build.avax.network/api/mcp"
@@ -90,7 +102,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "avalanche-docs": {
+    "builders-hub": {
       "transport": {
         "type": "http",
         "url": "https://build.avax.network/api/mcp"
@@ -110,26 +122,11 @@ curl -X POST https://build.avax.network/api/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"avalanche_docs_search","arguments":{"query":"create L1","limit":5}}}'
 ```
 
-**Response format:**
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "content": [
-      {
-        "type": "text",
-        "text": "[{\"title\":\"Create an L1\",\"url\":\"/docs/avalanche-l1s/create\",\"description\":\"...\",\"score\":45}]"
-      }
-    ]
-  }
-}
-```
-
 ### Search Tool Examples
 
 **Search all documentation:**
+
+The search automatically expands queries with synonyms. For example, searching for "subnet" will also find "L1" content:
 
 ```bash
 curl -X POST https://build.avax.network/api/mcp \
@@ -169,6 +166,27 @@ curl -X POST https://build.avax.network/api/mcp \
   }'
 ```
 
+**Filter by section:**
+
+```bash
+# Search only cross-chain documentation
+curl -X POST https://build.avax.network/api/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "avalanche_docs_search",
+      "arguments": {
+        "query": "messaging",
+        "section": "cross-chain",
+        "limit": 5
+      }
+    }
+  }'
+```
+
 **Fetch specific page:**
 
 ```bash
@@ -176,7 +194,7 @@ curl -X POST https://build.avax.network/api/mcp \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
-    "id": 3,
+    "id": 4,
     "method": "tools/call",
     "params": {
       "name": "avalanche_docs_fetch",
@@ -186,6 +204,88 @@ curl -X POST https://build.avax.network/api/mcp \
     }
   }'
 ```
+
+**Find related pages:**
+
+```bash
+curl -X POST https://build.avax.network/api/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 5,
+    "method": "tools/call",
+    "params": {
+      "name": "avalanche_docs_get_related",
+      "arguments": {
+        "url": "/docs/cross-chain/icm-contracts/overview",
+        "limit": 5
+      }
+    }
+  }'
+```
+
+**Browse a section:**
+
+```bash
+curl -X POST https://build.avax.network/api/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 6,
+    "method": "tools/call",
+    "params": {
+      "name": "avalanche_docs_get_section",
+      "arguments": {
+        "section": "docs/cross-chain"
+      }
+    }
+  }'
+```
+
+**Search for code examples:**
+
+```bash
+curl -X POST https://build.avax.network/api/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 7,
+    "method": "tools/call",
+    "params": {
+      "name": "avalanche_docs_search_code",
+      "arguments": {
+        "query": "cross-chain message",
+        "language": "solidity",
+        "limit": 5
+      }
+    }
+  }'
+```
+
+### Avalanche Terminology Support
+
+The MCP server understands common Avalanche terminology and automatically expands searches:
+
+| Term | Also matches |
+| :--- | :----------- |
+| `l1` | subnet, layer1, blockchain |
+| `subnet` | l1, avalanche l1 |
+| `icm` | interchain messaging, teleporter, awm, cross-chain |
+| `awm` | avalanche warp messaging, warp messages |
+| `ictt` | interchain token transfer, token bridge, bridge |
+| `cli` | avalanche-cli, command line |
+| `precompile` | precompiles, stateful precompile |
+
+## Resources
+
+The MCP server also provides static resources for bulk access:
+
+| Resource URI | Content |
+| :----------- | :------ |
+| `docs://index` | Complete documentation index |
+| `academy://index` | All academy courses |
+| `integrations://index` | Integration directory |
+| `docs://terminology` | Avalanche terminology glossary |
 
 ## Standards
 
