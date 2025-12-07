@@ -3,9 +3,13 @@ import React from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { SocialLoginProps } from "@/types/socialLoginProps";
+import { analytics, type SocialProvider } from "@/lib/analytics";
 
 function SocialLogin({ callbackUrl = "/" }: SocialLoginProps) {
   async function SignInSocialMedia(provider: "google" | "github" | "X") {
+    // Map the provider to analytics format (lowercase)
+    const analyticsProvider = provider.toLowerCase() as SocialProvider;
+    analytics.auth.socialLoginClicked(analyticsProvider);
     await signIn(provider, { callbackUrl: callbackUrl });
   }
 

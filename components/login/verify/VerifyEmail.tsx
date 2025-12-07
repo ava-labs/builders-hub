@@ -16,6 +16,7 @@ import Link from "next/link";
 import { VerifyEmailProps } from "@/types/verifyEmailProps";
 import axios from "axios";
 import { LoadingButton } from "@/components/ui/loading-button";
+import { analytics } from "@/lib/analytics";
 const verifySchema = z.object({
   code: z
     .string()
@@ -61,6 +62,7 @@ export function VerifyEmail({
       });
       if (result?.error) {
         console.error("Error: ", result);
+        analytics.auth.otpVerificationFailed(email, result.error);
         switch (result?.error) {
           case "INVALID":
             setSentTries((prev) => prev + 1);
@@ -86,9 +88,12 @@ export function VerifyEmail({
             break;
         }
       } else if (result?.url) {
+        analytics.auth.otpVerified(email);
+        analytics.auth.loginSuccess('otp');
         window.location.href = result.url;
       }
     } catch (error) {
+      analytics.auth.otpVerificationFailed(email, "unknown_error");
       setMessage("Error with OTP try again.");
     } finally {
       setIsVerifying(false);

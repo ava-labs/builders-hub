@@ -20,6 +20,7 @@ import { useState } from "react";
 import { VerifyEmail } from "./verify/VerifyEmail";
 import axios from "axios";
 import { LoadingButton } from "../ui/loading-button";
+import { analytics } from "@/lib/analytics";
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -43,8 +44,10 @@ function Formlogin({ callbackUrl = "/" }: { callbackUrl?: string }) {
       await axios.post("/api/send-otp", {
         email: values.email.toLowerCase(),
       });
+      analytics.auth.otpRequested(values.email);
       setIsVerifying(true);
     } catch (error) {
+      analytics.auth.otpRequestError(values.email, "Error sending OTP");
       formMethods.setError("email", { message: "Error sending OTP" });
     }
 

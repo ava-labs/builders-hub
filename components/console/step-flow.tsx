@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
+import { analytics } from "@/lib/analytics";
 
 type SingleStep = {
   type: "single";
@@ -112,6 +113,59 @@ export default function StepFlow({
       return `${basePath}/${nextStep.options[0].key}`;
     }
   }, [atLast, currentIndex, steps, basePath]);
+
+  // Track step changes for analytics
+  const prevStepKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    // Get current step title
+    const stepTitle = currentStep.type === "single"
+      ? currentStep.title
+      : selectedBranchOption?.label || currentStep.title;
+
+    // Track step started when step key changes
+    if (prevStepKeyRef.current !== currentStepKey) {
+      // If we had a previous step, track it as completed
+      if (prevStepKeyRef.current !== null) {
+        // Find previous step info for completion tracking
+        const prevIndex = steps.findIndex(s => {
+          if (s.type === "single") return s.key === prevStepKeyRef.current;
+          if (s.type === "branch") return s.options.some(opt => opt.key === prevStepKeyRef.current);
+          return false;
+        });
+
+        if (prevIndex !== -1) {
+          const prevStep = steps[prevIndex];
+          const prevTitle = prevStep.type === "single"
+            ? prevStep.title
+            : prevStep.options.find(opt => opt.key === prevStepKeyRef.current)?.label || prevStep.title;
+
+          analytics.console.stepCompleted(basePath, prevIndex, prevStepKeyRef.current, prevTitle);
+        }
+      }
+
+      // Track current step as started
+      analytics.console.stepStarted(basePath, currentIndex, currentStepKey, stepTitle);
+      prevStepKeyRef.current = currentStepKey;
+    }
+  }, [currentStepKey, currentIndex, currentStep, selectedBranchOption, basePath, steps]);
+
+  // Handle finish button with analytics tracking
+  const handleFinish = () => {
+    // Get current step title for completion tracking
+    const stepTitle = currentStep.type === "single"
+      ? currentStep.title
+      : selectedBranchOption?.label || currentStep.title;
+
+    // Track final step completion
+    analytics.console.stepCompleted(basePath, currentIndex, currentStepKey, stepTitle);
+
+    // Track entire flow completion
+    analytics.console.flowCompleted(basePath, totalSteps);
+
+    // Call the original onFinish callback if provided
+    onFinish?.();
+  };
 
   return (
     <div className={className}>
@@ -247,7 +301,7 @@ export default function StepFlow({
             {atLast ? (
               <button
                 type="button"
-                onClick={onFinish}
+                onClick={handleFinish}
                 className="rounded-md bg-blue-600 text-white px-4 py-2 text-sm"
               >
                 Finish

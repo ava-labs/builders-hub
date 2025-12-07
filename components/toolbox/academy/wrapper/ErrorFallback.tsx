@@ -1,9 +1,15 @@
+import { useEffect } from "react";
 import { Button } from "../../components/Button";
+import { analytics } from "@/lib/analytics";
 
 export const ErrorFallback = ({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) => {
-
     const errorString = (typeof error.message === 'string' ? error.message : error.name || "Unknown error")
     const isTestnetError = errorString?.includes("The error is mostly returned when the client requests");
+
+    // Track error in PostHog when component mounts
+    useEffect(() => {
+        analytics.error.toolboxBoundary(error, typeof window !== 'undefined' ? window.location.pathname : undefined);
+    }, [error]);
 
     return (
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">

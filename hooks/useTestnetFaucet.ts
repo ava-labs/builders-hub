@@ -5,6 +5,7 @@ import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListSt
 import useConsoleNotifications from './useConsoleNotifications';
 import { balanceService } from '@/components/toolbox/services/balanceService';
 import { useChainTokenTracker } from './useChainTokenTracker';
+import { analytics } from '@/lib/analytics';
 
 export interface FaucetClaimResult {
   success: boolean;
@@ -35,14 +36,17 @@ export const useTestnetFaucet = () => {
     const chainConfig = l1List.find((chain: L1ListItem) => chain.evmChainId === chainId && chain.hasBuilderHubFaucet);
 
     if (!chainConfig) { throw new Error(`Unsupported chain or faucet not available for chain ID ${chainId}`) }
-    
+
     setIsClaimingEVM(prev => ({ ...prev, [chainId]: true }));
+
+    // Track faucet claim started
+    analytics.faucet.claimStarted(chainId, chainConfig.name, 'evm');
 
     try {
       const faucetRequest = async () => {
         const response = await fetch(`/api/evm-chain-faucet?address=${walletEVMAddress}&chainId=${chainId}`);
         const rawText = await response.text();
-        
+
         let data;
         try {
           data = JSON.parse(rawText);
@@ -52,11 +56,14 @@ export const useTestnetFaucet = () => {
 
         if (!response.ok) {
           if (response.status === 401) { throw new Error("Please login first") }
-          if (response.status === 429) { throw new Error(data.message || "Rate limit exceeded. Please try again later.") }
+          if (response.status === 429) {
+            analytics.faucet.rateLimited(chainId, chainConfig.name, 'evm');
+            throw new Error(data.message || "Rate limit exceeded. Please try again later.");
+          }
           throw new Error(data.message || `Error ${response.status}: Failed to get tokens`);
         }
 
-        if (!data.success) { throw new Error(data.message || "Failed to get tokens") }       
+        if (!data.success) { throw new Error(data.message || "Failed to get tokens") }
         return data;
       };
 
@@ -73,12 +80,15 @@ export const useTestnetFaucet = () => {
       }
 
       const result = await faucetPromise;
-      
+
       if (result.success) {
+        // Track successful faucet claim
+        analytics.faucet.claimSuccess(chainId, chainConfig.name, result.txHash, result.amount, 'evm');
+
         if (walletEVMAddress) {
           markChainAsSatisfied(chainId, walletEVMAddress);
         }
-        
+
         setTimeout(() => {
           if (chainId === 43113) {
             balanceService.updateCChainBalance();
@@ -86,8 +96,13 @@ export const useTestnetFaucet = () => {
             balanceService.updateL1Balance(chainId.toString());
           }
         }, 2000);
-      }    
+      }
       return result;
+    } catch (error) {
+      // Track faucet claim error
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      analytics.faucet.claimError(chainId, chainConfig.name, errorMessage, 'evm');
+      throw error;
     } finally {
       setIsClaimingEVM(prev => ({ ...prev, [chainId]: false }));
     }
@@ -97,6 +112,9 @@ export const useTestnetFaucet = () => {
     if (!pChainAddress) { throw new Error("P-Chain address is required") }
     if (!isTestnet) { throw new Error("Faucet is only available on testnet") }
     setIsClaimingPChain(true);
+
+    // Track P-Chain faucet claim started
+    analytics.faucet.claimStarted('pchain', 'P-Chain', 'pchain');
 
     try {
       const faucetRequest = async () => {
@@ -111,12 +129,15 @@ export const useTestnetFaucet = () => {
         }
 
         if (!response.ok) {
-          if (response.status === 401) {throw new Error("Please login first") }
-          if (response.status === 429) { throw new Error(data.message || "Rate limit exceeded. Please try again later.") }
+          if (response.status === 401) { throw new Error("Please login first") }
+          if (response.status === 429) {
+            analytics.faucet.rateLimited('pchain', 'P-Chain', 'pchain');
+            throw new Error(data.message || "Rate limit exceeded. Please try again later.");
+          }
           throw new Error(data.message || `Error ${response.status}: Failed to get tokens`);
         }
 
-        if (!data.success) { throw new Error(data.message || "Failed to get tokens") }      
+        if (!data.success) { throw new Error(data.message || "Failed to get tokens") }
         return data;
       };
 
@@ -132,9 +153,18 @@ export const useTestnetFaucet = () => {
         );
       }
 
-      const result = await faucetPromise;      
-      if (result.success) { setTimeout(() => { balanceService.updatePChainBalance() }, 2000) }
+      const result = await faucetPromise;
+      if (result.success) {
+        // Track successful P-Chain faucet claim
+        analytics.faucet.claimSuccess('pchain', 'P-Chain', result.txID, result.amount, 'pchain');
+        setTimeout(() => { balanceService.updatePChainBalance() }, 2000);
+      }
       return result;
+    } catch (error) {
+      // Track P-Chain faucet claim error
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      analytics.faucet.claimError('pchain', 'P-Chain', errorMessage, 'pchain');
+      throw error;
     } finally {
       setIsClaimingPChain(false);
     }

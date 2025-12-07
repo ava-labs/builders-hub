@@ -1,7 +1,9 @@
 'use client' // Error components must be Client Components
 
 import { useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { analytics } from '@/lib/analytics'
 
 export default function Error({
     error,
@@ -10,10 +12,15 @@ export default function Error({
     error: Error & { digest?: string }
     reset: () => void
 }) {
+    const pathname = usePathname()
+
     useEffect(() => {
         // Log the error to an error reporting service
         console.error('Primary Network Error:', error)
-    }, [error])
+
+        // Track error in PostHog
+        analytics.error.consoleBoundary(error, error.digest, pathname ?? undefined)
+    }, [error, pathname])
 
     return (
         <div className="flex min-h-[400px] flex-col items-center justify-center p-4">
