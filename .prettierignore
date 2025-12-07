@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+dist/
+build/
+out/
+coverage/
+
+# Generated files
+*.generated.ts
+prisma/generated/
+.fumadocs/
+
+# Content (MDX formatting is handled by editors)
+content/
+
+# Package manager
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
+
+# Misc
+.git/
+.vercel/
+.env*
+*.log
+artifacts/
+public/
+
+# Config files that should keep their format
+tsconfig.json

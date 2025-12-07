@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# Lint staged files only (faster than linting entire codebase)
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx|js|jsx)$' || true)
+
+if [ -n "$STAGED_FILES" ]; then
+  echo "🔍 Linting staged files..."
+  # Check for errors only (warnings are allowed for gradual adoption)
+  npx eslint $STAGED_FILES --no-warn-ignored || {
+    echo "❌ Linting failed. Please fix the errors above before committing."
+    exit 1
+  }
+  echo "✅ Linting passed"
+fi
