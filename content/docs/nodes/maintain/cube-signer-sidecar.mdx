@@ -117,7 +117,7 @@ cs token create --role-id <ROLE_ID> > token.json
 This creates a JSON file containing authentication credentials. Keep this file secure.
 
 <Callout type="error" title="Security Warning">
-The `token.json` file grants access to your BLS signing key. Store it securely with restricted file permissions (`chmod 600 token.json`) and never commit it to version control.
+The `token.json` file grants access to your BLS signing key. Store it securely with restricted file permissions (`chmod 600 token.json`) and never commit it to version control. The sidecar refreshes this file automatically, so it must remain writable by the process.
 </Callout>
 
 ## Step 2: Run the Sidecar
@@ -132,7 +132,7 @@ Pull and run the official Docker image:
 docker run -d \
   --name cube-signer-sidecar \
   -p 50051:50051 \
-  -v $(pwd)/token.json:/token.json:ro \
+  -v $(pwd)/token.json:/token.json \
   -e SIGNER_ENDPOINT=https://gamma.signer.cubist.dev \
   -e KEY_ID=Key#BlsAvaIcm_0x... \
   -e TOKEN_FILE_PATH=/token.json \
@@ -140,6 +140,10 @@ docker run -d \
 ```
 
 Replace the `KEY_ID` value with your actual key ID from Step 1.
+
+<Callout type="info">
+Do not mount `token.json` as read-only; the sidecar writes refreshed session data back to this file. The default bind mount is read/write, which is required.
+</Callout>
 
 <Callout type="info">
 The default CubeSigner endpoint for production is `https://gamma.signer.cubist.dev`. For testnet or development, CubeSigner may provide alternative endpoints.
@@ -180,9 +184,9 @@ The sidecar supports configuration via command-line flags, environment variables
 
 ```json
 {
-  "token_file_path": "/path/to/token.json",
-  "signer_endpoint": "https://gamma.signer.cubist.dev",
-  "key_id": "Key#BlsAvaIcm_0x...",
+  "token-file-path": "/path/to/token.json",
+  "signer-endpoint": "https://gamma.signer.cubist.dev",
+  "key-id": "Key#BlsAvaIcm_0x...",
   "port": 50051
 }
 ```
@@ -316,7 +320,7 @@ When using the CubeSigner sidecar, follow these security best practices:
 
 - **Isolate the Sidecar**: Run the sidecar on the same machine as AvalancheGo or on a private network
 - **Firewall Rules**: Restrict access to port 50051 to only the AvalancheGo process
-- **TLS for Remote Connections**: If the sidecar runs remotely, use TLS encryption for gRPC connections
+- **TLS for Remote Connections**: The sidecar serves plaintext gRPC only; if you need TLS, place it behind a terminating reverse proxy or tunnel traffic over a private/secure network.
 
 ### Key Management
 
