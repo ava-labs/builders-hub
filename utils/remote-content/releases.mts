@@ -1,162 +1,47 @@
 import { FileConfig } from './shared.mts';
-import axios from 'axios';
-
-interface GitHubRelease {
-  tag_name: string;
-  name: string;
-  body: string;
-  draft: boolean;
-  prerelease: boolean;
-  published_at: string;
-  html_url: string;
-  assets: {
-    name: string;
-    browser_download_url: string;
-    size: number;
-  }[];
-}
-
-interface ReleaseInfo {
-  version: string;
-  name: string;
-  body: string;
-  isPrerelease: boolean;
-  publishedAt: string;
-  htmlUrl: string;
-  assets: {
-    name: string;
-    downloadUrl: string;
-    size: number;
-  }[];
-}
+import {
+  fetchGitHubReleases,
+  parseBaseReleaseInfo,
+  formatDate,
+  generateReleaseAccordion,
+  BaseReleaseInfo
+} from './github-releases.mts';
 
 /**
- * Fetch releases from the AvalancheGo GitHub repository
+ * Extract ACP references from release body
  */
-async function fetchAvalancheGoReleases(): Promise<GitHubRelease[]> {
-  try {
-    const response = await axios.get<GitHubRelease[]>(
-      'https://api.github.com/repos/ava-labs/avalanchego/releases',
-      {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'Avalanche-Docs-Bot'
-        },
-        params: {
-          per_page: 20 // Get the 20 most recent releases
-        }
-      }
-    );
-
-    return response.data.filter(release => !release.draft);
-  } catch (error) {
-    console.error('Failed to fetch AvalancheGo releases from GitHub:', error);
-    throw new Error('Unable to fetch AvalancheGo releases from GitHub repository');
-  }
-}
-
-/**
- * Parse release information from GitHub release data
- */
-function parseReleaseInfo(release: GitHubRelease): ReleaseInfo {
-  return {
-    version: release.tag_name,
-    name: release.name || release.tag_name,
-    body: release.body || '',
-    isPrerelease: release.prerelease,
-    publishedAt: release.published_at,
-    htmlUrl: release.html_url,
-    assets: release.assets.map(asset => ({
-      name: asset.name,
-      downloadUrl: asset.browser_download_url,
-      size: asset.size
-    }))
-  };
-}
-
-/**
- * Extract network upgrade info from release body
- */
-function extractNetworkUpgradeInfo(body: string): { acps: string[]; activationDate?: string } {
-  const acps: string[] = [];
-  let activationDate: string | undefined;
-
-  // Match ACP references like [ACP-181], ACP-181, etc.
+function extractAcps(body: string): string[] {
   const acpMatches = body.match(/ACP-(\d+)/g);
-  if (acpMatches) {
-    acps.push(...new Set(acpMatches));
-  }
-
-  // Try to extract mainnet activation date
-  const dateMatch = body.match(/(?:mainnet|Mainnet)[^\n]*(?:on|at)\s+([A-Za-z]+\s+\d+(?:st|nd|rd|th)?,?\s+\d{4})/i);
-  if (dateMatch) {
-    activationDate = dateMatch[1];
-  }
-
-  return { acps, activationDate };
+  return acpMatches ? [...new Set(acpMatches)] : [];
 }
 
 /**
- * Format file size in human readable format
+ * Generate the AvalancheGo releases MDX content
  */
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-/**
- * Generate the releases MDX content
- */
-function generateReleasesContent(releases: ReleaseInfo[]): string {
+function generateReleasesContent(releases: BaseReleaseInfo[]): string {
   const stableReleases = releases.filter(r => !r.isPrerelease);
   const latestStable = stableReleases[0];
 
-  // Format date for display
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  };
+  // AvalancheGo uses linux-amd64 (hyphen) and macos naming
+  const avalancheGoAssetPatterns = [
+    { platform: 'Linux (AMD64)', pattern: 'linux-amd64' },
+    { platform: 'Linux (ARM64)', pattern: 'linux-arm64' },
+    { platform: 'macOS', pattern: 'macos', extension: '.zip' }
+  ];
 
-  // Generate release sections
   const releaseSections = releases.slice(0, 10).map(release => {
-    const { acps } = extractNetworkUpgradeInfo(release.body);
-    const releaseType = release.isPrerelease ? ' (Pre-release)' : '';
-    const linuxAmd64 = release.assets.find(a => a.name.includes('linux-amd64') && a.name.endsWith('.tar.gz') && !a.name.endsWith('.sig'));
-    const linuxArm64 = release.assets.find(a => a.name.includes('linux-arm64') && a.name.endsWith('.tar.gz') && !a.name.endsWith('.sig'));
-    const macos = release.assets.find(a => a.name.includes('macos') && a.name.endsWith('.zip') && !a.name.endsWith('.sig'));
+    const acps = extractAcps(release.body);
+    const acpLine = acps.length > 0 ? `**ACPs Included:** ${acps.join(', ')}\n` : '';
 
-    // Extract summary from release body (first paragraph or up to first ##)
-    let summary = release.body.split(/\n##/)[0].trim();
-    // Remove the "What's Changed" section if it's at the beginning
-    summary = summary.replace(/^## What's Changed[\s\S]*$/m, '').trim();
-    // Get first meaningful paragraph
-    const paragraphs = summary.split('\n\n').filter(p => p.trim() && !p.startsWith('**'));
-    const briefSummary = paragraphs[0]?.slice(0, 300) || '';
-
-    return `
-### ${release.version} - ${release.name}${releaseType}
-
-**Released:** ${formatDate(release.publishedAt)} | [View on GitHub](${release.htmlUrl})
-
-${briefSummary}${briefSummary.length >= 300 ? '...' : ''}
-
-${acps.length > 0 ? `**ACPs Included:** ${acps.join(', ')}\n` : ''}
-<Accordions>
-<Accordion title="Download Assets">
-
-| Platform | File | Size |
-|----------|------|------|
-${linuxAmd64 ? `| Linux (AMD64) | [${linuxAmd64.name}](${linuxAmd64.downloadUrl}) | ${formatFileSize(linuxAmd64.size)} |` : ''}
-${linuxArm64 ? `| Linux (ARM64) | [${linuxArm64.name}](${linuxArm64.downloadUrl}) | ${formatFileSize(linuxArm64.size)} |` : ''}
-${macos ? `| macOS | [${macos.name}](${macos.downloadUrl}) | ${formatFileSize(macos.size)} |` : ''}
-
-</Accordion>
-</Accordions>
-`;
+    return generateReleaseAccordion(release, {
+      showName: true,
+      summaryMaxLength: 300,
+      assetPatterns: avalancheGoAssetPatterns,
+      extraContent: acpLine
+    });
   }).join('\n');
 
-  const content = `---
+  return `---
 title: AvalancheGo Releases
 description: Track AvalancheGo releases, network upgrades, and version compatibility for your node.
 ---
@@ -223,8 +108,6 @@ Subscribe to the [Avalanche Notify service](/docs/nodes/maintain/enroll-in-avala
 - [Installing AvalancheGo](/docs/nodes/run-a-node/using-install-script/installing-avalanche-go) - Initial installation guide
 - [Backup and Restore](/docs/nodes/maintain/backup-restore) - Backup your node before upgrading
 `;
-
-  return content;
 }
 
 /**
@@ -233,24 +116,21 @@ Subscribe to the [Avalanche Notify service](/docs/nodes/maintain/enroll-in-avala
 export async function getReleasesConfigs(): Promise<FileConfig[]> {
   console.log('Fetching AvalancheGo releases from GitHub...');
 
-  const releases = await fetchAvalancheGoReleases();
-  const releaseInfos = releases.map(parseReleaseInfo);
+  const releases = await fetchGitHubReleases('ava-labs', 'avalanchego', 20);
+  const releaseInfos = releases.map(parseBaseReleaseInfo);
 
   console.log(`Found ${releaseInfos.length} releases`);
 
-  // Generate the releases page content
   const content = generateReleasesContent(releaseInfos);
 
-  const configs: FileConfig[] = [
+  return [
     {
-      sourceUrl: 'https://api.github.com/repos/ava-labs/avalanchego/releases', // Not actually used for fetching
+      sourceUrl: 'https://api.github.com/repos/ava-labs/avalanchego/releases',
       outputPath: 'content/docs/nodes/maintain/releases.mdx',
       title: 'AvalancheGo Releases',
       description: 'Track AvalancheGo releases, network upgrades, and version compatibility for your node.',
       contentUrl: 'https://github.com/ava-labs/avalanchego/releases',
-      content: content // Directly provide generated content
+      content
     }
   ];
-
-  return configs;
 }
