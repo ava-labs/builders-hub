@@ -1,0 +1,411 @@
+---
+title: CubeSigner Remote BLS Signing
+description: Learn how to use CubeSigner for secure hardware-backed BLS key management with AvalancheGo validators.
+---
+
+The CubeSigner sidecar enables AvalancheGo validators to use hardware-backed remote signing for BLS keys instead of storing them locally. This guide walks you through setting up and configuring the CubeSigner sidecar for enhanced security.
+
+## Introduction
+
+By default, AvalancheGo nodes store their BLS signing keys locally in a `signer.key` file. While functional, this approach has security limitations:
+
+- Keys stored on disk are vulnerable to theft or compromise
+- Lost or corrupted keys mean permanent loss of validator identity and staking rewards
+- No protection against unauthorized signing operations
+
+The CubeSigner sidecar solves these problems by delegating all BLS signing operations to [CubeSigner](https://cubist.dev/), a hardware-backed key management platform. Your BLS keys remain in secure AWS Nitro Enclaves and never touch local storage.
+
+### Benefits
+
+- **Hardware Security**: Keys stored in AWS Nitro Enclaves, never exposed in memory
+- **Anti-Slashing Protection**: Built-in safeguards prevent double signing
+- **High Availability**: 99.99% uptime with millisecond latency
+- **Policy Enforcement**: Control what operations can be signed at the platform level
+- **Disaster Recovery**: Keys remain safe even if validator node is compromised
+
+## Prerequisites
+
+Before you begin, ensure you have:
+
+- **AvalancheGo v1.13.4 or later**: The `--staking-rpc-signer-endpoint` flag was added in the Fortuna.4 release
+- **Cubist Account**: Sign up at [cubist.dev](https://cubist.dev/) for CubeSigner access
+- **CubeSigner CLI**: Install the `cs` command-line tool ([installation guide](https://docs.cubist.dev/))
+- **Shell Access**: Ability to configure and restart your AvalancheGo node
+
+<Callout type="warn">
+The CubeSigner sidecar is an advanced configuration for production validators. Make sure you understand the setup process before implementing on mainnet.
+</Callout>
+
+## Architecture Overview
+
+The CubeSigner sidecar acts as a gRPC proxy between AvalancheGo and the CubeSigner API:
+
+```
+AvalancheGo Node
+       ↓
+  gRPC Request (localhost:50051)
+       ↓
+CubeSigner Sidecar
+       ↓
+  HTTPS Request
+       ↓
+CubeSigner API (AWS Nitro Enclaves)
+       ↓
+  BLS Signature
+       ↓
+Returns to AvalancheGo
+```
+
+The sidecar implements AvalancheGo's `signer.proto` gRPC interface, translating node signing requests into CubeSigner API calls. All cryptographic operations happen inside CubeSigner's secure enclaves.
+
+## Step 1: Set Up CubeSigner
+
+### Create a Role
+
+First, create a CubeSigner role for your BLS signing operations:
+
+```bash
+cs role create --role-name avalanche-bls-signer
+```
+
+This command returns a role ID. Save this ID, as you'll need it in subsequent steps.
+
+### Generate a BLS Key
+
+Create a new BLS key for Avalanche ICM (Interchain Messaging):
+
+```bash
+cs keys create --key-type=bls-ava-icm
+```
+
+<Callout type="info">
+CubeSigner uses the key type `bls-ava-icm` specifically for Avalanche BLS signing operations. This ensures the correct signing algorithm is used.
+</Callout>
+
+The command outputs a key ID in the format `Key#BlsAvaIcm_0x...`. Copy this key ID.
+
+### Configure Signing Policy
+
+Set the policy to allow raw BLS blob signing:
+
+```bash
+cs key set-policy --key-id <KEY_ID> --policy '"AllowRawBlobSigning"'
+```
+
+Replace `<KEY_ID>` with the key ID from the previous step.
+
+<Callout type="warn" title="Important">
+The `AllowRawBlobSigning` policy is required for AvalancheGo to sign messages. Without this policy, signing requests will be rejected.
+</Callout>
+
+### Associate Key with Role
+
+Link your BLS key to the role you created:
+
+```bash
+cs role add-key --role-id <ROLE_ID> --key-id <KEY_ID>
+```
+
+### Generate Authentication Token
+
+Create a token file that the sidecar will use to authenticate with CubeSigner:
+
+```bash
+cs token create --role-id <ROLE_ID> > token.json
+```
+
+This creates a JSON file containing authentication credentials. Keep this file secure.
+
+<Callout type="error" title="Security Warning">
+The `token.json` file grants access to your BLS signing key. Store it securely with restricted file permissions (`chmod 600 token.json`) and never commit it to version control.
+</Callout>
+
+## Step 2: Run the Sidecar
+
+You can run the CubeSigner sidecar using Docker or as a standalone binary.
+
+### Using Docker
+
+Pull and run the official Docker image:
+
+```bash
+docker run -d \
+  --name cube-signer-sidecar \
+  -p 50051:50051 \
+  -v $(pwd)/token.json:/token.json:ro \
+  -e SIGNER_ENDPOINT=https://gamma.signer.cubist.dev \
+  -e KEY_ID=Key#BlsAvaIcm_0x... \
+  -e TOKEN_FILE_PATH=/token.json \
+  ghcr.io/ava-labs/cube-signer-sidecar:latest start
+```
+
+Replace the `KEY_ID` value with your actual key ID from Step 1.
+
+<Callout type="info">
+The default CubeSigner endpoint for production is `https://gamma.signer.cubist.dev`. For testnet or development, CubeSigner may provide alternative endpoints.
+</Callout>
+
+### Running Locally
+
+If you prefer to build from source:
+
+```bash
+# Clone the repository
+git clone https://github.com/ava-labs/cube-signer-sidecar.git
+cd cube-signer-sidecar
+
+# Build the binary
+go build -o cube-signer-sidecar main/main.go
+
+# Run the sidecar
+export SIGNER_ENDPOINT=https://gamma.signer.cubist.dev
+export KEY_ID=Key#BlsAvaIcm_0x...
+export TOKEN_FILE_PATH=./token.json
+./cube-signer-sidecar start
+```
+
+### Configuration Options
+
+The sidecar supports configuration via command-line flags, environment variables, or a JSON config file:
+
+| Option | Environment Variable | Required | Default | Description |
+|--------|---------------------|----------|---------|-------------|
+| `--token-file-path` | `TOKEN_FILE_PATH` | Yes | - | Path to the token JSON file |
+| `--signer-endpoint` | `SIGNER_ENDPOINT` | Yes | - | CubeSigner API endpoint URL |
+| `--key-id` | `KEY_ID` | Yes | - | BLS key identifier |
+| `--port` | `PORT` | No | 50051 | gRPC server listening port |
+| `--config-file` | `CONFIG_FILE` | No | - | Path to JSON configuration file |
+
+**Example JSON Configuration:**
+
+```json
+{
+  "token_file_path": "/path/to/token.json",
+  "signer_endpoint": "https://gamma.signer.cubist.dev",
+  "key_id": "Key#BlsAvaIcm_0x...",
+  "port": 50051
+}
+```
+
+Use with:
+
+```bash
+./cube-signer-sidecar start --config-file config.json
+```
+
+## Step 3: Configure AvalancheGo
+
+Once the sidecar is running, configure AvalancheGo to use it for BLS signing.
+
+### Add the Signer Endpoint Flag
+
+Update your AvalancheGo startup command to include the `--staking-rpc-signer-endpoint` flag:
+
+```bash
+avalanchego \
+  --staking-rpc-signer-endpoint=127.0.0.1:50051 \
+  [other flags...]
+```
+
+<Callout type="info">
+If your sidecar is running on a different machine, replace `127.0.0.1` with the appropriate IP address. Ensure network connectivity and firewall rules allow gRPC traffic on port 50051.
+</Callout>
+
+### Using a Configuration File
+
+Alternatively, add the setting to your AvalancheGo configuration JSON:
+
+```json
+{
+  "staking-rpc-signer-endpoint": "127.0.0.1:50051"
+}
+```
+
+### Using Systemd
+
+If you run AvalancheGo as a systemd service, edit the service file:
+
+```bash
+sudo systemctl edit avalanchego
+```
+
+Add the flag to the `ExecStart` line or add an environment variable:
+
+```ini
+[Service]
+Environment="AVALANCHEGO_STAKING_RPC_SIGNER_ENDPOINT=127.0.0.1:50051"
+```
+
+Then restart the service:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart avalanchego
+```
+
+## Verifying the Setup
+
+After starting both the sidecar and AvalancheGo, verify the configuration is working correctly.
+
+### Check Sidecar Logs
+
+If running via Docker:
+
+```bash
+docker logs cube-signer-sidecar
+```
+
+You should see log messages indicating the gRPC server is running and receiving requests from AvalancheGo.
+
+### Verify Node BLS Key
+
+Call the AvalancheGo Info API to confirm your node is using the CubeSigner BLS key:
+
+```bash
+curl -X POST --data '{
+    "jsonrpc":"2.0",
+    "id"     :1,
+    "method" :"info.getNodeID"
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/info
+```
+
+The response should include your NodeID and NodePOP (BLS public key and proof of possession):
+
+```json
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "nodeID": "NodeID-...",
+    "nodePOP": {
+      "publicKey": "0x...",
+      "proofOfPossession": "0x..."
+    }
+  },
+  "id": 1
+}
+```
+
+The `publicKey` value should match the BLS key you created in CubeSigner.
+
+### Monitor Node Logs
+
+Check AvalancheGo logs to ensure there are no signing errors:
+
+```bash
+sudo journalctl -u avalanchego -f
+```
+
+Look for successful connection messages to the RPC signer endpoint. Any signing failures will appear as errors in these logs.
+
+## Security Considerations
+
+When using the CubeSigner sidecar, follow these security best practices:
+
+### Token Management
+
+- **Restrict File Permissions**: Set `token.json` to read-only for the user running the sidecar:
+  ```bash
+  chmod 600 token.json
+  chown avalanchego:avalanchego token.json
+  ```
+- **Never Commit Tokens**: Add `token.json` to `.gitignore` to prevent accidental commits
+- **Rotate Regularly**: Generate new tokens periodically and update your configuration
+- **Monitor Usage**: Check CubeSigner logs for unauthorized signing attempts
+
+### Network Security
+
+- **Isolate the Sidecar**: Run the sidecar on the same machine as AvalancheGo or on a private network
+- **Firewall Rules**: Restrict access to port 50051 to only the AvalancheGo process
+- **TLS for Remote Connections**: If the sidecar runs remotely, use TLS encryption for gRPC connections
+
+### Key Management
+
+- **One Key Per Validator**: Each validator node should have its own unique BLS key
+- **Backup Policies**: Document your CubeSigner role and key IDs for disaster recovery
+- **Test First**: Always test the configuration on a testnet validator before deploying to mainnet
+
+<Callout type="warn">
+If someone gains access to your `token.json` file, they can sign messages on behalf of your validator. Treat this file with the same security as you would a private key.
+</Callout>
+
+## Troubleshooting
+
+### Connection Refused Errors
+
+**Problem**: AvalancheGo logs show "connection refused" when trying to reach the sidecar.
+
+**Solution**:
+- Verify the sidecar is running: `docker ps` or check the process
+- Confirm the sidecar is listening on the correct port: `netstat -tlnp | grep 50051`
+- Check firewall rules allow connections on port 50051
+
+### Invalid Token Errors
+
+**Problem**: Sidecar logs show authentication failures or invalid token errors.
+
+**Solution**:
+- Verify `token.json` contains valid JSON
+- Ensure the token hasn't expired (tokens have a limited lifetime)
+- Regenerate the token with `cs token create` and restart the sidecar
+
+### Key Not Found Errors
+
+**Problem**: Sidecar reports the key ID doesn't exist or isn't accessible.
+
+**Solution**:
+- Double-check the `KEY_ID` matches exactly what `cs keys create` returned
+- Verify the key is associated with the role: `cs role keys --role-id <ROLE_ID>`
+- Ensure the key has the `AllowRawBlobSigning` policy set
+
+### Signing Policy Errors
+
+**Problem**: Signing requests are rejected with policy errors.
+
+**Solution**:
+- Confirm the key policy allows raw blob signing:
+  ```bash
+  cs key set-policy --key-id <KEY_ID> --policy '"AllowRawBlobSigning"'
+  ```
+- Restart the sidecar after policy changes
+
+### AvalancheGo Won't Start
+
+**Problem**: AvalancheGo fails to start after adding the `--staking-rpc-signer-endpoint` flag.
+
+**Solution**:
+- Verify you're running AvalancheGo v1.13.4 or later: `avalanchego --version`
+- Remove any existing `signer.key` file (it conflicts with remote signing)
+- Check the sidecar is reachable before starting AvalancheGo
+
+## Migration from Local BLS Keys
+
+If you're migrating an existing validator from local `signer.key` to CubeSigner, you have two options:
+
+### Option 1: New BLS Key (Recommended for Testnet)
+
+Generate a new BLS key in CubeSigner and update your validator registration. This is the cleanest approach but requires re-registering your validator.
+
+### Option 2: Import Existing Key (Production Validators)
+
+<Callout type="error" title="Contact CubeSigner Support">
+Importing existing BLS keys into CubeSigner requires coordination with the CubeSigner team. This is typically only done for production validators with active stake. Contact [CubeSigner support](https://cubist.dev/contact) for assistance.
+</Callout>
+
+## Alternative: Local BLS Key Backup
+
+If CubeSigner's remote signing doesn't fit your needs, consider traditional backup approaches for local BLS keys. See the [Backup and Restore](/docs/nodes/maintain/backup-restore) guide for instructions on backing up your `signer.key` file.
+
+Traditional backups are simpler but lack the security benefits of hardware-backed signing.
+
+## Next Steps
+
+- [Monitor your node](/docs/nodes/maintain/monitoring) to ensure signing operations are working correctly
+- [Upgrade AvalancheGo](/docs/nodes/maintain/upgrade) when new versions are released
+- [Learn about Avalanche L1 validators](/docs/avalanche-l1s) if you're validating additional Subnets
+
+## Resources
+
+- [CubeSigner Documentation](https://docs.cubist.dev/)
+- [CubeSigner for Validators](https://cubist.dev/cubesigner-hardware-backed-remote-signing-for-validator-infrastructure)
+- [cube-signer-sidecar GitHub Repository](https://github.com/ava-labs/cube-signer-sidecar)
+- [AvalancheGo Release Notes (v1.13.4)](https://github.com/ava-labs/avalanchego/releases/tag/v1.13.4)
