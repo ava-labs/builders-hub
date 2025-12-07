@@ -1443,11 +1443,6 @@ const config = {
         permanent: true,
       },
       {
-        source: "/academy/avalanche-l1/permissioned-l1s/01-introduction/02-multi-chain-review)",
-        destination: "/academy/avalanche-l1/permissioned-l1s/01-introduction/02-multi-chain-review",
-        permanent: true,
-      },
-      {
         source: "/docs/apis/avalanchego/apis/c-chain",
         destination: "/docs/rpcs/c-chain",
         permanent: true,
