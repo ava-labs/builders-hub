@@ -1421,6 +1421,87 @@ const config = {
         destination: "/docs/avalanche-l1s/precompiles/fee-manager",
         permanent: true,
       },
+      // 404 fixes - December 2025 batch 2
+      {
+        source: "/builderkit",
+        destination: "/docs/tooling/avalanche-sdk",
+        permanent: true,
+      },
+      {
+        source: "/docs/builderkit",
+        destination: "/docs/tooling/avalanche-sdk",
+        permanent: true,
+      },
+      {
+        source: "/docs/builderkit/:path*",
+        destination: "/docs/tooling/avalanche-sdk",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/multi-chain-architecture/03-avalanche-starter-kit/06-networks",
+        destination: "/academy/avalanche-l1/interchain-messaging/03-avalanche-starter-kit/04-networks",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/permissioned-l1s/01-introduction/02-multi-chain-review)",
+        destination: "/academy/avalanche-l1/permissioned-l1s/01-introduction/02-multi-chain-review",
+        permanent: true,
+      },
+      {
+        source: "/docs/apis/avalanchego/apis/c-chain",
+        destination: "/docs/rpcs/c-chain",
+        permanent: true,
+      },
+      {
+        source: "/docs/apis/avalanchego/apis/subnet-evm",
+        destination: "/docs/rpcs/subnet-evm",
+        permanent: true,
+      },
+      {
+        source: "/docs/apis/avalanchego/apis/p-chain",
+        destination: "/docs/rpcs/p-chain",
+        permanent: true,
+      },
+      {
+        source: "/docs/apis/avalanchego/apis/:path*",
+        destination: "/docs/rpcs/:path*",
+        permanent: true,
+      },
+      {
+        source: "/docs/build/dapp/smart-contracts/staking",
+        destination: "/docs/primary-network/validate/how-to-stake",
+        permanent: true,
+      },
+      {
+        source: "/docs/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1",
+        destination: "/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1",
+        permanent: true,
+      },
+      {
+        source: "/docs/docs/avalanche-l1s/upgrade/precompile-upgrades",
+        destination: "/docs/avalanche-l1s/upgrade/precompile-upgrades",
+        permanent: true,
+      },
+      {
+        source: "/docs/docs/:path*",
+        destination: "/docs/:path*",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/build/launch-an-avalanche-validator-on-aws-with-one-click",
+        destination: "/docs/nodes/run-a-node/on-third-party-services/aws-marketplace",
+        permanent: true,
+      },
+      {
+        source: "/docs/overview",
+        destination: "/docs",
+        permanent: true,
+      },
+      {
+        source: "/docs/virtual-machines/evm-customization/executing-test-cases",
+        destination: "/docs/avalanche-l1s/custom-precompiles/executing-test-cases",
+        permanent: true,
+      },
     ];
   },
 };
