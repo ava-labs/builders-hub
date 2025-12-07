@@ -115,5 +115,4 @@ export const menuSections: NavSection[] = [
  */
 export const singleItems: NavItem[] = [
   { text: 'Explorer', href: '/explorer' },
-  { text: 'University', href: '/university' },
 ];
