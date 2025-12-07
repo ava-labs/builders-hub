@@ -4,7 +4,7 @@ import { useConsoleLog } from './use-console-log';
 import { Chain, createPublicClient, http } from 'viem';
 import { usePathname } from 'next/navigation';
 import { showCustomErrorToast } from '@/components/ui/custom-error-toast';
-import posthog from 'posthog-js';
+import { analytics, type ConsoleContext } from '@/lib/analytics';
 
 const getEVMExplorerUrl = (txHash: string, viemChain: Chain) => {
     if (viemChain.blockExplorers?.default?.url) {
@@ -143,17 +143,18 @@ const useEVMNotifications = () => {
                 });
 
                 // Track successful action in PostHog
-                posthog.capture('console_action_success', {
-                    action_type: options.type,
-                    action_name: options.name,
-                    action_path: actionPath,
+                const context: ConsoleContext = pathname?.includes('/academy') ? 'academy' : (pathname?.includes('/docs') ? 'docs' : 'console');
+                analytics.console.actionSuccess({
+                    actionType: options.type,
+                    actionName: options.name,
+                    actionPath,
                     network: isTestnet ? 'testnet' : 'mainnet',
-                    ...(viemChain?.id && { chain_id: viemChain.id }),
-                    ...(viemChain?.name && { chain_name: viemChain.name }),
-                    ...(logData.txHash && { tx_hash: logData.txHash }),
-                    ...(logData.address && { contract_address: logData.address }),
-                    context: pathname?.includes('/academy') ? 'academy' : (pathname?.includes('/docs') ? 'docs' : 'console'),
-                    chain_type: 'evm'
+                    chainType: 'evm',
+                    context,
+                    ...(viemChain?.id && { chainId: viemChain.id }),
+                    ...(viemChain?.name && { chainName: viemChain.name }),
+                    ...(logData.txHash && { txHash: logData.txHash }),
+                    ...(logData.address && { contractAddress: logData.address }),
                 });
             })
             .catch((error) => {
@@ -169,16 +170,17 @@ const useEVMNotifications = () => {
                 });
 
                 // Track error in PostHog
-                posthog.capture('console_action_error', {
-                    action_type: options.type,
-                    action_name: options.name,
-                    action_path: actionPath,
+                const errorContext: ConsoleContext = pathname?.includes('/academy') ? 'academy' : (pathname?.includes('/docs') ? 'docs' : 'console');
+                analytics.console.actionError({
+                    actionType: options.type,
+                    actionName: options.name,
+                    actionPath,
                     network: isTestnet ? 'testnet' : 'mainnet',
-                    ...(viemChain?.id && { chain_id: viemChain.id }),
-                    ...(viemChain?.name && { chain_name: viemChain.name }),
-                    error_message: error.message,
-                    context: pathname?.includes('/academy') ? 'academy' : (pathname?.includes('/docs') ? 'docs' : 'console'),
-                    chain_type: 'evm'
+                    chainType: 'evm',
+                    context: errorContext,
+                    errorMessage: error.message,
+                    ...(viemChain?.id && { chainId: viemChain.id }),
+                    ...(viemChain?.name && { chainName: viemChain.name }),
                 });
             });
     };

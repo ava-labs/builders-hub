@@ -18,7 +18,7 @@
 import posthog from 'posthog-js';
 
 // Event categories
-export type EventCategory = 'auth' | 'faucet' | 'console' | 'docs' | 'error' | 'navigation';
+export type EventCategory = 'auth' | 'faucet' | 'console' | 'docs' | 'error' | 'navigation' | 'infra';
 
 // Social login providers
 export type SocialProvider = 'google' | 'github' | 'x';
@@ -28,6 +28,12 @@ export type AuthMethod = 'otp' | SocialProvider;
 
 // Faucet types
 export type FaucetType = 'evm' | 'pchain';
+
+// Chain types for console actions
+export type ChainType = 'evm' | 'p-chain';
+
+// Context for console actions (where the action was triggered from)
+export type ConsoleContext = 'console' | 'academy' | 'docs';
 
 // Base event interface
 export interface AnalyticsEvent {
@@ -357,6 +363,189 @@ export const analytics = {
         },
       });
     },
+
+    /**
+     * Track successful console action (blockchain transaction or operation)
+     * @param options - Action details
+     */
+    actionSuccess: (options: {
+      actionType: string;
+      actionName: string;
+      actionPath: string;
+      network: 'testnet' | 'mainnet';
+      chainType: ChainType;
+      context: ConsoleContext;
+      txId?: string;
+      txHash?: string;
+      chainId?: number;
+      chainName?: string;
+      contractAddress?: string;
+    }): void => {
+      track({
+        category: 'console',
+        action: 'action_success',
+        properties: {
+          action_type: options.actionType,
+          action_name: options.actionName,
+          action_path: options.actionPath,
+          network: options.network,
+          chain_type: options.chainType,
+          context: options.context,
+          ...(options.txId && { tx_id: options.txId }),
+          ...(options.txHash && { tx_hash: options.txHash }),
+          ...(options.chainId && { chain_id: options.chainId }),
+          ...(options.chainName && { chain_name: options.chainName }),
+          ...(options.contractAddress && { contract_address: options.contractAddress }),
+        },
+      });
+    },
+
+    /**
+     * Track failed console action
+     * @param options - Action details including error
+     */
+    actionError: (options: {
+      actionType: string;
+      actionName: string;
+      actionPath: string;
+      network: 'testnet' | 'mainnet';
+      chainType: ChainType;
+      context: ConsoleContext;
+      errorMessage: string;
+      chainId?: number;
+      chainName?: string;
+    }): void => {
+      track({
+        category: 'console',
+        action: 'action_error',
+        properties: {
+          action_type: options.actionType,
+          action_name: options.actionName,
+          action_path: options.actionPath,
+          network: options.network,
+          chain_type: options.chainType,
+          context: options.context,
+          error_message: options.errorMessage,
+          ...(options.chainId && { chain_id: options.chainId }),
+          ...(options.chainName && { chain_name: options.chainName }),
+        },
+      });
+    },
+  },
+
+  /**
+   * Managed testnet infrastructure events
+   */
+  infra: {
+    /**
+     * Track successful node deletion
+     * @param subnetId - Subnet ID
+     * @param blockchainId - Blockchain ID
+     */
+    nodeDeleted: (subnetId: string, blockchainId: string): void => {
+      track({
+        category: 'infra',
+        action: 'node_deleted',
+        properties: {
+          subnet_id: subnetId,
+          blockchain_id: blockchainId,
+          context: 'console',
+        },
+      });
+    },
+
+    /**
+     * Track node deletion error
+     * @param subnetId - Subnet ID
+     * @param blockchainId - Blockchain ID
+     * @param errorMessage - Error message
+     */
+    nodeDeleteError: (subnetId: string, blockchainId: string, errorMessage: string): void => {
+      track({
+        category: 'infra',
+        action: 'node_delete_error',
+        properties: {
+          subnet_id: subnetId,
+          blockchain_id: blockchainId,
+          error_message: errorMessage,
+          context: 'console',
+        },
+      });
+    },
+
+    /**
+     * Track successful relayer deletion
+     * @param relayerId - Relayer ID
+     * @param configCount - Number of configs the relayer had
+     */
+    relayerDeleted: (relayerId: string, configCount: number): void => {
+      track({
+        category: 'infra',
+        action: 'relayer_deleted',
+        properties: {
+          relayer_id: relayerId,
+          config_count: configCount,
+          context: 'console',
+        },
+      });
+    },
+
+    /**
+     * Track relayer deletion error
+     * @param relayerId - Relayer ID
+     * @param configCount - Number of configs
+     * @param errorMessage - Error message
+     */
+    relayerDeleteError: (relayerId: string, configCount: number, errorMessage: string): void => {
+      track({
+        category: 'infra',
+        action: 'relayer_delete_error',
+        properties: {
+          relayer_id: relayerId,
+          config_count: configCount,
+          error_message: errorMessage,
+          context: 'console',
+        },
+      });
+    },
+
+    /**
+     * Track successful relayer restart
+     * @param relayerId - Relayer ID
+     * @param configCount - Number of configs
+     */
+    relayerRestarted: (relayerId: string, configCount: number): void => {
+      track({
+        category: 'infra',
+        action: 'relayer_restarted',
+        properties: {
+          relayer_id: relayerId,
+          config_count: configCount,
+          context: 'console',
+        },
+      });
+    },
+
+    /**
+     * Track relayer restart error
+     * @param relayerId - Relayer ID
+     * @param configCount - Number of configs
+     * @param errorMessage - Error message
+     * @param isRateLimited - Whether the error was due to rate limiting
+     */
+    relayerRestartError: (relayerId: string, configCount: number, errorMessage: string, isRateLimited: boolean = false): void => {
+      track({
+        category: 'infra',
+        action: 'relayer_restart_error',
+        properties: {
+          relayer_id: relayerId,
+          config_count: configCount,
+          error_message: errorMessage,
+          is_rate_limited: isRateLimited,
+          context: 'console',
+        },
+      });
+    },
   },
 
   /**
@@ -456,6 +645,117 @@ export const analytics = {
           result_position: resultPosition,
         },
       });
+    },
+
+    /**
+     * Track document rating feedback
+     * @param feedback - The feedback object containing rating data
+     */
+    documentRated: (feedback: Record<string, unknown>): void => {
+      safeCapture('on_rate_document', feedback);
+    },
+  },
+
+  /**
+   * Navigation events
+   */
+  navigation: {
+    /**
+     * Track 404 page not found
+     * @param path - The path that was not found
+     * @param referrer - The referrer URL
+     */
+    pageNotFound: (path: string, referrer?: string): void => {
+      track({
+        category: 'navigation',
+        action: 'page_not_found',
+        properties: {
+          path,
+          referrer: referrer || 'direct',
+        },
+      });
+    },
+  },
+
+  /**
+   * AI Chat events
+   */
+  ai: {
+    /**
+     * Track when AI chat is opened
+     * @param view - The view mode ('small' or 'full')
+     */
+    chatOpened: (view: 'small' | 'full'): void => {
+      safeCapture('ai_chat_opened', { view });
+    },
+
+    /**
+     * Track when AI chat is expanded
+     */
+    chatExpanded: (): void => {
+      safeCapture('ai_chat_expanded', {});
+    },
+
+    /**
+     * Track when a message is sent to AI
+     * @param queryLength - Length of the query
+     * @param queryPreview - First 100 chars of query for privacy
+     * @param messageCount - Current message count
+     */
+    messageSent: (queryLength: number, queryPreview: string, messageCount: number): void => {
+      safeCapture('ai_chat_message_sent', {
+        query_length: queryLength,
+        query: queryPreview,
+        message_count: messageCount,
+      });
+    },
+
+    /**
+     * Track when AI response is received
+     * @param responseLength - Length of the response
+     * @param messageCount - Total message count after response
+     */
+    responseReceived: (responseLength: number, messageCount: number): void => {
+      safeCapture('ai_chat_response_received', {
+        response_length: responseLength,
+        message_count: messageCount,
+      });
+    },
+
+    /**
+     * Track when chat is regenerated
+     * @param messageCount - Current message count
+     */
+    chatRegenerated: (messageCount: number): void => {
+      safeCapture('ai_chat_regenerate', {
+        message_count: messageCount,
+      });
+    },
+
+    /**
+     * Track when chat is cleared
+     * @param messageCount - Message count before clearing
+     */
+    chatCleared: (messageCount: number): void => {
+      safeCapture('ai_chat_cleared', {
+        message_count: messageCount,
+      });
+    },
+
+    /**
+     * Track when a follow-up question is clicked
+     * @param question - The follow-up question
+     */
+    followUpClicked: (question: string): void => {
+      safeCapture('ai_chat_followup_clicked', { question });
+    },
+
+    /**
+     * Track when a suggested question is clicked
+     * @param question - The suggested question
+     */
+    suggestedQuestionClicked: (question: string): void => {
+      safeCapture('ai_chat_suggested_question_clicked', { question });
     },
   },
 };
