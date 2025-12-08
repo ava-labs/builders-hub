@@ -159,6 +159,15 @@ export default function MiniNetworkDiagram({
   const lastDragPosRef = useRef({ x: 0, y: 0 });
   const dragVelocityRef = useRef({ x: 0, y: 0 });
 
+  // Helper to proxy external images through Next.js image optimization to avoid CORS
+  const getProxiedImageUrl = useCallback((url: string): string => {
+    if (!url) return url;
+    // Local images don't need proxying
+    if (url.startsWith('/')) return url;
+    // Use Next.js image optimization as a CORS proxy
+    return `/_next/image?url=${encodeURIComponent(url)}&w=128&q=75`;
+  }, []);
+
   // Load chain logos
   useEffect(() => {
     chains.forEach((chain) => {
@@ -168,10 +177,22 @@ export default function MiniNetworkDiagram({
         img.onload = () => {
           logoImagesRef.current.set(chain.id, img);
         };
-        img.src = chain.logo;
+        img.onerror = () => {
+          // If proxied URL fails, try without proxy as fallback
+          if (img.src.includes('/_next/image')) {
+            const fallbackImg = new Image();
+            fallbackImg.crossOrigin = 'anonymous';
+            fallbackImg.onload = () => {
+              logoImagesRef.current.set(chain.id, fallbackImg);
+            };
+            fallbackImg.src = chain.logo!;
+          }
+        };
+        // Use proxied URL for external images to avoid CORS
+        img.src = getProxiedImageUrl(chain.logo);
       }
     });
-  }, [chains]);
+  }, [chains, getProxiedImageUrl]);
 
   // Initialize layout
   const initializeLayout = useCallback((width: number, height: number): ChainNode[] => {
