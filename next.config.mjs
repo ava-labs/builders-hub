@@ -1438,12 +1438,6 @@ const config = {
         destination: "/docs/nodes/run-a-node/on-third-party-services/aws-marketplace",
         permanent: true,
       },
-      // Japanese comma typo redirect
-      {
-        source: "/%E3%80%81",
-        destination: "/docs",
-        permanent: true,
-      },
       // Academy tokenomics path fixes
       {
         source: "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/02-native-tokens",
@@ -1483,17 +1477,6 @@ const config = {
         destination: "/docs/rpcs/:path*",
         permanent: true,
       },
-      // Deprecated tutorials redirect
-      {
-        source: "/docs/deprecated/tutorials-contest/2021",
-        destination: "/docs",
-        permanent: true,
-      },
-      {
-        source: "/docs/deprecated/:path*",
-        destination: "/docs",
-        permanent: true,
-      },
       // Node config flags redirect
       {
         source: "/docs/nodes/configure/chain-config-flags",
@@ -1510,12 +1493,6 @@ const config = {
       {
         source: "/docs/nodes/run/with-installer",
         destination: "/docs/nodes/run-a-node/using-install-script/installing-avalanche-go",
-        permanent: true,
-      },
-      // Roadmap redirect (no longer exists)
-      {
-        source: "/docs/roadmap",
-        destination: "/docs",
         permanent: true,
       },
       // Stake redirect
@@ -1539,12 +1516,6 @@ const config = {
       {
         source: "/docs/virtual-machines/timestamp-vm/:path*",
         destination: "/docs/avalanche-l1s/timestamp-vm/:path*",
-        permanent: true,
-      },
-      // Stats redirect (no stats page exists)
-      {
-        source: "/stats/:path*",
-        destination: "/docs/primary-network",
         permanent: true,
       },
     ];
