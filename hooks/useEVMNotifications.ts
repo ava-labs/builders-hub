@@ -5,16 +5,32 @@ import { Chain, createPublicClient, http } from 'viem';
 import { usePathname } from 'next/navigation';
 import { showCustomErrorToast } from '@/components/ui/custom-error-toast';
 import posthog from 'posthog-js';
+import l1ChainsData from '@/constants/l1-chains.json';
+
+const EXPLORER_BASE_PATH = "/explorer";
 
 const getEVMExplorerUrl = (txHash: string, viemChain: Chain) => {
+    // Special case for C-Chain (mainnet 43114 and testnet 43113)
+    if (viemChain.id === 43114 || viemChain.id === 43113) {
+        return `${EXPLORER_BASE_PATH}/avalanche-c-chain/tx/${txHash}`;
+    }
+    
+    // Check if this chain exists in our L1 chains list
+    const l1Chain = l1ChainsData.find(c => c.chainId === String(viemChain.id));
+    
+    // Only use internal explorer for chains in our list
+    if (l1Chain?.slug) {
+        return `${EXPLORER_BASE_PATH}/${l1Chain.slug}/tx/${txHash}`;
+    }
+    
+    // Fallback to external explorers for custom chains
     if (viemChain.blockExplorers?.default?.url) {
         return `${viemChain.blockExplorers.default.url}/tx/${txHash}`;
-    } else if (viemChain.id === 43114 || viemChain.id === 43113) {
-        return `https://${viemChain.id === 43113 ? "subnets-test" : "subnets"}.avax.network/c-chain/tx/${txHash}`;
-    } else {
-        const rpcUrl = viemChain.rpcUrls.default.http[0];
-        return `https://devnet.routescan.io/tx/${txHash}?rpc=${rpcUrl}`;
     }
+    
+    // Last resort: use routescan with RPC URL
+    const rpcUrl = viemChain.rpcUrls.default.http[0];
+    return `https://devnet.routescan.io/tx/${txHash}?rpc=${rpcUrl}`;
 };
 
 export type EVMTransactionType = 'deploy' | 'call' | 'transfer' | 'local';
