@@ -1421,6 +1421,12 @@ const config = {
         destination: "/docs/avalanche-l1s/precompiles/fee-manager",
         permanent: true,
       },
+      // BuilderKit redirect to SDK docs
+      {
+        source: "/builderkit",
+        destination: "/docs/tooling/avalanche-sdk",
+        permanent: true,
+      },
     ];
   },
 };
