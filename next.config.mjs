@@ -1463,6 +1463,7 @@ const config = {
       {
         source: "/docs/apis/avalanchego/apis/p-chain",
         destination: "/docs/rpcs/p-chain",
+        permanent: true,
       },
       // SDK client methods redirect
       {
@@ -1514,6 +1515,7 @@ const config = {
       {
         source: "/docs/virtual-machines/evm-customization/executing-test-cases",
         destination: "/docs/avalanche-l1s/custom-precompiles/executing-test-cases",
+        permanent: true,
       },
       // Node config flags redirect
       {
