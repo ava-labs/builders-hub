@@ -188,15 +188,15 @@ export default function BubbleNavigation({
                   key={item.id}
                   onClick={() => handleItemClick(item)}
                   className={cn(
-                    "relative flex items-center",
+                    "group relative flex items-center cursor-pointer",
                     isActive
                       ? cn(config.activeColor, config.activeTextColor, "gap-3")
-                      : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                      : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-zinc-800 hover:gap-3"
                   )}
                   style={{
                     borderRadius: "20px",
                     padding: isActive ? "10px 18px 10px 14px" : "10px",
-                    transition: "all 500ms ease-out",
+                    transition: "all 300ms ease-out",
                   }}
                 >
                   {Icon && <Icon className="w-5 h-5 flex-shrink-0" />}
@@ -205,9 +205,9 @@ export default function BubbleNavigation({
                       "overflow-hidden",
                       isActive
                         ? "max-w-[100px] opacity-100"
-                        : "max-w-0 opacity-0"
+                        : "max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100"
                     )}
-                    style={{ transition: "all 500ms ease-out" }}
+                    style={{ transition: "all 300ms ease-out" }}
                   >
                     <span className="font-medium text-sm whitespace-nowrap">
                       {item.label}
