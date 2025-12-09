@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TransferableOutput, addTxSignatures, pvm, utils, Context } from "@avalabs/avalanchejs";
 import { getAuthSession } from '@/lib/auth/authSession';
-import { rateLimit } from '@/lib/rateLimit';
+import { checkFaucetRateLimit, recordFaucetClaim } from '@/lib/faucetRateLimit';
 
 const SERVER_PRIVATE_KEY = process.env.SERVER_PRIVATE_KEY;
 const FAUCET_P_CHAIN_ADDRESS = process.env.FAUCET_P_CHAIN_ADDRESS;
@@ -22,7 +22,7 @@ interface TransferResponse {
 }
 
 async function transferPToP(
-  sourcePrivateKey: string, 
+  sourcePrivateKey: string,
   sourceAddress: string,
   destinationAddress: string
 ): Promise<{ txID: string }> {
@@ -59,23 +59,26 @@ async function transferPToP(
   return pvmApi.issueSignedTx(tx.getSignedTx());
 }
 
-async function validateFaucetRequest(request: NextRequest): Promise<NextResponse | null> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const session = await getAuthSession();    
-    if (!session?.user) {
+    // Authentication check
+    const session = await getAuthSession();
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, message: 'Authentication required' },
         { status: 401 }
       );
     }
-    
+
+    // Server configuration check
     if (!SERVER_PRIVATE_KEY || !FAUCET_P_CHAIN_ADDRESS) {
       return NextResponse.json(
         { success: false, message: 'Server not properly configured' },
         { status: 500 }
       );
     }
-      
+
+    // Validate request parameters
     const searchParams = request.nextUrl.searchParams;
     const destinationAddress = searchParams.get('address');
 
@@ -85,35 +88,42 @@ async function validateFaucetRequest(request: NextRequest): Promise<NextResponse
         { status: 400 }
       );
     }
-    
+
     if (destinationAddress === FAUCET_P_CHAIN_ADDRESS) {
       return NextResponse.json(
         { success: false, message: 'Cannot send tokens to the faucet address' },
         { status: 400 }
       );
     }
-    return null;
-  } catch (error) {
-    console.error('Validation failed:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: error instanceof Error ? error.message : 'Failed to validate request' 
-      },
-      { status: 500 }
-    );
-  }
-}
 
-async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> {
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    const destinationAddress = searchParams.get('address')!;
-    
-    const tx = await transferPToP(
-      SERVER_PRIVATE_KEY!,
-      FAUCET_P_CHAIN_ADDRESS!,
+    // Check rate limits (DB-backed)
+    const rateLimitResult = await checkFaucetRateLimit(
+      session.user.id,
+      'pchain',
       destinationAddress
+    );
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { success: false, message: rateLimitResult.reason },
+        { status: 429 }
+      );
+    }
+
+    // Execute transfer
+    const tx = await transferPToP(
+      SERVER_PRIVATE_KEY,
+      FAUCET_P_CHAIN_ADDRESS,
+      destinationAddress
+    );
+
+    // Record successful claim
+    await recordFaucetClaim(
+      session.user.id,
+      'pchain',
+      destinationAddress,
+      FIXED_AMOUNT.toString(),
+      tx.txID
     );
 
     const response: TransferResponse = {
@@ -123,32 +133,17 @@ async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> 
       destinationAddress,
       amount: FIXED_AMOUNT.toString()
     };
-        
+
     return NextResponse.json(response);
-      
+
   } catch (error) {
-    console.error('Transfer failed:', error);
-        
+    console.error('P-Chain faucet error:', error);
+
     const response: TransferResponse = {
       success: false,
       message: error instanceof Error ? error.message : 'Failed to complete transfer'
     };
-        
+
     return NextResponse.json(response, { status: 500 });
   }
-}
-
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  const validationResponse = await validateFaucetRequest(request);
-
-  if (validationResponse) {
-    return validationResponse;
-  }
-
-  const rateLimitHandler = rateLimit(handleFaucetRequest, {
-    windowMs: 24 * 60 * 60 * 1000,
-    maxRequests: 1
-  });
- 
-  return rateLimitHandler(request);
 }

@@ -3,7 +3,7 @@ import { createWalletClient, http, parseEther, createPublicClient, defineChain, 
 import { privateKeyToAccount } from 'viem/accounts';
 import { avalancheFuji } from 'viem/chains';
 import { getAuthSession } from '@/lib/auth/authSession';
-import { rateLimit } from '@/lib/rateLimit';
+import { checkFaucetRateLimit, recordFaucetClaim } from '@/lib/faucetRateLimit';
 import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 
 const SERVER_PRIVATE_KEY = process.env.FAUCET_C_CHAIN_PRIVATE_KEY;
@@ -95,16 +95,18 @@ async function transferEVMTokens(
   return { txHash };
 }
 
-async function validateFaucetRequest(request: NextRequest): Promise<NextResponse | null> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    // Authentication check
     const session = await getAuthSession();
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, message: 'Authentication required' },
         { status: 401 }
       );
     }
 
+    // Server configuration check
     if (!SERVER_PRIVATE_KEY || !FAUCET_ADDRESS) {
       return NextResponse.json(
         { success: false, message: 'Server not properly configured' },
@@ -112,6 +114,7 @@ async function validateFaucetRequest(request: NextRequest): Promise<NextResponse
       );
     }
 
+    // Validate request parameters
     const searchParams = request.nextUrl.searchParams;
     const destinationAddress = searchParams.get('address');
     const chainId = searchParams.get('chainId');
@@ -152,32 +155,40 @@ async function validateFaucetRequest(request: NextRequest): Promise<NextResponse
         { status: 400 }
       );
     }
-    return null;
-  } catch (error) {
-    console.error('Validation failed:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to validate request'
-      },
-      { status: 500 }
-    );
-  }
-}
 
-async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> {
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    const destinationAddress = searchParams.get('address')!;
-    const chainId = parseInt(searchParams.get('chainId')!);
-    const supportedChain = findSupportedChain(chainId);
-    const dripAmount = (supportedChain?.faucetThresholds?.dripAmount || 3).toString();
+    // Check rate limits (DB-backed)
+    const rateLimitResult = await checkFaucetRateLimit(
+      session.user.id,
+      'evm',
+      destinationAddress,
+      chainId
+    );
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { success: false, message: rateLimitResult.reason },
+        { status: 429 }
+      );
+    }
+
+    // Execute transfer
+    const dripAmount = (supportedChain.faucetThresholds?.dripAmount || 3).toString();
 
     const tx = await transferEVMTokens(
-      FAUCET_ADDRESS!,
+      FAUCET_ADDRESS,
       destinationAddress,
-      chainId,
+      parsedChainId,
       dripAmount
+    );
+
+    // Record successful claim
+    await recordFaucetClaim(
+      session.user.id,
+      'evm',
+      destinationAddress,
+      dripAmount,
+      tx.txHash,
+      chainId
     );
 
     const response: TransferResponse = {
@@ -186,13 +197,13 @@ async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> 
       sourceAddress: FAUCET_ADDRESS,
       destinationAddress,
       amount: dripAmount,
-      chainId
+      chainId: parsedChainId
     };
 
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('EVM chain transfer failed:', error);
+    console.error('EVM chain faucet error:', error);
 
     const response: TransferResponse = {
       success: false,
@@ -201,27 +212,4 @@ async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> 
 
     return NextResponse.json(response, { status: 500 });
   }
-}
-
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  const validationResponse = await validateFaucetRequest(request);
-
-  if (validationResponse) {
-    return validationResponse;
-  }
-
-  const chainId = request.nextUrl.searchParams.get('chainId');
-  const rateLimitHandler = rateLimit(handleFaucetRequest, {
-    windowMs: 24 * 60 * 60 * 1000,
-    maxRequests: 1,
-    identifier: async (_req: NextRequest) => {
-      const session = await import('@/lib/auth/authSession').then(mod => mod.getAuthSession());
-      if (!session) throw new Error('Authentication required');
-      const email = session.user.email;
-      if (!email) throw new Error('email required for rate limiting');
-      return `${email}-${chainId}`;
-    }
-  });
-
-  return rateLimitHandler(request);
 }
