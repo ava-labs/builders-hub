@@ -39,6 +39,7 @@ import {
   countries,
 } from "@/types/infrabuidlForm";
 import { useSession } from "next-auth/react";
+import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -77,6 +78,7 @@ export default function GrantApplicationForm({
   const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(false);
 
   const { data: session, status } = useSession();
+  const isProjectSelectionEnabled = useFeatureFlag("project-selection", false);
 
   // LocalStorage key based on program type
   const storageKey = `infrabuidl-form-${programType}`;
@@ -348,6 +350,8 @@ export default function GrantApplicationForm({
 
   // Load user projects when session is available
   useEffect(() => {
+    if (!isProjectSelectionEnabled) return;
+
     const loadUserProjects = async () => {
       if (!session?.user?.id) return;
       
@@ -680,7 +684,8 @@ export default function GrantApplicationForm({
 
               <div className="space-y-6">
 
-                {/* Projects belonged to */}
+              {/* Projects belonged to */}
+              {isProjectSelectionEnabled && 
                 <FormField
                   control={form.control}
                   name="project"
@@ -742,6 +747,7 @@ export default function GrantApplicationForm({
                     </FormItem>
                   )}
                 />
+              }
 
                 {/* Project/Company Name */}
                 <FormField
