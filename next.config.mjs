@@ -1456,11 +1456,6 @@ const config = {
         permanent: true,
       },
       {
-        source: "/docs/apis/avalanchego/apis/c-chain",
-        destination: "/docs/rpcs/c-chain",
-        permanent: true,
-      },
-      {
         source: "/docs/apis/avalanchego/apis/subnet-evm",
         destination: "/docs/rpcs/subnet-evm",
         permanent: true,
@@ -1468,6 +1463,7 @@ const config = {
       {
         source: "/docs/apis/avalanchego/apis/p-chain",
         destination: "/docs/rpcs/p-chain",
+      },
       // SDK client methods redirect
       {
         source: "/docs/api-reference/avalanche-sdk/client-sdk/methods/:path*",
@@ -1511,11 +1507,6 @@ const config = {
         permanent: true,
       },
       {
-        source: "/docs/nodes/build/launch-an-avalanche-validator-on-aws-with-one-click",
-        destination: "/docs/nodes/run-a-node/on-third-party-services/aws-marketplace",
-        permanent: true,
-      },
-      {
         source: "/docs/overview",
         destination: "/docs",
         permanent: true,
@@ -1523,6 +1514,7 @@ const config = {
       {
         source: "/docs/virtual-machines/evm-customization/executing-test-cases",
         destination: "/docs/avalanche-l1s/custom-precompiles/executing-test-cases",
+      },
       // Node config flags redirect
       {
         source: "/docs/nodes/configure/chain-config-flags",
