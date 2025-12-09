@@ -114,7 +114,15 @@ NodeID-BTtC98RhLA5mbctKczZQC2Rt6N9DziM4c/    # Node 2 directory
 
 ### Find Node API Endpoints
 
-Each node exposes API endpoints on dynamically allocated ports:
+Each node exposes API endpoints on dynamically allocated ports. When tmpnet starts a node with `--http-port=0`, the OS assigns an available port. AvalancheGo then writes the actual allocated port to `process.json` via the `--process-context-file` flag.
+
+<Callout type="info" title="How process.json is created">
+The `process.json` file is created by **avalanchego itself**, not by tmpnetctl. When tmpnet starts a node, it passes:
+- `--http-port=0` and `--staking-port=0` for dynamic port allocation
+- `--process-context-file=[node-dir]/process.json` to specify where avalanchego should write runtime info
+
+AvalancheGo then writes its PID, URI (with the actual allocated port), and staking address to this file once it starts.
+</Callout>
 
 ```bash
 # View all node URIs
@@ -421,6 +429,34 @@ cat ~/.tmpnet/networks/latest/NodeID-*/process.json | jq -r '.uri'
 # 3. Test health endpoint with correct URI
 curl http://127.0.0.1:<actual-port>/ext/health
 ```
+
+### Missing process.json Files
+
+**Issue:** `process.json` files don't exist in node directories, or ports in `flags.json` are all `0`
+
+This happens when running avalanchego manually without the `--process-context-file` flag.
+
+**Understanding the issue:**
+- `flags.json` showing `"http-port": "0"` is correct - this tells the OS to allocate a dynamic port
+- `process.json` is created by **avalanchego itself** when started with the `--process-context-file` flag
+- tmpnetctl automatically passes this flag, but manual setups need to include it
+
+**Solution for manual avalanchego setups:**
+```bash
+# When starting avalanchego manually with dynamic ports, include:
+avalanchego \
+  --http-port=0 \
+  --staking-port=0 \
+  --process-context-file=/path/to/node/process.json \
+  # ... other flags
+
+# AvalancheGo will write the actual allocated ports to process.json
+```
+
+**If using tmpnetctl:** The `process.json` files should be created automatically. If they're missing, ensure:
+1. The network started successfully (check for "started network" in output)
+2. Nodes are still running (`ps aux | grep avalanchego`)
+3. You're looking in the correct network directory
 
 ### Command Not Found
 
