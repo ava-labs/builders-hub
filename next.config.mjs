@@ -1421,6 +1421,81 @@ const config = {
         destination: "/docs/avalanche-l1s/precompiles/fee-manager",
         permanent: true,
       },
+      {
+        source: "/academy/codebase-entrepreneur-academy/09-fundraising/:path*",
+        destination: "/academy/entrepreneur/fundraising-finance/09-fundraising/:path*",
+        permanent: true,
+      },
+      {
+        source: "/builderkit",
+        destination: "/docs/tooling/avalanche-sdk",
+        permanent: true,
+      },
+      {
+        source: "/blog/install-avalanche-cli%3Cbr",
+        destination: "/blog/install-avalanche-cli",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/build/launch-an-avalanche-validator-on-aws-with-one-click",
+        destination: "/docs/nodes/run-a-node/on-third-party-services/amazon-web-services",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/05-transfers-in-smart-contracts",
+        destination: "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/05-erc20",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/l1-native-tokenomics/02-native-tokens/:path*",
+        destination: "/academy/avalanche-l1/l1-native-tokenomics/02-custom-tokens/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/multi-chain-architecture/03-avalanche-starter-kit/06-networks",
+        destination: "/academy/avalanche-l1/interchain-messaging/03-avalanche-starter-kit/04-networks",
+        permanent: true,
+      },
+      {
+        source: "/docs/api-reference/avalanche-sdk/client-sdk/:path*",
+        destination: "/docs/tooling/avalanche-sdk/client/:path*",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/run/with-installer",
+        destination: "/docs/nodes/run-a-node/using-install-script/installing-avalanche-go",
+        permanent: true,
+      },
+      {
+        source: "/docs/roadmap",
+        destination: "/docs",
+        permanent: true,
+      },
+      {
+        source: "/docs/tooling/avalanche-sdk/getting-started",
+        destination: "/docs/tooling/avalanche-sdk/client/getting-started",
+        permanent: true,
+      },
+      {
+        source: "/hack2build/:path*",
+        destination: "/hackathons",
+        permanent: true,
+      },
+      {
+        source: "/stats/token",
+        destination: "/explorer",
+        permanent: true,
+      },
+      {
+        source: "/stats/tokens",
+        destination: "/explorer",
+        permanent: true,
+      },
+      {
+        source: "/stats/primary-network/:path*",
+        destination: "/explorer/:path*",
+        permanent: true,
+      },
     ];
   },
 };
