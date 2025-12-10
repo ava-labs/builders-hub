@@ -1564,11 +1564,6 @@ const config = {
         permanent: true,
       },
       {
-        source: "/blog/install-avalanche-cli%3Cbr",
-        destination: "/blog/install-avalanche-cli",
-        permanent: true,
-      },
-      {
         source: "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/05-transfers-in-smart-contracts",
         destination: "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/05-erc20",
         permanent: true,
@@ -1590,17 +1585,17 @@ const config = {
       },
       {
         source: "/stats/token",
-        destination: "/explorer",
+        destination: "/stats/avax-token",
         permanent: true,
       },
       {
         source: "/stats/tokens",
-        destination: "/explorer",
+        destination: "/stats/avax-token",
         permanent: true,
       },
       {
-        source: "/stats/primary-network/:path*",
-        destination: "/explorer/:path*",
+        source: "/stats/primary-network/validators",
+        destination: "/stats/validators",
         permanent: true,
       },
     ];
