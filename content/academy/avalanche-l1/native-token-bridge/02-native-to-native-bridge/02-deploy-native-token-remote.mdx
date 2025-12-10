@@ -1,0 +1,166 @@
+---
+title: Deploy Native Token Remote
+description: Deploy the NativeTokenRemote contract on a chain with the Native Minter precompile.
+updated: 2024-05-31
+authors: [owenwahlgren]
+icon: BookOpen
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# Deploy NativeTokenRemote
+
+The `NativeTokenRemote` contract is deployed on a destination chain that has the **Native Minter precompile** enabled. This contract can mint native tokens (used for gas) when users bridge from the source chain.
+
+## Prerequisites
+
+Before deploying NativeTokenRemote, ensure:
+
+1. **Destination chain has Native Minter precompile enabled**
+2. **NativeTokenHome is deployed** on the source chain
+3. **You have gas tokens** on the destination chain
+
+<Callout type="warning">
+The Native Minter precompile must be enabled on your destination chain. This is typically configured in the chain's genesis file or via a network upgrade. Standard chains like C-Chain do NOT have this enabled.
+</Callout>
+
+## Understanding NativeTokenRemote
+
+The NativeTokenRemote contract:
+
+- **Mints native tokens** by calling the Native Minter precompile
+- **Burns native tokens** when users bridge back to the source
+- **Requires collateralization** before minting is enabled
+- **Reports burned fees** back to the home contract for accounting
+
+## Deployment Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| **Teleporter Registry** | ICM registry on the destination chain |
+| **Teleporter Manager** | Address that can manage ICM settings |
+| **Source Chain** | Blockchain ID where NativeTokenHome is deployed |
+| **Token Home Address** | Your NativeTokenHome contract address |
+| **Initial Reserve Imbalance** | Amount of collateral required before minting |
+| **Burned Fees Reporting Reward** | Percentage rewarded for fee reporting (0-100) |
+
+### Initial Reserve Imbalance
+
+This is a critical parameter that determines how much collateral must be added before the bridge can mint tokens:
+
+- **Set to 0**: Bridge works immediately, no collateral needed (less secure)
+- **Set to amount**: That amount must be deposited as collateral first
+
+<Callout type="info">
+For production bridges, always set an initial reserve imbalance to ensure proper backing of minted tokens.
+</Callout>
+
+### Burned Fees Reporting Reward
+
+When native tokens are used for gas and burned, this mechanism allows:
+- Reporting burned fees back to the home contract
+- Rewarding the reporter with a percentage of reported fees
+- Keeping supply accounting accurate across chains
+
+<Steps>
+<Step>
+### Switch to Destination Chain
+
+Connect your wallet to a chain that has the **Native Minter precompile** enabled. 
+
+The toolbox will automatically check if the precompile is active and show a warning if it's not.
+
+</Step>
+
+<Step>
+### Deploy NativeTokenRemote
+
+Use the Deploy Native Token Remote tool below:
+
+<Callout type="warning">
+Make sure you have:
+1. Connected to a chain with Native Minter precompile enabled
+2. Sufficient gas tokens for deployment
+3. Your NativeTokenHome address from the source chain
+</Callout>
+
+<ToolboxMdxWrapper>
+    <DeployNativeTokenRemote />
+</ToolboxMdxWrapper>
+
+</Step>
+
+<Step>
+### Acknowledge Chain Switching
+
+The tool will ask you to confirm you're on the correct destination chain. This is important because:
+
+- The contract MUST be on the destination chain
+- You need the source chain's Token Home address
+- Deploying on the wrong chain means starting over
+
+</Step>
+
+<Step>
+### Configure Deployment
+
+Fill in the deployment parameters:
+
+1. **Source Chain**: Select where your NativeTokenHome is deployed
+2. **Token Home Address**: Enter or select your NativeTokenHome address
+3. **Initial Reserve Imbalance**: Set to `0` for testing, or a specific amount for production
+4. **Burned Fees Reporting Reward**: Usually `0` for testing
+
+</Step>
+
+<Step>
+### Save the Contract Address
+
+After deployment, save the **Native Token Remote Address** for:
+
+- Registering with the home contract
+- Adding collateral
+- Debugging issues
+
+</Step>
+</Steps>
+
+## What Happens During Deployment
+
+When you deploy NativeTokenRemote:
+
+1. **Precompile Check**: Contract verifies Native Minter is available
+2. **Configuration Stored**: Home reference and settings are saved
+3. **Initial State**: Contract starts in "not collateralized" state
+4. **Ready for Registration**: Can now register with home
+
+## Contract State After Deployment
+
+| State | Value |
+|-------|-------|
+| Token Home Reference | ✅ Set |
+| Registered with Home | ❌ No (next step) |
+| Collateralized | ❌ No (requires collateral) |
+| Can Mint Tokens | ❌ No (needs collateral) |
+
+## Important Notes
+
+### Precompile Authorization
+
+The NativeTokenRemote contract needs authorization to call the Native Minter precompile. This is typically handled by:
+
+1. Adding the contract address to the precompile's allowlist
+2. Or deploying with an account that has minter permissions
+
+### Token Symbol
+
+The bridged native token will use the symbol from the source chain's wrapped token (e.g., "WAVAX" becomes the native token symbol).
+
+## Next Steps
+
+With NativeTokenRemote deployed:
+
+1. **Register with Home**: Establish the bridge connection
+2. **Add Collateral**: Enable minting by fully collateralizing
+3. **Bridge Tokens**: Start transferring native tokens
+

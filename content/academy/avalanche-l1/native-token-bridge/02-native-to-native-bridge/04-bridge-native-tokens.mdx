@@ -1,0 +1,199 @@
+---
+title: Bridge Native Tokens
+description: Transfer native tokens that become gas tokens on the destination chain.
+updated: 2024-05-31
+authors: [owenwahlgren]
+icon: BookOpen
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# Bridge Native Tokens as Gas Tokens
+
+With your Native-to-Native bridge fully configured and collateralized, you can now transfer native tokens that become **native gas tokens** on the destination chain.
+
+## Transfer Flow
+
+Here's what happens when you bridge tokens via NativeTokenRemote:
+
+```
+Source Chain                               Destination Chain
+┌─────────────────────────────┐           ┌─────────────────────────────┐
+│                             │           │                             │
+│  1. User sends AVAX         │           │                             │
+│         ↓                   │           │                             │
+│  2. AVAX → WAVAX (auto)     │           │                             │
+│         ↓                   │    ICM    │                             │
+│  3. WAVAX locked in         │──────────▶│  4. NativeTokenRemote       │
+│     NativeTokenHome         │           │     receives message        │
+│                             │           │         ↓                   │
+│                             │           │  5. Calls Native Minter     │
+│                             │           │         ↓                   │
+│                             │           │  6. Native tokens minted    │
+│                             │           │     to user's address       │
+└─────────────────────────────┘           └─────────────────────────────┘
+```
+
+## The Key Difference
+
+When tokens arrive on the destination:
+
+| ERC-20 Remote | Native Remote |
+|---------------|---------------|
+| Mints ERC-20 tokens | Mints **native tokens** |
+| Can't use for gas directly | **Can use for gas fees** |
+| Needs swap for gas | Ready to use immediately |
+
+## Bridging Steps
+
+<Steps>
+<Step>
+### Connect to Source Chain
+
+Switch your wallet to the source chain (e.g., Fuji C-Chain) where your native tokens originate.
+
+</Step>
+
+<Step>
+### Initiate Transfer
+
+Use the transfer tool to send tokens to the destination chain:
+
+<Callout type="warning">
+Make sure you have:
+1. Bridge fully collateralized (from previous step)
+2. Native tokens to bridge
+3. Additional tokens for gas fees
+</Callout>
+
+<ToolboxMdxWrapper enforceChainId={43113}>
+    <TestSend />
+</ToolboxMdxWrapper>
+
+</Step>
+
+<Step>
+### Wait for Cross-Chain Confirmation
+
+After submitting:
+
+1. **Source transaction confirms**: Tokens locked in NativeTokenHome
+2. **ICM relay**: Message sent to destination
+3. **Destination minting**: NativeTokenRemote calls Native Minter
+4. **Tokens appear**: Native tokens in your destination wallet
+
+</Step>
+
+<Step>
+### Verify on Destination
+
+Switch to the destination chain and check:
+
+1. Your **native balance** (used for gas)
+2. The amount should match what you bridged
+3. You can immediately use these tokens for transactions
+
+</Step>
+</Steps>
+
+## Using Bridged Native Tokens
+
+The key advantage of native-to-native bridging is that bridged tokens are **immediately usable for gas**:
+
+```javascript
+// On destination chain, your balance increases
+// No swaps or wrapping needed
+
+// You can immediately send transactions
+await wallet.sendTransaction({
+  to: "0x...",
+  value: bridgedAmount,
+  // Gas is paid with your bridged native tokens!
+});
+```
+
+## Bridging Back
+
+To return native tokens to the source chain:
+
+<Steps>
+<Step>
+### Connect to Destination Chain
+
+Switch to the chain where you have bridged native tokens.
+
+</Step>
+
+<Step>
+### Send Back to Source
+
+Use the same transfer tool, but:
+- Select the **source chain** as destination
+- Enter the amount to bridge back
+
+When bridging back:
+1. Native tokens are **burned** on destination
+2. Wrapped tokens are **unlocked** on source
+3. You can unwrap to get original native tokens
+
+</Step>
+</Steps>
+
+## Collateral Dynamics
+
+As users bridge tokens:
+
+### When Bridging OUT (Source → Destination)
+
+```
+Collateral Locked: +X
+Minted Supply: +X
+Available to Mint: -X
+```
+
+### When Bridging BACK (Destination → Source)
+
+```
+Collateral Released: +X
+Burned Supply: +X
+Available to Mint: +X
+```
+
+## Burned Fees Reporting
+
+When bridged native tokens are used for gas and burned:
+
+1. The burned amount is tracked
+2. Anyone can call `reportBurnedTxFees()` to report to home
+3. The reporter receives a reward (if configured)
+4. The home contract updates its accounting
+
+This keeps the bridge accounting accurate over time.
+
+## Comparing Bridge Types
+
+| Feature | Native → ERC-20 | Native → Native |
+|---------|-----------------|-----------------|
+| **Destination token** | ERC-20 | Native (gas) |
+| **Use for gas** | ❌ Need swap | ✅ Direct |
+| **Collateral required** | ❌ No | ✅ Yes |
+| **Native Minter needed** | ❌ No | ✅ Yes |
+| **Setup complexity** | Lower | Higher |
+
+## Summary
+
+You've now mastered Native-to-Native bridging:
+
+1. ✅ Deployed NativeTokenRemote on a chain with Native Minter
+2. ✅ Registered the remote with the home contract
+3. ✅ Added collateral to enable minting
+4. ✅ Bridged tokens that became native gas tokens
+
+## What's Next?
+
+Explore advanced ICTT features:
+
+- **Send and Call**: Execute contract calls with bridged tokens
+- **Cross-Chain Swaps**: Swap tokens across chains in one operation
+- **Decimal Scaling**: Handle tokens with different decimal precisions
+

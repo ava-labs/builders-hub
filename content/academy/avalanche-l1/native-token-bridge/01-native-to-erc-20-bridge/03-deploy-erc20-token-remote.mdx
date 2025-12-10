@@ -1,0 +1,141 @@
+---
+title: Deploy ERC20 Token Remote
+description: Deploy the ERC20TokenRemote contract on the destination chain.
+updated: 2024-05-31
+authors: [owenwahlgren]
+icon: BookOpen
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# Deploy ERC20TokenRemote
+
+The `ERC20TokenRemote` contract is deployed on the destination chain. It mints ERC-20 tokens representing your bridged native tokens.
+
+## Understanding ERC20TokenRemote
+
+The ERC20TokenRemote contract:
+
+- **Mints ERC-20 tokens** when native tokens are bridged from the source chain
+- **Burns ERC-20 tokens** when users bridge back to the source chain
+- **References the home contract** on the source chain for security
+- **Is a full ERC-20 token** that can be used in DeFi, transfers, etc.
+
+## Deployment Parameters
+
+When deploying ERC20TokenRemote, you'll provide:
+
+| Parameter | Description |
+|-----------|-------------|
+| **Teleporter Registry** | The ICM registry contract on this chain |
+| **Teleporter Manager** | Address that can manage ICM settings |
+| **Source Chain** | The blockchain where NativeTokenHome is deployed |
+| **Token Home Address** | Your NativeTokenHome contract address |
+| **Token Name** | Name for the bridged token (e.g., "Wrapped AVAX") |
+| **Token Symbol** | Symbol for the bridged token (e.g., "WAVAX.e") |
+| **Token Decimals** | Decimal precision (usually 18, auto-detected) |
+
+<Steps>
+<Step>
+### Switch to Destination Chain
+
+Switch your wallet to the **Echo** chain (or your destination chain). The toolbox detects the connected chain and configures appropriately.
+
+<Callout type="info">
+Make sure you have test tokens on Echo for gas fees. You can get them from the [Builder Hub faucet](https://build.avax.network/login).
+</Callout>
+
+</Step>
+
+<Step>
+### Deploy ERC20TokenRemote
+
+Use the Deploy ERC20 Token Remote tool below. The tool will:
+
+1. Ask you to select the **source chain** (Fuji C-Chain)
+2. Let you enter the **Token Home Address** (from the previous step)
+3. Auto-fill token details from the home contract
+
+<Callout type="warning">
+Make sure you have:
+1. Connected your Core Wallet to Echo
+2. Sufficient test ECH for gas fees
+3. Your NativeTokenHome address from the previous step
+</Callout>
+
+<ToolboxMdxWrapper enforceChainId={173750}>
+    <DeployERC20TokenRemote />
+</ToolboxMdxWrapper>
+
+</Step>
+
+<Step>
+### Verify Token Details
+
+After entering the Token Home Address, the tool automatically fetches:
+
+- **Token Name**: Derived from the source token
+- **Token Symbol**: Derived from the source token  
+- **Token Decimals**: Matches the source token
+
+Verify these details are correct before deploying.
+
+</Step>
+
+<Step>
+### Save the Remote Address
+
+After deployment, save the **ERC20 Token Remote Address**. You'll need it for:
+
+- Registering with the home contract
+- Adding the token to your wallet
+- Debugging transfer issues
+
+</Step>
+</Steps>
+
+## What Happens During Deployment
+
+When you deploy ERC20TokenRemote:
+
+1. **Contract creation**: A new ERC-20 token contract is deployed
+2. **Home reference stored**: The source chain ID and home address are saved
+3. **Token metadata set**: Name, symbol, and decimals are configured
+4. **Ready for registration**: The contract can now register with the home
+
+## The Deployed Token
+
+Your ERC20TokenRemote is a fully-featured ERC-20 token:
+
+```solidity
+// Standard ERC-20 functions are available
+function transfer(address to, uint256 amount) external returns (bool);
+function approve(address spender, uint256 amount) external returns (bool);
+function balanceOf(address account) external view returns (uint256);
+```
+
+Users can:
+- Transfer tokens to other addresses
+- Approve tokens for DeFi protocols
+- Use tokens in any ERC-20 compatible application
+
+## Contract State After Deployment
+
+After deployment, your ERC20TokenRemote:
+
+- ✅ Is a valid ERC-20 token
+- ✅ Knows which home contract to communicate with
+- ❌ Is NOT registered with the home (transfers won't work yet)
+- ❌ Has zero total supply (no tokens minted yet)
+
+## Why Registration is Required
+
+The home contract maintains a list of authorized remote contracts. Without registration:
+
+- The home contract doesn't know this remote exists
+- Token transfers will be rejected
+- The bridge is not functional
+
+## Next Steps
+
+Now you need to **register the remote contract** with the home contract to complete the bridge setup.
