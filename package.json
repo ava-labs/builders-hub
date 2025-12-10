@@ -10,6 +10,7 @@
     "start": "pnpm build:remote && next build && next start",
     "check-links": "tsx .github/linkChecker.ts",
     "generate:event-signatures": "tsx ./scripts/generate-event-signatures.mts",
+    "generate:course": "tsx ./scripts/generate-course.mts",
     "enrich:chains": "tsx ./scripts/enrich-chains.mts",
     "postinstall": "prisma generate && fumadocs-mdx && node ./scripts/update_docker_tags.mjs && tsx ./scripts/generate-event-signatures.mts",
     "postbuild": "tsx ./utils/update-index.ts"
@@ -80,6 +81,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "cobe": "^0.6.5",
+    "commander": "^14.0.2",
     "date-fns": "^4.1.0",
     "embla-carousel-auto-scroll": "^8.6.0",
     "embla-carousel-react": "^8.6.0",

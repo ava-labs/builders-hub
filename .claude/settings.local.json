@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(xargs -I {} sh -c 'echo \"\"\"\"=== {} ===\"\"\"\" && head -15 {}')",
+      "Bash(node --version:*)",
+      "Bash(pnpm --version:*)",
+      "Bash(yarn add commander)",
+      "Bash(yarn run generate:course:*)",
+      "Bash(tree:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
