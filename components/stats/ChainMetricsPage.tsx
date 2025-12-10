@@ -5,6 +5,7 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin } from "lucide-react";
+import { getMAConfig, calculateMovingAverage, type Period, type MAConfig } from "@/utils/chart-utils";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import Link from "next/link";
@@ -1550,6 +1551,7 @@ export default function ChainMetricsPage({
                     formatTooltipValue={(value) => formatTooltipValue(value, config.metricKey)}
                     formatYAxisValue={formatNumber}
                     allowedPeriods={allowedPeriods}
+                    showMovingAverage={true}
                   />
                 );
               })}
@@ -1617,6 +1619,7 @@ function ChartCard({
   formatTooltipValue,
   formatYAxisValue,
   allowedPeriods = ["D", "W", "M", "Q", "Y"],
+  showMovingAverage = false,
 }: {
   config: any;
   rawData: any[];
@@ -1629,7 +1632,10 @@ function ChartCard({
   formatTooltipValue: (value: number) => string;
   formatYAxisValue: (value: number) => string;
   allowedPeriods?: ("D" | "W" | "M" | "Q" | "Y")[];
+  showMovingAverage?: boolean;
 }) {
+  // Get moving average config based on period
+  const maConfig = useMemo(() => getMAConfig(period), [period]);
   const [brushIndexes, setBrushIndexes] = useState<{
     startIndex: number;
     endIndex: number;
@@ -1637,13 +1643,22 @@ function ChartCard({
 
   // Aggregate data based on selected period
   const aggregatedData = useMemo(() => {
-    if (period === "D") return rawData;
+    if (period === "D") {
+      // Add moving average if enabled for daily data
+      if (showMovingAverage) {
+        return calculateMovingAverage(rawData, maConfig.window);
+      }
+      return rawData;
+    }
 
     // For active addresses, don't aggregate since data is already fetched with proper interval
     if (
       config.metricKey === "activeAddresses" &&
       (period === "W" || period === "M")
     ) {
+      if (showMovingAverage) {
+        return calculateMovingAverage(rawData, maConfig.window);
+      }
       return rawData;
     }
 
@@ -1682,13 +1697,19 @@ function ChartCard({
       group.count += 1;
     });
 
-    return Array.from(grouped.values())
+    const aggregated = Array.from(grouped.values())
       .map((group) => ({
         day: group.date,
         value: group.sum,
       }))
       .sort((a, b) => a.day.localeCompare(b.day));
-  }, [rawData, period, config.metricKey]);
+    
+    // Add moving average if enabled
+    if (showMovingAverage) {
+      return calculateMovingAverage(aggregated, maConfig.window);
+    }
+    return aggregated;
+  }, [rawData, period, config.metricKey, showMovingAverage, maConfig.window]);
 
   // Aggregate cumulative data - take the last (max) value in each period
   const aggregatedCumulativeData = useMemo(() => {
@@ -2065,6 +2086,24 @@ function ChartCard({
                 </div>
               </div>
             )}
+            {/* for charts with moving average */}
+            {showMovingAverage && config.chartType === "bar" && !(config.metricKey === "txCount" || config.metricKey === "activeAddresses" || config.metricKey === "contracts" || config.metricKey === "deployers") && (
+              <div className="flex items-center gap-3 ml-auto text-xs">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: config.color }}/>
+                  <span className="text-muted-foreground">
+                    {period === "D" ? "Daily": period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div
+                    className="w-3 h-0.5"
+                    style={{ backgroundColor: "#22c55e" }}
+                  />
+                  <span style={{ color: "#22c55e" }}>{maConfig.label}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mb-6">
@@ -2165,6 +2204,67 @@ function ChartCard({
                             : "Total Deployers"
                     }
                     strokeOpacity={0.9}
+                  />
+                </ComposedChart>
+              ) : config.chartType === "bar" && showMovingAverage ? (
+                <ComposedChart
+                  data={displayDataWithCumulative}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-gray-200 dark:stroke-gray-700"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={formatXAxis}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tickFormatter={formatYAxisValue}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: `${config.color}20` }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const formattedDate = formatTooltipDate(payload[0].payload.day);
+                      return (
+                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                          <div className="grid gap-2">
+                            <div className="font-medium text-xs">
+                              {formattedDate}
+                            </div>
+                            <div className="text-xs">
+                              {formatTooltipValue(payload[0].value as number)}
+                            </div>
+                            {payload[0].payload.ma !== undefined && (
+                              <div className="text-xs" style={{ color: "#22c55e" }}>
+                                {maConfig.label}: {formatTooltipValue(payload[0].payload.ma)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar
+                    dataKey="value"
+                    fill={config.color}
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="ma"
+                    stroke="#22c55e"
+                    strokeWidth={2}
+                    dot={false}
+                    name="Moving Average"
                   />
                 </ComposedChart>
               ) : config.chartType === "bar" ? (

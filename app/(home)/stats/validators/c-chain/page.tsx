@@ -73,6 +73,7 @@ import {
   type VersionBreakdownData,
 } from "@/components/stats/VersionBreakdown";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { getMAConfig } from "@/utils/chart-utils";
 
 interface ValidatorData {
   nodeId: string;
@@ -2630,17 +2631,8 @@ function DailyRewardsChartCard({
     return new Map(cumulativeData.map(point => [point.day, point.value]));
   }, [cumulativeData]);
 
-  // Get moving average window size and label based on period
-  const maConfig = useMemo(() => {
-    switch (period) {
-      case "D": return { window: 30, label: "30d Avg" };
-      case "W": return { window: 4, label: "4w Avg" };
-      case "M": return { window: 3, label: "3m Avg" };
-      case "Q": return { window: 4, label: "4q Avg" };
-      case "Y": return { window: 3, label: "3y Avg" };
-      default: return { window: 30, label: "30d Avg" };
-    }
-  }, [period]);
+  // Get moving average window size and label based on period (using shared utility)
+  const maConfig = useMemo(() => getMAConfig(period), [period]);
 
   // Aggregate data by period first
   const aggregatedBaseData = useMemo(() => {
