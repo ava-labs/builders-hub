@@ -217,10 +217,10 @@ export default function Page() {
 
             {/* Attend events */}
             <ActionCard
-              title="Attend Avalanche Events"
-              description="Check out our Team1 and Avalanche global events and attend an event near you."
+              title="Attend Hackathons & Events"
+              description="Join hackathons, Team1 meetups, and Avalanche global events near you."
               icon={<Calendar className="w-6 h-6 text-foreground" />}
-              href="/events"
+              href="/hackathons"
             />
 
             {/* Join communities */}
@@ -317,9 +317,9 @@ export default function Page() {
                   Start Learning <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="/events">
+              <Link href="/hackathons">
                 <Button variant="outline" className="rounded-lg px-6 py-3">
-                  Find Events
+                  Explore Events
                 </Button>
               </Link>
             </div>

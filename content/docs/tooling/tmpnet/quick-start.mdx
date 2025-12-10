@@ -1,0 +1,473 @@
+---
+title: Quick Start
+description: Start your first temporary Avalanche network in minutes
+---
+
+This guide will help you create, interact with, and manage your first temporary network using tmpnet.
+
+## Before You Start
+
+Make sure you've completed the [installation](/docs/tooling/tmpnet/installation) and have:
+- Built `avalanchego` and `tmpnetctl`
+- A shell in the avalanchego repo root
+- Either `direnv allow`'d the repo **or** can pass `--avalanchego-path`
+
+## Start Your First Network
+
+### Basic Start Command
+
+Start a 2-node network (default is 5):
+
+```bash
+cd /path/to/avalanchego
+
+# If you enabled direnv (.envrc sets paths)
+tmpnetctl start-network --node-count=2
+
+# Without direnv, pass the avalanchego path explicitly
+./bin/tmpnetctl start-network \
+  --avalanchego-path="$(pwd)/bin/avalanchego" \
+  --node-count=2
+```
+
+**Expected Output:**
+```
+[12-05|15:23:26.831] INFO tmpnet/network.go:254 preparing configuration for new network
+[12-05|15:23:26.839] INFO tmpnet/network.go:385 starting network {"networkDir": "/Users/you/.tmpnet/networks/20251205-152326.831812", "uuid": "0ef20abc-4d96-438f-943c-a4442254b9bb"}
+[12-05|15:23:27.992] INFO tmpnet/process_runtime.go:148 started local node {"nodeID": "NodeID-Pw8tmrG..."}
+[12-05|15:23:28.395] INFO tmpnet/process_runtime.go:148 started local node {"nodeID": "NodeID-KBxAJo5..."}
+[12-05|15:23:28.396] INFO tmpnet/network.go:400 waiting for nodes to report healthy
+[12-05|15:23:30.399] INFO tmpnet/network.go:976 node is healthy {"nodeID": "NodeID-KBxAJo5...", "uri": "http://127.0.0.1:56395"}
+[12-05|15:23:33.999] INFO tmpnet/network.go:976 node is healthy {"nodeID": "NodeID-Pw8tmrG...", "uri": "http://127.0.0.1:56386"}
+[12-05|15:23:33.999] INFO tmpnet/network.go:404 started network
+
+Configure tmpnetctl to target this network by default with one of the following statements:
+ - source /Users/you/.tmpnet/networks/20251205-152326.831812/network.env
+ - export TMPNET_NETWORK_DIR=/Users/you/.tmpnet/networks/20251205-152326.831812
+ - export TMPNET_NETWORK_DIR=/Users/you/.tmpnet/networks/latest
+```
+
+The network is now running with 2 validator nodes!
+
+### With direnv (Simpler)
+
+If you've set up direnv:
+
+```bash
+cd /path/to/avalanchego
+direnv allow
+
+# Much simpler!
+tmpnetctl start-network --node-count=2
+```
+
+## Configure Your Shell
+
+To manage your network without specifying `--network-dir` every time, set `TMPNET_NETWORK_DIR`:
+
+```bash
+# Option 1: Use the 'latest' symlink (recommended)
+export TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest
+```
+
+The `latest` symlink always points to the most recently created network. Now you can run commands without flags:
+
+```bash
+tmpnetctl stop-network    # Uses TMPNET_NETWORK_DIR
+tmpnetctl restart-network
+```
+
+**Make it permanent** by adding to your shell config:
+
+```bash
+# For zsh (macOS)
+echo 'export TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest' >> ~/.zshrc
+source ~/.zshrc
+
+# For bash (Linux)
+echo 'export TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**Alternative**: Source the network's env file directly:
+```bash
+source ~/.tmpnet/networks/latest/network.env
+```
+
+## Explore Your Network
+
+### Network Directory Structure
+
+```bash
+ls ~/.tmpnet/networks/latest/
+```
+
+**Output:**
+```
+config.json                                    # Network configuration
+genesis.json                                   # Genesis file
+metrics.txt                                    # Grafana dashboard link
+network.env                                    # Environment setup script
+NodeID-74mGyq7dVVCeE4RUn4pufRMvYTFTEykcp/    # Node 1 directory
+NodeID-BTtC98RhLA5mbctKczZQC2Rt6N9DziM4c/    # Node 2 directory
+```
+
+### Find Node API Endpoints
+
+Each node exposes API endpoints on dynamically allocated ports:
+
+```bash
+# View all node URIs
+cat ~/.tmpnet/networks/latest/NodeID-*/process.json | jq -r '.uri'
+```
+
+**Example output:**
+```
+http://127.0.0.1:56395
+http://127.0.0.1:56386
+```
+
+### Get a Single Node URI
+
+```bash
+# Store first node URI in a variable
+NODE_URI=$(cat ~/.tmpnet/networks/latest/NodeID-*/process.json | jq -r '.uri' | head -1)
+echo $NODE_URI
+```
+
+### Call Node RPCs
+
+Use the URI to call standard Avalanche APIs over HTTP:
+
+```bash
+# Health
+curl -s "$NODE_URI/ext/health" | jq '.healthy'
+
+# Node ID
+curl -s -X POST --data '{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "info.getNodeID"
+}' -H 'content-type:application/json;' "$NODE_URI/ext/info" | jq
+
+# C-Chain RPC (replace with your chain ID if different)
+CHAIN_ID=C
+curl -s -X POST --data '{
+  "jsonrpc":"2.0",
+  "id":1,
+  "method":"eth_blockNumber",
+  "params":[]
+}' -H 'content-type:application/json;' "$NODE_URI/ext/bc/$CHAIN_ID/rpc" | jq
+```
+
+## Interact with Your Network
+
+### Check Node Health
+
+```bash
+curl -s http://127.0.0.1:56395/ext/health | jq '.healthy'
+```
+
+**Response:**
+```json
+true
+```
+
+### Get Node Information
+
+```bash
+curl -s -X POST --data '{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "info.getNodeID"
+}' -H 'content-type:application/json;' http://127.0.0.1:56395/ext/info | jq
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "nodeID": "NodeID-74mGyq7dVVCeE4RUn4pufRMvYTFTEykcp",
+    "nodePOP": {
+      "publicKey": "...",
+      "proofOfPossession": "..."
+    }
+  },
+  "id": 1
+}
+```
+
+### Check Network Info
+
+```bash
+curl -s -X POST --data '{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "info.getNetworkID"
+}' -H 'content-type:application/json;' http://127.0.0.1:56395/ext/info | jq
+```
+
+## Use Pre-funded Keys
+
+Every tmpnet network comes with **50 pre-funded test keys** ready for immediate use. These keys have large balances on all chains (X-Chain, P-Chain, and C-Chain).
+
+### View Pre-funded Keys
+
+```bash
+cat ~/.tmpnet/networks/latest/config.json | jq '.preFundedKeys'
+```
+
+**Example output:**
+```json
+[
+  "PrivateKey-ewoqjP7PxY4yr3iLTpLisriqt94hdyDFNgchSxGGztUrTXtNN",
+  "PrivateKey-2VbLJLjPJn4XA8UqQ4BjmF5LmkZj4EZ2dXLKmKPmXTbKHvvQh6",
+  "PrivateKey-R6e8f5QSa89DjpvL9asNdhdJ4u8VqzMJStPV8VVdDmLgPd8x4",
+  ...
+]
+```
+
+### Get a Single Key for Testing
+
+```bash
+# Store the first pre-funded key
+TEST_KEY=$(cat ~/.tmpnet/networks/latest/config.json | jq -r '.preFundedKeys[0]')
+echo $TEST_KEY
+# Output: PrivateKey-ewoqjP7PxY4yr3iLTpLisriqt94hdyDFNgchSxGGztUrTXtNN
+```
+
+### What Are These Keys Funded With?
+
+Each key has balances on:
+- **P-Chain** - For staking and subnet operations
+- **X-Chain** - For asset transfers
+- **C-Chain** - For EVM transactions (contract deployments, etc.)
+
+You can use these keys immediately for transactions, contract deployments, staking operations, and validator management.
+
+## View Network Configuration
+
+### Network Configuration
+
+```bash
+cat ~/.tmpnet/networks/latest/config.json | jq '{
+  uuid,
+  owner,
+  preFundedKeyCount: (.preFundedKeys | length)
+}'
+```
+
+### Genesis Configuration
+
+```bash
+cat ~/.tmpnet/networks/latest/genesis.json | jq '.networkID'
+```
+
+### Node Configuration
+
+```bash
+# View node flags
+cat ~/.tmpnet/networks/latest/NodeID-*/flags.json | head -1 | jq
+
+# View node runtime config
+cat ~/.tmpnet/networks/latest/NodeID-*/config.json | head -1 | jq
+```
+
+## Manage Your Network
+
+### Stop the Network
+
+```bash
+tmpnetctl stop-network
+```
+
+**Output:**
+```
+Stopped network configured at: /Users/you/.tmpnet/networks/latest
+```
+
+### Restart the Network
+
+```bash
+tmpnetctl restart-network
+```
+
+This preserves all network data and configuration, restarting with the same genesis and keys.
+
+### Start a New Network
+
+```bash
+# This creates a completely new network with new keys
+tmpnetctl start-network \
+  --avalanchego-path="$(pwd)/bin/avalanchego" \
+  --node-count=3
+```
+
+## View Node Logs
+
+### Watch Logs in Real-time
+
+```bash
+# Watch all node logs
+tail -f ~/.tmpnet/networks/latest/NodeID-*/logs/main.log
+
+# Watch a specific node
+tail -f ~/.tmpnet/networks/latest/NodeID-74mGyq7dVVCeE4RUn4pufRMvYTFTEykcp/logs/main.log
+```
+
+### Search Logs for Errors
+
+```bash
+grep -i "error" ~/.tmpnet/networks/latest/NodeID-*/logs/main.log
+```
+
+### View Recent Log Lines
+
+```bash
+tail -50 ~/.tmpnet/networks/latest/NodeID-*/logs/main.log
+```
+
+## Common Operations
+
+### Check Running Processes
+
+```bash
+# View all node processes
+ps aux | grep avalanchego
+
+# Count running nodes
+ps aux | grep avalanchego | grep -v grep | wc -l
+```
+
+### Get All Node URIs at Once
+
+```bash
+# Create a simple script
+for process_file in ~/.tmpnet/networks/latest/NodeID-*/process.json; do
+  jq -r '.uri' "$process_file"
+done
+```
+
+### Check Node Process Details
+
+```bash
+# View process information for all nodes
+cat ~/.tmpnet/networks/latest/NodeID-*/process.json | jq '{
+  pid,
+  uri,
+  stakingAddress
+}'
+```
+
+## Directory Structure Reference
+
+```
+~/.tmpnet/networks/latest/
+├── config.json                  # Network configuration (owner, UUID, keys)
+├── genesis.json                 # Genesis file with allocations
+├── metrics.txt                  # Grafana dashboard link
+├── network.env                  # Shell environment variables
+└── NodeID-<ID>/                 # Per-node directory
+    ├── config.json              # Node runtime configuration
+    ├── flags.json               # Node flags
+    ├── process.json             # Process info (PID, URIs, ports)
+    ├── logs/
+    │   └── main.log             # Node logs
+    ├── db/                      # Node database
+    └── chainData/               # Chain data
+```
+
+## Troubleshooting
+
+### Network Won't Start
+
+**Error: `avalanchego binary not found`**
+
+Solution:
+```bash
+# Verify binary exists
+ls -lh ./bin/avalanchego
+
+# Use absolute path
+tmpnetctl start-network \
+  --avalanchego-path="$(pwd)/bin/avalanchego"
+```
+
+**Error: `address already in use`**
+
+Solution:
+```bash
+# Check for running nodes
+ps aux | grep avalanchego
+
+# Stop existing network
+export TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest
+tmpnetctl stop-network
+```
+
+### Can't Connect to Nodes
+
+**Issue:** Curl commands fail
+
+Solution:
+```bash
+# 1. Verify nodes are running
+ps aux | grep avalanchego
+
+# 2. Check actual URIs
+cat ~/.tmpnet/networks/latest/NodeID-*/process.json | jq -r '.uri'
+
+# 3. Test health endpoint with correct URI
+curl http://127.0.0.1:<actual-port>/ext/health
+```
+
+### Command Not Found
+
+**Error: `tmpnetctl: command not found`**
+
+Solution:
+```bash
+# Use full path
+./bin/tmpnetctl --help
+
+# Or add to PATH
+export PATH=$PATH:$(pwd)/bin
+tmpnetctl --help
+
+# Or use direnv
+direnv allow
+tmpnetctl --help
+```
+
+### Clean Up Everything
+
+To remove all networks and start fresh:
+
+```bash
+# Stop any running networks
+export TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest
+tmpnetctl stop-network
+
+# Remove all tmpnet data (optional)
+rm -rf ~/.tmpnet/networks
+```
+
+## Next Steps
+
+Now that you have a running network, learn how to:
+
+<Cards>
+  <Card title="Test Custom VMs" href="/docs/tooling/tmpnet/guides/testing-custom-vms">
+    Deploy and test your custom Virtual Machine
+  </Card>
+  <Card title="Subnet Testing" href="/docs/tooling/tmpnet/guides/subnet-testing">
+    Create and test custom subnets
+  </Card>
+  <Card title="Programmatic Usage" href="/docs/tooling/tmpnet/guides/programmatic-usage">
+    Use tmpnet in your Go tests
+  </Card>
+  <Card title="Monitoring" href="/docs/tooling/tmpnet/guides/monitoring">
+    Set up metrics and log collection
+  </Card>
+</Cards>

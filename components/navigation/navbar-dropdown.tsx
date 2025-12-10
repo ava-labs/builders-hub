@@ -4,10 +4,14 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronDown, CircleUserRound, Moon, Sun } from 'lucide-react';
+import { menuSections, singleItems } from './nav-config';
 
 /**
  * Custom navbar dropdown menu for tablet/mobile breakpoints (≤1023px)
  * Replaces fumadocs' default dropdown to ensure all menu items are visible
+ *
+ * IMPORTANT: Navigation items are defined in nav-config.ts (Single Source of Truth)
+ * Do NOT add navigation items here - update nav-config.ts instead.
  */
 export function NavbarDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,65 +39,6 @@ export function NavbarDropdown() {
       document.removeEventListener('mousedown', handleClickOutside, true);
     };
   }, [isOpen]);
-
-  const menuSections = [
-    {
-      title: 'Academy',
-      href: '/academy',
-      items: [
-        { text: 'Avalanche L1 Academy', href: '/academy' },
-        { text: 'Blockchain Academy', href: '/academy' },
-        { text: 'Entrepreneur Academy', href: '/academy' },
-      ],
-    },
-    {
-      title: 'Documentation',
-      href: '/docs/primary-network',
-      items: [
-        { text: 'Primary Network', href: '/docs/primary-network' },
-        { text: 'Avalanche L1s', href: '/docs/avalanche-l1s' },
-        { text: 'Nodes & Validators', href: '/docs/nodes' },
-        { text: 'Interoperability', href: '/docs/cross-chain' },
-      ],
-    },
-    {
-      title: 'Console',
-      href: '/console',
-      items: [
-        { text: 'Console', href: '/console' },
-        { text: 'Interchain Messaging Tools', href: '/console/icm/setup' },
-        { text: 'Interchain Token Transfer Tools', href: '/console/ictt/setup' },
-        { text: 'Testnet Faucet', href: '/console/primary-network/faucet' },
-      ],
-    },
-    {
-      title: 'Events',
-      href: '/hackathons',
-      items: [
-        { text: 'Hackathons', href: '/hackathons' },
-        { text: 'Avalanche Calendar', href: 'https://lu.ma/calendar/cal-Igl2DB6quhzn7Z4', external: true },
-        { text: 'Community Driven Events', href: 'https://lu.ma/Team1?utm_source=builder_hub', external: true },
-      ],
-    },
-    {
-      title: 'Grants',
-      href: '/grants',
-      items: [
-        { text: 'Codebase', href: '/codebase' },
-        { text: 'InfraBUIDL', href: '/grants/infrabuidl' },
-        { text: 'InfraBUIDL (AI)', href: '/grants/infrabuidlai' },
-        { text: 'Retro9000', href: 'https://retro9000.avax.network', external: true },
-        { text: 'Blizzard Fund', href: 'https://www.blizzard.fund/', external: true },
-      ],
-    },
-  ];
-
-  const singleItems = [
-    { text: 'University', href: '/university' },
-    { text: 'Integrations', href: '/integrations' },
-    { text: 'Blog', href: '/guides' },
-    { text: 'Stats', href: '/stats/overview' },
-  ];
 
   return (
     <div className="relative" data-navbar-dropdown ref={dropdownRef}>

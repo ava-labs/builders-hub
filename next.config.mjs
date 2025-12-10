@@ -486,6 +486,11 @@ const config = {
         permanent: true,
       },
       {
+        source: '/events',
+        destination: '/hackathons',
+        permanent: true,
+      },
+      {
         source: '/tools/l1-launcher',
         destination: '/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1',
         permanent: true,
@@ -1146,6 +1151,411 @@ const config = {
       {
         source: "/docs/es/:path*",
         destination: "/docs/:path*",
+        permanent: true,
+      },
+      // Additional broken link redirects - round 2
+      {
+        source: "/docs/build/avalanche-cli/install",
+        destination: "/docs/tooling/avalanche-cli/get-avalanche-cli",
+        permanent: true,
+      },
+      {
+        source: "/docs/virtual-machines/custom-precompiles",
+        destination: "/docs/avalanche-l1s/custom-precompiles",
+        permanent: true,
+      },
+      {
+        source: "/docs/build/avalanchego/acps/:path*",
+        destination: "/docs/acps/:path*",
+        permanent: true,
+      },
+      {
+        source: "/docs/build/sdks/avalanchejs/:path*",
+        destination: "/docs/tooling/avalanche-sdk",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/erc20-bridge/04-tokens-on-multiple-chains/03-deploy-token-remote",
+        destination: "/academy/avalanche-l1/erc20-bridge/04-tokens-on-multiple-chains/02-deploy-token-remote",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/interchain-token-transfer/06-native-to-erc-20-bridge/:path*",
+        destination: "/academy/avalanche-l1/interchain-token-transfer/08-native-to-erc-20-bridge/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/07-erc-20-tokens",
+        destination: "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/05-erc20",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/11-create-a-wrapped-native-token",
+        destination: "/academy/avalanche-l1/l1-native-tokenomics/01b-native-vs-erc20/10-deploy-wrapped-tokens",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/multi-chain-architecture/04-independent-tokenomics/:path*",
+        destination: "/academy/avalanche-l1/l1-native-tokenomics",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/multi-chain-architecture/05-interoperability/:path*",
+        destination: "/academy/avalanche-l1/interchain-messaging",
+        permanent: true,
+      },
+      {
+        source: "/docs/api-reference/admin.aspx",
+        destination: "/docs/rpcs/other",
+        permanent: true,
+      },
+      {
+        source: "/docs/api-reference/avalanche-sdk/interchain/ictt",
+        destination: "/docs/cross-chain/interchain-token-transfer/overview",
+        permanent: true,
+      },
+      {
+        source: "/docs/apis/avalanchego/public-api-server",
+        destination: "/docs/rpcs",
+        permanent: true,
+      },
+      {
+        source: "/docs/avalanche-l1s/troubleshooting",
+        destination: "/docs/tooling/avalanche-cli/maintain/troubleshooting",
+        permanent: true,
+      },
+      {
+        source: "/docs/avalanche-l1s/validator-manager/custom-validator-manager",
+        destination: "/docs/avalanche-l1s/validator-manager/contract",
+        permanent: true,
+      },
+      {
+        source: "/docs/avalanche-l1s/when-to-build-avalanche-l1",
+        destination: "/docs/avalanche-l1s",
+        permanent: true,
+      },
+      {
+        source: "/docs/build/references/cryptographic-primitives",
+        destination: "/docs/rpcs/other/standards/cryptographic-primitives",
+        permanent: true,
+      },
+      {
+        source: "/docs/build/tutorials/smart-contracts/deploy-a-smart-contract-on-avalanche-using-remix-and-metamask",
+        destination: "/docs/avalanche-l1s/add-utility/deploy-smart-contract",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/maintain/background-service-config",
+        destination: "/docs/nodes/maintain/run-as-background-service",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/run-a-node",
+        destination: "/docs/nodes",
+        permanent: true,
+      },
+      {
+        source: "/docs/reference/avalanchego/c-chain/txn-format",
+        destination: "/docs/rpcs/c-chain/txn-format",
+        permanent: true,
+      },
+      {
+        source: "/docs/subnets/create-evm-subnet-config",
+        destination: "/docs/avalanche-l1s/evm-configuration/evm-l1-customization",
+        permanent: true,
+      },
+      {
+        source: "/docs/tags/:path*",
+        destination: "/docs",
+        permanent: true,
+      },
+      {
+        source: "/docs/tooling/avalanchejs-guides/:path*",
+        destination: "/docs/tooling/avalanche-sdk",
+        permanent: true,
+      },
+      {
+        source: "/docs/tooling/create-avalanche-nodes/:path*",
+        destination: "/docs/tooling/avalanche-cli/create-avalanche-nodes/:path*",
+        permanent: true,
+      },
+      {
+        source: "/docs/tooling/create-deploy-avalanche-l1s/:path*",
+        destination: "/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/:path*",
+        permanent: true,
+      },
+      {
+        source: "/docs/virtual-machines/default-precompiles/transactionallowlist",
+        destination: "/docs/avalanche-l1s/precompiles/transaction-allowlist",
+        permanent: true,
+      },
+      // User-provided resolutions
+      {
+        source: "/docs/nodes/on-third-party-services/alibaba",
+        destination: "/docs/nodes/run-a-node/on-third-party-services/amazon-web-services",
+        permanent: true,
+      },
+      {
+        source: "/docs/tooling/avalanche-network-runner/:path*",
+        destination: "/docs/tooling/avalanche-cli",
+        permanent: true,
+      },
+      {
+        source: "/docs/api-reference/avalanche-sdk/chainkit-sdk/:path*",
+        destination: "/docs/tooling/avalanche-sdk/chainkit/getting-started",
+        permanent: true,
+      },
+      {
+        source: "/docs/build/dapp/smart-contracts/nfts/deploy-collection",
+        destination: "/academy/blockchain/nft-deployment",
+        permanent: true,
+      },
+      {
+        source: "/docs/build/tutorials/smart-digital-assets/wallet-nft-studio",
+        destination: "/academy/blockchain/nft-deployment",
+        permanent: true,
+      },
+      {
+        source: "/docs/build/vm/create/any-lang-vm",
+        destination: "/docs/avalanche-l1s/rust-vms/intro-avalanche-rs",
+        permanent: true,
+      },
+      {
+        source: "/docs/build/vm/evm/fee-structure",
+        destination: "/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1",
+        permanent: true,
+      },
+      {
+        source: "/docs/subnets/elastic-subnets/:path*",
+        destination: "/docs/avalanche-l1s",
+        permanent: true,
+      },
+      {
+        source: "/docs/virtual-machines/rust-vms/:path*",
+        destination: "/docs/avalanche-l1s/rust-vms/:path*",
+        permanent: true,
+      },
+      {
+        source: "/docs/tooling/avalanche-cli/create-wallet",
+        destination: "/docs/tooling/avalanche-cli",
+        permanent: true,
+      },
+      {
+        source: "/docs/avalanche-l1s/add-utility/create-chain-bridge",
+        destination: "/docs/cross-chain/interchain-token-transfer/overview",
+        permanent: true,
+      },
+      {
+        source: "/docs/deprecated/tutorials-contest/2022/avax-subnet-development",
+        destination: "/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/maintain/reduce-disk-usage",
+        destination: "/docs/nodes/maintain/chain-state-management",
+        permanent: true,
+      },
+      // 404 fixes - December 2025
+      {
+        source: "/docs/build",
+        destination: "/docs",
+        permanent: true,
+      },
+      {
+        source: "/docs/build/:path*",
+        destination: "/docs",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/chain-configs",
+        destination: "/docs/nodes/chain-configs/primary-network/c-chain",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/chain-configs/c-chain",
+        destination: "/docs/nodes/chain-configs/primary-network/c-chain",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/chain-configs/x-chain",
+        destination: "/docs/nodes/chain-configs/primary-network/x-chain",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/on-third-party-services/latitude",
+        destination: "/docs/nodes/run-a-node/on-third-party-services/latitude",
+        permanent: true,
+      },
+      {
+        source: "/docs/reference/avalanchego/keystore-api",
+        destination: "/docs/rpcs/other",
+        permanent: true,
+      },
+      {
+        source: "/docs/specs/coreth-arc20s",
+        destination: "/docs/primary-network",
+        permanent: true,
+      },
+      {
+        source: "/docs/tooling/guides/import-avalanche-l1",
+        destination: "/docs/tooling/avalanche-cli/guides/import-avalanche-l1",
+        permanent: true,
+      },
+      {
+        source: "/docs/tooling/maintain/view-avalanche-l1s",
+        destination: "/docs/tooling/avalanche-cli/maintain/view-avalanche-l1s",
+        permanent: true,
+      },
+      {
+        source: "/docs/virtual-machines/evm-l1-customization",
+        destination: "/docs/avalanche-l1s/evm-configuration/evm-l1-customization",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/08-transfer-an-erc-20-token",
+        destination: "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/05-erc20",
+        permanent: true,
+      },
+      {
+        source: "/docs/avalanche-l1s/evm-configuration/transaction-fees",
+        destination: "/docs/avalanche-l1s/precompiles/fee-manager",
+        permanent: true,
+      },
+      // BuilderKit redirect to SDK docs
+      {
+        source: "/builderkit",
+        destination: "/docs/tooling/avalanche-sdk",
+        permanent: true,
+      },
+      {
+        source: "/docs/builderkit",
+        destination: "/docs/tooling/avalanche-sdk",
+        permanent: true,
+      },
+      // AWS one-click validator redirect
+      {
+        source: "/docs/nodes/build/launch-an-avalanche-validator-on-aws-with-one-click",
+        destination: "/docs/nodes/run-a-node/on-third-party-services/aws-marketplace",
+        permanent: true,
+      },
+      // Academy tokenomics path fixes
+      {
+        source: "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/02-native-tokens",
+        destination: "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/03-native-tokens",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/l1-native-tokenomics/02-native-tokens/:path*",
+        destination: "/academy/avalanche-l1/l1-native-tokenomics/02-custom-tokens/:path*",
+        permanent: true,
+      },
+      // Multi-chain architecture starter kit networks redirect
+      {
+        source: "/academy/avalanche-l1/multi-chain-architecture/03-avalanche-starter-kit/06-networks",
+        destination: "/academy/avalanche-l1/interchain-messaging/03-avalanche-starter-kit/04-networks",
+        permanent: true,
+      },
+      {
+        source: "/docs/apis/avalanchego/apis/subnet-evm",
+        destination: "/docs/rpcs/subnet-evm",
+        permanent: true,
+      },
+      {
+        source: "/docs/apis/avalanchego/apis/p-chain",
+        destination: "/docs/rpcs/p-chain",
+        permanent: true,
+      },
+      // SDK client methods redirect
+      {
+        source: "/docs/api-reference/avalanche-sdk/client-sdk/methods/:path*",
+        destination: "/docs/tooling/avalanche-sdk/client/methods/:path*",
+        permanent: true,
+      },
+      // APIs redirect to RPCs
+      {
+        source: "/docs/apis",
+        destination: "/docs/rpcs",
+        permanent: true,
+      },
+      {
+        source: "/docs/apis/avalanchego/apis/c-chain",
+        destination: "/docs/rpcs/c-chain",
+        permanent: true,
+      },
+      {
+        source: "/docs/apis/avalanchego/apis/:path*",
+        destination: "/docs/rpcs/:path*",
+        permanent: true,
+      },
+      {
+        source: "/docs/build/dapp/smart-contracts/staking",
+        destination: "/docs/primary-network/validate/how-to-stake",
+        permanent: true,
+      },
+      {
+        source: "/docs/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1",
+        destination: "/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1",
+        permanent: true,
+      },
+      {
+        source: "/docs/docs/avalanche-l1s/upgrade/precompile-upgrades",
+        destination: "/docs/avalanche-l1s/upgrade/precompile-upgrades",
+        permanent: true,
+      },
+      {
+        source: "/docs/docs/:path*",
+        destination: "/docs/:path*",
+        permanent: true,
+      },
+      {
+        source: "/docs/overview",
+        destination: "/docs",
+        permanent: true,
+      },
+      {
+        source: "/docs/virtual-machines/evm-customization/executing-test-cases",
+        destination: "/docs/avalanche-l1s/custom-precompiles/executing-test-cases",
+        permanent: true,
+      },
+      // Node config flags redirect
+      {
+        source: "/docs/nodes/configure/chain-config-flags",
+        destination: "/docs/nodes/configure/configs-flags",
+        permanent: true,
+      },
+      // Docker node setup redirect
+      {
+        source: "/docs/nodes/operate/docker",
+        destination: "/docs/nodes/run-a-node/using-docker",
+        permanent: true,
+      },
+      // Installer redirect
+      {
+        source: "/docs/nodes/run/with-installer",
+        destination: "/docs/nodes/run-a-node/using-install-script/installing-avalanche-go",
+        permanent: true,
+      },
+      // Stake redirect
+      {
+        source: "/docs/stake",
+        destination: "/docs/primary-network/validate/how-to-stake",
+        permanent: true,
+      },
+      // SDK getting-started redirect
+      {
+        source: "/docs/tooling/avalanche-sdk/getting-started",
+        destination: "/docs/tooling/avalanche-sdk",
+        permanent: true,
+      },
+      // Virtual machines redirects
+      {
+        source: "/docs/virtual-machines/custom-precompiles/background-requirements",
+        destination: "/docs/avalanche-l1s/custom-precompiles/background-requirements",
+        permanent: true,
+      },
+      {
+        source: "/docs/virtual-machines/timestamp-vm/:path*",
+        destination: "/docs/avalanche-l1s/timestamp-vm/:path*",
         permanent: true,
       },
       {

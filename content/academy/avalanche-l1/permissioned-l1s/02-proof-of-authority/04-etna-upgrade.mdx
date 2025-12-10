@@ -34,11 +34,11 @@ This transformation makes it feasible for startups, enterprises, and institution
 
 ## Evolution: From ACP-77 to ACP-99
 
-While ACP-77 revolutionized how L1s work at the protocol level, it left one important question unanswered: How should smart contracts actually implement validator management? This is where ACP-99 comes in.
+While [ACP-77](/docs/acps/77-reinventing-subnets) revolutionized how L1s work at the protocol level, it left one important question unanswered: How should smart contracts actually implement validator management? This is where [ACP-99](/docs/acps/99-validatorsetmanager-contract) comes in.
 
 ### The Gap ACP-77 Left
 
-ACP-77 provided:
+[ACP-77](/docs/acps/77-reinventing-subnets) provided:
 - **Protocol-level capabilities**: New P-Chain transactions and Warp message formats
 - **The mechanism**: How L1s can send messages to update their validator sets
 - **The foundation**: Basic rules for validator management
@@ -50,12 +50,12 @@ But it didn't specify:
 
 ### ACP-99: The Standardization Layer
 
-ACP-99 fills this gap by defining a standard Solidity contract specification:
+[ACP-99](/docs/acps/99-validatorsetmanager-contract) fills this gap by defining a standard Solidity contract specification:
 
 **Why Standardization Matters:**
 - **Reduced Development Time**: L1 creators don't need to design from scratch
 - **Security**: One audited implementation can benefit many L1s
-- **Interoperability**: Tools and services can work with any ACP-99 compliant L1
+- **Interoperability**: Tools and services can work with any [ACP-99](/docs/acps/99-validatorsetmanager-contract) compliant L1
 - **Best Practices**: Encodes lessons learned into a reusable standard
 
 **The Three-Layer Architecture:**
@@ -63,4 +63,4 @@ ACP-99 fills this gap by defining a standard Solidity contract specification:
 2. **ValidatorManager**: Concrete implementation with owner controls
 3. **Access Control Layer** (like PoAManager): Defines who can manage validators
 
-This progression from ACP-77 (protocol capability) to ACP-99 (standardized implementation) mirrors successful patterns in blockchain development.
+This progression from [ACP-77](/docs/acps/77-reinventing-subnets) (protocol capability) to [ACP-99](/docs/acps/99-validatorsetmanager-contract) (standardized implementation) mirrors successful patterns in blockchain development.

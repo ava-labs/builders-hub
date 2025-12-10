@@ -126,7 +126,9 @@ export default async function Page(props: {
       }}
     >
       <DocsTitle>{page.data.title || "Untitled"}</DocsTitle>
-      <DocsDescription>{page.data.description}</DocsDescription>
+      {page.data.description && (
+        <DocsDescription>{page.data.description}</DocsDescription>
+      )}
       <DocsBody className="text-fd-foreground/80">
         <IndexedDBComponent />
         <MDX
