@@ -1,4 +1,8 @@
 import { NextResponse } from 'next/server';
+import { getProject, createProject } from '@/server/services/projects';
+import { GetProjectByIdWithMembers, UpdateStatusMember } from '@/server/services/memberProject';
+import { createFormData } from '@/server/services/formData';
+import { prisma } from '@/prisma/prisma';
 
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID;
@@ -24,6 +28,114 @@ export async function POST(request: Request) {
         { success: false, message: 'Invalid request body' },
         { status: 400 }
       );
+    }
+
+    const projectId = formData.projectId;
+    const userId = formData.userId;
+
+    let finalProjectId = projectId;
+
+    // Verify if project exists or create it
+    if (projectId) {
+      // Verify that the project exists in the database using service
+      try {
+        await getProject(projectId);
+        finalProjectId = projectId;
+      } catch (error) {
+        return NextResponse.json(
+          { success: false, message: 'Project not found' },
+          { status: 404 }
+        );
+      }
+    } else {
+      // Create new project if it doesn't exist
+      
+      try {
+        const newProject = await createProject({
+          project_name: formData.project,
+          full_description: formData.project_abstract_objective || '',
+          members: userId ? [{
+            user_id: userId,
+            role: 'Member',
+            status: 'Confirmed',
+          } as any] : undefined,
+          origin: "infrabuidl",
+        });
+        
+        finalProjectId = newProject.id;
+      } catch (error) {
+        console.error('Error creating project:', error);
+        return NextResponse.json(
+          { success: false, message: 'Failed to create project' },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Verify and add user as member if not already a member
+    if (userId && finalProjectId) {
+      try {
+        // Get project with members to check if user is already a member
+        const projectWithMembers = await GetProjectByIdWithMembers(finalProjectId);
+        
+        if (!projectWithMembers) {
+          throw new Error('Project not found');
+        }
+        
+        // Check if user is already a member
+        const existingMember = projectWithMembers.members?.find(
+          (member) => 
+            (member.user_id === userId || member.email === formData.email) &&
+            member.status !== 'Removed'
+        );
+        
+        if (!existingMember) {
+          // Create new member directly
+          const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { email: true },
+          });
+          
+          await prisma.member.create({
+            data: {
+              project_id: finalProjectId,
+              user_id: userId,
+              role: 'Member',
+              status: 'Confirmed',
+              email: user?.email || formData.email || '',
+            },
+          });
+        } else {
+          // Update status and role if needed
+          if (existingMember.status !== 'Confirmed') {
+            // Update status if member exists but is not confirmed using service
+            await UpdateStatusMember(
+              userId,
+              finalProjectId,
+              'Confirmed',
+              existingMember.email || formData.email || '',
+              false // wasInOtherProject
+            );
+          }
+        }
+      } catch (error) {
+        console.error('Error managing project membership:', error);
+        // Don't fail the request if membership update fails, but log it
+      }
+    }
+
+    // Save form data to database
+    if (finalProjectId) {
+      try {
+        await createFormData({
+          formData: formData,
+          projectId: finalProjectId,
+          origin: 'infrabuidl',
+        });
+      } catch (error) {
+        console.error('Error saving form data:', error);
+        // Don't fail the request if form data save fails, but log it
+      }
     }
     
     const processedFormData: Record<string, any> = {};

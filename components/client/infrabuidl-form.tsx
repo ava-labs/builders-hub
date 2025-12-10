@@ -609,6 +609,12 @@ export default function GrantApplicationForm({
         }
       });
 
+      const projectId = isProjectSelectionEnabled ? 
+        userProjects.find((p: any) => p.project_name === values.project)?.id : null;
+
+      hubspotFormData["projectId"] = projectId;
+      hubspotFormData["userId"] = session?.user.id ?? "";
+
       const response = await fetch("/api/infrabuidl", {
         method: "POST",
         headers: {
