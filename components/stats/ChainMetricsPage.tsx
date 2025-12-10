@@ -1803,7 +1803,10 @@ function ChartCard({
 
   // Set default brush range based on period
   useEffect(() => {
-    if (aggregatedData.length === 0) return;
+    if (!aggregatedData || aggregatedData.length === 0) {
+      setBrushIndexes(null);
+      return;
+    }
 
     if (period === "D") {
       // Show last 90 days for daily view only
@@ -1819,11 +1822,15 @@ function ChartCard({
         endIndex: aggregatedData.length - 1,
       });
     }
-  }, [period, aggregatedData.length]);
+  }, [period, aggregatedData]);
 
-  const displayData = brushIndexes
-    ? aggregatedData.slice(brushIndexes.startIndex, brushIndexes.endIndex + 1)
-    : aggregatedData;
+  const displayData = useMemo(() => {
+    if (!brushIndexes || !aggregatedData || aggregatedData.length === 0) return [];
+    const start = Math.max(0, Math.min(brushIndexes.startIndex, aggregatedData.length - 1));
+    const end = Math.max(0, Math.min(brushIndexes.endIndex, aggregatedData.length - 1));
+    if (start > end) return [];
+    return aggregatedData.slice(start, end + 1);
+  }, [brushIndexes, aggregatedData]);
 
   // Merge actual cumulative transaction data with daily data
   const displayDataWithCumulative = useMemo(() => {
@@ -2107,6 +2114,7 @@ function ChartCard({
           </div>
 
           <div className="mb-6">
+            {displayData.length > 0 ? (
             <ResponsiveContainer width="100%" height={400}>
               {config.chartType === "bar" &&
               (config.metricKey === "txCount" ||
@@ -2521,50 +2529,60 @@ function ChartCard({
                 </LineChart>
               )}
             </ResponsiveContainer>
+            ) : (
+              <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                Loading chart data...
+              </div>
+            )}
           </div>
 
           {/* Brush Slider */}
-          <div className="mt-4 bg-white dark:bg-black pl-[60px]">
-            <ResponsiveContainer width="100%" height={80}>
-              <LineChart
-                data={aggregatedData}
-                margin={{ top: 0, right: 30, left: 0, bottom: 5 }}
-              >
-                <Brush
-                  dataKey="day"
-                  height={80}
-                  stroke={config.color}
-                  fill={`${config.color}20`}
-                  alwaysShowText={false}
-                  startIndex={brushIndexes?.startIndex ?? 0}
-                  endIndex={brushIndexes?.endIndex ?? aggregatedData.length - 1}
-                  onChange={(e: any) => {
-                    if (
-                      e.startIndex !== undefined &&
-                      e.endIndex !== undefined
-                    ) {
-                      setBrushIndexes({
-                        startIndex: e.startIndex,
-                        endIndex: e.endIndex,
-                      });
-                    }
-                  }}
-                  travellerWidth={8}
-                  tickFormatter={formatBrushXAxis}
+          {aggregatedData.length > 0 && brushIndexes && 
+           !isNaN(brushIndexes.startIndex) && !isNaN(brushIndexes.endIndex) &&
+           brushIndexes.startIndex >= 0 && brushIndexes.endIndex < aggregatedData.length && (
+            <div className="mt-4 bg-white dark:bg-black pl-[60px]">
+              <ResponsiveContainer width="100%" height={80}>
+                <LineChart
+                  data={aggregatedData}
+                  margin={{ top: 0, right: 30, left: 0, bottom: 5 }}
                 >
-                  <LineChart>
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      stroke={config.color}
-                      strokeWidth={1}
-                      dot={false}
-                    />
-                  </LineChart>
-                </Brush>
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+                  <Brush
+                    dataKey="day"
+                    height={80}
+                    stroke={config.color}
+                    fill={`${config.color}20`}
+                    alwaysShowText={false}
+                    startIndex={brushIndexes.startIndex}
+                    endIndex={brushIndexes.endIndex}
+                    onChange={(e: any) => {
+                      if (
+                        e.startIndex !== undefined &&
+                        e.endIndex !== undefined &&
+                        !isNaN(e.startIndex) && !isNaN(e.endIndex)
+                      ) {
+                        setBrushIndexes({
+                          startIndex: e.startIndex,
+                          endIndex: e.endIndex,
+                        });
+                      }
+                    }}
+                    travellerWidth={8}
+                    tickFormatter={formatBrushXAxis}
+                  >
+                    <LineChart>
+                      <Line
+                        type="monotone"
+                        dataKey="value"
+                        stroke={config.color}
+                        strokeWidth={1}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </Brush>
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
