@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { showCustomErrorToast } from '@/components/ui/custom-error-toast';
 import posthog from 'posthog-js';
 import l1ChainsData from '@/constants/l1-chains.json';
-import { getL1ListStore, L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { getAllCustomChains, findCustomChainByEvmChainId } from '@/components/explorer/utils/chainConverter';
 
 const EXPLORER_BASE_PATH = "/explorer";
 
@@ -16,31 +16,16 @@ const getEVMExplorerUrl = (txHash: string, viemChain: Chain) => {
         return `${EXPLORER_BASE_PATH}/avalanche-c-chain/tx/${txHash}`;
     }
     
-    // Check if this chain exists in our static L1 chains list
+    // Check static L1 chains list first
     const l1Chain = l1ChainsData.find(c => c.chainId === String(viemChain.id));
-    
-    // Use internal explorer for chains in our static list
     if (l1Chain?.slug) {
         return `${EXPLORER_BASE_PATH}/${l1Chain.slug}/tx/${txHash}`;
     }
     
-    // Check custom chains from localStorage (both testnet and mainnet stores)
-    try {
-        const testnetStore = getL1ListStore(true);
-        const mainnetStore = getL1ListStore(false);
-        
-        const testnetChains: L1ListItem[] = testnetStore.getState().l1List;
-        const mainnetChains: L1ListItem[] = mainnetStore.getState().l1List;
-        
-        const allCustomChains = [...testnetChains, ...mainnetChains];
-        const customChain = allCustomChains.find(c => c.evmChainId === viemChain.id);
-        
-        // Use internal BuilderHub explorer for custom chains (using blockchain ID as slug)
-        if (customChain) {
-            return `${EXPLORER_BASE_PATH}/${customChain.id}/tx/${txHash}`;
-        }
-    } catch {
-        // localStorage might not be available (SSR), fall through to external explorers
+    // Check custom chains from localStorage (console-created chains)
+    const customChain = findCustomChainByEvmChainId(getAllCustomChains(), viemChain.id);
+    if (customChain) {
+        return `${EXPLORER_BASE_PATH}/${customChain.id}/tx/${txHash}`;
     }
     
     // Fallback to external explorers
