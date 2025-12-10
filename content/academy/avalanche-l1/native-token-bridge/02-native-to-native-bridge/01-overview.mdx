@@ -1,0 +1,132 @@
+---
+title: Native to Native Bridge Overview
+description: Learn how to bridge native tokens that become native gas tokens on the destination chain.
+updated: 2024-09-09
+authors: [owenwahlgren]
+icon: Book
+---
+
+# Native to Native Token Bridge
+
+In this section, you'll learn how to bridge native tokens from a source chain to a destination chain, where they'll be received as **native tokens** (used for gas fees).
+
+## Use Case
+
+This bridge type is ideal when:
+
+- You want your L1's native token to be **the gas token** on another chain
+- You're building a **multi-chain ecosystem** with a shared native token
+- You want **seamless gas fee payments** across chains without token swaps
+
+## Key Difference from ERC-20 Bridge
+
+| Aspect | Native → ERC-20 | Native → Native |
+|--------|-----------------|-----------------|
+| **Destination token type** | ERC-20 | Native (gas token) |
+| **Destination contract** | ERC20TokenRemote | NativeTokenRemote |
+| **Requires Native Minter** | No | Yes |
+| **Requires Collateral** | No | Yes |
+| **Use for gas** | No (need to swap) | Yes (directly) |
+
+## Architecture Overview
+
+```
+Source Chain (e.g., Fuji C-Chain)          Destination Chain (e.g., Custom L1)
+┌──────────────────────────────┐          ┌──────────────────────────────┐
+│                              │          │                              │
+│  Native Token (AVAX)         │          │  Native Token (minted)       │
+│       ↓                      │          │       ↑                      │
+│  Wrapped Token (WAVAX)       │          │  Native Minter Precompile    │
+│       ↓                      │    ICM   │       ↑                      │
+│  NativeTokenHome   ──────────│────────▶ │  NativeTokenRemote           │
+│                              │          │                              │
+└──────────────────────────────┘          └──────────────────────────────┘
+```
+
+## Contracts and Components
+
+| Component | Chain | Purpose |
+|-----------|-------|---------|
+| **WrappedNativeToken** | Source | ERC-20 wrapper for native tokens |
+| **NativeTokenHome** | Source | Holds wrapped tokens, manages bridge state |
+| **NativeTokenRemote** | Destination | Calls Native Minter to create native tokens |
+| **Native Minter Precompile** | Destination | System contract that can mint native tokens |
+
+## The Native Minter Precompile
+
+The `NativeTokenRemote` contract requires the **Native Minter precompile** to be enabled on the destination chain. This precompile:
+
+- Is a built-in Avalanche L1 feature
+- Allows authorized contracts to mint native tokens
+- Must be configured in the chain's genesis or via upgrade
+- Address: `0x0200000000000000000000000000000000000001`
+
+<Callout type="warning">
+**Important**: The Native Minter precompile is NOT enabled on standard chains like C-Chain. You need a custom L1 with this precompile activated.
+</Callout>
+
+## Collateral Requirement
+
+Unlike ERC-20 bridging, Native Token bridging requires **collateral**:
+
+### Why Collateral?
+
+When NativeTokenRemote mints native tokens, it's creating real gas tokens. The protocol requires:
+
+1. **Initial Reserve Imbalance**: Set during deployment
+2. **Collateral Deposit**: Tokens deposited to back the minted supply
+3. **Full Collateralization**: Required before minting is enabled
+
+### Collateral Flow
+
+```
+1. Deploy NativeTokenRemote (set initial reserve imbalance)
+2. Register with Home
+3. Add collateral on source chain (NativeTokenHome)
+4. Once collateralized, bridging is enabled
+```
+
+## Deployment Flow
+
+Here's the complete process:
+
+### Step 1: Deploy NativeTokenHome (Source Chain)
+
+Same as Native → ERC-20 bridge. You may already have this deployed.
+
+### Step 2: Deploy NativeTokenRemote (Destination Chain)
+
+Deploy on a chain with Native Minter enabled. Configure:
+- Initial reserve imbalance
+- Burned fees reporting percentage
+
+### Step 3: Register Remote with Home
+
+Establish the secure connection between contracts.
+
+### Step 4: Add Collateral
+
+On the source chain, deposit tokens to fully collateralize the bridge.
+
+### Step 5: Bridge Tokens
+
+Once collateralized, users can bridge tokens that become native gas tokens.
+
+## What You'll Build
+
+In this section, we'll set up a native-to-native bridge:
+
+| Step | Action | Chain |
+|------|--------|-------|
+| 1 | Deploy/Use NativeTokenHome | Source (Fuji) |
+| 2 | Deploy NativeTokenRemote | Destination (L1 with Native Minter) |
+| 3 | Register Remote with Home | Destination |
+| 4 | Add Collateral | Source |
+| 5 | Bridge tokens | Source → Destination |
+
+<Callout type="info">
+If you already deployed NativeTokenHome in the previous section, you can reuse it! A single home contract can have multiple remote contracts registered.
+</Callout>
+
+Let's get started!
+

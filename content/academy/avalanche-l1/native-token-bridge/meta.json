@@ -3,12 +3,11 @@
   "icon": "ArrowLeftRight",
   "root": true,
   "pages": [
-    "---Native Token Bridge---",
     "index",
-    "---Getting Started---",
-    "...01-getting-started",
-    "---Native to ERC-20 Token Bridge---",
-    "...02-native-to-erc-20-bridge",
+    "---Native to ERC-20 Bridge---",
+    "...01-native-to-erc-20-bridge",
+    "---Native to Native Bridge---",
+    "...02-native-to-native-bridge",
     "---Send and Call---",
     "...03-send-and-call",
     "---Cross-Chain Token Swaps---",
@@ -19,4 +18,3 @@
     "certificate"
   ]
 }
-
