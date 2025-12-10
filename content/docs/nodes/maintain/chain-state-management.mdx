@@ -1,18 +1,18 @@
 ---
 title: Chain State Management
-description: Understanding active state vs archive state in EVM chains, and how to manage disk usage through state sync and offline pruning.
+description: Understanding active state vs archival state in EVM chains, and how to manage disk usage through state sync and offline pruning.
 ---
 
-When running an EVM-based blockchain (C-Chain or Subnet-EVM L1s), your node stores blockchain state on disk. Understanding the difference between **active state**, **pruned state**, and **archive state** is crucial for managing disk space and choosing the right sync method.
+When running an EVM-based blockchain (C-Chain or Subnet-EVM L1s), your node stores blockchain state on disk. Understanding the difference between **active state**, **active state with state sync snapshots**, and **archival state** is crucial for managing disk space and choosing the right sync method.
 
 ## State Types Comparison
 
 Your node's storage requirements depend on which type of state you're maintaining:
 
-| Property | Active State | Pruned State | Archive State (Total State) |
-|----------|--------------|--------------|---------------------------|
+| Property | Active State | Active State with State Sync Snapshots | Archival State |
+|----------|--------------|----------------------------------------|----------------|
 | **Size (C-Chain)** | ~500 GB | ~750 GB - 1 TB | ~3 TB+ (and growing) |
-| **Contents** | Current account balances, contract storage, code | Current state + recent historical trie nodes | Complete state history at every block |
+| **Contents** | Current account balances, contract storage, code | Current state + recent historical state sync snapshots | Complete state history at every block |
 | **Required for** | Validating, sending transactions, reading current state | Same as Active State, with some recent history | Historical queries at any block height, block explorers, analytics |
 | **Sync method** | State sync (fast) | State sync, then grows over time | Full sync from genesis (slower) |
 | **Maintenance** | Regular pruning or resync needed | Regular pruning or resync needed | None needed (intentional full history) |
@@ -21,16 +21,16 @@ Your node's storage requirements depend on which type of state you're maintainin
 
 The **active state** represents the current state of the blockchain—all account balances, contract storage, and code as of the latest block. This is what your node needs to validate new transactions and participate in consensus. When you bootstrap with state sync, you start with just the active state.
 
-### Pruned State
+### Active State with State Sync Snapshots
 
-**Pruned state** is what your node accumulates over time after starting with active state. As blocks are processed, old trie nodes aren't immediately deleted, causing disk usage to grow beyond the active state size. Running offline pruning periodically removes these old nodes while keeping your node functional. Most long-running validators operate in this state.
+**Active state with state sync snapshots** is what your node accumulates over time after starting with active state. As blocks are processed, state sync snapshots are retained for serving other nodes that want to bootstrap via state sync. This causes disk usage to grow beyond the active state size. Running offline pruning (state sync snapshot deletion) periodically removes these snapshots while keeping your node functional. Most long-running validators operate in this state.
 
-### Archive State (Total State)
+### Archival State (Total State)
 
-The **archive state** includes the complete history of all state changes since genesis. This allows querying historical state at any block height (e.g., "What was this account's balance at block 1,000,000?"). Archive nodes are typically only required for block explorers, indexers, and specialized analytics applications.
+The **archival state** includes the complete history of all state changes since genesis. This allows querying historical state at any block height (e.g., "What was this account's balance at block 1,000,000?"). Archive nodes are typically only required for block explorers, indexers, and specialized analytics applications.
 
 <Callout>
-Most validators and RPC nodes only need **active state** or can operate with **pruned state**. Archive nodes are specialized infrastructure for historical data access.
+Most validators and RPC nodes only need **active state** or can operate with **active state with state sync snapshots**. Archive nodes are specialized infrastructure for historical data access.
 </Callout>
 
 ## Why State Grows Over Time
@@ -45,30 +45,26 @@ This means a node that started with 500 GB via state sync might grow to 1 TB+ ov
 
 ### State Growth Visualization
 
-<StateGrowthChart />
+![State Growth Visualization](/images/State_growth_visualization.png)
 
 **Understanding the Chart:**
 
-- **Total State** (solid red line): Grows faster over time as historical state data accumulates
-  - Includes both current state and all historical intermediate trie nodes
-  - Always larger than active state due to storage overhead
+- **Archival State** (gray line): Grows fastest over time as it stores complete state history
+  - Includes all historical state changes since genesis
+  - Required only for block explorers, indexers, and specialized analytics
 
-- **Pruned State** (solid orange line): Represents typical validator disk usage over time
-  - Grows at a moderate rate between active and total state
-  - This is what most long-running nodes experience without maintenance
-  - Results from accumulating recent trie nodes that haven't been cleaned up
+- **Active State with State Sync Snapshots** (red line): Represents typical validator disk usage over time
+  - Grows at a moderate rate as state sync snapshots accumulate
+  - This is what most long-running validators experience without maintenance
 
-- **Active State** (solid blue line): Grows at a slower, steady rate
+- **Active State** (black line): Grows at the slowest, steady rate
   - Represents only the current blockchain state needed for validation
   - This is your starting point after state sync
 
-- **Total State After Pruning / Resync** (dotted red line): Shows state growth after performing maintenance
-  - Starts fresh from active state level after pruning or resync
-  - Continues to grow at the same rate as total state
-
-- **Resync/Offline Pruning** (vertical grey dotted line): The maintenance operation that reduces disk usage
-  - Removes accumulated historical data
-  - Brings total state back down close to active state level
+- **Active State with periodic snapshot deletion** (green line): Shows nodes performing manual offline pruning periodically
+  - After reaching active state, the node accumulates state sync snapshots over time
+  - When offline pruning is performed, state drops back to active state level (node goes offline during this operation)
+  - This sawtooth pattern represents the recommended maintenance cycle for validators
 
 <Callout title="Future Improvement: Firewood">
 [Firewood](https://github.com/ava-labs/firewood) is an upcoming database upgrade that will address the issue of total state growing too large. This next-generation storage layer is designed to efficiently manage state growth and reduce disk space requirements for node operators.
@@ -88,6 +84,18 @@ State sync is ideal for:
 <Callout>
 State sync is available for the C-Chain and Avalanche L1s, but not for P-Chain or X-Chain. Since the bulk of transactions and state growth occur on the C-Chain, state sync still provides significant benefits for bootstrap time and disk usage management.
 </Callout>
+
+#### New Validator State Sync Visualization
+
+The following diagram illustrates the state lifecycle for a new validator joining the network:
+
+![New Validator State Sync](/images/State_sync_newvalidator.png)
+
+**Understanding the diagram:**
+
+- **New validator (State Sync)**: When a new validator joins (blue line) via state sync, it quickly reaches the active state level by downloading the current state from peers
+- **Active State** (black line): The minimal state required for validation, growing slowly over time
+- **Green line**: After bootstrapping, the node accumulates state sync snapshots. Periodic offline pruning brings the state back down to active state level (the node goes offline during this maintenance operation)
 
 #### Configuring State Sync
 
@@ -408,7 +416,7 @@ If restarting the pruning operation does not succeed, additional disk space shou
 |----------|---------------------|
 | Disk nearly full, need space fast | State sync (re-sync) |
 | Regular maintenance, have spare disk space | Offline pruning |
-| Running a block explorer or indexer | Keep archive state, add more storage |
+| Running a block explorer or indexer | Keep archival state, add more storage |
 | New validator setup | State sync (required) |
 
 ## Monitoring Disk Usage
