@@ -878,7 +878,7 @@ export default function ChainMetricsPage({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-gray-200 dark:border-gray-800 p-4 rounded-lg">
+                <div key={i} className="!bg-white dark:!bg-black border border-gray-200 dark:border-zinc-800 p-4 rounded-lg">
                   <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm mb-2">
                     <div className="w-4 h-4 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
                     <div className="h-4 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
@@ -897,7 +897,7 @@ export default function ChainMetricsPage({
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+                <div key={i} className="bg-white dark:bg-black border border-gray-200 dark:border-zinc-800 rounded-lg overflow-hidden">
                   <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-800">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 sm:gap-3">
@@ -1245,7 +1245,7 @@ export default function ChainMetricsPage({
               <div className="h-6 sm:h-8 w-48 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-gray-200 dark:border-gray-800 p-4 rounded-lg">
+                  <div key={i} className="!bg-white dark:!bg-black border border-gray-200 dark:border-zinc-800 p-4 rounded-lg">
                     <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm mb-2">
                       <div className="w-4 h-4 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
                       <div className="h-4 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
@@ -1264,7 +1264,7 @@ export default function ChainMetricsPage({
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+                  <div key={i} className="bg-white dark:bg-black border border-gray-200 dark:border-zinc-800 rounded-lg overflow-hidden">
                     <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-800">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 sm:gap-3">

@@ -33,6 +33,8 @@ interface ChainMetrics {
   maxGasPrice: TimeSeriesMetric;
   feesPaid: TimeSeriesMetric;
   icmMessages: ICMMetric;
+  dailyRewards?: TimeSeriesMetric;
+  cumulativeRewards?: TimeSeriesMetric;
   last_updated: number;
 }
 
@@ -170,6 +172,62 @@ async function getActiveAddressesData(
   }
 }
 
+// Metabase endpoint URL for reward distribution (returns both daily and cumulative)
+// Only available for Avalanche C-Chain (43114)
+const REWARDS_URL = 'https://ava-labs-inc.metabaseapp.com/api/public/dashboard/3e895234-4c31-40f7-a3ee-4656f6caf535/dashcard/6788/card/5464?parameters=%5B%7B%22type%22%3A%22string%2F%3D%22%2C%22value%22%3Anull%2C%22id%22%3A%22b87e50a4%22%2C%22target%22%3A%5B%22variable%22%2C%5B%22template-tag%22%2C%22address%22%5D%5D%7D%2C%7B%22type%22%3A%22string%2F%3D%22%2C%22value%22%3Anull%2C%22id%22%3A%2242440d5%22%2C%22target%22%3A%5B%22variable%22%2C%5B%22template-tag%22%2C%22Node_ID%22%5D%5D%7D%2C%7B%22type%22%3A%22string%2F%3D%22%2C%22value%22%3Anull%2C%22id%22%3A%22ccdf28e0%22%2C%22target%22%3A%5B%22dimension%22%2C%5B%22template-tag%22%2C%22Reward_Type%22%5D%2C%7B%22stage-number%22%3A0%7D%5D%7D%5D';
+
+interface RewardsData {
+  daily: TimeSeriesDataPoint[];
+  cumulative: TimeSeriesDataPoint[];
+}
+
+async function fetchRewardsData(): Promise<RewardsData> {
+  try {
+    const response = await fetchWithTimeout(REWARDS_URL, {
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (!response.ok) {
+      console.warn(`[fetchRewardsData] Failed to fetch: ${response.status}`);
+      return { daily: [], cumulative: [] };
+    }
+
+    const data = await response.json();
+    
+    if (!data?.data?.rows || !Array.isArray(data.data.rows)) {
+      console.warn('[fetchRewardsData] Invalid data format');
+      return { daily: [], cumulative: [] };
+    }
+
+    // Transform Metabase format to TimeSeriesDataPoint format
+    // Metabase returns: [["2025-12-09T00:00:00Z", dailyValue, cumulativeValue], ...]
+    const daily: TimeSeriesDataPoint[] = [];
+    const cumulative: TimeSeriesDataPoint[] = [];
+
+    data.data.rows.forEach((row: [string, number, number]) => {
+      const dateStr = row[0];
+      const dailyValue = row[1] || 0;
+      const cumulativeValue = row[2] || 0;
+      const timestamp = Math.floor(new Date(dateStr).getTime() / 1000);
+      const date = dateStr.split('T')[0];
+
+      daily.push({ timestamp, value: dailyValue, date });
+      cumulative.push({ timestamp, value: cumulativeValue, date });
+    });
+
+    // Sort by timestamp descending (most recent first)
+    daily.sort((a, b) => b.timestamp - a.timestamp);
+    cumulative.sort((a, b) => b.timestamp - a.timestamp);
+
+    return { daily, cumulative };
+  } catch (error) {
+    if (error instanceof Error && error.name !== 'AbortError') {
+      console.warn('[fetchRewardsData] Error:', error);
+    }
+    return { daily: [], cumulative: [] };
+  }
+}
+
 async function getICMData(
   chainId: string, 
   timeRange: string,
@@ -235,8 +293,11 @@ const ALL_METRICS = [
   'activeAddresses', 'activeSenders', 'cumulativeAddresses', 'cumulativeDeployers',
   'txCount', 'cumulativeTxCount', 'cumulativeContracts', 'contracts', 'deployers',
   'gasUsed', 'avgGps', 'maxGps', 'avgTps', 'maxTps', 'avgGasPrice', 'maxGasPrice',
-  'feesPaid', 'icmMessages',
+  'feesPaid', 'icmMessages', 'dailyRewards', 'cumulativeRewards',
 ] as const;
+
+// Metrics that are only available for the Primary Network (Avalanche C-Chain)
+const PRIMARY_NETWORK_ONLY_METRICS = ['dailyRewards', 'cumulativeRewards'] as const;
 
 type MetricKey = typeof ALL_METRICS[number];
 
@@ -280,6 +341,13 @@ async function fetchFreshDataInternal(
     // ICM messages
     if (requestedMetrics.includes('icmMessages')) {
       fetchPromises['icmMessages'] = getICMData(chainId, timeRange, startTimestamp, endTimestamp);
+    }
+    
+    // Rewards data (only available for Avalanche C-Chain - 43114)
+    const isAvalancheCChain = chainId === '43114';
+    let rewardsData: RewardsData | null = null;
+    if (isAvalancheCChain && (requestedMetrics.includes('dailyRewards') || requestedMetrics.includes('cumulativeRewards'))) {
+      rewardsData = await fetchRewardsData();
     }
     
     // Fetch all in parallel
@@ -336,6 +404,16 @@ async function fetchFreshDataInternal(
     
     if (requestedMetrics.includes('icmMessages') && results['icmMessages']) {
       metrics.icmMessages = createICMMetric(results['icmMessages'] as ICMDataPoint[]);
+    }
+    
+    // Add rewards data (only for Avalanche C-Chain)
+    if (rewardsData) {
+      if (requestedMetrics.includes('dailyRewards') && rewardsData.daily.length > 0) {
+        metrics.dailyRewards = createTimeSeriesMetric(rewardsData.daily);
+      }
+      if (requestedMetrics.includes('cumulativeRewards') && rewardsData.cumulative.length > 0) {
+        metrics.cumulativeRewards = createTimeSeriesMetric(rewardsData.cumulative);
+      }
     }
 
     return metrics as ChainMetrics;
