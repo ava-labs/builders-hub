@@ -83,6 +83,17 @@ interface ChainMetrics {
   icmMessages: ICMMetric;
   dailyRewards?: TimeSeriesMetric;
   cumulativeRewards?: TimeSeriesMetric;
+  // Primary Network specific metrics
+  cumulativeBurn?: TimeSeriesMetric;
+  totalBurnDaily?: TimeSeriesMetric;
+  cChainFeesDaily?: TimeSeriesMetric;
+  pChainFeesDaily?: TimeSeriesMetric;
+  xChainFeesDaily?: TimeSeriesMetric;
+  validatorFeesDaily?: TimeSeriesMetric;
+  cumulativeCChainFees?: TimeSeriesMetric;
+  cumulativePChainFees?: TimeSeriesMetric;
+  cumulativeXChainFees?: TimeSeriesMetric;
+  cumulativeValidatorFees?: TimeSeriesMetric;
   last_updated: number;
 }
 
@@ -156,10 +167,33 @@ const AVAILABLE_METRICS = [
   { id: "icmMessages", name: "ICM Messages" },
   { id: "dailyRewards", name: "Daily Rewards" },
   { id: "cumulativeRewards", name: "Cumulative Rewards" },
+  // Primary Network specific metrics
+  { id: "totalBurnDaily", name: "Burn" },
+  { id: "cumulativeBurn", name: "Cumulative Burn" },
+  { id: "cChainFeesDaily", name: "C-Chain Fees" },
+  { id: "pChainFeesDaily", name: "P-Chain Fees" },
+  { id: "xChainFeesDaily", name: "X-Chain Fees" },
+  { id: "validatorFeesDaily", name: "Validator Fees" },
+  { id: "cumulativeCChainFees", name: "Cumulative C-Chain Fees" },
+  { id: "cumulativePChainFees", name: "Cumulative P-Chain Fees" },
+  { id: "cumulativeXChainFees", name: "Cumulative X-Chain Fees" },
+  { id: "cumulativeValidatorFees", name: "Cumulative Validator Fees" },
 ];
 
-// Metrics that are only available for the Primary Network (Avalanche C-Chain - 43114)
-const PRIMARY_NETWORK_ONLY_METRICS = ["dailyRewards", "cumulativeRewards"];
+// Metrics that are only available for the Primary Network
+const PRIMARY_NETWORK_ONLY_METRICS = [
+  "dailyRewards", "cumulativeRewards",
+  "cumulativeBurn", "totalBurnDaily", "cChainFeesDaily", "pChainFeesDaily",
+  "xChainFeesDaily", "validatorFeesDaily", "cumulativeCChainFees",
+  "cumulativePChainFees", "cumulativeXChainFees", "cumulativeValidatorFees",
+];
+
+// Primary Network option for chain selector
+const PRIMARY_NETWORK_OPTION = {
+  chainId: "primary",
+  chainName: "Primary Network",
+  chainLogoURI: "", // Will use Avalanche logo
+};
 
 export default function ConfigurableChart({
   title = "Chart",
@@ -787,8 +821,8 @@ export default function ConfigurableChart({
   const isPrimaryNetworkOnlyMetric = selectedMetric && PRIMARY_NETWORK_ONLY_METRICS.includes(selectedMetric);
 
   const filteredChains = isPrimaryNetworkOnlyMetric
-    ? // For Primary Network only metrics, only show Avalanche C-Chain
-      [AVALANCHE_CCHAIN_OPTION].filter((chain) =>
+    ? // For Primary Network only metrics, show Primary Network option
+      [PRIMARY_NETWORK_OPTION].filter((chain) =>
         chain.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase())
       )
     : [
@@ -1149,7 +1183,7 @@ export default function ConfigurableChart({
                       <Loader2 className="h-4 w-4 animate-spin text-gray-400 flex-shrink-0" />
                     ) : (
                       <>
-                        {series.chainId === "all" || series.chainId === "43114" ? (
+                        {series.chainId === "all" || series.chainId === "43114" || series.chainId === "primary" ? (
                           <div className="relative h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 flex items-center justify-center">
                             <AvalancheLogo className="h-4 w-4 sm:h-5 sm:w-5" fill="#E84142" />
                           </div>
@@ -1395,6 +1429,7 @@ export default function ConfigurableChart({
                         const isAdded = dataSeries.some((s) => s.id === seriesId);
                         const isAllChains = chain.chainId === "all";
                         const isAvalancheCChain = chain.chainId === "43114";
+                        const isPrimaryNetwork = chain.chainId === "primary";
                         const isLastAllChains = isAllChains && index < filteredChains.length - 1 && filteredChains[index + 1].chainId !== "all";
                         
                         return (
@@ -1405,7 +1440,7 @@ export default function ConfigurableChart({
                               }
                               className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2 text-sm"
                             >
-                              {isAllChains || isAvalancheCChain ? (
+                              {isAllChains || isAvalancheCChain || isPrimaryNetwork ? (
                                 <div className="relative h-5 w-5 flex-shrink-0 flex items-center justify-center">
                                   <AvalancheLogo className="h-5 w-5" fill="#E84142" />
                                 </div>
@@ -1682,9 +1717,9 @@ export default function ConfigurableChart({
                   disabled={!isEnabled}
                   className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors ${
                     isSelected && isEnabled
-                      ? "text-white dark:text-white"
+                      ? "text-white dark:text-white cursor-pointer"
                       : isEnabled
-                      ? "text-muted-foreground hover:bg-muted"
+                      ? "text-muted-foreground hover:bg-muted cursor-pointer"
                       : "text-muted-foreground opacity-40 cursor-not-allowed"
                   }`}
                   style={
@@ -1718,7 +1753,17 @@ export default function ConfigurableChart({
 
             {/* Brush Slider */}
             {filteredData.length > 0 && visibleSeries.length > 0 && (
-              <div className="mt-4 bg-white dark:bg-black pl-[60px]">
+              <div 
+                className="mt-4 bg-white dark:bg-black pl-[60px] brush-slider-container cursor-default"
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                onDragStart={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                draggable={false}
+                data-no-drag="true"
+              >
               <ResponsiveContainer width="100%" height={80}>
                 <LineChart
                   data={aggregatedData}
