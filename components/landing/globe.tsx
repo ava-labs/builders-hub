@@ -1,198 +1,266 @@
 "use client";
 
-import React from "react";
-import SphereImageGrid, { ImageData } from '@/components/ui/img-sphere';
+import React, { useEffect, useState, useMemo } from "react";
+import MiniNetworkDiagram, { MiniChainData, MiniICMFlow } from '@/components/stats/MiniNetworkDiagram';
+import l1ChainsData from '@/constants/l1-chains.json';
 
-type NetworkItem = {
-	name: string;
-	image: string;
-	link: string;
-	type?: string;
-};
+interface ChainOverviewMetrics {
+	chainId: string;
+	chainName: string;
+	chainLogoURI: string;
+	txCount: number;
+	tps: number;
+	activeAddresses: number;
+	icmMessages: number;
+	validatorCount: number | string;
+}
+
+interface OverviewMetrics {
+	chains: ChainOverviewMetrics[];
+	aggregated: {
+		totalTxCount: number;
+		totalTps: number;
+		totalActiveAddresses: number;
+		totalICMMessages: number;
+		totalValidators: number;
+		activeChains: number;
+	};
+	timeRange: string;
+	last_updated: number;
+}
+
+interface ICMFlowData {
+	sourceChainId: string;
+	targetChainId: string;
+	messageCount: number;
+}
+
+// Helper function to get category-based colors
+function getCategoryColor(category?: string): string {
+	switch (category) {
+		case "Primary":
+			return "#e84142"; // Avalanche red
+		case "Gaming":
+			return "#22c55e"; // Green
+		case "DeFi":
+			return "#3b82f6"; // Blue
+		case "Enterprise":
+			return "#a855f7"; // Purple
+		case "Institutions":
+			return "#a855f7"; // Purple
+		case "Infrastructure":
+			return "#f97316"; // Orange
+		case "Creative":
+			return "#ec4899"; // Pink
+		case "RWAs":
+			return "#f59e0b"; // Amber
+		case "Payments":
+			return "#06b6d4"; // Cyan
+		default:
+			return "#8b5cf6"; // Default purple
+	}
+}
+
+// Helper to generate color from name
+function stringToColor(str: string): string {
+	let hash = 0;
+	for (let i = 0; i < str.length; i++) {
+		hash = str.charCodeAt(i) + ((hash << 5) - hash);
+	}
+	const hue = Math.abs(hash % 360);
+	return `hsl(${hue}, 70%, 55%)`;
+}
 
 export const Sponsors = () => {
-	// Combine all networks into a single array for the sphere
-	const allNetworks: NetworkItem[] = [
-		// Avalanche - The Primary Network
-		{
-			name: "Avalanche",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
-			link: "/docs/primary-network",
-			type: "Primary"
-		},
-		// Primary networks
-		{
-			name: "FIFA Blockchain",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/27QiWdtdwCaIeFbYhA47KG/5b4245767fc39d68b566f215e06c8f3a/FIFA_logo.png",
-			link: "https://collect.fifa.com/",
-			type: "Gaming"
-		},
-		{
-			name: "MapleStory Henesys",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/Uu31h98BapTCwbhHGBtFu/6b72f8e30337e4387338c82fa0e1f246/MSU_symbol.png",
-			link: "https://nexon.com",
-			type: "Gaming"
-		},
-		{
-			name: "Dexalot Exchange",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/6tKCXL3AqxfxSUzXLGfN6r/be31715b87bc30c0e4d3da01a3d24e9a/dexalot-subnet.png",
-			link: "https://dexalot.com/",
-			type: "DeFi"
-		},
-		{
-			name: "DeFi Kingdoms",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/6ee8eu4VdSJNo93Rcw6hku/2c6c5691e8a7c3b68654e5a4f219b2a2/chain-logo.png",
-			link: "https://defikingdoms.com/",
-			type: "Gaming"
-		},
-		{
-			name: "Lamina1",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/5KPky47nVRvtHKYV0rQy5X/e0d153df56fd1eac204f58ca5bc3e133/L1-YouTube-Avatar.png",
-			link: "https://lamina1.com/",
-			type: "Creative"
-		},
-		{
-			name: "Green Dot Deloitte",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/zDgUqvR4J10suTQcNZ3dU/842b9f276bef338e68cb5d9f119cf387/green-dot.png",
-			link: "https://www2.deloitte.com/us/en/pages/about-deloitte/solutions/future-forward-blockchain-alliances.html",
-			type: "Enterprise"
-		},
-		// Secondary networks
-		{
-			name: "Beam Gaming",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/2ZXZw0POSuXhwoGTiv2fzh/5b9d9e81acb434461da5addb1965f59d/chain-logo.png",
-			link: "https://onbeam.com/",
-			type: "Gaming"
-		},
-		{
-			name: "KOROSHI Gaming",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/1cZxf8usDbuJng9iB3fkFd/1bc34bc28a2c825612eb697a4b72d29d/2025-03-30_07.28.32.jpg",
-			link: "https://www.thekoroshi.com/",
-			type: "Gaming"
-		},
-		{
-			name: "Gunzilla Games",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/3z2BVey3D1mak361p87Vu/ca7191fec2aa23dfa845da59d4544784/unnamed.png",
-			link: "https://gunzillagames.com/en/",
-			type: "Gaming"
-		},
-		{
-			name: "PLAYA3ULL Games",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/27mn0a6a5DJeUxcJnZr7pb/8a28d743d65bf35dfbb2e63ba2af7f61/brandmark_-_square_-_Sam_Thompson.png",
-			link: "https://playa3ull.games/",
-			type: "Gaming"
-		},
-		{
-			name: "StraitsX",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/3jGGJxIwb3GjfSEJFXkpj9/2ea8ab14f7280153905a29bb91b59ccb/icon.png",
-			link: "https://www.straitsx.com/",
-			type: "DeFi"
-		},
-		{
-			name: "CX Chain",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/3wVuWA4oz9iMadkIpywUMM/377249d5b8243e4dfa3a426a1af5eaa5/14.png",
-			link: "https://node.cxchain.xyz/",
-			type: "Gaming"
-		},
-		{
-			name: "Intain Markets",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/5MuFbCmddPQvITBBc5vOjw/151f8e688204263d78ded05d1844fa90/chain-logo__3_.png",
-			link: "https://intainft.com/intain-markets",
-			type: "Enterprise"
-		},
-		{
-			name: "Jiritsu Network",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/2hYOV0TRFSvz9zcHW8LET8/c248bf05cc2c29aa1e2044555d999bcf/JiriProofs_Attestation_service_-_Revised__4_.png",
-			link: "https://www.jiritsu.network/",
-			type: "Enterprise"
-		},
-		{
-			name: "PLYR Chain",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/5K1xUbrhZPhSOEtsHoghux/b64edf007db24d8397613f7d9338260a/logomark_fullorange.svg",
-			link: "https://plyr.network/",
-			type: "Infrastructure"
-		},
-		{
-			name: "Tiltyard Studio",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/5iZkicfOvjuwJYQqqCQN4y/9bdb761652d929459610c8b2da862cd5/android-chrome-512x512.png",
-			link: "https://tiltyard.gg/",
-			type: "Gaming"
-		},
-		{
-			name: "UPTN Platform",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/5jmuPVLmmUSDrfXxbIrWwo/4bdbe8d55b775b613156760205d19f9f/symbol_UPTN_-_js_won.png",
-			link: "https://www.uptn.io/",
-			type: "Infrastructure"
-		},
-		{
-			name: "Quboid",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/5jRNt6keCaCe0Z35ZQbwtL/94f81aa95f9d9229111693aa6a705437/Quboid_Logo.jpg",
-			link: "https://qubo.id/",
-			type: "Infrastructure"
-		},
-		{
-			name: "Feature Studio",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/2hWSbxXPv2QTPCtCaEp7Kp/522b520e7e5073f7e7459f9bd581bafa/FTR_LOGO_-_FLAT_BLACK.png",
-			link: "https://feature.io/",
-			type: "Creative"
-		},
-		{
-			name: "Blitz Platform",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/5ZhwQeXUwtVZPIRoWXhgrw/03d0ed1c133e59f69bcef52e27d1bdeb/image__2___2_.png",
-			link: "https://blitz.gg/",
-			type: "Infrastructure"
-		},
-		{
-			name: "NUMINE Gaming",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/411JTIUnbER3rI5dpOR54Y/3c0a8e47d58818a66edd868d6a03a135/numine_main_icon.png",
-			link: "https://numine.io/",
-			type: "Gaming"
-		},
-		{
-			name: "Blaze",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/6Whg7jeebEhQfwGAXEsGVh/ecbb11c6c54af7ff3766b58433580721/2025-04-10_16.28.46.jpg",
-			link: "https://blaze.stream/",
-			type: "Creative"
-		},
-		{
-			name: "Hashfire",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/4TCWxdtzvtZ8iD4255nAgU/e4d12af0a594bcf38b53a27e6beb07a3/FlatIcon_Large_.png",
-			link: "https://hashfire.xyz/",
-			type: "Enterprise"
-		},
-		{
-			name: "PlayDapp",
-			image: "https://images.ctfassets.net/gcj8jwzm6086/4TWXXjwAsXm1R2LURlFnQf/70219308f6727eab0291ee33e922672c/pda.png",
-			link: "https://playdapp.io/",
-			type: "Creative"
-		}
-	];
+	const [metrics, setMetrics] = useState<OverviewMetrics | null>(null);
+	const [icmFlows, setIcmFlows] = useState<ICMFlowData[]>([]);
+	const [loading, setLoading] = useState(true);
 
-	// Convert networks to ImageData format with category for border colors
-	const sphereImages: ImageData[] = allNetworks.map((network, index) => ({
-		id: `network-${index}`,
-		src: network.image,
-		alt: network.name,
-		title: network.name,
-		description: network.type,
-		category: network.type, // This will be used for border coloring
-		link: network.link, // Link to open on click
-		isPrimary: network.type === "Primary" // Make Avalanche larger
-	}));
+	// Fetch real data from API
+	useEffect(() => {
+		const fetchData = async () => {
+			try {
+				// Fetch chain metrics and ICM flows in parallel
+				const [metricsResponse, icmResponse] = await Promise.all([
+					fetch('/api/overview-stats?timeRange=day'),
+					fetch('/api/icm-flow?days=30'),
+				]);
+
+				if (metricsResponse.ok) {
+					const data = await metricsResponse.json();
+					setMetrics(data);
+				}
+
+				if (icmResponse.ok) {
+					const icmData = await icmResponse.json();
+					if (icmData.flows && Array.isArray(icmData.flows)) {
+						setIcmFlows(icmData.flows);
+					}
+				}
+			} catch (err) {
+				console.error('Failed to fetch chain data for globe:', err);
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchData();
+	}, []);
+
+	// Transform API data to MiniChainData format
+	const chainData: MiniChainData[] = useMemo(() => {
+		if (!metrics?.chains) return [];
+
+		// Avalanche C-Chain chainId
+		const AVALANCHE_CCHAIN_ID = '43114';
+
+		// Find Avalanche C-Chain data
+		const avalancheChain = metrics.chains.find(c => c.chainId === AVALANCHE_CCHAIN_ID);
+
+		// Get L1 chains excluding Avalanche C-Chain (it will be the center)
+		// Score chains by multiple metrics for better representation
+		const l1Chains = metrics.chains
+			.filter(chain => chain.chainId !== AVALANCHE_CCHAIN_ID)
+			.map(chain => {
+				// Calculate composite activity score
+				const tpsScore = (chain.tps || 0) * 10; // Weight TPS heavily
+				const txScore = Math.sqrt(chain.txCount || 0) * 0.1;
+				const addressScore = Math.sqrt(chain.activeAddresses || 0) * 0.5;
+				const validatorScore = typeof chain.validatorCount === 'number' ? chain.validatorCount : 0;
+				const icmScore = Math.sqrt(chain.icmMessages || 0) * 0.3;
+				
+				const activityScore = tpsScore + txScore + addressScore + validatorScore + icmScore;
+				
+				return { ...chain, activityScore };
+			})
+			.filter(chain => chain.activityScore > 0)
+			.sort((a, b) => b.activityScore - a.activityScore)
+			.slice(0, 40); // Show top 50 most active L1 chains
+
+		// Calculate total TPS (including Avalanche) for aggregate display
+		const totalTps = metrics.chains.reduce((sum, c) => sum + (c.tps || 0), 0);
+
+		// Add Avalanche C-Chain as the primary/center node
+		const result: MiniChainData[] = [{
+			id: AVALANCHE_CCHAIN_ID,
+			chainId: AVALANCHE_CCHAIN_ID,
+			name: 'Avalanche',
+			logo: avalancheChain?.chainLogoURI || 'https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg',
+			color: '#e84142',
+			category: 'Primary Network',
+			link: '/stats/overview',
+			isPrimary: true,
+			tps: totalTps, // Aggregate TPS for pulse effect
+			validatorCount: typeof avalancheChain?.validatorCount === 'number' ? avalancheChain.validatorCount : undefined,
+		}];
+
+		// Add L1 chains from API
+		l1Chains.forEach(chain => {
+			// Get additional info from l1-chains.json
+			const l1Chain = l1ChainsData.find(
+				(c: any) => c.chainId === chain.chainId || 
+				c.chainName.toLowerCase() === chain.chainName.toLowerCase()
+			);
+
+			const category = l1Chain?.category || 'General';
+			const slug = l1Chain?.slug;
+			// Use API logo first, fallback to l1-chains.json logo
+			const logo = chain.chainLogoURI || l1Chain?.chainLogoURI;
+
+			result.push({
+				id: chain.chainId,
+				chainId: chain.chainId, // Include chainId for ICM matching
+				name: chain.chainName,
+				logo,
+				color: l1Chain?.color || getCategoryColor(category) || stringToColor(chain.chainName),
+				category,
+				link: slug ? `/stats/l1/${slug}` : undefined,
+				isPrimary: false,
+				validatorCount: typeof chain.validatorCount === 'number' ? chain.validatorCount : undefined,
+				tps: chain.tps || 0, // Include TPS for pulse effect
+			});
+		});
+
+		return result;
+	}, [metrics]);
+
+	// Transform ICM flows to MiniICMFlow format
+	const icmFlowsData: MiniICMFlow[] = useMemo(() => {
+		if (!icmFlows.length) return [];
+		
+		return icmFlows.map(flow => ({
+			sourceChainId: flow.sourceChainId,
+			targetChainId: flow.targetChainId,
+			messageCount: flow.messageCount,
+		}));
+	}, [icmFlows]);
+
+	// Show loading skeleton
+	if (loading) {
+		return (
+			<div className="relative w-full h-[700px] flex items-center justify-center">
+				<div className="relative w-[650px] h-[650px] flex items-center justify-center">
+					{/* Animated orbital rings */}
+					<div className="absolute inset-0 flex items-center justify-center">
+						<div className="absolute w-[200px] h-[200px] rounded-full border border-zinc-200 dark:border-zinc-800 animate-[spin_20s_linear_infinite]" />
+						<div className="absolute w-[350px] h-[350px] rounded-full border border-zinc-200/60 dark:border-zinc-800/60 animate-[spin_30s_linear_infinite_reverse]" />
+						<div className="absolute w-[500px] h-[500px] rounded-full border border-zinc-200/40 dark:border-zinc-800/40 animate-[spin_40s_linear_infinite]" />
+						<div className="absolute w-[600px] h-[600px] rounded-full border border-zinc-200/20 dark:border-zinc-800/20 animate-[spin_50s_linear_infinite_reverse]" />
+					</div>
+					
+					{/* Pulsing center */}
+					<div className="relative z-10">
+						<div className="w-20 h-20 rounded-full bg-gradient-to-br from-red-500/20 to-red-600/10 dark:from-red-500/30 dark:to-red-600/20 animate-pulse flex items-center justify-center">
+							<div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500/30 to-red-600/20 dark:from-red-500/40 dark:to-red-600/30 animate-[pulse_1.5s_ease-in-out_infinite]" />
+						</div>
+						{/* Expanding pulse ring */}
+						<div className="absolute inset-0 rounded-full border-2 border-red-500/20 animate-[ping_2s_ease-out_infinite]" />
+					</div>
+					
+					{/* Floating dots representing chains - pre-calculated positions to avoid hydration mismatch */}
+					{[
+						{ x: 100, y: 0, delay: 0 },
+						{ x: 156, y: 90, delay: 0.15 },
+						{ x: 130, y: 225, delay: 0.3 },
+						{ x: 0, y: 100, delay: 0.45 },
+						{ x: -78, y: 135, delay: 0.6 },
+						{ x: -225, y: 130, delay: 0.75 },
+						{ x: -100, y: 0, delay: 0.9 },
+						{ x: -156, y: -90, delay: 1.05 },
+						{ x: -130, y: -225, delay: 1.2 },
+						{ x: 0, y: -100, delay: 1.35 },
+						{ x: 78, y: -135, delay: 1.5 },
+						{ x: 225, y: -130, delay: 1.65 },
+					].map((dot, i) => (
+						<div
+							key={i}
+							className="absolute w-4 h-4 rounded-full bg-zinc-300 dark:bg-zinc-700 animate-pulse"
+							style={{
+								left: `calc(50% + ${dot.x}px - 8px)`,
+								top: `calc(50% + ${dot.y}px - 8px)`,
+								animationDelay: `${dot.delay}s`,
+							}}
+						/>
+					))}
+					
+					{/* Loading text */}
+					<div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-xs text-zinc-400 dark:text-zinc-500">
+						Loading network...
+					</div>
+				</div>
+			</div>
+		);
+	}
 
 	return (
-		<div className="relative w-full h-[600px] flex items-center justify-center">
-			<SphereImageGrid
-				images={sphereImages}
-				containerSize={550}
-				sphereRadius={200}
+		<div className="relative w-full h-[760px] flex items-center justify-center">
+			<MiniNetworkDiagram
+				chains={chainData}
+				icmFlows={icmFlowsData}
+				containerSize={650}
 				autoRotate={true}
-				autoRotateSpeed={0.08}
-				dragSensitivity={0.5}
-				baseImageScale={0.28}
+				autoRotateSpeed={0.12}
 				className="mx-auto"
 			/>
 		</div>
 	);
 };
-
