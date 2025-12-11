@@ -252,7 +252,7 @@ export const Sponsors = () => {
 	}
 
 	return (
-		<div className="relative w-full h-[700px] flex items-center justify-center">
+		<div className="relative w-full h-[760px] flex items-center justify-center">
 			<MiniNetworkDiagram
 				chains={chainData}
 				icmFlows={icmFlowsData}
