@@ -1339,7 +1339,7 @@ export default function ChainMetricsPage({
               return (
                 <Card
                   key={item.key}
-                  className="relative overflow-hidden bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-800 p-4"
+                  className="relative overflow-hidden !bg-white dark:!bg-black border-gray-200 dark:border-zinc-800 p-4"
                 >
                   <div className="relative">
                     <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm mb-2">
