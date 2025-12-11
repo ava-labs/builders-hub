@@ -5,7 +5,7 @@ import { checkAndReserveFaucetClaim, completeFaucetClaim, cancelFaucetClaim } fr
 
 const SERVER_PRIVATE_KEY = process.env.SERVER_PRIVATE_KEY;
 const FAUCET_P_CHAIN_ADDRESS = process.env.FAUCET_P_CHAIN_ADDRESS;
-const FIXED_AMOUNT = 2;
+const FIXED_AMOUNT = 0.5;
 
 interface TransferResponse {
   success: boolean;

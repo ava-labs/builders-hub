@@ -12,6 +12,7 @@ import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-
 import { useTestnetFaucet } from "@/hooks/useTestnetFaucet";
 import { AccountRequirementsConfigKey } from "../../hooks/useAccountRequirements";
 import { useFaucetRateLimit } from "@/hooks/useFaucetRateLimit";
+import { Check } from "lucide-react";
 
 function EVMFaucetCard({ chain }: { chain: L1ListItem }) {
   const dripAmount = chain.faucetThresholds?.dripAmount || 3;
@@ -35,8 +36,8 @@ function EVMFaucetCard({ chain }: { chain: L1ListItem }) {
           {allowed && !isLoading && (
             <>
               <span className="text-zinc-300 dark:text-zinc-600">•</span>
-              <span className="text-green-600 dark:text-green-400">
-                ✓ Ready
+              <span className="text-green-600 dark:text-green-400 flex items-center gap-1">
+                <Check className="w-3.5 h-3.5" /> Ready
               </span>
             </>
           )}
@@ -125,8 +126,8 @@ function Faucet({ onSuccess }: BaseConsoleToolProps) {
                     Smart contracts & DeFi
                   </p>
                   {cChainAllowed && !cChainLoading && (
-                    <span className="text-xs text-green-600 dark:text-green-400 shrink-0">
-                      ✓ Ready to claim
+                    <span className="text-xs text-green-600 dark:text-green-400 shrink-0 flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5" /> Ready to claim
                     </span>
                   )}
                 </div>
@@ -162,7 +163,7 @@ function Faucet({ onSuccess }: BaseConsoleToolProps) {
                   </h3>
                   <span className="shrink-0">
                     <span className="font-mono font-semibold text-zinc-900 dark:text-white">
-                      2
+                      0.5
                     </span>
                     <span className="text-sm text-zinc-500 ml-1">AVAX</span>
                   </span>
@@ -172,8 +173,8 @@ function Faucet({ onSuccess }: BaseConsoleToolProps) {
                     Validators & L1 creation
                   </p>
                   {pChainAllowed && !pChainLoading && (
-                    <span className="text-xs text-green-600 dark:text-green-400 shrink-0">
-                      ✓ Ready to claim
+                    <span className="text-xs text-green-600 dark:text-green-400 shrink-0 flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5" /> Ready to claim
                     </span>
                   )}
                 </div>
@@ -204,7 +205,7 @@ function Faucet({ onSuccess }: BaseConsoleToolProps) {
 
       {/* Footer */}
       <div className="flex items-center justify-center gap-4 text-xs text-zinc-400 dark:text-zinc-600">
-        <span>1 request per 24h</span>
+        <span>1 request/chain per 24h</span>
         <span>•</span>
         <span>Test tokens only</span>
         <span>•</span>
@@ -212,7 +213,7 @@ function Faucet({ onSuccess }: BaseConsoleToolProps) {
           href="https://core.app/tools/testnet-faucet/"
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-zinc-900 dark:hover:text-white transition-colors"
+          className="hover:text-zinc-900 dark:hover:text-white transition-colors underline"
         >
           Core Faucet ↗
         </a>
