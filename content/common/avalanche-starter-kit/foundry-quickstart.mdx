@@ -128,12 +128,17 @@ To issue our transactions, we need to send them to an RPC server. You can put th
 These aliases are defined in the foundry.toml file in the root of the Avalanche Starter Kit.
 
 ```toml
+[profile.default]
+evm_version = "cancun"  # Required for Avalanche (Pectra not yet supported)
+
 [rpc_endpoints]
 local-c = "http://localhost:9650/ext/bc/C/rpc"
 myblockchain = "http://localhost:9650/ext/bc/myblockchain/rpc"
 fuji-c = "https://api.avax-test.network/ext/bc/C/rpc"
 dispatch = "https://subnets.avax.network/dispatch/testnet/rpc"
 ```
+
+> **EVM Version Required**: The `evm_version = "cancun"` setting is required when deploying to Avalanche. Solidity v0.8.30+ defaults to Pectra, which uses opcodes not yet supported on Avalanche. Without this setting, your contracts may fail to deploy or behave unexpectedly.
 
 The RPC URLs defined by default are the following:
 - **local-c:** The C-Chain of your local Avalanche network
