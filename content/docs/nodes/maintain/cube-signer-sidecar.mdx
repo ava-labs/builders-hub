@@ -136,10 +136,14 @@ docker run -d \
   -e SIGNER_ENDPOINT=https://gamma.signer.cubist.dev \
   -e KEY_ID=Key#BlsAvaIcm_0x... \
   -e TOKEN_FILE_PATH=/token.json \
-  ghcr.io/ava-labs/cube-signer-sidecar:latest start
+  avaplatform/cube-signer-sidecar:0.0.0-rc9 start
 ```
 
 Replace the `KEY_ID` value with your actual key ID from Step 1.
+
+<Callout type="info">
+Check [Docker Hub](https://hub.docker.com/r/avaplatform/cube-signer-sidecar/tags) for the latest available image tag. The `:latest` tag will be available once a stable release is published.
+</Callout>
 
 <Callout type="info">
 Do not mount `token.json` as read-only; the sidecar writes refreshed session data back to this file. The default bind mount is read/write, which is required.
