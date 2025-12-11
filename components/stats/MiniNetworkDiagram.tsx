@@ -154,6 +154,10 @@ export default function MiniNetworkDiagram({
   const [dimensions, setDimensions] = useState({ width: containerSize, height: containerSize });
   const [hoveredNode, setHoveredNode] = useState<ChainNode | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [dpr, setDpr] = useState(1); // Device pixel ratio for Retina/HiDPI support
+  
+  // Extra space at bottom for buttons and hint text
+  const BOTTOM_CONTROLS_HEIGHT = 60;
   
   const dragStartRef = useRef({ x: 0, y: 0 });
   const lastDragPosRef = useRef({ x: 0, y: 0 });
@@ -386,18 +390,20 @@ export default function MiniNetworkDiagram({
     particlesRef.current = initializeParticles(connectionsRef.current);
   }, [chains, icmFlows, dimensions, initializeLayout, generateConnections, initializeParticles]);
 
-  // Update dimensions
+  // Update dimensions and device pixel ratio
   useEffect(() => {
     const updateSize = () => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
-        setDimensions({ 
-          width: Math.round(rect.width), 
-          height: Math.round(rect.height) 
+        const pixelRatio = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+        setDpr(pixelRatio);
+        setDimensions({
+          width: Math.round(rect.width),
+          height: Math.round(rect.height)
         });
       }
     };
-    
+
     updateSize();
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
@@ -458,13 +464,18 @@ export default function MiniNetworkDiagram({
 
     const draw = () => {
       time += 0.01;
-      
+
+      // Reset transform and scale for HiDPI/Retina displays
+      // This ensures we draw in CSS pixel coordinates but render at device resolution
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
+
       // Calculate rotation
       let deltaRotation = 0;
-      
+
       // Pause movement when hovering a chain
       const isHovering = hoveredNodeRef.current !== null;
-      
+
       if (isDragging) {
         // While dragging, apply drag velocity directly for responsive rotation
         deltaRotation = dragVelocityRef.current.x * 0.02;
@@ -473,20 +484,20 @@ export default function MiniNetworkDiagram({
         if (autoRotate) {
           deltaRotation = autoRotateSpeed * 0.01;
         }
-        
+
         // Apply momentum decay after release
         if (Math.abs(dragVelocityRef.current.x) > 0.01) {
           deltaRotation += dragVelocityRef.current.x * 0.015;
-          dragVelocityRef.current = { 
-            x: dragVelocityRef.current.x * 0.96, 
-            y: dragVelocityRef.current.y * 0.96 
+          dragVelocityRef.current = {
+            x: dragVelocityRef.current.x * 0.96,
+            y: dragVelocityRef.current.y * 0.96
           };
         }
       }
-      
+
       rotationRef.current += deltaRotation;
       simulatePhysics(nodesRef.current, deltaRotation);
-      
+
       // Update particles
       particlesRef.current.forEach(particle => {
         particle.progress += particle.speed;
@@ -494,7 +505,7 @@ export default function MiniNetworkDiagram({
       });
 
       const { width, height } = dimensions;
-      
+
       // Clear canvas (transparent - background handled by CSS)
       ctx.clearRect(0, 0, width, height);
 
@@ -706,7 +717,7 @@ export default function MiniNetworkDiagram({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [dimensions, isDragging, autoRotate, autoRotateSpeed, simulatePhysics, isDarkMode]);
+  }, [dimensions, isDragging, autoRotate, autoRotateSpeed, simulatePhysics, isDarkMode, dpr]);
 
   // Mouse/touch handlers
   const getNodeAtPosition = useCallback((x: number, y: number): number | null => {
@@ -839,19 +850,19 @@ export default function MiniNetworkDiagram({
   return (
     <div
       ref={containerRef}
-      className={`relative ${className}`}
-      style={{ width: containerSize, height: containerSize }}
+      className={`relative overflow-hidden ${className}`}
+      style={{ width: containerSize, height: containerSize + BOTTOM_CONTROLS_HEIGHT }}
     >
-      {/* Background nebula gradient - universe style, limitless splash */}
-      <div 
-        className="absolute pointer-events-none"
+      {/* Background nebula gradient - contained within component */}
+      <div
+        className="absolute pointer-events-none overflow-hidden"
         style={{
-          width: '200vw',
-          height: '200vh',
+          width: '200%',
+          height: '200%',
           left: '50%',
           top: '50%',
           transform: 'translate(-50%, -50%)',
-          background: isDarkMode 
+          background: isDarkMode
             ? `
               radial-gradient(ellipse 35% 30% at 45% 45%, rgba(139, 92, 246, 0.18) 0%, rgba(139, 92, 246, 0.06) 30%, transparent 50%),
               radial-gradient(ellipse 30% 25% at 60% 55%, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0.04) 30%, transparent 50%),
@@ -866,9 +877,10 @@ export default function MiniNetworkDiagram({
       />
       <canvas
         ref={canvasRef}
-        width={dimensions.width}
-        height={dimensions.height}
-        className={`w-full h-full ${isDragging ? 'cursor-grabbing' : hoveredNode ? 'cursor-pointer' : 'cursor-grab'} touch-none`}
+        width={dimensions.width * dpr}
+        height={dimensions.height * dpr}
+        style={{ width: dimensions.width, height: dimensions.height }}
+        className={`${isDragging ? 'cursor-grabbing' : hoveredNode ? 'cursor-pointer' : 'cursor-grab'} touch-none`}
         onMouseMove={handleMouseMove}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
@@ -896,7 +908,7 @@ export default function MiniNetworkDiagram({
       )}
       
       {/* Bottom bar with CTAs and hint */}
-      <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
         <div className="flex items-center gap-2">
           <a 
             href="/stats/overview" 
