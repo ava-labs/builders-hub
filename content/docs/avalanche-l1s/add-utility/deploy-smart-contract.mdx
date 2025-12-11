@@ -3,6 +3,20 @@ title: Deploy a Smart Contract
 description: Deploy a smart contract on your Avalanche L1.
 ---
 
+{/*
+  EVM Version Warning - TEMPORARY
+  Remove this section when Avalanche adds Pectra support (after SAE implementation)
+  Last reviewed: December 2025
+*/}
+
+<Callout type="warn" title="Solidity Compiler EVM Version">
+Avalanche C-Chain and Subnet-EVM currently support the **Cancun** EVM version and do not yet support newer hardforks like **Pectra**. Since Solidity v0.8.30 changed its default target to Pectra, you must explicitly configure your compiler to target `cancun`.
+
+**In Remix:** Open the Solidity Compiler panel → expand Advanced Configurations → set EVM Version to **cancun**.
+
+For **Hardhat** or **Foundry** configurations, see the [contract verification guide](/docs/primary-network/verify-contract/hardhat).
+</Callout>
+
 This tutorial assumes that:
 
 - [an Avalanche L1 and EVM blockchain](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-fuji-testnet) has been created
