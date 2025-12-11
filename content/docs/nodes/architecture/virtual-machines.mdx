@@ -195,6 +195,10 @@ type VM struct {
 
 The AVM ([`vms/avm`](https://github.com/ava-labs/avalanchego/tree/master/vms/avm)) handles asset creation and transfers using the UTXO model:
 
+<Callout type="info">
+The X-Chain was linearized in the **Cortina upgrade** (April 2023). It now uses Snowman consensus like the P-Chain and C-Chain, rather than the legacy Avalanche DAG consensus. The AVM implements the `LinearizableVMWithEngine` interface to support this transition.
+</Callout>
+
 ```go title="vms/avm/vm.go"
 type VM struct {
     // Asset management
@@ -209,6 +213,7 @@ type VM struct {
 **Features:**
 - **Multi-Asset Support**: Native AVAX and custom assets
 - **UTXO Model**: Bitcoin-style transaction inputs/outputs
+- **Snowman Consensus**: Linear chain consensus (linearized from DAG in Cortina upgrade)
 - **Feature Extensions (Fxs)**: Pluggable transaction types
   - `secp256k1fx`: Standard signatures
   - `nftfx`: Non-fungible tokens
@@ -262,7 +267,7 @@ type VM struct {
 3. Only the active proposer can build during its slot; after the final slot any validator may build.
 4. The wrapper enforces proposer signatures/timestamps before issuing to consensus.
 
-Snowman++ is enabled on Snowman chains (P-Chain, C-Chain) to pace block production without sacrificing liveness.
+Snowman++ is enabled on all Primary Network chains (P-Chain, C-Chain, X-Chain) to pace block production without sacrificing liveness.
 
 ## Custom VMs
 

@@ -67,6 +67,7 @@ sequenceDiagram
 Snowman extends Snowball to decide on a linear sequence of blocks. It's used by:
 - **P-Chain** (Platform Chain)
 - **C-Chain** (Contract Chain)
+- **X-Chain** (Exchange Chain) - linearized in the Cortina upgrade (April 2023)
 - **Most Avalanche L1s**
 
 [View source on GitHub](https://github.com/ava-labs/avalanchego/blob/master/snow/consensus/snowman/consensus.go)
@@ -117,9 +118,13 @@ stateDiagram-v2
     Rejected --> [*]
 `} />
 
-### Avalanche: DAG Consensus
+### Avalanche DAG Consensus (Historical)
 
-Avalanche consensus operates on a Directed Acyclic Graph (DAG) of transactions. It's used by the **X-Chain** for high-throughput asset transfers.
+<Callout type="warning">
+The Avalanche DAG consensus engine is **no longer used on the Primary Network**. The X-Chain was linearized in the **Cortina upgrade** (April 2023 on Mainnet) and now uses Snowman consensus. The DAG engine code remains in the codebase for historical compatibility only.
+</Callout>
+
+Historically, Avalanche consensus operated on a Directed Acyclic Graph (DAG) of transactions, where non-conflicting transactions could be processed in parallel:
 
 ```
        ┌───┐
@@ -127,7 +132,7 @@ Avalanche consensus operates on a Directed Acyclic Graph (DAG) of transactions. 
        └─┬─┘
       ┌──┴──┐
     ┌─┴─┐ ┌─┴─┐
-    │ A │ │ B │  Vertices can have
+    │ A │ │ B │  Vertices could have
     └─┬─┘ └─┬─┘  multiple parents
       │  ╲╱  │
       │  ╱╲  │
@@ -136,7 +141,7 @@ Avalanche consensus operates on a Directed Acyclic Graph (DAG) of transactions. 
     └───┘ └───┘
 ```
 
-**Key Difference**: In Avalanche consensus, non-conflicting transactions can be processed in parallel, increasing throughput.
+The linearization was implemented via the `LinearizableVMWithEngine` interface, which allows a DAG-based VM to transition to linear block production after a designated "stop vertex."
 
 ## Consensus Engine Architecture
 

@@ -9,7 +9,7 @@ AvalancheGo nodes relay transactions/blocks, expose APIs, and (when staked) part
 
 | Role | Purpose | Consensus Participation |
 |------|---------|-------------------------|
-| **Validator** | Stakes on the P-Chain, validates the Primary Network and any Subnets/L1s it joins | Yes (polled for Snowman/Snowman++/Avalanche) |
+| **Validator** | Stakes on the P-Chain, validates the Primary Network and any Subnets/L1s it joins | Yes (polled for Snowman/Snowman++) |
 | **Non-validating** | Tracks chains, serves APIs, used for infra and indexing | No (not polled) |
 
 All nodes: connect via P2P with staking certs, track P/C/X, bootstrap or state-sync chains, and serve APIs if enabled.
@@ -37,6 +37,6 @@ Avalanche L1s are blockchains that run on a Subnet. When you validate a Subnet, 
 
 ### Validator Responsibilities
 
-- **Validate & build blocks**: Participate in Snowman++ (P/C/most L1s) or Avalanche DAG (X-Chain).
+- **Validate & build blocks**: Participate in Snowman++ consensus (all Primary Network chains and most L1s).
 - **Maintain APIs**: Serve RPCs for wallets/apps if enabled.
 - **Stay healthy**: Meet uptime and networking requirements to remain in good standing and earn rewards.

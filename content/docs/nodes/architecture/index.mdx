@@ -25,7 +25,7 @@ AvalancheGo is written in Go and is designed to be modular, allowing developers 
 ## Execution at a glance
 
 - **Networking**: Custom P2P stack with mutual TLS (staking certs), throttling, peer scoring, and subnet-aware gossip.
-- **Consensus engines**: Snowman (linear) and Avalanche (DAG) with Snowman++ proposer windows on Snowman chains.
+- **Consensus engines**: Snowman/Snowman++ for all Primary Network chains (P/C/X post-Cortina). The legacy Avalanche DAG engine exists but is unused.
 - **VMs**: PlatformVM (P-Chain), Coreth (C-Chain), AVM (X-Chain), plus pluggable/`rpcchainvm` VMs for custom L1s.
 - **Chain manager**: Boots P/C/X, creates new chains on request, routes consensus messages.
 - **APIs**: HTTP/WS via `/ext/*`, with health/metrics, admin/info, and per-chain RPCs.
@@ -37,7 +37,7 @@ AvalancheGo is written in Go and is designed to be modular, allowing developers 
 |-----------|-------------|
 | **Network Layer** | P2P networking for peer discovery, message routing, and validator communication |
 | **Chain Manager** | Orchestrates blockchain lifecycle, bootstrapping, and state synchronization |
-| **Consensus Engines** | Snowman/Snowman++ (P/C + most L1s) and Avalanche DAG (X-Chain) |
+| **Consensus Engines** | Snowman/Snowman++ for all Primary Network chains and most L1s |
 | **Virtual Machines** | PlatformVM, Coreth, AVM, and custom VMs (native Go or `rpcchainvm`) |
 | **API Server** | HTTP/HTTPS endpoints for interacting with the node |
 | **Database** | Persistent storage using PebbleDB or LevelDB; shared atomic memory |
