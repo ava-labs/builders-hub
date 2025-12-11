@@ -4,7 +4,8 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin } from "lucide-react";
+import { getMAConfig, calculateMovingAverage, type Period, type MAConfig } from "@/utils/chart-utils";
+import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download } from "lucide-react";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import Link from "next/link";
@@ -12,9 +13,12 @@ import Image from "next/image";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
+import { StickyNavBar } from "@/components/stats/StickyNavBar";
+import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
+import { useSectionNavigation } from "@/hooks/use-section-navigation";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 
@@ -762,9 +766,6 @@ export default function ChainMetricsPage({
     Record<string, "D" | "W" | "M" | "Q" | "Y">
   >(Object.fromEntries(chartConfigs.map((config) => [config.metricKey, "D"])));
 
-  // Active section tracking
-  const [activeSection, setActiveSection] = useState<string>("overview");
-
   // Chart categories for navigation
   const chartCategories = [
     { id: "overview", label: "Overview" },
@@ -775,38 +776,12 @@ export default function ChainMetricsPage({
     { id: "interchain", label: "Interchain", metricKeys: ["icmMessages"] },
   ];
 
-  // Track active section on scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      const sections = chartCategories.map(cat => document.getElementById(cat.id));
-      const scrollPosition = window.scrollY + 180; // Account for navbar height
-
-      for (let i = sections.length - 1; i >= 0; i--) {
-        const section = sections[i];
-        if (section && section.offsetTop <= scrollPosition) {
-          setActiveSection(chartCategories[i].id);
-          break;
-        }
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll(); // Set initial state
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Smooth scroll to section
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      const offset = 180; // Account for both navbars
-      const elementPosition = element.getBoundingClientRect().top + window.scrollY;
-      window.scrollTo({
-        top: elementPosition - offset,
-        behavior: 'smooth'
-      });
-    }
-  };
+  // Section navigation using reusable hook
+  const { activeSection, scrollToSection } = useSectionNavigation({
+    categories: chartCategories,
+    offset: 180,
+    initialSection: "overview",
+  });
 
   // Get charts for a category
   const getChartsByCategory = (metricKeys: string[]) => {
@@ -878,7 +853,7 @@ export default function ChainMetricsPage({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-gray-200 dark:border-gray-800 p-4 rounded-lg">
+                <div key={i} className="!bg-white dark:!bg-black border border-gray-200 dark:border-zinc-800 p-4 rounded-lg">
                   <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm mb-2">
                     <div className="w-4 h-4 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
                     <div className="h-4 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
@@ -897,7 +872,7 @@ export default function ChainMetricsPage({
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+                <div key={i} className="bg-white dark:bg-black border border-gray-200 dark:border-zinc-800 rounded-lg overflow-hidden">
                   <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-800">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 sm:gap-3">
@@ -1044,70 +1019,11 @@ export default function ChainMetricsPage({
                   </p>
                 </div>
                 {/* Mobile Social Links - shown below description */}
-                {(website || socials || explorers) && (
-                  <div className="flex sm:hidden items-center gap-2 mt-4">
-                    {website && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
-                      >
-                        <a href={website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                          Website
-                          <ArrowUpRight className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
-                    {socials && (socials.twitter || socials.linkedin) && (
-                      <>
-                        {socials.twitter && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                          >
-                            <a 
-                              href={`https://x.com/${socials.twitter}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              aria-label="Twitter"
-                            >
-                              <Twitter className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
-                        {socials.linkedin && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                          >
-                            <a 
-                              href={`https://linkedin.com/company/${socials.linkedin}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              aria-label="LinkedIn"
-                            >
-                              <Linkedin className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
-                      </>
-                    )}
-                    {explorers && (
-                      <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
-                        <ExplorerDropdown
-                          explorers={explorers}
-                          variant="outline"
-                          size="sm"
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
+                <MobileSocialLinks
+                  website={website}
+                  socials={socials}
+                  explorers={explorers}
+                />
                 {category && (
                   <div className="mt-3">
                     <span 
@@ -1208,32 +1124,11 @@ export default function ChainMetricsPage({
       </div>
 
       {/* Sticky Navigation Bar - full width, positioned below main navbar */}
-      <div className="sticky top-14 z-30 w-full bg-zinc-50/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b border-t border-zinc-200 dark:border-zinc-800">
-        <div className="w-full">
-          <div 
-            className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-3 px-4 sm:px-6 max-w-7xl mx-auto"
-            style={{ 
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-              WebkitOverflowScrolling: 'touch',
-            }}
-          >
-            {chartCategories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => scrollToSection(category.id)}
-                className={`px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap transition-all flex-shrink-0 ${
-                  activeSection === category.id
-                    ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm"
-                    : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100"
-                }`}
-              >
-                {category.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <StickyNavBar
+        categories={chartCategories}
+        activeSection={activeSection}
+        onNavigate={scrollToSection}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16">
 
@@ -1245,7 +1140,7 @@ export default function ChainMetricsPage({
               <div className="h-6 sm:h-8 w-48 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-gray-200 dark:border-gray-800 p-4 rounded-lg">
+                  <div key={i} className="!bg-white dark:!bg-black border border-gray-200 dark:border-zinc-800 p-4 rounded-lg">
                     <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm mb-2">
                       <div className="w-4 h-4 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
                       <div className="h-4 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
@@ -1264,7 +1159,7 @@ export default function ChainMetricsPage({
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+                  <div key={i} className="bg-white dark:bg-black border border-gray-200 dark:border-zinc-800 rounded-lg overflow-hidden">
                     <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-800">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 sm:gap-3">
@@ -1550,6 +1445,7 @@ export default function ChainMetricsPage({
                     formatTooltipValue={(value) => formatTooltipValue(value, config.metricKey)}
                     formatYAxisValue={formatNumber}
                     allowedPeriods={allowedPeriods}
+                    showMovingAverage={true}
                   />
                 );
               })}
@@ -1617,6 +1513,7 @@ function ChartCard({
   formatTooltipValue,
   formatYAxisValue,
   allowedPeriods = ["D", "W", "M", "Q", "Y"],
+  showMovingAverage = false,
 }: {
   config: any;
   rawData: any[];
@@ -1629,7 +1526,10 @@ function ChartCard({
   formatTooltipValue: (value: number) => string;
   formatYAxisValue: (value: number) => string;
   allowedPeriods?: ("D" | "W" | "M" | "Q" | "Y")[];
+  showMovingAverage?: boolean;
 }) {
+  // Get moving average config based on period
+  const maConfig = useMemo(() => getMAConfig(period), [period]);
   const [brushIndexes, setBrushIndexes] = useState<{
     startIndex: number;
     endIndex: number;
@@ -1637,13 +1537,22 @@ function ChartCard({
 
   // Aggregate data based on selected period
   const aggregatedData = useMemo(() => {
-    if (period === "D") return rawData;
+    if (period === "D") {
+      // Add moving average if enabled for daily data
+      if (showMovingAverage) {
+        return calculateMovingAverage(rawData, maConfig.window);
+      }
+      return rawData;
+    }
 
     // For active addresses, don't aggregate since data is already fetched with proper interval
     if (
       config.metricKey === "activeAddresses" &&
       (period === "W" || period === "M")
     ) {
+      if (showMovingAverage) {
+        return calculateMovingAverage(rawData, maConfig.window);
+      }
       return rawData;
     }
 
@@ -1682,13 +1591,19 @@ function ChartCard({
       group.count += 1;
     });
 
-    return Array.from(grouped.values())
+    const aggregated = Array.from(grouped.values())
       .map((group) => ({
         day: group.date,
         value: group.sum,
       }))
       .sort((a, b) => a.day.localeCompare(b.day));
-  }, [rawData, period, config.metricKey]);
+    
+    // Add moving average if enabled
+    if (showMovingAverage) {
+      return calculateMovingAverage(aggregated, maConfig.window);
+    }
+    return aggregated;
+  }, [rawData, period, config.metricKey, showMovingAverage, maConfig.window]);
 
   // Aggregate cumulative data - take the last (max) value in each period
   const aggregatedCumulativeData = useMemo(() => {
@@ -1782,7 +1697,10 @@ function ChartCard({
 
   // Set default brush range based on period
   useEffect(() => {
-    if (aggregatedData.length === 0) return;
+    if (!aggregatedData || aggregatedData.length === 0) {
+      setBrushIndexes(null);
+      return;
+    }
 
     if (period === "D") {
       // Show last 90 days for daily view only
@@ -1798,11 +1716,15 @@ function ChartCard({
         endIndex: aggregatedData.length - 1,
       });
     }
-  }, [period, aggregatedData.length]);
+  }, [period, aggregatedData]);
 
-  const displayData = brushIndexes
-    ? aggregatedData.slice(brushIndexes.startIndex, brushIndexes.endIndex + 1)
-    : aggregatedData;
+  const displayData = useMemo(() => {
+    if (!brushIndexes || !aggregatedData || aggregatedData.length === 0) return [];
+    const start = Math.max(0, Math.min(brushIndexes.startIndex, aggregatedData.length - 1));
+    const end = Math.max(0, Math.min(brushIndexes.endIndex, aggregatedData.length - 1));
+    if (start > end) return [];
+    return aggregatedData.slice(start, end + 1);
+  }, [brushIndexes, aggregatedData]);
 
   // Merge actual cumulative transaction data with daily data
   const displayDataWithCumulative = useMemo(() => {
@@ -1937,6 +1859,45 @@ function ChartCard({
 
   const Icon = config.icon;
 
+  // CSV download function
+  const downloadCSV = () => {
+    if (!displayDataWithCumulative || displayDataWithCumulative.length === 0) return;
+
+    // Build CSV headers based on available data
+    const headers = ["Date", config.title];
+    const hasSecondary = displayDataWithCumulative.some((d: any) => d.secondary !== undefined && d.secondary !== null);
+    const hasCumulative = displayDataWithCumulative.some((d: any) => d.cumulative !== undefined && d.cumulative !== null);
+    
+    if (hasSecondary) {
+      headers.push(`${config.title} (Max)`);
+    }
+    if (hasCumulative) {
+      headers.push(`${config.title} (Cumulative)`);
+    }
+
+    const rows = displayDataWithCumulative.map((point: any) => {
+      const row = [point.day, point.value];
+      if (hasSecondary) {
+        row.push(point.secondary ?? "");
+      }
+      if (hasCumulative) {
+        row.push(point.cumulative ?? "");
+      }
+      return row.join(",");
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${config.title.replace(/\s+/g, "_")}_${period}_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
       <CardContent className="p-0">
@@ -1960,27 +1921,36 @@ function ChartCard({
               </p>
             </div>
           </div>
-          <div className="flex gap-0.5 sm:gap-1">
-            {(["D", "W", "M", "Q", "Y"] as const)
-              .filter((p) => allowedPeriods.includes(p))
-              .map((p) => (
-                <button
-                  key={p}
-                  onClick={() => onPeriodChange(p)}
-                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm  rounded-md transition-colors ${
-                    period === p
-                      ? "text-white dark:text-white"
-                      : "text-muted-foreground hover:bg-muted"
-                  }`}
-                  style={
-                    period === p
-                      ? { backgroundColor: `${config.color}`, opacity: 0.9 }
-                      : {}
-                  }
-                >
-                  {p}
-                </button>
-              ))}
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex gap-0.5 sm:gap-1">
+              {(["D", "W", "M", "Q", "Y"] as const)
+                .filter((p) => allowedPeriods.includes(p))
+                .map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => onPeriodChange(p)}
+                    className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm  rounded-md transition-colors ${
+                      period === p
+                        ? "text-white dark:text-white"
+                        : "text-muted-foreground hover:bg-muted"
+                    }`}
+                    style={
+                      period === p
+                        ? { backgroundColor: `${config.color}`, opacity: 0.9 }
+                        : {}
+                    }
+                  >
+                    {p}
+                  </button>
+                ))}
+            </div>
+            <button
+              onClick={downloadCSV}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              title="Download CSV"
+            >
+              <Download className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
@@ -2065,9 +2035,28 @@ function ChartCard({
                 </div>
               </div>
             )}
+            {/* for charts with moving average */}
+            {showMovingAverage && config.chartType === "bar" && !(config.metricKey === "txCount" || config.metricKey === "activeAddresses" || config.metricKey === "contracts" || config.metricKey === "deployers") && (
+              <div className="flex items-center gap-3 ml-auto text-xs">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: config.color }}/>
+                  <span className="text-muted-foreground">
+                    {period === "D" ? "Daily": period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div
+                    className="w-3 h-0.5"
+                    style={{ backgroundColor: "#22c55e" }}
+                  />
+                  <span style={{ color: "#22c55e" }}>{maConfig.label}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mb-6">
+            {displayData.length > 0 ? (
             <ResponsiveContainer width="100%" height={400}>
               {config.chartType === "bar" &&
               (config.metricKey === "txCount" ||
@@ -2165,6 +2154,67 @@ function ChartCard({
                             : "Total Deployers"
                     }
                     strokeOpacity={0.9}
+                  />
+                </ComposedChart>
+              ) : config.chartType === "bar" && showMovingAverage ? (
+                <ComposedChart
+                  data={displayDataWithCumulative}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-gray-200 dark:stroke-gray-700"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={formatXAxis}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tickFormatter={formatYAxisValue}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: `${config.color}20` }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const formattedDate = formatTooltipDate(payload[0].payload.day);
+                      return (
+                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                          <div className="grid gap-2">
+                            <div className="font-medium text-xs">
+                              {formattedDate}
+                            </div>
+                            <div className="text-xs">
+                              {formatTooltipValue(payload[0].value as number)}
+                            </div>
+                            {payload[0].payload.ma !== undefined && (
+                              <div className="text-xs" style={{ color: "#22c55e" }}>
+                                {maConfig.label}: {formatTooltipValue(payload[0].payload.ma)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar
+                    dataKey="value"
+                    fill={config.color}
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="ma"
+                    stroke="#22c55e"
+                    strokeWidth={2}
+                    dot={false}
+                    name="Moving Average"
                   />
                 </ComposedChart>
               ) : config.chartType === "bar" ? (
@@ -2421,50 +2471,60 @@ function ChartCard({
                 </LineChart>
               )}
             </ResponsiveContainer>
+            ) : (
+              <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                Loading chart data...
+              </div>
+            )}
           </div>
 
           {/* Brush Slider */}
-          <div className="mt-4 bg-white dark:bg-black pl-[60px]">
-            <ResponsiveContainer width="100%" height={80}>
-              <LineChart
-                data={aggregatedData}
-                margin={{ top: 0, right: 30, left: 0, bottom: 5 }}
-              >
-                <Brush
-                  dataKey="day"
-                  height={80}
-                  stroke={config.color}
-                  fill={`${config.color}20`}
-                  alwaysShowText={false}
-                  startIndex={brushIndexes?.startIndex ?? 0}
-                  endIndex={brushIndexes?.endIndex ?? aggregatedData.length - 1}
-                  onChange={(e: any) => {
-                    if (
-                      e.startIndex !== undefined &&
-                      e.endIndex !== undefined
-                    ) {
-                      setBrushIndexes({
-                        startIndex: e.startIndex,
-                        endIndex: e.endIndex,
-                      });
-                    }
-                  }}
-                  travellerWidth={8}
-                  tickFormatter={formatBrushXAxis}
+          {aggregatedData.length > 0 && brushIndexes && 
+           !isNaN(brushIndexes.startIndex) && !isNaN(brushIndexes.endIndex) &&
+           brushIndexes.startIndex >= 0 && brushIndexes.endIndex < aggregatedData.length && (
+            <div className="mt-4 bg-white dark:bg-black pl-[60px]">
+              <ResponsiveContainer width="100%" height={80}>
+                <LineChart
+                  data={aggregatedData}
+                  margin={{ top: 0, right: 30, left: 0, bottom: 5 }}
                 >
-                  <LineChart>
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      stroke={config.color}
-                      strokeWidth={1}
-                      dot={false}
-                    />
-                  </LineChart>
-                </Brush>
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+                  <Brush
+                    dataKey="day"
+                    height={80}
+                    stroke={config.color}
+                    fill={`${config.color}20`}
+                    alwaysShowText={false}
+                    startIndex={brushIndexes.startIndex}
+                    endIndex={brushIndexes.endIndex}
+                    onChange={(e: any) => {
+                      if (
+                        e.startIndex !== undefined &&
+                        e.endIndex !== undefined &&
+                        !isNaN(e.startIndex) && !isNaN(e.endIndex)
+                      ) {
+                        setBrushIndexes({
+                          startIndex: e.startIndex,
+                          endIndex: e.endIndex,
+                        });
+                      }
+                    }}
+                    travellerWidth={8}
+                    tickFormatter={formatBrushXAxis}
+                  >
+                    <LineChart>
+                      <Line
+                        type="monotone"
+                        dataKey="value"
+                        stroke={config.color}
+                        strokeWidth={1}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </Brush>
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
