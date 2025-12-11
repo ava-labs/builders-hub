@@ -3,7 +3,7 @@ import { NextRequestWithAuth, withAuth } from "next-auth/middleware";
 import { NextMiddlewareResult } from "next/dist/server/web/types";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   const response = NextResponse.next();
   response.headers.set("Access-Control-Allow-Origin", "*");
@@ -19,7 +19,7 @@ export async function middleware(req: NextRequest) {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204 });
   }
-  
+
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const isAuthenticated = !!token;
   const isLoginPage = pathname === "/login";
@@ -54,8 +54,8 @@ export async function middleware(req: NextRequest) {
 
     // Protect hackathons/edit route - only team1-admin and hackathonCreator can access
     if (pathname.startsWith("/hackathons/edit")) {
-      const hasRequiredPermissions = custom_attributes.includes("team1-admin") || 
-                                   custom_attributes.includes("hackathonCreator")  || 
+      const hasRequiredPermissions = custom_attributes.includes("team1-admin") ||
+                                   custom_attributes.includes("hackathonCreator")  ||
                                    custom_attributes.includes("devrel");
       if (!hasRequiredPermissions) {
         return NextResponse.redirect(new URL("/", req.url));
@@ -63,7 +63,7 @@ export async function middleware(req: NextRequest) {
     }
 
   }
-  
+
   return withAuth(
     (authReq: NextRequestWithAuth): NextMiddlewareResult => {
       return NextResponse.next();
