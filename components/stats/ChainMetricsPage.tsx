@@ -4,8 +4,8 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin } from "lucide-react";
 import { getMAConfig, calculateMovingAverage, type Period, type MAConfig } from "@/utils/chart-utils";
+import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download } from "lucide-react";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import Link from "next/link";
@@ -1965,6 +1965,45 @@ function ChartCard({
 
   const Icon = config.icon;
 
+  // CSV download function
+  const downloadCSV = () => {
+    if (!displayDataWithCumulative || displayDataWithCumulative.length === 0) return;
+
+    // Build CSV headers based on available data
+    const headers = ["Date", config.title];
+    const hasSecondary = displayDataWithCumulative.some((d: any) => d.secondary !== undefined && d.secondary !== null);
+    const hasCumulative = displayDataWithCumulative.some((d: any) => d.cumulative !== undefined && d.cumulative !== null);
+    
+    if (hasSecondary) {
+      headers.push(`${config.title} (Max)`);
+    }
+    if (hasCumulative) {
+      headers.push(`${config.title} (Cumulative)`);
+    }
+
+    const rows = displayDataWithCumulative.map((point: any) => {
+      const row = [point.day, point.value];
+      if (hasSecondary) {
+        row.push(point.secondary ?? "");
+      }
+      if (hasCumulative) {
+        row.push(point.cumulative ?? "");
+      }
+      return row.join(",");
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${config.title.replace(/\s+/g, "_")}_${period}_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
       <CardContent className="p-0">
@@ -1988,27 +2027,36 @@ function ChartCard({
               </p>
             </div>
           </div>
-          <div className="flex gap-0.5 sm:gap-1">
-            {(["D", "W", "M", "Q", "Y"] as const)
-              .filter((p) => allowedPeriods.includes(p))
-              .map((p) => (
-                <button
-                  key={p}
-                  onClick={() => onPeriodChange(p)}
-                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm  rounded-md transition-colors ${
-                    period === p
-                      ? "text-white dark:text-white"
-                      : "text-muted-foreground hover:bg-muted"
-                  }`}
-                  style={
-                    period === p
-                      ? { backgroundColor: `${config.color}`, opacity: 0.9 }
-                      : {}
-                  }
-                >
-                  {p}
-                </button>
-              ))}
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex gap-0.5 sm:gap-1">
+              {(["D", "W", "M", "Q", "Y"] as const)
+                .filter((p) => allowedPeriods.includes(p))
+                .map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => onPeriodChange(p)}
+                    className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm  rounded-md transition-colors ${
+                      period === p
+                        ? "text-white dark:text-white"
+                        : "text-muted-foreground hover:bg-muted"
+                    }`}
+                    style={
+                      period === p
+                        ? { backgroundColor: `${config.color}`, opacity: 0.9 }
+                        : {}
+                    }
+                  >
+                    {p}
+                  </button>
+                ))}
+            </div>
+            <button
+              onClick={downloadCSV}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              title="Download CSV"
+            >
+              <Download className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
