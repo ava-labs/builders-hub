@@ -37,7 +37,7 @@ const officialCourses: Course[] = [
         duration: "1 hour",
         languages: [],
         tools: [],
-        instructors: ["Andrea Vargas"],
+        instructors: ["Andrea Vargas", "Katherine Sullivan"],
         category: "Fundamentals",
     },
     {
