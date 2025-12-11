@@ -3,7 +3,7 @@ title: Primitive Values and Types
 description: Learn about Solidity
 updated: 2024-06-28
 authors: [Andrea Vargas, Ash, martineckardt]
-icon: Book
+icon: BookOpen
 ---
 
 All code, regardless of the language it is written in, can be described (in very very simple terms) as the manipulation of values. Therefore, if we want to learn a new language, we should start at the type of values we will be manipulating; this is where we will start our Solidity journey.
@@ -52,3 +52,5 @@ Now that we've discussed the process of both declaring and defining a variable, 
 - Signed Integers: any value which is a signed integer is a integer that can be either negative or positive. Like the unsigned integer type, the signed integer type is a group of signed integer types differentiated by their bit size. Any signed integer type has a bit size that is a multipe of 8. Examples of signed integer types are the following: int8, int16, int24, ..., int256 (int256 is the maximum signed integer size). Furthermore, for any signed integer intx (where x is a multiple of 8 and between 0 and 256), we have that the range of intx is from -2^(x - 1) up to (but not including) 2^(x - 1)
 - Addresses: the address type consists of a 20-byte value. This type, as its name might suggest, represents the address of an EVM account.
 - Booleans: can be either true or false. Treating booleans as integers, a true value is equal to 1 while a false value is equal to 0.
+
+<Quiz quizId="502"/>
