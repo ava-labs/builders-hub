@@ -847,12 +847,12 @@ export default function MiniNetworkDiagram({
   return (
     <div
       ref={containerRef}
-      className={`relative overflow-hidden ${className}`}
-      style={{ width: containerSize, height: containerSize }}
+      className={`relative ${className}`}
+      style={{ width: containerSize, height: containerSize + 60 }}
     >
       {/* Background nebula gradient - contained within component */}
       <div
-        className="absolute pointer-events-none"
+        className="absolute pointer-events-none overflow-hidden"
         style={{
           width: '200%',
           height: '200%',
@@ -905,7 +905,7 @@ export default function MiniNetworkDiagram({
       )}
       
       {/* Bottom bar with CTAs and hint */}
-      <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+      <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-2" style={{ bottom: '8px' }}>
         <div className="flex items-center gap-2">
           <a 
             href="/stats/overview" 
