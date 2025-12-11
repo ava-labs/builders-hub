@@ -3,7 +3,8 @@ import { createWalletClient, http, parseEther, createPublicClient, defineChain, 
 import { privateKeyToAccount } from 'viem/accounts';
 import { avalancheFuji } from 'viem/chains';
 import { getAuthSession } from '@/lib/auth/authSession';
-import { checkFaucetRateLimit, recordFaucetClaim } from '@/lib/faucetRateLimit';
+import { checkAndReserveFaucetClaim, completeFaucetClaim, cancelFaucetClaim } from '@/lib/faucet/rateLimit';
+import { withChainLock, getNextNonce, withNonceRetry } from '@/lib/faucet/nonceManager';
 import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 
 const SERVER_PRIVATE_KEY = process.env.FAUCET_C_CHAIN_PRIVATE_KEY;
@@ -13,10 +14,8 @@ if (!SERVER_PRIVATE_KEY || !FAUCET_ADDRESS) {
   console.error('necessary environment variables for EVM chain faucets are not set');
 }
 
-// Helper function to find a testnet chain that supports BuilderHub faucet
 function findSupportedChain(chainId: number): L1ListItem | undefined {
   const testnetStore = getL1ListStore(true);
-
   return testnetStore.getState().l1List.find(
     (chain: L1ListItem) => chain.evmChainId === chainId && chain.hasBuilderHubFaucet
   );
@@ -36,9 +35,7 @@ function createViemChain(l1Data: L1ListItem) {
       symbol: l1Data.coinName,
     },
     rpcUrls: {
-      default: {
-        http: [l1Data.rpcUrl],
-      },
+      default: { http: [l1Data.rpcUrl] },
     },
     blockExplorers: l1Data.explorerUrl ? {
       default: { name: 'Explorer', url: l1Data.explorerUrl },
@@ -77,27 +74,30 @@ async function transferEVMTokens(
   const walletClient = createWalletClient({ account, chain: viemChain, transport: http() });
   const publicClient = createPublicClient({ chain: viemChain, transport: http() });
 
-  const balance = await publicClient.getBalance({
-    address: sourceAddress as `0x${string}`
-  });
-
+  const balance = await publicClient.getBalance({ address: sourceAddress as `0x${string}` });
   const amountToSend = parseEther(amount);
 
   if (balance < amountToSend) {
     throw new Error(`Insufficient faucet balance on ${l1Data.name}`);
   }
 
-  const txHash = await walletClient.sendTransaction({
-    to: destinationAddress as `0x${string}`,
-    value: amountToSend,
+  return withChainLock(chainId, async () => {
+    return withNonceRetry(async () => {
+      const nonce = await getNextNonce(publicClient, sourceAddress as `0x${string}`);
+      const txHash = await walletClient.sendTransaction({
+        to: destinationAddress as `0x${string}`,
+        value: amountToSend,
+        nonce,
+      });
+      return { txHash };
+    });
   });
-
-  return { txHash };
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  let claimId: string | null = null;
+  
   try {
-    // Authentication check
     const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -106,7 +106,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Server configuration check
     if (!SERVER_PRIVATE_KEY || !FAUCET_ADDRESS) {
       return NextResponse.json(
         { success: false, message: 'Server not properly configured' },
@@ -114,10 +113,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Validate request parameters
     const searchParams = request.nextUrl.searchParams;
     const destinationAddress = searchParams.get('address');
-    const chainId = searchParams.get('chainId');
+    const chainIdParam = searchParams.get('chainId');
 
     if (!destinationAddress) {
       return NextResponse.json(
@@ -126,18 +124,27 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    if (!chainId) {
+    if (!chainIdParam) {
       return NextResponse.json(
         { success: false, message: 'Chain ID is required' },
         { status: 400 }
       );
     }
 
-    const parsedChainId = parseInt(chainId);
+    const parsedChainId = parseInt(chainIdParam, 10);
+    if (isNaN(parsedChainId)) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid chain ID format' },
+        { status: 400 }
+      );
+    }
+    
+    const normalizedChainId = parsedChainId.toString();
+
     const supportedChain = findSupportedChain(parsedChainId);
     if (!supportedChain) {
       return NextResponse.json(
-        { success: false, message: `Chain ${chainId} does not support BuilderHub faucet` },
+        { success: false, message: `Chain ${normalizedChainId} does not support BuilderHub faucet` },
         { status: 400 }
       );
     }
@@ -156,23 +163,24 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Check rate limits (DB-backed)
-    const rateLimitResult = await checkFaucetRateLimit(
+    const dripAmount = (supportedChain.faucetThresholds?.dripAmount || 3).toString();
+
+    const reservationResult = await checkAndReserveFaucetClaim(
       session.user.id,
       'evm',
       destinationAddress,
-      chainId
+      dripAmount,
+      normalizedChainId
     );
 
-    if (!rateLimitResult.allowed) {
+    if (!reservationResult.allowed) {
       return NextResponse.json(
-        { success: false, message: rateLimitResult.reason },
+        { success: false, message: reservationResult.reason },
         { status: 429 }
       );
     }
 
-    // Execute transfer
-    const dripAmount = (supportedChain.faucetThresholds?.dripAmount || 3).toString();
+    claimId = reservationResult.claimId!;
 
     const tx = await transferEVMTokens(
       FAUCET_ADDRESS,
@@ -181,35 +189,27 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       dripAmount
     );
 
-    // Record successful claim
-    await recordFaucetClaim(
-      session.user.id,
-      'evm',
-      destinationAddress,
-      dripAmount,
-      tx.txHash,
-      chainId
-    );
+    await completeFaucetClaim(claimId, tx.txHash);
 
-    const response: TransferResponse = {
+    return NextResponse.json({
       success: true,
       txHash: tx.txHash,
       sourceAddress: FAUCET_ADDRESS,
       destinationAddress,
       amount: dripAmount,
       chainId: parsedChainId
-    };
-
-    return NextResponse.json(response);
+    });
 
   } catch (error) {
     console.error('EVM chain faucet error:', error);
 
-    const response: TransferResponse = {
-      success: false,
-      message: error instanceof Error ? error.message : 'Failed to complete transfer'
-    };
+    if (claimId) {
+      await cancelFaucetClaim(claimId);
+    }
 
-    return NextResponse.json(response, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: error instanceof Error ? error.message : 'Failed to complete transfer' },
+      { status: 500 }
+    );
   }
 }

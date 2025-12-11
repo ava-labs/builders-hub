@@ -1,67 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TransferableOutput, addTxSignatures, pvm, utils, Context } from "@avalabs/avalanchejs";
 import { getAuthSession } from '@/lib/auth/authSession';
-import { checkFaucetRateLimit, recordFaucetClaim } from '@/lib/faucetRateLimit';
+import { checkAndReserveFaucetClaim, completeFaucetClaim, cancelFaucetClaim } from '@/lib/faucet/rateLimit';
 
 const SERVER_PRIVATE_KEY = process.env.SERVER_PRIVATE_KEY;
 const FAUCET_P_CHAIN_ADDRESS = process.env.FAUCET_P_CHAIN_ADDRESS;
-const NETWORK_API = 'https://api.avax-test.network';
-const FIXED_AMOUNT = 0.5;
-
-if (!SERVER_PRIVATE_KEY || !FAUCET_P_CHAIN_ADDRESS) {
-  console.error('necessary environment variables are not set');
-}
+const FIXED_AMOUNT = 2;
 
 interface TransferResponse {
   success: boolean;
   txID?: string;
   sourceAddress?: string;
   destinationAddress?: string;
-  amount?: string;
+  amount?: number;
   message?: string;
 }
 
 async function transferPToP(
-  sourcePrivateKey: string,
+  privateKey: string,
   sourceAddress: string,
   destinationAddress: string
 ): Promise<{ txID: string }> {
-  const pvmApi = new pvm.PVMApi(NETWORK_API);
-  const context = await Context.getContextFromURI(NETWORK_API);
-  const { utxos } = await pvmApi.getUTXOs({ addresses: [sourceAddress] });
-  if (utxos.length === 0) {
-    throw new Error('No UTXOs found for source address');
-  }
-
+  const context = await Context.getContextFromURI("https://api.avax-test.network");
+  const pvmApi = new pvm.PVMApi("https://api.avax-test.network");
   const feeState = await pvmApi.getFeeState();
-  const amountNAvax = BigInt(FIXED_AMOUNT * 1e9);
+  const { utxos } = await pvmApi.getUTXOs({ addresses: [sourceAddress] });
+  const amountNAvax = BigInt(FIXED_AMOUNT) * BigInt(1e9);
+
+  const outputs = [
+    TransferableOutput.fromNative(context.avaxAssetID, amountNAvax, [
+      utils.bech32ToBytes(destinationAddress),
+    ]),
+  ];
+
   const tx = pvm.newBaseTx(
     {
       feeState,
       fromAddressesBytes: [utils.bech32ToBytes(sourceAddress)],
-      outputs: [
-        TransferableOutput.fromNative(
-          context.avaxAssetID,
-          amountNAvax,
-          [utils.bech32ToBytes(destinationAddress)],
-        ),
-      ],
+      outputs,
       utxos,
     },
-    context,
+    context
   );
 
   await addTxSignatures({
     unsignedTx: tx,
-    privateKeys: [utils.hexToBuffer(sourcePrivateKey)],
+    privateKeys: [utils.hexToBuffer(privateKey)],
   });
 
   return pvmApi.issueSignedTx(tx.getSignedTx());
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  let claimId: string | null = null;
+  
   try {
-    // Authentication check
     const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -70,7 +63,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Server configuration check
     if (!SERVER_PRIVATE_KEY || !FAUCET_P_CHAIN_ADDRESS) {
       return NextResponse.json(
         { success: false, message: 'Server not properly configured' },
@@ -78,7 +70,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Validate request parameters
     const searchParams = request.nextUrl.searchParams;
     const destinationAddress = searchParams.get('address');
 
@@ -89,61 +80,63 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    if (destinationAddress === FAUCET_P_CHAIN_ADDRESS) {
+    if (!destinationAddress.startsWith('P-')) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid P-Chain address format' },
+        { status: 400 }
+      );
+    }
+
+    if (destinationAddress.toLowerCase() === FAUCET_P_CHAIN_ADDRESS?.toLowerCase()) {
       return NextResponse.json(
         { success: false, message: 'Cannot send tokens to the faucet address' },
         { status: 400 }
       );
     }
 
-    // Check rate limits (DB-backed)
-    const rateLimitResult = await checkFaucetRateLimit(
+    const reservationResult = await checkAndReserveFaucetClaim(
       session.user.id,
       'pchain',
-      destinationAddress
+      destinationAddress,
+      FIXED_AMOUNT.toString()
     );
 
-    if (!rateLimitResult.allowed) {
+    if (!reservationResult.allowed) {
       return NextResponse.json(
-        { success: false, message: rateLimitResult.reason },
+        { success: false, message: reservationResult.reason },
         { status: 429 }
       );
     }
 
-    // Execute transfer
+    claimId = reservationResult.claimId!;
+
     const tx = await transferPToP(
       SERVER_PRIVATE_KEY,
       FAUCET_P_CHAIN_ADDRESS,
       destinationAddress
     );
 
-    // Record successful claim
-    await recordFaucetClaim(
-      session.user.id,
-      'pchain',
-      destinationAddress,
-      FIXED_AMOUNT.toString(),
-      tx.txID
-    );
+    await completeFaucetClaim(claimId, tx.txID);
 
-    const response: TransferResponse = {
+    return NextResponse.json({
       success: true,
       txID: tx.txID,
       sourceAddress: FAUCET_P_CHAIN_ADDRESS,
       destinationAddress,
-      amount: FIXED_AMOUNT.toString()
-    };
-
-    return NextResponse.json(response);
+      amount: FIXED_AMOUNT,
+      message: `Successfully transferred ${FIXED_AMOUNT} AVAX`
+    });
 
   } catch (error) {
     console.error('P-Chain faucet error:', error);
 
-    const response: TransferResponse = {
-      success: false,
-      message: error instanceof Error ? error.message : 'Failed to complete transfer'
-    };
+    if (claimId) {
+      await cancelFaucetClaim(claimId);
+    }
 
-    return NextResponse.json(response, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: error instanceof Error ? error.message : 'Failed to complete transfer' },
+      { status: 500 }
+    );
   }
 }

@@ -11,6 +11,42 @@ import {
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { useTestnetFaucet } from "@/hooks/useTestnetFaucet";
 import { AccountRequirementsConfigKey } from "../../hooks/useAccountRequirements";
+import { useFaucetRateLimit } from "@/hooks/useFaucetRateLimit";
+
+function RateLimitBadge({ 
+  faucetType, 
+  chainId 
+}: { 
+  faucetType: 'pchain' | 'evm'; 
+  chainId?: string;
+}) {
+  const { allowed, timeUntilReset, getRateLimitMessage, isLoading } = useFaucetRateLimit({
+    faucetType,
+    chainId
+  });
+
+  if (isLoading) {
+    return (
+      <span className="text-xs text-zinc-400 animate-pulse">
+        Checking...
+      </span>
+    );
+  }
+
+  if (allowed) {
+    return (
+      <span className="text-xs text-green-600 dark:text-green-400">
+        ✓ Ready to claim
+      </span>
+    );
+  }
+
+  return (
+    <span className="text-xs text-amber-600 dark:text-amber-400" title={getRateLimitMessage()}>
+      ⏳ {timeUntilReset ? `Wait ${timeUntilReset}` : 'Limit reached'}
+    </span>
+  );
+}
 
 function EVMFaucetCard({ chain }: { chain: L1ListItem }) {
   const dripAmount = chain.faucetThresholds?.dripAmount || 3;
@@ -24,15 +60,19 @@ function EVMFaucetCard({ chain }: { chain: L1ListItem }) {
             <h3 className="font-medium text-zinc-900 dark:text-white truncate text-sm">
               {chain.name}
             </h3>
-            <p className="text-xs text-zinc-500">
-              <span className="font-mono">{dripAmount}</span> {chain.coinName}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-zinc-500">
+                <span className="font-mono">{dripAmount}</span> {chain.coinName}
+              </p>
+              <span className="text-zinc-300 dark:text-zinc-600">•</span>
+              <RateLimitBadge faucetType="evm" chainId={chain.evmChainId.toString()} />
+            </div>
           </div>
         </div>
         
         <EVMFaucetButton
           chainId={chain.evmChainId}
-          className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors shrink-0"
+          className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors shrink-0 disabled:bg-zinc-400 disabled:cursor-not-allowed"
         >
           Drip
         </EVMFaucetButton>
@@ -83,16 +123,20 @@ function Faucet({ onSuccess }: BaseConsoleToolProps) {
               </div>
             </div>
             
-            <div className="mb-6">
+            <div className="mb-4">
               <span className="text-3xl font-mono font-semibold text-zinc-900 dark:text-white">
                 {cChain?.faucetThresholds?.dripAmount || 2}
               </span>
               <span className="text-sm text-zinc-500 ml-1">{cChain?.coinName || "AVAX"}</span>
             </div>
             
+            <div className="mb-4">
+              <RateLimitBadge faucetType="evm" chainId="43113" />
+            </div>
+            
             <EVMFaucetButton
               chainId={43113}
-              className="w-full px-4 py-2.5 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+              className="w-full px-4 py-2.5 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:bg-zinc-400 disabled:cursor-not-allowed"
             >
               Drip
             </EVMFaucetButton>
@@ -118,12 +162,16 @@ function Faucet({ onSuccess }: BaseConsoleToolProps) {
               </div>
             </div>
             
-            <div className="mb-6">
+            <div className="mb-4">
               <span className="text-3xl font-mono font-semibold text-zinc-900 dark:text-white">2</span>
               <span className="text-sm text-zinc-500 ml-1">AVAX</span>
             </div>
             
-            <PChainFaucetButton className="w-full px-4 py-2.5 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+            <div className="mb-4">
+              <RateLimitBadge faucetType="pchain" />
+            </div>
+            
+            <PChainFaucetButton className="w-full px-4 py-2.5 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:bg-zinc-400 disabled:cursor-not-allowed">
               Drip
             </PChainFaucetButton>
           </div>
