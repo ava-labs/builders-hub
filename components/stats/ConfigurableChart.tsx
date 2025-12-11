@@ -81,6 +81,8 @@ interface ChainMetrics {
   maxGasPrice: TimeSeriesMetric;
   feesPaid: TimeSeriesMetric;
   icmMessages: ICMMetric;
+  dailyRewards?: TimeSeriesMetric;
+  cumulativeRewards?: TimeSeriesMetric;
   last_updated: number;
 }
 
@@ -152,7 +154,12 @@ const AVAILABLE_METRICS = [
   { id: "maxGasPrice", name: "Max Gas Price" },
   { id: "feesPaid", name: "Fees Paid" },
   { id: "icmMessages", name: "ICM Messages" },
+  { id: "dailyRewards", name: "Daily Rewards" },
+  { id: "cumulativeRewards", name: "Cumulative Rewards" },
 ];
+
+// Metrics that are only available for the Primary Network (Avalanche C-Chain - 43114)
+const PRIMARY_NETWORK_ONLY_METRICS = ["dailyRewards", "cumulativeRewards"];
 
 export default function ConfigurableChart({
   title = "Chart",
@@ -768,13 +775,29 @@ export default function ConfigurableChart({
     color: "#E84142", // Avalanche red
   };
 
-  const filteredChains = [
-    // Include "All Chains" at the top if it matches the search
-    ...(ALL_CHAINS_OPTION.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase()) ? [ALL_CHAINS_OPTION] : []),
-    ...l1ChainsData.filter((chain) => chain.isTestnet !== true &&
-      chain.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase())
-    ),
-  ];
+  // Avalanche C-Chain option for Avalanche-only metrics
+  const AVALANCHE_CCHAIN_OPTION = {
+    chainId: "43114",
+    chainName: "Avalanche C-Chain",
+    chainLogoURI: "",
+    color: "#E84142", // Avalanche red
+  };
+
+  // Check if selected metric is Primary Network only
+  const isPrimaryNetworkOnlyMetric = selectedMetric && PRIMARY_NETWORK_ONLY_METRICS.includes(selectedMetric);
+
+  const filteredChains = isPrimaryNetworkOnlyMetric
+    ? // For Primary Network only metrics, only show Avalanche C-Chain
+      [AVALANCHE_CCHAIN_OPTION].filter((chain) =>
+        chain.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase())
+      )
+    : [
+        // Include "All Chains" at the top if it matches the search
+        ...(ALL_CHAINS_OPTION.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase()) ? [ALL_CHAINS_OPTION] : []),
+        ...l1ChainsData.filter((chain) => (chain as any).isTestnet !== true &&
+          chain.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase())
+        ),
+      ];
 
   const getThemedLogoUrl = (logoUrl: string): string => {
     if (!isMounted || !logoUrl) return logoUrl;
@@ -1126,7 +1149,7 @@ export default function ConfigurableChart({
                       <Loader2 className="h-4 w-4 animate-spin text-gray-400 flex-shrink-0" />
                     ) : (
                       <>
-                        {series.chainId === "all" ? (
+                        {series.chainId === "all" || series.chainId === "43114" ? (
                           <div className="relative h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 flex items-center justify-center">
                             <AvalancheLogo className="h-4 w-4 sm:h-5 sm:w-5" fill="#E84142" />
                           </div>
@@ -1371,6 +1394,7 @@ export default function ConfigurableChart({
                         const seriesId = `${chain.chainId}-${selectedMetric}`;
                         const isAdded = dataSeries.some((s) => s.id === seriesId);
                         const isAllChains = chain.chainId === "all";
+                        const isAvalancheCChain = chain.chainId === "43114";
                         const isLastAllChains = isAllChains && index < filteredChains.length - 1 && filteredChains[index + 1].chainId !== "all";
                         
                         return (
@@ -1381,7 +1405,7 @@ export default function ConfigurableChart({
                               }
                               className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2 text-sm"
                             >
-                              {isAllChains ? (
+                              {isAllChains || isAvalancheCChain ? (
                                 <div className="relative h-5 w-5 flex-shrink-0 flex items-center justify-center">
                                   <AvalancheLogo className="h-5 w-5" fill="#E84142" />
                                 </div>
