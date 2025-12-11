@@ -24,7 +24,6 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   type ChartConfig,
@@ -42,11 +41,6 @@ import {
   HandCoins,
   Users,
   Percent,
-  Search,
-  X,
-  ChevronUp,
-  ChevronDown,
-  ChevronsUpDown,
   ArrowUpRight,
   Twitter,
   Linkedin,
@@ -55,6 +49,12 @@ import {
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
+import { StickyNavBar } from "@/components/stats/StickyNavBar";
+import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
+import { SearchInputWithClear } from "@/components/stats/SearchInputWithClear";
+import { SortIcon } from "@/components/stats/SortIcon";
+import { useSectionNavigation } from "@/hooks/use-section-navigation";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import {
   TimeSeriesDataPoint,
@@ -98,8 +98,8 @@ export default function CChainValidatorMetrics() {
   const [availableVersions, setAvailableVersions] = useState<string[]>([]);
   const [minVersion, setMinVersion] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [displayCount, setDisplayCount] = useState(50);
+  const { copiedId, copyToClipboard } = useCopyToClipboard();
   const [sortColumn, setSortColumn] = useState<string>("amountStaked");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
@@ -540,9 +540,6 @@ export default function CChainValidatorMetrics() {
     Record<string, "D" | "W" | "M" | "Q" | "Y">
   >(Object.fromEntries(chartConfigs.map((config) => [config.metricKey, "D"])));
 
-  // Active section tracking for navbar
-  const [activeSection, setActiveSection] = useState<string>("trends");
-
   // Navigation categories
   const navCategories = [
     { id: "trends", label: "Historical Trends" },
@@ -553,16 +550,12 @@ export default function CChainValidatorMetrics() {
     { id: "validators", label: "Validator List" },
   ];
 
-  // Copy to clipboard helper
-  const copyToClipboard = async (text: string, id: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 1500);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
-  };
+  // Section navigation using reusable hook
+  const { activeSection, scrollToSection } = useSectionNavigation({
+    categories: navCategories,
+    offset: 180,
+    initialSection: "trends",
+  });
 
   // Format stake for validators table
   const formatValidatorStake = (stake: string): string => {
@@ -583,16 +576,6 @@ export default function CChainValidatorMetrics() {
       setSortColumn(column);
       setSortDirection("desc");
     }
-  };
-
-  // Sort icon component
-  const SortIcon = ({ column }: { column: string }) => {
-    if (sortColumn !== column) {
-      return <ChevronsUpDown className="w-3 h-3 ml-1 opacity-40" />;
-    }
-    return sortDirection === "asc" 
-      ? <ChevronUp className="w-3 h-3 ml-1" />
-      : <ChevronDown className="w-3 h-3 ml-1" />;
   };
 
   // Filter validators based on search term
@@ -652,42 +635,6 @@ export default function CChainValidatorMetrics() {
   useEffect(() => {
     setDisplayCount(50);
   }, [searchTerm]);
-
-  // Track active section on scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      const sections = navCategories.map((cat) =>
-        document.getElementById(cat.id)
-      );
-      const scrollPosition = window.scrollY + 180; // Account for navbar height
-
-      for (let i = sections.length - 1; i >= 0; i--) {
-        const section = sections[i];
-        if (section && section.offsetTop <= scrollPosition) {
-          setActiveSection(navCategories[i].id);
-          break;
-        }
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll(); // Set initial state
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Smooth scroll to section
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      const offset = 180; // Account for both navbars
-      const elementPosition =
-        element.getBoundingClientRect().top + window.scrollY;
-      window.scrollTo({
-        top: elementPosition - offset,
-        behavior: "smooth",
-      });
-    }
-  };
 
   if (loading) {
     return (
@@ -880,73 +827,14 @@ export default function CChainValidatorMetrics() {
                   </p>
                 </div>
                 {/* Mobile Social Links - shown below description */}
-                {(chainConfig.website || chainConfig.socials || chainConfig.rpcUrl) && (
-                  <div className="flex sm:hidden items-center gap-2 mt-4">
-                    {chainConfig.website && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
-                      >
-                        <a href={chainConfig.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                          Website
-                          <ArrowUpRight className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
-                    {chainConfig.socials && (chainConfig.socials.twitter || chainConfig.socials.linkedin) && (
-                      <>
-                        {chainConfig.socials.twitter && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                          >
-                            <a 
-                              href={`https://x.com/${chainConfig.socials.twitter}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              aria-label="Twitter"
-                            >
-                              <Twitter className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
-                        {chainConfig.socials.linkedin && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                          >
-                            <a 
-                              href={`https://linkedin.com/company/${chainConfig.socials.linkedin}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              aria-label="LinkedIn"
-                            >
-                              <Linkedin className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
-                      </>
-                    )}
-                    {chainConfig.rpcUrl && (
-                      <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
-                        <ExplorerDropdown
-                          explorers={[
-                            { name: "BuilderHub", link: `/explorer/${chainConfig.slug}` },
-                            ...(chainConfig.explorers || []).filter((e: { name: string }) => e.name !== "BuilderHub"),
-                          ]}
-                          variant="outline"
-                          size="sm"
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
+                <MobileSocialLinks
+                  website={chainConfig.website}
+                  socials={chainConfig.socials}
+                  explorers={chainConfig.rpcUrl ? [
+                    { name: "BuilderHub", link: `/explorer/${chainConfig.slug}` },
+                    ...(chainConfig.explorers || []).filter((e: { name: string }) => e.name !== "BuilderHub"),
+                  ] : undefined}
+                />
                 <div className="mt-3">
                   <span
                     className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
@@ -1081,32 +969,11 @@ export default function CChainValidatorMetrics() {
       </div>
 
       {/* Sticky Navigation Bar */}
-      <div className="sticky top-14 z-30 w-full bg-zinc-50/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b border-t border-zinc-200 dark:border-zinc-800">
-        <div className="w-full">
-          <div
-            className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-3 px-4 sm:px-6 max-w-7xl mx-auto"
-            style={{
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-              WebkitOverflowScrolling: "touch",
-            }}
-          >
-            {navCategories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => scrollToSection(category.id)}
-                className={`px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap transition-all flex-shrink-0 ${
-                  activeSection === category.id
-                    ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm"
-                    : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100"
-                }`}
-              >
-                {category.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <StickyNavBar
+        categories={navCategories}
+        activeSection={activeSection}
+        onNavigate={scrollToSection}
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8 sm:space-y-12">
         <section id="trends" className="space-y-4 sm:space-y-6 scroll-mt-32">
@@ -1925,25 +1792,11 @@ export default function CChainValidatorMetrics() {
 
           {/* Search Input */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-            <div className="relative w-full sm:w-auto sm:flex-shrink-0 sm:max-w-sm">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 pointer-events-none z-10" />
-              <Input
-                placeholder="Search validators..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-10 rounded-lg border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-sm sm:text-base text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full z-20 transition-colors"
-                  aria-label="Clear search"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+            <SearchInputWithClear
+              value={searchTerm}
+              onChange={setSearchTerm}
+              placeholder="Search validators..."
+            />
             <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
               {displayedValidators.length} of {sortedValidators.length}{" "}
               validators
@@ -2036,40 +1889,40 @@ export default function CChainValidatorMetrics() {
                             Node ID
                           </span>
                         </th>
-                        <th 
+                        <th
                           className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("amountStaked")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                             Amount Staked
-                            <SortIcon column="amountStaked" />
+                            <SortIcon column="amountStaked" sortColumn={sortColumn} sortDirection={sortDirection} />
                           </span>
                         </th>
-                        <th 
+                        <th
                           className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("delegationFee")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                             Delegation Fee
-                            <SortIcon column="delegationFee" />
+                            <SortIcon column="delegationFee" sortColumn={sortColumn} sortDirection={sortDirection} />
                           </span>
                         </th>
-                        <th 
+                        <th
                           className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("delegatorCount")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                             Delegators
-                            <SortIcon column="delegatorCount" />
+                            <SortIcon column="delegatorCount" sortColumn={sortColumn} sortDirection={sortDirection} />
                           </span>
                         </th>
-                        <th 
+                        <th
                           className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("amountDelegated")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                             Amount Delegated
-                            <SortIcon column="amountDelegated" />
+                            <SortIcon column="amountDelegated" sortColumn={sortColumn} sortDirection={sortDirection} />
                           </span>
                         </th>
                       </tr>

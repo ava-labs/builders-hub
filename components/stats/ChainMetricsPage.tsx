@@ -13,9 +13,12 @@ import Image from "next/image";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
+import { StickyNavBar } from "@/components/stats/StickyNavBar";
+import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
+import { useSectionNavigation } from "@/hooks/use-section-navigation";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 
@@ -763,9 +766,6 @@ export default function ChainMetricsPage({
     Record<string, "D" | "W" | "M" | "Q" | "Y">
   >(Object.fromEntries(chartConfigs.map((config) => [config.metricKey, "D"])));
 
-  // Active section tracking
-  const [activeSection, setActiveSection] = useState<string>("overview");
-
   // Chart categories for navigation
   const chartCategories = [
     { id: "overview", label: "Overview" },
@@ -776,38 +776,12 @@ export default function ChainMetricsPage({
     { id: "interchain", label: "Interchain", metricKeys: ["icmMessages"] },
   ];
 
-  // Track active section on scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      const sections = chartCategories.map(cat => document.getElementById(cat.id));
-      const scrollPosition = window.scrollY + 180; // Account for navbar height
-
-      for (let i = sections.length - 1; i >= 0; i--) {
-        const section = sections[i];
-        if (section && section.offsetTop <= scrollPosition) {
-          setActiveSection(chartCategories[i].id);
-          break;
-        }
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll(); // Set initial state
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Smooth scroll to section
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      const offset = 180; // Account for both navbars
-      const elementPosition = element.getBoundingClientRect().top + window.scrollY;
-      window.scrollTo({
-        top: elementPosition - offset,
-        behavior: 'smooth'
-      });
-    }
-  };
+  // Section navigation using reusable hook
+  const { activeSection, scrollToSection } = useSectionNavigation({
+    categories: chartCategories,
+    offset: 180,
+    initialSection: "overview",
+  });
 
   // Get charts for a category
   const getChartsByCategory = (metricKeys: string[]) => {
@@ -1045,70 +1019,11 @@ export default function ChainMetricsPage({
                   </p>
                 </div>
                 {/* Mobile Social Links - shown below description */}
-                {(website || socials || explorers) && (
-                  <div className="flex sm:hidden items-center gap-2 mt-4">
-                    {website && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
-                      >
-                        <a href={website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                          Website
-                          <ArrowUpRight className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
-                    {socials && (socials.twitter || socials.linkedin) && (
-                      <>
-                        {socials.twitter && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                          >
-                            <a 
-                              href={`https://x.com/${socials.twitter}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              aria-label="Twitter"
-                            >
-                              <Twitter className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
-                        {socials.linkedin && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                          >
-                            <a 
-                              href={`https://linkedin.com/company/${socials.linkedin}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              aria-label="LinkedIn"
-                            >
-                              <Linkedin className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
-                      </>
-                    )}
-                    {explorers && (
-                      <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
-                        <ExplorerDropdown
-                          explorers={explorers}
-                          variant="outline"
-                          size="sm"
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
+                <MobileSocialLinks
+                  website={website}
+                  socials={socials}
+                  explorers={explorers}
+                />
                 {category && (
                   <div className="mt-3">
                     <span 
@@ -1209,32 +1124,11 @@ export default function ChainMetricsPage({
       </div>
 
       {/* Sticky Navigation Bar - full width, positioned below main navbar */}
-      <div className="sticky top-14 z-30 w-full bg-zinc-50/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b border-t border-zinc-200 dark:border-zinc-800">
-        <div className="w-full">
-          <div 
-            className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-3 px-4 sm:px-6 max-w-7xl mx-auto"
-            style={{ 
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-              WebkitOverflowScrolling: 'touch',
-            }}
-          >
-            {chartCategories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => scrollToSection(category.id)}
-                className={`px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap transition-all flex-shrink-0 ${
-                  activeSection === category.id
-                    ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm"
-                    : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100"
-                }`}
-              >
-                {category.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <StickyNavBar
+        categories={chartCategories}
+        activeSection={activeSection}
+        onNavigate={scrollToSection}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16">
 
