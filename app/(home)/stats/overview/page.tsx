@@ -240,6 +240,13 @@ interface OverviewMetrics {
   last_updated: number;
 }
 
+interface AvaxSupplyData {
+  totalPBurned: string;
+  totalCBurned: string;
+  totalXBurned: string;
+  l1ValidatorFees: string;
+}
+
 type SortDirection = "asc" | "desc";
 
 export default function AvalancheMetrics() {
@@ -262,9 +269,26 @@ export default function AvalancheMetrics() {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
+  const [avaxSupplyData, setAvaxSupplyData] = useState<AvaxSupplyData | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
+  }, []);
+
+  // Fetch AVAX supply data for burned amounts and L1 validator fees
+  useEffect(() => {
+    const fetchAvaxSupply = async () => {
+      try {
+        const response = await fetch("/api/avax-supply");
+        if (response.ok) {
+          const data = await response.json();
+          setAvaxSupplyData(data);
+        }
+      } catch (err) {
+        console.error("Error fetching AVAX supply data:", err);
+      }
+    };
+    fetchAvaxSupply();
   }, []);
 
   // Fetch ICM flows separately (only additional data needed for NetworkDiagram)
@@ -777,7 +801,9 @@ export default function AvalancheMetrics() {
                   fill="currentColor"
                 />
                 <span className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-white">
-                  8,310
+                  {avaxSupplyData
+                    ? Math.round(parseFloat(avaxSupplyData.l1ValidatorFees)).toLocaleString()
+                    : "—"}
                 </span>
               </div>
             </div>
@@ -792,7 +818,13 @@ export default function AvalancheMetrics() {
                   fill="currentColor"
                 />
                 <span className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-white">
-                  {formatNumber(4930978)}
+                  {avaxSupplyData
+                    ? Math.round(
+                        parseFloat(avaxSupplyData.totalPBurned) +
+                        parseFloat(avaxSupplyData.totalCBurned) +
+                        parseFloat(avaxSupplyData.totalXBurned)
+                      ).toLocaleString()
+                    : "—"}
                 </span>
               </div>
             </div>
