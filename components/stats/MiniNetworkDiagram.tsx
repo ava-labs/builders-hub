@@ -156,6 +156,9 @@ export default function MiniNetworkDiagram({
   const [isDragging, setIsDragging] = useState(false);
   const [dpr, setDpr] = useState(1); // Device pixel ratio for Retina/HiDPI support
   
+  // Extra space at bottom for buttons and hint text
+  const BOTTOM_CONTROLS_HEIGHT = 60;
+  
   const dragStartRef = useRef({ x: 0, y: 0 });
   const lastDragPosRef = useRef({ x: 0, y: 0 });
   const dragVelocityRef = useRef({ x: 0, y: 0 });
@@ -847,12 +850,12 @@ export default function MiniNetworkDiagram({
   return (
     <div
       ref={containerRef}
-      className={`relative overflow-hidden ${className}`}
-      style={{ width: containerSize, height: containerSize }}
+      className={`relative ${className}`}
+      style={{ width: containerSize, height: containerSize + BOTTOM_CONTROLS_HEIGHT }}
     >
       {/* Background nebula gradient - contained within component */}
       <div
-        className="absolute pointer-events-none"
+        className="absolute pointer-events-none overflow-hidden"
         style={{
           width: '200%',
           height: '200%',
@@ -905,7 +908,7 @@ export default function MiniNetworkDiagram({
       )}
       
       {/* Bottom bar with CTAs and hint */}
-      <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
         <div className="flex items-center gap-2">
           <a 
             href="/stats/overview" 
