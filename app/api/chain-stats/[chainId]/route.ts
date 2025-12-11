@@ -36,6 +36,8 @@ interface ChainMetrics {
   dailyRewards?: TimeSeriesMetric;
   cumulativeRewards?: TimeSeriesMetric;
   // Primary Network specific metrics
+  netCumulativeEmissions?: TimeSeriesMetric;
+  netEmissionsDaily?: TimeSeriesMetric;
   cumulativeBurn?: TimeSeriesMetric;
   totalBurnDaily?: TimeSeriesMetric;
   cChainFeesDaily?: TimeSeriesMetric;
@@ -196,6 +198,8 @@ interface RewardsData {
 }
 
 interface PrimaryNetworkFeesData {
+  netCumulativeEmissions: TimeSeriesDataPoint[];
+  netEmissionsDaily: TimeSeriesDataPoint[];
   cumulativeBurn: TimeSeriesDataPoint[];
   totalBurnDaily: TimeSeriesDataPoint[];
   cChainFeesDaily: TimeSeriesDataPoint[];
@@ -257,6 +261,8 @@ async function fetchRewardsData(): Promise<RewardsData> {
 
 async function fetchPrimaryNetworkFeesData(): Promise<PrimaryNetworkFeesData> {
   const emptyResult: PrimaryNetworkFeesData = {
+    netCumulativeEmissions: [],
+    netEmissionsDaily: [],
     cumulativeBurn: [],
     totalBurnDaily: [],
     cChainFeesDaily: [],
@@ -289,7 +295,9 @@ async function fetchPrimaryNetworkFeesData(): Promise<PrimaryNetworkFeesData> {
     // Column mapping from the API:
     // idx[0] = date
     // idx[2] = cumulative burn
+    // idx[3] = net cumulative emissions
     // idx[5] = total burn daily
+    // idx[6] = net emissions daily
     // idx[7] = c chain tx fees daily
     // idx[8] = p chain tx fees daily
     // idx[9] = x chain tx fees daily
@@ -300,6 +308,8 @@ async function fetchPrimaryNetworkFeesData(): Promise<PrimaryNetworkFeesData> {
     // idx[14] = cumulative validator fees daily
 
     const result: PrimaryNetworkFeesData = {
+      netCumulativeEmissions: [],
+      netEmissionsDaily: [],
       cumulativeBurn: [],
       totalBurnDaily: [],
       cChainFeesDaily: [],
@@ -318,7 +328,9 @@ async function fetchPrimaryNetworkFeesData(): Promise<PrimaryNetworkFeesData> {
       const date = dateStr.split('T')[0];
 
       result.cumulativeBurn.push({ timestamp, value: row[2] || 0, date });
+      result.netCumulativeEmissions.push({ timestamp, value: row[3] || 0, date });
       result.totalBurnDaily.push({ timestamp, value: row[5] || 0, date });
+      result.netEmissionsDaily.push({ timestamp, value: row[6] || 0, date });
       result.cChainFeesDaily.push({ timestamp, value: row[7] || 0, date });
       result.pChainFeesDaily.push({ timestamp, value: row[8] || 0, date });
       result.xChainFeesDaily.push({ timestamp, value: row[9] || 0, date });
@@ -410,17 +422,17 @@ const ALL_METRICS = [
   'gasUsed', 'avgGps', 'maxGps', 'avgTps', 'maxTps', 'avgGasPrice', 'maxGasPrice',
   'feesPaid', 'icmMessages', 'dailyRewards', 'cumulativeRewards',
   // Primary Network specific metrics
-  'cumulativeBurn', 'totalBurnDaily', 'cChainFeesDaily', 'pChainFeesDaily',
-  'xChainFeesDaily', 'validatorFeesDaily', 'cumulativeCChainFees', 
-  'cumulativePChainFees', 'cumulativeXChainFees', 'cumulativeValidatorFees',
+  'netCumulativeEmissions', 'netEmissionsDaily', 'cumulativeBurn', 'totalBurnDaily',
+  'cChainFeesDaily', 'pChainFeesDaily', 'xChainFeesDaily', 'validatorFeesDaily',
+  'cumulativeCChainFees', 'cumulativePChainFees', 'cumulativeXChainFees', 'cumulativeValidatorFees',
 ] as const;
 
 // Metrics that are only available for the Primary Network
 const PRIMARY_NETWORK_ONLY_METRICS = [
   'dailyRewards', 'cumulativeRewards',
-  'cumulativeBurn', 'totalBurnDaily', 'cChainFeesDaily', 'pChainFeesDaily',
-  'xChainFeesDaily', 'validatorFeesDaily', 'cumulativeCChainFees',
-  'cumulativePChainFees', 'cumulativeXChainFees', 'cumulativeValidatorFees',
+  'netCumulativeEmissions', 'netEmissionsDaily', 'cumulativeBurn', 'totalBurnDaily',
+  'cChainFeesDaily', 'pChainFeesDaily', 'xChainFeesDaily', 'validatorFeesDaily',
+  'cumulativeCChainFees', 'cumulativePChainFees', 'cumulativeXChainFees', 'cumulativeValidatorFees',
 ] as const;
 
 type MetricKey = typeof ALL_METRICS[number];
@@ -478,9 +490,9 @@ async function fetchFreshDataInternal(
     
     // Check if any Primary Network fees metrics are requested
     const primaryNetworkFeesMetrics: MetricKey[] = [
-      'cumulativeBurn', 'totalBurnDaily', 'cChainFeesDaily', 'pChainFeesDaily',
-      'xChainFeesDaily', 'validatorFeesDaily', 'cumulativeCChainFees',
-      'cumulativePChainFees', 'cumulativeXChainFees', 'cumulativeValidatorFees',
+      'netCumulativeEmissions', 'netEmissionsDaily', 'cumulativeBurn', 'totalBurnDaily',
+      'cChainFeesDaily', 'pChainFeesDaily', 'xChainFeesDaily', 'validatorFeesDaily',
+      'cumulativeCChainFees', 'cumulativePChainFees', 'cumulativeXChainFees', 'cumulativeValidatorFees',
     ];
     const needsPrimaryNetworkFees = isPrimaryNetwork && 
       requestedMetrics.some(m => primaryNetworkFeesMetrics.includes(m));
@@ -557,6 +569,12 @@ async function fetchFreshDataInternal(
     
     // Add Primary Network fees data
     if (primaryNetworkFeesData) {
+      if (requestedMetrics.includes('netCumulativeEmissions') && primaryNetworkFeesData.netCumulativeEmissions.length > 0) {
+        metrics.netCumulativeEmissions = createTimeSeriesMetric(primaryNetworkFeesData.netCumulativeEmissions);
+      }
+      if (requestedMetrics.includes('netEmissionsDaily') && primaryNetworkFeesData.netEmissionsDaily.length > 0) {
+        metrics.netEmissionsDaily = createTimeSeriesMetric(primaryNetworkFeesData.netEmissionsDaily);
+      }
       if (requestedMetrics.includes('cumulativeBurn') && primaryNetworkFeesData.cumulativeBurn.length > 0) {
         metrics.cumulativeBurn = createTimeSeriesMetric(primaryNetworkFeesData.cumulativeBurn);
       }

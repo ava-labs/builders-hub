@@ -84,6 +84,8 @@ interface ChainMetrics {
   dailyRewards?: TimeSeriesMetric;
   cumulativeRewards?: TimeSeriesMetric;
   // Primary Network specific metrics
+  netCumulativeEmissions?: TimeSeriesMetric;
+  netEmissionsDaily?: TimeSeriesMetric;
   cumulativeBurn?: TimeSeriesMetric;
   totalBurnDaily?: TimeSeriesMetric;
   cChainFeesDaily?: TimeSeriesMetric;
@@ -101,7 +103,7 @@ export interface DataSeries {
   id: string;
   name: string;
   color: string;
-  yAxis: "left" | "right";
+  yAxis: "left" | "right" | "y3" | "y4";
   visible: boolean;
   chartStyle: "line" | "bar" | "area";
   chainId: string;
@@ -168,8 +170,6 @@ const AVAILABLE_METRICS = [
   { id: "dailyRewards", name: "Daily Rewards" },
   { id: "cumulativeRewards", name: "Cumulative Rewards" },
   // Primary Network specific metrics
-  { id: "totalBurnDaily", name: "Burn" },
-  { id: "cumulativeBurn", name: "Cumulative Burn" },
   { id: "cChainFeesDaily", name: "C-Chain Fees" },
   { id: "pChainFeesDaily", name: "P-Chain Fees" },
   { id: "xChainFeesDaily", name: "X-Chain Fees" },
@@ -178,14 +178,18 @@ const AVAILABLE_METRICS = [
   { id: "cumulativePChainFees", name: "Cumulative P-Chain Fees" },
   { id: "cumulativeXChainFees", name: "Cumulative X-Chain Fees" },
   { id: "cumulativeValidatorFees", name: "Cumulative Validator Fees" },
+  { id: "totalBurnDaily", name: "Burn" },
+  { id: "cumulativeBurn", name: "Cumulative Burn" },
+  { id: "netEmissionsDaily", name: "Net Emissions" },
+  { id: "netCumulativeEmissions", name: "Net Cumulative Emissions" },
 ];
 
 // Metrics that are only available for the Primary Network
 const PRIMARY_NETWORK_ONLY_METRICS = [
   "dailyRewards", "cumulativeRewards",
-  "cumulativeBurn", "totalBurnDaily", "cChainFeesDaily", "pChainFeesDaily",
-  "xChainFeesDaily", "validatorFeesDaily", "cumulativeCChainFees",
-  "cumulativePChainFees", "cumulativeXChainFees", "cumulativeValidatorFees",
+  "netCumulativeEmissions", "netEmissionsDaily", "cumulativeBurn", "totalBurnDaily",
+  "cChainFeesDaily", "pChainFeesDaily", "xChainFeesDaily", "validatorFeesDaily",
+  "cumulativeCChainFees", "cumulativePChainFees", "cumulativeXChainFees", "cumulativeValidatorFees",
 ];
 
 // Primary Network option for chain selector
@@ -851,8 +855,9 @@ export default function ConfigurableChart({
       );
     }
 
-    const hasLeftAxis = visibleSeries.some((s) => s.yAxis === "left");
-    const hasRightAxis = visibleSeries.some((s) => s.yAxis === "right");
+    // Y3 maps to left axis, Y4 maps to right axis
+    const hasLeftAxis = visibleSeries.some((s) => s.yAxis === "left" || s.yAxis === "y3");
+    const hasRightAxis = visibleSeries.some((s) => s.yAxis === "right" || s.yAxis === "y4");
 
     return (
       <ResponsiveContainer width="100%" height={400}>
@@ -919,11 +924,12 @@ export default function ConfigurableChart({
             }}
           />
           {Object.entries(seriesByMetric).map(([metricKey, seriesList]) => {
-            const isStacked = stackSameMetrics && seriesList.length > 1;
-            const stackId = isStacked ? `stack-${metricKey}` : undefined;
+            // When stacking is enabled, stack all series together (not just same metrics)
+            const stackId = stackSameMetrics ? "stack-all" : undefined;
 
             return seriesList.map((series) => {
-              const yAxisId = series.yAxis === "left" ? "left" : "right";
+              // Map Y-axis values to left/right (only 2 axes shown on chart)
+              const yAxisId = series.yAxis === "left" || series.yAxis === "y3" ? "left" : "right";
               const dataKey = series.id;
               const isLoading = loadingMetrics.has(dataKey);
 
@@ -952,7 +958,7 @@ export default function ConfigurableChart({
                     yAxisId={yAxisId}
                     stroke={series.color}
                     fill={series.color}
-                    fillOpacity={isStacked ? 0.6 : 0.3}
+                    fillOpacity={stackSameMetrics ? 0.6 : 0.3}
                     strokeWidth={1}
                     name={series.name}
                     stackId={stackId}
@@ -1254,6 +1260,8 @@ export default function ConfigurableChart({
                       >
                         <option value="left">Y1</option>
                         <option value="right">Y2</option>
+                        <option value="y3">Y3</option>
+                        <option value="y4">Y4</option>
                       </select>
                       <div className="relative">
                         <input
@@ -1314,7 +1322,7 @@ export default function ConfigurableChart({
                   className="text-xs text-gray-700 dark:text-gray-300 cursor-pointer flex items-center gap-1.5"
                 >
                   <Layers className="h-3.5 w-3.5" />
-                  <span>Show stacked same metrics</span>
+                  <span>Stack all series</span>
                 </label>
               </div>
 
