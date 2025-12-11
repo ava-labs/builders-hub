@@ -148,6 +148,8 @@ package-lock.json
 
 
 
+
+
 # Remote content output paths
 content/docs/acps/103-dynamic-fees.mdx
 content/docs/acps/108-evm-event-importing.mdx
@@ -185,6 +187,7 @@ content/docs/avalanche-l1s/evm-configuration/warpmessenger.mdx
 content/docs/avalanche-l1s/validator-manager/contract.mdx
 content/docs/cross-chain/avalanche-warp-messaging/deep-dive.mdx
 content/docs/cross-chain/avalanche-warp-messaging/evm-integration.mdx
+content/docs/cross-chain/avalanche-warp-messaging/releases.mdx
 content/docs/cross-chain/avalanche-warp-messaging/run-relayer.mdx
 content/docs/cross-chain/icm-contracts/cli.mdx
 content/docs/cross-chain/icm-contracts/deep-dive.mdx
@@ -197,6 +200,7 @@ content/docs/nodes/chain-configs/primary-network/x-chain.mdx
 content/docs/nodes/chain-configs/subnet-evm.mdx
 content/docs/nodes/configure/avalanche-l1-configs.mdx
 content/docs/nodes/configure/configs-flags.mdx
+content/docs/nodes/maintain/releases.mdx
 content/docs/rpcs/c-chain/index.mdx
 content/docs/rpcs/other/health-rpc.mdx
 content/docs/rpcs/other/index-rpc.mdx
