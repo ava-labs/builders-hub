@@ -499,8 +499,15 @@ export default function ValidatorStatsPage() {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Hero - Clean typographic approach */}
-      <div className="border-b border-zinc-200 dark:border-zinc-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
+      <div className="relative overflow-hidden border-b border-zinc-200 dark:border-zinc-800">
+        {/* Avalanche gradient decoration */}
+        <div 
+          className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
+          style={{
+            background: `linear-gradient(to left, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.12) 40%, rgba(239, 68, 68, 0.04) 70%, transparent 100%)`,
+          }}
+        />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
           <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
             <div className="space-y-4 sm:space-y-6 flex-1">
               {/* Breadcrumb */}
@@ -839,7 +846,7 @@ export default function ValidatorStatsPage() {
         </Card>
 
         {hasMoreData && (
-          <div className="flex justify-center mt-4 sm:mt-6">
+          <div className="flex justify-center mt-4 sm:mt-6 pb-14">
             <Button
               onClick={handleLoadMore}
               variant="outline"

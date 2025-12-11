@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BarChart3, ChevronRight, Compass, Globe, ChevronDown, Plus, Users, Home } from "lucide-react";
+import { BarChart3, ChevronRight, Compass, Globe, ChevronDown, Plus, Users, Home, Search, X } from "lucide-react";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import {
   DropdownMenu,
@@ -120,6 +120,7 @@ export function StatsBreadcrumb({
   const router = useRouter();
   const { openModal } = useModalTrigger<AddChainResult>();
   const [customChains, setCustomChains] = useState<CustomChainForDropdown[]>([]);
+  const [chainSearchTerm, setChainSearchTerm] = useState("");
   const navRef = useRef<HTMLElement>(null);
   
   const handleAddCustomChain = async () => {
@@ -304,7 +305,7 @@ export function StatsBreadcrumb({
           background-color: rgb(63 63 70) !important;
         }
       `}} />
-      <nav ref={navRef} className={`stats-breadcrumb flex items-center gap-1.5 text-xs sm:text-sm mb-3 sm:mb-4 overflow-x-auto scrollbar-hide pb-1 ${className}`}>
+      <nav ref={navRef} className={`stats-breadcrumb flex items-center gap-1.5 text-xs sm:text-sm mb-3 sm:mb-4 pb-1 ${className}`}>
         {/* Ecosystem - always shown as first item */}
         <Link 
           href="/stats/overview" 
@@ -339,34 +340,116 @@ export function StatsBreadcrumb({
                     <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 opacity-50" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="max-h-[500px] overflow-y-auto">
-                  {/* All Chains option */}
-                  <DropdownMenuItem
-                    onClick={() => router.push('/stats/network-metrics')}
-                    className="cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2 w-full">
-                      <AvalancheLogo className="w-4 h-4" fill="#E84142" />
-                      <span className={chainSlug === 'all' || chainSlug === 'all-chains' || chainSlug === 'network-metrics' ? "font-medium" : ""}>
-                        All Chains
-                      </span>
+                <DropdownMenuContent align="start" className="max-h-[500px] w-64 flex flex-col p-0" onCloseAutoFocus={() => setChainSearchTerm("")}>
+                  {/* Sticky search header */}
+                  <div className="sticky top-0 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 p-2 z-10">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
+                      <input
+                        type="text"
+                        placeholder="Search chains..."
+                        value={chainSearchTerm}
+                        onChange={(e) => setChainSearchTerm(e.target.value)}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        className="w-full pl-8 pr-8 py-1.5 text-sm bg-zinc-100 dark:bg-zinc-800 border-0 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 text-zinc-900 dark:text-white placeholder:text-zinc-400"
+                        onClick={(e) => e.stopPropagation()}
+                        autoComplete="off"
+                      />
+                      {chainSearchTerm && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setChainSearchTerm("");
+                          }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  {availableChains.map((chain) => (
-                    <DropdownMenuItem
-                      key={chain.chainId}
-                      onClick={() => handleChainSelect(chain.slug)}
-                      className="cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2 w-full">
-                        <ChainLogo src={chain.chainLogoURI} name={chain.chainName} />
-                        <span className={chainSlug === chain.slug ? "font-medium" : ""}>
-                          {chain.chainName}
-                        </span>
-                      </div>
-                    </DropdownMenuItem>
-                  ))}
+                  </div>
+                  
+                  {/* Scrollable content */}
+                  <div className="overflow-y-auto flex-1 py-1">
+                    {/* All Chains option */}
+                    {(!chainSearchTerm || "all chains".includes(chainSearchTerm.toLowerCase())) && (
+                      <DropdownMenuItem
+                        onClick={() => router.push('/stats/network-metrics')}
+                        className="cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2 w-full">
+                          <AvalancheLogo className="w-4 h-4" fill="#E84142" />
+                          <span className={chainSlug === 'all' || chainSlug === 'all-chains' || chainSlug === 'network-metrics' ? "font-medium" : ""}>
+                            All Chains
+                          </span>
+                        </div>
+                      </DropdownMenuItem>
+                    )}
+                    
+                    {/* Mainnet chains section */}
+                    {(() => {
+                      const mainnetChains = availableChains
+                        .filter((chain) => !chain.isTestnet && chain.chainId !== "43113")
+                        .filter((chain) => !chainSearchTerm || chain.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase()));
+                      
+                      if (mainnetChains.length === 0) return null;
+                      
+                      return (
+                        <>
+                          <DropdownMenuSeparator />
+                          <div className="px-2 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                            Mainnet
+                          </div>
+                          {mainnetChains.map((chain) => (
+                            <DropdownMenuItem
+                              key={chain.chainId}
+                              onClick={() => handleChainSelect(chain.slug)}
+                              className="cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2 w-full">
+                                <ChainLogo src={chain.chainLogoURI} name={chain.chainName} />
+                                <span className={chainSlug === chain.slug ? "font-medium" : ""}>
+                                  {chain.chainName}
+                                </span>
+                              </div>
+                            </DropdownMenuItem>
+                          ))}
+                        </>
+                      );
+                    })()}
+                    
+                    {/* Testnet chains section */}
+                    {(() => {
+                      const testnetChains = availableChains
+                        .filter((chain) => chain.isTestnet || chain.chainId === "43113")
+                        .filter((chain) => !chainSearchTerm || chain.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase()));
+                      
+                      if (testnetChains.length === 0) return null;
+                      
+                      return (
+                        <>
+                          <DropdownMenuSeparator />
+                          <div className="px-2 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                            Testnet
+                          </div>
+                          {testnetChains.map((chain) => (
+                            <DropdownMenuItem
+                              key={chain.chainId}
+                              onClick={() => handleChainSelect(chain.slug)}
+                              className="cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2 w-full">
+                                <ChainLogo src={chain.chainLogoURI} name={chain.chainName} />
+                                <span className={chainSlug === chain.slug ? "font-medium" : ""}>
+                                  {chain.chainName}
+                                </span>
+                              </div>
+                            </DropdownMenuItem>
+                          ))}
+                        </>
+                      );
+                    })()}
+                  </div>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
@@ -406,21 +489,100 @@ export function StatsBreadcrumb({
                     <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 opacity-50" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="max-h-[500px] overflow-y-auto">
-                  {availableChains.map((chain) => (
-                    <DropdownMenuItem
-                      key={chain.chainId}
-                      onClick={() => handleChainSelect(chain.slug)}
-                      className="cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2 w-full">
-                        <ChainLogo src={chain.chainLogoURI} name={chain.chainName} />
-                        <span className={chainSlug === chain.slug ? "font-medium" : ""}>
-                          {chain.chainName}
-                        </span>
-                      </div>
-                    </DropdownMenuItem>
-                  ))}
+                <DropdownMenuContent align="start" className="max-h-[500px] w-64 flex flex-col p-0" onCloseAutoFocus={() => setChainSearchTerm("")}>
+                  {/* Sticky search header */}
+                  <div className="sticky top-0 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 p-2 z-10">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
+                      <input
+                        type="text"
+                        placeholder="Search chains..."
+                        value={chainSearchTerm}
+                        onChange={(e) => setChainSearchTerm(e.target.value)}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        className="w-full pl-8 pr-8 py-1.5 text-sm bg-zinc-100 dark:bg-zinc-800 border-0 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 text-zinc-900 dark:text-white placeholder:text-zinc-400"
+                        onClick={(e) => e.stopPropagation()}
+                        autoComplete="off"
+                      />
+                      {chainSearchTerm && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setChainSearchTerm("");
+                          }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Scrollable content */}
+                  <div className="overflow-y-auto flex-1 py-1">
+                    {/* Mainnet chains section */}
+                    {(() => {
+                      const mainnetChains = availableChains
+                        .filter((chain) => !chain.isTestnet && chain.chainId !== "43113")
+                        .filter((chain) => !chainSearchTerm || chain.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase()));
+                      
+                      if (mainnetChains.length === 0) return null;
+                      
+                      return (
+                        <>
+                          <div className="px-2 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                            Mainnet
+                          </div>
+                          {mainnetChains.map((chain) => (
+                            <DropdownMenuItem
+                              key={chain.chainId}
+                              onClick={() => handleChainSelect(chain.slug)}
+                              className="cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2 w-full">
+                                <ChainLogo src={chain.chainLogoURI} name={chain.chainName} />
+                                <span className={chainSlug === chain.slug ? "font-medium" : ""}>
+                                  {chain.chainName}
+                                </span>
+                              </div>
+                            </DropdownMenuItem>
+                          ))}
+                        </>
+                      );
+                    })()}
+                    
+                    {/* Testnet chains section */}
+                    {(() => {
+                      const testnetChains = availableChains
+                        .filter((chain) => chain.isTestnet || chain.chainId === "43113")
+                        .filter((chain) => !chainSearchTerm || chain.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase()));
+                      
+                      if (testnetChains.length === 0) return null;
+                      
+                      return (
+                        <>
+                          <DropdownMenuSeparator />
+                          <div className="px-2 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                            Testnet
+                          </div>
+                          {testnetChains.map((chain) => (
+                            <DropdownMenuItem
+                              key={chain.chainId}
+                              onClick={() => handleChainSelect(chain.slug)}
+                              className="cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2 w-full">
+                                <ChainLogo src={chain.chainLogoURI} name={chain.chainName} />
+                                <span className={chainSlug === chain.slug ? "font-medium" : ""}>
+                                  {chain.chainName}
+                                </span>
+                              </div>
+                            </DropdownMenuItem>
+                          ))}
+                        </>
+                      );
+                    })()}
+                  </div>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
@@ -460,76 +622,169 @@ export function StatsBreadcrumb({
                         <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 opacity-50" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="max-h-[500px] overflow-y-auto">
-                      {/* All Chains option */}
-                      <DropdownMenuItem
-                        onClick={() => router.push('/explorer')}
-                        className="cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2 w-full">
-                          <Globe className="w-4 h-4 text-red-500" />
-                          <span className={chainSlug === 'all-chains' ? "font-medium" : ""}>
-                            All Chains
-                          </span>
+                    <DropdownMenuContent align="start" className="max-h-[500px] w-64 flex flex-col p-0" onCloseAutoFocus={() => setChainSearchTerm("")}>
+                      {/* Sticky search header */}
+                      <div className="sticky top-0 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 p-2 z-10">
+                        <div className="relative">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
+                          <input
+                            type="text"
+                            placeholder="Search chains..."
+                            value={chainSearchTerm}
+                            onChange={(e) => setChainSearchTerm(e.target.value)}
+                            onKeyDown={(e) => e.stopPropagation()}
+                            className="w-full pl-8 pr-8 py-1.5 text-sm bg-zinc-100 dark:bg-zinc-800 border-0 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 text-zinc-900 dark:text-white placeholder:text-zinc-400"
+                            onClick={(e) => e.stopPropagation()}
+                            autoComplete="off"
+                          />
+                          {chainSearchTerm && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setChainSearchTerm("");
+                              }}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      
-                      {availableChains.map((chain) => (
-                        <DropdownMenuItem
-                          key={chain.chainId}
-                          onClick={() => handleChainSelect(chain.slug)}
-                          className="cursor-pointer"
-                        >
-                          <div className="flex items-center gap-2 w-full">
-                            <ChainLogo src={chain.chainLogoURI} name={chain.chainName} />
-                            <span className={chainSlug === chain.slug ? "font-medium" : ""}>
-                              {chain.chainName}
-                            </span>
-                          </div>
-                        </DropdownMenuItem>
-                      ))}
-                      
-                      {/* Custom chains section */}
-                      <DropdownMenuSeparator />
-                      <div className="px-2 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                        Custom Chains
                       </div>
-                      {customChains.length > 0 ? (
-                        customChains.map((chain) => (
+                      
+                      {/* Scrollable content */}
+                      <div className="overflow-y-auto flex-1 py-1">
+                        {/* All Chains option */}
+                        {(!chainSearchTerm || "all chains".includes(chainSearchTerm.toLowerCase())) && (
                           <DropdownMenuItem
-                            key={`custom-${chain.slug}`}
-                            onClick={() => handleChainSelect(chain.slug)}
+                            onClick={() => router.push('/explorer')}
                             className="cursor-pointer"
                           >
                             <div className="flex items-center gap-2 w-full">
-                              <ChainLogo src={chain.chainLogoURI} name={chain.chainName} />
-                              <span className={chainSlug === chain.slug ? "font-medium" : ""}>
-                                {chain.chainName}
+                              <Globe className="w-4 h-4 text-red-500" />
+                              <span className={chainSlug === 'all-chains' ? "font-medium" : ""}>
+                                All Chains
                               </span>
-                              {chain.isTestnet && (
-                                <span className="ml-auto px-1.5 py-0.5 text-[10px] font-medium rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
-                                  Testnet
-                                </span>
-                              )}
                             </div>
                           </DropdownMenuItem>
-                        ))
-                      ) : (
-                        <div className="px-2 py-1.5 text-xs text-zinc-400 dark:text-zinc-500">
-                          No custom chains yet
-                        </div>
-                      )}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={handleAddCustomChain}
-                        className="cursor-pointer text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
-                      >
-                        <div className="flex items-center gap-2 w-full">
-                          <Plus className="w-4 h-4" />
-                          <span className="font-medium">Add Custom Chain</span>
-                        </div>
-                      </DropdownMenuItem>
+                        )}
+                        
+                        {/* Mainnet chains section */}
+                        {(() => {
+                          const mainnetChains = availableChains
+                            .filter((chain) => !chain.isTestnet && chain.chainId !== "43113")
+                            .filter((chain) => !chainSearchTerm || chain.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase()));
+                          
+                          if (mainnetChains.length === 0) return null;
+                          
+                          return (
+                            <>
+                              <DropdownMenuSeparator />
+                              <div className="px-2 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                                Mainnet
+                              </div>
+                              {mainnetChains.map((chain) => (
+                                <DropdownMenuItem
+                                  key={chain.chainId}
+                                  onClick={() => handleChainSelect(chain.slug)}
+                                  className="cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-2 w-full">
+                                    <ChainLogo src={chain.chainLogoURI} name={chain.chainName} />
+                                    <span className={chainSlug === chain.slug ? "font-medium" : ""}>
+                                      {chain.chainName}
+                                    </span>
+                                  </div>
+                                </DropdownMenuItem>
+                              ))}
+                            </>
+                          );
+                        })()}
+                        
+                        {/* Testnet chains section */}
+                        {(() => {
+                          const testnetChains = availableChains
+                            .filter((chain) => chain.isTestnet || chain.chainId === "43113")
+                            .filter((chain) => !chainSearchTerm || chain.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase()));
+                          
+                          if (testnetChains.length === 0) return null;
+                          
+                          return (
+                            <>
+                              <DropdownMenuSeparator />
+                              <div className="px-2 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                                Testnet
+                              </div>
+                              {testnetChains.map((chain) => (
+                                <DropdownMenuItem
+                                  key={chain.chainId}
+                                  onClick={() => handleChainSelect(chain.slug)}
+                                  className="cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-2 w-full">
+                                    <ChainLogo src={chain.chainLogoURI} name={chain.chainName} />
+                                    <span className={chainSlug === chain.slug ? "font-medium" : ""}>
+                                      {chain.chainName}
+                                    </span>
+                                  </div>
+                                </DropdownMenuItem>
+                              ))}
+                            </>
+                          );
+                        })()}
+                        
+                        {/* Custom chains section */}
+                        {(() => {
+                          const filteredCustomChains = customChains
+                            .filter((chain) => !chainSearchTerm || chain.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase()));
+                          
+                          return (
+                            <>
+                              <DropdownMenuSeparator />
+                              <div className="px-2 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                                Console
+                              </div>
+                              {filteredCustomChains.length > 0 ? (
+                                filteredCustomChains.map((chain) => (
+                                  <DropdownMenuItem
+                                    key={`custom-${chain.slug}`}
+                                    onClick={() => handleChainSelect(chain.slug)}
+                                    className="cursor-pointer"
+                                  >
+                                    <div className="flex items-center gap-2 w-full">
+                                      <ChainLogo src={chain.chainLogoURI} name={chain.chainName} />
+                                      <span className={chainSlug === chain.slug ? "font-medium" : ""}>
+                                        {chain.chainName}
+                                      </span>
+                                      {chain.isTestnet && (
+                                        <span className="ml-auto px-1.5 py-0.5 text-[10px] font-medium rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                                          Testnet
+                                        </span>
+                                      )}
+                                    </div>
+                                  </DropdownMenuItem>
+                                ))
+                              ) : (
+                                <div className="px-2 py-1.5 text-xs text-zinc-400 dark:text-zinc-500">
+                                  {chainSearchTerm ? "No matching chains" : "No custom chains yet"}
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                      
+                      {/* Sticky footer */}
+                      <div className="sticky bottom-0 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 py-1">
+                        <DropdownMenuItem
+                          onClick={handleAddCustomChain}
+                          className="cursor-pointer text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                        >
+                          <div className="flex items-center gap-2 w-full">
+                            <Plus className="w-4 h-4" />
+                            <span className="font-medium">Add Custom Chain</span>
+                          </div>
+                        </DropdownMenuItem>
+                      </div>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 ) : (

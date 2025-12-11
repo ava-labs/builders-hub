@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState, FormEvent, useMemo } from "react";
+import { ReactNode, useState, FormEvent, useMemo, useEffect } from "react";
 import { ArrowUpRight, Twitter, Linkedin, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,8 @@ import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { L1Chain } from "@/types/stats";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
+import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
+import { convertL1ListItemToL1Chain, findCustomChainBySlug } from "@/components/explorer/utils/chainConverter";
 
 interface ExplorerLayoutProps {
   chainId: string;
@@ -58,10 +60,38 @@ export function ExplorerLayout({
   const router = useRouter();
   const { glacierSupported, isTokenDataLoading } = useExplorer();
   
-  // Find the current chain to get category
-  const currentChain = useMemo(() => {
-    return l1ChainsData.find((chain) => chain.slug === chainSlug) as L1Chain | undefined;
+  // State for custom chain (loaded from localStorage on client)
+  const [customChain, setCustomChain] = useState<L1Chain | null>(null);
+
+  // Load custom chain from localStorage on mount (client-side only)
+  useEffect(() => {
+    // First check if it's in l1ChainsData (static chains)
+    const staticChain = l1ChainsData.find((chain) => chain.slug === chainSlug);
+    if (staticChain) {
+      return; // No need to check custom chains
+    }
+
+    // Check custom chains from localStorage
+    const testnetStore = getL1ListStore(true);
+    const mainnetStore = getL1ListStore(false);
+    
+    const testnetChains: L1ListItem[] = testnetStore.getState().l1List;
+    const mainnetChains: L1ListItem[] = mainnetStore.getState().l1List;
+    
+    const allChains = [...testnetChains, ...mainnetChains];
+    const foundCustomChain = findCustomChainBySlug(allChains, chainSlug);
+    
+    if (foundCustomChain) {
+      setCustomChain(convertL1ListItemToL1Chain(foundCustomChain));
+    }
   }, [chainSlug]);
+
+  // Find the current chain - check static chains first, then custom chains
+  const currentChain = useMemo(() => {
+    const staticChain = l1ChainsData.find((chain) => chain.slug === chainSlug) as L1Chain | undefined;
+    if (staticChain) return staticChain;
+    return customChain || undefined;
+  }, [chainSlug, customChain]);
   
   
   // Search state
@@ -201,7 +231,7 @@ export function ExplorerLayout({
                           <div className="flex items-center gap-2 flex-shrink-0">
                             <ChainIdChips 
                               subnetId={currentChain?.subnetId} 
-                              blockchainId={(currentChain as any)?.blockchainId} 
+                            blockchainId={currentChain?.blockchainId} 
                             />
                           </div>
                           {rpcUrl && (
@@ -210,7 +240,7 @@ export function ExplorerLayout({
                                 rpcUrl={rpcUrl}
                                 chainName={chainName}
                                 chainId={currentChain?.chainId ? parseInt(currentChain.chainId) : undefined}
-                                tokenSymbol={currentChain?.tokenSymbol}
+                                tokenSymbol={currentChain?.networkToken?.symbol}
                               />
                             </div>
                           )}

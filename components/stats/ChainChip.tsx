@@ -77,7 +77,7 @@ export function createChainInfo(chain: {
   slug: string;
   chainLogoURI?: string;
   color?: string;
-  tokenSymbol?: string;
+  networkToken?: { symbol?: string };
 }): ChainInfo {
   return {
     chainId: chain.chainId,
@@ -85,7 +85,7 @@ export function createChainInfo(chain: {
     chainSlug: chain.slug,
     chainLogoURI: chain.chainLogoURI || '',
     color: chain.color || '#6B7280',
-    tokenSymbol: chain.tokenSymbol || '',
+    tokenSymbol: chain.networkToken?.symbol || '',
   };
 }
 

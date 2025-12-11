@@ -1,0 +1,259 @@
+---
+title: Installation
+description: Set up tmpnet and its prerequisites for local network testing
+---
+
+This guide walks you through setting up tmpnet for testing your Avalanche applications and L1s.
+
+## Prerequisites
+
+### 1. Operating System
+
+tmpnet runs on:
+- **macOS** (Intel and Apple Silicon)
+- **Linux**
+
+Windows is not currently supported.
+
+### 2. Go
+
+tmpnet requires **Go 1.21 or later**. Check your version:
+
+```bash
+go version
+```
+
+If you need to install or update Go, visit [golang.org/dl](https://golang.org/dl/).
+
+### 3. Git
+
+Ensure you have Git installed:
+
+```bash
+git --version
+```
+
+## Installation
+
+### Step 1: Clone AvalancheGo
+
+tmpnet is part of the AvalancheGo repository:
+
+```bash
+# Clone the repository
+git clone https://github.com/ava-labs/avalanchego.git
+cd avalanchego
+```
+
+### Step 2: Build the Binaries
+
+Build both AvalancheGo and tmpnetctl:
+
+```bash
+# Build AvalancheGo
+./scripts/build.sh
+
+# Build tmpnetctl
+./scripts/build_tmpnetctl.sh
+```
+
+You now have:
+- `build/avalanchego` and `build/tmpnetctl` - compiled binaries
+- `bin/avalanchego` and `bin/tmpnetctl` - thin wrappers that rebuild if needed
+
+### Step 3: Verify Installation
+
+Test that the binaries work:
+
+```bash
+# Check AvalancheGo
+./bin/avalanchego --version
+
+# Check tmpnetctl
+./bin/tmpnetctl --help
+```
+
+You should see version information and available commands.
+
+## Understanding the Directory Structure
+
+AvalancheGo has two directories for binaries:
+
+### `build/` Directory (Actual Binaries)
+Contains the compiled binaries:
+- `build/avalanchego` - Main node binary
+- `build/tmpnetctl` - Network management CLI
+- `build/plugins/` - Custom VM plugins
+
+### `bin/` Directory (Convenience Wrappers)
+Symlinks that rebuild when needed, so they're safe defaults while iterating:
+- `bin/avalanchego` → `scripts/run_avalanchego.sh`
+- `bin/tmpnetctl` → `scripts/run_tmpnetctl.sh`
+
+For most workflows (and in the upstream README), use the `bin/` wrappers or enable the repo's `.envrc` so `tmpnetctl` is on your `PATH`.
+
+## Optional: Simplified Setup with direnv
+
+[direnv](https://direnv.net/) automatically loads the repo's `.envrc` so tmpnet has the paths it needs.
+
+### Install and Configure
+
+**macOS:**
+```bash
+brew install direnv
+echo 'eval "$(direnv hook zsh)"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+**Linux:**
+```bash
+# Ubuntu/Debian
+sudo apt-get install direnv
+
+# Add to shell
+echo 'eval "$(direnv hook bash)"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### Enable in AvalancheGo
+
+```bash
+cd /path/to/avalanchego
+direnv allow
+```
+
+The repo's `.envrc` then:
+- Adds `bin/` to `PATH` so you can run `tmpnetctl` directly
+- Sets `AVALANCHEGO_PATH=$PWD/bin/avalanchego`
+- Sets `AVAGO_PLUGIN_DIR=$PWD/build/plugins` (and creates the dir)
+- Sets `TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest`
+
+Now you can run:
+```bash
+tmpnetctl start-network --node-count=3
+```
+
+## Optional: Monitoring Tools
+
+To collect metrics and logs from your networks:
+
+**Using Nix (Recommended):**
+```bash
+nix develop  # Provides prometheus and promtail
+```
+
+**Manual Installation:**
+- **Prometheus**: Download from [prometheus.io/download](https://prometheus.io/download/) or `brew install prometheus`
+- **Promtail**: Download from [Grafana Loki releases](https://github.com/grafana/loki/releases)
+
+See the [Monitoring guide](/docs/tooling/tmpnet/guides/monitoring) for setup details.
+
+## Environment Variables
+
+Key environment variables tmpnet uses:
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `AVALANCHEGO_PATH` | Path to avalanchego binary (required unless passed as `--avalanchego-path`) | None |
+| `AVAGO_PLUGIN_DIR` | Plugin directory for custom VMs | `~/.avalanchego/plugins` (or `$PWD/build/plugins` via `.envrc`) |
+| `TMPNET_ROOT_NETWORK_DIR` | Where new networks are created | `~/.tmpnet/networks` |
+| `TMPNET_NETWORK_DIR` | Existing network to target for stop/restart/check commands | Unset (set automatically by `network.env` or `.envrc`) |
+
+### Recommended Shell Setup
+
+If you aren't using direnv, add something like this to `~/.bashrc` or `~/.zshrc`:
+
+```bash
+export AVALANCHEGO_PATH=~/avalanchego/bin/avalanchego
+export AVAGO_PLUGIN_DIR=~/.avalanchego/plugins
+export TMPNET_NETWORK_DIR=~/.tmpnet/networks/latest  # optional convenience
+export PATH=$PATH:~/avalanchego/bin
+```
+
+## Plugin Directory Setup
+
+If you're testing custom VMs, create the plugin directory:
+
+```bash
+mkdir -p ~/.avalanchego/plugins
+```
+
+Place your custom VM binaries in this directory. The plugin binary name should match your VM name.
+
+## Troubleshooting
+
+### Command not found: tmpnetctl
+
+If you get "command not found":
+
+**Option 1:** Use the full path
+```bash
+./bin/tmpnetctl --help
+```
+
+**Option 2:** Add to PATH
+```bash
+export PATH=$PATH:$(pwd)/bin
+tmpnetctl --help
+```
+
+**Option 3:** Use direnv (recommended)
+```bash
+direnv allow
+tmpnetctl --help
+```
+
+### Build Failures
+
+If builds fail:
+
+1. **Check Go version:**
+   ```bash
+   go version  # Must be 1.21 or later
+   ```
+
+2. **Check you're in the repository root:**
+   ```bash
+   pwd  # Should be /path/to/avalanchego
+   ls scripts/build.sh  # Should exist
+   ```
+
+3. **Try cleaning and rebuilding:**
+   ```bash
+   rm -rf build/
+   ./scripts/build.sh
+   ```
+
+### Permission Denied
+
+If you get permission errors:
+
+```bash
+chmod +x ./bin/tmpnetctl
+chmod +x ./bin/avalanchego
+```
+
+### Binary Not Found Error
+
+If tmpnetctl says avalanchego not found:
+
+```bash
+# Verify the binary exists
+ls -lh ./bin/avalanchego
+
+# Use absolute path when starting networks
+tmpnetctl start-network --avalanchego-path="$(pwd)/bin/avalanchego"
+```
+
+## Next Steps
+
+Now that tmpnet is installed, create your first network!
+
+<Cards>
+  <Card title="Quick Start" href="/docs/tooling/tmpnet/quick-start">
+    Start your first temporary network in minutes
+  </Card>
+  <Card title="Test Custom VMs" href="/docs/tooling/tmpnet/guides/testing-custom-vms">
+    Learn how to test your custom VM or L1
+  </Card>
+</Cards>

@@ -1,193 +1,235 @@
 import { NextResponse } from 'next/server';
 import { Avalanche } from "@avalanche-sdk/chainkit";
 import l1ChainsData from "@/constants/l1-chains.json";
-import { TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, STATS_CONFIG, createTimeSeriesMetric,
-  getTimestampsFromTimeRange, createICMMetric } from "@/types/stats";
+import { STATS_CONFIG } from "@/types/stats";
 
-const avalanche = new Avalanche({
-  network: "mainnet",
-});
+export const dynamic = 'force-dynamic';
+
+const SECONDS_PER_DAY = 24 * 60 * 60;
+const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
+const REQUEST_TIMEOUT_MS = 8000;
+const MAX_CONCURRENT_CHAINS = 10;
+
+const avalanche = new Avalanche({ network: "mainnet" });
+
+const TIME_RANGE_CONFIG = {
+  day: { days: 3, secondsInRange: SECONDS_PER_DAY },
+  week: { days: 9, secondsInRange: 7 * SECONDS_PER_DAY },
+  month: { days: 32, secondsInRange: 30 * SECONDS_PER_DAY }
+} as const;
+
+type TimeRangeKey = keyof typeof TIME_RANGE_CONFIG;
+
+interface MetricResult { timestamp: number; value: number; }
+interface ICMResult { timestamp: number; messageCount: number; }
 
 interface ChainOverviewMetrics {
   chainId: string;
   chainName: string;
   chainLogoURI: string;
-  txCount: TimeSeriesMetric;
-  activeAddresses: {
-    daily: TimeSeriesMetric;
-    weekly: TimeSeriesMetric;
-    monthly: TimeSeriesMetric;
-  };
-  icmMessages: ICMMetric;
+  txCount: number;
+  tps: number;
+  activeAddresses: number;
+  icmMessages: number;
   validatorCount: number | string;
 }
 
 interface OverviewMetrics {
   chains: ChainOverviewMetrics[];
   aggregated: {
-    totalTxCount: TimeSeriesMetric;
-    totalActiveAddresses: {
-      daily: TimeSeriesMetric;
-      weekly: TimeSeriesMetric;
-      monthly: TimeSeriesMetric;
-    };
-    totalICMMessages: ICMMetric;
+    totalTxCount: number;
+    totalTps: number;
+    totalActiveAddresses: number;
+    totalICMMessages: number;
     totalValidators: number;
     activeChains: number;
   };
+  timeRange: TimeRangeKey;
   last_updated: number;
 }
 
-let cachedData: Map<string, { data: OverviewMetrics; timestamp: number }> = new Map();
-let chainDataCache: Map<string, { data: ChainOverviewMetrics; timestamp: number }> = new Map();
-
-function getAllChains() {
-  return l1ChainsData.map(chain => ({
-    chainId: chain.chainId,
-    chainName: chain.chainName,
-    logoUri: chain.chainLogoURI || '',
-    subnetId: chain.subnetId
-  }));
+interface ChainInfo {
+  chainId: string;
+  chainName: string;
+  logoUri: string;
+  subnetId: string;
 }
 
-async function getTimeSeriesData(
-  metricType: string, 
-  chainId: string,
-  timeRange: string, 
-  pageSize: number = 365,
-  fetchAllPages: boolean = false
-): Promise<TimeSeriesDataPoint[]> {
+const cachedData = new Map<string, { data: OverviewMetrics; timestamp: number }>();
+const chainDataCache = new Map<string, { data: ChainOverviewMetrics; timestamp: number }>();
+const revalidatingKeys = new Set<string>();
+const pendingRequests = new Map<string, Promise<OverviewMetrics | null>>();
+
+const getRlToken = () => process.env.METRICS_BYPASS_TOKEN || '';
+
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const { startTimestamp, endTimestamp } = getTimestampsFromTimeRange(timeRange);
-    let allResults: any[] = [];
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function processInBatches<T, R>(items: T[], processor: (item: T) => Promise<R>, batchSize: number): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = [];
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    results.push(...await Promise.allSettled(batch.map(processor)));
+  }
+  return results;
+}
+
+function sortByTimestampDesc<T extends { timestamp: number }>(items: T[]): T[] {
+  return [...items].sort((a, b) => b.timestamp - a.timestamp);
+}
+
+function sumValues(sorted: MetricResult[], daysToSum: number): number {
+  let sum = 0;
+  for (let i = 1; i <= Math.min(daysToSum, sorted.length - 1); i++) {
+    sum += sorted[i]?.value || 0;
+  }
+  return sum;
+}
+
+function sumMessageCounts(sorted: ICMResult[], daysToSum: number): number {
+  let sum = 0;
+  for (let i = 1; i <= Math.min(daysToSum, sorted.length - 1); i++) {
+    sum += sorted[i]?.messageCount || 0;
+  }
+  return sum;
+}
+
+function getAllChains(): ChainInfo[] {
+  return l1ChainsData
+    .filter(chain => !('isTestnet' in chain && chain.isTestnet === true))
+    .map(chain => ({
+      chainId: chain.chainId,
+      chainName: chain.chainName,
+      logoUri: chain.chainLogoURI || '',
+      subnetId: chain.subnetId
+    }));
+}
+
+async function getTxCountData(chainId: string, timeRange: TimeRangeKey): Promise<number> {
+  try {
+    const config = TIME_RANGE_CONFIG[timeRange];
+    const endTimestamp = Math.floor(Date.now() / 1000);
+    const startTimestamp = endTimestamp - (config.days * SECONDS_PER_DAY);
+    const rlToken = getRlToken();
     
-    const rlToken = process.env.METRICS_BYPASS_TOKEN || '';
-    const params: any = {
-      chainId: chainId,
-      metric: metricType as any,
+    const result = await avalanche.metrics.chains.getMetrics({
+      chainId,
+      metric: 'txCount' as const,
       startTimestamp,
       endTimestamp,
-      timeInterval: "day",
-      pageSize,
-    };
+      timeInterval: "day" as const,
+      pageSize: config.days + 1,
+      ...(rlToken && { rltoken: rlToken }),
+    });
     
-    if (rlToken) { params.rltoken = rlToken; }
-    
-    const result = await avalanche.metrics.chains.getMetrics(params);
-
+    const allResults: MetricResult[] = [];
     for await (const page of result) {
-      if (!page?.result?.results || !Array.isArray(page.result.results)) { continue; }
-      allResults = allResults.concat(page.result.results);
-      if (!fetchAllPages) {
+      if (page?.result?.results && Array.isArray(page.result.results)) {
+        allResults.push(...page.result.results);
         break;
       }
     }
 
-    return allResults
-      .sort((a: any, b: any) => b.timestamp - a.timestamp)
-      .map((result: any) => ({
-        timestamp: result.timestamp,
-        value: result.value || 0,
-        date: new Date(result.timestamp * 1000).toISOString().split('T')[0]
-      }));
+    const sorted = sortByTimestampDesc(allResults);
+    if (sorted.length === 0) return 0;
+    if (sorted.length === 1) return sorted[0]?.value || 0;
+    if (timeRange === 'day') return sorted[1]?.value || 0;
+    return sumValues(sorted, timeRange === 'week' ? 7 : 30);
   } catch (error) {
-    console.warn(`Failed to fetch ${metricType} data for chain ${chainId}:`, error);
-    return [];
+    console.error(`[getTxCountData] Failed for chain ${chainId}:`, error);
+    return 0;
   }
 }
 
-// separate active addresses fetching with proper time intervals
-async function getActiveAddressesData(chainId: string, timeRange: string, interval: 'day' | 'week' | 'month'): Promise<TimeSeriesDataPoint[]> {
+async function getActiveAddressesData(chainId: string, timeRange: TimeRangeKey): Promise<number> {
   try {
-    const { startTimestamp, endTimestamp } = getTimestampsFromTimeRange(timeRange);
-    let allResults: any[] = [];   
-    const rlToken = process.env.METRICS_BYPASS_TOKEN || '';
-    const params: any = {
-      chainId: chainId,
-      metric: 'activeAddresses',
+    const endTimestamp = Math.floor(Date.now() / 1000);
+    const startTimestamp = endTimestamp - (30 * SECONDS_PER_DAY);
+    const rlToken = getRlToken();
+    
+    const result = await avalanche.metrics.chains.getMetrics({
+      chainId,
+      metric: 'activeAddresses' as const,
       startTimestamp,
       endTimestamp,
-      timeInterval: interval,
-      pageSize: 1,
-    };
+      timeInterval: timeRange,
+      pageSize: 2,
+      ...(rlToken && { rltoken: rlToken }),
+    });
     
-    if (rlToken) { params.rltoken = rlToken; }   
-    const result = await avalanche.metrics.chains.getMetrics(params);
+    const allResults: MetricResult[] = [];
     for await (const page of result) {
-      if (!page?.result?.results || !Array.isArray(page.result.results)) { continue; }
-      allResults = allResults.concat(page.result.results);
-      break;
+      if (page?.result?.results && Array.isArray(page.result.results)) {
+        allResults.push(...page.result.results);
+        break;
+      }
     }
 
-    return allResults
-      .sort((a: any, b: any) => b.timestamp - a.timestamp)
-      .map((result: any) => ({
-        timestamp: result.timestamp,
-        value: result.value || 0,
-        date: new Date(result.timestamp * 1000).toISOString().split('T')[0]
-      }));
+    const sorted = sortByTimestampDesc(allResults);
+    const dataPoint = sorted.length > 1 ? sorted[1] : sorted[0];
+    return dataPoint?.value || 0;
   } catch (error) {
-    console.warn(`Failed to fetch active addresses data for chain ${chainId} with interval ${interval}:`, error);
-    return [];
+    console.error(`[getActiveAddressesData] Failed for chain ${chainId}:`, error);
+    return 0;
   }
 }
 
-async function getICMData(chainId: string, timeRange: string): Promise<ICMDataPoint[]> {
+async function getICMData(chainId: string, timeRange: TimeRangeKey): Promise<number> {
   try {
-    const getDaysFromTimeRange = (range: string): number => {
-      const config = STATS_CONFIG.TIME_RANGES[range as keyof typeof STATS_CONFIG.TIME_RANGES];
-      if (config && 'days' in config) {
-        return config.days + STATS_CONFIG.DATA_OFFSET_DAYS;
-      }
-      return range === 'all' ? 365 + STATS_CONFIG.DATA_OFFSET_DAYS : 30 + STATS_CONFIG.DATA_OFFSET_DAYS;
-    };
+    const daysToFetch = TIME_RANGE_CONFIG[timeRange].days + 1;
+    const response = await fetchWithTimeout(
+      `https://idx6.solokhin.com/api/${chainId}/metrics/dailyMessageVolume?days=${daysToFetch}`,
+      { headers: { 'Accept': 'application/json' } }
+    );
 
-    const days = getDaysFromTimeRange(timeRange);
-    const response = await fetch(`https://idx6.solokhin.com/api/${chainId}/metrics/dailyMessageVolume?days=${days}`, {
-      headers: { 'Accept': 'application/json' },
-    });
+    if (!response.ok) return 0;
+    const data: ICMResult[] = await response.json();
+    if (!Array.isArray(data)) return 0;
 
-    if (!response.ok) { return []; }
-    const data = await response.json();
-    if (!Array.isArray(data)) { return []; }
-
-    return data
-      .sort((a: any, b: any) => b.timestamp - a.timestamp)
-      .map((item: any) => ({
-        timestamp: item.timestamp,
-        date: item.date,
-        messageCount: item.messageCount || 0,
-        incomingCount: item.incomingCount || 0,
-        outgoingCount: item.outgoingCount || 0,
-      }));
+    const sorted = sortByTimestampDesc(data);
+    if (sorted.length < 2) return 0;
+    if (timeRange === 'day') return sorted[1]?.messageCount || 0;
+    return sumMessageCounts(sorted, timeRange === 'week' ? 7 : 30);
   } catch (error) {
-    return [];
+    if (error instanceof Error && error.name !== 'AbortError') {
+      console.error(`[getICMData] Failed for chain ${chainId}:`, error);
+    }
+    return 0;
   }
 }
 
 async function getValidatorCount(subnetId: string): Promise<number | string> {
+  if (!subnetId || subnetId === "N/A") return "N/A";
+
   try {
-    if (!subnetId || subnetId === "N/A") { return "N/A"; }
+    const rlToken = getRlToken();
+    const url = new URL('https://metrics.avax.network/v2/networks/mainnet/metrics/validatorCount');
+    url.searchParams.set('pageSize', '1');
+    url.searchParams.set('subnetId', subnetId);
+    if (rlToken) url.searchParams.set('rltoken', rlToken);
+    
+    const response = await fetchWithTimeout(url.toString(), { headers: { 'Accept': 'application/json' } });
+    if (!response.ok) return "N/A";
 
-    const rlToken = process.env.METRICS_BYPASS_TOKEN || '';
-    const url = `https://metrics.avax.network/v2/networks/mainnet/metrics/validatorCount?pageSize=1&subnetId=${subnetId}${rlToken ? `&rltoken=${rlToken}` : ''}`;   
-    const validatorResponse = await fetch(url, {
-      headers: { 
-        'Accept': 'application/json',
-      },
-    });
-
-    if (!validatorResponse.ok) { return "N/A"; }
-
-    const validatorData = await validatorResponse.json();
-    const value = validatorData?.results?.[0]?.value;
+    const data = await response.json();
+    const value = data?.results?.[0]?.value;
     return value ? Number(value) : "N/A";
   } catch (error) {
+    if (error instanceof Error && error.name !== 'AbortError') {
+      console.error(`[getValidatorCount] Failed for subnet ${subnetId}:`, error);
+    }
     return "N/A";
   }
 }
 
-async function fetchChainMetrics(chain: any, timeRange: string): Promise<ChainOverviewMetrics | null> {
+async function fetchChainMetrics(chain: ChainInfo, timeRange: TimeRangeKey): Promise<ChainOverviewMetrics | null> {
   const cacheKey = `${chain.chainId}-${timeRange}`;
   const cached = chainDataCache.get(cacheKey);
   
@@ -196,14 +238,9 @@ async function fetchChainMetrics(chain: any, timeRange: string): Promise<ChainOv
   }
 
   try {
-    const config = STATS_CONFIG.TIME_RANGES[timeRange as keyof typeof STATS_CONFIG.TIME_RANGES] || STATS_CONFIG.TIME_RANGES['30d'];
-    const { pageSize, fetchAllPages } = config;
-
-    const [txCountData, dailyAddresses, weeklyAddresses, monthlyAddresses, icmData, validatorCount] = await Promise.all([
-      getTimeSeriesData('txCount', chain.chainId, timeRange, pageSize, fetchAllPages),
-      getActiveAddressesData(chain.chainId, timeRange, 'day'),
-      getActiveAddressesData(chain.chainId, timeRange, 'week'),
-      getActiveAddressesData(chain.chainId, timeRange, 'month'),
+    const [txCount, activeAddresses, icmMessages, validatorCount] = await Promise.all([
+      getTxCountData(chain.chainId, timeRange),
+      getActiveAddressesData(chain.chainId, timeRange),
       getICMData(chain.chainId, timeRange),
       getValidatorCount(chain.subnetId),
     ]);
@@ -212,224 +249,121 @@ async function fetchChainMetrics(chain: any, timeRange: string): Promise<ChainOv
       chainId: chain.chainId,
       chainName: chain.chainName,
       chainLogoURI: chain.logoUri,
-      txCount: createTimeSeriesMetric(txCountData), // Latest daily value
-      activeAddresses: {
-        daily: createTimeSeriesMetric(dailyAddresses),
-        weekly: createTimeSeriesMetric(weeklyAddresses),
-        monthly: createTimeSeriesMetric(monthlyAddresses),
-      },
-      icmMessages: createICMMetric(icmData), // Latest daily value
+      txCount,
+      tps: txCount / TIME_RANGE_CONFIG[timeRange].secondsInRange,
+      activeAddresses,
+      icmMessages,
       validatorCount,
     };
 
-    chainDataCache.set(cacheKey, {
-      data: result,
-      timestamp: Date.now()
-    });
-
+    chainDataCache.set(cacheKey, { data: result, timestamp: Date.now() });
     return result;
   } catch (error) {
-    console.warn(`Failed to fetch data for ${chain.chainName}:`, error);
+    console.error(`[fetchChainMetrics] Failed for chain ${chain.chainId}:`, error);
     return null;
   }
+}
+
+async function fetchFreshDataInternal(timeRange: TimeRangeKey): Promise<OverviewMetrics | null> {
+  try {
+    const startTime = Date.now();
+    const allChains = getAllChains();
+    
+    const chainResults = await processInBatches(allChains, (chain) => fetchChainMetrics(chain, timeRange), MAX_CONCURRENT_CHAINS);
+    const chainMetrics = chainResults
+      .filter((r): r is PromiseFulfilledResult<ChainOverviewMetrics> => r.status === 'fulfilled' && r.value !== null)
+      .map(r => r.value);
+
+    const aggregated = chainMetrics.reduce((acc, chain) => {
+      acc.totalTxCount += chain.txCount || 0;
+      acc.totalActiveAddresses += chain.activeAddresses || 0;
+      acc.totalICMMessages += chain.icmMessages || 0;
+      if (typeof chain.validatorCount === 'number') acc.totalValidators += chain.validatorCount;
+      if (chain.txCount > 0 || chain.activeAddresses > 0) acc.activeChains++;
+      return acc;
+    }, { totalTxCount: 0, totalActiveAddresses: 0, totalICMMessages: 0, totalValidators: 0, activeChains: 0 });
+
+    const metrics: OverviewMetrics = {
+      chains: chainMetrics,
+      aggregated: { ...aggregated, totalTps: aggregated.totalTxCount / TIME_RANGE_CONFIG[timeRange].secondsInRange },
+      timeRange,
+      last_updated: Date.now()
+    };
+
+    cachedData.set(timeRange, { data: metrics, timestamp: Date.now() });
+    console.log(`[fetchFreshData] Completed in ${Date.now() - startTime}ms, ${chainMetrics.length}/${allChains.length} chains`);
+    return metrics;
+  } catch (error) {
+    console.error('[fetchFreshData] Failed:', error);
+    return null;
+  }
+}
+
+async function fetchFreshData(timeRange: TimeRangeKey): Promise<{ data: OverviewMetrics; fetchTime: number; chainCount: number } | null> {
+  const startTime = Date.now();
+  const pendingKey = `fresh-${timeRange}`;
+  let pendingPromise = pendingRequests.get(pendingKey);
+  
+  if (!pendingPromise) {
+    pendingPromise = fetchFreshDataInternal(timeRange);
+    pendingRequests.set(pendingKey, pendingPromise);
+    pendingPromise.finally(() => pendingRequests.delete(pendingKey));
+  }
+  
+  const data = await pendingPromise;
+  if (!data) return null;
+  
+  return { data, fetchTime: Date.now() - startTime, chainCount: data.chains.length };
+}
+
+function createResponse(
+  data: OverviewMetrics | { error: string },
+  meta: { source: string; timeRange?: TimeRangeKey; cacheAge?: number; fetchTime?: number; chainCount?: number },
+  status = 200
+) {
+  const headers: Record<string, string> = { 'Cache-Control': CACHE_CONTROL_HEADER, 'X-Data-Source': meta.source };
+  if (meta.timeRange) headers['X-Time-Range'] = meta.timeRange;
+  if (meta.cacheAge !== undefined) headers['X-Cache-Age'] = `${Math.round(meta.cacheAge / 1000)}s`;
+  if (meta.fetchTime !== undefined) headers['X-Fetch-Time'] = `${meta.fetchTime}ms`;
+  if (meta.chainCount !== undefined) headers['X-Chain-Count'] = meta.chainCount.toString();
+  return NextResponse.json(data, { status, headers });
 }
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const timeRange = searchParams.get('timeRange') || '30d';
+    const timeRangeParam = searchParams.get('timeRange') || 'day';
+    const timeRange: TimeRangeKey = timeRangeParam in TIME_RANGE_CONFIG ? (timeRangeParam as TimeRangeKey) : 'day';
     
     if (searchParams.get('clearCache') === 'true') {
       cachedData.clear();
       chainDataCache.clear();
+      revalidatingKeys.clear();
     }
     
     const cached = cachedData.get(timeRange);
+    const cacheAge = cached ? Date.now() - cached.timestamp : Infinity;
+    const isCacheValid = cacheAge < STATS_CONFIG.CACHE.SHORT_DURATION;
+    const isCacheStale = cached && !isCacheValid;
     
-    if (cached && Date.now() - cached.timestamp < STATS_CONFIG.CACHE.LONG_DURATION) {
-      return NextResponse.json(cached.data, {
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'X-Data-Source': 'cache',
-          'X-Cache-Timestamp': new Date(cached.timestamp).toISOString(),
-          'X-Time-Range': timeRange,
-        }
-      });
+    if (isCacheStale && !revalidatingKeys.has(timeRange)) {
+      revalidatingKeys.add(timeRange);
+      fetchFreshData(timeRange).finally(() => revalidatingKeys.delete(timeRange));
+      return createResponse(cached.data, { source: 'stale-while-revalidate', timeRange, cacheAge });
     }
     
-    const startTime = Date.now();
-    const allChains = getAllChains();
-    const chainResults = await Promise.allSettled(
-      allChains.map(chain => fetchChainMetrics(chain, timeRange))
-    );
-
-    const chainMetrics = chainResults
-      .filter((result): result is PromiseFulfilledResult<ChainOverviewMetrics> => 
-        result.status === 'fulfilled' && result.value !== null
-      )
-      .map(result => result.value);
-
-    const failedCount = chainResults.filter(result => 
-      result.status === 'rejected' || 
-      (result.status === 'fulfilled' && result.value === null)
-    ).length;
-
-    if (failedCount > 0) {
-      console.warn(`${failedCount} chains failed to fetch data`);
+    if (isCacheValid && cached) {
+      return createResponse(cached.data, { source: 'cache', timeRange, cacheAge });
     }
-
-    const aggregatedTxData: TimeSeriesDataPoint[] = [];
-    const aggregatedDailyAddressData: TimeSeriesDataPoint[] = [];
-    const aggregatedWeeklyAddressData: TimeSeriesDataPoint[] = [];
-    const aggregatedMonthlyAddressData: TimeSeriesDataPoint[] = [];
-    const aggregatedICMData: ICMDataPoint[] = [];
-
-    let totalValidators = 0;
-    let activeChains = 0;
-
-    // Aggregate data by date across all chains (for chart display)
-    const dateMaps = {
-      tx: new Map<string, number>(),
-      daily: new Map<string, number>(),
-      weekly: new Map<string, number>(),
-      monthly: new Map<string, number>(),
-      icm: new Map<string, number>(),
-    };
     
-    chainMetrics.forEach(chain => {
-      if (typeof chain.validatorCount === 'number') {
-        totalValidators += chain.validatorCount;
-      }
-      
-      const hasTx = chain.txCount.data.length > 0 && typeof chain.txCount.current_value === 'number' && chain.txCount.current_value > 0;
-      const hasAddresses = chain.activeAddresses.daily.data.length > 0 && typeof chain.activeAddresses.daily.current_value === 'number' && chain.activeAddresses.daily.current_value > 0;
-      
-      if (hasTx || hasAddresses) { activeChains++; }
-
-      chain.txCount.data.forEach(point => {
-        const date = point.date;
-        const value = typeof point.value === 'number' ? point.value : 0;
-        const current = dateMaps.tx.get(date) || 0;
-        dateMaps.tx.set(date, current + value);
-      });
-
-      chain.activeAddresses.daily.data.forEach(point => {
-        const date = point.date;
-        const value = typeof point.value === 'number' ? point.value : 0;
-        const current = dateMaps.daily.get(date) || 0;
-        dateMaps.daily.set(date, current + value);
-      });
-
-      chain.activeAddresses.weekly.data.forEach(point => {
-        const date = point.date;
-        const value = typeof point.value === 'number' ? point.value : 0;
-        const current = dateMaps.weekly.get(date) || 0;
-        dateMaps.weekly.set(date, current + value);
-      });
-
-      chain.activeAddresses.monthly.data.forEach(point => {
-        const date = point.date;
-        const value = typeof point.value === 'number' ? point.value : 0;
-        const current = dateMaps.monthly.get(date) || 0;
-        dateMaps.monthly.set(date, current + value);
-      });
-
-      chain.icmMessages.data.forEach(point => {
-        const date = point.date;
-        const current = dateMaps.icm.get(date) || 0;
-        dateMaps.icm.set(date, current + point.messageCount);
-      });
-    });
-
-    Array.from(dateMaps.tx.entries()).forEach(([date, value]) => {
-      const timestamp = Math.floor(new Date(date).getTime() / 1000);    
-      aggregatedTxData.push({ timestamp, value, date });
-    });
-
-    Array.from(dateMaps.daily.entries()).forEach(([date, value]) => {
-      const timestamp = Math.floor(new Date(date).getTime() / 1000);    
-      aggregatedDailyAddressData.push({ timestamp, value, date });
-    });
-
-    Array.from(dateMaps.weekly.entries()).forEach(([date, value]) => {
-      const timestamp = Math.floor(new Date(date).getTime() / 1000);    
-      aggregatedWeeklyAddressData.push({ timestamp, value, date });
-    });
-
-    Array.from(dateMaps.monthly.entries()).forEach(([date, value]) => {
-      const timestamp = Math.floor(new Date(date).getTime() / 1000);    
-      aggregatedMonthlyAddressData.push({ timestamp, value, date });
-    });
-
-    Array.from(dateMaps.icm.entries()).forEach(([date, messageCount]) => {
-      const timestamp = Math.floor(new Date(date).getTime() / 1000);    
-      aggregatedICMData.push({
-        timestamp,
-        date,
-        messageCount,
-        incomingCount: 0,
-        outgoingCount: 0
-      });
-    });
-
-    // Sort by timestamp descending
-    aggregatedTxData.sort((a, b) => b.timestamp - a.timestamp);
-    aggregatedDailyAddressData.sort((a, b) => b.timestamp - a.timestamp);
-    aggregatedWeeklyAddressData.sort((a, b) => b.timestamp - a.timestamp);
-    aggregatedMonthlyAddressData.sort((a, b) => b.timestamp - a.timestamp);
-    aggregatedICMData.sort((a, b) => b.timestamp - a.timestamp);
-
-    // Create aggregated metrics - current_value will be the latest daily value (first element after sort)
-    const totalTxMetric = createTimeSeriesMetric(aggregatedTxData);
-    const totalDailyAddressMetric = createTimeSeriesMetric(aggregatedDailyAddressData);
-    const totalWeeklyAddressMetric = createTimeSeriesMetric(aggregatedWeeklyAddressData);
-    const totalMonthlyAddressMetric = createTimeSeriesMetric(aggregatedMonthlyAddressData);
-    const totalICMMetric = createICMMetric(aggregatedICMData);
-
-    const metrics: OverviewMetrics = {
-      chains: chainMetrics,
-      aggregated: {
-        totalTxCount: totalTxMetric,
-        totalActiveAddresses: {
-          daily: totalDailyAddressMetric,
-          weekly: totalWeeklyAddressMetric,
-          monthly: totalMonthlyAddressMetric,
-        },
-        totalICMMessages: totalICMMetric,
-        totalValidators,
-        activeChains
-      },
-      last_updated: Date.now()
-    };
-
-    cachedData.set(timeRange, {
-      data: metrics,
-      timestamp: Date.now()
-    });
-
-    const fetchTime = Date.now() - startTime;
-
-    return NextResponse.json(metrics, {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'X-Data-Source': 'fresh',
-        'X-Fetch-Time': `${fetchTime}ms`,
-        'X-Time-Range': timeRange,
-        'X-Chain-Count': chainMetrics.length.toString(),
-        'X-Total-Chains': allChains.length.toString(),
-        'X-Failed-Chains': failedCount.toString(),
-      }
-    });
+    const freshData = await fetchFreshData(timeRange);
+    if (!freshData) {
+      return createResponse({ error: 'Failed to fetch chain metrics' }, { source: 'error' }, 500);
+    }
+    
+    return createResponse(freshData.data, { source: 'fresh', timeRange, fetchTime: freshData.fetchTime, chainCount: freshData.chainCount });
   } catch (error) {
-    console.error('Error fetching overview stats:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch chain metrics' },
-      { 
-        status: 500,
-        headers: {
-          'Cache-Control': 'no-cache',
-        }
-      }
-    );
+    console.error('[GET /api/overview-stats] Unhandled error:', error);
+    return createResponse({ error: 'Failed to fetch chain metrics' }, { source: 'error' }, 500);
   }
 }

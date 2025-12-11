@@ -44,6 +44,7 @@ interface StaticChainProps {
   description?: string;
   website?: string;
   rpcUrl?: string;
+  blockchainId?: string;
   socials?: { twitter?: string; linkedin?: string };
   sourcifySupport?: boolean;
   isCustomChain?: false;
@@ -72,6 +73,7 @@ export function ChainExplorerLayoutClient(props: ChainExplorerLayoutClientProps)
       description,
       website,
       rpcUrl,
+      blockchainId,
       socials,
       sourcifySupport,
       children,
@@ -103,6 +105,7 @@ export function ChainExplorerLayoutClient(props: ChainExplorerLayoutClientProps)
           description={description}
           website={website}
           rpcUrl={rpcUrl}
+          blockchainId={blockchainId}
           socials={socials}
         >
           {children}
@@ -186,7 +189,7 @@ function CustomChainLoader({
     chainSlug: chain.slug,
     themeColor: chain.color || "#E57373",
     chainLogoURI: chain.chainLogoURI,
-    nativeToken: chain.tokenSymbol,
+    nativeToken: chain.networkToken?.symbol,
     description: chain.description,
     website: chain.website,
     rpcUrl: chain.rpcUrl,
@@ -201,10 +204,11 @@ function CustomChainLoader({
         chainSlug={chain.slug}
         themeColor={chain.color || "#E57373"}
         chainLogoURI={chain.chainLogoURI}
-        nativeToken={chain.tokenSymbol}
+        nativeToken={chain.networkToken?.symbol}
         description={chain.description}
         website={chain.website}
         rpcUrl={chain.rpcUrl}
+        blockchainId={chain.blockchainId}
         socials={chain.socials}
       >
         {children}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { ArrowRightLeft, ArrowRight, Clock, Fuel, Box, Layers, DollarSign, Globe, Circle, Link2 } from "lucide-react";
+import { ArrowRightLeft, ArrowRight, Clock, Fuel, Box, Layers, DollarSign, Globe, Circle, Link2, Info } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -14,26 +14,58 @@ import { formatTokenValue } from "@/utils/formatTokenValue";
 import { formatPrice, formatAvaxPrice } from "@/utils/formatPrice";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { ChainChip, ChainInfo } from "@/components/stats/ChainChip";
+import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
+import { convertL1ListItemToL1Chain } from "@/components/explorer/utils/chainConverter";
 
-// Get chain info from hex blockchain ID
+// Get chain info from hex blockchain ID (checks both static and custom chains)
 function getChainFromBlockchainId(hexBlockchainId: string): ChainInfo | null {
   const normalizedHex = hexBlockchainId.toLowerCase();
   
-  // Find by blockchainId field (hex format)
-  const chain = (l1ChainsData as any[]).find(c => 
+  // First, check static chains from l1ChainsData
+  const staticChain = (l1ChainsData as any[]).find(c => 
     c.blockchainId?.toLowerCase() === normalizedHex
   );
   
-  if (!chain) return null;
+  if (staticChain) {
+    return {
+      chainId: staticChain.chainId,
+      chainName: staticChain.chainName,
+      chainSlug: staticChain.slug,
+      chainLogoURI: staticChain.chainLogoURI || '',
+      color: staticChain.color || '#6B7280',
+      tokenSymbol: staticChain.networkToken?.symbol || '',
+    };
+  }
+  
+  // If not found in static chains, check custom chains from localStorage
+  try {
+    const testnetStore = getL1ListStore(true);
+    const mainnetStore = getL1ListStore(false);
     
+    const testnetChains: L1ListItem[] = testnetStore.getState().l1List;
+    const mainnetChains: L1ListItem[] = mainnetStore.getState().l1List;
+    
+    const allCustomChains = [...testnetChains, ...mainnetChains];
+    
+    // Convert each custom chain and check if blockchainId matches
+    for (const customChain of allCustomChains) {
+      const converted = convertL1ListItemToL1Chain(customChain);
+      if (converted.blockchainId?.toLowerCase() === normalizedHex) {
   return {
-    chainId: chain.chainId,
-    chainName: chain.chainName,
-    chainSlug: chain.slug,
-    chainLogoURI: chain.chainLogoURI || '',
-    color: chain.color || '#6B7280',
-    tokenSymbol: chain.tokenSymbol || '',
+          chainId: converted.chainId,
+          chainName: converted.chainName,
+          chainSlug: converted.slug,
+          chainLogoURI: converted.chainLogoURI || '',
+          color: converted.color || '#6B7280',
+          tokenSymbol: converted.networkToken?.symbol || '',
   };
+      }
+    }
+  } catch (e) {
+    // localStorage might not be available (SSR), silently fail
+  }
+  
+  return null;
 }
 
 interface Block {
@@ -46,6 +78,7 @@ interface Block {
   gasLimit: string;
   baseFeePerGas?: string;
   gasFee?: string; // Gas fee in native token
+  timestampMilliseconds?: number; // Avalanche-specific: block timestamp in milliseconds
 }
 
 interface Transaction {
@@ -66,7 +99,9 @@ interface Transaction {
 interface ExplorerStats {
   latestBlock: number;
   totalTransactions: number;
-  avgBlockTime: number;
+  avgBlockTime?: number; // Average block time in seconds
+  avgBlockTimeMs?: number; // Average block time in milliseconds (Avalanche-specific)
+  avgBlockTimeBlockSpan?: number; // Number of blocks used to calculate avgBlockTime
   gasPrice: string;
   lastFinalizedBlock?: number;
   totalGasFeesInBlocks?: string;
@@ -216,7 +251,7 @@ function AnimatedBlockNumber({ value }: { value: number }) {
   );
 }
 
-// Animation styles for new items
+// Animation styles for new items and loading dots
 const newItemStyles = `
   @keyframes slideInHighlight {
     0% {
@@ -236,7 +271,45 @@ const newItemStyles = `
   .new-item {
     animation: slideInHighlight 0.8s ease-out;
   }
+  
+  @keyframes jumpingDots {
+    0%, 80%, 100% {
+      transform: translateY(0);
+    }
+    40% {
+      transform: translateY(-6px);
+    }
+  }
+  .jumping-dot {
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    margin: 0 2px;
+    border-radius: 50%;
+    background-color: currentColor;
+    animation: jumpingDots 1.4s infinite ease-in-out both;
+  }
+  .jumping-dot:nth-child(1) {
+    animation-delay: -0.32s;
+  }
+  .jumping-dot:nth-child(2) {
+    animation-delay: -0.16s;
+  }
+  .jumping-dot:nth-child(3) {
+    animation-delay: 0s;
+  }
 `;
+
+// Jumping dots component for loading state
+function JumpingDots({ className = "" }: { className?: string }) {
+  return (
+    <span className={`inline-flex items-center ${className}`}>
+      <span className="jumping-dot" />
+      <span className="jumping-dot" />
+      <span className="jumping-dot" />
+    </span>
+  );
+}
 
 export default function L1ExplorerPage({
   chainId,
@@ -566,6 +639,34 @@ export default function L1ExplorerPage({
     return Math.round(tps * 100) / 100;
   }, [accumulatedBlocks]);
 
+  // Calculate blocks per second using timestampMilliseconds
+  // Wait for 2x initial blocks before showing the calculation
+  const INITIAL_BLOCKS_COUNT = 10;
+  const MIN_BLOCKS_FOR_BPS = INITIAL_BLOCKS_COUNT * 2;
+  
+  const avalancheBlocksPerSecond = useMemo(() => {
+    // Need at least MIN_BLOCKS_FOR_BPS blocks with timestampMilliseconds for accurate calculation
+    const blocksWithTime = accumulatedBlocks.filter(b => b.timestampMilliseconds !== undefined);
+    if (blocksWithTime.length < MIN_BLOCKS_FOR_BPS) return null;
+    
+    // Get timestampMilliseconds (blocks are sorted descending - newest first)
+    const timestamps = blocksWithTime.map(b => b.timestampMilliseconds!);
+    const newestTime = timestamps[0];
+    const oldestTime = timestamps[timestamps.length - 1];
+    
+    // Calculate time span in seconds
+    const timeSpanMs = newestTime - oldestTime;
+    if (timeSpanMs <= 0) return null;
+    
+    const timeSpanSec = timeSpanMs / 1000;
+    
+    // blocks/sec = (number of blocks - 1) / time span
+    // We use (length - 1) because the time span covers the intervals between blocks
+    const bps = (blocksWithTime.length - 1) / timeSpanSec;
+    
+    return Math.round(bps * 100) / 100;
+  }, [chainId, accumulatedBlocks]);
+
   if (loading) {
     return (
       <>
@@ -749,11 +850,75 @@ export default function L1ExplorerPage({
                   <div className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
                     Last Block
                   </div>
-                  <div className="text-base font-bold text-zinc-900 dark:text-white">
-                    <AnimatedBlockNumber value={data?.stats.latestBlock || 0} />
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-base font-bold text-zinc-900 dark:text-white">
+                      <AnimatedBlockNumber value={data?.stats.latestBlock || 0} />
+                    </span>
+                    {/* Show blocks/sec for Avalanche C-Chain */}
+                    {(
+                      avalancheBlocksPerSecond !== null ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-[11px] text-zinc-500 cursor-help border-b border-dashed border-zinc-400 dark:border-zinc-500">
+                              ({avalancheBlocksPerSecond} blks/s)
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Calculated from {accumulatedBlocks.filter(b => b.timestampMilliseconds).length} blocks using timestampMilliseconds</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-[11px] text-zinc-500 cursor-help">
+                              (<JumpingDots /> blks/s)
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Warming up: {accumulatedBlocks.filter(b => b.timestampMilliseconds).length} / {MIN_BLOCKS_FOR_BPS} blocks</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )
+                    )}
                   </div>
                 </div>
               </div>
+
+              {/* Average Block Time */}
+              {data?.stats.avgBlockTime !== undefined && (
+                <div className="flex items-center gap-2.5">
+                  <div 
+                    className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: `${themeColor}15` }}
+                  >
+                    <Clock className="w-5 h-5" style={{ color: themeColor }} />
+                  </div>
+                  <div>
+                    <div className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide flex items-center gap-1">
+                      Avg Block Time
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 cursor-help">
+                            <Info className="w-3 h-3" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Calculated from the last {data.stats.avgBlockTimeBlockSpan?.toLocaleString() || '5,000'} blocks</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <div className="text-base font-bold text-zinc-900 dark:text-white">
+                      {data.stats.avgBlockTimeMs !== undefined ? (
+                        // Show millisecond precision for Avalanche
+                        `${data.stats.avgBlockTimeMs.toFixed(2)} ms`
+                      ) : (
+                        // Show second precision for other chains
+                        `${data.stats.avgBlockTime.toFixed(3)} s`
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Right: Transaction History Chart */}
