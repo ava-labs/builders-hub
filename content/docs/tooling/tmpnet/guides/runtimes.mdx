@@ -1,0 +1,524 @@
+---
+title: Runtime Environments
+description: Choose between local process and Kubernetes runtimes for tmpnet test networks
+---
+
+Runtimes in tmpnet provide the execution environment for your test network nodes. The `NodeRuntime` interface abstracts the complexity of managing node processes, allowing you to focus on testing your blockchain application rather than infrastructure details.
+
+At its core, tmpnet's runtime system defines how and where nodes run. The `NodeRuntime` interface provides a consistent API for starting nodes, managing their lifecycle, and interacting with their endpoints—regardless of whether nodes run as local processes or Kubernetes pods. This abstraction means you write your test setup once and can switch runtimes based on your testing needs.
+
+```go
+// The NodeRuntime interface abstracts execution environment
+type NodeRuntime interface {
+    Start(ctx context.Context) error
+    InitiateStop(ctx context.Context) error
+    WaitForStopped(ctx context.Context) error
+    Restart(ctx context.Context) error
+    IsHealthy(ctx context.Context) (bool, error)
+    // ...
+}
+```
+
+### When to Use Each Runtime
+
+| Scenario | Recommended Runtime |
+|----------|-------------------|
+| Local development and quick iteration | Local Process |
+| CI/CD pipelines | Kubernetes |
+| Networks with 1-10 nodes | Local Process |
+| Networks with 10+ nodes | Kubernetes |
+| Production environment testing | Kubernetes |
+| Laptop/desktop testing | Local Process |
+
+<Callout type="info">
+The Local Process Runtime is ideal for development and small-scale testing. For production-like environments, multi-machine deployments, or CI/CD pipelines, use the Kubernetes Runtime.
+</Callout>
+
+---
+
+## Local Process Runtime
+
+The Local Process Runtime runs Avalanche nodes as operating system subprocesses on your local machine. Each node executes as an independent process with its own configuration, dynamically allocated ports, and isolated filesystem state.
+
+### How It Works
+
+When you create a network using the Local Process Runtime, tmpnet performs the following workflow:
+
+1. **Binary Validation** - Verifies the AvalancheGo binary exists at the configured path
+2. **Network Directory Creation** - Creates `~/.tmpnet/networks/[timestamp]/` with subdirectories for each node
+3. **Node Configuration** - Generates node-specific config files with dynamic port allocation
+4. **Process Spawning** - Launches each node via `exec.Command(avalancheGoPath, "--config-file", flagsPath)`
+5. **Health Monitoring** - Polls `GET /ext/health/liveness` until all nodes are ready
+
+Each node maintains its state in a dedicated directory structure:
+
+```
+~/.tmpnet/networks/[timestamp]/
+├── config.json           # Network configuration
+├── genesis.json          # Genesis file
+├── network.env           # Shell environment
+├── metrics.txt           # Grafana dashboard link
+├── NodeID-7Xhw2.../
+│   ├── config.json       # Node runtime config
+│   ├── flags.json        # Node flags
+│   ├── process.json      # PID, URI, staking address
+│   ├── db/               # Node database
+│   ├── logs/main.log     # Node logs
+│   └── plugins/          # VM plugins
+└── latest -> [timestamp] # Symlink to most recent
+```
+
+Dynamic port allocation is critical for running multiple networks simultaneously. When you set API ports to `"0"`, the operating system assigns available ports automatically, preventing conflicts.
+
+### Configuration
+
+The `ProcessRuntimeConfig` struct controls how the Local Process Runtime operates:
+
+```go
+type ProcessRuntimeConfig struct {
+    // Path to avalanchego binary (required)
+    AvalancheGoPath string
+
+    // Directory containing VM plugin binaries
+    PluginDir string
+
+    // Reuse the same API port when restarting nodes
+    ReuseDynamicPorts bool
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `AvalancheGoPath` | Yes | Absolute path to the `avalanchego` binary executable |
+| `PluginDir` | No | Directory containing VM plugin binaries (defaults to `~/.avalanchego/plugins`) |
+| `ReuseDynamicPorts` | No | Reuse the same API port when restarting nodes (default: `false`) |
+
+<Callout type="warning">
+The `AvalancheGoPath` must point to a compiled AvalancheGo binary. If you're building from source, run `./scripts/build.sh` before using tmpnet.
+</Callout>
+
+### Quick Start
+
+First, ensure you have AvalancheGo built:
+
+```bash
+# Clone and build AvalancheGo
+git clone https://github.com/ava-labs/avalanchego.git
+cd avalanchego
+./scripts/build.sh
+
+# The binary is now at ./build/avalanchego
+```
+
+Then create your network:
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+    "os"
+
+    "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+)
+
+func main() {
+    ctx := context.Background()
+
+    // Create network with local process runtime
+    network := &tmpnet.Network{
+        DefaultRuntimeConfig: tmpnet.NodeRuntimeConfig{
+            Process: &tmpnet.ProcessRuntimeConfig{
+                // Use absolute path to your avalanchego binary
+                AvalancheGoPath:   os.Getenv("HOME") + "/avalanchego/build/avalanchego",
+                PluginDir:         os.Getenv("HOME") + "/.avalanchego/plugins",
+                ReuseDynamicPorts: true,
+            },
+        },
+        Nodes: tmpnet.NewNodesOrPanic(5),
+    }
+
+    // Bootstrap the network
+    if err := tmpnet.BootstrapNewNetwork(
+        ctx,
+        os.Stdout,
+        network,
+        "",  // Use default network directory
+        "",  // Use AvalancheGoPath from config
+    ); err != nil {
+        log.Fatal(err)
+    }
+    defer network.Stop(ctx)
+
+    // Get node URIs for interaction
+    for _, node := range network.Nodes {
+        fmt.Printf("Node %s: %s\n", node.NodeID, node.URI)
+    }
+}
+```
+
+### Advantages
+
+| Advantage | Description |
+|-----------|-------------|
+| **Fast Startup** | ~30 seconds for a 5-node network |
+| **No Container Overhead** | Nodes run as native processes without virtualization |
+| **Easy Debugging** | Direct access to logs at `~/.tmpnet/networks/*/NodeID-*/logs/` |
+| **Prometheus Integration** | Automatic file-based service discovery |
+| **Process Control** | Standard OS signals (SIGTERM, SIGSTOP) for node control |
+
+### Limitations
+
+| Limitation | Details |
+|------------|---------|
+| **Platform Support** | macOS and Linux only (Windows users should use WSL2) |
+| **Single-Machine Scaling** | All nodes share CPU, memory, and disk resources |
+| **Port Exhaustion** | Large networks (20+ nodes) may exhaust available ports |
+| **Ephemeral State** | Network state is lost when the directory is deleted |
+
+---
+
+## Kubernetes Runtime
+
+The Kubernetes runtime deploys test networks on Kubernetes clusters, providing a production-like environment for testing at scale.
+
+### How It Works
+
+The Kubernetes runtime implements tmpnet's network abstraction using native Kubernetes resources:
+
+```
+┌─────────────────────────────────────────────────────┐
+│                 Kubernetes Cluster                   │
+│                                                      │
+│  ┌──────────────────────────────────────────────┐  │
+│  │         StatefulSet: tmpnet-network          │  │
+│  │                                              │  │
+│  │  ┌─────────────┐  ┌─────────────┐          │  │
+│  │  │  Pod: node-0  │  │  Pod: node-1  │        │  │
+│  │  │ ┌───────────┐│  │┌───────────┐ │        │  │
+│  │  │ │avalanchego││  ││avalanchego│ │        │  │
+│  │  │ └───────────┘│  │└───────────┘ │        │  │
+│  │  │      ↓       │  │      ↓       │          │  │
+│  │  │    PVC-0     │  │    PVC-1     │          │  │
+│  │  └─────────────┘  └─────────────┘          │  │
+│  └──────────────────────────────────────────────┘  │
+│                        ↓                            │
+│              ┌─────────────────┐                   │
+│              │  Ingress/Service │                   │
+│              └─────────────────┘                   │
+└──────────────────────┬──────────────────────────────┘
+                       ↓
+              External Access
+          (localhost:30791 for KIND)
+```
+
+**Key Components:**
+
+- **StatefulSet**: Provides stable network identity and ordered deployment
+- **PersistentVolumeClaims**: Store blockchain data, surviving pod restarts
+- **Services**: Enable pod-to-pod DNS resolution
+- **Ingress**: Routes external traffic to node API endpoints
+
+### Prerequisites
+
+Before using the Kubernetes runtime:
+
+1. **Kubernetes Cluster**: KIND (recommended for local), Minikube, or cloud provider (GKE, EKS, AKS)
+2. **kubectl CLI**: Configured with cluster access
+3. **Container Registry Access**: For pulling `avaplatform/avalanchego` images
+4. **RBAC Permissions**: Create/manage StatefulSets, Services, Ingress, PVCs
+
+```bash
+# Verify kubectl is configured
+kubectl cluster-info
+kubectl auth can-i create pods --namespace=default
+```
+
+### Configuration
+
+```go
+type KubeRuntimeConfig struct {
+    ConfigPath             string  // kubeconfig path (default: ~/.kube/config)
+    ConfigContext          string  // kubeconfig context to use
+    Namespace              string  // target namespace
+    Image                  string  // avalanchego container image
+    VolumeSizeGB           int     // PVC size in GB (minimum 2)
+    UseExclusiveScheduling bool    // one pod per k8s node
+    SchedulingLabelKey     string  // anti-affinity label key
+    SchedulingLabelValue   string  // anti-affinity label value
+    IngressHost            string  // e.g., "localhost:30791"
+    IngressSecret          string  // TLS secret for HTTPS
+}
+```
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| `ConfigContext` | Kubeconfig context | `"kind-tmpnet"` |
+| `Namespace` | Kubernetes namespace | `"tmpnet-test"` |
+| `Image` | Container image with tag | `"avaplatform/avalanchego:v1.11.0"` |
+| `VolumeSizeGB` | PVC size per node | `10` |
+| `UseExclusiveScheduling` | One pod per k8s node | `true` |
+| `IngressHost` | External access hostname | `"localhost:30791"` |
+
+<Callout type="warning">
+Exclusive scheduling requires at least as many Kubernetes nodes as tmpnet nodes and doubles the startup timeout.
+</Callout>
+
+### Quick Start with KIND
+
+**1. Start KIND Cluster**
+
+```bash
+# Use the provided script
+./scripts/start_kind_cluster.sh
+
+# Creates:
+# - KIND cluster named "tmpnet"
+# - Ingress controller with NodePort
+# - Port forwarding on localhost:30791
+```
+
+**2. Create Network**
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+    "os"
+
+    "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+)
+
+func main() {
+    ctx := context.Background()
+
+    // Configure Kubernetes runtime
+    network := &tmpnet.Network{
+        DefaultRuntimeConfig: tmpnet.NodeRuntimeConfig{
+            Kube: &tmpnet.KubeRuntimeConfig{
+                ConfigContext: "kind-tmpnet",
+                Namespace:     "tmpnet-demo",
+                Image:         "avaplatform/avalanchego:latest",
+                VolumeSizeGB:  5,
+                IngressHost:   "localhost:30791",
+            },
+        },
+        Nodes: tmpnet.NewNodesOrPanic(5),
+    }
+
+    if err := tmpnet.BootstrapNewNetwork(ctx, os.Stdout, network, "", ""); err != nil {
+        log.Fatal(err)
+    }
+    defer network.Stop(ctx)
+
+    fmt.Println("Network created successfully!")
+}
+```
+
+**3. Verify Deployment**
+
+```bash
+# Check pods
+kubectl get pods -n tmpnet-demo
+
+# Access node API
+curl http://localhost:30791/ext/health
+```
+
+### Advantages
+
+| Advantage | Description |
+|-----------|-------------|
+| **Production-Like** | Mirrors real deployment patterns |
+| **Scalability** | Support 50+ node networks across cluster |
+| **Network Isolation** | Namespace boundaries and NetworkPolicy |
+| **CI/CD Ready** | Easy integration with GitHub Actions, Jenkins |
+| **Persistent Storage** | Data survives pod restarts |
+
+### Limitations
+
+| Limitation | Details |
+|------------|---------|
+| **Slower Startup** | 3-5 minutes (image pull + scheduling) |
+| **Complex Debugging** | Requires `kubectl logs` and Kubernetes knowledge |
+| **Resource Overhead** | Kubernetes control plane adds ~2GB RAM |
+| **Expertise Required** | Understanding of Pods, Services, PVCs, Ingress |
+
+**Startup Timeout Calculation:**
+
+```go
+timeout := time.Duration(nodeCount) * time.Minute
+if config.UseExclusiveScheduling {
+    timeout *= 2  // Double for anti-affinity scheduling
+}
+```
+
+---
+
+## Runtime Comparison
+
+| Feature | Local Runtime | Kubernetes Runtime |
+|---------|--------------|-------------------|
+| **Startup Time** | ~30 seconds | 1-5 minutes |
+| **Max Nodes** | ~20 (resource-limited) | 100+ (cluster-limited) |
+| **Debugging** | Direct log files | `kubectl logs` |
+| **Persistence** | `~/.tmpnet/networks/` | PersistentVolumeClaims |
+| **Port Access** | localhost:dynamic | Ingress or port-forward |
+| **Best For** | Development, quick tests | CI/CD, scale testing |
+| **Prerequisites** | AvalancheGo binary | Kubernetes cluster |
+| **OS Support** | macOS, Linux | Any with kubectl |
+
+<Callout type="tip">
+**Quick Decision Guide:**
+- Use **Local** for development and testing with fewer than 20 nodes
+- Use **Kubernetes** for CI/CD pipelines, large networks (20+ nodes), or production-like testing
+</Callout>
+
+---
+
+## Advanced Topics
+
+### Writing Runtime-Agnostic Tests
+
+The e2e framework provides a `TestEnvironment` abstraction that makes tests portable across runtimes:
+
+```go
+import (
+    "github.com/ava-labs/avalanchego/tests/fixture/e2e"
+)
+
+var _ = ginkgo.Describe("[Cross-Runtime Tests]", func() {
+    ginkgo.It("should work on any runtime", func() {
+        // Get the test environment (local or Kubernetes)
+        env := e2e.GetEnv(tc)
+
+        // Get network - abstracted across runtimes
+        network := env.GetNetwork()
+
+        // Get node URIs - automatically handles port-forward vs direct
+        nodeURI := env.GetRandomNodeURI()
+
+        // All operations work identically regardless of runtime
+        client := jsonrpc.NewClient(nodeURI)
+        health, err := client.Health(context.Background())
+        Expect(err).NotTo(HaveOccurred())
+    })
+})
+```
+
+Runtime selection is controlled by:
+- CLI flags: `--use-kubernetes=true`
+- Environment variables: `E2E_USE_KUBERNETES=true`
+- Test configuration defaults
+
+### Bootstrap Monitor for Continuous Testing
+
+The **bootstrap monitor** is a Kubernetes-based tool for continuous bootstrap testing on persistent networks (mainnet, fuji). It validates that new AvalancheGo versions can successfully sync from genesis.
+
+**Architecture:**
+
+```
+StatefulSet: bootstrap-monitor
+├── Init Container: bootstrap-monitor init
+│   └── Prepares configuration and data directory
+├── Containers:
+│   ├── avalanchego (primary)
+│   │   └── Runs node with sync monitoring
+│   └── bootstrap-monitor wait-for-completion (sidecar)
+│       └── Polls health and emits completion status
+└── PersistentVolumeClaim: data
+    └── Persistent storage for node database
+```
+
+**Three Sync Modes:**
+
+| Mode | Chains Synced | Duration | Use Case |
+|------|--------------|----------|----------|
+| `full-sync` | P, X, C (full) | Hours-days | Complete validation |
+| `c-chain-state-sync` | P, X (full), C (state) | 1-3 hours | Fast comprehensive test |
+| `p-chain-full-sync-only` | P (full) | 30-60 min | P-Chain validation only |
+
+### Monitoring Integration
+
+Both runtimes integrate with Prometheus and Promtail using file-based service discovery:
+
+```
+~/.tmpnet/prometheus/file_sd_configs/
+└── [network-uuid]-[node-id].json
+```
+
+**Environment Variables:**
+
+```bash
+# Prometheus
+export PROMETHEUS_URL="https://prometheus.example.com"
+export PROMETHEUS_USERNAME="user"
+export PROMETHEUS_PASSWORD="pass"
+
+# Loki (logs)
+export LOKI_URL="https://loki.example.com"
+
+# Grafana
+export GRAFANA_URI="https://grafana.example.com/d/tmpnet"
+```
+
+After starting a network, tmpnet emits a Grafana dashboard link:
+
+```bash
+tmpnetctl start-network
+# Output includes:
+# Grafana: https://grafana.example.com/d/tmpnet?var-network_uuid=abc-123
+```
+
+---
+
+## Troubleshooting
+
+For detailed troubleshooting of runtime-specific issues, see the [Troubleshooting Runtime Issues](/docs/tooling/tmpnet/troubleshooting-runtime) guide.
+
+### Quick Fixes
+
+**Local Runtime - Port Conflicts:**
+```bash
+pkill -f avalanchego
+lsof -i :9650-9660
+```
+
+**Kubernetes - Pod Stuck Pending:**
+```bash
+kubectl describe pod <pod-name> -n tmpnet
+kubectl get events -n tmpnet --sort-by='.lastTimestamp'
+```
+
+**Both - Health Check Failures:**
+```bash
+# Check if node is still bootstrapping (requires jq: brew install jq)
+curl -s http://localhost:9650/ext/info | jq '.result.isBootstrapped'
+
+# Alternative without jq:
+curl -s http://localhost:9650/ext/health
+```
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card title="Quick Start" href="/docs/tooling/tmpnet/quick-start">
+    Create your first network
+  </Card>
+  <Card title="Configuration Reference" href="/docs/tooling/tmpnet/reference/configuration">
+    Complete configuration options
+  </Card>
+  <Card title="Monitoring Guide" href="/docs/tooling/tmpnet/guides/monitoring">
+    Set up metrics and logging
+  </Card>
+  <Card title="Troubleshooting" href="/docs/tooling/tmpnet/troubleshooting-runtime">
+    Diagnose and fix issues
+  </Card>
+</Cards>
