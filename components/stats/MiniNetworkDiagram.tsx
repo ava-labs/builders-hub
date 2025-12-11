@@ -850,7 +850,7 @@ export default function MiniNetworkDiagram({
   return (
     <div
       ref={containerRef}
-      className={`relative ${className}`}
+      className={`relative overflow-hidden ${className}`}
       style={{ width: containerSize, height: containerSize + BOTTOM_CONTROLS_HEIGHT }}
     >
       {/* Background nebula gradient - contained within component */}
