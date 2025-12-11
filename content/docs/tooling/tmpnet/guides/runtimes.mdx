@@ -188,31 +188,28 @@ The Kubernetes runtime deploys test networks on Kubernetes clusters, providing a
 
 The Kubernetes runtime implements tmpnet's network abstraction using native Kubernetes resources:
 
-```
-┌─────────────────────────────────────────────────────┐
-│                 Kubernetes Cluster                   │
-│                                                      │
-│  ┌──────────────────────────────────────────────┐  │
-│  │         StatefulSet: tmpnet-network          │  │
-│  │                                              │  │
-│  │  ┌─────────────┐  ┌─────────────┐          │  │
-│  │  │  Pod: node-0  │  │  Pod: node-1  │        │  │
-│  │  │ ┌───────────┐│  │┌───────────┐ │        │  │
-│  │  │ │avalanchego││  ││avalanchego│ │        │  │
-│  │  │ └───────────┘│  │└───────────┘ │        │  │
-│  │  │      ↓       │  │      ↓       │          │  │
-│  │  │    PVC-0     │  │    PVC-1     │          │  │
-│  │  └─────────────┘  └─────────────┘          │  │
-│  └──────────────────────────────────────────────┘  │
-│                        ↓                            │
-│              ┌─────────────────┐                   │
-│              │  Ingress/Service │                   │
-│              └─────────────────┘                   │
-└──────────────────────┬──────────────────────────────┘
-                       ↓
-              External Access
-          (localhost:30791 for KIND)
-```
+<Mermaid chart={`flowchart TB
+    subgraph K8s["Kubernetes Cluster"]
+        subgraph SS["StatefulSet: tmpnet-network"]
+            subgraph Pod0["Pod: node-0"]
+                AVA0["avalanchego"]
+                PVC0[("PVC-0")]
+            end
+            subgraph Pod1["Pod: node-1"]
+                AVA1["avalanchego"]
+                PVC1[("PVC-1")]
+            end
+        end
+        SVC["Ingress/Service"]
+    end
+    EXT["External Access<br/>(localhost:30791 for KIND)"]
+
+    AVA0 --> PVC0
+    AVA1 --> PVC1
+    Pod0 --> SVC
+    Pod1 --> SVC
+    SVC --> EXT
+`} />
 
 **Key Components:**
 
