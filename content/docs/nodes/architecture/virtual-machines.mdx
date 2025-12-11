@@ -183,13 +183,26 @@ type VM struct {
 
 **Key Transaction Types:**
 
-| Transaction | Purpose |
-|-------------|---------|
-| `AddValidatorTx` | Add a Primary Network validator |
-| `AddDelegatorTx` | Delegate stake to a validator |
-| `CreateSubnetTx` | Create a new subnet |
-| `CreateChainTx` | Launch a blockchain on a subnet |
-| `TransformSubnetTx` | Convert subnet to Avalanche L1 |
+| Transaction | Purpose | Era |
+|-------------|---------|-----|
+| `AddValidatorTx` | Add a Primary Network validator | Apricot |
+| `AddDelegatorTx` | Delegate stake to a validator | Apricot |
+| `CreateSubnetTx` | Create a new subnet | Apricot |
+| `CreateChainTx` | Launch a blockchain on a subnet | Apricot |
+| `ImportTx` / `ExportTx` | Cross-chain asset transfers | Apricot |
+| `AddPermissionlessValidatorTx` | Add validator to permissionless subnet | Banff |
+| `AddPermissionlessDelegatorTx` | Delegate to permissionless validator | Banff |
+| `TransformSubnetTx` | Convert subnet to permissionless | Banff |
+| `TransferSubnetOwnershipTx` | Transfer subnet ownership | Durango |
+| `ConvertSubnetToL1Tx` | Convert subnet to Avalanche L1 | Etna |
+| `RegisterL1ValidatorTx` | Register validator on L1 | Etna |
+| `SetL1ValidatorWeightTx` | Set L1 validator weight | Etna |
+| `IncreaseL1ValidatorBalanceTx` | Add balance to L1 validator | Etna |
+| `DisableL1ValidatorTx` | Disable an L1 validator | Etna |
+
+<Callout type="info">
+The **Etna upgrade** introduced 5 new transaction types for managing Avalanche L1s. These enable converting subnets to sovereign L1s with their own validator management.
+</Callout>
 
 ### AVM (X-Chain)
 
@@ -234,15 +247,16 @@ type VM struct {
 Coreth is the EVM implementation for the C-Chain:
 
 <Callout>
-Coreth is developed in [`ava-labs/coreth`](https://github.com/ava-labs/coreth) and vendored into AvalancheGo under `graft/coreth`, so it ships with the node binary by default.
+Coreth is **grafted** into the AvalancheGo repository at `graft/coreth/`. The standalone [`ava-labs/coreth`](https://github.com/ava-labs/coreth) repository has been archived and is now read-only. All active development occurs within the AvalancheGo monorepo.
 </Callout>
 
 **Features:**
 - Full Ethereum Virtual Machine compatibility
 - Supports Solidity smart contracts
-- Web3 JSON-RPC API
+- Web3 JSON-RPC API (`eth`, `personal`, `txpool`, `debug` namespaces)
 - EIP-1559 dynamic fees
-- Atomic transactions with other Avalanche chains
+- Atomic transactions with other Avalanche chains (via shared memory)
+- Support for Ethereum upgrades through Cancun
 
 ### ProposerVM (Snowman++)
 

@@ -163,19 +163,25 @@ graph LR
 
 ### Engine States
 
+The consensus engine progresses through several states ([`snow/state.go`](https://github.com/ava-labs/avalanchego/blob/master/snow/state.go)):
+
 ```go
-type EngineState int
+type State uint8
 
 const (
-    StateBootstrapping EngineState = iota
-    StateNormalOperation
+    Initializing State = iota  // 0
+    StateSyncing               // 1
+    Bootstrapping              // 2
+    NormalOp                   // 3
 )
 ```
 
 | State | Description |
 |-------|-------------|
-| **Bootstrapping** | Catching up with network state |
-| **Normal Operation** | Participating in consensus |
+| **Initializing** | Initial setup before sync begins |
+| **StateSyncing** | Fast catch-up using state summaries |
+| **Bootstrapping** | Catching up with network state via block replay |
+| **NormalOp** | Participating in consensus |
 
 ### The Snowman Engine
 

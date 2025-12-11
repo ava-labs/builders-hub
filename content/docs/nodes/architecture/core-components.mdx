@@ -21,7 +21,7 @@ avalanchego/
 ├── network/         # P2P stack
 ├── message/         # Message codecs
 ├── database/        # LevelDB/Pebble/memdb backends
-├── graft/           # Vendored Coreth (C-Chain)
+├── graft/           # Grafted Coreth (C-Chain EVM)
 ├── subnets/         # Subnet configs and validator utilities
 ├── staking/         # TLS/BLS staking keys and POP
 ├── upgrade/         # Network upgrade rules
@@ -226,15 +226,16 @@ type Manager interface {
 
 ### Chain Bootstrapping
 
-When a chain starts, it must bootstrap to catch up with the network:
+When a chain starts, it progresses through several states to catch up with the network:
 
 <Mermaid chart={`
 stateDiagram-v2
-    [*] --> Bootstrapping
-    Bootstrapping --> StateSyncing: State sync enabled
-    StateSyncing --> NormalOperation: Sync complete
-    Bootstrapping --> NormalOperation: Bootstrap complete
-    NormalOperation --> [*]
+    [*] --> Initializing
+    Initializing --> StateSyncing: State sync enabled
+    Initializing --> Bootstrapping: State sync disabled
+    StateSyncing --> Bootstrapping: State summaries applied
+    Bootstrapping --> NormalOp: Bootstrap complete
+    NormalOp --> [*]
 `} />
 
 ## Database Layer

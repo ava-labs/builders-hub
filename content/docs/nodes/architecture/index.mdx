@@ -29,7 +29,7 @@ AvalancheGo is written in Go and is designed to be modular, allowing developers 
 - **VMs**: PlatformVM (P-Chain), Coreth (C-Chain), AVM (X-Chain), plus pluggable/`rpcchainvm` VMs for custom L1s.
 - **Chain manager**: Boots P/C/X, creates new chains on request, routes consensus messages.
 - **APIs**: HTTP/WS via `/ext/*`, with health/metrics, admin/info, and per-chain RPCs.
-- **Storage**: Pebble/LevelDB, shared atomic UTXO memory for cross-chain transfers, optional indexer.
+- **Storage**: LevelDB (default) or PebbleDB, shared atomic UTXO memory for cross-chain transfers, optional indexer.
 
 ## Core Components
 
@@ -40,7 +40,7 @@ AvalancheGo is written in Go and is designed to be modular, allowing developers 
 | **Consensus Engines** | Snowman/Snowman++ for all Primary Network chains and most L1s |
 | **Virtual Machines** | PlatformVM, Coreth, AVM, and custom VMs (native Go or `rpcchainvm`) |
 | **API Server** | HTTP/HTTPS endpoints for interacting with the node |
-| **Database** | Persistent storage using PebbleDB or LevelDB; shared atomic memory |
+| **Database** | Persistent storage using LevelDB (default) or PebbleDB; shared atomic memory |
 
 ## Primary Network Chains
 
@@ -54,7 +54,7 @@ AvalancheGo validates three chains on the Primary Network:
     EVM-compatible chain for smart contracts. Uses Coreth (grafted go-ethereum) with Snowman++.
   </Card>
   <Card title="X-Chain (Exchange)" href="/docs/primary-network">
-    High-throughput asset transfers using UTXO model. Uses AVM with Avalanche DAG.
+    High-throughput asset transfers using UTXO model. Uses AVM with Snowman (linearized in Cortina).
   </Card>
 </Cards>
 
