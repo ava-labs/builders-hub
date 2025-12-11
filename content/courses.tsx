@@ -220,7 +220,7 @@ const officialCourses: Course[] = [
         tools: ["Entrepreneur"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
         category: "Entrepreneur",
-        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_Foundations.pdf"
+        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-certificates/FillableAvalanche_EntrepreneurAcademy_Certificate_FW3V_R1.pdf"
     },
     {
         name: "Go-to-Market Strategist",
@@ -233,7 +233,7 @@ const officialCourses: Course[] = [
         tools: ["Entrepreneur"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
         category: "Entrepreneur",
-        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_GTM.pdf"
+        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-certificates/FillableAvalanche_EntrepreneurAcademy_Certificate_W3GTM_R1.pdf"
     },
     {
         name: "Web3 Community Architect",
@@ -246,7 +246,7 @@ const officialCourses: Course[] = [
         tools: ["Entrepreneur"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
         category: "Entrepreneur",
-        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_Community.pdf"
+        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-certificates/FillableAvalanche_EntrepreneurAcademy_Certificate_W3CA_R1.pdf"
     },
     {
         name: "Fundraising & Finance Pro",
@@ -259,7 +259,7 @@ const officialCourses: Course[] = [
         tools: ["Entrepreneur"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
         category: "Entrepreneur",
-        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_Fundraising.pdf"
+        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-certificates/FillableAvalanche_EntrepreneurAcademy_Certificate_W3FFP_R1.pdf"
     },
     {
         name: "Encrypted ERC",

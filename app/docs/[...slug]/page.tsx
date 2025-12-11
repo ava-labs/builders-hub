@@ -1,4 +1,5 @@
 import Mermaid from "@/components/content-design/mermaid";
+import StateGrowthChart from "@/components/content-design/state-growth-chart";
 import { AutoTypeTable } from "@/components/content-design/type-table";
 import YouTube from "@/components/content-design/youtube";
 import { BackToTop } from "@/components/ui/back-to-top";
@@ -116,6 +117,7 @@ export default async function Page(props: {
             Steps,
             YouTube,
             Mermaid,
+            StateGrowthChart,
             AddNetworkButtonInline,
             TypeTable,
             AutoTypeTable,
