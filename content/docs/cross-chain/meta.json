@@ -10,6 +10,7 @@
     "avalanche-warp-messaging/deep-dive",
     "avalanche-warp-messaging/evm-integration",
     "avalanche-warp-messaging/run-relayer",
+    "avalanche-warp-messaging/releases",
     "---ICM Contracts---",
     "icm-contracts/overview",
     "icm-contracts/deep-dive",

@@ -3,21 +3,24 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter, notFound } from "next/navigation";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Activity, Search, X, ArrowUpRight, Twitter, Linkedin, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { Activity, ArrowUpRight, Twitter, Linkedin } from "lucide-react";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { Button } from "@/components/ui/button";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
+import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
+import { SearchInputWithClear } from "@/components/stats/SearchInputWithClear";
+import { SortIcon } from "@/components/stats/SortIcon";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import l1ChainsData from "@/constants/l1-chains.json";
 import Image from "next/image";
 import Link from "next/link";
-import { 
-  compareVersions, 
-  calculateVersionStats, 
+import {
+  compareVersions,
+  calculateVersionStats,
   VersionBreakdownCard,
   type VersionBreakdownData,
 } from "@/components/stats/VersionBreakdown";
@@ -88,20 +91,10 @@ export default function ChainValidatorsPage() {
   const [availableVersions, setAvailableVersions] = useState<string[]>([]);
   const [minVersion, setMinVersion] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [displayCount, setDisplayCount] = useState(50);
   const [sortColumn, setSortColumn] = useState<string>("weight");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
-
-  const copyToClipboard = async (text: string, id: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 1500);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
-  };
+  const { copiedId, copyToClipboard } = useCopyToClipboard();
 
   // Find chain info by slug - must be done before any hooks that depend on it
   const chainFromData = (l1ChainsData as ChainData[]).find((c) => c.slug === slug);
@@ -257,16 +250,6 @@ export default function ChainValidatorsPage() {
       setSortColumn(column);
       setSortDirection("desc");
     }
-  };
-
-  // Sort icon component
-  const SortIcon = ({ column }: { column: string }) => {
-    if (sortColumn !== column) {
-      return <ChevronsUpDown className="w-3 h-3 ml-1 opacity-40" />;
-    }
-    return sortDirection === "asc" 
-      ? <ChevronUp className="w-3 h-3 ml-1" />
-      : <ChevronDown className="w-3 h-3 ml-1" />;
   };
 
   // Filter validators based on search term
@@ -603,73 +586,14 @@ export default function ChainValidatorsPage() {
                   </div>
                 )}
                 {/* Mobile Social Links - shown below description */}
-                {(chainInfo.website || chainInfo.socials || chainInfo.rpcUrl) && (
-                  <div className="flex sm:hidden items-center gap-2 mt-4">
-                    {chainInfo.website && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
-                      >
-                        <a href={chainInfo.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                          Website
-                          <ArrowUpRight className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
-                    {chainInfo.socials && (chainInfo.socials.twitter || chainInfo.socials.linkedin) && (
-                      <>
-                        {chainInfo.socials.twitter && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                          >
-                            <a 
-                              href={`https://x.com/${chainInfo.socials.twitter}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              aria-label="Twitter"
-                            >
-                              <Twitter className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
-                        {chainInfo.socials.linkedin && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                          >
-                            <a 
-                              href={`https://linkedin.com/company/${chainInfo.socials.linkedin}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              aria-label="LinkedIn"
-                            >
-                              <Linkedin className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
-                      </>
-                    )}
-                    {chainInfo.rpcUrl && (
-                      <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
-                        <ExplorerDropdown
-                          explorers={[
-                            { name: "BuilderHub", link: `/explorer/${chainInfo.slug}` },
-                            ...(chainInfo.explorers || []).filter((e: { name: string }) => e.name !== "BuilderHub"),
-                          ]}
-                          variant="outline"
-                          size="sm"
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
+                <MobileSocialLinks
+                  website={chainInfo.website}
+                  socials={chainInfo.socials}
+                  explorers={chainInfo.rpcUrl ? [
+                    { name: "BuilderHub", link: `/explorer/${chainInfo.slug}` },
+                    ...(chainInfo.explorers || []).filter((e: { name: string }) => e.name !== "BuilderHub"),
+                  ] : undefined}
+                />
                 {chainInfo.category && (
                   <div className="mt-3">
                     <span 
@@ -830,25 +754,11 @@ export default function ChainValidatorsPage() {
 
         {/* Search Input */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-          <div className="relative w-full sm:w-auto sm:flex-shrink-0 sm:max-w-sm">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 pointer-events-none z-10" />
-            <Input
-              placeholder="Search validators..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-10 rounded-lg border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-sm sm:text-base text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => setSearchTerm("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full z-20 transition-colors"
-                aria-label="Clear search"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+          <SearchInputWithClear
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Search validators..."
+          />
           <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
             {displayedValidators.length} of {sortedValidators.length} validators
           </span>
@@ -870,13 +780,13 @@ export default function ChainValidatorsPage() {
                       Node ID
                     </span>
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-2 text-left cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                     onClick={() => handleSort("version")}
                   >
                     <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center">
                       Version
-                      <SortIcon column="version" />
+                      <SortIcon column="version" sortColumn={sortColumn} sortDirection={sortDirection} />
                     </span>
                   </th>
                   {isL1 ? (
@@ -886,31 +796,31 @@ export default function ChainValidatorsPage() {
                           Validation ID
                         </span>
                       </th>
-                      <th 
+                      <th
                         className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                         onClick={() => handleSort("weight")}
                       >
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                           Weight
-                          <SortIcon column="weight" />
+                          <SortIcon column="weight" sortColumn={sortColumn} sortDirection={sortDirection} />
                         </span>
                       </th>
-                      <th 
+                      <th
                         className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                         onClick={() => handleSort("remainingBalance")}
                       >
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                           Remaining Balance
-                          <SortIcon column="remainingBalance" />
+                          <SortIcon column="remainingBalance" sortColumn={sortColumn} sortDirection={sortDirection} />
                         </span>
                       </th>
-                      <th 
+                      <th
                         className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                         onClick={() => handleSort("creationTimestamp")}
                       >
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                           Creation Time
-                          <SortIcon column="creationTimestamp" />
+                          <SortIcon column="creationTimestamp" sortColumn={sortColumn} sortDirection={sortDirection} />
                         </span>
                       </th>
                       <th className="px-4 py-2 text-left">
@@ -921,40 +831,40 @@ export default function ChainValidatorsPage() {
                     </>
                   ) : (
                     <>
-                      <th 
+                      <th
                         className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                         onClick={() => handleSort("amountStaked")}
                       >
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                           Amount Staked
-                          <SortIcon column="amountStaked" />
+                          <SortIcon column="amountStaked" sortColumn={sortColumn} sortDirection={sortDirection} />
                         </span>
                       </th>
-                      <th 
+                      <th
                         className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                         onClick={() => handleSort("delegationFee")}
                       >
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                           Delegation Fee
-                          <SortIcon column="delegationFee" />
+                          <SortIcon column="delegationFee" sortColumn={sortColumn} sortDirection={sortDirection} />
                         </span>
                       </th>
-                      <th 
+                      <th
                         className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                         onClick={() => handleSort("delegatorCount")}
                       >
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                           Delegators
-                          <SortIcon column="delegatorCount" />
+                          <SortIcon column="delegatorCount" sortColumn={sortColumn} sortDirection={sortDirection} />
                         </span>
                       </th>
-                      <th 
+                      <th
                         className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                         onClick={() => handleSort("amountDelegated")}
                       >
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                           Amount Delegated
-                          <SortIcon column="amountDelegated" />
+                          <SortIcon column="amountDelegated" sortColumn={sortColumn} sortDirection={sortDirection} />
                         </span>
                       </th>
                     </>

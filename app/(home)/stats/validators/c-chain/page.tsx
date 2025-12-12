@@ -24,7 +24,6 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   type ChartConfig,
@@ -42,18 +41,20 @@ import {
   HandCoins,
   Users,
   Percent,
-  Search,
-  X,
-  ChevronUp,
-  ChevronDown,
-  ChevronsUpDown,
   ArrowUpRight,
   Twitter,
   Linkedin,
+  Coins,
 } from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
+import { StickyNavBar } from "@/components/stats/StickyNavBar";
+import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
+import { SearchInputWithClear } from "@/components/stats/SearchInputWithClear";
+import { SortIcon } from "@/components/stats/SortIcon";
+import { useSectionNavigation } from "@/hooks/use-section-navigation";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import {
   TimeSeriesDataPoint,
@@ -72,6 +73,7 @@ import {
   type VersionBreakdownData,
 } from "@/components/stats/VersionBreakdown";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { getMAConfig } from "@/utils/chart-utils";
 
 interface ValidatorData {
   nodeId: string;
@@ -96,8 +98,8 @@ export default function CChainValidatorMetrics() {
   const [availableVersions, setAvailableVersions] = useState<string[]>([]);
   const [minVersion, setMinVersion] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [displayCount, setDisplayCount] = useState(50);
+  const { copiedId, copyToClipboard } = useCopyToClipboard();
   const [sortColumn, setSortColumn] = useState<string>("amountStaked");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
@@ -538,28 +540,22 @@ export default function CChainValidatorMetrics() {
     Record<string, "D" | "W" | "M" | "Q" | "Y">
   >(Object.fromEntries(chartConfigs.map((config) => [config.metricKey, "D"])));
 
-  // Active section tracking for navbar
-  const [activeSection, setActiveSection] = useState<string>("trends");
-
   // Navigation categories
   const navCategories = [
     { id: "trends", label: "Historical Trends" },
+    { id: "rewards", label: "Rewards Distribution" },
     { id: "distribution", label: "Stake Distribution" },
     { id: "versions", label: "Software Versions" },
     { id: "map", label: "Global Map" },
     { id: "validators", label: "Validator List" },
   ];
 
-  // Copy to clipboard helper
-  const copyToClipboard = async (text: string, id: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 1500);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
-  };
+  // Section navigation using reusable hook
+  const { activeSection, scrollToSection } = useSectionNavigation({
+    categories: navCategories,
+    offset: 180,
+    initialSection: "trends",
+  });
 
   // Format stake for validators table
   const formatValidatorStake = (stake: string): string => {
@@ -580,16 +576,6 @@ export default function CChainValidatorMetrics() {
       setSortColumn(column);
       setSortDirection("desc");
     }
-  };
-
-  // Sort icon component
-  const SortIcon = ({ column }: { column: string }) => {
-    if (sortColumn !== column) {
-      return <ChevronsUpDown className="w-3 h-3 ml-1 opacity-40" />;
-    }
-    return sortDirection === "asc" 
-      ? <ChevronUp className="w-3 h-3 ml-1" />
-      : <ChevronDown className="w-3 h-3 ml-1" />;
   };
 
   // Filter validators based on search term
@@ -649,42 +635,6 @@ export default function CChainValidatorMetrics() {
   useEffect(() => {
     setDisplayCount(50);
   }, [searchTerm]);
-
-  // Track active section on scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      const sections = navCategories.map((cat) =>
-        document.getElementById(cat.id)
-      );
-      const scrollPosition = window.scrollY + 180; // Account for navbar height
-
-      for (let i = sections.length - 1; i >= 0; i--) {
-        const section = sections[i];
-        if (section && section.offsetTop <= scrollPosition) {
-          setActiveSection(navCategories[i].id);
-          break;
-        }
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll(); // Set initial state
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Smooth scroll to section
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      const offset = 180; // Account for both navbars
-      const elementPosition =
-        element.getBoundingClientRect().top + window.scrollY;
-      window.scrollTo({
-        top: elementPosition - offset,
-        behavior: "smooth",
-      });
-    }
-  };
 
   if (loading) {
     return (
@@ -877,73 +827,14 @@ export default function CChainValidatorMetrics() {
                   </p>
                 </div>
                 {/* Mobile Social Links - shown below description */}
-                {(chainConfig.website || chainConfig.socials || chainConfig.rpcUrl) && (
-                  <div className="flex sm:hidden items-center gap-2 mt-4">
-                    {chainConfig.website && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
-                      >
-                        <a href={chainConfig.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                          Website
-                          <ArrowUpRight className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
-                    {chainConfig.socials && (chainConfig.socials.twitter || chainConfig.socials.linkedin) && (
-                      <>
-                        {chainConfig.socials.twitter && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                          >
-                            <a 
-                              href={`https://x.com/${chainConfig.socials.twitter}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              aria-label="Twitter"
-                            >
-                              <Twitter className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
-                        {chainConfig.socials.linkedin && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                          >
-                            <a 
-                              href={`https://linkedin.com/company/${chainConfig.socials.linkedin}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              aria-label="LinkedIn"
-                            >
-                              <Linkedin className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
-                      </>
-                    )}
-                    {chainConfig.rpcUrl && (
-                      <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
-                        <ExplorerDropdown
-                          explorers={[
-                            { name: "BuilderHub", link: `/explorer/${chainConfig.slug}` },
-                            ...(chainConfig.explorers || []).filter((e: { name: string }) => e.name !== "BuilderHub"),
-                          ]}
-                          variant="outline"
-                          size="sm"
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
+                <MobileSocialLinks
+                  website={chainConfig.website}
+                  socials={chainConfig.socials}
+                  explorers={chainConfig.rpcUrl ? [
+                    { name: "BuilderHub", link: `/explorer/${chainConfig.slug}` },
+                    ...(chainConfig.explorers || []).filter((e: { name: string }) => e.name !== "BuilderHub"),
+                  ] : undefined}
+                />
                 <div className="mt-3">
                   <span
                     className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
@@ -1078,32 +969,11 @@ export default function CChainValidatorMetrics() {
       </div>
 
       {/* Sticky Navigation Bar */}
-      <div className="sticky top-14 z-30 w-full bg-zinc-50/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b border-t border-zinc-200 dark:border-zinc-800">
-        <div className="w-full">
-          <div
-            className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-3 px-4 sm:px-6 max-w-7xl mx-auto"
-            style={{
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-              WebkitOverflowScrolling: "touch",
-            }}
-          >
-            {navCategories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => scrollToSection(category.id)}
-                className={`px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap transition-all flex-shrink-0 ${
-                  activeSection === category.id
-                    ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm"
-                    : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100"
-                }`}
-              >
-                {category.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <StickyNavBar
+        categories={navCategories}
+        activeSection={activeSection}
+        onNavigate={scrollToSection}
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8 sm:space-y-12">
         <section id="trends" className="space-y-4 sm:space-y-6 scroll-mt-32">
@@ -1148,6 +1018,49 @@ export default function CChainValidatorMetrics() {
                 />
               );
             })}
+          </div>
+        </section>
+
+        {/* Rewards Distribution Section */}
+        <section id="rewards" className="space-y-4 sm:space-y-6 scroll-mt-32">
+          <div className="space-y-2">
+            <h2 className="text-lg sm:text-2xl font-medium text-left">
+              Rewards Distribution
+            </h2>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
+              Track staking rewards for the Primary Network
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {/* Daily Rewards Chart with 30-day moving average and total */}
+            {metrics?.daily_rewards && metrics.daily_rewards.data.length > 0 && (
+              <DailyRewardsChartCard
+                data={metrics.daily_rewards.data.map(point => ({
+                  day: point.date,
+                  value: typeof point.value === 'string' ? parseFloat(point.value) : point.value
+                })).reverse()}
+                cumulativeData={metrics.cumulative_rewards?.data.map(point => ({
+                  day: point.date,
+                  value: typeof point.value === 'string' ? parseFloat(point.value) : point.value
+                })).reverse() || []}
+                currentValue={metrics.daily_rewards.current_value}
+                cumulativeCurrentValue={metrics.cumulative_rewards?.current_value || 0}
+                color={chainConfig.color}
+              />
+            )}
+
+            {/* Cumulative Rewards Chart */}
+            {metrics?.cumulative_rewards && metrics.cumulative_rewards.data.length > 0 && (
+              <CumulativeRewardsChartCard
+                data={metrics.cumulative_rewards.data.map(point => ({
+                  day: point.date,
+                  value: typeof point.value === 'string' ? parseFloat(point.value) : point.value
+                })).reverse()}
+                currentValue={metrics.cumulative_rewards.current_value}
+                color="#a855f7"
+              />
+            )}
           </div>
         </section>
 
@@ -1879,25 +1792,11 @@ export default function CChainValidatorMetrics() {
 
           {/* Search Input */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-            <div className="relative w-full sm:w-auto sm:flex-shrink-0 sm:max-w-sm">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 pointer-events-none z-10" />
-              <Input
-                placeholder="Search validators..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-10 rounded-lg border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-sm sm:text-base text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full z-20 transition-colors"
-                  aria-label="Clear search"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+            <SearchInputWithClear
+              value={searchTerm}
+              onChange={setSearchTerm}
+              placeholder="Search validators..."
+            />
             <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
               {displayedValidators.length} of {sortedValidators.length}{" "}
               validators
@@ -1990,40 +1889,40 @@ export default function CChainValidatorMetrics() {
                             Node ID
                           </span>
                         </th>
-                        <th 
+                        <th
                           className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("amountStaked")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                             Amount Staked
-                            <SortIcon column="amountStaked" />
+                            <SortIcon column="amountStaked" sortColumn={sortColumn} sortDirection={sortDirection} />
                           </span>
                         </th>
-                        <th 
+                        <th
                           className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("delegationFee")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                             Delegation Fee
-                            <SortIcon column="delegationFee" />
+                            <SortIcon column="delegationFee" sortColumn={sortColumn} sortDirection={sortDirection} />
                           </span>
                         </th>
-                        <th 
+                        <th
                           className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("delegatorCount")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                             Delegators
-                            <SortIcon column="delegatorCount" />
+                            <SortIcon column="delegatorCount" sortColumn={sortColumn} sortDirection={sortDirection} />
                           </span>
                         </th>
-                        <th 
+                        <th
                           className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("amountDelegated")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                             Amount Delegated
-                            <SortIcon column="amountDelegated" />
+                            <SortIcon column="amountDelegated" sortColumn={sortColumn} sortDirection={sortDirection} />
                           </span>
                         </th>
                       </tr>
@@ -2559,3 +2458,648 @@ function ValidatorChartCard({
     </Card>
   );
 }
+
+// Daily Rewards Chart Card with 30-day moving average and total
+function DailyRewardsChartCard({
+  data,
+  cumulativeData,
+  currentValue,
+  cumulativeCurrentValue,
+  color,
+}: {
+  data: { day: string; value: number }[];
+  cumulativeData: { day: string; value: number }[];
+  currentValue: number | string;
+  cumulativeCurrentValue: number | string;
+  color: string;
+}) {
+  const [period, setPeriod] = useState<"D" | "W" | "M" | "Q" | "Y">("D");
+  const [brushIndexes, setBrushIndexes] = useState<{
+    startIndex: number;
+    endIndex: number;
+  } | null>(null);
+
+  // Create a map of cumulative data for quick lookup
+  const cumulativeMap = useMemo(() => {
+    return new Map(cumulativeData.map(point => [point.day, point.value]));
+  }, [cumulativeData]);
+
+  // Get moving average window size and label based on period (using shared utility)
+  const maConfig = useMemo(() => getMAConfig(period), [period]);
+
+  // Aggregate data by period first
+  const aggregatedBaseData = useMemo(() => {
+    if (!data || data.length === 0) return [];
+    
+    const filteredData = data.filter(point => point.day && !isNaN(point.value));
+    
+    if (period === "D") {
+      return filteredData.map(point => ({
+        day: point.day,
+        value: point.value,
+        cumulative: cumulativeMap.get(point.day) || 0,
+      }));
+    }
+
+    const grouped = new Map<string, { sum: number; cumulativeMax: number; count: number; date: string }>();
+
+    filteredData.forEach((point) => {
+      const date = new Date(point.day);
+      let key: string;
+
+      if (period === "W") {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
+      } else if (period === "M") {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      } else if (period === "Q") {
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
+      } else {
+        key = String(date.getFullYear());
+      }
+
+      if (!grouped.has(key)) {
+        grouped.set(key, { sum: 0, cumulativeMax: 0, count: 0, date: key });
+      }
+
+      const group = grouped.get(key)!;
+      group.sum += point.value;
+      group.cumulativeMax = Math.max(group.cumulativeMax, cumulativeMap.get(point.day) || 0);
+      group.count += 1;
+    });
+
+    return Array.from(grouped.values())
+      .map((group) => ({
+        day: group.date,
+        value: group.sum,
+        cumulative: group.cumulativeMax,
+      }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+  }, [data, cumulativeMap, period]);
+
+  // Calculate moving average based on period-appropriate window
+  const aggregatedData = useMemo(() => {
+    if (aggregatedBaseData.length === 0) return [];
+    
+    return aggregatedBaseData.map((point, index) => {
+      // Get up to N previous periods including current
+      const startIdx = Math.max(0, index - (maConfig.window - 1));
+      const slice = aggregatedBaseData.slice(startIdx, index + 1);
+      const sum = slice.reduce((acc, p) => acc + p.value, 0);
+      const ma = sum / slice.length;
+      return {
+        ...point,
+        ma: isNaN(ma) ? 0 : ma,
+      };
+    });
+  }, [aggregatedBaseData, maConfig.window]);
+
+  // Initialize brush
+  useEffect(() => {
+    if (!aggregatedData || aggregatedData.length === 0) {
+      setBrushIndexes(null);
+      return;
+    }
+
+    if (period === "D") {
+      const daysToShow = 90;
+      setBrushIndexes({
+        startIndex: Math.max(0, aggregatedData.length - daysToShow),
+        endIndex: aggregatedData.length - 1,
+      });
+    } else {
+      setBrushIndexes({
+        startIndex: 0,
+        endIndex: aggregatedData.length - 1,
+      });
+    }
+  }, [period, aggregatedData]);
+
+  const displayData = useMemo(() => {
+    if (!brushIndexes || !aggregatedData || aggregatedData.length === 0) return [];
+    const start = Math.max(0, Math.min(brushIndexes.startIndex, aggregatedData.length - 1));
+    const end = Math.max(0, Math.min(brushIndexes.endIndex, aggregatedData.length - 1));
+    if (start > end) return [];
+    return aggregatedData.slice(start, end + 1);
+  }, [brushIndexes, aggregatedData]);
+
+  // Calculate current moving average
+  const currentMA = useMemo(() => {
+    if (!aggregatedData || aggregatedData.length === 0) return 0;
+    return aggregatedData[aggregatedData.length - 1].ma;
+  }, [aggregatedData]);
+
+  // Calculate change from previous day
+  const dailyChange = useMemo(() => {
+    if (!data || data.length < 2) return { change: 0, isPositive: true };
+    const current = data[data.length - 1].value;
+    const previous = data[data.length - 2].value;
+    if (!previous || previous === 0 || isNaN(previous)) return { change: 0, isPositive: true };
+    const changePercent = ((current - previous) / previous) * 100;
+    if (isNaN(changePercent)) return { change: 0, isPositive: true };
+    return {
+      change: Math.abs(changePercent),
+      isPositive: changePercent >= 0,
+    };
+  }, [data]);
+
+  const formatValue = (value: number): string => {
+    if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
+    if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
+    if (value >= 1e3) return `${(value / 1e3).toFixed(2)}K`;
+    return value.toFixed(2);
+  };
+
+  const formatXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) return `${parts[1]} '${parts[0].slice(-2)}`;
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+    }
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  const formatTooltipDate = (value: string) => {
+    if (period === "Y") return value;
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) return `${parts[1]} ${parts[0]}`;
+      return value;
+    }
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    }
+    if (period === "W") {
+      const endDate = new Date(date);
+      endDate.setDate(date.getDate() + 6);
+      return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+    }
+    return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  };
+
+  const formatBrushXAxis = (value: string) => {
+    if (period === "Q" || period === "Y") return value;
+    const date = new Date(value);
+    return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  };
+
+  return (
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+      <CardContent className="p-0">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div
+              className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+              style={{ backgroundColor: `${color}20` }}
+            >
+              <Coins className="h-5 w-5 sm:h-6 sm:w-6" style={{ color }} />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-normal">Daily Rewards</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                Daily staking and delegation rewards with 30-day moving average
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-0.5 sm:gap-1">
+            {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors ${
+                  period === p
+                    ? "text-white dark:text-white"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+                style={period === p ? { backgroundColor: color, opacity: 0.9 } : {}}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="px-5 pt-6 pb-6">
+          {/* Current Values and Legend */}
+          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4 flex-wrap">
+            <div className="text-md sm:text-base font-mono">
+              {formatValue(typeof currentValue === 'string' ? parseFloat(currentValue) : currentValue)} AVAX
+            </div>
+            {dailyChange.change > 0 && (
+              <div
+                className={`flex items-center gap-1 text-xs sm:text-sm ${
+                  dailyChange.isPositive ? "text-green-600" : "text-red-600"
+                }`}
+                title="Change from previous day"
+              >
+                <TrendingUp
+                  className={`h-3 w-3 sm:h-4 sm:w-4 ${
+                    dailyChange.isPositive ? "" : "rotate-180"
+                  }`}
+                />
+                {dailyChange.change >= 1000
+                  ? `${(dailyChange.change / 1000).toFixed(1)}K%`
+                  : `${dailyChange.change.toFixed(1)}%`}
+              </div>
+            )}
+            <div className="flex items-center gap-3 ml-auto text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded" style={{ backgroundColor: color }} />
+                <span className="text-muted-foreground">
+                  {period === "D" ? "Daily" : period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-0.5" style={{ backgroundColor: "#22c55e" }} />
+                <span style={{ color: "#22c55e" }}>{maConfig.label}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Chart */}
+          <div className="mb-6">
+            {displayData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={350}>
+                <ComposedChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-gray-200 dark:stroke-gray-700"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={formatXAxis}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    yAxisId="left"
+                    tickFormatter={formatValue}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: `${color}20` }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      return (
+                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                          <div className="grid gap-2">
+                            <div className="font-medium text-sm">
+                              {formatTooltipDate(payload[0].payload.day)}
+                            </div>
+                            <div className="text-xs">
+                              {period === "D" ? "Daily" : period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}:{" "}
+                              {formatValue(payload[0].payload.value)} AVAX
+                            </div>
+                            <div className="text-xs" style={{ color: "#22c55e" }}>
+                              {maConfig.label}: {formatValue(payload[0].payload.ma)} AVAX
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar
+                    dataKey="value"
+                    fill={color}
+                    radius={[4, 4, 0, 0]}
+                    yAxisId="left"
+                    name="Daily Rewards"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="ma"
+                    stroke="#22c55e"
+                    strokeWidth={2}
+                    dot={false}
+                    yAxisId="left"
+                    name="Moving Average"
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[350px] flex items-center justify-center text-muted-foreground">
+                Loading chart data...
+              </div>
+            )}
+          </div>
+
+          {/* Brush Slider */}
+          {aggregatedData.length > 0 && brushIndexes && 
+           !isNaN(brushIndexes.startIndex) && !isNaN(brushIndexes.endIndex) &&
+           brushIndexes.startIndex >= 0 && brushIndexes.endIndex < aggregatedData.length && (
+            <div className="bg-white dark:bg-black pl-[60px]">
+              <ResponsiveContainer width="100%" height={80}>
+                <LineChart data={aggregatedData} margin={{ top: 0, right: 30, left: 0, bottom: 5 }}>
+                  <Brush
+                    dataKey="day"
+                    height={80}
+                    stroke={color}
+                    fill={`${color}20`}
+                    alwaysShowText={false}
+                    startIndex={brushIndexes.startIndex}
+                    endIndex={brushIndexes.endIndex}
+                    onChange={(e: any) => {
+                      if (e.startIndex !== undefined && e.endIndex !== undefined &&
+                          !isNaN(e.startIndex) && !isNaN(e.endIndex)) {
+                        setBrushIndexes({ startIndex: e.startIndex, endIndex: e.endIndex });
+                      }
+                    }}
+                    travellerWidth={8}
+                    tickFormatter={formatBrushXAxis}
+                  >
+                    <LineChart>
+                      <Line type="monotone" dataKey="value" stroke={color} strokeWidth={1} dot={false} />
+                    </LineChart>
+                  </Brush>
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Cumulative Rewards Chart Card
+function CumulativeRewardsChartCard({
+  data,
+  currentValue,
+  color,
+}: {
+  data: { day: string; value: number }[];
+  currentValue: number | string;
+  color: string;
+}) {
+  const [period, setPeriod] = useState<"D" | "W" | "M" | "Q" | "Y">("D");
+  const [brushIndexes, setBrushIndexes] = useState<{
+    startIndex: number;
+    endIndex: number;
+  } | null>(null);
+
+  // Aggregate data by period
+  const aggregatedData = useMemo(() => {
+    if (period === "D") return data;
+
+    const grouped = new Map<string, { maxValue: number; date: string }>();
+
+    data.forEach((point) => {
+      const date = new Date(point.day);
+      let key: string;
+
+      if (period === "W") {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
+      } else if (period === "M") {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      } else if (period === "Q") {
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
+      } else {
+        key = String(date.getFullYear());
+      }
+
+      if (!grouped.has(key)) {
+        grouped.set(key, { maxValue: 0, date: key });
+      }
+
+      const group = grouped.get(key)!;
+      group.maxValue = Math.max(group.maxValue, point.value);
+    });
+
+    return Array.from(grouped.values())
+      .map((group) => ({
+        day: group.date,
+        value: group.maxValue,
+      }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+  }, [data, period]);
+
+  // Initialize brush - always show from start for cumulative chart
+  useEffect(() => {
+    if (!aggregatedData || aggregatedData.length === 0) {
+      setBrushIndexes(null);
+      return;
+    }
+
+    // Always show full range from start for cumulative rewards
+    setBrushIndexes({
+      startIndex: 0,
+      endIndex: aggregatedData.length - 1,
+    });
+  }, [period, aggregatedData]);
+
+  const displayData = useMemo(() => {
+    if (!brushIndexes || !aggregatedData || aggregatedData.length === 0) return [];
+    const start = Math.max(0, Math.min(brushIndexes.startIndex, aggregatedData.length - 1));
+    const end = Math.max(0, Math.min(brushIndexes.endIndex, aggregatedData.length - 1));
+    if (start > end) return [];
+    return aggregatedData.slice(start, end + 1);
+  }, [brushIndexes, aggregatedData]);
+
+  const formatValue = (value: number): string => {
+    if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
+    if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
+    if (value >= 1e3) return `${(value / 1e3).toFixed(2)}K`;
+    return value.toFixed(2);
+  };
+
+  const formatXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) return `${parts[1]} '${parts[0].slice(-2)}`;
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+    }
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  const formatTooltipDate = (value: string) => {
+    if (period === "Y") return value;
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) return `${parts[1]} ${parts[0]}`;
+      return value;
+    }
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    }
+    if (period === "W") {
+      const endDate = new Date(date);
+      endDate.setDate(date.getDate() + 6);
+      return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+    }
+    return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  };
+
+  const formatBrushXAxis = (value: string) => {
+    if (period === "Q" || period === "Y") return value;
+    const date = new Date(value);
+    return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  };
+
+  return (
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+      <CardContent className="p-0">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div
+              className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+              style={{ backgroundColor: `${color}20` }}
+            >
+              <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" style={{ color }} />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-normal">Cumulative Rewards</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                Total accumulated staking and delegation rewards over time
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-0.5 sm:gap-1">
+            {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors ${
+                  period === p
+                    ? "text-white dark:text-white"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+                style={period === p ? { backgroundColor: color, opacity: 0.9 } : {}}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="px-5 pt-6 pb-6">
+          {/* Current Value */}
+          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4 flex-wrap">
+            <div className="text-md sm:text-base font-mono">
+              Total: {formatValue(typeof currentValue === 'string' ? parseFloat(currentValue) : currentValue)} AVAX
+            </div>
+          </div>
+
+          {/* Chart */}
+          <div className="mb-6">
+            {displayData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={350}>
+                <AreaChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gradient-cumulative-rewards" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={color} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-gray-200 dark:stroke-gray-700"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={formatXAxis}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tickFormatter={formatValue}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: `${color}20` }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      return (
+                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                          <div className="grid gap-2">
+                            <div className="font-medium text-sm">
+                              {formatTooltipDate(payload[0].payload.day)}
+                            </div>
+                            <div className="text-xs">
+                              Total: {formatValue(payload[0].payload.value)} AVAX
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke={color}
+                    fill="url(#gradient-cumulative-rewards)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[350px] flex items-center justify-center text-muted-foreground">
+                Loading chart data...
+              </div>
+            )}
+          </div>
+
+          {/* Brush Slider */}
+          {aggregatedData.length > 0 && brushIndexes && 
+           !isNaN(brushIndexes.startIndex) && !isNaN(brushIndexes.endIndex) &&
+           brushIndexes.startIndex >= 0 && brushIndexes.endIndex < aggregatedData.length && (
+            <div className="bg-white dark:bg-black pl-[60px]">
+              <ResponsiveContainer width="100%" height={80}>
+                <LineChart data={aggregatedData} margin={{ top: 0, right: 30, left: 0, bottom: 5 }}>
+                  <Brush
+                    dataKey="day"
+                    height={80}
+                    stroke={color}
+                    fill={`${color}20`}
+                    alwaysShowText={false}
+                    startIndex={brushIndexes.startIndex}
+                    endIndex={brushIndexes.endIndex}
+                    onChange={(e: any) => {
+                      if (e.startIndex !== undefined && e.endIndex !== undefined &&
+                          !isNaN(e.startIndex) && !isNaN(e.endIndex)) {
+                        setBrushIndexes({ startIndex: e.startIndex, endIndex: e.endIndex });
+                      }
+                    }}
+                    travellerWidth={8}
+                    tickFormatter={formatBrushXAxis}
+                  >
+                    <LineChart>
+                      <Line type="monotone" dataKey="value" stroke={color} strokeWidth={1} dot={false} />
+                    </LineChart>
+                  </Brush>
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
