@@ -35,6 +35,19 @@ interface ChainMetrics {
   icmMessages: ICMMetric;
   dailyRewards?: TimeSeriesMetric;
   cumulativeRewards?: TimeSeriesMetric;
+  // Primary Network specific metrics
+  netCumulativeEmissions?: TimeSeriesMetric;
+  netEmissionsDaily?: TimeSeriesMetric;
+  cumulativeBurn?: TimeSeriesMetric;
+  totalBurnDaily?: TimeSeriesMetric;
+  cChainFeesDaily?: TimeSeriesMetric;
+  pChainFeesDaily?: TimeSeriesMetric;
+  xChainFeesDaily?: TimeSeriesMetric;
+  validatorFeesDaily?: TimeSeriesMetric;
+  cumulativeCChainFees?: TimeSeriesMetric;
+  cumulativePChainFees?: TimeSeriesMetric;
+  cumulativeXChainFees?: TimeSeriesMetric;
+  cumulativeValidatorFees?: TimeSeriesMetric;
   last_updated: number;
 }
 
@@ -176,9 +189,27 @@ async function getActiveAddressesData(
 // Only available for Avalanche C-Chain (43114)
 const REWARDS_URL = 'https://ava-labs-inc.metabaseapp.com/api/public/dashboard/3e895234-4c31-40f7-a3ee-4656f6caf535/dashcard/6788/card/5464?parameters=%5B%7B%22type%22%3A%22string%2F%3D%22%2C%22value%22%3Anull%2C%22id%22%3A%22b87e50a4%22%2C%22target%22%3A%5B%22variable%22%2C%5B%22template-tag%22%2C%22address%22%5D%5D%7D%2C%7B%22type%22%3A%22string%2F%3D%22%2C%22value%22%3Anull%2C%22id%22%3A%2242440d5%22%2C%22target%22%3A%5B%22variable%22%2C%5B%22template-tag%22%2C%22Node_ID%22%5D%5D%7D%2C%7B%22type%22%3A%22string%2F%3D%22%2C%22value%22%3Anull%2C%22id%22%3A%22ccdf28e0%22%2C%22target%22%3A%5B%22dimension%22%2C%5B%22template-tag%22%2C%22Reward_Type%22%5D%2C%7B%22stage-number%22%3A0%7D%5D%7D%5D';
 
+// Metabase endpoint URL for Primary Network emissions/burn/fees data
+const PRIMARY_NETWORK_FEES_URL = 'https://ava-labs-inc.metabaseapp.com/api/public/dashboard/38ea69a5-e373-4258-9db6-8425fcba3a1a/dashcard/9955/card/13502?parameters=%5B%5D';
+
 interface RewardsData {
   daily: TimeSeriesDataPoint[];
   cumulative: TimeSeriesDataPoint[];
+}
+
+interface PrimaryNetworkFeesData {
+  netCumulativeEmissions: TimeSeriesDataPoint[];
+  netEmissionsDaily: TimeSeriesDataPoint[];
+  cumulativeBurn: TimeSeriesDataPoint[];
+  totalBurnDaily: TimeSeriesDataPoint[];
+  cChainFeesDaily: TimeSeriesDataPoint[];
+  pChainFeesDaily: TimeSeriesDataPoint[];
+  xChainFeesDaily: TimeSeriesDataPoint[];
+  validatorFeesDaily: TimeSeriesDataPoint[];
+  cumulativeCChainFees: TimeSeriesDataPoint[];
+  cumulativePChainFees: TimeSeriesDataPoint[];
+  cumulativeXChainFees: TimeSeriesDataPoint[];
+  cumulativeValidatorFees: TimeSeriesDataPoint[];
 }
 
 async function fetchRewardsData(): Promise<RewardsData> {
@@ -225,6 +256,102 @@ async function fetchRewardsData(): Promise<RewardsData> {
       console.warn('[fetchRewardsData] Error:', error);
     }
     return { daily: [], cumulative: [] };
+  }
+}
+
+async function fetchPrimaryNetworkFeesData(): Promise<PrimaryNetworkFeesData> {
+  const emptyResult: PrimaryNetworkFeesData = {
+    netCumulativeEmissions: [],
+    netEmissionsDaily: [],
+    cumulativeBurn: [],
+    totalBurnDaily: [],
+    cChainFeesDaily: [],
+    pChainFeesDaily: [],
+    xChainFeesDaily: [],
+    validatorFeesDaily: [],
+    cumulativeCChainFees: [],
+    cumulativePChainFees: [],
+    cumulativeXChainFees: [],
+    cumulativeValidatorFees: [],
+  };
+
+  try {
+    const response = await fetchWithTimeout(PRIMARY_NETWORK_FEES_URL, {
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (!response.ok) {
+      console.warn(`[fetchPrimaryNetworkFeesData] Failed to fetch: ${response.status}`);
+      return emptyResult;
+    }
+
+    const data = await response.json();
+    
+    if (!data?.data?.rows || !Array.isArray(data.data.rows)) {
+      console.warn('[fetchPrimaryNetworkFeesData] Invalid data format');
+      return emptyResult;
+    }
+
+    // Column mapping from the API:
+    // idx[0] = date
+    // idx[2] = cumulative burn
+    // idx[3] = net cumulative emissions
+    // idx[5] = total burn daily
+    // idx[6] = net emissions daily
+    // idx[7] = c chain tx fees daily
+    // idx[8] = p chain tx fees daily
+    // idx[9] = x chain tx fees daily
+    // idx[10] = validator fees daily
+    // idx[11] = cumulative c chain fees
+    // idx[12] = cumulative p chain fees
+    // idx[13] = cumulative x chain fees
+    // idx[14] = cumulative validator fees daily
+
+    const result: PrimaryNetworkFeesData = {
+      netCumulativeEmissions: [],
+      netEmissionsDaily: [],
+      cumulativeBurn: [],
+      totalBurnDaily: [],
+      cChainFeesDaily: [],
+      pChainFeesDaily: [],
+      xChainFeesDaily: [],
+      validatorFeesDaily: [],
+      cumulativeCChainFees: [],
+      cumulativePChainFees: [],
+      cumulativeXChainFees: [],
+      cumulativeValidatorFees: [],
+    };
+
+    data.data.rows.forEach((row: any[]) => {
+      const dateStr = row[0];
+      const timestamp = Math.floor(new Date(dateStr).getTime() / 1000);
+      const date = dateStr.split('T')[0];
+
+      result.cumulativeBurn.push({ timestamp, value: row[2] || 0, date });
+      result.netCumulativeEmissions.push({ timestamp, value: row[3] || 0, date });
+      result.totalBurnDaily.push({ timestamp, value: row[5] || 0, date });
+      result.netEmissionsDaily.push({ timestamp, value: row[6] || 0, date });
+      result.cChainFeesDaily.push({ timestamp, value: row[7] || 0, date });
+      result.pChainFeesDaily.push({ timestamp, value: row[8] || 0, date });
+      result.xChainFeesDaily.push({ timestamp, value: row[9] || 0, date });
+      result.validatorFeesDaily.push({ timestamp, value: row[10] || 0, date });
+      result.cumulativeCChainFees.push({ timestamp, value: row[11] || 0, date });
+      result.cumulativePChainFees.push({ timestamp, value: row[12] || 0, date });
+      result.cumulativeXChainFees.push({ timestamp, value: row[13] || 0, date });
+      result.cumulativeValidatorFees.push({ timestamp, value: row[14] || 0, date });
+    });
+
+    // Sort all arrays by timestamp descending (most recent first)
+    Object.keys(result).forEach((key) => {
+      (result as any)[key].sort((a: TimeSeriesDataPoint, b: TimeSeriesDataPoint) => b.timestamp - a.timestamp);
+    });
+
+    return result;
+  } catch (error) {
+    if (error instanceof Error && error.name !== 'AbortError') {
+      console.warn('[fetchPrimaryNetworkFeesData] Error:', error);
+    }
+    return emptyResult;
   }
 }
 
@@ -294,10 +421,19 @@ const ALL_METRICS = [
   'txCount', 'cumulativeTxCount', 'cumulativeContracts', 'contracts', 'deployers',
   'gasUsed', 'avgGps', 'maxGps', 'avgTps', 'maxTps', 'avgGasPrice', 'maxGasPrice',
   'feesPaid', 'icmMessages', 'dailyRewards', 'cumulativeRewards',
+  // Primary Network specific metrics
+  'netCumulativeEmissions', 'netEmissionsDaily', 'cumulativeBurn', 'totalBurnDaily',
+  'cChainFeesDaily', 'pChainFeesDaily', 'xChainFeesDaily', 'validatorFeesDaily',
+  'cumulativeCChainFees', 'cumulativePChainFees', 'cumulativeXChainFees', 'cumulativeValidatorFees',
 ] as const;
 
-// Metrics that are only available for the Primary Network (Avalanche C-Chain)
-const PRIMARY_NETWORK_ONLY_METRICS = ['dailyRewards', 'cumulativeRewards'] as const;
+// Metrics that are only available for the Primary Network
+const PRIMARY_NETWORK_ONLY_METRICS = [
+  'dailyRewards', 'cumulativeRewards',
+  'netCumulativeEmissions', 'netEmissionsDaily', 'cumulativeBurn', 'totalBurnDaily',
+  'cChainFeesDaily', 'pChainFeesDaily', 'xChainFeesDaily', 'validatorFeesDaily',
+  'cumulativeCChainFees', 'cumulativePChainFees', 'cumulativeXChainFees', 'cumulativeValidatorFees',
+] as const;
 
 type MetricKey = typeof ALL_METRICS[number];
 
@@ -343,11 +479,26 @@ async function fetchFreshDataInternal(
       fetchPromises['icmMessages'] = getICMData(chainId, timeRange, startTimestamp, endTimestamp);
     }
     
-    // Rewards data (only available for Avalanche C-Chain - 43114)
-    const isAvalancheCChain = chainId === '43114';
+    // Primary Network data (available for chainId "43114" or "primary")
+    const isPrimaryNetwork = chainId === '43114' || chainId === 'primary';
     let rewardsData: RewardsData | null = null;
-    if (isAvalancheCChain && (requestedMetrics.includes('dailyRewards') || requestedMetrics.includes('cumulativeRewards'))) {
+    let primaryNetworkFeesData: PrimaryNetworkFeesData | null = null;
+    
+    if (isPrimaryNetwork && (requestedMetrics.includes('dailyRewards') || requestedMetrics.includes('cumulativeRewards'))) {
       rewardsData = await fetchRewardsData();
+    }
+    
+    // Check if any Primary Network fees metrics are requested
+    const primaryNetworkFeesMetrics: MetricKey[] = [
+      'netCumulativeEmissions', 'netEmissionsDaily', 'cumulativeBurn', 'totalBurnDaily',
+      'cChainFeesDaily', 'pChainFeesDaily', 'xChainFeesDaily', 'validatorFeesDaily',
+      'cumulativeCChainFees', 'cumulativePChainFees', 'cumulativeXChainFees', 'cumulativeValidatorFees',
+    ];
+    const needsPrimaryNetworkFees = isPrimaryNetwork && 
+      requestedMetrics.some(m => primaryNetworkFeesMetrics.includes(m));
+    
+    if (needsPrimaryNetworkFees) {
+      primaryNetworkFeesData = await fetchPrimaryNetworkFeesData();
     }
     
     // Fetch all in parallel
@@ -406,13 +557,53 @@ async function fetchFreshDataInternal(
       metrics.icmMessages = createICMMetric(results['icmMessages'] as ICMDataPoint[]);
     }
     
-    // Add rewards data (only for Avalanche C-Chain)
+    // Add rewards data (only for Primary Network)
     if (rewardsData) {
       if (requestedMetrics.includes('dailyRewards') && rewardsData.daily.length > 0) {
         metrics.dailyRewards = createTimeSeriesMetric(rewardsData.daily);
       }
       if (requestedMetrics.includes('cumulativeRewards') && rewardsData.cumulative.length > 0) {
         metrics.cumulativeRewards = createTimeSeriesMetric(rewardsData.cumulative);
+      }
+    }
+    
+    // Add Primary Network fees data
+    if (primaryNetworkFeesData) {
+      if (requestedMetrics.includes('netCumulativeEmissions') && primaryNetworkFeesData.netCumulativeEmissions.length > 0) {
+        metrics.netCumulativeEmissions = createTimeSeriesMetric(primaryNetworkFeesData.netCumulativeEmissions);
+      }
+      if (requestedMetrics.includes('netEmissionsDaily') && primaryNetworkFeesData.netEmissionsDaily.length > 0) {
+        metrics.netEmissionsDaily = createTimeSeriesMetric(primaryNetworkFeesData.netEmissionsDaily);
+      }
+      if (requestedMetrics.includes('cumulativeBurn') && primaryNetworkFeesData.cumulativeBurn.length > 0) {
+        metrics.cumulativeBurn = createTimeSeriesMetric(primaryNetworkFeesData.cumulativeBurn);
+      }
+      if (requestedMetrics.includes('totalBurnDaily') && primaryNetworkFeesData.totalBurnDaily.length > 0) {
+        metrics.totalBurnDaily = createTimeSeriesMetric(primaryNetworkFeesData.totalBurnDaily);
+      }
+      if (requestedMetrics.includes('cChainFeesDaily') && primaryNetworkFeesData.cChainFeesDaily.length > 0) {
+        metrics.cChainFeesDaily = createTimeSeriesMetric(primaryNetworkFeesData.cChainFeesDaily);
+      }
+      if (requestedMetrics.includes('pChainFeesDaily') && primaryNetworkFeesData.pChainFeesDaily.length > 0) {
+        metrics.pChainFeesDaily = createTimeSeriesMetric(primaryNetworkFeesData.pChainFeesDaily);
+      }
+      if (requestedMetrics.includes('xChainFeesDaily') && primaryNetworkFeesData.xChainFeesDaily.length > 0) {
+        metrics.xChainFeesDaily = createTimeSeriesMetric(primaryNetworkFeesData.xChainFeesDaily);
+      }
+      if (requestedMetrics.includes('validatorFeesDaily') && primaryNetworkFeesData.validatorFeesDaily.length > 0) {
+        metrics.validatorFeesDaily = createTimeSeriesMetric(primaryNetworkFeesData.validatorFeesDaily);
+      }
+      if (requestedMetrics.includes('cumulativeCChainFees') && primaryNetworkFeesData.cumulativeCChainFees.length > 0) {
+        metrics.cumulativeCChainFees = createTimeSeriesMetric(primaryNetworkFeesData.cumulativeCChainFees);
+      }
+      if (requestedMetrics.includes('cumulativePChainFees') && primaryNetworkFeesData.cumulativePChainFees.length > 0) {
+        metrics.cumulativePChainFees = createTimeSeriesMetric(primaryNetworkFeesData.cumulativePChainFees);
+      }
+      if (requestedMetrics.includes('cumulativeXChainFees') && primaryNetworkFeesData.cumulativeXChainFees.length > 0) {
+        metrics.cumulativeXChainFees = createTimeSeriesMetric(primaryNetworkFeesData.cumulativeXChainFees);
+      }
+      if (requestedMetrics.includes('cumulativeValidatorFees') && primaryNetworkFeesData.cumulativeValidatorFees.length > 0) {
+        metrics.cumulativeValidatorFees = createTimeSeriesMetric(primaryNetworkFeesData.cumulativeValidatorFees);
       }
     }
 
