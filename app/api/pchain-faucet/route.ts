@@ -25,7 +25,7 @@ async function transferPToP(
   const pvmApi = new pvm.PVMApi("https://api.avax-test.network");
   const feeState = await pvmApi.getFeeState();
   const { utxos } = await pvmApi.getUTXOs({ addresses: [sourceAddress] });
-  const amountNAvax = BigInt(FIXED_AMOUNT) * BigInt(1e9);
+  const amountNAvax = BigInt(Math.floor(FIXED_AMOUNT * 1e9));
 
   const outputs = [
     TransferableOutput.fromNative(context.avaxAssetID, amountNAvax, [
