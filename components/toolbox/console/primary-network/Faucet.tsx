@@ -114,7 +114,7 @@ function Faucet({ onSuccess }: BaseConsoleToolProps) {
                   </h3>
                   <span className="shrink-0">
                     <span className="font-mono font-semibold text-zinc-900 dark:text-white">
-                      {cChain?.faucetThresholds?.dripAmount || 2}
+                      {cChain?.faucetThresholds?.dripAmount || 0.5}
                     </span>
                     <span className="text-sm text-zinc-500 ml-1">
                       {cChain?.coinName || "AVAX"}
