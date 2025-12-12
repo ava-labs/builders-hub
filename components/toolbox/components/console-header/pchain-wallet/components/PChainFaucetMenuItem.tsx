@@ -5,12 +5,22 @@ import { Droplet } from "lucide-react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { AlertDialog,AlertDialogAction,AlertDialogContent,AlertDialogDescription,AlertDialogFooter,AlertDialogHeader,AlertDialogTitle } from "@/components/toolbox/components/AlertDialog";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { useFaucetRateLimit } from "@/hooks/useFaucetRateLimit";
 
 export function PChainFaucetMenuItem() {
   const pChainAddress = useWalletStore((s) => s.pChainAddress);
   const updatePChainBalance = useWalletStore((s) => s.updatePChainBalance);
   const isTestnet = useWalletStore((s) => s.isTestnet);
   const { notify } = useConsoleNotifications();
+  
+  const { 
+    canClaim, 
+    allowed, 
+    timeUntilReset, 
+    getRateLimitMessage,
+    checkRateLimit,
+    isLoading: isCheckingRateLimit 
+  } = useFaucetRateLimit({ faucetType: 'pchain' });
 
   // Faucet state
   const [isRequestingPTokens, setIsRequestingPTokens] = useState(false);
@@ -24,7 +34,7 @@ export function PChainFaucetMenuItem() {
   };
 
   const handlePChainTokenRequest = async () => {
-    if (isRequestingPTokens || !pChainAddress) return;
+    if (isRequestingPTokens || !pChainAddress || !canClaim) return;
     setIsRequestingPTokens(true);
 
     const faucetRequest = async () => {
@@ -49,7 +59,10 @@ export function PChainFaucetMenuItem() {
       }
 
       if (data.success) {
-        setTimeout(() => updatePChainBalance(), 3000);
+        setTimeout(() => {
+          updatePChainBalance();
+          checkRateLimit(); // Refresh rate limit status
+        }, 3000);
         return data;
       } else {
         throw new Error(data.message || "Failed to get tokens");
@@ -92,6 +105,15 @@ export function PChainFaucetMenuItem() {
     return null;
   }
 
+  const isDisabled = isRequestingPTokens || !canClaim || isCheckingRateLimit;
+  
+  const getMenuItemText = () => {
+    if (isRequestingPTokens) return "Requesting...";
+    if (isCheckingRateLimit) return "Checking...";
+    if (!allowed && timeUntilReset) return `Faucet available in ${timeUntilReset}`;
+    return "Get AVAX from Faucet";
+  };
+
   return (
     <>
       <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
@@ -121,11 +143,12 @@ export function PChainFaucetMenuItem() {
 
       <DropdownMenuItem
         onClick={handlePChainTokenRequest}
-        disabled={isRequestingPTokens}
+        disabled={isDisabled}
         className='cursor-pointer'
+        title={!allowed ? getRateLimitMessage() : undefined}
       >
         <Droplet className="mr-2 h-3 w-3" />
-        {isRequestingPTokens ? "Requesting..." : "Get AVAX from Faucet"}
+        {getMenuItemText()}
       </DropdownMenuItem>
     </>
   );
