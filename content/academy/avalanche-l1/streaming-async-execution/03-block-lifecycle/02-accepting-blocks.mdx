@@ -1,0 +1,176 @@
+---
+title: Accepting Blocks
+description: How blocks are accepted by consensus and added to the execution queue.
+updated: 2024-12-06
+authors: [owenwahlgren]
+---
+
+## Block Acceptance Under SAE
+
+Once a block is proposed, it goes through Snowman consensus like any other block. The key difference in SAE is what happens after acceptance: the block is added to an execution queue rather than being immediately settled.
+
+## Consensus Process
+
+The consensus process for accepting a block remains largely unchanged:
+
+1. **Proposal**: A validator proposes the block
+2. **Verification**: Other validators verify the block is valid
+3. **Voting**: Validators vote on whether to accept the block
+4. **Acceptance**: Once sufficient votes are received, the block is accepted
+
+What changes is the **verification criteria** and the **post-acceptance behavior**.
+
+## Verification Under SAE
+
+When verifying a proposed block, validators check:
+
+### 1. Standard Block Validity
+- Parent hash is correct
+- Timestamp is valid
+- Transaction signatures are valid
+- Nonces are correct
+
+### 2. Worst-Case Bounds
+- Block builder correctly calculated worst-case excess
+- Base fee matches worst-case calculation
+- All senders have sufficient worst-case balances
+- Block size does not exceed $\omega_B$
+
+### 3. Queue Size
+- Current queue size does not exceed $\omega_Q$
+
+```
+Validation Checklist:
+[x] Parent hash correct
+[x] Timestamp valid
+[x] All signatures valid
+[x] All nonces correct
+[x] Worst-case excess calculated correctly
+[x] Base fee matches worst-case
+[x] All senders have sufficient balance
+[x] Block size <= omega_B
+[x] Queue size <= omega_Q before adding this block
+```
+
+<Callout type="warn" title="Queue Size Check">
+The queue size is checked **prior** to adding the new block. This means $\omega_Q$ is the maximum queue size before enqueueing, ensuring $\omega_B$ remains the only limitation on block size.
+</Callout>
+
+## The FIFO Execution Queue
+
+Once accepted, the block is added to a First-In-First-Out (FIFO) execution queue:
+
+<Mermaid chart={`flowchart LR
+    subgraph "Execution Queue"
+    direction LR
+    B100[Block 100] --> B101[Block 101] --> B102[Block 102] --> B103[Block 103]
+    end
+    B104[New Block 104] --> B103
+    E[Block Executor] --> B100
+    style B100 fill:#FFE4B5
+    style B104 fill:#87CEEB
+    style E fill:#90EE90`} />
+
+### Queue Properties
+
+| Property | Description |
+|----------|-------------|
+| Ordering | FIFO - blocks are executed in acceptance order |
+| Capacity | Limited by $\omega_Q = 2 \cdot \omega_B$ |
+| Processing | Continuous - executor runs in parallel with consensus |
+
+## Acceptance Guarantees
+
+When a block is accepted under SAE, several important guarantees are established:
+
+### 1. Transaction Inclusion
+All transactions in the block are guaranteed to be included in the queue. Their ordering is fixed.
+
+### 2. Eventual Execution
+Every transaction in an accepted block will eventually be executed. This is guaranteed by worst-case validity.
+
+### 3. Eventual Settlement
+Every transaction will eventually be settled. The path from acceptance to settlement is guaranteed:
+
+$$
+Accepted \rightarrow Executed \rightarrow Settled
+$$
+
+### What Acceptance Does NOT Guarantee
+
+<Callout type="info" title="Not Guaranteed">
+- Whether individual transactions will succeed or revert
+- The actual gas used (only that gas can be paid for)
+- The exact execution time (only that it will happen)
+</Callout>
+
+## User Perspective
+
+From a user's perspective, transaction acceptance under SAE means:
+
+### Immediate Benefits
+- Transaction is ordered (no reordering possible)
+- Inclusion is guaranteed
+- Outcome is deterministic (same inputs = same outputs)
+
+### What to Wait For
+- **Execution**: To know the actual result (success/revert)
+- **Settlement**: For the result to be recorded on-chain
+
+## EOA-to-EOA Transfers
+
+For simple EOA-to-EOA transfers, acceptance provides additional certainty:
+
+A reliable marker of such transactions is a gas limit of 21,000, indicating no bytecode execution. For these transactions:
+
+- Outcome is entirely predictable upon acceptance
+- No smart contract execution means no possibility of revert
+- Custodial platforms can safely credit balances immediately
+
+```solidity
+// This transaction's outcome is known at acceptance
+Transaction {
+    to: 0x1234...
+    value: 1 ether
+    gasLimit: 21000  // EOA transfer marker
+    data: 0x         // No contract call
+}
+```
+
+## Queue Size Dynamics
+
+The queue size fluctuates based on:
+- Block acceptance rate (adds to queue)
+- Execution rate (removes from queue)
+- Block sizes (gas limits)
+
+Under normal operation, the queue remains relatively small. During bursts of activity, it can grow up to $\omega_Q$.
+
+```
+Queue Size Over Time:
+     ^
+  wQ |............................ Maximum
+     |
+     |    /\
+     |   /  \    /\
+     |  /    \  /  \
+     | /      \/    \
+     |/              \___________
+     +-------------------------->
+                              Time
+```
+
+## Summary
+
+Block acceptance under SAE:
+- Follows standard Snowman consensus
+- Adds worst-case validity verification
+- Enqueues accepted blocks for execution
+- Guarantees eventual execution and settlement
+- Enables immediate certainty for simple transfers
+
+Next, we will explore how the block executor processes the queue.
+
+<Quiz quizId="sae-202" question="What is the maximum queue size before a new block can be added?" options={["omega_B", "2 * omega_B (omega_Q)", "Unlimited", "tau * R"]} correctAnswer={1} hint="The queue size is checked before adding a new block" explanation="The maximum allowed queue size prior to adding a new block is omega_Q = 2 * omega_B. This ensures blocks can be accepted during bursts while preventing unbounded queue growth." />
+
+<Quiz quizId="sae-203" question="Why can custodial platforms credit balances immediately for EOA-to-EOA transfers?" options={["Because they have special access to the blockchain", "Because the gas limit of 21,000 indicates no bytecode execution, making the outcome predictable", "Because SAE always executes simple transfers first", "Because the balance is already updated at acceptance"]} correctAnswer={1} hint="Think about what makes these transfers predictable" explanation="A gas limit of 21,000 indicates an EOA-to-EOA transfer with no bytecode execution. Since there is no smart contract to potentially revert, the outcome is entirely predictable upon acceptance." />

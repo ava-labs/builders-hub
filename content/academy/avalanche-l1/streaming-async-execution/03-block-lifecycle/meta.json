@@ -1,0 +1,9 @@
+{
+  "title": "Block Lifecycle",
+  "pages": [
+    "01-proposing-blocks",
+    "02-accepting-blocks",
+    "03-executing-blocks",
+    "04-settling-blocks"
+  ]
+}

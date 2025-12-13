@@ -1,0 +1,79 @@
+---
+title: Course Completion Certificate
+description: Complete your Streaming Asynchronous Execution course and claim your certificate.
+updated: 2024-12-06
+authors: [owenwahlgren]
+icon: BadgeCheck
+---
+
+import CertificatePage from '@/components/quizzes/certificates';
+
+## Congratulations!
+
+You have completed the **Streaming Asynchronous Execution** course. You now understand one of the most significant architectural advancements coming to Avalanche.
+
+## What You Learned
+
+Throughout this course, you explored:
+
+### Execution Models
+- The difference between synchronous and asynchronous execution
+- How traditional blockchains couple consensus and execution
+- Why decoupling enables better performance
+
+### Block Lifecycle Under SAE
+- How blocks are proposed without execution
+- The FIFO execution queue and acceptance process
+- How the block executor processes transactions
+- Settlement timing and the tau delay
+
+### Gas Mechanics
+- Gas pricing fundamentals (T, M, K, R)
+- The gas charged formula and lambda parameter
+- Worst-case validity guarantees
+- Queue DoS protection mechanisms
+
+### Practical Implications
+- API behavior changes and named blocks
+- dApp optimization strategies
+- Advanced use cases (HFT DeFi, custodial platforms)
+- Future features enabled by SAE (VRF, encrypted mempool)
+
+## Key Takeaways
+
+| Concept | Key Point |
+|---------|-----------|
+| Decoupling | Consensus and execution run in parallel |
+| Worst-Case Validity | Accepted transactions are guaranteed to settle |
+| Gas Charged | $g_C = \max(g_U, g_L/\lambda)$ |
+| Settlement Delay | $\tau$ = 5 seconds for C-Chain |
+| Queue Limits | $\omega_Q = 2 \cdot \omega_B$ |
+| Max DoS Impact | ~12% fee increase |
+
+## Next Steps
+
+Now that you understand SAE, consider:
+
+1. **Stay Updated**: Follow the [ACP-194 Discussion](https://github.com/avalanche-foundation/ACPs/discussions/196) for implementation updates
+
+2. **Prepare Your dApps**: Review your gas limit strategies and user experience flows
+
+3. **Explore Related Topics**:
+   - [Avalanche Consensus](/academy/avalanche-l1/avalanche-fundamentals/02-avalanche-consensus-intro/01-avalanche-consensus-intro)
+   - [ACP-194 Full Specification](/docs/acps/194-streaming-asynchronous-execution)
+
+4. **Share Your Knowledge**: Help other developers understand SAE
+
+## Claim Your Certificate
+
+You've made it to the end of the course. Let's check your progress and get your certificate.
+
+<CertificatePage courseId="streaming-async-execution"/>
+
+Thank you for participating in this course. We hope you found it informative and are excited about the future of Avalanche execution!
+
+## Feedback
+
+We value your feedback to improve this course. If you have suggestions or found issues, please:
+- Open an issue on the [Builders Hub repository](https://github.com/ava-labs/builders-hub)
+- Join the discussion in the Avalanche developer community

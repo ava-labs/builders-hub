@@ -1,0 +1,64 @@
+---
+title: Welcome to the Course
+description: Learn about Streaming Asynchronous Execution (ACP-194) and how it transforms Avalanche block processing.
+updated: 2024-12-06
+authors: [owenwahlgren]
+icon: Zap
+---
+
+## Why Take This Course?
+
+**Streaming Asynchronous Execution (SAE)** represents a fundamental architectural advancement in how Avalanche processes transactions. Defined by [ACP-194](/docs/acps/194-streaming-asynchronous-execution), SAE decouples consensus from execution by introducing a transaction queue upon which consensus is performed. A concurrent execution stream clears the queue and reports a delayed state root for recording by later rounds of consensus.
+
+This course provides a comprehensive understanding of SAE, preparing you for the upcoming changes to Avalanche's execution model.
+
+<Callout type="info" title="ACP Status">
+ACP-194 is currently in **Proposed** status with active community discussion. This course teaches the concepts and architecture to prepare developers for when SAE is activated.
+</Callout>
+
+## Course Content
+
+- [Execution Models](/academy/avalanche-l1/streaming-async-execution/02-execution-models/01-synchronous-execution) - Understand synchronous vs asynchronous execution
+- [Block Lifecycle](/academy/avalanche-l1/streaming-async-execution/03-block-lifecycle/01-proposing-blocks) - Learn the complete block lifecycle under SAE
+- [Gas Mechanics](/academy/avalanche-l1/streaming-async-execution/04-gas-mechanics/01-gas-pricing-review) - Master gas pricing and queue management
+- [Practical Implications](/academy/avalanche-l1/streaming-async-execution/05-practical-implications/01-api-behavior-changes) - Apply SAE concepts to real-world use cases
+
+## Prerequisites
+
+Before taking this course, you should have:
+
+- **Avalanche Fundamentals**: Completion of the [Avalanche Fundamentals](/academy/avalanche-l1/avalanche-fundamentals) course
+- **Snowman Consensus**: Understanding of how Snowman Consensus works
+- **EVM Basics**: Basic understanding of the Ethereum Virtual Machine execution model
+- **Gas Mechanics**: Familiarity with gas limits, gas usage, and gas pricing
+
+## Learning Outcomes
+
+By the end of this course, you will be able to:
+
+1. **Explain** the difference between synchronous and asynchronous execution models in blockchain systems
+2. **Describe** the complete block lifecycle under SAE: Proposed, Accepted, Executed, and Settled
+3. **Understand** the mathematical foundations of gas pricing and queue management under SAE
+4. **Apply** worst-case validity concepts to transaction design and dApp optimization
+5. **Recognize** the implications of SAE for different use cases including DeFi, custodial platforms, and node operation
+
+## Who Should Take This Course?
+
+- **Protocol Developers** building on Avalanche who need to understand execution model changes
+- **dApp Developers** wanting to optimize their applications for SAE
+- **Blockchain Researchers** studying advanced execution models
+- **DeFi Traders** interested in understanding HFT implications
+- **Node Operators** preparing for network upgrades
+
+## Course Duration
+
+Approximately **1.5 hours**
+
+## Key Parameters
+
+Throughout this course, we will reference the C-Chain configuration parameters for SAE:
+
+| Parameter | Symbol | C-Chain Value | Description |
+|-----------|--------|---------------|-------------|
+| Settlement Delay | $\tau$ | 5 seconds | Duration between execution and settlement |
+| Gas Limit Divisor | $\lambda$ | 2 | Minimum conversion from gas limit to gas charged |

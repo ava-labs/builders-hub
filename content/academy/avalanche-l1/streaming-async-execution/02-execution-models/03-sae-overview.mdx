@@ -1,0 +1,149 @@
+---
+title: SAE Overview
+description: High-level overview of ACP-194 Streaming Asynchronous Execution architecture.
+updated: 2024-12-06
+authors: [owenwahlgren]
+---
+
+## What is Streaming Asynchronous Execution?
+
+**Streaming Asynchronous Execution (SAE)**, defined by [ACP-194](/docs/acps/194-streaming-asynchronous-execution), is Avalanche's implementation of asynchronous execution. It introduces a fundamental change to how blocks are processed while maintaining strong security guarantees.
+
+## Core Architecture
+
+SAE introduces a **queue-based architecture** where:
+
+1. **Consensus determines transaction ordering** - Validators agree on which transactions are included and in what order
+2. **Execution happens asynchronously** - A separate execution stream processes the agreed-upon transactions
+3. **Settlement is delayed but guaranteed** - Results are recorded in later blocks with a constant delay
+
+<Mermaid chart={`flowchart LR
+    I[Proposed] --> A[Accepted]
+    A -->|variable delay| E[Executed]
+    E -->|tau seconds| S[Settled]
+    A -. guarantees .-> S`} />
+
+## The FIFO Execution Queue
+
+At the heart of SAE is a First-In-First-Out (FIFO) queue:
+
+```
+Consensus Stream:    Block 100 -> Block 101 -> Block 102 -> Block 103
+                         |            |            |            |
+                         v            v            v            v
+Execution Queue:    [Block 100] [Block 101] [Block 102] [Block 103]
+                         |
+                         v
+Execution Stream:   Processing Block 100...
+```
+
+When a block is accepted by consensus:
+1. It is added to the end of the execution queue
+2. The block executor processes blocks from the front of the queue
+3. Executed blocks wait for settlement
+
+## Key Parameters
+
+SAE introduces several new parameters for the C-Chain:
+
+| Parameter | Symbol | Value | Description |
+|-----------|--------|-------|-------------|
+| Settlement Delay | $\tau$ | 5 seconds | Time between execution and settlement |
+| Gas Limit Divisor | $\lambda$ | 2 | Minimum gas charged relative to gas limit |
+
+These parameters are used to derive:
+
+$$
+\omega_B := R \cdot \tau \cdot \lambda
+$$
+
+Where $\omega_B$ is the maximum block size and $R$ is the gas capacity per second.
+
+## Worst-Case Validity
+
+A critical innovation in SAE is **worst-case validity**. Since transactions are not executed before consensus, we need guarantees that accepted transactions can actually be executed.
+
+<Callout type="warn" title="Key Guarantee">
+Transaction acceptance under worst-case cost validity is a guarantee of settlement. If a transaction is accepted, it WILL be executed and settled.
+</Callout>
+
+Worst-case validity ensures:
+- Senders have enough balance to pay for the maximum possible gas cost
+- The gas excess (and therefore price) is bounded
+- All transactions in the queue can be paid for
+
+## Performance Improvements
+
+SAE enables several performance improvements:
+
+### 1. Concurrent Streams
+
+```
+Before SAE:
+[Consensus] -> [Execute] -> [Consensus] -> [Execute] -> ...
+
+After SAE:
+[Consensus] [Consensus] [Consensus] [Consensus]
+     |           |           |           |
+     v           v           v           v
+        [Execute]  [Execute]  [Execute]
+```
+
+### 2. Lean Execution Clients
+
+Without needing state roots, execution clients can:
+- Skip expensive Merkle tree computations
+- Process transactions faster
+- Provide early receipt information
+
+### 3. Third-Party Accounting
+
+Non-data-dependent transactions (like EOA-to-EOA transfers) can be accounted for immediately upon acceptance:
+- Gas limit of 21,000 indicates no bytecode execution
+- Outcome is entirely predictable
+- Custodial platforms can credit balances early
+
+## Future Features Enabled
+
+SAE enables features that require knowing transaction ordering before execution:
+
+### Real-Time VRF
+
+With execution happening after consensus:
+- Consensus artifacts can be used in execution
+- A real-time Verifiable Random Function becomes possible
+- Random values cannot be predicted or manipulated by block producers
+
+### Encrypted Mempool
+
+SAE sets the stage for encrypted mempools:
+- Transactions can be encrypted until after sequencing
+- Front-running becomes much harder
+- MEV extraction is reduced
+
+<Callout type="info" title="Future Work">
+These features are not part of ACP-194 but are enabled by its architecture. Future ACPs may build on SAE to implement them.
+</Callout>
+
+## ACP-194 Status
+
+As of December 2024, ACP-194 is in **Proposed** status:
+
+- Active discussion in the [GitHub Discussion](https://github.com/avalanche-foundation/ACPs/discussions/196)
+- Reference implementation is work-in-progress
+- Community feedback is being incorporated
+
+## Summary
+
+SAE represents a significant evolution in Avalanche's architecture:
+
+- **Queue-based execution** separates consensus from execution
+- **Worst-case validity** guarantees that accepted transactions will settle
+- **Parallel processing** increases throughput
+- **Future features** like VRF and encrypted mempools become possible
+
+In the following modules, we will dive deeper into each component of SAE.
+
+<Quiz quizId="sae-104" question="What does the parameter tau represent in SAE?" options={["The gas price multiplier", "The maximum queue size", "The duration between execution and settlement", "The block production rate"]} correctAnswer={2} hint="Look at the lifecycle diagram - tau appears between two specific stages" explanation="Tau (5 seconds for C-Chain) represents the constant delay between when a block is executed and when it is settled. This delay amortizes any sporadic slowdowns the block executor may have encountered." />
+
+<Quiz quizId="sae-105" question="What guarantee does worst-case validity provide?" options={["Transactions will execute with minimal gas", "Transactions will never revert", "Accepted transactions will definitely be settled", "Gas prices will remain constant"]} correctAnswer={2} hint="Think about what needs to be guaranteed when accepting transactions before executing them" explanation="Worst-case validity ensures that if a transaction is accepted by consensus, it is guaranteed to be settled. This is achieved by verifying that senders can pay for the maximum possible gas cost before acceptance." />

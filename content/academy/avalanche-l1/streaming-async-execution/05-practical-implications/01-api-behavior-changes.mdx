@@ -1,0 +1,239 @@
+---
+title: API Behavior Changes
+description: How JSON RPC methods and named blocks behave under SAE.
+updated: 2024-12-06
+authors: [owenwahlgren]
+---
+
+## API Compatibility
+
+While SAE changes the internal block processing model, API behavior is designed to remain as compatible as possible with existing applications. However, there are important nuances to understand.
+
+## eth_getBlockReceipts
+
+One of the most important API guarantees:
+
+<Callout type="warn" title="Critical Compatibility">
+The API method `eth_getBlockReceipts` MUST return the receipts corresponding to the block's **transactions**, NOT the receipts settled in the block.
+</Callout>
+
+### Why This Matters
+
+Under SAE, a block contains:
+1. **Transactions**: The transactions included in this block
+2. **Settled Receipts**: Receipts from previously executed blocks (in `receiptsRoot`)
+
+These are different sets! The API returns transactions' receipts for compatibility:
+
+```javascript
+// This returns receipts for transactions IN block 100
+const receipts = await provider.send('eth_getBlockReceipts', ['0x64']);
+
+// NOT the receipts recorded in block 100's header
+// (which are from blocks settled by block 100)
+```
+
+### Timing Implications
+
+When you call `eth_getBlockReceipts`:
+- The block must be **executed** for receipts to be available
+- The block does NOT need to be **settled**
+- Execution happens after acceptance, so there's a delay
+
+```
+Block Lifecycle:
+Accepted -> [wait] -> Executed -> [tau] -> Settled
+              |
+              v
+         Receipts available here!
+```
+
+## Named Blocks
+
+Ethereum APIs support named block parameters. SAE redefines these in terms of **execution status**:
+
+| Named Block | Traditional Meaning | SAE Meaning |
+|-------------|--------------------|-|
+| `earliest` | Genesis block | Genesis block (unchanged) |
+| `pending` | Pending transactions | Most recently **accepted** block |
+| `latest` | Most recent block | Most recently **executed** block |
+| `safe` | Safe for reorg | Most recently **settled** block |
+| `finalized` | Finalized | Most recently **settled** block |
+
+### Understanding the Mappings
+
+#### `pending`
+
+In SAE, `pending` refers to the accepted-but-not-yet-executed state:
+
+```javascript
+// Get the most recently accepted block
+const pending = await provider.getBlock('pending');
+
+// Transactions are ordered but not yet executed
+// Receipts are NOT available
+```
+
+#### `latest`
+
+The `latest` block is the most recently **executed** block:
+
+```javascript
+// Get the most recently executed block
+const latest = await provider.getBlock('latest');
+
+// Transactions have been executed
+// Receipts ARE available
+// State is computed but not yet settled
+```
+
+<Callout type="info" title="No Re-org Risk">
+Due to Snowman consensus finality, the `latest` block is NOT at risk of re-org. The only risk is negligible local data corruption on the API node.
+</Callout>
+
+#### `safe` and `finalized`
+
+Both map to the most recently **settled** block:
+
+```javascript
+// Both return the same block under SAE
+const safe = await provider.getBlock('safe');
+const finalized = await provider.getBlock('finalized');
+
+// These are equal in SAE due to Snowman finality
+assert(safe.number === finalized.number);
+```
+
+### Block States Diagram
+
+<Mermaid chart={`flowchart LR
+    subgraph Blocks
+    B1[Block N-3]
+    B2[Block N-2]
+    B3[Block N-1]
+    B4[Block N]
+    end
+    B1 --> B2 --> B3 --> B4
+    B4 -.-> P[pending]
+    B3 -.-> L[latest]
+    B1 -.-> S[safe/finalized]
+    style B1 fill:#90EE90
+    style B2 fill:#FFE4B5
+    style B3 fill:#87CEEB
+    style B4 fill:#E6E6FA`} />
+
+## Block Header Fields
+
+Several block header fields have new meanings under SAE:
+
+| Field | Before SAE | Under SAE |
+|-------|------------|-----------|
+| `stateRoot` | This block's post-state | Most recently settled block's post-state |
+| `receiptsRoot` | This block's receipts | Newly settled blocks' receipts |
+| `logsBloom` | This block's logs | Newly settled blocks' logs |
+| `gasUsed` | This block's gas | Newly settled blocks' gas |
+
+### Reading Block Data
+
+When parsing block data, be aware:
+
+```javascript
+const block = await provider.getBlock(blockNumber);
+
+// Under SAE, these fields refer to settled blocks:
+console.log(block.stateRoot);    // State from an earlier block!
+console.log(block.receiptsRoot); // Receipts from earlier blocks!
+console.log(block.gasUsed);      // Gas from earlier blocks!
+
+// But transactions are from THIS block:
+console.log(block.transactions); // Transactions in this block
+```
+
+## Transaction Receipt Queries
+
+When querying transaction receipts:
+
+```javascript
+// This may take time after the transaction is accepted
+const receipt = await provider.getTransactionReceipt(txHash);
+
+if (receipt === null) {
+    // Transaction might be:
+    // 1. Not yet accepted
+    // 2. Accepted but not yet executed
+    // Wait and retry
+}
+
+// Once available, receipt is from execution
+console.log(receipt.status);      // 1 = success, 0 = revert
+console.log(receipt.gasUsed);     // Actual gas used
+console.log(receipt.blockNumber); // Block that included the tx
+```
+
+## Event Logs
+
+Event log queries work on **executed** blocks:
+
+```javascript
+// Get logs from executed blocks
+const logs = await provider.getLogs({
+    fromBlock: 'latest',
+    toBlock: 'latest',
+    address: contractAddress,
+    topics: [eventSignature]
+});
+
+// Logs are available once the block is executed
+// No need to wait for settlement
+```
+
+## Waiting for Confirmation
+
+Application patterns for waiting:
+
+### Wait for Execution (Receipt Available)
+
+```javascript
+async function waitForExecution(txHash) {
+    let receipt = null;
+    while (receipt === null) {
+        receipt = await provider.getTransactionReceipt(txHash);
+        if (receipt === null) {
+            await sleep(100); // Short delay
+        }
+    }
+    return receipt;
+}
+```
+
+### Wait for Settlement (Recorded On-Chain)
+
+```javascript
+async function waitForSettlement(txHash) {
+    const receipt = await waitForExecution(txHash);
+    const txBlock = receipt.blockNumber;
+
+    // Wait for a block that settles our block
+    while (true) {
+        const settled = await provider.getBlock('finalized');
+        if (settled.number >= txBlock) {
+            return receipt;
+        }
+        await sleep(1000); // Check every second
+    }
+}
+```
+
+## Summary
+
+API changes under SAE:
+- `eth_getBlockReceipts` returns transaction receipts, not settled receipts
+- Named blocks (`pending`, `latest`, `safe`, `finalized`) map to execution states
+- Block header fields refer to settled state, not current block state
+- Receipts are available at execution, before settlement
+
+Understanding these nuances is crucial for building robust applications on SAE.
+
+<Quiz quizId="sae-401" question="What does the 'latest' named block refer to under SAE?" options={["Most recently proposed block", "Most recently accepted block", "Most recently executed block", "Most recently settled block"]} correctAnswer={2} hint="Think about the execution status" explanation="Under SAE, 'latest' refers to the most recently executed block. This is the block whose transactions have been processed but may not yet be settled." />
+
+<Quiz quizId="sae-402" question="When are transaction receipts available under SAE?" options={["Immediately when the transaction is submitted", "When the transaction is accepted", "When the block is executed", "When the block is settled"]} correctAnswer={2} hint="Receipts require transaction execution" explanation="Transaction receipts become available when the block containing the transaction is executed. This happens after acceptance but before settlement." />

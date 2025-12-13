@@ -1,0 +1,191 @@
+---
+title: Worst-Case Validity
+description: How SAE guarantees that accepted transactions will be executed successfully.
+updated: 2024-12-06
+authors: [owenwahlgren]
+---
+
+## The Core Security Guarantee
+
+SAE must solve a fundamental problem: how do we ensure transactions can be executed if we accept them before execution?
+
+The answer is **worst-case validity**: verifying that transactions can be paid for under the worst possible conditions.
+
+## What Could Go Wrong?
+
+Without proper safeguards, accepted transactions might fail to execute because:
+
+1. **Insufficient Balance**: The sender's balance could be depleted by earlier transactions
+2. **Gas Price Increase**: The base fee could rise above what the sender can afford
+3. **Nonce Issues**: Earlier transactions could invalidate nonces
+
+SAE addresses all of these through worst-case analysis.
+
+## Worst-Case Gas Cost
+
+The key insight is that we can calculate an **upper bound** on transaction cost:
+
+<Callout type="info" title="Key Theorem">
+If every transaction were to use its full gas limit, this would result in:
+1. Maximum consumption of gas units (by definition)
+2. Maximum gas excess $x$ (and therefore gas price) at execution time
+</Callout>
+
+### Mathematical Proof
+
+For a queue of blocks $Q = \{i\}_{i \geq 0}$, the gas excess $x_j$ immediately prior to executing block $j \in Q$ is a monotonic, non-decreasing function of the gas usage of all preceding blocks:
+
+$$
+x_j := f(\{g_i\}_{i < j})
+$$
+
+**Why is this monotonic?**
+
+Consider block $k$ consuming gas $g_k$:
+- A decrease in $g_k$ reduces the immediate increase of $x$
+- This might further reduce $x$ at the next block if time passes
+- Therefore: $\downarrow g_k \implies \downarrow x_{i>k}$
+
+This proves that actual gas prices will always be at or below worst-case projections.
+
+## Calculating Worst-Case Bounds
+
+### Worst-Case Excess
+
+To calculate the worst-case gas excess, follow the block executor update rules using $g_L$ (gas limit) instead of $g_C$ (gas charged):
+
+```
+For each pending block:
+  worst_case_excess += gas_limit_total * (R - T) / R
+```
+
+### Worst-Case Gas Price
+
+The worst-case base fee is then:
+
+$$
+baseFee_{worst} = M \cdot \exp\left(\frac{x_{worst}}{K}\right)
+$$
+
+### Worst-Case Account Balance
+
+For each sender, calculate:
+
+$$
+balance_{worst} = balance_{settled} - \sum_{pending} (g_L \cdot gasPrice_{worst} + value)
+$$
+
+Where the sum is over all pending transactions from that sender.
+
+## Validation Process
+
+When a block is proposed, validators verify:
+
+```
+For each transaction in the block:
+  1. Calculate sender's worst-case balance
+  2. Calculate worst-case gas price
+  3. Calculate worst-case cost = gasLimit * worst-case price + value
+  4. Verify: worst-case balance >= worst-case cost
+
+If all pass:
+  Block is valid for consensus
+```
+
+## The Guarantee
+
+If a transaction passes worst-case validation:
+
+$$
+Accepted \rightarrow Guaranteed \text{ } Settlement
+$$
+
+More formally:
+
+> Any sender able to pay for the worst-case cost (in addition to value transfers) is guaranteed to be able to pay for the actual execution cost.
+
+## What Is NOT Guaranteed
+
+<Callout type="warn" title="Important Distinction">
+Worst-case validity does NOT guarantee:
+- Whether a transaction will **succeed** or **revert**
+- Whether computation will **run out of gas** at the limit
+- The **actual gas used** (could be much less than limit)
+
+It only guarantees that the transaction CAN BE executed and PAID FOR.
+</Callout>
+
+## Example: Worst-Case Validation
+
+Let's walk through validating a transaction:
+
+**Current State:**
+- Last settled block: Block 100
+- Sender balance at Block 100: 10 ETH
+- Pending transactions from sender: None
+
+**Queue:**
+- Block 101: Other transactions (500k gas total)
+- Block 102: Other transactions (600k gas total)
+
+**New transaction:**
+- Sender: Alice
+- Gas Limit: 200,000
+- Value: 1 ETH
+
+**Validation:**
+```
+1. Calculate worst-case excess
+   Starting excess (settled): 100,000
+   Block 101 adds: 500,000 * 0.5 = 250,000
+   Block 102 adds: 600,000 * 0.5 = 300,000
+   New block adds: 200,000 * 0.5 = 100,000
+   Worst-case excess: 750,000
+
+2. Calculate worst-case gas price
+   price = M * exp(750,000 / K)
+   (Assuming this gives 2 gwei)
+
+3. Calculate worst-case cost
+   cost = 200,000 * 2 gwei + 1 ETH
+   cost = 0.0004 ETH + 1 ETH
+   cost = 1.0004 ETH
+
+4. Verify balance
+   Alice's worst-case balance: 10 ETH (no pending txs)
+   10 ETH >= 1.0004 ETH? YES
+
+   Transaction is valid!
+```
+
+## Implications for Transaction Senders
+
+### For Users
+- Ensure sufficient balance for worst-case costs
+- Worst-case is often close to actual (if queue is small)
+- Accept that you're reserving funds until settlement
+
+### For dApps
+- Account for worst-case when showing costs
+- Handle the gap between acceptance and settlement
+- Explain worst-case guarantees to users
+
+### For Wallets
+- Display worst-case cost estimates
+- Show reserved vs actual costs
+- Track transaction through to settlement
+
+## Summary
+
+Worst-case validity provides the security foundation for SAE:
+
+- Calculates upper bounds on gas costs
+- Verifies senders can pay under worst conditions
+- Guarantees execution of accepted transactions
+- Does NOT guarantee transaction success
+
+The next lesson explores how queue DoS protection complements these guarantees.
+
+<Quiz quizId="sae-305" question="What does worst-case validity guarantee about an accepted transaction?" options={["It will succeed without reverting", "It will use less gas than the limit", "It can be paid for and will be executed", "It will be executed immediately"]} correctAnswer={2} hint="Think about what SAE needs to ensure before accepting transactions" explanation="Worst-case validity guarantees that an accepted transaction can be paid for under the worst possible conditions, and therefore will definitely be executed. It does NOT guarantee the transaction will succeed or how much gas it will actually use." />
+
+<Quiz quizId="sae-306" question="Why does worst-case analysis use gas limit instead of gas used?" options={["Gas limits are easier to calculate", "Gas used is not known until execution, and we need bounds before acceptance", "Gas limits are always higher", "The formula requires gas limits specifically"]} correctAnswer={1} hint="Think about when worst-case analysis happens" explanation="Worst-case analysis happens before execution, when we only know the gas limit (set by the user) not the actual gas used. Using gas limits gives us an upper bound that is guaranteed to be at or above actual usage." />

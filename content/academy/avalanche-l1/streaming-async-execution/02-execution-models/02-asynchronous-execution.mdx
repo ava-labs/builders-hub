@@ -1,0 +1,141 @@
+---
+title: Asynchronous Execution
+description: Introduction to asynchronous execution models and how they decouple consensus from execution.
+updated: 2024-12-06
+authors: [owenwahlgren]
+---
+
+## Decoupling Consensus and Execution
+
+Asynchronous execution represents a paradigm shift in blockchain design. Instead of requiring transactions to be executed before consensus, asynchronous models allow consensus to proceed independently of execution.
+
+## The Asynchronous Model
+
+Under asynchronous execution, the block lifecycle separates execution from consensus:
+
+<Mermaid chart={`flowchart LR
+    I[Proposed] --> A[Accepted]
+    A -->|variable delay| E[Executed]
+    E -->|constant delay| S[Settled]
+    A -. guarantees .-> S`} />
+
+### Key Differences from Synchronous
+
+| Aspect | Synchronous | Asynchronous |
+|--------|-------------|--------------|
+| Execution timing | Before consensus | After consensus |
+| State root | In same block | In later block |
+| Settlement | Immediate on acceptance | Delayed after execution |
+| Consensus/Execution | Sequential | Parallel |
+
+## Benefits of Asynchronous Execution
+
+### 1. Parallel Processing
+
+Consensus and execution can run concurrently:
+
+```
+Time -->
+Consensus:  [Block N] [Block N+1] [Block N+2] [Block N+3]
+Execution:       [Block N-2] [Block N-1] [Block N] [Block N+1]
+```
+
+While consensus is finalizing Block N+2, the execution stream can be processing Block N. This parallelism significantly increases throughput.
+
+### 2. Reduced Context Switching
+
+Without the need to wait for execution before proceeding with consensus:
+- "VM time" aligns more closely with wall time
+- Gas per wall-second increases even without increasing gas per VM-second
+- Validators can focus on one task at a time
+
+### 3. Amortized Irregular Events
+
+Events like database compaction that would normally halt everything can now be absorbed:
+- The execution stream can slow down temporarily
+- Consensus continues unaffected
+- The system catches up once the event completes
+
+### 4. Bursty Throughput
+
+The system can eagerly accept transactions during bursts:
+- Transactions queue up for execution
+- Network handles load spikes gracefully
+- No reduction in security guarantees
+
+## Execution-Only Clients
+
+Asynchronous execution enables a new type of client:
+
+<Callout type="info" title="Lean Execution Clients">
+Execution-only clients can rapidly execute the queue agreed upon by consensus, providing accelerated receipt issuance and state computation. Without the need to compute state roots, such clients can eschew expensive Merkle data structures.
+</Callout>
+
+### User Story: HFT DeFi Trading
+
+Consider a sophisticated DeFi trader:
+
+1. They run a highly optimized execution client
+2. The client locally clears the transaction queue well in advance of the network
+3. They know transaction outcomes before official settlement
+4. This sets the stage for high-frequency trading on DeFi
+
+### User Story: Custodial Platform
+
+A custodial platform can:
+
+1. Filter the queue for transactions to their EOAs
+2. Immediately credit user balances upon acceptance (not settlement)
+3. Build on worst-case validity guarantees
+
+## Challenges of Asynchronous Execution
+
+While powerful, asynchronous execution introduces new challenges:
+
+### Transaction Validity
+
+Without executing transactions before consensus, how do we ensure they will succeed? We need guarantees that:
+- Senders have sufficient funds
+- Gas can be paid for
+- Transactions will eventually execute
+
+### State Root Delay
+
+Since state roots are computed after execution:
+- There is a delay between acceptance and settlement
+- APIs must handle the distinction between accepted and settled blocks
+- Some applications may need to wait for settlement
+
+### Queue Management
+
+With transactions queuing up:
+- Queue size must be bounded
+- DoS attacks on the queue must be prevented
+- Gas accounting must account for queued transactions
+
+## Comparative Approaches
+
+Other blockchain projects have explored asynchronous and parallel execution:
+
+| Project | Approach |
+|---------|----------|
+| **Monad** | Optimistic parallel execution with conflict detection |
+| **Solana** | Deterministic parallelism based on declared state access |
+| **Sei** | Optimistic parallel execution with rollback |
+| **Avalanche SAE** | Queue-based asynchronous execution with worst-case validity |
+
+Avalanche's approach with SAE is unique in its use of worst-case validity guarantees and the queue-based architecture.
+
+## Summary
+
+Asynchronous execution decouples consensus from execution, enabling:
+- Parallel processing of consensus and execution
+- Reduced context switching overhead
+- Better handling of irregular events
+- Bursty throughput without security compromises
+
+In the next lesson, we will dive into ACP-194's specific implementation of streaming asynchronous execution.
+
+<Quiz quizId="sae-102" question="What is the primary benefit of running consensus and execution in parallel?" options={["Lower gas fees", "Reduced validator requirements", "Increased throughput without changing gas limits", "Simpler block structure"]} correctAnswer={2} hint="Think about what happens when two processes run concurrently instead of sequentially" explanation="When consensus and execution run in parallel, the system can process more gas per wall-second even without increasing gas per VM-second. This is because VM time now aligns more closely with wall time since it is no longer eroded by consensus operations." />
+
+<Quiz quizId="sae-103" question="In asynchronous execution, when do transactions get settled?" options={["Immediately when proposed", "Immediately when accepted by consensus", "After execution completes, with a constant delay", "Never - they remain pending"]} correctAnswer={2} hint="Look at the lifecycle diagram - settlement is the final stage" explanation="In asynchronous execution, transactions are settled after execution completes. In SAE specifically, there is a constant delay (tau) of 5 seconds between execution and settlement to account for any execution variance." />

@@ -1,0 +1,197 @@
+---
+title: Gas Charged vs Gas Used
+description: Understanding the new gas charged formula and its implications for SAE.
+updated: 2024-12-06
+authors: [owenwahlgren]
+---
+
+## The Problem with Gas Used
+
+In traditional execution, the network tracks **gas used** ($g_U$) - the actual amount of gas consumed by a transaction. This works fine when execution happens before consensus.
+
+But under SAE, there's a problem: transactions are accepted before execution. A user could:
+1. Set a very high gas limit
+2. Actually use very little gas
+3. Repeat to fill the queue cheaply
+
+This creates a DoS vulnerability on the execution queue.
+
+## Introducing Gas Charged
+
+SAE introduces **gas charged** ($g_C$) as the metric for gas accounting:
+
+$$
+g_C := \max\left(g_U, \frac{g_L}{\lambda}\right)
+$$
+
+Where:
+- $g_U$ = gas actually used
+- $g_L$ = gas limit specified by user
+- $\lambda$ = 2 for C-Chain
+
+<Callout type="info" title="Rounding">
+The division $\frac{g_L}{\lambda}$ is rounded up by calculating $\frac{g_L + \lambda - 1}{\lambda}$ to ensure the minimum is always enforced.
+</Callout>
+
+## What This Formula Means
+
+The gas charged is the **maximum of**:
+1. The gas actually used
+2. Half the gas limit (when $\lambda = 2$)
+
+This means:
+- Normal transactions pay for what they use
+- Transactions with inflated limits pay at least half their limit
+- Users are incentivized to set accurate gas limits
+
+## Examples
+
+### Normal Transaction
+
+```
+Transaction:
+  Gas Limit: 100,000
+  Gas Used:  80,000
+
+Gas Charged = max(80,000, 100,000/2)
+            = max(80,000, 50,000)
+            = 80,000
+
+Result: User pays for actual usage (normal behavior)
+```
+
+### Slightly Overestimated Limit
+
+```
+Transaction:
+  Gas Limit: 100,000
+  Gas Used:  40,000
+
+Gas Charged = max(40,000, 100,000/2)
+            = max(40,000, 50,000)
+            = 50,000
+
+Result: User pays slightly more than usage
+```
+
+### Heavily Inflated Limit
+
+```
+Transaction:
+  Gas Limit: 1,000,000
+  Gas Used:  21,000
+
+Gas Charged = max(21,000, 1,000,000/2)
+            = max(21,000, 500,000)
+            = 500,000
+
+Result: User pays much more than usage (penalized!)
+```
+
+## Why Lambda = 2?
+
+The choice of $\lambda = 2$ is deliberate:
+
+### Allows 100% Buffer
+
+Users commonly set gas limits higher than expected usage as a safety margin. With $\lambda = 2$:
+- Users can set limits up to 2x expected usage
+- No penalty if usage is at least 50% of limit
+- Normal transaction behavior is preserved
+
+### Prevents Queue Abuse
+
+Without this mechanism, an attacker could:
+- Send transfer-only transactions (21k gas)
+- Set limit to consume full block capacity
+- Pay only for 21k gas
+- Repeat to fill the queue cheaply
+
+With gas charged:
+- They would pay for at least half their limit
+- The attack becomes economically infeasible
+
+### Balance Point
+
+| $\lambda$ Value | Effect |
+|----------------|--------|
+| $\lambda = 1$ | Full limit charged (too restrictive) |
+| $\lambda = 2$ | Half limit minimum (balanced) |
+| $\lambda = \infty$ | Only usage charged (vulnerable to DoS) |
+
+## Impact on Excess Calculation
+
+Previously, gas excess was modified by gas used. Now it uses gas charged:
+
+$$
+x := x + g_C \cdot \frac{(R - T)}{R}
+$$
+
+This affects:
+- Gas price calculation
+- Block timing in execution
+- Queue management
+
+## Impact on Execution Timing
+
+The block executor's timestamp advances based on gas charged:
+
+$$
+\Delta{t} := \frac{g_C}{R}
+$$
+
+This ensures:
+- Consistent timing regardless of actual usage
+- Queue clears at a predictable rate
+- Settlement timing is reliable
+
+## User Guidance
+
+For users and developers:
+
+### Setting Gas Limits
+
+```
+Best Practice:
+- Estimate gas usage accurately
+- Add a reasonable buffer (25-50%)
+- Avoid extreme overestimation
+
+Example:
+  Expected usage: 50,000 gas
+  Recommended limit: 60,000 - 75,000 gas
+
+  With 75,000 limit and 50,000 usage:
+  Gas Charged = max(50,000, 37,500) = 50,000  // No penalty!
+```
+
+### Wallet Behavior
+
+Wallets should:
+- Provide accurate gas estimates
+- Warn users about extreme gas limits
+- Explain the gas charged model
+
+<Callout type="warn" title="Important Change">
+Under SAE, setting an unnecessarily high gas limit is not "free" - you may be charged for up to half of it even if you don't use it.
+</Callout>
+
+## Summary
+
+Gas charged ($g_C$) replaces gas used ($g_U$) in SAE accounting:
+
+$$
+g_C := \max\left(g_U, \frac{g_L}{\lambda}\right)
+$$
+
+This:
+- Preserves normal behavior for well-estimated limits
+- Penalizes inflated gas limits
+- Prevents queue DoS attacks
+- Maintains predictable execution timing
+
+The next lesson explores how worst-case validity provides security guarantees.
+
+<Quiz quizId="sae-303" question="A transaction has gas limit 200,000 and uses 80,000 gas. With lambda=2, what is the gas charged?" options={["80,000", "100,000", "200,000", "40,000"]} correctAnswer={1} hint="Calculate both values in the max formula" explanation="Gas charged = max(gas_used, gas_limit/lambda) = max(80,000, 200,000/2) = max(80,000, 100,000) = 100,000. Since 80,000 is less than half the limit, the user pays for half their limit." />
+
+<Quiz quizId="sae-304" question="Why is lambda set to 2 rather than 1?" options={["Lambda=1 would make gas prices too high", "Lambda=1 would charge users for their full limit even if they use less, which is too restrictive", "Lambda=2 is easier to compute", "Lambda=1 would make transactions fail"]} correctAnswer={1} hint="Think about normal transaction behavior with accurate estimates" explanation="With lambda=1, users would always be charged their full gas limit. This is too restrictive because users commonly need to set limits higher than expected as a safety margin. Lambda=2 allows a 100% buffer without penalty." />
