@@ -1,8 +1,8 @@
 "use client";
 
-import BubbleNavigation from '@/components/navigation/BubbleNavigation';
-import type { BubbleNavigationConfig } from '@/components/navigation/bubble-navigation.types';
-import { Globe, List, ChartArea, Command, Users } from 'lucide-react';
+import BubbleNavigation from "@/components/navigation/BubbleNavigation";
+import type { BubbleNavigationConfig } from "@/components/navigation/bubble-navigation.types";
+import { Globe, List, ChartArea, Command, Users } from "lucide-react";
 
 export const statsBubbleConfig: BubbleNavigationConfig = {
   items: [
@@ -40,5 +40,10 @@ export function StatsBubbleNav() {
     return "overview";
   };
 
-    return <BubbleNavigation config={statsBubbleConfig} getActiveItem={getActiveItem} />;
+  return (
+    <BubbleNavigation
+      config={statsBubbleConfig}
+      getActiveItem={getActiveItem}
+    />
+  );
 }
