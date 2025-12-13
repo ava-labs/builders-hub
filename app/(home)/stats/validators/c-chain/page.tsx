@@ -54,6 +54,7 @@ import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
 import { SearchInputWithClear } from "@/components/stats/SearchInputWithClear";
 import { SortIcon } from "@/components/stats/SortIcon";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
+import { LinkableHeading } from "@/components/stats/LinkableHeading";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import {
@@ -976,11 +977,11 @@ export default function CChainValidatorMetrics() {
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8 sm:space-y-12">
-        <section id="trends" className="space-y-4 sm:space-y-6 scroll-mt-32">
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="trends" className="text-lg sm:text-2xl font-medium text-left">
               Historical Trends
-            </h2>
+            </LinkableHeading>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
               Track network growth and validator activity over time
             </p>
@@ -1022,11 +1023,11 @@ export default function CChainValidatorMetrics() {
         </section>
 
         {/* Rewards Distribution Section */}
-        <section id="rewards" className="space-y-4 sm:space-y-6 scroll-mt-32">
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="rewards" className="text-lg sm:text-2xl font-medium text-left">
               Rewards Distribution
-            </h2>
+            </LinkableHeading>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
               Track staking rewards for the Primary Network
             </p>
@@ -1064,14 +1065,11 @@ export default function CChainValidatorMetrics() {
           </div>
         </section>
 
-        <section
-          id="distribution"
-          className="space-y-4 sm:space-y-6 scroll-mt-32"
-        >
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="distribution" className="text-lg sm:text-2xl font-medium text-left">
               Stake Distribution Analysis
-            </h2>
+            </LinkableHeading>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
               Analyze how stake is distributed across validators and delegation
               patterns
@@ -1615,11 +1613,11 @@ export default function CChainValidatorMetrics() {
           </div>
         </section>
 
-        <section id="versions" className="space-y-4 sm:space-y-6 scroll-mt-32">
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="versions" className="text-lg sm:text-2xl font-medium text-left">
               Software Versions
-            </h2>
+            </LinkableHeading>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
               Distribution of AvalancheGo versions across validators
             </p>
@@ -1772,19 +1770,19 @@ export default function CChainValidatorMetrics() {
         </section>
 
         {/* Global Validator Distribution Map */}
-        <section id="map" className="space-y-4 sm:space-y-6 scroll-mt-32">
+        <section className="space-y-4 sm:space-y-6">
+          <LinkableHeading as="h2" id="map" className="text-lg sm:text-2xl font-medium text-left sr-only">
+            Validator Map
+          </LinkableHeading>
           <ValidatorWorldMap />
         </section>
 
         {/* All Validators Table */}
-        <section
-          id="validators"
-          className="space-y-4 sm:space-y-6 scroll-mt-32"
-        >
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="validators" className="text-lg sm:text-2xl font-medium text-left">
               Validator List
-            </h2>
+            </LinkableHeading>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
               Complete list of all validators on the Primary Network
             </p>
