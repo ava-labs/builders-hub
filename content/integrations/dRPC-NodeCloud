@@ -1,0 +1,47 @@
+---
+title: dRPC NodeCloud
+category: RPC Providers
+available: ["C-Chain"]
+description: dRPC is an AI-powered RPC infrastructure provider for dApps and chains.
+logo: https://drive.google.com/file/d/1ftO8sdTInAhZUjMC3D3la5nudNh7-vuV/view?usp=sharing
+developer: dRPC
+website: https://drpc.org/nodecloud-multichain-rpc-management/
+documentation: https://drpc.org/docs
+---
+
+## Overview
+
+NodeCloud is a multichain RPC infrastructure suite that gives developers fast, reliable access to blockchain endpoints across more than 180 networks. Powered by a distributed pool of over 40 global providers across 9 geoclusters, NodeCloud combines smart routing, advanced key controls, analytics, and front-end protection in a single platform. It is designed for teams that want high performance without operating their own infrastructure.
+
+## Features
+
+- **Smart Routing**: NodeCloud uses intelligent routing across 40-plus providers to deliver stable, low-latency RPC requests globally.
+- **Analytics Dashboard**: Monitor performance, request patterns, errors, and usage trends with real-time analytics built directly into the platform.
+- **Advanced key control**: Manage API keys with granular permissions, rate control, rotation, and team-level access policies.
+- **Front-end Protection**: Block abusive traffic, prevent key leakage, and protect public applications with built in safeguards.
+- **Flat pricing**: Free tier available with rate limits, and paid plans starting from 10 dollars offer no request or rate limits.
+
+## Getting Started
+
+To start using NodeCloud, follow these steps:
+
+1. **Sign Up**: Create an account on [dRPC](https://drpc.org/nodecloud-multichain-rpc-management).
+2. **Generate a key**: Choose the blockchain network you want to connect to and create your API key in the NodeCloud dashboard.
+3. **Select a network**: NodeCloud supports 180 plus networks including Avalanche, Ethereum, Polygon, Base, Solana, Arbitrum, Optimism, and more.
+4. **Integrate with Your Project**: Use your API key in any RPC compatible library, SDK, or direct JSON RPC request. NodeCloud works with all standard EVM, Solana, and Cosmos tooling.
+## Documentation
+
+For detailed guides and API references, visit the [dRPC Documentation](https://drpc.org/docs).
+
+## Use Cases
+
+dRPC NodeCloud can be used in various blockchain development scenarios:
+
+- **Decentralized Applications (DApps)**: Power your dApps with globally distributed, high performance endpoints.
+- **Analytics and Monitoring**: Track performance and user activity with built in analytics and monitoring tools.
+- **High-traffic Front-Ends**: Protect public applications from abuse and traffic spikes with built-in front-end security controls.
+- **Production-grade infrastructure**: Scale from testing to millions of requests without changing providers or managing infrastructure.
+
+## Conclusion
+
+NodeCloud offers a complete toolkit for accessing, managing, and scaling blockchain RPC infrastructure. With smart routing, analytics, key management, and front end protection built in, it is ideal for developers and teams who want reliable multichain access without the overhead of running nodes. Whether you are building a small project or operating a large scale application, NodeCloud provides the infrastructure foundation to grow with confidence.
