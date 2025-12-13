@@ -1,0 +1,196 @@
+---
+title: Setting Up Your x402 Development Environment
+description: Configure your development environment and set up the x402 starter kit with Thirdweb facilitator.
+updated: 2025-12-04
+authors: [Federico Nardelli]
+icon: Terminal
+---
+
+## Introduction
+
+In this lesson, you'll set up everything needed to start building with x402. We'll walk through cloning the starter kit, configuring credentials, and running your first local x402-enabled application on Avalanche Fuji testnet.
+
+## Prerequisites
+
+Ensure you have the following installed:
+
+- **Node.js 18+**: Download from [nodejs.org](https://nodejs.org/)
+  ```bash
+  node --version  # Should show v18.0.0 or higher
+  ```
+
+- **Git**: Download from [git-scm.com](https://git-scm.com/)
+
+- **Code Editor**: [VS Code](https://code.visualstudio.com/) recommended
+
+- **Wallet**: [Core Wallet](https://core.app/) recommended for Avalanche
+
+## Step 1: Clone the x402 Starter Kit
+
+Start by downloading the starter kit repository:
+
+```bash
+# Clone the repository
+git clone https://github.com/ava-labs/x402-starter-kit.git
+
+# Navigate into the directory
+cd x402-starter-kit
+```
+
+## Step 2: Install Dependencies
+
+Install all required packages:
+
+```bash
+npm install
+```
+
+This installs Next.js 16, Thirdweb SDK v5, x402-next middleware, Tailwind CSS, and TypeScript.
+
+## Step 3: Create Environment File
+
+Create your environment configuration file:
+
+```bash
+# Copy the example file
+cp .env.example .env.local
+```
+
+Now open `.env.local` in your code editor. You'll fill in the values as we create accounts and wallets in the next steps.
+
+The file should look like this:
+
+```bash
+# Thirdweb API credentials (you'll add these in Step 4)
+THIRDWEB_CLIENT_ID=
+THIRDWEB_SECRET_KEY=
+
+# ERC4337 Smart Account address (you'll add this in Step 4)
+THIRDWEB_SERVER_WALLET_ADDRESS=
+
+# Your wallet address that receives payments (you'll add this in Step 5)
+MERCHANT_WALLET_ADDRESS=
+```
+
+## Step 4: Create Thirdweb Account and Get Credentials
+
+Thirdweb provides the facilitator service that handles payment verification and settlement.
+
+### 4.1 Sign Up and Create Project
+
+1. Visit [thirdweb.com/dashboard](https://thirdweb.com/dashboard)
+2. Create an account using email, Google, GitHub, or Wallet
+3. Click "Create Project"
+4. Name your project (e.g., "x402 Payment Demo")
+5. Allow all domains (or at least `localhost:3000`)
+6. Click "Create"
+
+### 4.2 Get API Credentials
+
+After creating your project:
+
+1. Copy your **Client ID**
+2. Copy and save the **"Secret Key"**
+
+**Immediately paste these into your `.env.local` file:**
+
+```bash
+THIRDWEB_CLIENT_ID=your_client_id_here
+THIRDWEB_SECRET_KEY=your_secret_key_here
+```
+
+**Security Note**: Never commit your Secret Key to version control (the `.gitignore` already excludes `.env.local`).
+
+### 4.3 Create ERC4337 Smart Account
+
+The Thirdweb facilitator requires an ERC4337 Smart Account (not a regular EOA wallet). This Smart Account will submit transactions on-chain and sponsor gas fees on behalf of users, enabling gasless payments.
+
+1. In your Thirdweb dashboard, navigate to **Wallets** → **Server Wallets** → *Wallets*
+2. Click the toggle **"Show ERC4337 Smart Account"**
+3. Choose **"Avalanche Fuji Testnet"** as the network
+4. Copy the wallet address
+
+![ERC4337 SmartAccount ThirdWeb](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/x402-payment-infrastructure/ERC4337_SmartAccount_ThirdWeb.png)
+
+**Immediately paste this into your `.env.local` file:**
+
+```bash
+THIRDWEB_SERVER_WALLET_ADDRESS=...
+```
+
+## Step 5: Configure Your Wallet
+
+Core Wallet comes with Avalanche Fuji pre-configured:
+
+1. Open Core Wallet
+2. Turn on **Testnet Mode** in Settings → Advanced
+
+Alternatively, add Fuji manually to any other wallet:
+- Network Name: Avalanche Fuji C-Chain
+- RPC URL: `https://api.avax-test.network/ext/bc/C/rpc`
+- Chain ID: `43113`
+- Symbol: `AVAX`
+- Explorer: `https://testnet.snowtrace.io/`
+
+## Step 6: Setup Merchant Wallet Address
+
+Copy and paste your wallet address (this wallet will receive USDC payments from customers) into your `.env.local` file:
+
+```bash
+MERCHANT_WALLET_ADDRESS=0xMerchantWalletAddressHere
+```
+
+## Step 7: Get Test USDC
+
+Get test USDC for making test payments:
+
+1. Visit [Circle's USDC Faucet](https://faucet.circle.com/)
+2. Select "Avalanche Fuji" network
+3. Enter your wallet address
+4. Request tokens
+
+Fuji USDC Contract: `0x5425890298aed601595a70AB815c96711a31Bc65`
+
+You don't need test AVAX because the facilitator will pay the gas fee.
+
+## Step 8: Verify Your Configuration
+
+Your `.env.local` file should now be completely filled in:
+
+```bash
+# Thirdweb API credentials
+THIRDWEB_CLIENT_ID=abc123...
+THIRDWEB_SECRET_KEY=sk_live_...
+
+# ERC4337 Smart Account address (facilitator wallet)
+THIRDWEB_SERVER_WALLET_ADDRESS=0x1234...
+
+# A wallet address (receives payments)
+MERCHANT_WALLET_ADDRESS=0x5678...
+```
+
+## Step 9: Run the Development Server
+
+Start the application:
+
+```bash
+npm run dev
+```
+
+## Step 10: Verify Your Setup
+
+Open your browser and navigate to `http://localhost:3000`.
+
+You should see the x402 Starter Kit interface with:
+- Header with "x402 Starter Kit"
+- Two payment tiers: **Basic (\$0.01)** and **Premium (\$0.15)**
+- "Connect Wallet" button
+- Transaction log section
+
+If you see this interface, your environment is correctly configured!
+
+## Additional Resources
+
+- [Thirdweb Documentation](https://portal.thirdweb.com/payments/x402/facilitator)
+- [x402 Starter Kit Repository](https://github.com/ava-labs/x402-starter-kit)
+- [ERC4337 Standard](https://eips.ethereum.org/EIPS/eip-4337)

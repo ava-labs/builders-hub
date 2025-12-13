@@ -1,0 +1,126 @@
+---
+title: Making Your First x402 Payment
+description: Experience the complete x402 payment flow by making your first test payment on Avalanche Fuji.
+updated: 2025-12-04
+authors: [Federico Nardelli]
+icon: Coins
+---
+
+## Step 1: Open Browser DevTools
+
+Open your browser's Developer Tools to observe HTTP requests in real-time:
+
+**Chrome / Edge / Firefox**:
+- Press `F12` or right-click → "Inspect"
+- Click the **Network** tab
+- Keep DevTools open
+
+You'll see the HTTP 402 responses as they happen.
+
+## Step 2: Connect Your Wallet
+
+With the starter kit running at `http://localhost:3000`:
+
+1. Click **"Connect Wallet"**
+2. Select Core Wallet
+3. Ensure you're on **Avalanche Fuji Testnet**
+4. Approve the connection
+5. Your wallet address should display
+
+Your wallet needs:
+- Fuji USDC (payment token)
+
+If missing, return [here](/academy/blockchain/x402-payment-infrastructure/05-hands-on-implementation/01-environment-setup#step-7-get-test-usdc) for faucet instructions.
+
+## Step 3: Request Protected Content
+
+Click the **"Pay $0.01"** button on the Basic Tier card.
+
+### Observing HTTP 402
+
+In DevTools Network tab, find the request to `/api/basic`:
+- **Status Code**: `402 Payment Required`
+- **Response Headers**: Contains `x-payment-request`
+
+The response body shows payment requirements:
+
+```json
+{
+    "x402Version": 1,
+    "error": "X-PAYMENT header is required",
+    "accepts": [
+        {
+            "scheme": "exact",
+            "network": "eip155:43113",
+            "maxAmountRequired": "10000",
+            "resource": "http://localhost:3000/api/basic",
+            "description": "",
+            "mimeType": "application/json",
+            "payTo": "0x41bB3178760536eAfE451aadF4eB5Ac76B9AfcF8",
+            "maxTimeoutSeconds": 86400,
+            "asset": "0x5425890298aed601595a70AB815c96711a31Bc65",
+            "outputSchema": {
+                "input": {
+                    "type": "http",
+                    "method": "GET",
+                    "discoverable": true
+                }
+            },
+            "extra": {
+                "recipientAddress": "0x20E004611eb983B9De88dACc388Cb1461691d420",
+                "facilitatorAddress": "0x41bB3178760536eAfE451aadF4eB5Ac76B9AfcF8",
+                "name": "USD Coin",
+                "version": "2",
+                "primaryType": "TransferWithAuthorization"
+            }
+        }
+    ]
+}
+```
+
+**Key Fields**:
+- `maxAmountRequired`: "10000" = $0.01 USDC (6 decimals)
+- `payTo`: Merchant wallet receiving payment
+- `asset`: USDC contract address on Fuji
+- `network`: "avalanche-fuji"
+
+This tells the client exactly what payment is required.
+
+## Step 4: Sign the Payment Authorization
+
+Your wallet opens with a signature request. Click **"Sign"**.
+
+### What You're Signing
+
+You're signing an **EIP-712 authorization** (not sending a transaction). This authorizes the facilitator to move USDC from your wallet to the merchant using **EIP-3009** (transferWithAuthorization).
+
+The signature includes:
+- From/To addresses
+- Amount (0.01 USDC)
+- USDC contract address
+- Nonce (replay protection)
+- Expiration timestamp
+- Chain ID (43113)
+
+Because the facilitator submits the transaction, users don't pay gas fees.
+
+## Step 5: Observe Payment Settlement
+
+After signing, watch the payment flow:
+
+Find the second request to `/api/basic`:
+- **Status Code**: `200 OK` (payment accepted)
+- **Request Headers**: Contains `X-PAYMENT` with your signed authorization
+- **Response Headers**: Contains `X-PAYMENT-RESPONSE` with the paid content
+
+## Step 6: Verify on Blockchain Explorer
+
+Check the Transaction History on the Thirdweb dashboard to verify the on-chain settlement:
+
+1. Open the Thirdweb Transaction History page
+2. Find your recent transaction in the list
+3. Click on the transaction hash to open the block explorer
+
+You'll see the transaction showing 0.01 USDC transferred from your wallet to the merchant wallet. 
+
+<Quiz quizId="5004"/>
