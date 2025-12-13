@@ -36,7 +36,9 @@ import {
   CalendarIcon,
   RefreshCw,
 } from "lucide-react";
-import l1ChainsData from "@/constants/l1-chains.json";
+import l1ChainsDataRaw from "@/constants/l1-chains.json";
+import type { L1Chain } from "@/types/stats";
+const l1ChainsData = l1ChainsDataRaw as L1Chain[];
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
