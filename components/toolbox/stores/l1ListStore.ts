@@ -202,6 +202,12 @@ export const getL1ListStore = (isTestnet: boolean) => {
                     {
                         name: `${STORE_VERSION}-l1-list-store-testnet`,
                         storage: createJSONStorage(localStorageComp),
+                        merge: (persisted: any, current: any) => {
+                            if (!persisted?.l1List) return current;
+                            const persistedIds = new Set(persisted.l1List.map((l: L1ListItem) => l.id));
+                            const missing = l1ListInitialStateFuji.l1List.filter(l => !persistedIds.has(l.id));
+                            return { ...current, l1List: [...persisted.l1List, ...missing] };
+                        },
                     },
                 ),
             );
