@@ -1128,48 +1128,6 @@ export default function ChainMetricsPage({
                   </div>
                 )}
               </div>
-
-              {/* Desktop Period Selector */}
-              <div className="flex items-center gap-1">
-                {(["D", "W", "M", "Q", "Y"] as const).map((period) => (
-                  <button
-                    key={period}
-                    onClick={() => setGlobalPeriod(period)}
-                    className={`relative px-3 py-1 text-sm font-medium cursor-pointer transition-colors ${
-                      globalPeriod === period
-                        ? "text-zinc-900 dark:text-white"
-                        : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400"
-                    }`}
-                  >
-                    {period}
-                    {globalPeriod === period && (
-                      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-red-500 rounded-full" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Mobile Period Selector */}
-          <div className="flex sm:hidden items-center justify-end pt-3">
-            <div className="flex items-center gap-1">
-              {(["D", "W", "M", "Q", "Y"] as const).map((period) => (
-                <button
-                  key={period}
-                  onClick={() => setGlobalPeriod(period)}
-                  className={`relative px-2.5 py-1 text-xs font-medium cursor-pointer transition-colors ${
-                    globalPeriod === period
-                      ? "text-zinc-900 dark:text-white"
-                      : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400"
-                  }`}
-                >
-                  {period}
-                  {globalPeriod === period && (
-                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-0.5 bg-red-500 rounded-full" />
-                  )}
-                </button>
-              ))}
             </div>
           </div>
         </div>
@@ -1180,6 +1138,10 @@ export default function ChainMetricsPage({
         categories={chartCategories}
         activeSection={activeSection}
         onNavigate={scrollToSection}
+        periodSelector={{
+          selected: globalPeriod,
+          onChange: setGlobalPeriod,
+        }}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16">

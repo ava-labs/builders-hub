@@ -50,6 +50,7 @@ import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 import { StickyNavBar } from "@/components/stats/StickyNavBar";
+import { type Period } from "@/components/stats/PeriodSelector";
 import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
 import { SearchInputWithClear } from "@/components/stats/SearchInputWithClear";
 import { SortIcon } from "@/components/stats/SortIcon";
@@ -540,6 +541,16 @@ export default function CChainValidatorMetrics() {
     Record<string, "D" | "W" | "M" | "Q" | "Y">
   >(Object.fromEntries(chartConfigs.map((config) => [config.metricKey, "D"])));
 
+  // Global period selector state
+  const [globalPeriod, setGlobalPeriod] = useState<Period>("D");
+
+  // Sync all chart periods when global period changes
+  useEffect(() => {
+    setChartPeriods(
+      Object.fromEntries(chartConfigs.map((config) => [config.metricKey, globalPeriod]))
+    );
+  }, [globalPeriod]);
+
   // Navigation categories
   const navCategories = [
     { id: "trends", label: "Historical Trends" },
@@ -973,6 +984,10 @@ export default function CChainValidatorMetrics() {
         categories={navCategories}
         activeSection={activeSection}
         onNavigate={scrollToSection}
+        periodSelector={{
+          selected: globalPeriod,
+          onChange: setGlobalPeriod,
+        }}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8 sm:space-y-12">
@@ -1047,6 +1062,8 @@ export default function CChainValidatorMetrics() {
                 currentValue={metrics.daily_rewards.current_value}
                 cumulativeCurrentValue={metrics.cumulative_rewards?.current_value || 0}
                 color={chainConfig.color}
+                period={globalPeriod}
+                onPeriodChange={setGlobalPeriod}
               />
             )}
 
@@ -1059,6 +1076,8 @@ export default function CChainValidatorMetrics() {
                 })).reverse()}
                 currentValue={metrics.cumulative_rewards.current_value}
                 color="#a855f7"
+                period={globalPeriod}
+                onPeriodChange={setGlobalPeriod}
               />
             )}
           </div>
@@ -2466,14 +2485,17 @@ function DailyRewardsChartCard({
   currentValue,
   cumulativeCurrentValue,
   color,
+  period,
+  onPeriodChange,
 }: {
   data: { day: string; value: number }[];
   cumulativeData: { day: string; value: number }[];
   currentValue: number | string;
   cumulativeCurrentValue: number | string;
   color: string;
+  period: "D" | "W" | "M" | "Q" | "Y";
+  onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
 }) {
-  const [period, setPeriod] = useState<"D" | "W" | "M" | "Q" | "Y">("D");
   const [brushIndexes, setBrushIndexes] = useState<{
     startIndex: number;
     endIndex: number;
@@ -2674,7 +2696,7 @@ function DailyRewardsChartCard({
             {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
               <button
                 key={p}
-                onClick={() => setPeriod(p)}
+                onClick={() => onPeriodChange(p)}
                 className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors ${
                   period === p
                     ? "text-white dark:text-white"
@@ -2839,12 +2861,15 @@ function CumulativeRewardsChartCard({
   data,
   currentValue,
   color,
+  period,
+  onPeriodChange,
 }: {
   data: { day: string; value: number }[];
   currentValue: number | string;
   color: string;
+  period: "D" | "W" | "M" | "Q" | "Y";
+  onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
 }) {
-  const [period, setPeriod] = useState<"D" | "W" | "M" | "Q" | "Y">("D");
   const [brushIndexes, setBrushIndexes] = useState<{
     startIndex: number;
     endIndex: number;
@@ -2980,7 +3005,7 @@ function CumulativeRewardsChartCard({
             {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
               <button
                 key={p}
-                onClick={() => setPeriod(p)}
+                onClick={() => onPeriodChange(p)}
                 className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors ${
                   period === p
                     ? "text-white dark:text-white"
