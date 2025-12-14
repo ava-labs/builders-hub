@@ -766,6 +766,16 @@ export default function ChainMetricsPage({
     Record<string, "D" | "W" | "M" | "Q" | "Y">
   >(Object.fromEntries(chartConfigs.map((config) => [config.metricKey, "D"])));
 
+  // Global period selector state
+  const [globalPeriod, setGlobalPeriod] = useState<"D" | "W" | "M" | "Q" | "Y">("D");
+
+  // Sync all chart periods when global period changes
+  useEffect(() => {
+    setChartPeriods(
+      Object.fromEntries(chartConfigs.map((config) => [config.metricKey, globalPeriod]))
+    );
+  }, [globalPeriod]);
+
   // Chart categories for navigation
   const chartCategories = [
     { id: "overview", label: "Overview" },
@@ -1051,8 +1061,8 @@ export default function ChainMetricsPage({
               </div>
             </div>
 
-            {/* Desktop Social Links - hidden on mobile */}
-            <div className="hidden sm:flex flex-row items-end gap-2">
+            {/* Desktop Social Links and Period Selector - hidden on mobile */}
+            <div className="hidden sm:flex flex-col items-end gap-3">
               <div className="flex items-center gap-2">
                 {website && (
                   <Button
@@ -1067,7 +1077,7 @@ export default function ChainMetricsPage({
                     </a>
                   </Button>
                 )}
-                
+
                 {/* Social buttons */}
                 {socials && (socials.twitter || socials.linkedin) && (
                   <>
@@ -1078,9 +1088,9 @@ export default function ChainMetricsPage({
                         asChild
                         className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
                       >
-                        <a 
-                          href={`https://x.com/${socials.twitter}`} 
-                          target="_blank" 
+                        <a
+                          href={`https://x.com/${socials.twitter}`}
+                          target="_blank"
                           rel="noopener noreferrer"
                           aria-label="Twitter"
                         >
@@ -1095,9 +1105,9 @@ export default function ChainMetricsPage({
                         asChild
                         className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
                       >
-                        <a 
-                          href={`https://linkedin.com/company/${socials.linkedin}`} 
-                          target="_blank" 
+                        <a
+                          href={`https://linkedin.com/company/${socials.linkedin}`}
+                          target="_blank"
                           rel="noopener noreferrer"
                           aria-label="LinkedIn"
                         >
@@ -1107,7 +1117,7 @@ export default function ChainMetricsPage({
                     )}
                   </>
                 )}
-                
+
                 {explorers && (
                   <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
                     <ExplorerDropdown
@@ -1118,6 +1128,48 @@ export default function ChainMetricsPage({
                   </div>
                 )}
               </div>
+
+              {/* Desktop Period Selector */}
+              <div className="flex items-center gap-1">
+                {(["D", "W", "M", "Q", "Y"] as const).map((period) => (
+                  <button
+                    key={period}
+                    onClick={() => setGlobalPeriod(period)}
+                    className={`relative px-3 py-1 text-sm font-medium cursor-pointer transition-colors ${
+                      globalPeriod === period
+                        ? "text-zinc-900 dark:text-white"
+                        : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400"
+                    }`}
+                  >
+                    {period}
+                    {globalPeriod === period && (
+                      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-red-500 rounded-full" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Period Selector */}
+          <div className="flex sm:hidden items-center justify-end pt-3">
+            <div className="flex items-center gap-1">
+              {(["D", "W", "M", "Q", "Y"] as const).map((period) => (
+                <button
+                  key={period}
+                  onClick={() => setGlobalPeriod(period)}
+                  className={`relative px-2.5 py-1 text-xs font-medium cursor-pointer transition-colors ${
+                    globalPeriod === period
+                      ? "text-zinc-900 dark:text-white"
+                      : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400"
+                  }`}
+                >
+                  {period}
+                  {globalPeriod === period && (
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-0.5 bg-red-500 rounded-full" />
+                  )}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -1955,6 +2007,18 @@ function ChartCard({
         </div>
 
         <div className="px-5 pt-6 pb-6">
+          {/* Check if period is supported */}
+          {!allowedPeriods.includes(period) ? (
+            <div className="flex flex-col items-center justify-center h-[350px] text-muted-foreground gap-2">
+              <p className="text-sm">
+                Data not available in {period === "D" ? "daily" : period === "W" ? "weekly" : period === "M" ? "monthly" : period === "Q" ? "quarterly" : "yearly"} granularity
+              </p>
+              <p className="text-xs">
+                Available: {allowedPeriods.map(p => p === "D" ? "Daily" : p === "W" ? "Weekly" : p === "M" ? "Monthly" : p === "Q" ? "Quarterly" : "Yearly").join(", ")}
+              </p>
+            </div>
+          ) : (
+          <>
           {/* Current Value and Change */}
           <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4 flex-wrap">
             {config.chartType === "dual" &&
@@ -2524,6 +2588,8 @@ function ChartCard({
                 </LineChart>
               </ResponsiveContainer>
             </div>
+          )}
+          </>
           )}
         </div>
       </CardContent>
