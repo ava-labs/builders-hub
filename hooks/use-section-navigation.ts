@@ -41,12 +41,11 @@ export function useSectionNavigation(
 
       const hash = window.location.hash.slice(1);
       if (hash) {
-        const element = document.getElementById(hash);
-        if (element) {
-          isScrollingRef.current = true;
-
-          // Small delay to ensure DOM is ready
-          setTimeout(() => {
+        // Try to find element with retries (handles cases where DOM isn't ready yet)
+        const tryScroll = (attempts = 0) => {
+          const element = document.getElementById(hash);
+          if (element) {
+            isScrollingRef.current = true;
             const elementPosition =
               element.getBoundingClientRect().top + window.scrollY;
             window.scrollTo({
@@ -59,8 +58,14 @@ export function useSectionNavigation(
             setTimeout(() => {
               isScrollingRef.current = false;
             }, 500);
-          }, 100);
-        }
+          } else if (attempts < 10) {
+            // Retry after delay if element not found yet (up to 10 attempts = 2 seconds)
+            setTimeout(() => tryScroll(attempts + 1), 200);
+          }
+        };
+
+        // Initial delay for page load to allow DOM to render
+        setTimeout(() => tryScroll(), 300);
       }
     };
 

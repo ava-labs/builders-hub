@@ -1,6 +1,7 @@
 "use client";
 
-import { Link } from "lucide-react";
+import { useState } from "react";
+import { Link, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface LinkableHeadingProps {
@@ -8,7 +9,6 @@ interface LinkableHeadingProps {
   id: string;
   children: React.ReactNode;
   className?: string;
-  offset?: number;
 }
 
 export function LinkableHeading({
@@ -16,21 +16,16 @@ export function LinkableHeading({
   id,
   children,
   className,
-  offset = 180,
 }: LinkableHeadingProps) {
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = (e: React.MouseEvent) => {
     e.preventDefault();
-    const element = document.getElementById(id);
-    if (element) {
-      const elementPosition =
-        element.getBoundingClientRect().top + window.scrollY;
-      window.scrollTo({
-        top: elementPosition - offset,
-        behavior: "smooth",
-      });
-      // Update URL hash without triggering hashchange scroll
-      window.history.pushState(null, "", `#${id}`);
-    }
+    e.stopPropagation();
+    const url = `${window.location.origin}${window.location.pathname}#${id}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -41,18 +36,19 @@ export function LinkableHeading({
         className
       )}
     >
-      <a
-        data-card=""
-        href={`#${id}`}
-        onClick={handleClick}
-        className="peer"
+      {children}
+      <button
+        onClick={handleCopyLink}
+        className="shrink-0 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+        aria-label="Copy link to section"
+        title={copied ? "Copied!" : "Copy link"}
       >
-        {children}
-      </a>
-      <Link
-        aria-label="Link to section"
-        className="size-3.5 shrink-0 text-zinc-400 dark:text-zinc-500 opacity-0 transition-opacity peer-hover:opacity-100"
-      />
+        {copied ? (
+          <Check className="size-3.5 text-green-500" />
+        ) : (
+          <Link className="size-3.5" />
+        )}
+      </button>
     </Component>
   );
 }
