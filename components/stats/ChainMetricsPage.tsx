@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useTransition } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 import { StickyNavBar } from "@/components/stats/StickyNavBar";
+import { PeriodSelector } from "@/components/stats/PeriodSelector";
 import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
@@ -768,6 +769,13 @@ export default function ChainMetricsPage({
 
   // Global period selector state
   const [globalPeriod, setGlobalPeriod] = useState<"D" | "W" | "M" | "Q" | "Y">("D");
+  const [, startTransition] = useTransition();
+
+  const handlePeriodChange = (newPeriod: "D" | "W" | "M" | "Q" | "Y") => {
+    startTransition(() => {
+      setGlobalPeriod(newPeriod);
+    });
+  };
 
   // Sync all chart periods when global period changes
   useEffect(() => {
@@ -1138,11 +1146,12 @@ export default function ChainMetricsPage({
         categories={chartCategories}
         activeSection={activeSection}
         onNavigate={scrollToSection}
-        periodSelector={{
-          selected: globalPeriod,
-          onChange: setGlobalPeriod,
-        }}
-      />
+      >
+        <PeriodSelector
+          selected={globalPeriod}
+          onChange={handlePeriodChange}
+        />
+      </StickyNavBar>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16">
 

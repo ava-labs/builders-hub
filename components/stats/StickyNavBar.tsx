@@ -1,17 +1,13 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { PeriodSelector, type Period } from "@/components/stats/PeriodSelector";
 
 interface StickyNavBarProps {
   categories: Array<{ id: string; label: string }>;
   activeSection: string;
   onNavigate: (sectionId: string) => void;
   className?: string;
-  periodSelector?: {
-    selected: Period;
-    onChange: (period: Period) => void;
-  };
+  children?: React.ReactNode;
 }
 
 export function StickyNavBar({
@@ -19,7 +15,7 @@ export function StickyNavBar({
   activeSection,
   onNavigate,
   className,
-  periodSelector,
+  children,
 }: StickyNavBarProps) {
   return (
     <div
@@ -54,13 +50,10 @@ export function StickyNavBar({
             ))}
           </div>
 
-          {/* Period selector - fixed on right */}
-          {periodSelector && (
+          {/* Right slot for additional content */}
+          {children && (
             <div className="flex-shrink-0 ml-4 pl-4 border-l border-zinc-200 dark:border-zinc-700">
-              <PeriodSelector
-                selected={periodSelector.selected}
-                onChange={periodSelector.onChange}
-              />
+              {children}
             </div>
           )}
         </div>

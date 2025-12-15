@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useTransition } from "react";
 import {
   Area,
   AreaChart,
@@ -50,7 +50,7 @@ import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 import { StickyNavBar } from "@/components/stats/StickyNavBar";
-import { type Period } from "@/components/stats/PeriodSelector";
+import { PeriodSelector, type Period } from "@/components/stats/PeriodSelector";
 import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
 import { SearchInputWithClear } from "@/components/stats/SearchInputWithClear";
 import { SortIcon } from "@/components/stats/SortIcon";
@@ -543,6 +543,13 @@ export default function CChainValidatorMetrics() {
 
   // Global period selector state
   const [globalPeriod, setGlobalPeriod] = useState<Period>("D");
+  const [, startTransition] = useTransition();
+
+  const handlePeriodChange = (newPeriod: Period) => {
+    startTransition(() => {
+      setGlobalPeriod(newPeriod);
+    });
+  };
 
   // Sync all chart periods when global period changes
   useEffect(() => {
@@ -984,11 +991,12 @@ export default function CChainValidatorMetrics() {
         categories={navCategories}
         activeSection={activeSection}
         onNavigate={scrollToSection}
-        periodSelector={{
-          selected: globalPeriod,
-          onChange: setGlobalPeriod,
-        }}
-      />
+      >
+        <PeriodSelector
+          selected={globalPeriod}
+          onChange={handlePeriodChange}
+        />
+      </StickyNavBar>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8 sm:space-y-12">
         <section id="trends" className="space-y-4 sm:space-y-6 scroll-mt-32">
@@ -1063,7 +1071,7 @@ export default function CChainValidatorMetrics() {
                 cumulativeCurrentValue={metrics.cumulative_rewards?.current_value || 0}
                 color={chainConfig.color}
                 period={globalPeriod}
-                onPeriodChange={setGlobalPeriod}
+                onPeriodChange={handlePeriodChange}
               />
             )}
 
@@ -1077,7 +1085,7 @@ export default function CChainValidatorMetrics() {
                 currentValue={metrics.cumulative_rewards.current_value}
                 color="#a855f7"
                 period={globalPeriod}
-                onPeriodChange={setGlobalPeriod}
+                onPeriodChange={handlePeriodChange}
               />
             )}
           </div>
