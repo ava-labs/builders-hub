@@ -27,4 +27,3 @@ export function ChartWatermark({ children, className = "" }: ChartWatermarkProps
 }
 
 export default ChartWatermark;
-
