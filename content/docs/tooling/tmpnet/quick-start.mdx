@@ -114,7 +114,15 @@ NodeID-BTtC98RhLA5mbctKczZQC2Rt6N9DziM4c/    # Node 2 directory
 
 ### Find Node API Endpoints
 
-Each node exposes API endpoints on dynamically allocated ports:
+Each node exposes API endpoints on dynamically allocated ports. When tmpnet starts a node with `--http-port=0`, the OS assigns an available port. AvalancheGo then writes the actual allocated port to `process.json` via the `--process-context-file` flag.
+
+<Callout type="info" title="How process.json is created">
+The `process.json` file is created by **avalanchego itself**, not by tmpnetctl. When tmpnet starts a node, it passes:
+- `--http-port=0` and `--staking-port=0` for dynamic port allocation
+- `--process-context-file=[node-dir]/process.json` to specify where avalanchego should write runtime info
+
+AvalancheGo then writes its PID, URI (with the actual allocated port), and staking address to this file once it starts.
+</Callout>
 
 ```bash
 # View all node URIs
@@ -245,6 +253,87 @@ Each key has balances on:
 - **C-Chain** - For EVM transactions (contract deployments, etc.)
 
 You can use these keys immediately for transactions, contract deployments, staking operations, and validator management.
+
+## Use with Foundry/Cast
+
+tmpnet networks work with standard EVM tools like Foundry. Here's how to connect.
+
+### Set Up Environment Variables
+
+```bash
+# Get the first node's URI and construct the C-Chain RPC URL
+NODE_URI=$(cat ~/.tmpnet/networks/latest/NodeID-*/process.json | jq -r '.uri' | head -1)
+export RPC_URL="${NODE_URI}/ext/bc/C/rpc"
+echo $RPC_URL
+# Example: http://127.0.0.1:56395/ext/bc/C/rpc
+```
+
+### The EWOQ Test Key
+
+Every tmpnet network includes the well-known EWOQ test key, pre-funded with AVAX:
+
+| Property | Value |
+|----------|-------|
+| Private Key (hex) | `56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027` |
+| Address | `0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC` |
+| C-Chain Balance | 50,000,000 AVAX |
+
+```bash
+export PRIVATE_KEY="56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027"
+```
+
+<Callout type="warning" title="Test Key Only">
+The EWOQ key is publicly known. Never use it on Fuji or Mainnet—only for local development.
+</Callout>
+
+### Common Cast Commands
+
+```bash
+# Check balance
+cast balance 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC --rpc-url $RPC_URL
+
+# Get chain ID
+cast chain-id --rpc-url $RPC_URL
+
+# Get latest block
+cast block-number --rpc-url $RPC_URL
+
+# Send AVAX to another address
+cast send 0xYourAddress --value 1ether \
+  --rpc-url $RPC_URL \
+  --private-key $PRIVATE_KEY
+```
+
+### Deploy Contracts with Forge
+
+```bash
+# Deploy a contract
+forge create src/MyContract.sol:MyContract \
+  --rpc-url $RPC_URL \
+  --private-key $PRIVATE_KEY
+
+# Run a deployment script
+forge script script/Deploy.s.sol \
+  --rpc-url $RPC_URL \
+  --private-key $PRIVATE_KEY \
+  --broadcast
+```
+
+### Chain Configuration
+
+For `foundry.toml`:
+
+```toml
+[rpc_endpoints]
+local = "http://127.0.0.1:56395/ext/bc/C/rpc"
+
+[etherscan]
+# No explorer for local networks
+```
+
+<Callout type="info" title="Dynamic Ports">
+Remember that tmpnet uses dynamic ports. If you restart your network, the port may change. Always re-export `RPC_URL` after restarting.
+</Callout>
 
 ## View Network Configuration
 
@@ -421,6 +510,34 @@ cat ~/.tmpnet/networks/latest/NodeID-*/process.json | jq -r '.uri'
 # 3. Test health endpoint with correct URI
 curl http://127.0.0.1:<actual-port>/ext/health
 ```
+
+### Missing process.json Files
+
+**Issue:** `process.json` files don't exist in node directories, or ports in `flags.json` are all `0`
+
+This happens when running avalanchego manually without the `--process-context-file` flag.
+
+**Understanding the issue:**
+- `flags.json` showing `"http-port": "0"` is correct - this tells the OS to allocate a dynamic port
+- `process.json` is created by **avalanchego itself** when started with the `--process-context-file` flag
+- tmpnetctl automatically passes this flag, but manual setups need to include it
+
+**Solution for manual avalanchego setups:**
+```bash
+# When starting avalanchego manually with dynamic ports, include:
+avalanchego \
+  --http-port=0 \
+  --staking-port=0 \
+  --process-context-file=/path/to/node/process.json \
+  # ... other flags
+
+# AvalancheGo will write the actual allocated ports to process.json
+```
+
+**If using tmpnetctl:** The `process.json` files should be created automatically. If they're missing, ensure:
+1. The network started successfully (check for "started network" in output)
+2. Nodes are still running (`ps aux | grep avalanchego`)
+3. You're looking in the correct network directory
 
 ### Command Not Found
 

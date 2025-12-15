@@ -150,6 +150,33 @@
         "1102"
       ]
     },
+    "solidity-foundry": {
+      "title": "Solidity with Foundry",
+      "quizzes": [
+        "501",
+        "502",
+        "503",
+        "504",
+        "505",
+        "506",
+        "507",
+        "508",
+        "509",
+        "510",
+        "511",
+        "512",
+        "513",
+        "514",
+        "515",
+        "516",
+        "517",
+        "518",
+        "519",
+        "520",
+        "521",
+        "522"
+      ]
+    },
     "x402-payment-infrastructure": {
       "title": "x402 Payment Infrastructure",
       "quizzes": [
@@ -2270,6 +2297,366 @@
       "hint": "Tokenomics can't save a bad product.",
       "explanation": "A good product that provides value should be the foundation of any tokenomics design. Without genuine utility and value, even the best tokenomics will eventually fail.",
       "chapter": "Mastering Tokenomics"
+    },
+    "501": {
+      "question": "What does Solidity allow you to define in a smart contract?",
+      "options": [
+        "Only the state variables",
+        "Only the functions and behaviors",
+        "Both the state and behaviors of a smart contract",
+        "Only the transaction history"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about what the lesson says Solidity is used for.",
+      "explanation": "Solidity is a high-level programming language that allows us to define both the state and behaviors of a smart contract. This is the fundamental purpose of Solidity.",
+      "chapter": "What is Solidity"
+    },
+    "502": {
+      "question": "Is Solidity statically-typed or dynamically-typed?",
+      "options": [
+        "Dynamically-typed - types are determined at runtime",
+        "Statically-typed - you must declare types at initialization",
+        "Hybrid - some variables need types, some don't",
+        "Neither - Solidity doesn't use types"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "The lesson explicitly states whether Solidity is statically or dynamically typed.",
+      "explanation": "Solidity is a statically-typed language. This means that for any variable we declare, we must declare its type at the time of initialization (e.g., uint256 num;).",
+      "chapter": "What is Solidity"
+    },
+    "503": {
+      "question": "Which visibility options are available for functions in Solidity?",
+      "options": [
+        "Public and Private only",
+        "Public, Private, Internal, and External",
+        "Open and Closed only",
+        "Visible and Hidden only"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "The lesson lists four specific visibility types.",
+      "explanation": "Functions in Solidity can be marked with four visibility traits: Public, Private, Internal, and External. Each controls how and where the function can be accessed.",
+      "chapter": "What is Solidity"
+    },
+    "504": {
+      "question": "Can state variables be modified directly by external accounts?",
+      "options": [
+        "Yes, anyone can modify them",
+        "No, only the contract itself can modify them",
+        "Yes, but only if they are public",
+        "Yes, if you know the contract address"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about who controls state variable changes.",
+      "explanation": "No other account can modify the variables of a smart contract directly; only the contract itself can. State variables can be modified during contract initialization or by contract functions.",
+      "chapter": "What is Solidity"
+    },
+    "505": {
+      "question": "What does 'pragma solidity ^0.8.0;' mean?",
+      "options": [
+        "Only compile with exactly version 0.8.0",
+        "Compile with any Solidity version",
+        "Compile with 0.8.0 or any compatible 0.8.x version",
+        "The contract requires Solidity 0.8.0 or lower"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about what the caret (^) symbol indicates.",
+      "explanation": "The caret (^) means the source file can be compiled with version 0.8.0 or any compatible version with the 0.8 prefix, but not 0.9.x or other major versions.",
+      "chapter": "What is Solidity"
+    },
+    "506": {
+      "question": "Can for-loops in Solidity iterate over ranges of integers?",
+      "options": [
+        "No, for-loops don't exist in Solidity",
+        "Yes, for-loops iterate over integer ranges",
+        "Only while loops can iterate",
+        "No, only arrays can be iterated"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "The lesson shows a factorial example using for-loops.",
+      "explanation": "Yes, for-loops allow us to iterate over a range of integers in Solidity. The syntax is: for (loop-variable; loop-condition; loop-incrementer) { }.",
+      "chapter": "What is Solidity"
+    },
+    "507": {
+      "question": "Can mappings be created as local variables inside function bodies?",
+      "options": [
+        "Yes, mappings can be created anywhere",
+        "No, mappings can only be state variables",
+        "Yes, but only in constructors",
+        "Yes, if declared with 'memory' keyword"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "The lesson explicitly states where mappings can be instantiated.",
+      "explanation": "Mappings can only be instantiated as state variables. You cannot create a new mapping data structure within the body of a function.",
+      "chapter": "Data Structures"
+    },
+    "508": {
+      "question": "What happens when you use a struct inside a function without specifying memory/storage?",
+      "options": [
+        "It defaults to memory automatically",
+        "It defaults to storage automatically",
+        "You get a compilation error about data location",
+        "The struct cannot be used in functions"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "The lesson shows an error occurs and explains why.",
+      "explanation": "You must explicitly specify the data location (memory or storage) for structs in function bodies. Without it, you'll get a compilation error about data location.",
+      "chapter": "Data Structures"
+    },
+    "509": {
+      "question": "When is a contract constructor executed?",
+      "options": [
+        "Every time a function is called",
+        "Only once, at contract deployment",
+        "Every time the contract receives funds",
+        "When the contract is destroyed"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about when initialization happens.",
+      "explanation": "Constructors allow us to define the state of a contract at the time of initialization. They execute only once when the contract is deployed.",
+      "chapter": "Data Structures"
+    },
+    "510": {
+      "question": "What does the underscore (_) in a modifier do?",
+      "options": [
+        "It marks the end of the modifier",
+        "It returns control to the original function body",
+        "It cancels the function execution",
+        "It's just a placeholder with no function"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "The lesson explains the underscore's role in execution flow.",
+      "explanation": "The underscore (_) returns control back to the original function. The modifier runs first, then at _, the function body executes.",
+      "chapter": "Modifiers"
+    },
+    "511": {
+      "question": "Are events permanently stored on the blockchain?",
+      "options": [
+        "No, events are temporary and discarded",
+        "Yes, events provide permanent immutable data storage",
+        "Only if marked as 'permanent'",
+        "Events are only stored in memory"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "The lesson discusses events as an alternative to state variables.",
+      "explanation": "Events allow us to permanently store immutable data on the blockchain without using expensive state variables. They're logged in the transaction receipt.",
+      "chapter": "Events"
+    },
+    "512": {
+      "question": "What visibility modifier prevents inheritance to child contracts?",
+      "options": [
+        "Internal",
+        "Public",
+        "Private",
+        "External"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about which visibility keeps things only in the parent contract.",
+      "explanation": "Private variables and functions are not inherited by child contracts. They belong only to the parent contract. Internal and public are inherited.",
+      "chapter": "Inheritance"
+    },
+    "513": {
+      "question": "What is a key limitation of dynamic arrays created in memory compared to those in storage?",
+      "options": [
+        "They cannot hold more than 10 elements",
+        "They cannot use push() and pop() methods",
+        "They can only store primitive types",
+        "They must be declared as public"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about what methods are available for resizing arrays in different locations.",
+      "explanation": "Dynamic arrays in memory cannot use push() and pop() methods. Once created with 'new', their size is fixed for the duration of the function. Only dynamic arrays in storage can be resized using push() and pop().",
+      "chapter": "Data Structures"
+    },
+    "514": {
+      "question": "Does an interface provide implementations for its functions?",
+      "options": [
+        "Yes, interfaces contain full implementations",
+        "No, interfaces only define function signatures",
+        "Only for some functions",
+        "Yes, but only for view functions"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about what interfaces specify versus implement.",
+      "explanation": "An interface only defines function signatures without implementing them. It specifies which functions must exist but does not provide their actual logic.",
+      "chapter": "Interfaces"
+    },
+    "515": {
+      "question": "Must a contract implement ALL functions declared in an interface?",
+      "options": [
+        "No, only the important ones",
+        "Yes, or it will fail to compile",
+        "Only public functions are required",
+        "No, missing functions default to empty"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "The lesson states what happens if functions are missing.",
+      "explanation": "A contract that implements an interface must include all the functions defined in the interface. Otherwise, it will fail to compile.",
+      "chapter": "Interfaces"
+    },
+    "516": {
+      "question": "What keyword indicates a function implementation matches an interface?",
+      "options": [
+        "implements",
+        "override",
+        "interface",
+        "virtual"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "The lesson shows this keyword in the example implementation.",
+      "explanation": "The override keyword is used to ensure the function implementations match the interface definitions when implementing an interface.",
+      "chapter": "Interfaces"
+    },
+    "517": {
+      "question": "Can abstract contracts be deployed directly?",
+      "options": [
+        "Yes, they can be deployed like any contract",
+        "No, they contain unimplemented functions",
+        "Only if all functions are virtual",
+        "Yes, but only on test networks"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about why they are called 'abstract'.",
+      "explanation": "An abstract contract cannot be deployed on its own because it contains at least one function without an implementation. It serves as a base contract for inheritance.",
+      "chapter": "Abstract Contracts"
+    },
+    "518": {
+      "question": "Can abstract contracts have state variables?",
+      "options": [
+        "No, only interfaces can have them",
+        "Yes, abstract contracts can have state variables",
+        "Only if marked as virtual",
+        "No, they can only have functions"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Check the comparison table between abstract contracts and interfaces.",
+      "explanation": "Abstract contracts can have state variables, unlike interfaces. This is one key difference between abstract contracts and interfaces.",
+      "chapter": "Abstract Contracts"
+    },
+    "519": {
+      "question": "What does the virtual keyword mean for a function?",
+      "options": [
+        "It's stored in virtual memory",
+        "It can be overridden by child contracts",
+        "It cannot be called externally",
+        "It's automatically abstract"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "The lesson explains this in the abstract contract examples.",
+      "explanation": "A function marked as virtual can be overridden in derived contracts. This allows child contracts to provide their own implementation.",
+      "chapter": "Abstract Contracts"
+    },
+    "520": {
+      "question": "What does the decimals() function return in ERC-20?",
+      "options": [
+        "The number of decimal places for display",
+        "The token price in decimal format",
+        "The total supply with decimals",
+        "The balance in decimal notation"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about representing fractional amounts without floating-point numbers.",
+      "explanation": "decimals() returns the precision of the token (n), where token amounts are stored as value * 10^n. This allows representing fractional amounts as whole numbers.",
+      "chapter": "ERC-20 Tokens"
+    },
+    "521": {
+      "question": "What must happen before transferFrom() can successfully transfer tokens?",
+      "options": [
+        "The owner must call transfer() first",
+        "The owner must call approve() to give permission",
+        "The tokens must be locked",
+        "The recipient must accept the tokens"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about the allowance mechanism described in the lesson.",
+      "explanation": "Before transferFrom() can work, the token owner must have called approve() to grant permission for the spender to transfer tokens on their behalf.",
+      "chapter": "ERC-20 Tokens"
+    },
+    "522": {
+      "question": "How do you call an ERC-20 function at a specific address?",
+      "options": [
+        "address.call(function)",
+        "IERC20(address).function()",
+        "function(address)",
+        "address->function()"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "The lesson shows wrapping an address with an interface type.",
+      "explanation": "You wrap the address with the interface type: IERC20(tokenAddress).name(). This allows calling the interface functions at that address.",
+      "chapter": "ERC-20 Tokens"
+    },
+    "523": {
+      "question": "What's the key difference between ERC-20 and ERC-721 tokens?",
+      "options": [
+        "ERC-721 tokens cost more gas",
+        "ERC-721 tokens are non-fungible, ERC-20 are fungible",
+        "ERC-721 is for images only",
+        "ERC-20 cannot be transferred"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about fungibility discussed in the lesson.",
+      "explanation": "ERC-20 tokens are fungible (all equal), while ERC-721 tokens are non-fungible (each unique). This allows ERC-721 to represent unique items like art.",
+      "chapter": "Fungibility"
+    },
+    "524": {
+      "question": "What do NFT URIs typically store?",
+      "options": [
+        "The token's price and value",
+        "The URL to the digital asset (like a JPEG)",
+        "The owner's wallet address",
+        "The smart contract bytecode"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about what URIs represent for NFTs tracking images.",
+      "explanation": "NFT URIs store the URL to the digital asset. A mapping stores tokenId to URI, allowing each NFT to point to its unique image or asset.",
+      "chapter": "Fungibility"
     },
     "5001": {
       "question": "What is the primary innovation that x402 brings to internet payments?",

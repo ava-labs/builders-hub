@@ -1,0 +1,94 @@
+---
+title: AvalancheGo Architecture
+description: Understand the internal architecture and components of AvalancheGo, the official Avalanche node implementation.
+---
+
+AvalancheGo is the official Go implementation of an Avalanche node. It powers the Primary Network (P/C/X) and any Avalanche L1s you launch, delivering high throughput and sub-second probabilistic finality.
+
+<Callout>
+**Source Code**: [github.com/ava-labs/avalanchego](https://github.com/ava-labs/avalanchego)
+</Callout>
+
+## What is AvalancheGo?
+
+AvalancheGo is a full-node implementation that:
+
+- **Validates transactions** across the Primary Network (P-Chain, C-Chain, X-Chain)
+- **Participates in consensus** using Avalanche's Snow* family of protocols
+- **Serves API requests** for wallets, dApps, and other clients
+- **Supports Avalanche L1s** (blockchains validated by Subnets) for custom networks
+
+<Callout type="info">
+AvalancheGo is written in Go and is designed to be modular, allowing developers to build custom Virtual Machines (VMs) that define their own blockchain logic.
+</Callout>
+
+## Execution at a glance
+
+- **Networking**: Custom P2P stack with mutual TLS (staking certs), throttling, peer scoring, and subnet-aware gossip.
+- **Consensus engines**: Snowman/Snowman++ for all Primary Network chains (P/C/X post-Cortina). The legacy Avalanche DAG engine exists but is unused.
+- **VMs**: PlatformVM (P-Chain), Coreth (C-Chain), AVM (X-Chain), plus pluggable/`rpcchainvm` VMs for custom L1s.
+- **Chain manager**: Boots P/C/X, creates new chains on request, routes consensus messages.
+- **APIs**: HTTP/WS via `/ext/*`, with health/metrics, admin/info, and per-chain RPCs.
+- **Storage**: LevelDB (default) or PebbleDB, shared atomic UTXO memory for cross-chain transfers, optional indexer.
+
+## Core Components
+
+| Component | Description |
+|-----------|-------------|
+| **Network Layer** | P2P networking for peer discovery, message routing, and validator communication |
+| **Chain Manager** | Orchestrates blockchain lifecycle, bootstrapping, and state synchronization |
+| **Consensus Engines** | Snowman/Snowman++ for all Primary Network chains and most L1s |
+| **Virtual Machines** | PlatformVM, Coreth, AVM, and custom VMs (native Go or `rpcchainvm`) |
+| **API Server** | HTTP/HTTPS endpoints for interacting with the node |
+| **Database** | Persistent storage using LevelDB (default) or PebbleDB; shared atomic memory |
+
+## Primary Network Chains
+
+AvalancheGo validates three chains on the Primary Network:
+
+<Cards>
+  <Card title="P-Chain (Platform)" href="/docs/primary-network">
+    Manages validators, staking, subnets, and chain creation. Uses PlatformVM (Snowman++).
+  </Card>
+  <Card title="C-Chain (Contract)" href="/docs/primary-network">
+    EVM-compatible chain for smart contracts. Uses Coreth (grafted go-ethereum) with Snowman++.
+  </Card>
+  <Card title="X-Chain (Exchange)" href="/docs/primary-network">
+    High-throughput asset transfers using UTXO model. Uses AVM with Snowman (linearized in Cortina).
+  </Card>
+</Cards>
+
+## Key Design Principles
+
+### Modularity
+AvalancheGo separates concerns into distinct layers:
+- **Consensus** is decoupled from application logic
+- **VMs** are pluggable and can be developed independently
+- **Networking** is abstracted from chain-specific operations
+
+### Extensibility
+- Custom VMs can be loaded as plugins (native) or via `rpcchainvm` (any language)
+- Avalanche L1s can run any VM that implements the required interface
+- Chain configurations and upgrades can be customized per-network/chain
+
+### Performance
+- Sub-second finality through probabilistic consensus
+- Parallel transaction processing across independent chains
+- State sync and Snowman++ proposer windows to reduce contention and bootstrap faster
+
+## Next Steps
+
+<Cards>
+  <Card title="Core Architecture" href="/docs/nodes/architecture/core-components">
+    Deep dive into AvalancheGo's package structure and component interactions
+  </Card>
+  <Card title="Consensus Protocols" href="/docs/nodes/architecture/consensus">
+    Learn how Snowman and Avalanche consensus work under the hood
+  </Card>
+  <Card title="Virtual Machines" href="/docs/nodes/architecture/virtual-machines">
+    Understand how VMs define blockchain behavior and how to build custom VMs
+  </Card>
+  <Card title="Networking" href="/docs/nodes/architecture/networking">
+    Explore the P2P protocol and peer management system
+  </Card>
+</Cards>

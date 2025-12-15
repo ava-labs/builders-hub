@@ -92,7 +92,7 @@ export const menuSections: NavSection[] = [
       { text: 'Playground', href: '/stats/playground' },
       { text: 'Avalanche L1s', href: '/stats/overview' },
       { text: 'C-Chain', href: '/stats/l1/c-chain' },
-      { text: 'Primary Network Validators', href: '/stats/validators' },
+      { text: 'Validators', href: '/stats/validators' },
     ],
   },
   {

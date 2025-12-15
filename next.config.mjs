@@ -1544,7 +1544,7 @@ const config = {
       // SDK getting-started redirect
       {
         source: "/docs/tooling/avalanche-sdk/getting-started",
-        destination: "/docs/tooling/avalanche-sdk",
+        destination: "/docs/tooling/avalanche-sdk/client/getting-started",
         permanent: true,
       },
       // Virtual machines redirects
@@ -1556,6 +1556,46 @@ const config = {
       {
         source: "/docs/virtual-machines/timestamp-vm/:path*",
         destination: "/docs/avalanche-l1s/timestamp-vm/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/codebase-entrepreneur-academy/09-fundraising/:path*",
+        destination: "/academy/entrepreneur/fundraising-finance/09-fundraising/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/05-transfers-in-smart-contracts",
+        destination: "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/05-erc20",
+        permanent: true,
+      },
+      {
+        source: "/docs/api-reference/avalanche-sdk/client-sdk/:path*",
+        destination: "/docs/tooling/avalanche-sdk/client/:path*",
+        permanent: true,
+      },
+      {
+        source: "/docs/roadmap",
+        destination: "/docs",
+        permanent: true,
+      },
+      {
+        source: "/hack2build/:path*",
+        destination: "/hackathons",
+        permanent: true,
+      },
+      {
+        source: "/stats/token",
+        destination: "/stats/avax-token",
+        permanent: true,
+      },
+      {
+        source: "/stats/tokens",
+        destination: "/stats/avax-token",
+        permanent: true,
+      },
+      {
+        source: "/stats/primary-network/validators",
+        destination: "/stats/validators",
         permanent: true,
       },
       {

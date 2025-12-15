@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
+import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -255,51 +256,10 @@ export function ExplorerLayout({
                       </div>
                     )}
                     {/* Mobile Social Links - shown below description */}
-                    {(website || socials) && (
-                      <div className="flex sm:hidden items-center gap-2 mt-4">
-                        {website && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 cursor-pointer"
-                          >
-                            <a href={website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 cursor-pointer">
-                              Website
-                              <ArrowUpRight className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
-                        {socials && (socials.twitter || socials.linkedin) && (
-                          <>
-                            {socials.twitter && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                asChild
-                                className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2 cursor-pointer"
-                              >
-                                <a href={`https://x.com/${socials.twitter}`} target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="cursor-pointer">
-                                  <Twitter className="h-4 w-4" />
-                                </a>
-                              </Button>
-                            )}
-                            {socials.linkedin && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                asChild
-                                className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2 cursor-pointer"
-                              >
-                                <a href={`https://linkedin.com/company/${socials.linkedin}`} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="cursor-pointer">
-                                  <Linkedin className="h-4 w-4" />
-                                </a>
-                              </Button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    )}
+                    <MobileSocialLinks
+                      website={website}
+                      socials={socials}
+                    />
                     {currentChain?.category && (
                       <div className="mt-3">
                         <span 
