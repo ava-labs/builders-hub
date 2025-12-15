@@ -4,12 +4,11 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getMAConfig, calculateMovingAverage, type Period, type MAConfig } from "@/utils/chart-utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getMAConfig, calculateMovingAverage } from "@/utils/chart-utils";
 import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera } from "lucide-react";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
-import Link from "next/link";
-import Image from "next/image";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
@@ -1950,29 +1949,23 @@ function ChartCard({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <div className="flex gap-0.5 sm:gap-1">
-              {(["D", "W", "M", "Q", "Y"] as const)
-                .filter((p) => allowedPeriods.includes(p))
-                .map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => onPeriodChange(p)}
-                    className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm  rounded-md transition-colors ${
-                      period === p
-                        ? "text-white dark:text-white"
-                        : "text-muted-foreground hover:bg-muted"
-                    }`}
-                    style={
-                      period === p
-                        ? { backgroundColor: `${config.color}`, opacity: 0.9 }
-                        : {}
-                    }
-                  >
-                    {p}
-                  </button>
-                ))}
-            </div>
+          <div className="flex items-center gap-1">
+            <Select value={period} onValueChange={(value) => onPeriodChange(value as "D" | "W" | "M" | "Q" | "Y")}>
+              <SelectTrigger className="h-7 w-auto px-2 gap-1 text-xs sm:text-sm border-0 bg-transparent hover:bg-muted focus:ring-0 shadow-none">
+                <SelectValue>
+                  {period === "D" ? "Daily" : period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(["D", "W", "M", "Q", "Y"] as const)
+                  .filter((p) => allowedPeriods.includes(p))
+                  .map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {p === "D" ? "Daily" : p === "W" ? "Weekly" : p === "M" ? "Monthly" : p === "Q" ? "Quarterly" : "Yearly"}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
             <button
               onClick={handleScreenshot}
               className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
@@ -1992,7 +1985,7 @@ function ChartCard({
 
         <div className="px-5 pt-6 pb-6">
           {/* Current Value and Change */}
-          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4 flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 flex-wrap">
             {config.chartType === "dual" &&
             secondaryCurrentValue !== null &&
             secondaryCurrentValue !== undefined ? (
