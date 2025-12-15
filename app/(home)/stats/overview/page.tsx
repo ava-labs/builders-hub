@@ -704,61 +704,28 @@ export default function AvalancheMetrics() {
             </span>
           </nav>
 
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
-            <div className="space-y-4 sm:space-y-6 flex-1">
-              <div>
-                <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <AvalancheLogo
-                    className="w-5 h-5 sm:w-6 sm:h-6"
-                    fill="currentColor"
-                  />
-                  <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
-                    Avalanche Ecosystem
-                  </p>
-                </div>
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                  L1s Index
-                </h1>
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-4 sm:gap-8">
+            <div>
+              <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                <AvalancheLogo
+                  className="w-5 h-5 sm:w-6 sm:h-6"
+                  fill="currentColor"
+                />
+                <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
+                  Avalanche Ecosystem
+                </p>
               </div>
-
-              {/* Key metrics - 2x2 grid on mobile, inline on desktop */}
-              <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-y-3 gap-x-6 sm:gap-6 md:gap-12 pt-4">
-                <div className="flex items-baseline">
-                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
-                    {overviewMetrics.chains.length}
-                  </span>
-                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
-                    chains
-                  </span>
-                </div>
-                <div className="flex items-baseline justify-end sm:justify-start">
-                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
-                    <AnimatedNumber value={totalTx} />
-                  </span>
-                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
-                    txns
-                  </span>
-                </div>
-                <div className="flex items-baseline">
-                  <SpeedGauge value={parseFloat(totalTps)} />
-                </div>
-                <div className="flex items-baseline justify-end sm:justify-start">
-                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
-                    {formatNumber(overviewMetrics.aggregated.totalValidators)}
-                  </span>
-                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
-                    validators
-                  </span>
-                </div>
-              </div>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                L1s Index
+              </h1>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto mt-2">
+            <div className="flex gap-2 sm:gap-3 self-start sm:self-center">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => (window.location.href = "/stats/chain-list")}
-                className="w-full sm:w-auto gap-2 text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600"
+                className="gap-2 text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600"
               >
                 <Network className="h-3.5 w-3.5" />
                 Chain List
@@ -772,11 +739,102 @@ export default function AvalancheMetrics() {
                     "_blank"
                   )
                 }
-                className="w-full sm:w-auto gap-2 text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600"
+                className="gap-2 text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600"
               >
                 Submit L1
                 <ExternalLink className="h-3.5 w-3.5" />
               </Button>
+            </div>
+          </div>
+
+          {/* Key metrics row with time range selector aligned right */}
+          <div className="flex items-center justify-between gap-4 pt-4 sm:pt-6">
+            <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-y-3 gap-x-6 sm:gap-6 md:gap-12">
+              <div className="flex items-baseline">
+                {tableLoading ? (
+                  <div className="h-8 sm:h-10 md:h-12 w-12 sm:w-14 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                ) : (
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    {overviewMetrics.chains.length}
+                  </span>
+                )}
+                <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                  chains
+                </span>
+              </div>
+              <div className="flex items-baseline justify-end sm:justify-start">
+                {tableLoading ? (
+                  <div className="h-8 sm:h-10 md:h-12 w-20 sm:w-28 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                ) : (
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    <AnimatedNumber value={totalTx} />
+                  </span>
+                )}
+                <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                  txns
+                </span>
+              </div>
+              <div className="flex items-baseline">
+                {tableLoading ? (
+                  <div className="h-8 sm:h-10 md:h-12 w-24 sm:w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                ) : (
+                  <SpeedGauge value={parseFloat(totalTps)} />
+                )}
+              </div>
+              <div className="flex items-baseline justify-end sm:justify-start">
+                {tableLoading ? (
+                  <div className="h-8 sm:h-10 md:h-12 w-14 sm:w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                ) : (
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    {formatNumber(overviewMetrics.aggregated.totalValidators)}
+                  </span>
+                )}
+                <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                  validators
+                </span>
+              </div>
+            </div>
+
+            {/* Time range filter - minimal design */}
+            <div className="hidden sm:flex items-center gap-1 self-center">
+              {(["day", "week", "month"] as TimeRangeKey[]).map((range) => (
+                <button
+                  key={range}
+                  onClick={() => setTimeRange(range)}
+                  className={`relative px-3 py-1 text-sm font-medium cursor-pointer transition-colors ${
+                    timeRange === range
+                      ? "text-zinc-900 dark:text-white"
+                      : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400"
+                  }`}
+                >
+                  {TIME_RANGE_CONFIG[range].shortLabel}
+                  {timeRange === range && (
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-red-500 rounded-full" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Mobile time range filter */}
+          <div className="flex sm:hidden items-center justify-end pt-3">
+            <div className="flex items-center gap-1">
+              {(["day", "week", "month"] as TimeRangeKey[]).map((range) => (
+                <button
+                  key={range}
+                  onClick={() => setTimeRange(range)}
+                  className={`relative px-2.5 py-1 text-xs font-medium cursor-pointer transition-colors ${
+                    timeRange === range
+                      ? "text-zinc-900 dark:text-white"
+                      : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400"
+                  }`}
+                >
+                  {TIME_RANGE_CONFIG[range].shortLabel}
+                  {timeRange === range && (
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-0.5 bg-red-500 rounded-full" />
+                  )}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -786,9 +844,13 @@ export default function AvalancheMetrics() {
               <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
                 {timeRangeLabel} ICM:
               </span>
-              <span className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-white">
-                {formatNumber(totalIcm)}
-              </span>
+              {tableLoading ? (
+                <div className="h-4 sm:h-5 w-12 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              ) : (
+                <span className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-white">
+                  {formatNumber(totalIcm)}
+                </span>
+              )}
             </div>
             <div className="hidden sm:block w-px h-4 bg-zinc-300 dark:bg-zinc-700" />
             <div className="flex items-center gap-2">
@@ -828,6 +890,13 @@ export default function AvalancheMetrics() {
                 </span>
               </div>
             </div>
+
+            {/* Disclosure */}
+            <div className="w-full sm:w-auto sm:ml-auto">
+              <span className="text-[10px] sm:text-xs text-zinc-400 dark:text-zinc-500">
+                * Metrics are {timeRangeLabel.toLowerCase()}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -853,7 +922,7 @@ export default function AvalancheMetrics() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {/* Table header */}
         <div className="mb-4">
-          {/* Title row with time range selector */}
+          {/* Title row */}
           <div className="flex items-center justify-between gap-4 mb-4">
             <div className="flex items-baseline gap-2 sm:gap-3">
               <h2 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-white">
@@ -862,23 +931,6 @@ export default function AvalancheMetrics() {
               <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
                 {sortedData.length} tracked
               </span>
-            </div>
-
-            {/* Time range filter */}
-            <div className="flex items-center rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 p-1">
-              {(["day", "week", "month"] as TimeRangeKey[]).map((range) => (
-                <button
-                  key={range}
-                  onClick={() => setTimeRange(range)}
-                  className={`px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-medium rounded-full transition-all ${
-                    timeRange === range
-                      ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm"
-                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
-                  }`}
-                >
-                  {TIME_RANGE_CONFIG[range].shortLabel}
-                </button>
-              ))}
             </div>
           </div>
 
