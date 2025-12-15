@@ -2336,14 +2336,14 @@ function ValidatorChartCard({
             </Select>
             <button
               onClick={handleScreenshot}
-              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
               title="Download chart as image"
             >
               <Camera className="h-4 w-4" />
             </button>
             <button
               onClick={downloadCSV}
-              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
               title="Download CSV"
             >
               <Download className="h-4 w-4" />
@@ -2835,14 +2835,14 @@ function DailyRewardsChartCard({
             </Select>
             <button
               onClick={handleScreenshot}
-              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
               title="Download chart as image"
             >
               <Camera className="h-4 w-4" />
             </button>
             <button
               onClick={downloadCSV}
-              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
               title="Download CSV"
             >
               <Download className="h-4 w-4" />
@@ -3206,14 +3206,14 @@ function CumulativeRewardsChartCard({
             </Select>
             <button
               onClick={handleScreenshot}
-              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
               title="Download chart as image"
             >
               <Camera className="h-4 w-4" />
             </button>
             <button
               onClick={downloadCSV}
-              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
               title="Download CSV"
             >
               <Download className="h-4 w-4" />

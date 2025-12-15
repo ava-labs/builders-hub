@@ -1302,7 +1302,7 @@ export default function ConfigurableChart({
                       setShowMetricFilter(!showMetricFilter);
                       setShowChainSelector(false);
                     }}
-                    className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
                     title="Add metric"
                   >
                     <Plus className="h-4 w-4" />
@@ -1428,7 +1428,7 @@ export default function ConfigurableChart({
                 </div>
                 <button
                   onClick={handleScreenshot}
-                  className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
                   title="Download chart as image"
                 >
                   <Camera className="h-4 w-4" />
@@ -1583,7 +1583,7 @@ export default function ConfigurableChart({
                 {onColSpanChange && (
                   <button
                     onClick={toggleColSpan}
-                    className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
                     title={colSpan === 12 ? "Make half width" : "Make full width"}
                   >
                     {colSpan === 12 ? (
@@ -1596,7 +1596,7 @@ export default function ConfigurableChart({
                 {onRemove && !disableControls && (
                   <button
                     onClick={onRemove}
-                    className="p-1.5 sm:p-2 rounded-md text-red-500 hover:bg-red-500/10 hover:text-red-600 transition-colors"
+                    className="p-1.5 sm:p-2 rounded-md text-red-500 hover:bg-red-500/10 hover:text-red-600 transition-colors cursor-pointer"
                     title="Remove chart"
                   >
                     <Trash2 className="h-4 w-4" />
