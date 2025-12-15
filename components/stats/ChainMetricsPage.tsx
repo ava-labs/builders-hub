@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useTransition } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 import { StickyNavBar } from "@/components/stats/StickyNavBar";
+import { PeriodSelector } from "@/components/stats/PeriodSelector";
 import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
 import { LinkableHeading } from "@/components/stats/LinkableHeading";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
@@ -768,6 +769,23 @@ export default function ChainMetricsPage({
     Record<string, "D" | "W" | "M" | "Q" | "Y">
   >(Object.fromEntries(chartConfigs.map((config) => [config.metricKey, "D"])));
 
+  // Global period selector state
+  const [globalPeriod, setGlobalPeriod] = useState<"D" | "W" | "M" | "Q" | "Y">("D");
+  const [, startTransition] = useTransition();
+
+  const handlePeriodChange = (newPeriod: "D" | "W" | "M" | "Q" | "Y") => {
+    startTransition(() => {
+      setGlobalPeriod(newPeriod);
+    });
+  };
+
+  // Sync all chart periods when global period changes
+  useEffect(() => {
+    setChartPeriods(
+      Object.fromEntries(chartConfigs.map((config) => [config.metricKey, globalPeriod]))
+    );
+  }, [globalPeriod]);
+
   // Chart categories for navigation
   const chartCategories = [
     { id: "overview", label: "Overview" },
@@ -1053,8 +1071,8 @@ export default function ChainMetricsPage({
               </div>
             </div>
 
-            {/* Desktop Social Links - hidden on mobile */}
-            <div className="hidden sm:flex flex-row items-end gap-2">
+            {/* Desktop Social Links and Period Selector - hidden on mobile */}
+            <div className="hidden sm:flex flex-col items-end gap-3">
               <div className="flex items-center gap-2">
                 {website && (
                   <Button
@@ -1069,7 +1087,7 @@ export default function ChainMetricsPage({
                     </a>
                   </Button>
                 )}
-                
+
                 {/* Social buttons */}
                 {socials && (socials.twitter || socials.linkedin) && (
                   <>
@@ -1080,9 +1098,9 @@ export default function ChainMetricsPage({
                         asChild
                         className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
                       >
-                        <a 
-                          href={`https://x.com/${socials.twitter}`} 
-                          target="_blank" 
+                        <a
+                          href={`https://x.com/${socials.twitter}`}
+                          target="_blank"
                           rel="noopener noreferrer"
                           aria-label="Twitter"
                         >
@@ -1097,9 +1115,9 @@ export default function ChainMetricsPage({
                         asChild
                         className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
                       >
-                        <a 
-                          href={`https://linkedin.com/company/${socials.linkedin}`} 
-                          target="_blank" 
+                        <a
+                          href={`https://linkedin.com/company/${socials.linkedin}`}
+                          target="_blank"
                           rel="noopener noreferrer"
                           aria-label="LinkedIn"
                         >
@@ -1109,7 +1127,7 @@ export default function ChainMetricsPage({
                     )}
                   </>
                 )}
-                
+
                 {explorers && (
                   <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
                     <ExplorerDropdown
@@ -1130,7 +1148,12 @@ export default function ChainMetricsPage({
         categories={chartCategories}
         activeSection={activeSection}
         onNavigate={scrollToSection}
-      />
+      >
+        <PeriodSelector
+          selected={globalPeriod}
+          onChange={handlePeriodChange}
+        />
+      </StickyNavBar>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16">
 
@@ -1957,6 +1980,18 @@ function ChartCard({
         </div>
 
         <div className="px-5 pt-6 pb-6">
+          {/* Check if period is supported */}
+          {!allowedPeriods.includes(period) ? (
+            <div className="flex flex-col items-center justify-center h-[350px] text-muted-foreground gap-2">
+              <p className="text-sm">
+                Data not available in {period === "D" ? "daily" : period === "W" ? "weekly" : period === "M" ? "monthly" : period === "Q" ? "quarterly" : "yearly"} granularity
+              </p>
+              <p className="text-xs">
+                Available: {allowedPeriods.map(p => p === "D" ? "Daily" : p === "W" ? "Weekly" : p === "M" ? "Monthly" : p === "Q" ? "Quarterly" : "Yearly").join(", ")}
+              </p>
+            </div>
+          ) : (
+          <>
           {/* Current Value and Change */}
           <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4 flex-wrap">
             {config.chartType === "dual" &&
@@ -2526,6 +2561,8 @@ function ChartCard({
                 </LineChart>
               </ResponsiveContainer>
             </div>
+          )}
+          </>
           )}
         </div>
       </CardContent>
