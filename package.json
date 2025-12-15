@@ -92,6 +92,8 @@
     "fumadocs-ui": "^16.0.9",
     "geist": "^1.5.1",
     "hast-util-to-jsx-runtime": "^2.3.6",
+    "html-to-image": "^1.11.13",
+    "html2canvas": "^1.4.1",
     "idb": "^8.0.3",
     "input-otp": "^1.4.2",
     "jszip": "^3.10.1",

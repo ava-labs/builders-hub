@@ -39,6 +39,7 @@ import {
 import l1ChainsData from "@/constants/l1-chains.json";
 import Image from "next/image";
 import { useTheme } from "next-themes";
+import { toPng } from "html-to-image";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 
 // Types
@@ -990,46 +991,20 @@ export default function ConfigurableChart({
     if (!chartContainerRef.current) return;
 
     try {
-      // Capture SVG from Recharts
-      const chartArea = chartContainerRef.current.querySelector('[class*="recharts"]') || chartContainerRef.current;
-      const svgElement = chartArea.querySelector("svg");
+      const element = chartContainerRef.current;
+      const bgColor = resolvedTheme === "dark" ? "#0a0a0a" : "#ffffff";
       
-      if (svgElement) {
-        const svgData = new XMLSerializer().serializeToString(svgElement);
-        const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
-        const url = URL.createObjectURL(svgBlob);
-        
-        const img = document.createElement("img");
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-          if (!ctx) {
-            URL.revokeObjectURL(url);
-            return;
-          }
-          
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.fillStyle = resolvedTheme === "dark" ? "#000000" : "#ffffff";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0);
-          URL.revokeObjectURL(url);
-          
-          const link = document.createElement("a");
-          link.download = `${chartTitle || "chart"}-${new Date().toISOString().split("T")[0]}.png`;
-          link.href = canvas.toDataURL("image/png");
-          link.click();
-        };
-        
-        img.onerror = () => {
-          URL.revokeObjectURL(url);
-          console.error("Failed to load SVG for screenshot");
-        };
-        
-        img.src = url;
-      } else {
-        console.error("No SVG element found in chart");
-      }
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: bgColor,
+        cacheBust: true,
+      });
+      
+      const link = document.createElement("a");
+      link.download = `${chartTitle || "chart"}-${new Date().toISOString().split("T")[0]}.png`;
+      link.href = dataUrl;
+      link.click();
     } catch (error) {
       console.error("Failed to capture screenshot:", error);
     }

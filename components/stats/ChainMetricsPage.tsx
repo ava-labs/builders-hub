@@ -1,11 +1,11 @@
 "use client";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getMAConfig, calculateMovingAverage, type Period, type MAConfig } from "@/utils/chart-utils";
-import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download } from "lucide-react";
+import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera } from "lucide-react";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import Link from "next/link";
@@ -20,6 +20,8 @@ import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
+import { useTheme } from "next-themes";
+import { toPng } from "html-to-image";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 
@@ -1535,6 +1537,32 @@ function ChartCard({
     startIndex: number;
     endIndex: number;
   } | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
+
+  // Screenshot handler for downloading chart as image
+  const handleScreenshot = async () => {
+    if (!chartContainerRef.current) return;
+
+    try {
+      const element = chartContainerRef.current;
+      const bgColor = resolvedTheme === "dark" ? "#0a0a0a" : "#ffffff";
+      
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: bgColor,
+        cacheBust: true,
+      });
+      
+      const link = document.createElement("a");
+      link.download = `${config.title.replace(/\s+/g, "_")}_${period}_${new Date().toISOString().split("T")[0]}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("Failed to capture screenshot:", error);
+    }
+  };
 
   // Aggregate data based on selected period
   const aggregatedData = useMemo(() => {
@@ -1900,7 +1928,7 @@ function ChartCard({
   };
 
   return (
-    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
       <CardContent className="p-0">
         <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2 sm:gap-3">
@@ -1945,6 +1973,13 @@ function ChartCard({
                   </button>
                 ))}
             </div>
+            <button
+              onClick={handleScreenshot}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              title="Download chart as image"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
             <button
               onClick={downloadCSV}
               className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
@@ -2066,7 +2101,7 @@ function ChartCard({
                 config.metricKey === "deployers") ? (
                 <ComposedChart
                   data={displayDataWithCumulative}
-                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                  margin={{ top: 10, right: 15, left: 15, bottom: 0 }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
@@ -2160,7 +2195,7 @@ function ChartCard({
               ) : config.chartType === "bar" && showMovingAverage ? (
                 <ComposedChart
                   data={displayDataWithCumulative}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
@@ -2221,7 +2256,7 @@ function ChartCard({
               ) : config.chartType === "bar" ? (
                 <BarChart
                   data={displayDataWithCumulative}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
@@ -2269,7 +2304,7 @@ function ChartCard({
               ) : config.chartType === "area" ? (
                 <AreaChart
                   data={displayDataWithCumulative}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
                 >
                   <defs>
                     <linearGradient
@@ -2339,7 +2374,7 @@ function ChartCard({
               ) : config.chartType === "dual" ? (
                 <BarChart
                   data={displayDataWithCumulative}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
@@ -2419,7 +2454,7 @@ function ChartCard({
               ) : (
                 <LineChart
                   data={displayDataWithCumulative}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
@@ -2487,7 +2522,7 @@ function ChartCard({
               <ResponsiveContainer width="100%" height={80}>
                 <LineChart
                   data={aggregatedData}
-                  margin={{ top: 0, right: 30, left: 0, bottom: 5 }}
+                  margin={{ top: 0, right: 40, left: 15, bottom: 5 }}
                 >
                   <Brush
                     dataKey="day"
