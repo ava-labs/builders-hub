@@ -6,6 +6,8 @@ authors: [AvaxDevelopers]
 topics: [Payments, Stablecoins, USDC, Embedded Wallets, Web3]
 ---
 
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
 2025 has set the stage for Web3 quietly becoming the plumbing of everyday finance. The shift isn't happening on trading apps, but at markets, restaurants, street vendors, and digital storefronts – places where consumers aren't thinking "blockchain" at all.
 
 From [Uptop's commerce rails](https://www.avax.network/about/blog/the-quiet-disruptor-how-uptop-and-john-timoney-gomez-are-reinvigorating-fan), and the [Urbanspace x Avalanche USDC pilot](https://www.avax.network/about/blog/a-new-kind-of-holiday-exchange-comes-to-life-in-new-york-city), to the [Avalanche Card](https://www.avalanchecard.com/) and Wyoming's [FRNT stablecoin program](https://www.avax.network/about/blog/frnt-goes-live-the-first-u-s-state-issued-stablecoin-you-can-actually-use), a clear pattern is forming: the next generation of payments will settle onchain, even if the user never sees the chain.
@@ -18,13 +20,15 @@ Most Web2 payment apps disguise a decades-old system made of layers of intermedi
 
 Here's what that stack looks like when built on Avalanche:
 
+<Steps>
+<Step>
 ### App Layer
 *(e.g., Uptop, Urbanspace, AVAX Card UI)*
 
 This is the user-facing surface where payments feel like any Web2 app – simple checkouts, clean UI, and no friction.
+</Step>
 
-↓
-
+<Step>
 ### Wallet Abstraction Layer
 *(e.g., Core SDK, embedded wallets)*
 
@@ -35,9 +39,9 @@ This layer handles all the behind-the-scenes wallet magic: auto-generated accoun
 - [Openfort](https://build.avax.network/integrations/openfort)
 
 If you want a walkthrough, here's a step-by-step guide on [using Privy for embedded wallets on L1s](/blog/use-privy-on-l1).
+</Step>
 
-↓
-
+<Step>
 ### Transaction Orchestration
 *(e.g., meta-tx, relayers, gas abstraction)*
 
@@ -46,27 +50,29 @@ This layer manages the mechanics of sending onchain transactions without exposin
 - [0xGasless](https://build.avax.network/integrations/0xgasless)
 - [Biconomy](https://build.avax.network/integrations/biconomy)
 - [ZeroDev](https://build.avax.network/integrations/zerodev)
+</Step>
 
-↓
-
+<Step>
 ### Settlement Layer
 *(e.g., C-Chain: USDC, FRNT, reward tokens)*
 
 This layer handles real settlement, moving stablecoins like USDC and FRNT onchain with fast, deterministic finality. Avalanche integrates with [Circle's USDC stack](https://build.avax.network/integrations/circlepay), including CCTP and smart wallet support.
+</Step>
 
-↓
-
+<Step>
 ### Issuer / Compliance Infrastructure
 *(e.g., Wyoming stablecoin trust, KYC/AML routing)*
 
 This layer manages regulatory requirements—KYC/AML, identity checks, and compliant stablecoins like USDC and FRNT. It plugs into the orchestration layer so real-world payments stay compliant without friction.
+</Step>
 
-↓
-
+<Step>
 ### Merchant Integration Layer
 *(e.g., APIs, POS connectors, reconciliation)*
 
 This is where blockchain settlement connects to merchant systems through APIs, POS integrations, and automated reconciliation—letting businesses accept onchain payments without touching crypto infra.
+</Step>
+</Steps>
 
 Each layer replaces one or more TradFi intermediaries, which is why these apps feel faster, cheaper, and more programmable.
 
