@@ -1297,18 +1297,16 @@ export default function ConfigurableChart({
 
               <div className="ml-auto flex items-center gap-2">
                 <div className="relative">
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <button
                     onClick={() => {
                       setShowMetricFilter(!showMetricFilter);
                       setShowChainSelector(false);
                     }}
-                    className="text-xs flex items-center gap-1.5 px-3 py-2 h-8 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    title="Add metric"
                   >
                     <Plus className="h-4 w-4" />
-                    <span>Add</span>
-                  </Button>
+                  </button>
                 {showMetricFilter && (
                   <div className="metric-filter-dropdown absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
                     <div className="p-3 border-b border-gray-200 dark:border-gray-700">
@@ -1428,29 +1426,26 @@ export default function ConfigurableChart({
                   </div>
                 )}
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
+                <button
                   onClick={handleScreenshot}
-                  className="text-xs flex items-center gap-1.5 px-3 py-2 h-8 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                   title="Download chart as image"
                 >
                   <Camera className="h-4 w-4" />
-                  <span className="hidden sm:inline">Export</span>
-                </Button>
+                </button>
                 {onTimeFilterChange && !disableControls && (
                   <Popover open={showTimeFilterPopover} onOpenChange={setShowTimeFilterPopover}>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className={`text-xs flex items-center justify-center px-2 py-2 h-8 w-8 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
-                          (startTime || endTime) ? "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800" : ""
+                      <button
+                        className={`p-1.5 sm:p-2 rounded-md transition-colors ${
+                          (startTime || endTime) 
+                            ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 hover:bg-blue-100 dark:hover:bg-blue-900" 
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
                         }`}
                         title="Set time filter"
                       >
                         <CalendarIcon className="h-4 w-4" />
-                      </Button>
+                      </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="end">
                       <Calendar
@@ -1586,11 +1581,9 @@ export default function ConfigurableChart({
                   </Popover>
                 )}
                 {onColSpanChange && (
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <button
                     onClick={toggleColSpan}
-                    className="text-xs flex items-center gap-1.5 px-3 py-2 h-8 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                     title={colSpan === 12 ? "Make half width" : "Make full width"}
                   >
                     {colSpan === 12 ? (
@@ -1598,18 +1591,16 @@ export default function ConfigurableChart({
                     ) : (
                       <Maximize2 className="h-4 w-4" />
                     )}
-                  </Button>
+                  </button>
                 )}
                 {onRemove && !disableControls && (
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <button
                     onClick={onRemove}
-                    className="text-xs flex items-center justify-center px-2 py-2 h-8 w-8 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 text-red-600 dark:text-red-400 transition-colors"
+                    className="p-1.5 sm:p-2 rounded-md text-red-500 hover:bg-red-500/10 hover:text-red-600 transition-colors"
                     title="Remove chart"
                   >
                     <Trash2 className="h-4 w-4" />
-                  </Button>
+                  </button>
                 )}
               </div>
             </div>
