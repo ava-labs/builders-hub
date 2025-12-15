@@ -16,7 +16,9 @@ import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 import { StickyNavBar } from "@/components/stats/StickyNavBar";
 import { PeriodSelector } from "@/components/stats/PeriodSelector";
 import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
+import { LinkableHeading } from "@/components/stats/LinkableHeading";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
@@ -1218,11 +1220,11 @@ export default function ChainMetricsPage({
         {(!loading || isInitialLoad) && (
           <>
         {/* Network Overview */}
-        <section id="overview" className="space-y-4 sm:space-y-6 scroll-mt-32">
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="overview" className="text-lg sm:text-2xl font-medium text-left">
               Network Overview
-            </h2>
+            </LinkableHeading>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1279,11 +1281,11 @@ export default function ChainMetricsPage({
         </section>
 
         {/* Activity Section */}
-        <section id="activity" className="space-y-4 sm:space-y-6 scroll-mt-32">
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="activity" className="text-lg sm:text-2xl font-medium text-left">
               Activity
-            </h2>
+            </LinkableHeading>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm">
               Address and transaction activity over time
             </p>
@@ -1336,11 +1338,11 @@ export default function ChainMetricsPage({
         </section>
 
         {/* Contracts Section */}
-        <section id="contracts" className="space-y-4 sm:space-y-6 scroll-mt-32">
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="contracts" className="text-lg sm:text-2xl font-medium text-left">
               Contracts
-            </h2>
+            </LinkableHeading>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm">
               Smart contract deployment activity
             </p>
@@ -1381,11 +1383,11 @@ export default function ChainMetricsPage({
         </section>
 
         {/* Performance Section */}
-        <section id="performance" className="space-y-4 sm:space-y-6 scroll-mt-32">
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="performance" className="text-lg sm:text-2xl font-medium text-left">
               Performance
-            </h2>
+            </LinkableHeading>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm">
               Network throughput and gas metrics
             </p>
@@ -1433,11 +1435,11 @@ export default function ChainMetricsPage({
         </section>
 
         {/* Fees Section */}
-        <section id="fees" className="space-y-4 sm:space-y-6 scroll-mt-32">
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="fees" className="text-lg sm:text-2xl font-medium text-left">
               Fees
-            </h2>
+            </LinkableHeading>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm">
               Transaction fee metrics
             </p>
@@ -1476,11 +1478,11 @@ export default function ChainMetricsPage({
         </section>
 
         {/* Interchain Section */}
-        <section id="interchain" className="space-y-4 sm:space-y-6 scroll-mt-32">
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="interchain" className="text-lg sm:text-2xl font-medium text-left">
               Interchain
-            </h2>
+            </LinkableHeading>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm">
               Cross-chain messaging activity
             </p>
@@ -2090,7 +2092,7 @@ function ChartCard({
             )}
           </div>
 
-          <div className="mb-6">
+          <ChartWatermark className="mb-6">
             {displayData.length > 0 ? (
             <ResponsiveContainer width="100%" height={400}>
               {config.chartType === "bar" &&
@@ -2511,7 +2513,7 @@ function ChartCard({
                 Loading chart data...
               </div>
             )}
-          </div>
+          </ChartWatermark>
 
           {/* Brush Slider */}
           {aggregatedData.length > 0 && brushIndexes && 
