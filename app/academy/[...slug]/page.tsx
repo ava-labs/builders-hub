@@ -47,7 +47,9 @@ import DeployExampleERC20 from "@/components/toolbox/console/ictt/setup/DeployEx
 import DeployTokenHome from "@/components/toolbox/console/ictt/setup/DeployTokenHome";
 import DeployWrappedNative from "@/components/toolbox/console/ictt/setup/DeployWrappedNative";
 import DeployERC20TokenRemote from "@/components/toolbox/console/ictt/setup/DeployERC20TokenRemote";
+import DeployNativeTokenRemote from "@/components/toolbox/console/ictt/setup/DeployNativeTokenRemote";
 import RegisterWithHome from "@/components/toolbox/console/ictt/setup/RegisterWithHome";
+import AddCollateral from "@/components/toolbox/console/ictt/setup/AddCollateral";
 import TestSend from "@/components/toolbox/console/ictt/token-transfer/TestSend";
 import TeleporterRegistry from "@/components/toolbox/console/icm/setup/TeleporterRegistry";
 import ICMRelayer from "@/components/toolbox/console/icm/setup/ICMRelayer";
@@ -68,7 +70,9 @@ const toolboxComponents = {
   DeployTokenHome,
   DeployWrappedNative,
   DeployERC20TokenRemote,
+  DeployNativeTokenRemote,
   RegisterWithHome,
+  AddCollateral,
   TestSend,
   TeleporterRegistry,
   ICMRelayer,
