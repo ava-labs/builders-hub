@@ -1,45 +1,17 @@
 "use client";
 import { useState, useMemo, useEffect, useRef } from "react";
-import {
-  Area,
-  Bar,
-  CartesianGrid,
-  Line,
-  LineChart,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Brush,
-  ResponsiveContainer,
-  ComposedChart,
-} from "recharts";
+import { Area, Bar, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Search,
-  X,
-  Eye,
-  EyeOff,
-  Plus,
-  Camera,
-  Loader2,
-  ChevronLeft,
-  GripVertical,
-  Layers,
-  Pencil,
-  Maximize2,
-  Minimize2,
-  Trash2,
-  CalendarIcon,
-  RefreshCw,
-} from "lucide-react";
+import { Search, X, Eye, EyeOff, Plus, Camera, Loader2, ChevronLeft, GripVertical, Layers, Pencil, Maximize2, Minimize2, Trash2, CalendarIcon, RefreshCw } from "lucide-react";
 import l1ChainsData from "@/constants/l1-chains.json";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
+import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 
 // Types
 interface TimeSeriesDataPoint {
