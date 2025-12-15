@@ -39,7 +39,7 @@ import {
 import l1ChainsData from "@/constants/l1-chains.json";
 import Image from "next/image";
 import { useTheme } from "next-themes";
-import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { ChartWatermark } from "@/components/stats/ChartWatermark";
 
 // Types
 interface TimeSeriesDataPoint {
@@ -1744,19 +1744,7 @@ export default function ConfigurableChart({
           </div>
         </div>
 
-        {/* Chart Area */}
-        <div className="p-6 relative">
-          {/* Watermark */}
-          <div 
-            className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
-            style={{ opacity: 0.15 }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", transform: "scale(2)" }}>
-              <AvalancheLogo className="size-10" fill="currentColor" />
-              <span style={{ fontSize: "x-large", marginTop: "4px", fontWeight: 500 }}>Builder Hub</span>
-            </div>
-          </div>
-          <div className="relative z-10">
+        <ChartWatermark className="p-6">
             {renderChart()}
 
             {/* Brush Slider */}
@@ -1813,8 +1801,7 @@ export default function ConfigurableChart({
               </ResponsiveContainer>
               </div>
             )}
-          </div>
-        </div>
+        </ChartWatermark>
       </CardContent>
     </Card>
   );
