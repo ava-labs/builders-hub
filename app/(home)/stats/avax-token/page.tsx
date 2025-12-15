@@ -10,6 +10,7 @@ import Image from "next/image";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Brush, LineChart, Line } from "recharts";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { ChartWatermark } from "@/components/stats/ChartWatermark";
 
 interface AvaxSupplyData {
   totalSupply: string;
@@ -589,7 +590,7 @@ export default function AvaxTokenPage() {
                   </div>
                 </div>
                 <CardContent className="p-2">
-                  <div className="mb-3">
+                  <ChartWatermark className="mb-3">
                     <ResponsiveContainer width="100%" height={400}>
                       <BarChart data={displayData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                         <CartesianGrid
@@ -664,7 +665,7 @@ export default function AvaxTokenPage() {
                         />
                       </BarChart>
                     </ResponsiveContainer>
-                  </div>
+                  </ChartWatermark>
 
                   <div className="mt-3 bg-white dark:bg-black pl-[60px]">
                     <ResponsiveContainer width="100%" height={80}>

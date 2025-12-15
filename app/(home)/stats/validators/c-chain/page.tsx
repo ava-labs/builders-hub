@@ -65,6 +65,7 @@ import {
   L1Chain,
 } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
@@ -1103,7 +1104,7 @@ export default function CChainValidatorMetrics() {
                       </div>
                     </div>
                   </div>
-                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                  <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
                     <div className="flex items-center justify-start gap-6 mb-4 text-sm">
                       <div className="flex items-center gap-2">
                         <div
@@ -1213,7 +1214,7 @@ export default function CChainValidatorMetrics() {
                         />
                       </ComposedChart>
                     </ResponsiveContainer>
-                  </div>
+                  </ChartWatermark>
                 </CardContent>
               </Card>
             )}
@@ -1244,7 +1245,7 @@ export default function CChainValidatorMetrics() {
                       </div>
                     </div>
                   </div>
-                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                  <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
                     <div className="flex items-center justify-start gap-6 mb-4 text-sm">
                       <div className="flex items-center gap-2">
                         <div
@@ -1352,7 +1353,7 @@ export default function CChainValidatorMetrics() {
                         />
                       </ComposedChart>
                     </ResponsiveContainer>
-                  </div>
+                  </ChartWatermark>
                 </CardContent>
               </Card>
             )}
@@ -1385,7 +1386,7 @@ export default function CChainValidatorMetrics() {
                       </div>
                     </div>
                   </div>
-                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                  <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
                     <div className="flex items-center justify-start gap-6 mb-4 text-sm">
                       <div className="flex items-center gap-2">
                         <div
@@ -1495,7 +1496,7 @@ export default function CChainValidatorMetrics() {
                         />
                       </ComposedChart>
                     </ResponsiveContainer>
-                  </div>
+                  </ChartWatermark>
                 </CardContent>
               </Card>
             )}
@@ -1526,7 +1527,7 @@ export default function CChainValidatorMetrics() {
                       </div>
                     </div>
                   </div>
-                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                  <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
                     <ResponsiveContainer width="100%" height={350}>
                       <BarChart
                         data={feeDistribution}
@@ -1606,7 +1607,7 @@ export default function CChainValidatorMetrics() {
                         />
                       </BarChart>
                     </ResponsiveContainer>
-                  </div>
+                  </ChartWatermark>
                 </CardContent>
               </Card>
             )}
@@ -2281,7 +2282,7 @@ function ValidatorChartCard({
             )}
           </div>
 
-          <div className="mb-6">
+          <ChartWatermark className="mb-6">
             <ResponsiveContainer width="100%" height={350}>
               {config.chartType === "bar" ? (
                 <BarChart
@@ -2407,7 +2408,7 @@ function ValidatorChartCard({
                 </AreaChart>
               )}
             </ResponsiveContainer>
-          </div>
+          </ChartWatermark>
 
           {/* Brush Slider */}
           <div className="mt-4 bg-white dark:bg-black pl-[60px]">
@@ -2724,7 +2725,7 @@ function DailyRewardsChartCard({
           </div>
 
           {/* Chart */}
-          <div className="mb-6">
+          <ChartWatermark className="mb-6">
             {displayData.length > 0 ? (
               <ResponsiveContainer width="100%" height={350}>
                 <ComposedChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -2792,7 +2793,7 @@ function DailyRewardsChartCard({
                 Loading chart data...
               </div>
             )}
-          </div>
+          </ChartWatermark>
 
           {/* Brush Slider */}
           {aggregatedData.length > 0 && brushIndexes && 
@@ -3001,7 +3002,7 @@ function CumulativeRewardsChartCard({
           </div>
 
           {/* Chart */}
-          <div className="mb-6">
+          <ChartWatermark className="mb-6">
             {displayData.length > 0 ? (
               <ResponsiveContainer width="100%" height={350}>
                 <AreaChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -3061,7 +3062,7 @@ function CumulativeRewardsChartCard({
                 Loading chart data...
               </div>
             )}
-          </div>
+          </ChartWatermark>
 
           {/* Brush Slider */}
           {aggregatedData.length > 0 && brushIndexes && 

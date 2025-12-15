@@ -17,6 +17,7 @@ import { StickyNavBar } from "@/components/stats/StickyNavBar";
 import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
 import { LinkableHeading } from "@/components/stats/LinkableHeading";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
@@ -2056,7 +2057,7 @@ function ChartCard({
             )}
           </div>
 
-          <div className="mb-6">
+          <ChartWatermark className="mb-6">
             {displayData.length > 0 ? (
             <ResponsiveContainer width="100%" height={400}>
               {config.chartType === "bar" &&
@@ -2477,7 +2478,7 @@ function ChartCard({
                 Loading chart data...
               </div>
             )}
-          </div>
+          </ChartWatermark>
 
           {/* Brush Slider */}
           {aggregatedData.length > 0 && brushIndexes && 
