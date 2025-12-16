@@ -1,5 +1,5 @@
 ---
-title: Create an L1 with Native Minter (BuilderHub hosted)
+title: L1 with Native Minter
 description: Create a BuilderHub-hosted L1 with the Native Minter precompile enabled (required for native-to-native bridging).
 updated: 2025-12-16
 authors: [nicolasarnedo]
@@ -11,6 +11,8 @@ import { Callout } from 'fumadocs-ui/components/callout';
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
 import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain";
 import CreateManagedTestnetNode from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/CreateManagedTestnetNode";
+import ConvertSubnetToL1 from "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx";
+import ICMRelayer from "@/components/toolbox/console/icm/setup/ICMRelayer";
 
 In Native → Native bridging, the destination chain must be able to **mint native coins**. That requires the **Native Minter precompile** to be enabled on that chain.
 
@@ -45,6 +47,35 @@ In this chapter, we’ll use a **BuilderHub hosted node** (managed testnet infra
     </ToolboxMdxWrapper>
 
     Wait until the node is healthy and your chain is producing blocks.
+  </Step>
+
+  <Step>
+    ### Step 3: Convert your Subnet to an L1
+
+    After your hosted node is running, convert the Subnet you created into a sovereign L1.
+
+    <Callout type="warning">
+    This conversion is **irreversible**. Double-check you’re converting the correct Subnet.
+    </Callout>
+
+    <ToolboxMdxWrapper walletMode="c-chain">
+      <ConvertSubnetToL1 />
+    </ToolboxMdxWrapper>
+  </Step>
+
+  <Step>
+    ### Step 4: Run an ICM relayer (Fuji C-Chain ↔ your new L1)
+
+    Native-token bridging uses Interchain Messaging under the hood, so you must run a relayer between **Fuji C-Chain** and your **new L1**.
+
+    <ToolboxMdxWrapper walletMode="l1">
+      <ICMRelayer />
+    </ToolboxMdxWrapper>
+
+    In the tool:
+    - Select **Fuji C-Chain** and your **new L1** as the networks to relay between.
+    - Fund the generated relayer address on **both** chains.
+    - Run the provided Docker command to start the relayer.
   </Step>
 </Steps>
 
