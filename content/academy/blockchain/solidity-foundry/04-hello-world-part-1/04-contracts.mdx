@@ -26,7 +26,7 @@ contract <ContractName> {
 }
 ```
 
-We declare a contract with the contract keyword, followed by the name of the smart contract (which usually follows CamelCase notation). Afterwards, we use curly brackets to encapsulate the body of the smart contract.
+We declare a contract with the contract keyword, followed by the name of the smart contract (which usually follows [PascalCase notation](https://www.freecodecamp.org/news/snake-case-vs-camel-case-vs-pascal-case-vs-kebab-case-whats-the-difference/)). Afterwards, we use curly brackets to encapsulate the body of the smart contract.
 
 ## State Variables
 
@@ -46,7 +46,7 @@ contract A {
 
 ## State Variable Visibility
 
-- Solidity is an object-oriented programming language (where contracts act as classes) and so as we will see soon, contracts are able to inherit other contracts. However, we still want to define the inheritance properties of the state variables of a contract. Therefore, we introduce state variable visibility. The following are the three possible type of state variable visibilities:
+Solidity is an object-oriented programming language (where contracts act as classes) and so as we will see soon, contracts are able to inherit other contracts. However, we still want to define the inheritance properties of the state variables of a contract. Therefore, we introduce state variable visibility. The following are the three possible type of state variable visibilities:
 - Public: the state variable is found in the parent contract and all children contract. Furthermore, any state variable defined as public will contain a getter function of the same name
 - Internal: this is the same as public, except a getter function is not created. Any state variable not annotated with a visibility is, by default, set as internal
 - Private: the state variable is found only in the parent contract - children contract do not inherit the state variable
@@ -67,7 +67,7 @@ contract A {
 
 ## Contract Functions
 
-Having gone over the state of a contract, we now discuss about contract functions, the second property of smart contracts and the logic that allows us to modify state variables. The same manner in which we declared and defined functions earlier also apply here. The only new thing here, however, is that our contract functions can modify the state variables of the associated contract. As an example, below is a contract with a state variable, and associated functions to get/set the values of the variable:
+Having gone over the state of a contract, we'll now discuss about contract functions: the second property of smart contracts and the logic that allows us to modify state variables. The same way in which we declared and defined functions earlier also applies here. The only new thing here is that our contract functions can modify the state variables of the associated contract. As an example, below is a contract with a state variable, and associated functions to get/set the values of the variable:
 
 ```solidity
 contract A {
@@ -84,3 +84,5 @@ contract A {
 
 }
 ```
+
+<Quiz quizId="504"/>

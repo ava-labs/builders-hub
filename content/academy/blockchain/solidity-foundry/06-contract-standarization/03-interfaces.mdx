@@ -3,7 +3,7 @@ title: Interfaces
 description: Understanding Smart Contract Interfaces and Their Role in Standardization
 updated: 2025-01-24
 authors: [Andrea Vargas, Ash, martineckardt]
-icon: Book
+icon: BookOpen
 ---
 
 # Interfaces in Smart Contracts
@@ -85,23 +85,6 @@ contract ExampleContract is IExample {
 
 ---
 
-## Abstract Contracts vs. Interfaces
-
-In Solidity, **abstract contracts** and **interfaces** serve similar purposes but have key differences:
-
-| Feature            | Interface | Abstract Contract |
-|-------------------|-----------|------------------|
-| Function Implementation | No (only function signatures) | Yes (can have implementations) |
-| State Variables | No | Yes |
-| Constructor | No | Yes |
-| Multiple Inheritance | Yes | No (only single inheritance) |
-
-### When to Use Which?
-- **Use an interface** when you only need to define a contract's required structure.
-- **Use an abstract contract** when you need some reusable logic while leaving specific implementations for derived contracts.
-
----
-
 ## Conclusion
 
 Interfaces are a foundational concept in Solidity that enable **standardization, interoperability, and security** in smart contract development. By enforcing a predefined structure, interfaces allow different contracts to communicate efficiently, fostering the seamless integration of protocols in Ethereum and beyond.
@@ -111,3 +94,7 @@ In the next section, we will explore **abstract contracts** and how they compare
 ---
 
 By understanding and utilizing interfaces correctly, developers can ensure their smart contracts remain flexible, compatible, and scalable across the decentralized ecosystem.
+
+<Quiz quizId="514"/>
+<Quiz quizId="515"/>
+<Quiz quizId="516"/>
