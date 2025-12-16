@@ -1,0 +1,55 @@
+---
+title: Create an L1 with Native Minter (BuilderHub hosted)
+description: Create a BuilderHub-hosted L1 with the Native Minter precompile enabled (required for native-to-native bridging).
+updated: 2025-12-16
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain";
+import CreateManagedTestnetNode from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/CreateManagedTestnetNode";
+
+In Native → Native bridging, the destination chain must be able to **mint native coins**. That requires the **Native Minter precompile** to be enabled on that chain.
+
+In this chapter, we’ll use a **BuilderHub hosted node** (managed testnet infra) to quickly spin up an L1 where we can enable **Native Minter** in genesis.
+
+<Steps>
+  <Step>
+    ### Step 1: Create an L1 and enable Native Minter in genesis
+
+    Use the Create Chain tool below. In the **Genesis JSON / precompiles** section, enable:
+
+    - **Native Minter** (required)
+
+    <Callout type="info">
+    For this native-token bridge chapter, you do **not** need Reward Manager.
+    </Callout>
+
+    <ToolboxMdxWrapper walletMode="c-chain">
+      <CreateChain embedded={true} />
+    </ToolboxMdxWrapper>
+
+    Save your **Subnet ID**, **Blockchain ID**, and **Chain ID** after creation.
+  </Step>
+
+  <Step>
+    ### Step 2: Launch a BuilderHub hosted node for your L1
+
+    Start a hosted node (no Docker required):
+
+    <ToolboxMdxWrapper walletMode="testnet-mainnet">
+      <CreateManagedTestnetNode />
+    </ToolboxMdxWrapper>
+
+    Wait until the node is healthy and your chain is producing blocks.
+  </Step>
+</Steps>
+
+## Next Steps
+
+Next, you’ll deploy `NativeTokenRemote` **on this L1** (the chain with Native Minter enabled).
+
+

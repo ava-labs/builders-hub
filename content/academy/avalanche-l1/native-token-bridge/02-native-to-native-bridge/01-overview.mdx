@@ -6,9 +6,9 @@ authors: [nicolasarnedo]
 icon: Book
 ---
 
-# Native to Native Token Bridge
+# Native to Native Token Bridge (via a deployed L1)
 
-In this section, you'll learn how to bridge native tokens from a source chain to a destination chain, where they'll be received as **native tokens** (used for gas fees).
+In this section, you'll bridge tokens from **Fuji C-Chain** to a **deployed L1** (BuilderHub-hosted) where the bridged asset is received as **native tokens** (usable for gas).
 
 ## Use Case
 
@@ -28,10 +28,10 @@ This bridge type is ideal when:
 | **Requires Collateral** | No | Yes |
 | **Use for gas** | No (need to swap) | Yes (directly) |
 
-## Architecture Overview
+## Architecture Overview (high-level)
 
 ```
-Source Chain (e.g., Fuji C-Chain)          Destination Chain (e.g., Custom L1)
+Source Chain (Fuji C-Chain)               Destination Chain (your deployed L1)
 ┌──────────────────────────────┐          ┌──────────────────────────────┐
 │                              │          │                              │
 │  Native Token (AVAX)         │          │  Native Token (minted)       │
@@ -52,7 +52,7 @@ Source Chain (e.g., Fuji C-Chain)          Destination Chain (e.g., Custom L1)
 | **NativeTokenRemote** | Destination | Calls Native Minter to create native tokens |
 | **Native Minter Precompile** | Destination | System contract that can mint native tokens |
 
-## The Native Minter Precompile
+## The Native Minter Precompile (required on the L1)
 
 The `NativeTokenRemote` contract requires the **Native Minter precompile** to be enabled on the destination chain. This precompile:
 
@@ -62,7 +62,7 @@ The `NativeTokenRemote` contract requires the **Native Minter precompile** to be
 - Address: `0x0200000000000000000000000000000000000001`
 
 <Callout type="warning">
-**Important**: The Native Minter precompile is NOT enabled on standard chains like C-Chain. You need a custom L1 with this precompile activated.
+**Important**: This flow requires an L1 where **Native Minter is enabled**. In this chapter, you’ll create one using BuilderHub hosted nodes.
 </Callout>
 
 ## Collateral Requirement
@@ -94,7 +94,7 @@ Here's the complete process:
 
 Same as Native → ERC-20 bridge. You may already have this deployed.
 
-### Step 2: Deploy NativeTokenRemote (Destination Chain)
+### Step 2: Deploy NativeTokenRemote (on your L1)
 
 Deploy on a chain with Native Minter enabled. Configure:
 - Initial reserve imbalance
@@ -108,7 +108,7 @@ Establish the secure connection between contracts.
 
 On the source chain, deposit tokens to fully collateralize the bridge.
 
-### Step 5: Bridge Tokens
+### Step 5: Bridge Tokens (Fuji → L1), then optionally bridge back (L1 → Fuji)
 
 Once collateralized, users can bridge tokens that become native gas tokens.
 
@@ -119,10 +119,10 @@ In this section, we'll set up a native-to-native bridge:
 | Step | Action | Chain |
 |------|--------|-------|
 | 1 | Deploy/Use NativeTokenHome | Source (Fuji) |
-| 2 | Deploy NativeTokenRemote | Destination (L1 with Native Minter) |
+| 2 | Deploy NativeTokenRemote | Destination (your L1 with Native Minter) |
 | 3 | Register Remote with Home | Destination |
 | 4 | Add Collateral | Source |
-| 5 | Bridge tokens | Source → Destination |
+| 5 | Bridge tokens | Source → Destination (and optionally back) |
 
 <Callout type="info">
 If you already deployed NativeTokenHome in the previous section, you can reuse it! A single home contract can have multiple remote contracts registered.

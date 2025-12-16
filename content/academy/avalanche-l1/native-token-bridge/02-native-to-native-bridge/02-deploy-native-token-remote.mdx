@@ -10,13 +10,13 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 # Deploy NativeTokenRemote
 
-The `NativeTokenRemote` contract is deployed on a destination chain that has the **Native Minter precompile** enabled. This contract can mint native tokens (used for gas) when users bridge from the source chain.
+The `NativeTokenRemote` contract is deployed on your **destination L1** (the BuilderHub-hosted chain you created in the previous step) where the **Native Minter precompile** is enabled. This contract can mint native tokens (used for gas) when users bridge from the source chain (Fuji).
 
 ## Prerequisites
 
 Before deploying NativeTokenRemote, ensure:
 
-1. **Destination chain has Native Minter precompile enabled**
+1. **Your destination L1 has Native Minter precompile enabled**
 2. **NativeTokenHome is deployed** on the source chain
 3. **You have gas tokens** on the destination chain
 

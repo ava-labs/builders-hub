@@ -19,10 +19,10 @@ With your Native-to-Native bridge fully configured and **collateralized**, you c
 <Step>
 ### Step 1: Connect to the source chain
 
-Switch your wallet to the **source chain** (for this course flow: **Fuji C-Chain**).
+For this chapter’s “full loop” test, switch your wallet to **your L1** (the chain where `NativeTokenRemote` is deployed).
 
 <Callout type="info">
-You need enough native tokens to bridge **plus gas** on the source chain.
+You need enough native tokens on your L1 to bridge **plus gas** on your L1.
 </Callout>
 
 </Step>
@@ -39,8 +39,8 @@ Make sure you have:
 3. Additional tokens for gas fees
 </Callout>
 
-<ToolboxMdxWrapper enforceChainId={43113}>
-    <TestSend />
+<ToolboxMdxWrapper>
+  <TestSend />
 </ToolboxMdxWrapper>
 
 </Step>
@@ -48,10 +48,10 @@ Make sure you have:
 <Step>
 ### Step 3: Switch to the destination chain and confirm your gas balance increased
 
-Switch to the **destination chain** and confirm your **native balance** increased.
+Switch to **Fuji C-Chain** (destination) and confirm you received the bridged value (unlocked on the home side).
 
 <Callout type="info">
-This is the key difference vs Native → ERC-20: the bridged tokens show up as the destination chain’s **native token**, so you can use them for gas immediately.
+This step is testing the “bridge back” direction (L1 → Fuji). Your `NativeTokenRemote` sends a message back to the `NativeTokenHome` on Fuji to release the backing value.
 </Callout>
 
 </Step>
