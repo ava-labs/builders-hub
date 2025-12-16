@@ -8,7 +8,6 @@ import {
   ArrowRight,
   Copy,
   Check,
-  BadgeDollarSign,
   Trophy,
 } from "lucide-react";
 import {
@@ -133,17 +132,6 @@ function OverviewCards({
     return num.toLocaleString();
   };
 
-  const formatUSD = (num: number): string => {
-    if (num >= 1e9) {
-      return `$${(num / 1e9).toFixed(2)}B`;
-    } else if (num >= 1e6) {
-      return `$${(num / 1e6).toFixed(1)}M`;
-    } else if (num >= 1e3) {
-      return `$${(num / 1e3).toFixed(1)}K`;
-    }
-    return `$${num.toLocaleString()}`;
-  };
-
   const cardData = [
     {
       key: "totalTransfers",
@@ -156,13 +144,6 @@ function OverviewCards({
               1
             )}% of all ICM`
           : "All-time",
-    },
-    {
-      key: "totalVolume",
-      icon: BadgeDollarSign,
-      label: "Total Volume (USD)",
-      getValue: () => formatUSD(data?.totalVolumeUsd || 0),
-      getSubtext: () => "Estimated value",
     },
     {
       key: "activeChains",
@@ -182,8 +163,8 @@ function OverviewCards({
 
   if (!data) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map((i) => (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[1, 2, 3].map((i) => (
           <div
             key={i}
             className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-800 rounded-lg"
@@ -203,7 +184,7 @@ function OverviewCards({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {cardData.map((item) => {
         const Icon = item.icon;
         return (
