@@ -6,18 +6,26 @@ authors: [ashucoder9]
 icon: Smile
 ---
 
-In this course, you will learn how to bridge native tokens across multiple Avalanche blockchains using Avalanche Interchain Token Transfer (ICTT). The focus is on understanding the complete flow from wrapping native tokens to deploying bridge contracts and executing cross-chain transfers.
+## Native Token Bridge
 
-## Why Take This Course?
+This course focuses **only** on the flows exposed in the Builder Console **ICTT setup** tools. Since the **ERC20 Bridge** course already covers ERC20↔ERC20, here we cover the two remaining native-token bridge patterns:
+
+- **Native token → ERC-20 token**: receive the bridged asset as an ERC-20 on the destination chain
+- **Native token → native token**: receive the bridged asset as the destination chain’s **native gas token**
+
+By the end, you’ll be able to deploy the required contracts, register remotes, collateralize when needed, and **test transfers using the console Token Transfer tool**.
 
 Native tokens are the backbone of any blockchain—they're used for gas fees, staking, and protocol operations. However, moving native tokens between chains presents unique challenges since native tokens aren't standard ERC-20 tokens.
 
-Avalanche's **Interchain Token Transfer (ICTT)** protocol solves this by providing a standardized way to bridge native tokens between Avalanche L1s. This course will teach you:
+Avalanche's **Interchain Token Transfer (ICTT)** protocol solves this by providing a standardized way to bridge native tokens between Avalanche L1s.
 
-- How **wrapped native tokens** work and why they're essential for bridging
-- The complete ICTT deployment flow using our Builder Console toolbox
-- How to bridge native tokens as **ERC-20 tokens** on destination chains
-- How to bridge native tokens as **native tokens** on destination chains (using the Native Minter precompile)
+### Prerequisites
+
+Before starting this course, we recommend completing:
+
+- [ERC20 Bridge](/academy/avalanche-l1/erc20-bridge) - ICTT mental model (TokenHome/TokenRemote), registration, and transfer basics
+- [L1 Native Tokenomics](/academy/avalanche-l1/l1-native-tokenomics) - Native vs ERC-20, wrapped tokens, and token decimals
+- [Interchain Messaging](/academy/avalanche-l1/interchain-messaging) - Cross-chain messaging and running a relayer
 
 <Callout>
 This course focuses on using the existing testnet chains (Fuji C-Chain, Echo, and Dispatch). If you want to create your own L1 blockchain, please refer to the [Creating an L1](/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1) course.
@@ -27,118 +35,19 @@ This course focuses on using the existing testnet chains (Fuji C-Chain, Echo, an
 Since Interchain Token Transfer relies on Interchain Messaging (ICM), you must run your own relayer to enable cross-chain communication. Follow the [Running a Relayer](/academy/avalanche-l1/interchain-messaging/09-running-a-relayer/01-relayer-introduction) course to set up your relayer.
 </Callout>
 
-## Understanding Wrapped Native Tokens
+### Key Concepts (what the console assumes you know)
 
-Before bridging native tokens, you need to understand **wrapped tokens**—the foundation that makes native token bridging possible.
+- **Wrapped native tokens**: native tokens are *not* ERC-20. ICTT’s native-token flows rely on a wrapped native token (e.g., WAVAX) as the ERC-20 representation used by contracts.
+- **Testing transfers**: after setup, use the console **Token Transfer** tool to send test transfers and verify balances/receipts end-to-end.
+- **Decimal scaling**: if the token representation changes decimals between chains, ICTT uses a multiplier so value is preserved. You usually don’t configure this manually, but you should recognize it when validating amounts.
 
-### What is a Native Token?
+### What You'll Learn
 
-Every blockchain has a native token that serves as the primary currency for:
+This course will walk you through:
 
-- **Gas fees**: Paying for transaction execution
-- **Staking**: Securing the network through validator participation
-- **Protocol operations**: Native functions like cross-chain messaging
+- **Native → ERC-20 bridge**: Deploy `NativeTokenHome` + `ERC20TokenRemote`, register the remote, then test transfers
+- **Native → native bridge**: Deploy `NativeTokenRemote`, register it, **add collateral**, then test transfers (destination tokens become gas tokens)
 
-On Avalanche's C-Chain, the native token is **AVAX**. On your custom L1, you define your own native token with a custom name and symbol.
+### Let's Get Started!
 
-### The Challenge with Native Tokens
-
-Native tokens have a fundamental limitation: **they are not ERC-20 tokens**. This creates challenges because:
-
-1. **Smart contracts expect ERC-20**: Most DeFi protocols, bridges, and dApps are built around the ERC-20 standard
-2. **No `approve` function**: Native tokens can't grant spending allowances to contracts
-3. **Different transfer mechanisms**: Native tokens use `msg.value` while ERC-20 uses `transfer()`
-
-### Enter Wrapped Native Tokens
-
-A **wrapped native token** solves this by creating an ERC-20 representation of the native token:
-
-| Native Token | Wrapped Version |
-|--------------|-----------------|
-| AVAX | WAVAX |
-| ETH | WETH |
-| Your L1 Token | WYourToken |
-
-When you **wrap** tokens:
-1. You send native tokens to the wrapped token contract
-2. The contract holds your native tokens
-3. You receive an equal amount of wrapped (ERC-20) tokens
-
-When you **unwrap** tokens:
-1. You call `withdraw()` on the wrapped token contract
-2. Your wrapped tokens are burned
-3. You receive your native tokens back
-
-The conversion is always **1:1**—one native token equals one wrapped token.
-
-### Why Wrapped Tokens Matter for Bridging
-
-The ICTT protocol uses wrapped native tokens as the foundation for native token bridges. The **NativeTokenHome** contract:
-- Holds the wrapped native token as collateral
-- Manages the bridge state and accounting
-- Communicates with remote contracts via ICM
-
-## Course Content
-
-### Native to ERC-20 Bridge
-
-Learn how to bridge your L1's native token to another chain as an ERC-20 token:
-
-1. Deploy a **NativeTokenHome** contract on the source chain
-2. Deploy an **ERC20TokenRemote** contract on the destination chain  
-3. Register the remote contract with the home contract
-4. Execute cross-chain transfers
-
-### Native to Native Bridge
-
-For chains with the Native Minter precompile enabled, you can receive bridged tokens as native tokens:
-
-1. Deploy a **NativeTokenHome** contract on the source chain
-2. Deploy a **NativeTokenRemote** contract on the destination chain
-3. Register and add collateral to enable native minting
-4. Bridge tokens that become native gas tokens on the destination
-
-### Send and Call Operations
-
-Learn how to execute smart contract calls on the destination chain atomically with your token transfer—perfect for DeFi integrations and automated workflows.
-
-### Cross-Chain Token Swaps
-
-Combine bridging with token swaps to exchange assets across chains in a single operation.
-
-### Scaling Token Decimals
-
-Understand how to handle tokens with different decimal precisions when bridging between chains.
-
-## Prerequisites
-
-### Avalanche Knowledge
-
-You should be familiar with:
-
-1. **Avalanche Architecture**: Understanding of Avalanche L1s and the Primary Network
-2. **Interchain Messaging**: How ICM enables cross-chain communication
-3. **Token Standards**: ERC-20 tokens and native tokens
-
-If these concepts are unclear, we recommend completing the [Avalanche Fundamentals](/academy/avalanche-l1/avalanche-fundamentals) and [Interchain Messaging](/academy/avalanche-l1/interchain-messaging) courses first.
-
-### Development Setup
-
-1. **Core Wallet** installed and configured
-   - Download from [core.app](https://core.app)
-   - Add testnet chains (Fuji C-Chain, Echo, Dispatch)
-
-2. **Test Tokens**
-   - Create a [Builder Hub account](https://build.avax.network/login) and connect your wallet to receive testnet tokens automatically
-   - Alternative: Use [core.app/tools/testnet-faucet](https://core.app/tools/testnet-faucet/?subnet=c&token=c) with code `avalanche-academy`
-
-## Learning Outcomes
-
-By the end of this course, you will:
-
-- Understand the role of wrapped native tokens in cross-chain bridging
-- Deploy ICTT contracts using the Builder Console toolbox
-- Bridge native tokens as ERC-20 tokens to other chains
-- Bridge native tokens as native tokens using NativeTokenRemote
-- Implement Send and Call for cross-chain contract interactions
-- Handle decimal scaling for multi-chain token deployments
+Each section builds upon the last, so we recommend completing the course in order.
