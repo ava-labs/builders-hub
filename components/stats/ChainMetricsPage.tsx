@@ -950,8 +950,8 @@ export default function ChainMetricsPage({
     { id: "interchain", label: "Interchain", metricKeys: ["icmMessages"] },
   ];
 
-  // CSV Download
-  const downloadCSV = useCallback(() => {
+  // export all metrics as csv
+  const downloadAllMetricsCSV = useCallback(() => {
     if (!metrics) return;
 
     const rows: string[] = [];
@@ -1496,7 +1496,7 @@ export default function ChainMetricsPage({
           <PeriodSelector selected={globalPeriod} onChange={handlePeriodChange} />
           <div className="ml-3 sm:ml-4 pl-3 sm:pl-4 border-l border-zinc-200 dark:border-zinc-700">
             <button
-              onClick={downloadCSV}
+              onClick={downloadAllMetricsCSV}
               disabled={!metrics || loading}
               className="flex items-center gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
               title="Download all metrics as CSV"
@@ -2440,8 +2440,8 @@ function ChartCard({
 
   const Icon = config.icon;
 
-  // CSV download function
-  const downloadCSV = () => {
+  // export single chart data as csv
+  const downloadChartCSV = () => {
     if (!displayDataWithCumulative || displayDataWithCumulative.length === 0)
       return;
 
@@ -2558,7 +2558,7 @@ function ChartCard({
               <Camera className="h-4 w-4" />
             </button>
             <button
-              onClick={downloadCSV}
+              onClick={downloadChartCSV}
               className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
               title="Download CSV"
             >
