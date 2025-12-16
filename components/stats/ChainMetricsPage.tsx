@@ -950,6 +950,157 @@ export default function ChainMetricsPage({
     { id: "interchain", label: "Interchain", metricKeys: ["icmMessages"] },
   ];
 
+  // CSV Download
+  const downloadCSV = useCallback(() => {
+    if (!metrics) return;
+
+    const rows: string[] = [];
+    const periodLabel = globalPeriod === "D" ? "Daily" : globalPeriod === "W" ? "Weekly" : globalPeriod === "M" ? "Monthly" : globalPeriod === "Q" ? "Quarterly" : "Yearly";
+    
+    // metadata headers
+    rows.push(`# ${chainName} Metrics Export`);
+    rows.push(`# Generated: ${new Date().toISOString()}`);
+    rows.push(`# Period: ${periodLabel}`);
+    rows.push(`# Chain ID: ${chainId}`);
+    rows.push("");
+
+    const getAllDates = (): string[] => {
+      const dateSet = new Set<string>();
+
+      // active addresses
+      if (metrics.activeAddresses) {
+        const activeData = globalPeriod === "W" ? metrics.activeAddresses.weekly?.data : globalPeriod === "M" || globalPeriod === "Q" || globalPeriod === "Y" ? metrics.activeAddresses.monthly?.data : metrics.activeAddresses.daily?.data;
+        activeData?.forEach(p => dateSet.add(p.date));
+      }
+      
+      // other metrics
+      const metricKeys: (keyof Omit<CChainMetrics, "last_updated" | "icmMessages" | "activeAddresses">)[] = [
+        "activeSenders", "txCount", "cumulativeAddresses", "cumulativeDeployers",
+        "cumulativeTxCount", "cumulativeContracts", "contracts", "deployers",
+        "gasUsed", "avgGps", "maxGps", "avgTps", "maxTps", "avgGasPrice", 
+        "maxGasPrice", "feesPaid"
+      ];
+      
+      metricKeys.forEach(key => {
+        const metric = metrics[key];
+        if (metric?.data) {
+          metric.data.forEach(p => dateSet.add(p.date));
+        }
+      });
+      
+      // ICM messages
+      if (metrics.icmMessages?.data) {
+        metrics.icmMessages.data.forEach(p => dateSet.add(p.date));
+      }
+      
+      return Array.from(dateSet).sort();
+    };
+
+    const buildDateMap = (data: { date: string; value: number | string }[] | undefined): Map<string, number | string> => {
+      const map = new Map<string, number | string>();
+      data?.forEach(p => map.set(p.date, p.value));
+      return map;
+    };
+
+    const buildICMDateMap = (data: { date: string; messageCount: number }[] | undefined): Map<string, number> => {
+      const map = new Map<string, number>();
+      data?.forEach(p => map.set(p.date, p.messageCount));
+      return map;
+    };
+
+    const allDates = getAllDates();
+
+    const activeAddressesData = globalPeriod === "W" ? metrics.activeAddresses?.weekly?.data  : globalPeriod === "M" || globalPeriod === "Q" || globalPeriod === "Y" ? metrics.activeAddresses?.monthly?.data : metrics.activeAddresses?.daily?.data;
+    const dataMapActiveAddresses = buildDateMap(activeAddressesData);
+    const dataMapActiveSenders = buildDateMap(metrics.activeSenders?.data);
+    const dataMapTxCount = buildDateMap(metrics.txCount?.data);
+    const dataMapCumulativeAddresses = buildDateMap(metrics.cumulativeAddresses?.data);
+    const dataMapCumulativeTxCount = buildDateMap(metrics.cumulativeTxCount?.data);
+    const dataMapCumulativeContracts = buildDateMap(metrics.cumulativeContracts?.data);
+    const dataMapContracts = buildDateMap(metrics.contracts?.data);
+    const dataMapDeployers = buildDateMap(metrics.deployers?.data);
+    const dataMapCumulativeDeployers = buildDateMap(metrics.cumulativeDeployers?.data);
+    const dataMapGasUsed = buildDateMap(metrics.gasUsed?.data);
+    const dataMapAvgGps = buildDateMap(metrics.avgGps?.data);
+    const dataMapMaxGps = buildDateMap(metrics.maxGps?.data);
+    const dataMapAvgTps = buildDateMap(metrics.avgTps?.data);
+    const dataMapMaxTps = buildDateMap(metrics.maxTps?.data);
+    const dataMapAvgGasPrice = buildDateMap(metrics.avgGasPrice?.data);
+    const dataMapMaxGasPrice = buildDateMap(metrics.maxGasPrice?.data);
+    const dataMapFeesPaid = buildDateMap(metrics.feesPaid?.data);
+    const dataMapICM = buildICMDateMap(metrics.icmMessages?.data);
+
+    rows.push("=== CURRENT SUMMARY ===");
+    rows.push("Metric,Current Value");
+    
+    const activeAddressLabel = globalPeriod === "W" ? "Weekly Active Addresses" : globalPeriod === "M" || globalPeriod === "Q" || globalPeriod === "Y" ? "Monthly Active Addresses" : "Daily Active Addresses";
+    const activeAddressCurrent = globalPeriod === "W" ? metrics.activeAddresses?.weekly?.current_value  : globalPeriod === "M" || globalPeriod === "Q" || globalPeriod === "Y" ? metrics.activeAddresses?.monthly?.current_value : metrics.activeAddresses?.daily?.current_value;
+    
+    rows.push(`${activeAddressLabel},${activeAddressCurrent ?? "N/A"}`);
+    rows.push(`Active Senders,${metrics.activeSenders?.current_value ?? "N/A"}`);
+    rows.push(`Daily Transactions,${metrics.txCount?.current_value ?? "N/A"}`);
+    rows.push(`Total Addresses,${metrics.cumulativeAddresses?.current_value ?? "N/A"}`);
+    rows.push(`Total Transactions,${metrics.cumulativeTxCount?.current_value ?? "N/A"}`);
+    rows.push(`Total Contracts Deployed,${metrics.cumulativeContracts?.current_value ?? "N/A"}`);
+    rows.push(`Contracts Deployed Today,${metrics.contracts?.current_value ?? "N/A"}`);
+    rows.push(`Contract Deployers Today,${metrics.deployers?.current_value ?? "N/A"}`);
+    rows.push(`Total Contract Deployers,${metrics.cumulativeDeployers?.current_value ?? "N/A"}`);
+    rows.push(`Gas Used Today,${metrics.gasUsed?.current_value ?? "N/A"}`);
+    rows.push(`Avg Gas Per Second,${metrics.avgGps?.current_value ?? "N/A"}`);
+    rows.push(`Max Gas Per Second,${metrics.maxGps?.current_value ?? "N/A"}`);
+    rows.push(`Avg TPS,${metrics.avgTps?.current_value ?? "N/A"}`);
+    rows.push(`Max TPS,${metrics.maxTps?.current_value ?? "N/A"}`);
+    rows.push(`Avg Gas Price (nAVAX),${metrics.avgGasPrice?.current_value ?? "N/A"}`);
+    rows.push(`Max Gas Price (nAVAX),${metrics.maxGasPrice?.current_value ?? "N/A"}`);
+    rows.push(`Fees Paid Today,${metrics.feesPaid?.current_value ?? "N/A"}`);
+    rows.push(`Daily Interchain Messages,${metrics.icmMessages?.current_value ?? "N/A"}`);
+    rows.push("");
+
+    rows.push("=== TIME SERIES DATA ===");
+    const headers = ["Date", activeAddressLabel, "Active Senders", "Transactions", "Total Addresses", "Total Transactions", "Total Contracts", "Contracts Deployed", "Contract Deployers", "Total Deployers", "Gas Used", "Avg GPS", "Max GPS", "Avg TPS", "Max TPS", "Avg Gas Price (nAVAX)", "Max Gas Price (nAVAX)", "Fees Paid", "Interchain Messages"];
+    rows.push(headers.join(","));
+
+    const sortedDates = [...allDates].sort().reverse();
+    
+    sortedDates.forEach(date => {
+      const row = [
+        date,
+        dataMapActiveAddresses.get(date) ?? "",
+        dataMapActiveSenders.get(date) ?? "",
+        dataMapTxCount.get(date) ?? "",
+        dataMapCumulativeAddresses.get(date) ?? "",
+        dataMapCumulativeTxCount.get(date) ?? "",
+        dataMapCumulativeContracts.get(date) ?? "",
+        dataMapContracts.get(date) ?? "",
+        dataMapDeployers.get(date) ?? "",
+        dataMapCumulativeDeployers.get(date) ?? "",
+        dataMapGasUsed.get(date) ?? "",
+        dataMapAvgGps.get(date) ?? "",
+        dataMapMaxGps.get(date) ?? "",
+        dataMapAvgTps.get(date) ?? "",
+        dataMapMaxTps.get(date) ?? "",
+        dataMapAvgGasPrice.get(date) ?? "",
+        dataMapMaxGasPrice.get(date) ?? "",
+        dataMapFeesPaid.get(date) ?? "",
+        dataMapICM.get(date) ?? ""
+      ];
+      rows.push(row.join(","));
+    });
+
+    const csvContent = rows.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const filename = `${chainSlug || chainName.toLowerCase().replace(/\s+/g, "-")}-metrics-${globalPeriod.toLowerCase()}-${new Date().toISOString().split("T")[0]}.csv`;
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [metrics, globalPeriod, chainName, chainId, chainSlug]);
+
   // Section navigation using reusable hook
   const { activeSection, scrollToSection } = useSectionNavigation({
     categories: chartCategories,
@@ -1338,7 +1489,20 @@ export default function ChainMetricsPage({
         activeSection={activeSection}
         onNavigate={scrollToSection}
       >
-        <PeriodSelector selected={globalPeriod} onChange={handlePeriodChange} />
+        <div className="flex items-center">
+          <PeriodSelector selected={globalPeriod} onChange={handlePeriodChange} />
+          <div className="ml-3 sm:ml-4 pl-3 sm:pl-4 border-l border-zinc-200 dark:border-zinc-700">
+            <button
+              onClick={downloadCSV}
+              disabled={!metrics || loading}
+              className="flex items-center gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              title="Download all metrics as CSV"
+            >
+              <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Export</span>
+            </button>
+          </div>
+        </div>
       </StickyNavBar>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16">
