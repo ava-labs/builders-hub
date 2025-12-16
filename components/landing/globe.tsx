@@ -112,14 +112,16 @@ export const Sponsors = () => {
 
 		// Avalanche C-Chain chainId
 		const AVALANCHE_CCHAIN_ID = '43114';
+		// Shrapnel chainId - excluded from display
+		const SHRAPNEL_CHAIN_ID = '2044';
 
 		// Find Avalanche C-Chain data
 		const avalancheChain = metrics.chains.find(c => c.chainId === AVALANCHE_CCHAIN_ID);
 
-		// Get L1 chains excluding Avalanche C-Chain (it will be the center)
+		// Get L1 chains excluding Avalanche C-Chain (it will be the center) and Shrapnel
 		// Score chains by multiple metrics for better representation
 		const l1Chains = metrics.chains
-			.filter(chain => chain.chainId !== AVALANCHE_CCHAIN_ID)
+			.filter(chain => chain.chainId !== AVALANCHE_CCHAIN_ID && chain.chainId !== SHRAPNEL_CHAIN_ID)
 			.map(chain => {
 				// Calculate composite activity score
 				const tpsScore = (chain.tps || 0) * 10; // Weight TPS heavily
