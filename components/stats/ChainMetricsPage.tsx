@@ -970,7 +970,7 @@ export default function ChainMetricsPage({
       // active addresses
       if (metrics.activeAddresses) {
         const activeData = globalPeriod === "W" ? metrics.activeAddresses.weekly?.data : globalPeriod === "M" || globalPeriod === "Q" || globalPeriod === "Y" ? metrics.activeAddresses.monthly?.data : metrics.activeAddresses.daily?.data;
-        activeData?.forEach(p => dateSet.add(p.date));
+        activeData?.forEach((p) => dateSet.add(p.date));
       }
       
       // other metrics
@@ -980,17 +980,17 @@ export default function ChainMetricsPage({
         "gasUsed", "avgGps", "maxGps", "avgTps", "maxTps", "avgGasPrice", 
         "maxGasPrice", "feesPaid"
       ];
-      
-      metricKeys.forEach(key => {
+
+      metricKeys.forEach((key) => {
         const metric = metrics[key];
         if (metric?.data) {
-          metric.data.forEach(p => dateSet.add(p.date));
+          metric.data.forEach((p) => dateSet.add(p.date));
         }
       });
       
       // ICM messages
       if (metrics.icmMessages?.data) {
-        metrics.icmMessages.data.forEach(p => dateSet.add(p.date));
+        metrics.icmMessages.data.forEach((p) => dateSet.add(p.date));
       }
       
       return Array.from(dateSet).sort();
@@ -998,13 +998,13 @@ export default function ChainMetricsPage({
 
     const buildDateMap = (data: { date: string; value: number | string }[] | undefined): Map<string, number | string> => {
       const map = new Map<string, number | string>();
-      data?.forEach(p => map.set(p.date, p.value));
+      data?.forEach((p) => map.set(p.date, p.value));
       return map;
     };
 
     const buildICMDateMap = (data: { date: string; messageCount: number }[] | undefined): Map<string, number> => {
       const map = new Map<string, number>();
-      data?.forEach(p => map.set(p.date, p.messageCount));
+      data?.forEach((p) => map.set(p.date, p.messageCount));
       return map;
     };
 
@@ -1032,37 +1032,40 @@ export default function ChainMetricsPage({
 
     rows.push("=== CURRENT SUMMARY ===");
     rows.push("Metric,Current Value");
-    
-    const activeAddressLabel = globalPeriod === "W" ? "Weekly Active Addresses" : globalPeriod === "M" || globalPeriod === "Q" || globalPeriod === "Y" ? "Monthly Active Addresses" : "Daily Active Addresses";
-    const activeAddressCurrent = globalPeriod === "W" ? metrics.activeAddresses?.weekly?.current_value  : globalPeriod === "M" || globalPeriod === "Q" || globalPeriod === "Y" ? metrics.activeAddresses?.monthly?.current_value : metrics.activeAddresses?.daily?.current_value;
-    
+
+    // dynamic period prefix
+    const periodPrefix = globalPeriod === "W" ? "Weekly" : globalPeriod === "M" ? "Monthly" : globalPeriod === "Q" ? "Quarterly" : globalPeriod === "Y" ? "Yearly" : "Daily";
+
+    const activeAddressLabel = `${periodPrefix} Active Addresses`;
+    const activeAddressCurrent = globalPeriod === "W" ? metrics.activeAddresses?.weekly?.current_value : globalPeriod === "M" || globalPeriod === "Q" || globalPeriod === "Y" ? metrics.activeAddresses?.monthly?.current_value : metrics.activeAddresses?.daily?.current_value;
+
     rows.push(`${activeAddressLabel},${activeAddressCurrent ?? "N/A"}`);
-    rows.push(`Active Senders,${metrics.activeSenders?.current_value ?? "N/A"}`);
-    rows.push(`Daily Transactions,${metrics.txCount?.current_value ?? "N/A"}`);
+    rows.push(`${periodPrefix} Active Senders,${metrics.activeSenders?.current_value ?? "N/A"}`);
+    rows.push(`${periodPrefix} Transactions,${metrics.txCount?.current_value ?? "N/A"}`);
     rows.push(`Total Addresses,${metrics.cumulativeAddresses?.current_value ?? "N/A"}`);
     rows.push(`Total Transactions,${metrics.cumulativeTxCount?.current_value ?? "N/A"}`);
     rows.push(`Total Contracts Deployed,${metrics.cumulativeContracts?.current_value ?? "N/A"}`);
-    rows.push(`Contracts Deployed Today,${metrics.contracts?.current_value ?? "N/A"}`);
-    rows.push(`Contract Deployers Today,${metrics.deployers?.current_value ?? "N/A"}`);
+    rows.push(`${periodPrefix} Contracts Deployed,${metrics.contracts?.current_value ?? "N/A"}`);
+    rows.push(`${periodPrefix} Contract Deployers,${metrics.deployers?.current_value ?? "N/A"}`);
     rows.push(`Total Contract Deployers,${metrics.cumulativeDeployers?.current_value ?? "N/A"}`);
-    rows.push(`Gas Used Today,${metrics.gasUsed?.current_value ?? "N/A"}`);
+    rows.push(`${periodPrefix} Gas Used,${metrics.gasUsed?.current_value ?? "N/A"}`);
     rows.push(`Avg Gas Per Second,${metrics.avgGps?.current_value ?? "N/A"}`);
     rows.push(`Max Gas Per Second,${metrics.maxGps?.current_value ?? "N/A"}`);
     rows.push(`Avg TPS,${metrics.avgTps?.current_value ?? "N/A"}`);
     rows.push(`Max TPS,${metrics.maxTps?.current_value ?? "N/A"}`);
     rows.push(`Avg Gas Price (nAVAX),${metrics.avgGasPrice?.current_value ?? "N/A"}`);
     rows.push(`Max Gas Price (nAVAX),${metrics.maxGasPrice?.current_value ?? "N/A"}`);
-    rows.push(`Fees Paid Today,${metrics.feesPaid?.current_value ?? "N/A"}`);
-    rows.push(`Daily Interchain Messages,${metrics.icmMessages?.current_value ?? "N/A"}`);
+    rows.push(`${periodPrefix} Fees Paid,${metrics.feesPaid?.current_value ?? "N/A"}`);
+    rows.push(`${periodPrefix} Interchain Messages,${metrics.icmMessages?.current_value ?? "N/A"}`);
     rows.push("");
 
     rows.push("=== TIME SERIES DATA ===");
-    const headers = ["Date", activeAddressLabel, "Active Senders", "Transactions", "Total Addresses", "Total Transactions", "Total Contracts", "Contracts Deployed", "Contract Deployers", "Total Deployers", "Gas Used", "Avg GPS", "Max GPS", "Avg TPS", "Max TPS", "Avg Gas Price (nAVAX)", "Max Gas Price (nAVAX)", "Fees Paid", "Interchain Messages"];
+    const headers = ["Date", activeAddressLabel, `${periodPrefix} Active Senders`, `${periodPrefix} Transactions`, "Total Addresses", "Total Transactions", "Total Contracts", `${periodPrefix} Contracts Deployed`, `${periodPrefix} Contract Deployers`, "Total Deployers", `${periodPrefix} Gas Used`, "Avg GPS", "Max GPS", "Avg TPS", "Max TPS", "Avg Gas Price (nAVAX)", "Max Gas Price (nAVAX)", `${periodPrefix} Fees Paid`, `${periodPrefix} Interchain Messages`];
     rows.push(headers.join(","));
 
     const sortedDates = [...allDates].sort().reverse();
-    
-    sortedDates.forEach(date => {
+
+    sortedDates.forEach((date) => {
       const row = [
         date,
         dataMapActiveAddresses.get(date) ?? "",
@@ -1082,7 +1085,7 @@ export default function ChainMetricsPage({
         dataMapAvgGasPrice.get(date) ?? "",
         dataMapMaxGasPrice.get(date) ?? "",
         dataMapFeesPaid.get(date) ?? "",
-        dataMapICM.get(date) ?? ""
+        dataMapICM.get(date) ?? "",
       ];
       rows.push(row.join(","));
     });
@@ -1091,7 +1094,7 @@ export default function ChainMetricsPage({
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    const filename = `${chainSlug || chainName.toLowerCase().replace(/\s+/g, "-")}-metrics-${globalPeriod.toLowerCase()}-${new Date().toISOString().split("T")[0]}.csv`;
+    const filename = `${chainSlug || chainName.toLowerCase().replace(/\s+/g, "-")}-metrics-${periodPrefix.toLowerCase()}-${new Date().toISOString().split("T")[0]}.csv`;
     link.setAttribute("href", url);
     link.setAttribute("download", filename);
     link.style.visibility = "hidden";
