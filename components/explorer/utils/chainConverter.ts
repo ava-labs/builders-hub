@@ -65,3 +65,31 @@ export function findCustomChainBySlug(
   });
 }
 
+/**
+ * Find a custom chain by EVM chain ID from L1ListItems
+ */
+export function findCustomChainByEvmChainId(
+  items: L1ListItem[],
+  evmChainId: number
+): L1ListItem | undefined {
+  return items.find((item) => item.evmChainId === evmChainId);
+}
+
+/**
+ * Get all custom chains from both testnet and mainnet stores
+ * Safe to call in any environment (handles SSR gracefully)
+ */
+export function getAllCustomChains(): L1ListItem[] {
+  // Lazy import to avoid circular dependencies
+  const { getL1ListStore } = require("@/components/toolbox/stores/l1ListStore");
+  
+  try {
+    const testnetChains: L1ListItem[] = getL1ListStore(true).getState().l1List;
+    const mainnetChains: L1ListItem[] = getL1ListStore(false).getState().l1List;
+    return [...testnetChains, ...mainnetChains];
+  } catch {
+    // localStorage might not be available (SSR)
+    return [];
+  }
+}
+
