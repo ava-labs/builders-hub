@@ -1630,11 +1630,6 @@ const config = {
         permanent: true,
       },
       {
-        source: "/academy/avalan",
-        destination: "/academy",
-        permanent: true,
-      },
-      {
         source: "/academy/avalanche-l1/avalanche-fundamentals/03-multi-chain-architecture-intro/04-setup-core",
         destination: "/academy/avalanche-l1/avalanche-fundamentals/03-multi-chain-architecture-intro/05-setup-core",
         permanent: true,
@@ -1722,6 +1717,99 @@ const config = {
       {
         source: "/docs/subnets/introduction-to-vm",
         destination: "/docs/primary-network/virtual-machines",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/customizing-evm/05-evm-configuration/01-genesis-block",
+        destination: "/academy/avalanche-l1/customizing-evm/05-genesis-configuration/01-genesis-block",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals",
+        destination:
+          "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/01-introduction",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/l1-native-tokenomics/02-custom-native-tokens",
+        destination:
+          "/academy/avalanche-l1/l1-native-tokenomics/02-custom-tokens/01-introduction",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/l1-native-tokenomics/10-governance/01-introduction",
+        destination: "/academy/avalanche-l1/l1-native-tokenomics/08-governance/01-introduction",
+        permanent: true,
+      },
+      {
+        source: "/docs/api-reference/standards/cryptographic-primitives",
+        destination: "/docs/rpcs/other/standards/cryptographic-primitives",
+        permanent: true,
+      },
+      {
+        source: "/docs/api-reference/standards/serialization-primitives",
+        destination: "/docs/rpcs/other/standards/serialization-primitives",
+        permanent: true,
+      },
+      {
+        source: "/docs/avalanche-l1/customizing-evm/05-genesis-configuration/01-genesis-block",
+        destination: "/academy/avalanche-l1/customizing-evm/05-genesis-configuration/01-genesis-block",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/chain-configs/primary-network",
+        destination: "/docs/nodes/chain-configs/primary-network/c-chain",
+        permanent: true,
+      },
+      {
+        source: "/docs/quickstart",
+        destination: "/docs/primary-network",
+        permanent: true,
+      },
+      {
+        source: "/docs/quickstart/transaction-fees",
+        destination: "/docs/avalanche-l1s/precompiles/fee-manager",
+        permanent: true,
+      },
+      {
+        source: "/docs/quickstart/exchanges/integrate-exchange-with-avalanche",
+        destination: "/docs/primary-network/exchange-integration",
+        permanent: true,
+      },
+      {
+        source: "/docs/subnets/deploying-cross-chain-evm-bridge",
+        destination: "/docs/cross-chain/interchain-token-transfer/overview",
+        permanent: true,
+      },
+      {
+        source: "/docs/virtual-machines/evm-customization/precompile-overview",
+        destination: "/docs/avalanche-l1s/precompiles/allowlist-interface",
+        permanent: true,
+      },
+      {
+        source: "/docs/en/learners-tutorials/how-avalanche-handles-high-frequency-order-trading",
+        destination: "/docs/primary-network",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/l1-native-tokenomics/02-custom-tokens/02-configure-custom-native-token",
+        destination:
+          "/academy/avalanche-l1/l1-native-tokenomics/02-custom-tokens/02-custom-native-vs-erc20-native",
+        permanent: true,
+      },
+      {
+        source: "/docs/avalanche-l1/l1-native-tokenomics/04-native-minter",
+        destination: "/academy/avalanche-l1/l1-native-tokenomics/04-native-minter/01-introduction",
+        permanent: true,
+      },
+      {
+        source: "/docs/avalanche-l1s/add-utility/cross-chain-bridge",
+        destination: "/docs/cross-chain/interchain-token-transfer/overview",
+        permanent: true,
+      },
+      {
+        source: "/docs/avalanche-l1s/permissioned-l1s/03-create-an-l1/03-genesis-breakdown",
+        destination: "/academy/avalanche-l1/permissioned-l1s/03-create-an-L1/03-genesis-breakdown",
         permanent: true,
       },
     ];
