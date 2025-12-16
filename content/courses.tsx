@@ -101,7 +101,7 @@ const officialCourses: Course[] = [
         duration: "2.5 hours",
         tools: ["ICM", "Foundry"],
         languages: ["Solidity"],
-        instructors: ["Martin Eckardt", "Andrea Vargas", "Ash", "Owen Wahlgren", "Sarp"],
+        instructors: ["Martin Eckardt", "Owen Wahlgren", "Nicolas Arnedo"],
         category: "Interoperability",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
@@ -181,19 +181,6 @@ const officialCourses: Course[] = [
         languages: ["Solidity"],
         instructors: ["Andrea Vargas"],
         category: "Smart Contract Development",
-        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
-    },
-    {
-        name: "HyperSDK",
-        description: "Learn how to build a high-performance blockchain using HyperSDK",
-        slug: "hypersdk",
-        icon: <TerminalIcon />,
-        duration: "1 hour",
-        status: "hidden",
-        tools: ["HyperSDK"],
-        languages: ["Go", "Typescript"],
-        instructors: ["Aaron Buchwald", "Ilya", "Rodrigo Villar", "Martin Eckardt", "Owen Wahlgren"],
-        category: "L1 Development",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {

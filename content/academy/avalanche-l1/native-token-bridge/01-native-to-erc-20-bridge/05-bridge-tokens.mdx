@@ -2,54 +2,35 @@
 title: Bridge Native Tokens
 description: Transfer native tokens from the source chain to the destination chain as ERC-20.
 updated: 2024-05-31
-authors: [ashucoder9, owenwahlgren]
-icon: BookOpen
+authors: [nicolasarnedo]
+icon: Terminal
 ---
 
 import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper";
+import TestSend from "@/components/toolbox/console/ictt/token-transfer/TestSend";
 
 # Bridge Native Tokens
 
-With your bridge fully configured, you can now transfer native tokens from the source chain to the destination chain, where they'll appear as ERC-20 tokens.
-
-## Transfer Flow
-
-Here's what happens when you bridge tokens:
-
-```
-Source Chain (Fuji C-Chain)                  Destination Chain (Echo)
-┌─────────────────────────────┐             ┌─────────────────────────────┐
-│                             │             │                             │
-│  1. User has AVAX           │             │                             │
-│         ↓                   │             │                             │
-│  2. AVAX → WAVAX (wrap)     │             │                             │
-│         ↓                   │             │                             │
-│  3. WAVAX locked in         │   ICM      │  4. ERC20TokenRemote        │
-│     NativeTokenHome    ─────│────────────▶│     mints tokens            │
-│                             │             │         ↓                   │
-│                             │             │  5. User receives           │
-│                             │             │     ERC-20 tokens           │
-└─────────────────────────────┘             └─────────────────────────────┘
-```
-
-## Bridging Steps
+With your bridge fully configured, you can now transfer native tokens from **Fuji C-Chain** to **Echo**, where they’ll appear as an **ERC-20**.
 
 <Steps>
 <Step>
-### Connect to Source Chain
+### Step 1: Connect to Fuji C-Chain
 
-Switch your wallet back to the **Fuji C-Chain**. This is where you'll initiate the transfer.
+Switch your wallet to **Fuji C-Chain** (the source chain).
 
 <Callout type="info">
-You need AVAX (native tokens) on Fuji to bridge. The transfer tool handles wrapping automatically if needed.
+You need **test AVAX** on Fuji for the amount you want to bridge **plus gas**.
 </Callout>
 
 </Step>
 
 <Step>
-### Initiate Transfer
+### Step 2: Bridge using the Console transfer tool
 
-Use the transfer tool to send tokens across the bridge:
+Use the **Token Transfer** tool below to initiate the cross-chain transfer. When the transfer completes, the tool will display a **success message** (including transaction/message details).
 
 <Callout type="warning">
 Make sure you have:
@@ -65,107 +46,17 @@ Make sure you have:
 </Step>
 
 <Step>
-### Monitor the Transfer
+### Step 3: Switch to Echo and confirm the bridged balance
 
-After initiating the transfer:
+Switch your wallet to **Echo** (destination chain) and confirm your balance increased.
 
-1. **Source transaction**: Your tokens are locked in NativeTokenHome
-2. **ICM relay**: Message sent to destination chain
-3. **Destination minting**: ERC20TokenRemote mints tokens to your address
-
-The transfer typically takes a few seconds to complete across chains.
-
-</Step>
-
-<Step>
-### Verify on Destination
-
-Switch to Echo and check your balance:
-
-1. The ERC-20 token should appear in your wallet
-2. You can add the token manually using the ERC20TokenRemote address
-3. The balance should match the amount you bridged
+<Callout type="info">
+Echo is already added by default in Core Wallet in this course flow, so you shouldn’t need to manually add the network.
+</Callout>
 
 </Step>
 </Steps>
 
-## Adding the Token to Your Wallet
-
-To see your bridged tokens in Core Wallet:
-
-1. Open Core Wallet on the Echo network
-2. Click **"Import Token"** or **"Add Custom Token"**
-3. Enter the **ERC20TokenRemote address**
-4. The token name and symbol will auto-populate
-5. Click **"Add"**
-
-## Bridging Back
-
-To return tokens to the source chain:
-
-1. Switch to the **destination chain** (Echo)
-2. Use the same transfer tool
-3. Select the home chain as destination
-4. Enter the amount to bridge back
-
-When bridging back:
-- ERC-20 tokens are **burned** on the destination
-- Wrapped tokens are **unlocked** on the source
-- You can unwrap to get native tokens back
-
-## Transfer Details
-
-### Fees
-
-Each transfer involves:
-
-| Fee Type | Description |
-|----------|-------------|
-| **Gas (Source)** | Transaction fee to lock tokens |
-| **Gas (Destination)** | Covered by relayer for minting |
-| **Relayer Fee** | Optional fee for relayer operators |
-
-### Minimum Amount
-
-There may be minimum transfer amounts depending on:
-- Gas costs
-- Token decimals
-- Configured minimums in the contracts
-
-### Transfer Time
-
-Transfer completion depends on:
-- Source chain block time
-- Relayer speed
-- Destination chain block time
-
-Typical time: **5-30 seconds**
-
-## Verifying Your Bridge
-
-You can verify the bridge is working by checking:
-
-### On Source Chain (NativeTokenHome)
-- Token balance locked in contract
-- Events showing `SendToken` calls
-
-### On Destination Chain (ERC20TokenRemote)
-- Total supply of the ERC-20 token
-- Events showing `Mint` calls
-- Your token balance
-
-## Summary
-
-Congratulations! You've successfully:
-
-1. ✅ Deployed NativeTokenHome on the source chain
-2. ✅ Deployed ERC20TokenRemote on the destination chain
-3. ✅ Registered the remote with the home
-4. ✅ Bridged native tokens as ERC-20 tokens
-
 ## Next Steps
 
-Now that you understand Native → ERC-20 bridging, explore:
-
-- **Native to Native Bridge**: Bridge tokens that become native gas tokens
-- **Advanced ICTT patterns**: Multi-hop transfers, send-and-call, and swap flows (covered outside this course)
+Next you’ll do the other native-token flow: **Native → Native**, where the bridged asset becomes the destination chain’s **native gas token** (requires collateral).

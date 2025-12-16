@@ -6,9 +6,7 @@ authors: [nicolasarnedo]
 icon: Smile
 ---
 
-## Native Token Bridge
-
-This course focuses **only** on the flows exposed in the Builder Console **ICTT setup** tools. Since the **ERC20 Bridge** course already covers ERC20↔ERC20, here we cover the two remaining native-token bridge patterns:
+Since the **ERC20 Bridge** course already covers ERC20↔ERC20, in this course we will cover the two native-token bridge patterns:
 
 - **Native token → ERC-20 token**: receive the bridged asset as an ERC-20 on the destination chain
 - **Native token → native token**: receive the bridged asset as the destination chain’s **native gas token**
@@ -17,7 +15,7 @@ By the end, you’ll be able to deploy the required contracts, register remotes,
 
 Native tokens are the backbone of any blockchain—they're used for gas fees, staking, and protocol operations. However, moving native tokens between chains presents unique challenges since native tokens aren't standard ERC-20 tokens.
 
-Avalanche's **Interchain Token Transfer (ICTT)** protocol solves this by providing a standardized way to bridge native tokens between Avalanche L1s.
+Avalanche's **Interchain Token Transfer (ICTT)** protocol solves this by providing a standardized way to bridge native tokens between Avalanche L1s. Think of it as a standardized implementation of a bridge, specifically for transfering tokens, built using Avalanche's ICM technology. The same way ERC20's is a standard implementation for a fungible token on a blockchain, but you can add more functionality in the smart contract, ICTT can be modified for additional requirements. 
 
 ### Prerequisites
 
@@ -32,7 +30,7 @@ This course focuses on using the existing testnet chains (Fuji C-Chain, Echo, an
 </Callout>
 
 <Callout>
-Since Interchain Token Transfer relies on Interchain Messaging (ICM), you must run your own relayer to enable cross-chain communication. Follow the [Running a Relayer](/academy/avalanche-l1/interchain-messaging/09-running-a-relayer/01-relayer-introduction) course to set up your relayer.
+Since Interchain Token Transfer relies on Interchain Messaging (ICM), if you choose to do this on your own L1 - you must run your own relayer to enable cross-chain communication. Follow the [Running a Relayer](/academy/avalanche-l1/interchain-messaging/09-running-a-relayer/01-relayer-introduction) course to set up your relayer.
 </Callout>
 
 ### Key Concepts (what the console assumes you know)
