@@ -5,13 +5,10 @@ import Image from "next/image";
 import { useTheme } from "next-themes";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
-  Search,
   Copy,
   Check,
   ExternalLink,
-  X,
   ChevronDown,
   Globe,
   ChevronRight,
@@ -27,9 +24,11 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { CategoryChip } from "@/components/stats/CategoryChip";
+import { SearchInputWithClear } from "@/components/stats/SearchInputWithClear";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
 import { convertL1ListItemToL1Chain } from "@/components/explorer/utils/chainConverter";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { toast } from "@/lib/toast";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 
@@ -44,8 +43,13 @@ export default function ChainListPage() {
   const [selectedNetwork, setSelectedNetwork] = useState<"mainnet" | "testnet" | "console">("mainnet");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
+  const { copiedId, copyToClipboard } = useCopyToClipboard({
+    resetDelay: 2000,
+    onSuccess: () => toast.success("Copied!", "Chain ID copied to clipboard"),
+    onError: () => toast.error("Failed to copy", "Could not copy to clipboard"),
+  });
+  const [hideWithoutRpc, setHideWithoutRpc] = useState(true);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
 
   // Load custom chains from localStorage
@@ -217,9 +221,12 @@ export default function ChainListPage() {
         chain.networkToken?.symbol?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         chain.slug.toLowerCase().includes(searchTerm.toLowerCase());
 
-      return matchesNetwork && matchesCategory && matchesSearch;
+      // RPC URL filter
+      const matchesRpcFilter = !hideWithoutRpc || !!chain.rpcUrl;
+
+      return matchesNetwork && matchesCategory && matchesSearch && matchesRpcFilter;
     });
-  }, [allChains, selectedNetwork, selectedCategory, searchTerm]);
+  }, [allChains, selectedNetwork, selectedCategory, searchTerm, hideWithoutRpc]);
 
   const getThemedLogoUrl = (logoUrl: string): string => {
     if (!isMounted || !logoUrl) return logoUrl;
@@ -227,17 +234,6 @@ export default function ChainListPage() {
       return logoUrl.replace(/Light/g, "Dark");
     } else {
       return logoUrl.replace(/Dark/g, "Light");
-    }
-  };
-
-  const copyToClipboard = async (text: string, id: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedId(id);
-      toast.success("Copied!", "Chain ID copied to clipboard");
-      setTimeout(() => setCopiedId(null), 2000);
-    } catch (err) {
-      toast.error("Failed to copy", "Could not copy to clipboard");
     }
   };
 
@@ -360,28 +356,43 @@ export default function ChainListPage() {
 
         <div className="flex flex-col gap-4 mb-6">
           {/* Network Filter */}
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
-            <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">Network:</span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-2">
-              {(["mainnet", "testnet", "console"] as const).map((network) => (
-                <button
-                  key={network}
-                  onClick={() => setSelectedNetwork(network)}
-                  className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full border transition-all cursor-pointer ${
-                    selectedNetwork === network
-                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent"
-                      : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  }`}
-                >
-                  {network.charAt(0).toUpperCase() + network.slice(1)}
-                </button>
-              ))}
+              <Filter className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+              <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">Network:</span>
+              <div className="flex items-center gap-2">
+                {(["mainnet", "testnet", "console"] as const).map((network) => (
+                  <button
+                    key={network}
+                    onClick={() => setSelectedNetwork(network)}
+                    className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full border transition-all cursor-pointer ${
+                      selectedNetwork === network
+                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent"
+                        : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                    }`}
+                  >
+                    {network.charAt(0).toUpperCase() + network.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
+            
+            {/* RPC Filter Checkbox */}
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={hideWithoutRpc}
+                onChange={(e) => setHideWithoutRpc(e.target.checked)}
+                className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-zinc-900 dark:text-white bg-zinc-100 dark:bg-zinc-800 focus:ring-zinc-500 dark:focus:ring-zinc-400 cursor-pointer"
+              />
+              <span className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
+                Only show chains with RPC URL
+              </span>
+            </label>
           </div>
 
           {/* Category Filter and Search */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 sm:gap-4">
             {/* Category filter badges */}
             <div className="flex flex-wrap items-center gap-2 flex-1">
               {visibleCategories.map(category => {
@@ -448,25 +459,11 @@ export default function ChainListPage() {
             </div>
             
             {/* Search bar */}
-            <div className="relative w-full sm:w-auto sm:flex-shrink-0 sm:max-w-sm">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 pointer-events-none z-10" />
-              <Input
-                placeholder="Search chains..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-10 rounded-lg border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-sm sm:text-base text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full z-20 transition-colors"
-                  aria-label="Clear search"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+            <SearchInputWithClear
+              value={searchTerm}
+              onChange={setSearchTerm}
+              placeholder="Search chains..."
+            />
           </div>
         </div>
 
@@ -681,7 +678,7 @@ export default function ChainListPage() {
         )}
 
         {filteredChains.length > 0 && (
-          <div className="mt-4 text-center text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+          <div className="mt-4 pb-14 text-center text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
             Showing {filteredChains.length} of {allChains.length} chains
           </div>
         )}

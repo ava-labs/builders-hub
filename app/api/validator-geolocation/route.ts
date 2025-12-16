@@ -35,7 +35,8 @@ interface CountryData {
 }
 
 let cachedGeoData: { data: CountryData[]; timestamp: number } | null = null;
-const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days cache (due to slow/failing API)
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+const CACHE_CONTROL_HEADER = 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=172800';
 
 async function fetchAllValidators(): Promise<Validator[]> {
   try {
@@ -142,9 +143,10 @@ function latLngToSVG(lat: number, lng: number): { x: number; y: number } {
 export async function GET() {
   try {
     if (cachedGeoData && Date.now() - cachedGeoData.timestamp < CACHE_DURATION) {
+      console.log(`[GET /api/validator-geolocation] Source: cache`);
       return NextResponse.json(cachedGeoData.data, {
         headers: {
-          'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400', // 7 days cache, 1 day stale
+          'Cache-Control': CACHE_CONTROL_HEADER,
           'X-Data-Source': 'cache',
           'X-Cache-Timestamp': new Date(cachedGeoData.timestamp).toISOString(),
         }
@@ -174,9 +176,10 @@ export async function GET() {
     };
 
     const fetchTime = Date.now() - startTime;
+    console.log(`[GET /api/validator-geolocation] Source: fresh, fetchTime: ${fetchTime}ms`);
     return NextResponse.json(countryDataWithCoords, {
       headers: {
-        'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400', // 7 days cache, 1 day stale
+        'Cache-Control': CACHE_CONTROL_HEADER,
         'X-Data-Source': 'fresh',
         'X-Fetch-Time': `${fetchTime}ms`,
         'X-Total-Validators': validators.length.toString(),
@@ -188,6 +191,7 @@ export async function GET() {
     console.error('Error in validator geolocation API:', error);
     
     if (cachedGeoData) {
+      console.log(`[GET /api/validator-geolocation] Source: cache-fallback`);
       return NextResponse.json(cachedGeoData.data, {
         headers: {
           'X-Data-Source': 'cache-fallback',

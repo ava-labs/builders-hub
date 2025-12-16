@@ -329,9 +329,9 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
     <div className="px-6 py-4">
       <div className="max-w-[95%] space-y-4">
         <div className="flex items-start gap-4">
-          {/* <img 
-            src="/avax-gpt.png" 
-            alt="AI" 
+          {/* <img
+            src="/avax-gpt.png"
+            alt="AI"
             className="size-8 object-contain mt-1 shrink-0"
           /> */}
           <div className="flex-1 min-w-0">

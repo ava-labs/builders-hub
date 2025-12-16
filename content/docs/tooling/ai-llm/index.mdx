@@ -1,0 +1,194 @@
+---
+title: AI & LLM Integration
+description: Access Avalanche documentation programmatically for AI applications
+icon: Bot
+---
+
+The Builder Hub provides AI-friendly access to documentation through standardized formats. Whether you're building a chatbot, using Claude/ChatGPT, or integrating with AI development tools, we offer multiple ways to access our docs.
+
+## Endpoints Overview
+
+| Endpoint | Purpose |
+| :------- | :------ |
+| `/llms.txt` | AI sitemap - structured index of all documentation |
+| `/llms-full.txt` | Complete docs in one file for full context loading |
+| `/api/llms/page?path=...` | Fetch any single page as markdown |
+| `/api/mcp` | MCP server for dynamic search and retrieval |
+
+## llms.txt
+
+A structured markdown index following the [llms.txt standard](https://llmstxt.org/). Use this for content discovery.
+
+```
+https://build.avax.network/llms.txt
+```
+
+Returns organized sections (Documentation, Academy, Integrations, Blog) with links and descriptions.
+
+## llms-full.txt
+
+All documentation content in a single markdown file for one-time context loading.
+
+```
+https://build.avax.network/llms-full.txt
+```
+
+Contains 1300+ pages. For models with limited context, use the MCP server or individual page endpoint instead.
+
+## Individual Pages
+
+Fetch any page as markdown:
+
+```
+https://build.avax.network/api/llms/page?path=/docs/primary-network/overview
+https://build.avax.network/api/llms/page?path=/academy/blockchain-fundamentals/blockchain-intro
+```
+
+Supports `/docs/`, `/academy/`, `/integrations/`, and `/blog/` paths.
+
+## MCP Server
+
+The [Model Context Protocol](https://modelcontextprotocol.io/) server enables AI systems to search and retrieve documentation dynamically.
+
+**Endpoint:** `https://build.avax.network/api/mcp`
+
+### Tools
+
+| Tool | Purpose |
+| :--- | :------ |
+| `avalanche_docs_search` | Search docs by query with optional source filter |
+| `avalanche_docs_fetch` | Get a specific page by URL path |
+| `avalanche_docs_list_sections` | List all sections with page counts |
+
+### Claude Code Setup
+
+Add the MCP server to your project:
+
+```bash
+claude mcp add avalanche-docs --transport http https://build.avax.network/api/mcp
+```
+
+Or add to your `.claude/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "avalanche-docs": {
+      "transport": {
+        "type": "http",
+        "url": "https://build.avax.network/api/mcp"
+      }
+    }
+  }
+}
+```
+
+### Claude Desktop Setup
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "avalanche-docs": {
+      "transport": {
+        "type": "http",
+        "url": "https://build.avax.network/api/mcp"
+      }
+    }
+  }
+}
+```
+
+### JSON-RPC Protocol
+
+The MCP server uses JSON-RPC 2.0 for communication:
+
+```bash
+curl -X POST https://build.avax.network/api/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"avalanche_docs_search","arguments":{"query":"create L1","limit":5}}}'
+```
+
+**Response format:**
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[{\"title\":\"Create an L1\",\"url\":\"/docs/avalanche-l1s/create\",\"description\":\"...\",\"score\":45}]"
+      }
+    ]
+  }
+}
+```
+
+### Search Tool Examples
+
+**Search all documentation:**
+
+```bash
+curl -X POST https://build.avax.network/api/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "avalanche_docs_search",
+      "arguments": {
+        "query": "smart contracts",
+        "limit": 10
+      }
+    }
+  }'
+```
+
+**Filter by source:**
+
+```bash
+# Search only academy content
+curl -X POST https://build.avax.network/api/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tools/call",
+    "params": {
+      "name": "avalanche_docs_search",
+      "arguments": {
+        "query": "blockchain basics",
+        "source": "academy",
+        "limit": 5
+      }
+    }
+  }'
+```
+
+**Fetch specific page:**
+
+```bash
+curl -X POST https://build.avax.network/api/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "avalanche_docs_fetch",
+      "arguments": {
+        "url": "/docs/primary-network/overview"
+      }
+    }
+  }'
+```
+
+## Standards
+
+- [llms.txt](https://llmstxt.org/) - AI sitemap standard
+- [Model Context Protocol](https://modelcontextprotocol.io/) - Anthropic's standard for AI tool access
+- [JSON-RPC 2.0](https://www.jsonrpc.org/specification) - MCP server protocol

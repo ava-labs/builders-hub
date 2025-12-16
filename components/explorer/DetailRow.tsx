@@ -5,7 +5,7 @@ import { Copy, Check } from "lucide-react";
 
 interface DetailRowProps {
   icon: ReactNode;
-  label: string;
+  label: ReactNode;
   value: ReactNode;
   themeColor?: string;
   copyValue?: string;
@@ -40,7 +40,7 @@ export function DetailRow({ icon, label, value, themeColor = "#E57373", copyValu
     <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-8">
       <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 sm:w-48 flex-shrink-0">
         <span style={{ color: themeColor }}>{icon}</span>
-        <span className="text-sm">{label}:</span>
+        <span className="text-sm flex items-center gap-1">{label}:</span>
       </div>
       <div className="flex items-center gap-2 min-w-0 flex-1">
         {value}
