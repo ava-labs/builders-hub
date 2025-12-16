@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useTransition, useRef } from "react";
 import {
   Area,
   AreaChart,
@@ -26,6 +26,13 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   type ChartConfig,
   ChartLegendContent,
   ChartStyle,
@@ -45,11 +52,14 @@ import {
   Twitter,
   Linkedin,
   Coins,
+  Download,
+  Camera,
 } from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 import { StickyNavBar } from "@/components/stats/StickyNavBar";
+import { PeriodSelector, type Period } from "@/components/stats/PeriodSelector";
 import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
 import { SearchInputWithClear } from "@/components/stats/SearchInputWithClear";
 import { SortIcon } from "@/components/stats/SortIcon";
@@ -65,6 +75,7 @@ import {
   L1Chain,
 } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
@@ -75,6 +86,8 @@ import {
 } from "@/components/stats/VersionBreakdown";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { getMAConfig } from "@/utils/chart-utils";
+import { useTheme } from "next-themes";
+import { toPng } from "html-to-image";
 
 interface ValidatorData {
   nodeId: string;
@@ -541,6 +554,23 @@ export default function CChainValidatorMetrics() {
     Record<string, "D" | "W" | "M" | "Q" | "Y">
   >(Object.fromEntries(chartConfigs.map((config) => [config.metricKey, "D"])));
 
+  // Global period selector state
+  const [globalPeriod, setGlobalPeriod] = useState<Period>("D");
+  const [, startTransition] = useTransition();
+
+  const handlePeriodChange = (newPeriod: Period) => {
+    startTransition(() => {
+      setGlobalPeriod(newPeriod);
+    });
+  };
+
+  // Sync all chart periods when global period changes
+  useEffect(() => {
+    setChartPeriods(
+      Object.fromEntries(chartConfigs.map((config) => [config.metricKey, globalPeriod]))
+    );
+  }, [globalPeriod]);
+
   // Navigation categories
   const navCategories = [
     { id: "trends", label: "Historical Trends" },
@@ -974,7 +1004,12 @@ export default function CChainValidatorMetrics() {
         categories={navCategories}
         activeSection={activeSection}
         onNavigate={scrollToSection}
-      />
+      >
+        <PeriodSelector
+          selected={globalPeriod}
+          onChange={handlePeriodChange}
+        />
+      </StickyNavBar>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8 sm:space-y-12">
         <section className="space-y-4 sm:space-y-6">
@@ -1048,6 +1083,8 @@ export default function CChainValidatorMetrics() {
                 currentValue={metrics.daily_rewards.current_value}
                 cumulativeCurrentValue={metrics.cumulative_rewards?.current_value || 0}
                 color={chainConfig.color}
+                period={globalPeriod}
+                onPeriodChange={handlePeriodChange}
               />
             )}
 
@@ -1060,6 +1097,8 @@ export default function CChainValidatorMetrics() {
                 })).reverse()}
                 currentValue={metrics.cumulative_rewards.current_value}
                 color="#a855f7"
+                period={globalPeriod}
+                onPeriodChange={handlePeriodChange}
               />
             )}
           </div>
@@ -1103,7 +1142,7 @@ export default function CChainValidatorMetrics() {
                       </div>
                     </div>
                   </div>
-                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                  <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
                     <div className="flex items-center justify-start gap-6 mb-4 text-sm">
                       <div className="flex items-center gap-2">
                         <div
@@ -1213,7 +1252,7 @@ export default function CChainValidatorMetrics() {
                         />
                       </ComposedChart>
                     </ResponsiveContainer>
-                  </div>
+                  </ChartWatermark>
                 </CardContent>
               </Card>
             )}
@@ -1244,7 +1283,7 @@ export default function CChainValidatorMetrics() {
                       </div>
                     </div>
                   </div>
-                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                  <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
                     <div className="flex items-center justify-start gap-6 mb-4 text-sm">
                       <div className="flex items-center gap-2">
                         <div
@@ -1352,7 +1391,7 @@ export default function CChainValidatorMetrics() {
                         />
                       </ComposedChart>
                     </ResponsiveContainer>
-                  </div>
+                  </ChartWatermark>
                 </CardContent>
               </Card>
             )}
@@ -1385,7 +1424,7 @@ export default function CChainValidatorMetrics() {
                       </div>
                     </div>
                   </div>
-                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                  <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
                     <div className="flex items-center justify-start gap-6 mb-4 text-sm">
                       <div className="flex items-center gap-2">
                         <div
@@ -1495,7 +1534,7 @@ export default function CChainValidatorMetrics() {
                         />
                       </ComposedChart>
                     </ResponsiveContainer>
-                  </div>
+                  </ChartWatermark>
                 </CardContent>
               </Card>
             )}
@@ -1526,7 +1565,7 @@ export default function CChainValidatorMetrics() {
                       </div>
                     </div>
                   </div>
-                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                  <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
                     <ResponsiveContainer width="100%" height={350}>
                       <BarChart
                         data={feeDistribution}
@@ -1606,7 +1645,7 @@ export default function CChainValidatorMetrics() {
                         />
                       </BarChart>
                     </ResponsiveContainer>
-                  </div>
+                  </ChartWatermark>
                 </CardContent>
               </Card>
             )}
@@ -2045,6 +2084,30 @@ function ValidatorChartCard({
     startIndex: number;
     endIndex: number;
   } | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
+  const handleScreenshot = async () => {
+    if (!chartContainerRef.current) return;
+
+    try {
+      const element = chartContainerRef.current;
+      const bgColor = resolvedTheme === "dark" ? "#0a0a0a" : "#ffffff";
+
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: bgColor,
+        cacheBust: true,
+      });
+
+      const link = document.createElement("a");
+      link.download = `${config.title.replace(/\s+/g, "_")}_${period}_${new Date().toISOString().split("T")[0]}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("Failed to capture screenshot:", error);
+    }
+  };
 
   const aggregatedData = useMemo(() => {
     if (period === "D") return rawData;
@@ -2126,6 +2189,25 @@ function ValidatorChartCard({
       isPositive: changePercentage >= 0,
     };
   }, [displayData]);
+
+  // CSV download function
+  const downloadCSV = () => {
+    if (!displayData || displayData.length === 0) return;
+
+    const headers = ["Date", config.title];
+    const rows = displayData.map((point: any) => [point.day, point.value].join(","));
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${config.title.replace(/\s+/g, "_")}_${period}_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const formatXAxis = (value: string) => {
     if (period === "Q") {
@@ -2210,7 +2292,7 @@ function ValidatorChartCard({
   const Icon = config.icon;
 
   return (
-    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
       <CardContent className="p-0">
         <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2 sm:gap-3">
@@ -2232,25 +2314,40 @@ function ValidatorChartCard({
               </p>
             </div>
           </div>
-          <div className="flex gap-0.5 sm:gap-1">
-            {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => onPeriodChange(p)}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm  rounded-md transition-colors ${
-                  period === p
-                    ? "text-white dark:text-white"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
-                style={
-                  period === p
-                    ? { backgroundColor: `${config.color}`, opacity: 0.9 }
-                    : {}
-                }
-              >
-                {p}
-              </button>
-            ))}
+          <div className="flex items-center gap-1">
+            <Select
+              value={period}
+              onValueChange={(value) =>
+                onPeriodChange(value as "D" | "W" | "M" | "Q" | "Y")
+              }
+            >
+              <SelectTrigger className="h-7 w-auto px-2 gap-1 text-xs sm:text-sm border-0 bg-transparent hover:bg-muted focus:ring-0 shadow-none">
+                <SelectValue>
+                  {period === "D" ? "Daily" : period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {p === "D" ? "Daily" : p === "W" ? "Weekly" : p === "M" ? "Monthly" : p === "Q" ? "Quarterly" : "Yearly"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <button
+              onClick={handleScreenshot}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download chart as image"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+            <button
+              onClick={downloadCSV}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download CSV"
+            >
+              <Download className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
@@ -2281,7 +2378,7 @@ function ValidatorChartCard({
             )}
           </div>
 
-          <div className="mb-6">
+          <ChartWatermark className="mb-6">
             <ResponsiveContainer width="100%" height={350}>
               {config.chartType === "bar" ? (
                 <BarChart
@@ -2407,7 +2504,7 @@ function ValidatorChartCard({
                 </AreaChart>
               )}
             </ResponsiveContainer>
-          </div>
+          </ChartWatermark>
 
           {/* Brush Slider */}
           <div className="mt-4 bg-white dark:bg-black pl-[60px]">
@@ -2464,18 +2561,45 @@ function DailyRewardsChartCard({
   currentValue,
   cumulativeCurrentValue,
   color,
+  period,
+  onPeriodChange,
 }: {
   data: { day: string; value: number }[];
   cumulativeData: { day: string; value: number }[];
   currentValue: number | string;
   cumulativeCurrentValue: number | string;
   color: string;
+  period: "D" | "W" | "M" | "Q" | "Y";
+  onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
 }) {
-  const [period, setPeriod] = useState<"D" | "W" | "M" | "Q" | "Y">("D");
   const [brushIndexes, setBrushIndexes] = useState<{
     startIndex: number;
     endIndex: number;
   } | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
+  const handleScreenshot = async () => {
+    if (!chartContainerRef.current) return;
+
+    try {
+      const element = chartContainerRef.current;
+      const bgColor = resolvedTheme === "dark" ? "#0a0a0a" : "#ffffff";
+
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: bgColor,
+        cacheBust: true,
+      });
+
+      const link = document.createElement("a");
+      link.download = `Daily_Rewards_${period}_${new Date().toISOString().split("T")[0]}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("Failed to capture screenshot:", error);
+    }
+  };
 
   // Create a map of cumulative data for quick lookup
   const cumulativeMap = useMemo(() => {
@@ -2603,6 +2727,27 @@ function DailyRewardsChartCard({
     };
   }, [data]);
 
+  // CSV download function
+  const downloadCSV = () => {
+    if (!displayData || displayData.length === 0) return;
+
+    const headers = ["Date", "Daily Rewards (AVAX)", "Moving Average (AVAX)"];
+    const rows = displayData.map((point: any) => 
+      [point.day, point.value, point.ma || ""].join(",")
+    );
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Daily_Rewards_${period}_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const formatValue = (value: number): string => {
     if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
     if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
@@ -2650,7 +2795,7 @@ function DailyRewardsChartCard({
   };
 
   return (
-    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
       <CardContent className="p-0">
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
@@ -2668,21 +2813,40 @@ function DailyRewardsChartCard({
               </p>
             </div>
           </div>
-          <div className="flex gap-0.5 sm:gap-1">
-            {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors ${
-                  period === p
-                    ? "text-white dark:text-white"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
-                style={period === p ? { backgroundColor: color, opacity: 0.9 } : {}}
-              >
-                {p}
-              </button>
-            ))}
+          <div className="flex items-center gap-1">
+            <Select
+              value={period}
+              onValueChange={(value) =>
+                onPeriodChange(value as "D" | "W" | "M" | "Q" | "Y")
+              }
+            >
+              <SelectTrigger className="h-7 w-auto px-2 gap-1 text-xs sm:text-sm border-0 bg-transparent hover:bg-muted focus:ring-0 shadow-none">
+                <SelectValue>
+                  {period === "D" ? "Daily" : period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {p === "D" ? "Daily": p === "W" ? "Weekly" : p === "M" ? "Monthly" : p === "Q" ? "Quarterly" : "Yearly"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <button
+              onClick={handleScreenshot}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download chart as image"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+            <button
+              onClick={downloadCSV}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download CSV"
+            >
+              <Download className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
@@ -2724,7 +2888,7 @@ function DailyRewardsChartCard({
           </div>
 
           {/* Chart */}
-          <div className="mb-6">
+          <ChartWatermark className="mb-6">
             {displayData.length > 0 ? (
               <ResponsiveContainer width="100%" height={350}>
                 <ComposedChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -2792,7 +2956,7 @@ function DailyRewardsChartCard({
                 Loading chart data...
               </div>
             )}
-          </div>
+          </ChartWatermark>
 
           {/* Brush Slider */}
           {aggregatedData.length > 0 && brushIndexes && 
@@ -2837,16 +3001,43 @@ function CumulativeRewardsChartCard({
   data,
   currentValue,
   color,
+  period,
+  onPeriodChange,
 }: {
   data: { day: string; value: number }[];
   currentValue: number | string;
   color: string;
+  period: "D" | "W" | "M" | "Q" | "Y";
+  onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
 }) {
-  const [period, setPeriod] = useState<"D" | "W" | "M" | "Q" | "Y">("D");
   const [brushIndexes, setBrushIndexes] = useState<{
     startIndex: number;
     endIndex: number;
   } | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
+  const handleScreenshot = async () => {
+    if (!chartContainerRef.current) return;
+
+    try {
+      const element = chartContainerRef.current;
+      const bgColor = resolvedTheme === "dark" ? "#0a0a0a" : "#ffffff";
+
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: bgColor,
+        cacheBust: true,
+      });
+
+      const link = document.createElement("a");
+      link.download = `Cumulative_Rewards_${period}_${new Date().toISOString().split("T")[0]}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("Failed to capture screenshot:", error);
+    }
+  };
 
   // Aggregate data by period
   const aggregatedData = useMemo(() => {
@@ -2909,6 +3100,25 @@ function CumulativeRewardsChartCard({
     return aggregatedData.slice(start, end + 1);
   }, [brushIndexes, aggregatedData]);
 
+  // CSV download function
+  const downloadCSV = () => {
+    if (!displayData || displayData.length === 0) return;
+
+    const headers = ["Date", "Cumulative Rewards (AVAX)"];
+    const rows = displayData.map((point: any) => [point.day, point.value].join(","));
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Cumulative_Rewards_${period}_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const formatValue = (value: number): string => {
     if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
     if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
@@ -2956,7 +3166,7 @@ function CumulativeRewardsChartCard({
   };
 
   return (
-    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
       <CardContent className="p-0">
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
@@ -2974,21 +3184,40 @@ function CumulativeRewardsChartCard({
               </p>
             </div>
           </div>
-          <div className="flex gap-0.5 sm:gap-1">
-            {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors ${
-                  period === p
-                    ? "text-white dark:text-white"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
-                style={period === p ? { backgroundColor: color, opacity: 0.9 } : {}}
-              >
-                {p}
-              </button>
-            ))}
+          <div className="flex items-center gap-1">
+            <Select
+              value={period}
+              onValueChange={(value) =>
+                onPeriodChange(value as "D" | "W" | "M" | "Q" | "Y")
+              }
+            >
+              <SelectTrigger className="h-7 w-auto px-2 gap-1 text-xs sm:text-sm border-0 bg-transparent hover:bg-muted focus:ring-0 shadow-none">
+                <SelectValue>
+                  {period === "D" ? "Daily" : period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {p === "D" ? "Daily" : p === "W" ? "Weekly" : p === "M" ? "Monthly" : p === "Q" ? "Quarterly" : "Yearly"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <button
+              onClick={handleScreenshot}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download chart as image"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+            <button
+              onClick={downloadCSV}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download CSV"
+            >
+              <Download className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
@@ -3001,7 +3230,7 @@ function CumulativeRewardsChartCard({
           </div>
 
           {/* Chart */}
-          <div className="mb-6">
+          <ChartWatermark className="mb-6">
             {displayData.length > 0 ? (
               <ResponsiveContainer width="100%" height={350}>
                 <AreaChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -3061,7 +3290,7 @@ function CumulativeRewardsChartCard({
                 Loading chart data...
               </div>
             )}
-          </div>
+          </ChartWatermark>
 
           {/* Brush Slider */}
           {aggregatedData.length > 0 && brushIndexes && 

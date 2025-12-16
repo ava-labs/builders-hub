@@ -3,6 +3,7 @@
   "description": "Task-focused guides for testing Avalanche L1s with tmpnet and Ginkgo",
   "pages": [
     "getting-started",
+    "runtimes",
     "l1-conversion",
     "validator-management-native-staking",
     "staking-and-delegation",
