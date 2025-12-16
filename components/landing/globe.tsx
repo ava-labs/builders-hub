@@ -134,7 +134,7 @@ export const Sponsors = () => {
 			})
 			.filter(chain => chain.activityScore > 0)
 			.sort((a, b) => b.activityScore - a.activityScore)
-			.slice(0, 40); // Show top 50 most active L1 chains
+			.slice(0, 40); // Show top 40 most active L1 chains
 
 		// Calculate total TPS (including Avalanche) for aggregate display
 		const totalTps = metrics.chains.reduce((sum, c) => sum + (c.tps || 0), 0);
@@ -165,6 +165,9 @@ export const Sponsors = () => {
 			const slug = l1Chain?.slug;
 			// Use API logo first, fallback to l1-chains.json logo
 			const logo = chain.chainLogoURI || l1Chain?.chainLogoURI;
+
+			// Only include chains that have a valid logo
+			if (!logo) return;
 
 			result.push({
 				id: chain.chainId,
