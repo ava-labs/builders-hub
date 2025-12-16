@@ -5,28 +5,40 @@ import { prisma } from "@/prisma/prisma";
  * 
  * Validation rules:
  * 1. If the user has "admin" role in custom_attributes, they can delete any file
- * 2. If not admin:
+ * 2. If hackathonId is provided, verify user is a member of a project in that hackathon
+ * 3. If not admin and no hackathonId:
  *    - If the image belongs to a project, verify that the user is a member of the project
  *    - If it's a profile image, verify that the user is the owner of the profile
  * 
  * @param fileName - File name or full URL of the file
  * @param userId - ID of the user attempting to delete the file
  * @param customAttributes - Array of user custom attributes (includes roles)
+ * @param hackathonId - Optional hackathon ID for direct project validation
  * @returns Promise<boolean> - true if has permissions, false otherwise
  */
 export async function canUserDeleteFile(
   fileName: string,
   userId: string,
-  customAttributes: string[] = []
+  customAttributes: string[] = [],
+  hackathonId?: string
 ): Promise<boolean> {
   // Check if user is admin
   if (customAttributes.includes("admin")) {
     return true;
   }
 
-  // Search if the file belongs to a project (pass the original fileName which can be URL or name)
-  const project = await findProjectByImageUrl(fileName);
+  // If hackathonId is provided, validate directly through project membership
+  if (hackathonId) {
+    const project = await findProjectByHackathonAndUser(hackathonId, userId);
+    if (project) {
+      console.log("Project found by hackathonId and userId:", project.id);
+      return true;
+    }
+  }
 
+  // Fallback: Search if the file belongs to a project (pass the original fileName which can be URL or name)
+  const project = await findProjectByImageUrl(fileName);
+  console.log("project found by image URL:", project);
   if (project) {
     // Verify if the user is a member of the project
     const isMember = await isUserProjectMember(userId, project.id);
@@ -61,6 +73,46 @@ function extractFileNameFromUrl(fileNameOrUrl: string): string {
     // If it's not a valid URL, assume it's the file name
     return fileNameOrUrl;
   }
+}
+
+/**
+ * Finds a project by hackathon ID and user membership
+ * This is used for direct validation when we know the hackathon context
+ */
+async function findProjectByHackathonAndUser(
+  hackathonId: string,
+  userId: string
+): Promise<{ id: string } | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+
+  if (!user) {
+    return null;
+  }
+
+  const project = await prisma.project.findFirst({
+    where: {
+      hackaton_id: hackathonId,
+      members: {
+        some: {
+          OR: [
+            { user_id: userId },
+            { email: user.email },
+          ],
+          status: {
+            not: "Removed",
+          },
+        },
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return project;
 }
 
 /**
