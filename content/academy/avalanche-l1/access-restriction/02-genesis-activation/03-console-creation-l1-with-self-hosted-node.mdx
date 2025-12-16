@@ -10,83 +10,104 @@ icon: Terminal
 
 By the end of this exercise, you will be able to:
 
-- [PLACEHOLDER: Objective 1]
-- [PLACEHOLDER: Objective 2]
-- [PLACEHOLDER: Objective 3]
+- Create an Avalanche L1 record in Builder Console with a custom genesis
+- Enable **Transaction AllowList** and **Contract Deployer AllowList** at genesis
+- Run a self-hosted node via Docker and connect Core Wallet to your L1
 
 ## Prerequisites
 
 Before starting this exercise, ensure you have:
 
-- [PLACEHOLDER: Prerequisite 1]
-- [PLACEHOLDER: Prerequisite 2]
-- [PLACEHOLDER: Prerequisite 3]
+- Core Wallet installed and set to the correct network mode
+- Docker installed and running locally
+- A funded wallet (testnet AVAX) to create the Subnet + Chain transactions
 
 ## Instructions
 
 import { Steps, Step } from 'fumadocs-ui/components/steps';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import AvalancheGoDocker from "@/components/toolbox/console/layer-1/AvalancheGoDockerL1";
+import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain";
 
 <Steps>
   <Step>
-    ### Step 1: [PLACEHOLDER: Step Title]
+    ### Step 1: Create the Subnet + Chain in Console
 
-    [PLACEHOLDER: Detailed instructions for step 1]
+    Use Builder Console to create the Subnet and then create your chain. You’ll edit the **Genesis JSON** before finalizing.
 
-    ```bash
-    # Example command
-    [PLACEHOLDER: Add command]
-    ```
+    <ToolboxMdxWrapper walletMode="c-chain">
+      <CreateChain embedded={true} />
+    </ToolboxMdxWrapper>
+
+    In **Step 2: Create a Chain**, open the **Genesis JSON** tab and add the two allowlist configs under `config`:
+
+```json
+{
+  "config": {
+    "txAllowListConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": ["0x...YOUR_WALLET_EVM_ADDRESS"]
+    },
+    "contractDeployerAllowListConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": ["0x...YOUR_WALLET_EVM_ADDRESS"]
+    }
+  }
+}
+```
+
+    <Callout type="warning">
+      If you enable these allowlists but do not include your own wallet as an admin at genesis, you can immediately lock yourself out of the network.
+    </Callout>
   </Step>
 
   <Step>
-    ### Step 2: [PLACEHOLDER: Step Title]
+    ### Step 2: Run a self-hosted node (Docker)
 
-    [PLACEHOLDER: Detailed instructions for step 2]
+    This course does **not** use BuilderHub-managed nodes. Run your node locally with Docker so you control startup flags and can restart easily during troubleshooting.
 
-    ```typescript
-    // Example code
-    [PLACEHOLDER: Add code]
-    ```
+    <ToolboxMdxWrapper walletMode="testnet-mainnet">
+      <AvalancheGoDocker />
+    </ToolboxMdxWrapper>
   </Step>
 
   <Step>
-    ### Step 3: [PLACEHOLDER: Step Title]
+    ### Step 3: Connect Core Wallet and verify precompiles are active
 
-    [PLACEHOLDER: Detailed instructions for step 3]
+    Once your node is running and you’ve added the network to Core Wallet:
+
+    - Try sending a simple transaction (it should succeed for your admin wallet)
+    - Confirm the precompiles are reachable at:
+      - Transaction AllowList: `0x0200000000000000000000000000000000000002`
+      - Contract Deployer AllowList: `0x0200000000000000000000000000000000000000`
   </Step>
 </Steps>
 
 ## Expected Output
 
-[PLACEHOLDER: Describe what students should see or achieve after completing this exercise. Include screenshots or example output if applicable.]
+You should have:
 
-```
-[PLACEHOLDER: Example output]
-```
+- A running L1 node (Docker)
+- Core Wallet connected to your L1
+- Both allowlist precompiles enabled from genesis
 
 ## Verification
 
 To verify you've completed this exercise successfully:
 
-1. [PLACEHOLDER: Verification step 1]
-2. [PLACEHOLDER: Verification step 2]
+1. Your wallet can send a transaction on the L1
+2. You can open the allowlist consoles in the next section and view your role as **Admin**
 
 ## Troubleshooting
 
-[PLACEHOLDER: Add common issues and solutions]
+### I can’t send transactions after enabling the allowlist
 
-### Issue 1: [PLACEHOLDER]
+- Ensure your wallet address is included in `txAllowListConfig.adminAddresses` at genesis.
 
-**Problem**: [PLACEHOLDER: Describe the problem]
+### I can’t deploy contracts after enabling the deployer allowlist
 
-**Solution**: [PLACEHOLDER: Describe the solution]
-
-### Issue 2: [PLACEHOLDER]
-
-**Problem**: [PLACEHOLDER: Describe the problem]
-
-**Solution**: [PLACEHOLDER: Describe the solution]
+- Ensure your wallet address is included in `contractDeployerAllowListConfig.adminAddresses` at genesis.
 
 ## Next Steps
 
-[PLACEHOLDER: Suggest what students should do next or additional resources to explore]
+Next, we’ll start interacting with these precompiles and then intentionally break permissions to learn recovery patterns.

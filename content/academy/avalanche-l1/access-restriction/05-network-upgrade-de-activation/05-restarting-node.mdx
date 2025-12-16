@@ -1,6 +1,6 @@
 ---
 title: Restarting Node
-description: "Hands-on exercise: Restarting Node"
+description: "Hands-on exercise: Restart your Docker validator to load upgrade.json and verify it was applied."
 updated: 2025-12-10
 authors: [nicolasarnedo]
 icon: Terminal
@@ -10,83 +10,86 @@ icon: Terminal
 
 By the end of this exercise, you will be able to:
 
-- [PLACEHOLDER: Objective 1]
-- [PLACEHOLDER: Objective 2]
-- [PLACEHOLDER: Objective 3]
+- Restart the Docker validator container safely.
+- Confirm (via logs) that the node loaded your `UpgradeConfig`.
+- Recognize and fix the common “timestamp is in the past” startup failure.
 
 ## Prerequisites
 
 Before starting this exercise, ensure you have:
 
-- [PLACEHOLDER: Prerequisite 1]
-- [PLACEHOLDER: Prerequisite 2]
-- [PLACEHOLDER: Prerequisite 3]
+- Created `upgrade.json` with disable entries in:
+  - `~/.avalanchego/configs/chains/<YOUR_BLOCKCHAIN_ID>/upgrade.json`
+- Access to a terminal on the Docker host (to run `docker` commands).
 
 ## Instructions
 
 import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
 
 <Steps>
   <Step>
-    ### Step 1: [PLACEHOLDER: Step Title]
+    ### Step 1: Exit the container shell (if needed)
 
-    [PLACEHOLDER: Detailed instructions for step 1]
+    If you’re currently inside the container shell, exit back to your host terminal:
 
     ```bash
-    # Example command
-    [PLACEHOLDER: Add command]
+    exit
     ```
   </Step>
 
   <Step>
-    ### Step 2: [PLACEHOLDER: Step Title]
+    ### Step 2: Restart the validator container
 
-    [PLACEHOLDER: Detailed instructions for step 2]
+    Restart the container so AvalancheGo reloads configuration files:
 
-    ```typescript
-    // Example code
-    [PLACEHOLDER: Add code]
+    ```bash
+    docker restart <YOUR_CONTAINER_NAME_OR_ID>
+    ```
+
+    Then follow the logs as it starts back up:
+
+    ```bash
+    docker logs -f <YOUR_CONTAINER_NAME_OR_ID>
     ```
   </Step>
 
   <Step>
-    ### Step 3: [PLACEHOLDER: Step Title]
+    ### Step 3: Confirm the upgrade config was loaded
 
-    [PLACEHOLDER: Detailed instructions for step 3]
+    On startup, Subnet-EVM prints the chain configuration. You’re looking for log output that includes an `UpgradeConfig` / `precompileUpgrades` section containing your two disable entries.
+
+    <Callout type="info">
+    If you don’t see the upgrade config reflected in logs, double-check you created `upgrade.json` in the correct directory: it must be next to `config.json` inside `~/.avalanchego/configs/chains/<YOUR_BLOCKCHAIN_ID>/`.
+    </Callout>
   </Step>
 </Steps>
 
 ## Expected Output
 
-[PLACEHOLDER: Describe what students should see or achieve after completing this exercise. Include screenshots or example output if applicable.]
+Your node restarts successfully and logs show it parsed an `UpgradeConfig` that includes your disable upgrades.
 
 ```
-[PLACEHOLDER: Example output]
+... Initialised chain configuration ... UpgradeConfig: {"precompileUpgrades":[ ... ]}
 ```
 
 ## Verification
 
 To verify you've completed this exercise successfully:
 
-1. [PLACEHOLDER: Verification step 1]
-2. [PLACEHOLDER: Verification step 2]
+1. The container is running (`docker ps` shows it up).
+2. The logs include your `precompileUpgrades` entries.
 
 ## Troubleshooting
 
-[PLACEHOLDER: Add common issues and solutions]
+### Issue: The node fails on startup after adding the upgrade
 
-### Issue 1: [PLACEHOLDER]
+**Problem**: A common cause is a `blockTimestamp` being **in the past** relative to chain head.
 
-**Problem**: [PLACEHOLDER: Describe the problem]
-
-**Solution**: [PLACEHOLDER: Describe the solution]
-
-### Issue 2: [PLACEHOLDER]
-
-**Problem**: [PLACEHOLDER: Describe the problem]
-
-**Solution**: [PLACEHOLDER: Describe the solution]
+**Solution**:
+- Update the timestamps to a larger value (e.g., `now + 10 minutes`) and restart again.
+- Keep the two upgrades in increasing timestamp order.
 
 ## Next Steps
 
-[PLACEHOLDER: Suggest what students should do next or additional resources to explore]
+Next, you’ll verify in the Builder Console that the Transaction/Deployer allowlist precompiles are no longer available.

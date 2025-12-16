@@ -10,83 +10,80 @@ icon: Terminal
 
 By the end of this exercise, you will be able to:
 
-- [PLACEHOLDER: Objective 1]
-- [PLACEHOLDER: Objective 2]
-- [PLACEHOLDER: Objective 3]
+- Verify you can no longer submit transactions after removing your transactor permissions
+- Verify you can no longer deploy contracts after removing your deployer permissions
+- Recognize the failure modes users will see in wallets and dApps
 
 ## Prerequisites
 
 Before starting this exercise, ensure you have:
 
-- [PLACEHOLDER: Prerequisite 1]
-- [PLACEHOLDER: Prerequisite 2]
-- [PLACEHOLDER: Prerequisite 3]
+- Completed the previous lesson and removed your wallet from **Admin** on both allowlist precompiles
+- Still connected to your L1 in Core Wallet
 
 ## Instructions
 
 import { Steps, Step } from 'fumadocs-ui/components/steps';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
 
 <Steps>
   <Step>
-    ### Step 1: [PLACEHOLDER: Step Title]
+    ### Step 1: Attempt a normal transaction (should fail)
 
-    [PLACEHOLDER: Detailed instructions for step 1]
+    In your Core Wallet browser extension:
 
-    ```bash
-    # Example command
-    [PLACEHOLDER: Add command]
-    ```
+    1. Stay on your L1 network
+    2. Try to send a small amount of the native token to any address you control
+    3. Confirm the transaction
+
+    You should see a failure/revert because the **Transaction AllowList** blocks your address from submitting transactions.
   </Step>
 
   <Step>
-    ### Step 2: [PLACEHOLDER: Step Title]
+    ### Step 2: Attempt a contract deployment (should fail)
 
-    [PLACEHOLDER: Detailed instructions for step 2]
+    Use the ICM demo deploy tool (any deployment attempt works — we’re just testing deploy restrictions):
 
-    ```typescript
-    // Example code
-    [PLACEHOLDER: Add code]
-    ```
+    <ToolboxMdxWrapper>
+      <DeployICMDemo />
+    </ToolboxMdxWrapper>
+
+    When you try to deploy, the transaction should fail because the **Contract Deployer AllowList** blocks your address from deploying contracts.
   </Step>
 
   <Step>
-    ### Step 3: [PLACEHOLDER: Step Title]
+    ### Step 3: Record what you observed
 
-    [PLACEHOLDER: Detailed instructions for step 3]
+    Note the exact error messages you see in:
+
+    - Core Wallet
+    - Console UI (if any)
+
+    These are the same user-facing symptoms you must plan for when operating a restricted-access L1.
   </Step>
 </Steps>
 
 ## Expected Output
 
-[PLACEHOLDER: Describe what students should see or achieve after completing this exercise. Include screenshots or example output if applicable.]
+You should see:
 
-```
-[PLACEHOLDER: Example output]
-```
+- A failed **value transfer transaction** (blocked by Transaction AllowList)
+- A failed **contract deployment** (blocked by Contract Deployer AllowList)
 
 ## Verification
 
 To verify you've completed this exercise successfully:
 
-1. [PLACEHOLDER: Verification step 1]
-2. [PLACEHOLDER: Verification step 2]
+1. You cannot send transactions from your wallet on the L1
+2. You cannot deploy a contract from your wallet on the L1
 
 ## Troubleshooting
 
-[PLACEHOLDER: Add common issues and solutions]
+### My transaction still succeeds
 
-### Issue 1: [PLACEHOLDER]
-
-**Problem**: [PLACEHOLDER: Describe the problem]
-
-**Solution**: [PLACEHOLDER: Describe the solution]
-
-### Issue 2: [PLACEHOLDER]
-
-**Problem**: [PLACEHOLDER: Describe the problem]
-
-**Solution**: [PLACEHOLDER: Describe the solution]
+- You likely still have **Enabled** access on the Transaction AllowList (or you didn’t enable it at genesis).
+- Verify the precompile is enabled and your role is **None**.
 
 ## Next Steps
 
-[PLACEHOLDER: Suggest what students should do next or additional resources to explore]
+Next we’ll cover how to safely recover from mistakes like this using network upgrades (enable/disable + role recovery).

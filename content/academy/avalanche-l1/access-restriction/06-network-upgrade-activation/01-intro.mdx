@@ -1,6 +1,6 @@
 ---
 title: Intro
-description: Learn about Intro
+description: Re-enable the allowlist precompiles via upgrade.json and set your wallet as admin.
 updated: 2025-12-10
 authors: [nicolasarnedo]
 icon: Book
@@ -8,39 +8,25 @@ icon: Book
 
 ## Overview
 
-[PLACEHOLDER: Add an overview of Intro. Provide context and explain why this topic is important.]
+In the previous section you **disabled** the Transaction AllowList and Contract Deployer AllowList precompiles via a network upgrade. Now you’ll do the same process in reverse: **append new upgrade entries** that re-enable both precompiles.
+
+Because disabling clears precompile storage, re-enabling is effectively a fresh initialization. For these allowlist precompiles, that means you must set initial **`adminAddresses`** so you can manage roles after activation.
 
 ## Key Concepts
 
-[PLACEHOLDER: Add key concepts and definitions. Break down the main ideas that students need to understand:]
+The rules from the official guide still apply:
 
-- **Concept 1**: Definition and explanation
-- **Concept 2**: Definition and explanation
-- **Concept 3**: Definition and explanation
+- `upgrade.json` lives at `{chain-config-dir}/{blockchainID}/upgrade.json` next to `config.json`.
+- `precompileUpgrades` must be treated as **append-only** once upgrades activate.
+- `blockTimestamp` must be **in the future** and upgrades must be in **increasing order**.
 
-## Deep Dive
+Reference:
 
-[PLACEHOLDER: Provide detailed explanation of Intro. Include:]
-
-- Technical details
-- How it works
-- Architecture or design patterns
-- Visual diagrams (if applicable)
-- Example scenarios
-
-### Subtopic 1
-
-[PLACEHOLDER: Add detailed content]
-
-### Subtopic 2
-
-[PLACEHOLDER: Add detailed content]
+- `/docs/avalanche-l1s/upgrade/precompile-upgrades`
 
 ## Summary
 
-[PLACEHOLDER: Summarize the key takeaways from this lesson. What should students remember?]
-
 Key points:
-- [PLACEHOLDER: Key point 1]
-- [PLACEHOLDER: Key point 2]
-- [PLACEHOLDER: Key point 3]
+- You’ll re-enable `txAllowListConfig` and `contractDeployerAllowListConfig` by appending new entries.
+- You must include your wallet address in `adminAddresses` for both precompiles.
+- After restarting the node and passing the activation timestamps, the Console tools should show the allowlist UI again.

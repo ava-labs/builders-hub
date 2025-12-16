@@ -6,41 +6,43 @@ authors: [nicolasarnedo]
 icon: Smile
 ---
 
-## Why Take This Course?
+## Access Restriction
 
-[PLACEHOLDER: Add course motivation and context. Explain why this course is valuable and what problems it solves.]
+Access restriction is a core requirement for many real-world networks: you may need to control **who can submit transactions** and **who can deploy contracts** to meet operational, institutional, and compliance needs.
+
+In Avalanche L1s, these controls are implemented as **precompiles** (native EVM features) that follow a shared, audited permission model: the **AllowList interface**.
 
 ## Course Content
-
-[PLACEHOLDER: Add course content overview. Consider using a Steps component to outline the major sections:]
 
 import { Steps, Step } from 'fumadocs-ui/components/steps';
 
 <Steps>
   <Step>
-    ### Section 1
-    Description of what students will learn
+    ### Introduction
+    Precompiles refresher, the AllowList permission model (Admin/Manager/Enabled), and why this pattern is reused across multiple L1 precompiles.
   </Step>
   <Step>
-    ### Section 2
-    Description of what students will learn
+    ### Genesis Activation
+    Configure and launch an L1 with **Transaction AllowList** and **Contract Deployer AllowList** enabled from genesis (self-hosted node via Docker).
+  </Step>
+  <Step>
+    ### Everyone Makes Mistakes
+    Intentionally lock yourself out, observe failures, and learn the recovery path (network upgrade sections come next).
   </Step>
 </Steps>
 
 ## Prerequisites
 
-[PLACEHOLDER: Add prerequisites. For example:]
+Before starting this course, we recommend completing:
 
-Before starting this course, you should be familiar with:
-- Prerequisite 1
-- Prerequisite 2
-- Prerequisite 3
+- [Customizing the EVM](/academy/avalanche-l1/customizing-evm) — especially the **Precompiles** section
+- Comfort using **Core Wallet**, **Docker**, and reading a **genesis JSON**
 
 ## Learning Outcomes
 
 By the end of this course, you will be able to:
 
-- [PLACEHOLDER: Learning outcome 1]
-- [PLACEHOLDER: Learning outcome 2]
-- [PLACEHOLDER: Learning outcome 3]
-- [PLACEHOLDER: Learning outcome 4]
+- Explain what precompiles are and why they’re used for privileged network features
+- Describe the AllowList interface roles (**Admin**, **Manager**, **Enabled**) and how they apply across multiple precompiles
+- Enable **Transaction AllowList** and **Contract Deployer AllowList** in genesis
+- Validate access restrictions by testing transaction sending and contract deployment

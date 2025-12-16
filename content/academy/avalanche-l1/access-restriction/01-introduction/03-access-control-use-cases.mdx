@@ -1,46 +1,23 @@
 ---
 title: Access Control Use-cases
-description: Learn about Access Control Use-cases
+description: Why institutions and regulated businesses need transaction and contract deployment controls.
 updated: 2025-12-10
 authors: [nicolasarnedo]
-icon: Book
+icon: BookOpen
 ---
 
-## Overview
+## Access control in real-world networks
 
-[PLACEHOLDER: Add an overview of Access Control Use-cases. Provide context and explain why this topic is important.]
+In permissioned or semi-permissioned environments, “open access” is often not acceptable. Organizations may need to control **who can submit transactions** (“transactors”) and **who can deploy contracts** (“deployers”) for operational risk management and compliance.
 
-## Key Concepts
+Here are common use-cases (non-exhaustive):
 
-[PLACEHOLDER: Add key concepts and definitions. Break down the main ideas that students need to understand:]
+- **KYC / AML gating**: Only onboarded entities can transact or deploy contracts.
+- **Consortium networks**: A set of known participants (banks, enterprises, or agencies) share a network; membership changes over time.
+- **Staged rollouts**: Start with restricted access during pilot phases, then broaden access once monitoring and incident response are mature.
+- **Reducing exploit surface**: Limiting deployers reduces the risk of malicious contract deployments; limiting transactors mitigates spam and abuse.
+- **Operational controls**: Restrict privileged actions to approved operators (e.g., deployments via CI/CD wallets) and separate duties between teams.
+- **Regulatory requirements**: Some businesses must prove control over participants, auditability of access changes, and governance over who can run what.
 
-- **Concept 1**: Definition and explanation
-- **Concept 2**: Definition and explanation
-- **Concept 3**: Definition and explanation
-
-## Deep Dive
-
-[PLACEHOLDER: Provide detailed explanation of Access Control Use-cases. Include:]
-
-- Technical details
-- How it works
-- Architecture or design patterns
-- Visual diagrams (if applicable)
-- Example scenarios
-
-### Subtopic 1
-
-[PLACEHOLDER: Add detailed content]
-
-### Subtopic 2
-
-[PLACEHOLDER: Add detailed content]
-
-## Summary
-
-[PLACEHOLDER: Summarize the key takeaways from this lesson. What should students remember?]
-
-Key points:
-- [PLACEHOLDER: Key point 1]
-- [PLACEHOLDER: Key point 2]
-- [PLACEHOLDER: Key point 3]
+In the rest of this course, we’ll implement these controls using two AllowList-based precompiles:
+the **Transaction AllowList** and the **Contract Deployer AllowList**.

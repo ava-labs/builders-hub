@@ -10,83 +10,79 @@ icon: Terminal
 
 By the end of this exercise, you will be able to:
 
-- [PLACEHOLDER: Objective 1]
-- [PLACEHOLDER: Objective 2]
-- [PLACEHOLDER: Objective 3]
+- Use the Console UI to manage AllowList roles
+- Remove your own wallet from **Admin** on both allowlist precompiles
+- Understand why this can lock you out (and why upgrades exist)
 
 ## Prerequisites
 
 Before starting this exercise, ensure you have:
 
-- [PLACEHOLDER: Prerequisite 1]
-- [PLACEHOLDER: Prerequisite 2]
-- [PLACEHOLDER: Prerequisite 3]
+- An L1 running with both precompiles enabled from genesis
+- Your wallet currently has **Admin** role on both allowlists (from genesis)
 
 ## Instructions
 
 import { Steps, Step } from 'fumadocs-ui/components/steps';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
 
 <Steps>
   <Step>
-    ### Step 1: [PLACEHOLDER: Step Title]
+    ### Step 1: Open the allowlist consoles
 
-    [PLACEHOLDER: Detailed instructions for step 1]
+    These consoles expose the AllowList interface for the two precompiles.
 
-    ```bash
-    # Example command
-    [PLACEHOLDER: Add command]
-    ```
+    <ToolboxMdxWrapper>
+      <DeployerAllowlist />
+    </ToolboxMdxWrapper>
+
+    <ToolboxMdxWrapper>
+      <TransactionAllowlist />
+    </ToolboxMdxWrapper>
   </Step>
 
   <Step>
-    ### Step 2: [PLACEHOLDER: Step Title]
+    ### Step 2: Remove your wallet from Admin on both precompiles
 
-    [PLACEHOLDER: Detailed instructions for step 2]
+    For **each** precompile:
 
-    ```typescript
-    // Example code
-    [PLACEHOLDER: Add code]
-    ```
+    1. Find your connected wallet address in the UI
+    2. Change its role from **Admin** → **None** (or remove Admin role)
+    3. Confirm the transaction in Core Wallet
+
+    <Callout type="warning">
+      Once you remove your own Admin role, you may no longer be able to grant permissions back — that’s the point of this exercise.
+    </Callout>
   </Step>
 
   <Step>
-    ### Step 3: [PLACEHOLDER: Step Title]
+    ### Step 3: Confirm your role is gone
 
-    [PLACEHOLDER: Detailed instructions for step 3]
+    After each transaction, refresh the UI and verify `readAllowList(yourAddress)` now resolves to **None** for both precompiles.
   </Step>
 </Steps>
 
 ## Expected Output
 
-[PLACEHOLDER: Describe what students should see or achieve after completing this exercise. Include screenshots or example output if applicable.]
+Your wallet no longer has Admin rights on:
 
-```
-[PLACEHOLDER: Example output]
-```
+- Transaction AllowList
+- Contract Deployer AllowList
 
 ## Verification
 
 To verify you've completed this exercise successfully:
 
-1. [PLACEHOLDER: Verification step 1]
-2. [PLACEHOLDER: Verification step 2]
+1. The console UI shows your wallet has role **None** (or non-admin) on both precompiles
+2. You can no longer use the UI to re-add yourself as Admin
 
 ## Troubleshooting
 
-[PLACEHOLDER: Add common issues and solutions]
+### I don’t see my wallet / role doesn’t update
 
-### Issue 1: [PLACEHOLDER]
-
-**Problem**: [PLACEHOLDER: Describe the problem]
-
-**Solution**: [PLACEHOLDER: Describe the solution]
-
-### Issue 2: [PLACEHOLDER]
-
-**Problem**: [PLACEHOLDER: Describe the problem]
-
-**Solution**: [PLACEHOLDER: Describe the solution]
+- Make sure you’re connected to the correct L1 network in Core Wallet
+- Wait for the transaction to confirm, then refresh the component
 
 ## Next Steps
 
-[PLACEHOLDER: Suggest what students should do next or additional resources to explore]
+Next we’ll prove you’re locked out by attempting a transaction and a contract deployment.

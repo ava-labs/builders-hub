@@ -1,46 +1,91 @@
 ---
 title: Summarize Docs Precompiles Upgrades
-description: Learn about Summarize Docs Precompiles Upgrades
+description: Key rules for upgrade.json: file location, timestamps, disable flag, and append-only upgrades.
 updated: 2025-12-10
 authors: [nicolasarnedo]
 icon: Book
 ---
 
-## Overview
+## Reference
 
-[PLACEHOLDER: Add an overview of Summarize Docs Precompiles Upgrades. Provide context and explain why this topic is important.]
+- `/docs/avalanche-l1s/upgrade/precompile-upgrades`
 
-## Key Concepts
+## What is `upgrade.json`?
 
-[PLACEHOLDER: Add key concepts and definitions. Break down the main ideas that students need to understand:]
+Subnet-EVM supports changing precompile behavior at specific times via a network upgrade file:
 
-- **Concept 1**: Definition and explanation
-- **Concept 2**: Definition and explanation
-- **Concept 3**: Definition and explanation
+- **Path**: `{chain-config-dir}/{blockchainID}/upgrade.json`
+- It must live **next to** the chain’s `config.json`.
 
-## Deep Dive
+On a typical node, the chain config directory looks like:
 
-[PLACEHOLDER: Provide detailed explanation of Summarize Docs Precompiles Upgrades. Include:]
+- `~/.avalanchego/configs/chains/<BLOCKCHAIN_ID>/`
 
-- Technical details
-- How it works
-- Architecture or design patterns
-- Visual diagrams (if applicable)
-- Example scenarios
+## File format (high-level)
 
-### Subtopic 1
+The file contains an array called `precompileUpgrades`. Each entry:
 
-[PLACEHOLDER: Add detailed content]
+- Configures **exactly one precompile**, and
+- Has a `blockTimestamp` (Unix timestamp) for when it activates.
 
-### Subtopic 2
+Example shape:
 
-[PLACEHOLDER: Add detailed content]
+```json
+{
+  "precompileUpgrades": [
+    {
+      "txAllowListConfig": {
+        "blockTimestamp": 1700000000,
+        "adminAddresses": ["0x..."]
+      }
+    }
+  ]
+}
+```
+
+## The two rules that break nodes if you miss them
+
+### 1) Timestamps must be in the future
+
+If a node encounters an upgrade entry with a `blockTimestamp` that is **in the past relative to the head of the chain**, it can fail to start.
+
+Practical takeaway: when you set the timestamp, set it to **(now + a few minutes)**, not “right now”.
+
+### 2) Treat `precompileUpgrades` as append-only
+
+Once an upgrade activates (a block after the timestamp is accepted), that entry must remain in `upgrade.json` **exactly as it was**. Otherwise the node can refuse to start.
+
+Practical takeaway: don’t edit old entries; **append new ones**.
+
+## Disabling a precompile
+
+To disable, you add an entry with:
+
+- `"disable": true`
+
+```json
+{
+  "precompileUpgrades": [
+    {
+      "txAllowListConfig": {
+        "blockTimestamp": 1700000000,
+        "disable": true
+      }
+    }
+  ]
+}
+```
+
+Disabling prevents calls to the precompile and **destructs its storage**, which is why you can later re-enable it with a fresh configuration.
+
+## Verifying the node loaded your upgrade
+
+After editing `upgrade.json`, you **restart the node**. On startup, the node prints the chain configuration (including the `UpgradeConfig`) which you can use to confirm your upgrade entries were parsed.
 
 ## Summary
 
-[PLACEHOLDER: Summarize the key takeaways from this lesson. What should students remember?]
-
 Key points:
-- [PLACEHOLDER: Key point 1]
-- [PLACEHOLDER: Key point 2]
-- [PLACEHOLDER: Key point 3]
+- `upgrade.json` lives in the same folder as the chain’s `config.json`.
+- Each `precompileUpgrades` entry targets one precompile and has a future `blockTimestamp`.
+- Disabling uses `"disable": true`.
+- After activation, keep the upgrade list **append-only** to avoid startup failure.

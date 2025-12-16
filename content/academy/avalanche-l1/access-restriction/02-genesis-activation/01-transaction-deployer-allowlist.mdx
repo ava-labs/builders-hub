@@ -1,6 +1,6 @@
 ---
 title: Transaction Deployer Allowlist
-description: Learn about Transaction Deployer Allowlist
+description: Enable and understand the Transaction AllowList precompile (who can submit transactions).
 updated: 2025-12-10
 authors: [nicolasarnedo]
 icon: Book
@@ -8,39 +8,44 @@ icon: Book
 
 ## Overview
 
-[PLACEHOLDER: Add an overview of Transaction Deployer Allowlist. Provide context and explain why this topic is important.]
+The **Transaction AllowList** precompile controls **who can submit transactions** to your Avalanche L1. If a wallet address is not allowed, transactions from that address will fail before they can be executed.
 
-## Key Concepts
+This is commonly used to:
 
-[PLACEHOLDER: Add key concepts and definitions. Break down the main ideas that students need to understand:]
+- Build **permissioned networks**
+- Enforce **KYC/AML** policies
+- Reduce spam during early-stage deployments
 
-- **Concept 1**: Definition and explanation
-- **Concept 2**: Definition and explanation
-- **Concept 3**: Definition and explanation
+## Quick reference
 
-## Deep Dive
+From the docs:
 
-[PLACEHOLDER: Provide detailed explanation of Transaction Deployer Allowlist. Include:]
+- **Precompile address**: `0x0200000000000000000000000000000000000002`
+- **Genesis config key**: `txAllowListConfig`
+- **Permission model**: uses the [AllowList interface](/docs/avalanche-l1s/precompiles/allowlist-interface)
 
-- Technical details
-- How it works
-- Architecture or design patterns
-- Visual diagrams (if applicable)
-- Example scenarios
+Docs: `/docs/avalanche-l1s/precompiles/transaction-allowlist`
 
-### Subtopic 1
+## Genesis activation
 
-[PLACEHOLDER: Add detailed content]
+To enable it from genesis, include a config block like:
 
-### Subtopic 2
+```json
+{
+  "config": {
+    "txAllowListConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": ["0x...yourAdminAddress"]
+    }
+  }
+}
+```
 
-[PLACEHOLDER: Add detailed content]
+The `adminAddresses` become **AllowList Admins** for this precompile (can manage Admin/Manager/Enabled roles).
 
 ## Summary
 
-[PLACEHOLDER: Summarize the key takeaways from this lesson. What should students remember?]
-
 Key points:
-- [PLACEHOLDER: Key point 1]
-- [PLACEHOLDER: Key point 2]
-- [PLACEHOLDER: Key point 3]
+- Transaction AllowList gates *transaction submission* at the network level.
+- It’s configured at genesis via `txAllowListConfig`.
+- It reuses the AllowList permission model (Admin/Manager/Enabled).

@@ -1,6 +1,6 @@
 ---
 title: Intro
-description: Learn about Intro
+description: Use a network upgrade (upgrade.json) to disable allowlist precompiles after genesis.
 updated: 2025-12-10
 authors: [nicolasarnedo]
 icon: Book
@@ -8,39 +8,22 @@ icon: Book
 
 ## Overview
 
-[PLACEHOLDER: Add an overview of Intro. Provide context and explain why this topic is important.]
+So far, you enabled **Transaction AllowList** and **Contract Deployer AllowList** in genesis. In a real network, you won’t always get the genesis config “perfect” on day one, and you may need to **turn precompiles on/off** (or change their parameters) later.
 
-## Key Concepts
+Subnet-EVM supports doing this via **network upgrades** using an `upgrade.json` file. In this section, you’ll **disable** both allowlist precompiles by updating your **Docker validator node** configuration, restarting the node, and then verifying (in the Builder Console) that the precompiles are no longer available.
 
-[PLACEHOLDER: Add key concepts and definitions. Break down the main ideas that students need to understand:]
+## Important warning (read this)
 
-- **Concept 1**: Definition and explanation
-- **Concept 2**: Definition and explanation
-- **Concept 3**: Definition and explanation
+- Network upgrades **change the rules** for how blocks are processed. If validators don’t upgrade consistently, the chain can halt or validators can fall out of sync.
+- The upgrade file uses **timestamps**. If you set a timestamp in the past (relative to the chain head), the node can fail on startup.
 
-## Deep Dive
+You’ll follow the official guide here:
 
-[PLACEHOLDER: Provide detailed explanation of Intro. Include:]
-
-- Technical details
-- How it works
-- Architecture or design patterns
-- Visual diagrams (if applicable)
-- Example scenarios
-
-### Subtopic 1
-
-[PLACEHOLDER: Add detailed content]
-
-### Subtopic 2
-
-[PLACEHOLDER: Add detailed content]
+- `/docs/avalanche-l1s/upgrade/precompile-upgrades`
 
 ## Summary
 
-[PLACEHOLDER: Summarize the key takeaways from this lesson. What should students remember?]
-
 Key points:
-- [PLACEHOLDER: Key point 1]
-- [PLACEHOLDER: Key point 2]
-- [PLACEHOLDER: Key point 3]
+- Precompile enable/disable is done via `{chain-config-dir}/{blockchainID}/upgrade.json`.
+- Disabling a precompile prevents calls and **clears its storage**, so it can be re-enabled later with fresh config.
+- Timestamps must be **in the future**, and upgrade lists should be treated as **append-only**.

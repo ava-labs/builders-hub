@@ -1,6 +1,6 @@
 ---
 title: Creating or modifying upgrade.json
-description: "Hands-on exercise: Creating or modifying upgrade.json"
+description: "Hands-on exercise: Append upgrade entries to re-enable the allowlists and set your wallet as admin."
 updated: 2025-12-10
 authors: [nicolasarnedo]
 icon: Terminal
@@ -10,83 +10,128 @@ icon: Terminal
 
 By the end of this exercise, you will be able to:
 
-- [PLACEHOLDER: Objective 1]
-- [PLACEHOLDER: Objective 2]
-- [PLACEHOLDER: Objective 3]
+- Append new `precompileUpgrades` entries (without modifying old ones).
+- Re-enable `txAllowListConfig` and `contractDeployerAllowListConfig`.
+- Set your wallet address as `adminAddresses` for both precompiles.
 
 ## Prerequisites
 
 Before starting this exercise, ensure you have:
 
-- [PLACEHOLDER: Prerequisite 1]
-- [PLACEHOLDER: Prerequisite 2]
-- [PLACEHOLDER: Prerequisite 3]
+- Completed the de-activation section and confirmed both precompiles are currently inactive.
+- Access to the chain config directory:
+  - `~/.avalanchego/configs/chains/<YOUR_BLOCKCHAIN_ID>/`
+- Your wallet address (EVM `0x...`) that you want to set as the admin.
 
 ## Instructions
 
 import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
 
 <Steps>
   <Step>
-    ### Step 1: [PLACEHOLDER: Step Title]
+    ### Step 1: Compute new (future) activation timestamps
 
-    [PLACEHOLDER: Detailed instructions for step 1]
+    Inside the validator container, compute two future timestamps. These must be:
+
+    - In the future relative to chain head
+    - Greater than any timestamps you already used in `upgrade.json`
 
     ```bash
-    # Example command
-    [PLACEHOLDER: Add command]
+    NOW=$(date +%s)
+    T1=$((NOW + 600))
+    T2=$((NOW + 601))
+    echo $T1
+    echo $T2
     ```
   </Step>
 
   <Step>
-    ### Step 2: [PLACEHOLDER: Step Title]
+    ### Step 2: Append re-activation entries (do not edit old upgrades)
 
-    [PLACEHOLDER: Detailed instructions for step 2]
+    Go to your chain config directory and open `upgrade.json`:
 
-    ```typescript
-    // Example code
-    [PLACEHOLDER: Add code]
+    ```bash
+    cd ~/.avalanchego/configs/chains/<YOUR_BLOCKCHAIN_ID>
+    cat upgrade.json
     ```
+
+    Your file should already contain the two disable entries you added earlier. Keep them exactly as-is, and **append** two new entries that re-enable the precompiles with `adminAddresses`:
+
+    ```json
+    {
+      "precompileUpgrades": [
+        {
+          "txAllowListConfig": {
+            "blockTimestamp": 1700000000,
+            "disable": true
+          }
+        },
+        {
+          "contractDeployerAllowListConfig": {
+            "blockTimestamp": 1700000001,
+            "disable": true
+          }
+        },
+        {
+          "txAllowListConfig": {
+            "blockTimestamp": 1700001000,
+            "adminAddresses": ["0x...YOUR_WALLET_ADDRESS..."]
+          }
+        },
+        {
+          "contractDeployerAllowListConfig": {
+            "blockTimestamp": 1700001001,
+            "adminAddresses": ["0x...YOUR_WALLET_ADDRESS..."]
+          }
+        }
+      ]
+    }
+    ```
+
+    Replace:
+    - `1700001000` / `1700001001` with the timestamps you computed in Step 1
+    - `0x...YOUR_WALLET_ADDRESS...` with your actual EVM address
+
+    <Callout type="warn">
+    Once an upgrade activates, `precompileUpgrades` must remain **append-only**. Do not modify or remove older entries, or the node may refuse to start.
+    </Callout>
   </Step>
 
   <Step>
-    ### Step 3: [PLACEHOLDER: Step Title]
+    ### Step 3: Sanity check
 
-    [PLACEHOLDER: Detailed instructions for step 3]
+    Confirm your file contains **four** entries (two disables + two enables) and that timestamps are strictly increasing:
+
+    ```bash
+    cat upgrade.json
+    ```
   </Step>
 </Steps>
 
 ## Expected Output
 
-[PLACEHOLDER: Describe what students should see or achieve after completing this exercise. Include screenshots or example output if applicable.]
+Your `upgrade.json` includes the earlier disable upgrades and now also includes two new enable upgrades with your wallet set as admin.
 
 ```
-[PLACEHOLDER: Example output]
+upgrade.json updated (append-only)
 ```
 
 ## Verification
 
 To verify you've completed this exercise successfully:
 
-1. [PLACEHOLDER: Verification step 1]
-2. [PLACEHOLDER: Verification step 2]
+1. Both new entries include `adminAddresses` with your wallet address.
+2. All `blockTimestamp` values are in increasing order and in the future.
 
 ## Troubleshooting
 
-[PLACEHOLDER: Add common issues and solutions]
+### Issue: I accidentally edited old upgrade entries
 
-### Issue 1: [PLACEHOLDER]
+**Problem**: After an upgrade activates, changing old entries can prevent startup.
 
-**Problem**: [PLACEHOLDER: Describe the problem]
-
-**Solution**: [PLACEHOLDER: Describe the solution]
-
-### Issue 2: [PLACEHOLDER]
-
-**Problem**: [PLACEHOLDER: Describe the problem]
-
-**Solution**: [PLACEHOLDER: Describe the solution]
+**Solution**: Restore the exact previous entries if possible, then only append new upgrades moving forward.
 
 ## Next Steps
 
-[PLACEHOLDER: Suggest what students should do next or additional resources to explore]
+Next, restart your Docker validator container so the node loads the updated `upgrade.json`.

@@ -1,6 +1,6 @@
 ---
 title: Creating or modifying upgrade.json
-description: "Hands-on exercise: Creating or modifying upgrade.json"
+description: "Hands-on exercise: Disable tx and contract deployer allowlists via upgrade.json with future timestamps."
 updated: 2025-12-10
 authors: [nicolasarnedo]
 icon: Terminal
@@ -10,83 +10,117 @@ icon: Terminal
 
 By the end of this exercise, you will be able to:
 
-- [PLACEHOLDER: Objective 1]
-- [PLACEHOLDER: Objective 2]
-- [PLACEHOLDER: Objective 3]
+- Create (or edit) `upgrade.json` in the correct chain config directory.
+- Add de-activation entries for `txAllowListConfig` and `contractDeployerAllowListConfig`.
+- Choose safe, future `blockTimestamp` values in increasing order.
 
 ## Prerequisites
 
 Before starting this exercise, ensure you have:
 
-- [PLACEHOLDER: Prerequisite 1]
-- [PLACEHOLDER: Prerequisite 2]
-- [PLACEHOLDER: Prerequisite 3]
+- Completed the previous lesson and can access:
+  - `~/.avalanchego/configs/chains/<YOUR_BLOCKCHAIN_ID>/`
+- Your Docker validator container shell open.
 
 ## Instructions
 
 import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
 
 <Steps>
   <Step>
-    ### Step 1: [PLACEHOLDER: Step Title]
+    ### Step 1: Choose future timestamps
 
-    [PLACEHOLDER: Detailed instructions for step 1]
+    In the validator container, compute two timestamps a few minutes in the future (they must be strictly increasing):
 
     ```bash
-    # Example command
-    [PLACEHOLDER: Add command]
+    NOW=$(date +%s)
+    T1=$((NOW + 600))
+    T2=$((NOW + 601))
+    echo $T1
+    echo $T2
     ```
   </Step>
 
   <Step>
-    ### Step 2: [PLACEHOLDER: Step Title]
+    ### Step 2: Create `upgrade.json` next to `config.json`
 
-    [PLACEHOLDER: Detailed instructions for step 2]
+    Make sure you are in your chain config directory:
 
-    ```typescript
-    // Example code
-    [PLACEHOLDER: Add code]
+    ```bash
+    cd ~/.avalanchego/configs/chains/<YOUR_BLOCKCHAIN_ID>
+    ls
     ```
+
+    Create (or edit) `upgrade.json` so it disables both precompiles:
+
+    ```bash
+    cat > upgrade.json << 'JSON'
+    {
+      "precompileUpgrades": [
+        {
+          "txAllowListConfig": {
+            "blockTimestamp": 1700000000,
+            "disable": true
+          }
+        },
+        {
+          "contractDeployerAllowListConfig": {
+            "blockTimestamp": 1700000001,
+            "disable": true
+          }
+        }
+      ]
+    }
+    JSON
+    ```
+
+    Now replace the placeholder timestamps (`1700000000` / `1700000001`) with your values from Step 1.
+
+    <Callout type="warn">
+    The timestamps must be **in the future** relative to the chain head, and entries must be in **increasing timestamp order**. If you set a timestamp in the past, the node may fail on startup.
+    </Callout>
   </Step>
 
   <Step>
-    ### Step 3: [PLACEHOLDER: Step Title]
+    ### Step 3: Sanity check the file
 
-    [PLACEHOLDER: Detailed instructions for step 3]
+    Print the file to confirm it exists and looks correct:
+
+    ```bash
+    cat upgrade.json
+    ```
+
+    You should see both `txAllowListConfig` and `contractDeployerAllowListConfig` entries, each with `"disable": true`.
   </Step>
 </Steps>
 
 ## Expected Output
 
-[PLACEHOLDER: Describe what students should see or achieve after completing this exercise. Include screenshots or example output if applicable.]
+You should now have an `upgrade.json` file in your chain config directory with two disable entries.
 
 ```
-[PLACEHOLDER: Example output]
+upgrade.json created/updated
 ```
 
 ## Verification
 
 To verify you've completed this exercise successfully:
 
-1. [PLACEHOLDER: Verification step 1]
-2. [PLACEHOLDER: Verification step 2]
+1. `~/.avalanchego/configs/chains/<YOUR_BLOCKCHAIN_ID>/upgrade.json` exists.
+2. It contains **two** `precompileUpgrades` entries with `"disable": true`.
 
 ## Troubleshooting
 
-[PLACEHOLDER: Add common issues and solutions]
+### Issue: The node refuses to start after I added `upgrade.json`
 
-### Issue 1: [PLACEHOLDER]
+**Problem**: You see errors on startup after adding the upgrade file.
 
-**Problem**: [PLACEHOLDER: Describe the problem]
-
-**Solution**: [PLACEHOLDER: Describe the solution]
-
-### Issue 2: [PLACEHOLDER]
-
-**Problem**: [PLACEHOLDER: Describe the problem]
-
-**Solution**: [PLACEHOLDER: Describe the solution]
+**Solution**:
+- Ensure `blockTimestamp` values are **in the future** (increase them and try again).
+- Ensure the entries are in **increasing order**.
+- If an upgrade already activated, treat `precompileUpgrades` as **append-only** (don’t modify past entries).
 
 ## Next Steps
 
-[PLACEHOLDER: Suggest what students should do next or additional resources to explore]
+Next, restart the Docker validator so AvalancheGo loads the new upgrade configuration.

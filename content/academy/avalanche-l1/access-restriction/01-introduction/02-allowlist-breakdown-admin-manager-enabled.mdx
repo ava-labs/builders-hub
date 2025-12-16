@@ -1,46 +1,61 @@
 ---
 title: Allowlist Breakdown (Admin, Manager, Enabled)
-description: Learn about Allowlist Breakdown (Admin, Manager, Enabled)
+description: Understand the AllowList interface used by many Avalanche L1 precompiles and how its roles work.
 updated: 2025-12-10
 authors: [nicolasarnedo]
-icon: Book
+icon: BookOpen
 ---
 
 ## Overview
 
-[PLACEHOLDER: Add an overview of Allowlist Breakdown (Admin, Manager, Enabled). Provide context and explain why this topic is important.]
+Avalanche L1s ship multiple default precompiles that need access control. Rather than inventing a new permission model for each feature, many of them reuse the same audited permission interface: the **AllowList interface**.
 
-## Key Concepts
+This matters because once you understand **Admin / Manager / Enabled**, you can reason about (and safely operate) a large set of precompiles with the same mental model.
 
-[PLACEHOLDER: Add key concepts and definitions. Break down the main ideas that students need to understand:]
+## The AllowList interface
 
-- **Concept 1**: Definition and explanation
-- **Concept 2**: Definition and explanation
-- **Concept 3**: Definition and explanation
+Reference: `https://build.avax.network/docs/avalanche-l1s/precompiles/allowlist-interface`
 
-## Deep Dive
+The AllowList interface exposes a small set of functions to manage roles for addresses:
 
-[PLACEHOLDER: Provide detailed explanation of Allowlist Breakdown (Admin, Manager, Enabled). Include:]
+### Functions (brief)
 
-- Technical details
-- How it works
-- Architecture or design patterns
-- Visual diagrams (if applicable)
-- Example scenarios
+- `setAdmin(address addr)`: give `addr` **Admin** role.
+- `setManager(address addr)`: give `addr` **Manager** role.
+- `setEnabled(address addr)`: give `addr` **Enabled** role.
+- `setNone(address addr)`: remove any role from `addr` (back to **None**).
+- `readAllowList(address addr) -> uint256`: read the current role value.
 
-### Subtopic 1
+### Permission levels
 
-[PLACEHOLDER: Add detailed content]
+The roles are:
 
-### Subtopic 2
+- **Admin**: can manage all roles (Admin, Manager, Enabled).
+- **Manager**: can manage Enabled addresses only.
+- **Enabled**: can use the precompile’s functionality (what that means depends on the specific precompile).
+- **None**: no access.
 
-[PLACEHOLDER: Add detailed content]
+This is a *role-based access control* pattern, implemented consistently across precompiles that opt into it.
+
+## Precompiles that use AllowList
+
+Several default Avalanche L1 precompiles implement this interface (examples):
+
+- [Deployer AllowList](/docs/avalanche-l1s/precompiles/deployer-allowlist)
+- [Transaction AllowList](/docs/avalanche-l1s/precompiles/transaction-allowlist)
+- [Native Minter](/docs/avalanche-l1s/precompiles/native-minter)
+- [Fee Manager](/docs/avalanche-l1s/precompiles/fee-manager)
+- [Reward Manager](/docs/avalanche-l1s/precompiles/reward-manager)
+
+## Note on stateful precompiles
+
+Many precompiles are **stateful** (they can read/write chain state at the VM layer). If you haven’t seen this concept yet, review the **Stateful Precompiles** section in Customizing the EVM:
+
+- `/academy/avalanche-l1/customizing-evm/09-stateful-precompiles`
 
 ## Summary
 
-[PLACEHOLDER: Summarize the key takeaways from this lesson. What should students remember?]
-
 Key points:
-- [PLACEHOLDER: Key point 1]
-- [PLACEHOLDER: Key point 2]
-- [PLACEHOLDER: Key point 3]
+- AllowList is a shared permission interface reused across multiple Avalanche L1 precompiles.
+- The role model is consistent: Admin (full), Manager (manage Enabled), Enabled (use), None (no access).
+- Understanding AllowList once helps you operate many precompiles safely.

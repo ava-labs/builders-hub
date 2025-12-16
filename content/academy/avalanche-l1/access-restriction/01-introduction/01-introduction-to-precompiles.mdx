@@ -1,6 +1,6 @@
 ---
 title: Introduction to Precompiles
-description: Learn about Introduction to Precompiles
+description: A quick refresher on precompiles and why Avalanche L1s use them for privileged features.
 updated: 2025-12-10
 authors: [nicolasarnedo]
 icon: Book
@@ -8,39 +8,30 @@ icon: Book
 
 ## Overview
 
-[PLACEHOLDER: Add an overview of Introduction to Precompiles. Provide context and explain why this topic is important.]
+This course uses **precompiles** to enforce network access restrictions. If you’re not already comfortable with what precompiles are and how they work, you should complete the **Customizing the EVM** course first (especially the **Precompiles** chapter).
 
-## Key Concepts
+Precompiles are “built-in contracts” backed by the VM implementation (typically Go), mapped to reserved addresses. From Solidity’s point of view, they look like normal contracts you call via an interface — but they execute faster and can expose VM-level capabilities that regular contracts can’t safely implement.
 
-[PLACEHOLDER: Add key concepts and definitions. Break down the main ideas that students need to understand:]
+## Why precompiles matter for access restriction
 
-- **Concept 1**: Definition and explanation
-- **Concept 2**: Definition and explanation
-- **Concept 3**: Definition and explanation
+Access restriction isn’t a typical dApp feature — it’s a **network rule**. That’s why Avalanche L1s implement these controls as precompiles:
 
-## Deep Dive
+- **Performance & gas**: checks happen at the VM level and are efficient.
+- **Security**: the permission logic is centralized, audited, and not re-implemented in every contract.
+- **Consistency**: multiple precompiles can share the same permission model (via a common interface).
 
-[PLACEHOLDER: Provide detailed explanation of Introduction to Precompiles. Include:]
+## How you’ll use precompiles in this course
 
-- Technical details
-- How it works
-- Architecture or design patterns
-- Visual diagrams (if applicable)
-- Example scenarios
+We’ll focus on two default precompiles that use the same underlying permission model:
 
-### Subtopic 1
+- **Transaction AllowList**: controls who can submit transactions to the chain.
+- **Contract Deployer AllowList**: controls who can deploy smart contracts.
 
-[PLACEHOLDER: Add detailed content]
-
-### Subtopic 2
-
-[PLACEHOLDER: Add detailed content]
+In the next lesson, you’ll learn the shared permission model these precompiles use: the **AllowList interface**.
 
 ## Summary
 
-[PLACEHOLDER: Summarize the key takeaways from this lesson. What should students remember?]
-
 Key points:
-- [PLACEHOLDER: Key point 1]
-- [PLACEHOLDER: Key point 2]
-- [PLACEHOLDER: Key point 3]
+- Precompiles are VM-implemented contracts at reserved addresses, callable like normal Solidity contracts.
+- Avalanche L1s use precompiles for privileged network behavior (like access restriction).
+- Many default precompiles share a common permission pattern, which we cover next.

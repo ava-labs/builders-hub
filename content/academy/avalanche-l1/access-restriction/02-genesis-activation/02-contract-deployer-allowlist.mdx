@@ -1,6 +1,6 @@
 ---
 title: Contract Deployer Allowlist
-description: Learn about Contract Deployer Allowlist
+description: Enable and understand the Contract Deployer AllowList precompile (who can deploy contracts).
 updated: 2025-12-10
 authors: [nicolasarnedo]
 icon: Book
@@ -8,39 +8,44 @@ icon: Book
 
 ## Overview
 
-[PLACEHOLDER: Add an overview of Contract Deployer Allowlist. Provide context and explain why this topic is important.]
+The **Contract Deployer AllowList** precompile controls **who can deploy smart contracts** on your Avalanche L1. If an address is not allowed, contract deployment transactions will revert.
 
-## Key Concepts
+This is commonly used to:
 
-[PLACEHOLDER: Add key concepts and definitions. Break down the main ideas that students need to understand:]
+- Prevent malicious or unreviewed contract deployments
+- Enforce “only approved deployers” policies (CI/CD wallets, audited teams)
+- Run curated ecosystems with stronger guarantees
 
-- **Concept 1**: Definition and explanation
-- **Concept 2**: Definition and explanation
-- **Concept 3**: Definition and explanation
+## Quick reference
 
-## Deep Dive
+From the docs:
 
-[PLACEHOLDER: Provide detailed explanation of Contract Deployer Allowlist. Include:]
+- **Precompile address**: `0x0200000000000000000000000000000000000000`
+- **Genesis config key**: `contractDeployerAllowListConfig`
+- **Permission model**: uses the [AllowList interface](/docs/avalanche-l1s/precompiles/allowlist-interface)
 
-- Technical details
-- How it works
-- Architecture or design patterns
-- Visual diagrams (if applicable)
-- Example scenarios
+Docs: `/docs/avalanche-l1s/precompiles/deployer-allowlist`
 
-### Subtopic 1
+## Genesis activation
 
-[PLACEHOLDER: Add detailed content]
+To enable it from genesis, include a config block like:
 
-### Subtopic 2
+```json
+{
+  "config": {
+    "contractDeployerAllowListConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": ["0x...yourAdminAddress"]
+    }
+  }
+}
+```
 
-[PLACEHOLDER: Add detailed content]
+The `adminAddresses` become **AllowList Admins** for this precompile.
 
 ## Summary
 
-[PLACEHOLDER: Summarize the key takeaways from this lesson. What should students remember?]
-
 Key points:
-- [PLACEHOLDER: Key point 1]
-- [PLACEHOLDER: Key point 2]
-- [PLACEHOLDER: Key point 3]
+- Contract Deployer AllowList gates *contract deployment* at the network level.
+- It’s configured at genesis via `contractDeployerAllowListConfig`.
+- It reuses the AllowList permission model (Admin/Manager/Enabled).
