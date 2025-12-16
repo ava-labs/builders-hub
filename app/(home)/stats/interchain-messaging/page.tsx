@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Bar,
   BarChart,
@@ -21,6 +21,13 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   MessageSquare,
   TrendingUp,
   Trophy,
@@ -29,6 +36,10 @@ import {
   Activity,
   BadgeDollarSign,
   Layers,
+  Camera,
+  Download,
+  Globe,
+  ChevronRight,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
@@ -36,6 +47,10 @@ import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { ICMMetric } from "@/types/stats";
 import Image from "next/image";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { useTheme } from "next-themes";
+import { toPng } from "html-to-image";
+import Link from "next/link";
 import {
   Table,
   TableBody,
@@ -537,11 +552,26 @@ export default function ICMStatsPage() {
         />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
+          <nav className="flex items-center gap-1.5 text-xs sm:text-sm mb-3 sm:mb-4 pb-1">
+            <Link
+              href="/stats/overview"
+              className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+            >
+              <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <span>Ecosystem</span>
+            </Link>
+            <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
+            <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap flex-shrink-0">
+              <MessageSquare className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0 text-red-600 dark:text-red-500" />
+              <span>Interchain Messaging</span>
+            </span>
+          </nav>
+
           <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
             <div className="space-y-4 sm:space-y-6 flex-1">
               <div>
                 <div className="flex items-center gap-2 sm:gap-3 mb-3">
-                  <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-red-500" />
+                  <AvalancheLogo className="w-4 h-4 sm:w-5 sm:h-5" fill="#E84142"/>
                   <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
                     Avalanche Ecosystem
                   </p>
@@ -950,7 +980,7 @@ export default function ICMStatsPage() {
   );
 }
 
-// ChartCard component (keeping original implementation)
+// ChartCard component with camera, CSV export, and dropdown period selector
 function ChartCard({
   config,
   rawData,
@@ -968,6 +998,9 @@ function ChartCard({
   formatTooltipValue: (value: number) => string;
   formatYAxisValue: (value: number) => string;
 }) {
+  const { resolvedTheme } = useTheme();
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+
   const formatNumber = (num: number | string): string => {
     if (num === "N/A" || num === "") return "N/A";
     const numValue = typeof num === "string" ? Number.parseFloat(num) : num;
@@ -1170,24 +1203,68 @@ function ChartCard({
     });
   };
 
+  const handleScreenshot = async () => {
+    const element = chartContainerRef.current;
+    if (!element) return;
+
+    try {
+      const bgColor = resolvedTheme === "dark" ? "#0a0a0a" : "#ffffff";
+
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: bgColor,
+        cacheBust: true,
+      });
+
+      const link = document.createElement("a");
+      link.download = `${config.title.replace(/\s+/g, "_")}_${period}_${new Date().toISOString().split("T")[0]}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("Failed to capture screenshot:", error);
+    }
+  };
+
+  // CSV download function
+  const downloadCSV = () => {
+    if (!displayData || displayData.length === 0) return;
+
+    const headers = ["Date", config.title];
+    const rows = displayData.map((point: any) => {
+      return [point.day, point.value].join(",");
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${config.title.replace(/\s+/g, "_")}_${period}_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const Icon = config.icon;
 
   return (
-    <Card className="border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm py-0 shadow-none">
+    <Card className="border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm py-0 shadow-none" ref={chartContainerRef}>
       <CardContent className="p-0">
-        <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-zinc-200 dark:border-zinc-700">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-200 dark:border-zinc-700">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div
-              className="rounded-lg p-2 flex items-center justify-center"
+              className="rounded-full p-2 sm:p-3 flex items-center justify-center"
               style={{ backgroundColor: `${config.color}20` }}
             >
               <Icon
-                className="h-4 w-4 sm:h-5 sm:w-5"
+                className="h-5 w-5 sm:h-6 sm:w-6"
                 style={{ color: config.color }}
               />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-white">
+              <h3 className="text-base sm:text-lg font-normal text-zinc-900 dark:text-white">
                 {config.title}
               </h3>
               <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 hidden sm:block">
@@ -1195,29 +1272,41 @@ function ChartCard({
               </p>
             </div>
           </div>
-          <div className="flex gap-1">
-            {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => onPeriodChange(p)}
-                className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
-                  period === p
-                    ? "text-white dark:text-white shadow-sm"
-                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                }`}
-                style={
-                  period === p ? { backgroundColor: `${config.color}` } : {}
-                }
-              >
-                {p}
-              </button>
-            ))}
+          <div className="flex items-center gap-1">
+            <Select value={period} onValueChange={(value) => onPeriodChange(value as "D" | "W" | "M" | "Q" | "Y")}>
+              <SelectTrigger className="h-7 w-auto px-2 gap-1 text-xs sm:text-sm border-0 bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800 focus:ring-0 shadow-none">
+                <SelectValue>
+                  {period === "D" ? "Daily": period === "W" ? "Weekly": period === "M" ? "Monthly": period === "Q" ? "Quarterly": "Yearly"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {p === "D" ? "Daily" : p === "W" ? "Weekly" : p === "M" ? "Monthly" : p === "Q" ? "Quarterly" : "Yearly"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <button
+              onClick={handleScreenshot}
+              className="p-1.5 sm:p-2 rounded-md text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
+              title="Download chart as image"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+            <button
+              onClick={downloadCSV}
+              className="p-1.5 sm:p-2 rounded-md text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
+              title="Download CSV"
+            >
+              <Download className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
-        <div className="px-4 sm:px-5 pt-5 pb-5">
-          <div className="flex items-center gap-3 sm:gap-4 mb-4 pl-0 flex-wrap">
-            <div className="text-lg sm:text-xl font-mono font-semibold break-all">
+        <div className="px-5 pt-6 pb-6">
+          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 flex-wrap">
+            <div className="text-md sm:text-base font-mono break-all">
               {formatTooltipValue(
                 typeof currentValue === "string"
                   ? parseFloat(currentValue)
@@ -1226,13 +1315,13 @@ function ChartCard({
             </div>
             {dynamicChange.change > 0 && (
               <div
-                className={`flex items-center gap-1 text-sm ${
+                className={`flex items-center gap-1 text-xs sm:text-sm ${
                   dynamicChange.isPositive ? "text-green-600" : "text-red-600"
                 }`}
                 title={`Change over selected time range`}
               >
                 <TrendingUp
-                  className={`h-4 w-4 ${
+                  className={`h-3 w-3 sm:h-4 sm:w-4 ${
                     dynamicChange.isPositive ? "" : "rotate-180"
                   }`}
                 />
