@@ -182,7 +182,8 @@
       "quizzes": [
         "5001",
         "5002",
-        "5003"
+        "5003",
+        "5004"
       ]
     }
   },
@@ -2703,6 +2704,21 @@
       "hint": "Think about the barriers mentioned: account creation requirements and economic viability of small payments.",
       "explanation": "AI agents face two critical barriers with traditional payments: (1) They cannot complete human-centric verification like CAPTCHA, email verification, or KYC processes required for account creation, and (2) The high transaction fees make micropayments economically infeasible when fees exceed the payment itself. While 'requiring human authorization' is a problem, it's not required for EVERY payment—it's more about the initial setup barriers. x402 solves both issues with permissionless, account-free payments and ultra-low transaction costs.",
       "chapter": "The AI Agent Payment Problem"
+    },
+    "5004": {
+      "question": "Why does x402 use EIP-712 signatures with EIP-3009 instead of the standard ERC-20 approval pattern?",
+      "options": [
+        "Signatures are faster to compute than approvals",
+        "The signature authorizes a one-time transfer while the facilitator pays gas fees, making payments gasless for users",
+        "EIP-712 provides better security through encryption",
+        "Approvals don't work on Avalanche network"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about who pays the gas fees and how the facilitator submits the transaction on your behalf.",
+      "explanation": "You signed an EIP-712 authorization using EIP-3009, not an ERC-20 approval. This approach provides several advantages: (1) One-time authorization for a single, specific transfer rather than unlimited future spending, (2) Gasless for users because the facilitator submits the transaction, (3) No separate transaction unlike approvals which require an on-chain transaction, and (4) More secure with no unlimited token allowances that could be exploited. The facilitator uses your signature to call transferWithAuthorization on the USDC contract, moving funds directly from your wallet to the merchant in a single transaction.",
+      "chapter": "Making Your First x402 Payment"
     }
   }
 }

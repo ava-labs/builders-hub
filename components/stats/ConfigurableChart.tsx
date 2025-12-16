@@ -1,44 +1,17 @@
 "use client";
 import { useState, useMemo, useEffect, useRef } from "react";
-import {
-  Area,
-  Bar,
-  CartesianGrid,
-  Line,
-  LineChart,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Brush,
-  ResponsiveContainer,
-  ComposedChart,
-} from "recharts";
+import { Area, Bar, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Search,
-  X,
-  Eye,
-  EyeOff,
-  Plus,
-  Camera,
-  Loader2,
-  ChevronLeft,
-  GripVertical,
-  Layers,
-  Pencil,
-  Maximize2,
-  Minimize2,
-  Trash2,
-  CalendarIcon,
-  RefreshCw,
-} from "lucide-react";
+import { Search, X, Eye, EyeOff, Plus, Camera, Loader2, ChevronLeft, GripVertical, Layers, Pencil, Maximize2, Minimize2, Trash2, CalendarIcon, RefreshCw } from "lucide-react";
 import l1ChainsData from "@/constants/l1-chains.json";
 import Image from "next/image";
 import { useTheme } from "next-themes";
+import { toPng } from "html-to-image";
+import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 
 // Types
@@ -990,46 +963,20 @@ export default function ConfigurableChart({
     if (!chartContainerRef.current) return;
 
     try {
-      // Capture SVG from Recharts
-      const chartArea = chartContainerRef.current.querySelector('[class*="recharts"]') || chartContainerRef.current;
-      const svgElement = chartArea.querySelector("svg");
+      const element = chartContainerRef.current;
+      const bgColor = resolvedTheme === "dark" ? "#0a0a0a" : "#ffffff";
       
-      if (svgElement) {
-        const svgData = new XMLSerializer().serializeToString(svgElement);
-        const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
-        const url = URL.createObjectURL(svgBlob);
-        
-        const img = document.createElement("img");
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-          if (!ctx) {
-            URL.revokeObjectURL(url);
-            return;
-          }
-          
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.fillStyle = resolvedTheme === "dark" ? "#000000" : "#ffffff";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0);
-          URL.revokeObjectURL(url);
-          
-          const link = document.createElement("a");
-          link.download = `${chartTitle || "chart"}-${new Date().toISOString().split("T")[0]}.png`;
-          link.href = canvas.toDataURL("image/png");
-          link.click();
-        };
-        
-        img.onerror = () => {
-          URL.revokeObjectURL(url);
-          console.error("Failed to load SVG for screenshot");
-        };
-        
-        img.src = url;
-      } else {
-        console.error("No SVG element found in chart");
-      }
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: bgColor,
+        cacheBust: true,
+      });
+      
+      const link = document.createElement("a");
+      link.download = `${chartTitle || "chart"}-${new Date().toISOString().split("T")[0]}.png`;
+      link.href = dataUrl;
+      link.click();
     } catch (error) {
       console.error("Failed to capture screenshot:", error);
     }
@@ -1350,18 +1297,16 @@ export default function ConfigurableChart({
 
               <div className="ml-auto flex items-center gap-2">
                 <div className="relative">
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <button
                     onClick={() => {
                       setShowMetricFilter(!showMetricFilter);
                       setShowChainSelector(false);
                     }}
-                    className="text-xs flex items-center gap-1.5 px-3 py-2 h-8 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                    title="Add metric"
                   >
                     <Plus className="h-4 w-4" />
-                    <span>Add</span>
-                  </Button>
+                  </button>
                 {showMetricFilter && (
                   <div className="metric-filter-dropdown absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
                     <div className="p-3 border-b border-gray-200 dark:border-gray-700">
@@ -1481,29 +1426,26 @@ export default function ConfigurableChart({
                   </div>
                 )}
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
+                <button
                   onClick={handleScreenshot}
-                  className="text-xs flex items-center gap-1.5 px-3 py-2 h-8 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
                   title="Download chart as image"
                 >
                   <Camera className="h-4 w-4" />
-                  <span className="hidden sm:inline">Export</span>
-                </Button>
+                </button>
                 {onTimeFilterChange && !disableControls && (
                   <Popover open={showTimeFilterPopover} onOpenChange={setShowTimeFilterPopover}>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className={`text-xs flex items-center justify-center px-2 py-2 h-8 w-8 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
-                          (startTime || endTime) ? "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800" : ""
+                      <button
+                        className={`p-1.5 sm:p-2 rounded-md transition-colors ${
+                          (startTime || endTime) 
+                            ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 hover:bg-blue-100 dark:hover:bg-blue-900" 
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
                         }`}
                         title="Set time filter"
                       >
                         <CalendarIcon className="h-4 w-4" />
-                      </Button>
+                      </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="end">
                       <Calendar
@@ -1639,11 +1581,9 @@ export default function ConfigurableChart({
                   </Popover>
                 )}
                 {onColSpanChange && (
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <button
                     onClick={toggleColSpan}
-                    className="text-xs flex items-center gap-1.5 px-3 py-2 h-8 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
                     title={colSpan === 12 ? "Make half width" : "Make full width"}
                   >
                     {colSpan === 12 ? (
@@ -1651,18 +1591,16 @@ export default function ConfigurableChart({
                     ) : (
                       <Maximize2 className="h-4 w-4" />
                     )}
-                  </Button>
+                  </button>
                 )}
                 {onRemove && !disableControls && (
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <button
                     onClick={onRemove}
-                    className="text-xs flex items-center justify-center px-2 py-2 h-8 w-8 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 text-red-600 dark:text-red-400 transition-colors"
+                    className="p-1.5 sm:p-2 rounded-md text-red-500 hover:bg-red-500/10 hover:text-red-600 transition-colors cursor-pointer"
                     title="Remove chart"
                   >
                     <Trash2 className="h-4 w-4" />
-                  </Button>
+                  </button>
                 )}
               </div>
             </div>
@@ -1744,19 +1682,7 @@ export default function ConfigurableChart({
           </div>
         </div>
 
-        {/* Chart Area */}
-        <div className="p-6 relative">
-          {/* Watermark */}
-          <div 
-            className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
-            style={{ opacity: 0.15 }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", transform: "scale(2)" }}>
-              <AvalancheLogo className="size-10" fill="currentColor" />
-              <span style={{ fontSize: "x-large", marginTop: "4px", fontWeight: 500 }}>Builder Hub</span>
-            </div>
-          </div>
-          <div className="relative z-10">
+        <ChartWatermark className="p-6">
             {renderChart()}
 
             {/* Brush Slider */}
@@ -1813,8 +1739,7 @@ export default function ConfigurableChart({
               </ResponsiveContainer>
               </div>
             )}
-          </div>
-        </div>
+        </ChartWatermark>
       </CardContent>
     </Card>
   );

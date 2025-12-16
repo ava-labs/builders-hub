@@ -1608,6 +1608,132 @@ const config = {
         destination: "/academy/avalanche-l1/native-token-bridge/:path*",
         permanent: true,
       },
+      // Broken links from analytics - round 8
+      {
+        source: "/docs/overview/getting-started/avalanche-consensus",
+        destination: "/docs/primary-network/avalanche-consensus",
+        permanent: true,
+      },
+      {
+        source: "/docs/quickstart/multisig-utxos-with-avalanchejs",
+        destination: "/docs/tooling/avalanche-sdk/client/methods/wallet-methods/wallet",
+        permanent: true,
+      },
+      {
+        source: "/docs/subnets/create-a-virtual-machine-vm",
+        destination: "/docs/avalanche-l1s/virtual-machines-index",
+        permanent: true,
+      },
+      {
+        source: "/docs/tooling/transactions/:path*",
+        destination: "/docs/tooling/avalanche-cli/transactions/:path*",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalan",
+        destination: "/academy",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/avalanche-fundamentals/03-multi-chain-architecture-intro/04-setup-core",
+        destination: "/academy/avalanche-l1/avalanche-fundamentals/03-multi-chain-architecture-intro/05-setup-core",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/customizing-evm/05-evm-configuration/03-setup-chainid",
+        destination: "/academy/avalanche-l1/customizing-evm/05-genesis-configuration/03-setup-chainid",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/customizing-evm/05-evm-configuration/08-build-and-run-custom-genesis-blockchain",
+        destination: "/academy/avalanche-l1/customizing-evm/05-genesis-configuration/08-build-and-run-custom-genesis-blockchain",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/interchain-messaging/08-securing-cross-chain-communication/:path*",
+        destination: "/academy/avalanche-l1/interchain-messaging",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/multi-chain-architecture/02-custom-blockchains/01-custom-blockchains",
+        destination: "/academy/avalanche-l1/avalanche-fundamentals/03-multi-chain-architecture-intro/04-custom-blockchains-vs-layer-2",
+        permanent: true,
+      },
+      {
+        source: "/docs/apis/avalanchego",
+        destination: "/docs/rpcs",
+        permanent: true,
+      },
+      {
+        source: "/docs/avalanche-l1s/subnet-evm/genesis",
+        destination: "/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1",
+        permanent: true,
+      },
+      {
+        source: "/docs/avalanche-l1s/subnet-evm/permissioning/transaction-allow-list",
+        destination: "/docs/avalanche-l1s/precompiles/transaction-allowlist",
+        permanent: true,
+      },
+      {
+        source: "/docs/builderkit/:path*",
+        destination: "/docs/tooling/avalanche-sdk",
+        permanent: true,
+      },
+      {
+        source: "/docs/learn/avalanche-l1s",
+        destination: "/docs/avalanche-l1s",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/maintain/bootstrapping",
+        destination: "/docs/nodes/maintain/chain-state-management",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/using-install-script/preparing-environment",
+        destination: "/docs/nodes/run-a-node/using-install-script/preparing-environment",
+        permanent: true,
+      },
+      {
+        source: "/docs/quickstart/avalanche-summit-fuji-quickstart",
+        destination: "/docs/primary-network",
+        permanent: true,
+      },
+      {
+        source: "/docs/quickstart/tools-list",
+        destination: "/docs/tooling",
+        permanent: true,
+      },
+      {
+        source: "/docs/quickstart/transfer-avax-between-x-chain-and-c-chain",
+        destination: "/docs/tooling/avalanche-sdk/client/methods/wallet-methods/wallet",
+        permanent: true,
+      },
+      {
+        source: "/docs/subnets/create-a-evm-blockchain-on-subnet-with-avalanchejs",
+        destination: "/docs/tooling/avalanche-sdk",
+        permanent: true,
+      },
+      {
+        source: "/docs/subnets/create-a-vm-timestampvm",
+        destination: "/docs/avalanche-l1s/timestamp-vm/introduction",
+        permanent: true,
+      },
+      {
+        source: "/docs/subnets/introduction-to-vm",
+        destination: "/docs/primary-network/virtual-machines",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/interchain-token-transfer",
+        destination: "/academy/avalanche-l1/native-token-bridge",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/interchain-token-transfer/:path*",
+        destination: "/academy/avalanche-l1/native-token-bridge/:path*",
+        permanent: true,
+      },
       {
         source: "/academy/avalanche-l1/cross-chain-l1-native-tokens",
         destination: "/academy/avalanche-l1/native-token-bridge",

@@ -42,7 +42,10 @@ export default async function Page(props: {
   if (!page) notFound();
 
   const { body: MDX, toc } = await page.data.load();
-  const path = `content/docs${page.url.replace('/docs/', '/')}.mdx`;
+  // Use page.path which contains the actual file path relative to collection root
+  // (e.g., "tooling/avalanche-sdk/index.mdx" for an index file)
+  // This correctly handles both regular .mdx files and index.mdx files
+  const path = `content/docs/${page.path}`;
 
   // Use custom edit URL if provided in frontmatter, otherwise use default path
   const editUrl =
