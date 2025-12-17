@@ -65,6 +65,7 @@ import {
   ICTTTransfersTable,
 } from "@/components/stats/ICTTDashboard";
 import ICMFlowChart from "@/components/stats/ICMFlowChart";
+import { LinkableHeading } from "@/components/stats/LinkableHeading";
 
 interface AggregatedICMDataPoint {
   timestamp: number;
@@ -700,11 +701,11 @@ export default function ICMStatsPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16 pb-24">
         {/* ICM Overview Section (Charts) */}
-        <section id="overview" className="space-y-6 scroll-mt-32">
+        <section className="space-y-6">
           <div className="space-y-2">
-            <h2 className="text-xl sm:text-2xl font-semibold text-zinc-900 dark:text-white">
+            <LinkableHeading as="h2" id="overview" className="text-xl sm:text-2xl font-semibold text-zinc-900 dark:text-white">
               ICM Overview
-            </h2>
+            </LinkableHeading>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               Historical messaging trends across the network
             </p>
@@ -737,11 +738,11 @@ export default function ICMStatsPage() {
         </section>
 
         {/* Top Chains Section */}
-        <section id="top-chains" className="space-y-6 scroll-mt-32">
+        <section className="space-y-6">
           <div className="space-y-2">
-            <h2 className="text-xl sm:text-2xl font-semibold text-zinc-900 dark:text-white">
+            <LinkableHeading as="h2" id="top-chains" className="text-xl sm:text-2xl font-semibold text-zinc-900 dark:text-white">
               Top Chains by ICM Activity
-            </h2>
+            </LinkableHeading>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               Leading L1s by message volume over the past 365 days
             </p>
@@ -937,11 +938,11 @@ export default function ICMStatsPage() {
         </section>
 
         {/* ICTT Section */}
-        <section id="ictt" className="space-y-6 scroll-mt-32">
+        <section className="space-y-6">
           <div className="space-y-2">
-            <h2 className="text-xl sm:text-2xl font-semibold text-zinc-900 dark:text-white">
+            <LinkableHeading as="h2" id="ictt" className="text-xl sm:text-2xl font-semibold text-zinc-900 dark:text-white">
               Interchain Token Transfer (ICTT) Analytics
-            </h2>
+            </LinkableHeading>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               Token transfer metrics across Avalanche L1s
             </p>
@@ -957,11 +958,11 @@ export default function ICMStatsPage() {
         </section>
 
         {/* Top Transfers Section - Proper section */}
-        <section id="transfers" className="space-y-6 scroll-mt-32">
+        <section className="space-y-6">
           <div className="space-y-2">
-            <h2 className="text-xl sm:text-2xl font-semibold text-zinc-900 dark:text-white">
+            <LinkableHeading as="h2" id="transfers" className="text-xl sm:text-2xl font-semibold text-zinc-900 dark:text-white">
               Top Transfers
-            </h2>
+            </LinkableHeading>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               Recent ICTT transfer activity details
             </p>
