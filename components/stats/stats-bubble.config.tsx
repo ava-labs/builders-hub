@@ -2,7 +2,7 @@
 
 import BubbleNavigation from "@/components/navigation/BubbleNavigation";
 import type { BubbleNavigationConfig } from "@/components/navigation/bubble-navigation.types";
-import { Globe, List, ChartArea, Command, Users, MessageSquare } from "lucide-react";
+import { Globe, List, ChartArea, Command, Users, MessageCircleMore } from "lucide-react";
 
 export const statsBubbleConfig: BubbleNavigationConfig = {
   items: [
@@ -10,7 +10,7 @@ export const statsBubbleConfig: BubbleNavigationConfig = {
     { id: "chain-list", label: "Chain List", href: "/stats/chain-list", icon: List },
     { id: "stats", label: "Stats", href: "/stats/network-metrics", icon: ChartArea },
     { id: "playground", label: "Playground", href: "/stats/playground", icon: Command },
-    { id: "icm", label: "ICM", href: "/stats/interchain-messaging", icon: MessageSquare },
+    { id: "icm", label: "ICM", href: "/stats/interchain-messaging", icon: MessageCircleMore },
     { id: "validators", label: "Validators", href: "/stats/validators", icon: Users },
   ],
   activeColor: "bg-red-100 dark:bg-red-500/20",

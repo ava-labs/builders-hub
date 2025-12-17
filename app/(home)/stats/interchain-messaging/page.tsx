@@ -4,7 +4,7 @@ import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, B
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageSquare, TrendingUp, ArrowUpRight, BookOpen, Camera, Download, Globe, ChevronRight } from "lucide-react";
+import { MessageCircleMore, TrendingUp, ArrowUpRight, BookOpen, Camera, Download, Globe, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ICMMetric } from "@/types/stats";
@@ -337,7 +337,7 @@ export default function ICMStatsPage() {
   const chartConfigs = [
     {
       title: "ICM Count",
-      icon: MessageSquare,
+      icon: MessageCircleMore,
       metricKey: "dailyMessageVolume" as const,
       description: "Total Interchain Messaging volume",
       color: "#E84142",
@@ -596,7 +596,7 @@ export default function ICMStatsPage() {
           <Card className="border border-zinc-200 dark:border-zinc-700 rounded-lg bg-card max-w-md shadow-none mx-auto">
             <div className="p-6 text-center">
               <div className="w-12 h-12 bg-red-50 dark:bg-red-950 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <MessageSquare className="h-6 w-6 text-red-600 dark:text-red-400" />
+                <MessageCircleMore className="h-6 w-6 text-red-600 dark:text-red-400" />
               </div>
               <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
                 Failed to Load Data
@@ -636,7 +636,7 @@ export default function ICMStatsPage() {
             </Link>
             <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
             <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap flex-shrink-0">
-              <MessageSquare className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0 text-red-600 dark:text-red-500" />
+              <MessageCircleMore className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0 text-red-600 dark:text-red-500" />
               <span>Interchain Messaging</span>
             </span>
           </nav>
