@@ -1,4 +1,5 @@
 import Mermaid from "@/components/content-design/mermaid";
+import StateGrowthChart from "@/components/content-design/state-growth-chart";
 import { AutoTypeTable } from "@/components/content-design/type-table";
 import YouTube from "@/components/content-design/youtube";
 import { BackToTop } from "@/components/ui/back-to-top";
@@ -29,7 +30,7 @@ import { notFound } from "next/navigation";
 import posthog from "posthog-js";
 import { type ComponentProps, type FC, type ReactElement, type ReactNode } from "react";
 
-export const dynamicParams = false;
+export const dynamicParams = true;
 export const revalidate = false;
 
 export default async function Page(props: {
@@ -37,6 +38,7 @@ export default async function Page(props: {
 }): Promise<ReactElement> {
   const params = await props.params;
   const page = documentation.getPage(params.slug);
+
   if (!page) notFound();
 
   const { body: MDX, toc } = await page.data.load();
@@ -71,7 +73,9 @@ export default async function Page(props: {
       }}
     >
       <DocsTitle>{page.data.title || "Untitled"}</DocsTitle>
-      <DocsDescription>{page.data.description}</DocsDescription>
+      {page.data.description && (
+        <DocsDescription>{page.data.description}</DocsDescription>
+      )}
       <DocsBody className="text-fd-foreground/80">
         <MDX
           components={{
@@ -113,6 +117,7 @@ export default async function Page(props: {
             Steps,
             YouTube,
             Mermaid,
+            StateGrowthChart,
             AddNetworkButtonInline,
             TypeTable,
             AutoTypeTable,
@@ -141,7 +146,9 @@ export default async function Page(props: {
                 return <DataAPIPage {...props} />;
               }
             },
-            blockquote: Callout as unknown as FC<ComponentProps<"blockquote">>,
+            blockquote: (props: ComponentProps<"blockquote">) => (
+              <Callout>{props.children}</Callout>
+            ),
           }}
         />
       </DocsBody>

@@ -82,30 +82,30 @@ export function Feedback({
   }
 
   const handleCopyMarkdown = async () => {
-    const markdownUrl = `${window.location.origin}${pagePath}`;
     setIsCopyingMarkdown(true);
     setIsCopied(false);
+
     try {
-      // Fetch the markdown content
-      const response = await fetch(markdownUrl);
+      // Fetch the markdown content from the API endpoint
+      const apiUrl = `${window.location.origin}/api/llms/page?path=${encodeURIComponent(pagePath)}`;
+      const response = await fetch(apiUrl);
+
       if (!response.ok) {
         throw new Error('Failed to fetch markdown content');
       }
+
       const markdownContent = await response.text();
-      
-      // Copy the content to clipboard
       await navigator.clipboard.writeText(markdownContent);
       setIsCopied(true);
-      
-      // Reset the copied state after 2 seconds
+
       setTimeout(() => {
         setIsCopied(false);
       }, 2000);
     } catch (err) {
       console.error('Failed to copy markdown:', err);
-      // Fallback to copying just the URL if fetching fails
+      // Fallback to copying the page URL
       try {
-        await navigator.clipboard.writeText(markdownUrl);
+        await navigator.clipboard.writeText(`${window.location.origin}${pagePath}`);
         setIsCopied(true);
         setTimeout(() => {
           setIsCopied(false);

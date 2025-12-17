@@ -45,22 +45,25 @@ export function BlogSearch({ blogs, onFilteredResults }: BlogSearchProps) {
   }, [filteredBlogs, onFilteredResults]);
 
   return (
-    <div className="relative w-full max-w-md mx-auto mb-8">
-      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-      <Input
-        placeholder="Search blogs by title, topic, author, or description..."
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        className="pl-10 pr-10 rounded-xl bg-white text-sm"
-      />
-      {searchQuery && (
-        <button
-          onClick={() => setSearchQuery("")}
-          className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      )}
+    <div className="relative w-full max-w-2xl mx-auto">
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
+        <Input
+          placeholder="Search by title, topic, author, or description..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-12 pr-12 py-6 rounded-xl bg-card/60 backdrop-blur-sm border-border/50 text-base shadow-lg transition-all duration-300 focus:shadow-xl focus:border-primary/30 focus:ring-2 focus:ring-primary/20"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground/60 hover:text-foreground transition-colors"
+            aria-label="Clear search"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }

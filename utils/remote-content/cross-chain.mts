@@ -49,11 +49,11 @@ export function getCrossChainConfigs(): FileConfig[] {
       contentUrl: "https://github.com/ava-labs/teleporter/blob/main/contracts/teleporter/registry/",
     },
     {
-      sourceUrl: "https://raw.githubusercontent.com/ava-labs/coreth/master/precompile/contracts/warp/README.md",
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/graft/coreth/precompile/contracts/warp/README.md",
       outputPath: "content/docs/cross-chain/avalanche-warp-messaging/evm-integration.mdx",
       title: "Integration with EVM",
       description: "Avalanche Warp Messaging provides a basic primitive for signing and verifying messages between Avalanche L1s.",
-      contentUrl: "https://github.com/ava-labs/coreth/blob/master/precompile/contracts/warp/",
+      contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/graft/coreth/precompile/contracts/warp/",
     },
     {
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/icm-contracts/refs/heads/main/contracts/ictt/README.md",
