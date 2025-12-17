@@ -1,10 +1,10 @@
 "use client";
 import { useState, useEffect, useMemo, useRef } from "react";
-import {Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer} from "recharts";
-import {Card, CardContent} from "@/components/ui/card";
+import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer } from "recharts";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
-import {MessageSquare, TrendingUp, ArrowUpRight, BookOpen, Camera, Download, Globe, ChevronRight} from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MessageSquare, TrendingUp, ArrowUpRight, BookOpen, Camera, Download, Globe, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ICMMetric } from "@/types/stats";
