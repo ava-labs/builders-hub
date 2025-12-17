@@ -1,5 +1,5 @@
 ---
-title: L1 with Native Minter
+title: L1 + Native Minter
 description: Create a BuilderHub-hosted L1 with the Native Minter precompile enabled (required for native-to-native bridging).
 updated: 2025-12-16
 authors: [nicolasarnedo]
@@ -12,7 +12,6 @@ import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWr
 import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain";
 import CreateManagedTestnetNode from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/CreateManagedTestnetNode";
 import ConvertSubnetToL1 from "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx";
-import ICMRelayer from "@/components/toolbox/console/icm/setup/ICMRelayer";
 
 In Native → Native bridging, the destination chain must be able to **mint native coins**. That requires the **Native Minter precompile** to be enabled on that chain.
 
@@ -62,25 +61,10 @@ In this chapter, we’ll use a **BuilderHub hosted node** (managed testnet infra
       <ConvertSubnetToL1 />
     </ToolboxMdxWrapper>
   </Step>
-
-  <Step>
-    ### Step 4: Run an ICM relayer (Fuji C-Chain ↔ your new L1)
-
-    Native-token bridging uses Interchain Messaging under the hood, so you must run a relayer between **Fuji C-Chain** and your **new L1**.
-
-    <ToolboxMdxWrapper walletMode="l1">
-      <ICMRelayer />
-    </ToolboxMdxWrapper>
-
-    In the tool:
-    - Select **Fuji C-Chain** and your **new L1** as the networks to relay between.
-    - Fund the generated relayer address on **both** chains.
-    - Run the provided Docker command to start the relayer.
-  </Step>
 </Steps>
 
 ## Next Steps
 
-Next, you’ll deploy `NativeTokenRemote` **on this L1** (the chain with Native Minter enabled).
+Next, you’ll set up a relayer between **Fuji C-Chain** and your **new L1**, then deploy `NativeTokenRemote` on this L1.
 
 
