@@ -1,10 +1,12 @@
 ---
 title: Welcome to the Course
 description: Learn how to bridge native tokens between Avalanche L1s using Interchain Token Transfer (ICTT).
-updated: 2024-05-31
+updated: 2025-12-17
 authors: [nicolasarnedo]
 icon: Smile
 ---
+
+import { Callout } from 'fumadocs-ui/components/callout';
 
 In this course, you'll learn how to solve three common token bridging problems using Avalanche's **Interchain Token Transfer (ICTT)** protocol.
 
@@ -15,19 +17,23 @@ In this course, you'll learn how to solve three common token bridging problems u
 **Scenario**: You want to use **USDC** (an ERC-20 on C-Chain) as the native gas token for your L1.
 
 ```
-C-Chain                              Your L1
+Fuji C-Chain                         Your L1
 ┌─────────────────────┐             ┌─────────────────────┐
 │  USDC (ERC-20)      │ ─────────▶  │  Native Gas Token   │
 │  ERC20TokenHome     │     ICM     │  NativeTokenRemote  │
 └─────────────────────┘             └─────────────────────┘
 ```
 
+<Callout type="info">
+In this chapter, you'll use **real USDC** on Fuji from the [Circle Faucet](https://faucet.circle.com/) (1 USDC per request).
+</Callout>
+
 ### Problem 2: Export Your L1's Native Token to C-Chain
 
 **Scenario**: Your L1 has a custom native token (**TEST**) and you want users on C-Chain to be able to use it as an ERC-20.
 
 ```
-Your L1                              C-Chain
+Your L1                              Fuji C-Chain
 ┌─────────────────────┐             ┌─────────────────────┐
 │  TEST (Native)      │ ─────────▶  │  TEST (ERC-20)      │
 │  NativeTokenHome    │     ICM     │  ERC20TokenRemote   │
@@ -39,7 +45,7 @@ Your L1                              C-Chain
 **Scenario**: You want to use **AVAX** (the native token on C-Chain) as the native gas token for your L1.
 
 ```
-C-Chain                              Your L1
+Fuji C-Chain                         Your L1
 ┌─────────────────────┐             ┌─────────────────────┐
 │  AVAX (Native)      │ ─────────▶  │  Native Gas Token   │
 │  NativeTokenHome    │     ICM     │  NativeTokenRemote  │
@@ -50,9 +56,9 @@ C-Chain                              Your L1
 
 | Chapter | Use Case | Source Token | Result |
 |---------|----------|--------------|--------|
-| 1 | ERC-20 → Native | USDC on C-Chain | USDC becomes your L1's gas token |
+| 1 | ERC-20 → Native | USDC on Fuji C-Chain | USDC becomes your L1's gas token |
 | 2 | Native → ERC-20 | Custom token on your L1 | Your token becomes an ERC-20 on C-Chain |
-| 3 | Native → Native | AVAX on C-Chain | AVAX becomes your L1's gas token |
+| 3 | Native → Native | AVAX on Fuji C-Chain | AVAX becomes your L1's gas token |
 
 ## Prerequisites
 
@@ -61,6 +67,14 @@ Before starting this course, we recommend completing:
 - [ERC20 Bridge](/academy/avalanche-l1/erc20-bridge) - ICTT mental model (TokenHome/TokenRemote), registration, and transfer basics
 - [L1 Native Tokenomics](/academy/avalanche-l1/l1-native-tokenomics) - Native vs ERC-20, wrapped tokens, and token decimals
 - [Interchain Messaging](/academy/avalanche-l1/interchain-messaging) - Cross-chain messaging and running a relayer
+
+## What You'll Need
+
+For this course, make sure you have:
+
+1. **Test AVAX** on Fuji C-Chain for gas fees ([Fuji Faucet](/console/primary-network/faucet))
+2. **Core Wallet** browser extension installed
+3. For Chapter 1: **1 USDC** from the [Circle Faucet](https://faucet.circle.com/) (select "Avalanche Fuji")
 
 ## Key Concepts
 

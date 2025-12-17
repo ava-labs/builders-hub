@@ -1,14 +1,31 @@
 ---
 title: Introduction
-description: Learn how to bridge ERC-20 tokens from Fuji to become native gas tokens on your L1.
-updated: 2024-09-09
+description: Learn how to bridge USDC from Fuji C-Chain to become the native gas token on your L1.
+updated: 2025-12-17
 authors: [nicolasarnedo]
 icon: Book
 ---
 
+import { Callout } from 'fumadocs-ui/components/callout';
+
 # ERC-20 to Native Token Bridge
 
-In this section, you'll learn how to bridge an **ERC-20 token** (like USDC) from Fuji C-Chain to your own L1, where it becomes the **native gas token**.
+In this chapter, you'll bridge **real USDC** from Fuji C-Chain to your own L1, where it becomes the **native gas token**.
+
+## The Exercise
+
+You will:
+
+1. Get **1 USDC** from the Circle faucet on Fuji
+2. Create an L1 with **Native Minter** enabled
+3. Deploy a bridge that converts USDC → Native tokens
+4. Bridge your 1 USDC to become 1 native token on your L1
+
+<Callout type="info">
+**USDC on Fuji C-Chain**: `0x5425890298aed601595a70AB815c96711a31Bc65`
+
+Get testnet USDC from the [Circle Faucet](https://faucet.circle.com/) (select "Avalanche Fuji" network, 1 USDC per request).
+</Callout>
 
 ## Use Case
 
@@ -21,21 +38,23 @@ This bridge type is ideal when:
 ## Architecture Overview
 
 ```
-Source Chain (Fuji C-Chain)                 Destination Chain (Your L1)
-┌──────────────────────────────┐           ┌──────────────────────────────┐
-│                              │           │                              │
-│  USDC (ERC-20)               │           │  Native Token (minted USDC)  │
-│       ↓                      │           │       ↑                      │
-│  ERC20TokenHome   ───────────│───────────│  NativeTokenRemote           │
-│  (locks USDC)                │    ICM    │  (calls Native Minter)       │
-│                              │           │                              │
-└──────────────────────────────┘           └──────────────────────────────┘
+Fuji C-Chain                              Your L1
+┌──────────────────────────────┐         ┌──────────────────────────────┐
+│                              │         │                              │
+│  USDC (ERC-20)               │         │  Native Token (USDC-backed)  │
+│  0x5425890298aed...1Bc65     │         │       ↑                      │
+│       ↓                      │         │  NativeTokenRemote           │
+│  ERC20TokenHome   ───────────│─────────│  (calls Native Minter)       │
+│  (locks USDC)                │   ICM   │                              │
+│                              │         │                              │
+└──────────────────────────────┘         └──────────────────────────────┘
 ```
 
 ## Contracts Involved
 
 | Contract | Chain | Purpose |
 |----------|-------|---------|
+| **USDC** | Fuji C-Chain | The ERC-20 token we're bridging (`0x5425890298aed601595a70AB815c96711a31Bc65`) |
 | **ERC20TokenHome** | Fuji C-Chain | Locks USDC when bridging out, releases when bridging back |
 | **NativeTokenRemote** | Your L1 | Calls Native Minter to create native tokens |
 | **Native Minter Precompile** | Your L1 | System contract that mints native tokens |
@@ -55,35 +74,44 @@ Your L1 must have the **Native Minter precompile** enabled. This precompile:
 
 ## Collateral Requirement
 
-Unlike ERC-20 bridging, native-token bridging requires **collateral**:
+Native-token bridging requires **collateral** to back the minted supply:
 
-1. **Initial Reserve Imbalance**: Set during NativeTokenRemote deployment
+1. **Initial Reserve Imbalance**: Set during NativeTokenRemote deployment (we'll use `1 USDC`)
 2. **Collateral Deposit**: USDC deposited to back the minted native supply
 3. **Full Collateralization**: Required before bridging is enabled
 
-## Deployment Flow
+Since the Circle faucet gives you 1 USDC, we'll create an L1 with an initial supply backed by that 1 USDC.
 
-Here's what we'll build:
+## Deployment Flow
 
 | Step | Action | Chain |
 |------|--------|-------|
-| 1 | Create L1 with Native Minter | Fuji (P-Chain) |
-| 2 | Set up relayer | Local (Docker) |
-| 3 | Deploy ERC20TokenHome | Fuji C-Chain |
-| 4 | Deploy NativeTokenRemote | Your L1 |
-| 5 | Register + Collateralize | Your L1 → Fuji |
-| 6 | Bridge USDC → Native | Fuji → Your L1 |
+| 1 | Get 1 USDC from Circle faucet | Fuji C-Chain |
+| 2 | Create L1 with Native Minter | Fuji (P-Chain) |
+| 3 | Set up relayer | Local (Docker) |
+| 4 | Deploy ERC20TokenHome for USDC | Fuji C-Chain |
+| 5 | Deploy NativeTokenRemote | Your L1 |
+| 6 | Register + Collateralize with 1 USDC | Your L1 → Fuji |
+| 7 | Bridge USDC → Native | Fuji → Your L1 |
 
 ## What You'll Achieve
 
-By the end of this section:
+By the end of this chapter:
 
 - ✅ Your L1 uses **USDC as the native gas token**
-- ✅ Users can bridge USDC from Fuji to get native tokens for gas
+- ✅ You've bridged 1 USDC to get 1 native token on your L1
 - ✅ The bridge is fully collateralized and secure
 
 <Callout type="info">
 **Token Backing**: Every native token minted on your L1 is backed 1:1 by USDC locked in the ERC20TokenHome contract on Fuji.
 </Callout>
 
-Let's get started by creating your L1!
+## Before You Start
+
+Make sure you have:
+
+1. **Test AVAX** on Fuji C-Chain for gas fees ([Fuji Faucet](/console/primary-network/faucet))
+2. **1 USDC** on Fuji C-Chain from the [Circle Faucet](https://faucet.circle.com/)
+3. **Core Wallet** browser extension installed
+
+Let's get started by getting USDC and creating your L1!

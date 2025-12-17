@@ -15,6 +15,21 @@ import DeployTokenHome from "@/components/toolbox/console/ictt/setup/DeployToken
 
 The `ERC20TokenHome` contract is deployed on Fuji C-Chain. It locks USDC when users bridge to your L1 and releases USDC when they bridge back.
 
+## USDC on Fuji
+
+We're using the official Circle USDC on Fuji testnet:
+
+| Property | Value |
+|----------|-------|
+| **Contract Address** | `0x5425890298aed601595a70AB815c96711a31Bc65` |
+| **Symbol** | USDC |
+| **Decimals** | 6 |
+| **Faucet** | [Circle Faucet](https://faucet.circle.com/) |
+
+<Callout type="info">
+Make sure you already have **1 USDC** in your wallet from the Circle faucet (Step 1 of this chapter).
+</Callout>
+
 ## Understanding ERC20TokenHome
 
 The ERC20TokenHome contract:
@@ -24,19 +39,11 @@ The ERC20TokenHome contract:
 - **Manages remote contract registrations** for security
 - **Communicates via ICM** (Interchain Messaging)
 
-## USDC on Fuji
-
-For this course, we'll use the USDC implementation on Fuji testnet.
-
-<Callout type="info">
-**USDC Contract on Fuji**: You can use any ERC-20 token for this exercise. The toolbox will let you enter the token address.
-</Callout>
-
 <Steps>
 <Step>
 ### Connect to Fuji C-Chain
 
-Ensure your wallet is connected to **Fuji C-Chain**. The toolbox will detect the chain and show relevant options.
+Ensure your wallet is connected to **Fuji C-Chain** (Chain ID: 43113).
 
 </Step>
 
@@ -46,7 +53,7 @@ Ensure your wallet is connected to **Fuji C-Chain**. The toolbox will detect the
 Use the Deploy Token Home tool below:
 
 1. Select **"ERC-20 Token"** as the Transferrer Type
-2. Enter the **USDC token address** on Fuji
+2. Enter the USDC token address: `0x5425890298aed601595a70AB815c96711a31Bc65`
 3. Confirm the **Teleporter Registry** address is set
 
 <Callout type="warning">
@@ -74,7 +81,7 @@ After deployment, save the **Token Home Address**. You'll need it when deploying
 
 After deployment, your ERC20TokenHome:
 
-- ✅ Is linked to USDC on Fuji
+- ✅ Is linked to USDC (`0x5425890298aed601595a70AB815c96711a31Bc65`)
 - ✅ Is connected to the Teleporter Registry for ICM
 - ✅ Is ready to accept remote contract registrations
 - ❌ Has no remote contracts registered yet
@@ -82,4 +89,3 @@ After deployment, your ERC20TokenHome:
 ## Next Steps
 
 Now deploy `NativeTokenRemote` on your L1 to complete the bridge setup.
-

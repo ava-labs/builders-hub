@@ -1,6 +1,6 @@
 ---
-title: Create L1 with Native Minter
-description: Create a BuilderHub-hosted L1 with the Native Minter precompile enabled.
+title: Get USDC & Create L1
+description: Get testnet USDC from Circle and create an L1 with Native Minter enabled.
 updated: 2025-12-17
 authors: [nicolasarnedo]
 icon: Terminal
@@ -13,11 +13,30 @@ import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain
 import CreateManagedTestnetNode from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/CreateManagedTestnetNode";
 import ConvertSubnetToL1 from "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx";
 
-# Create Your L1
+# Get USDC & Create Your L1
 
-To bridge USDC as your native gas token, your L1 must have the **Native Minter precompile** enabled. This allows the `NativeTokenRemote` contract to mint native tokens when USDC is bridged in.
+First, get testnet USDC from Circle's faucet. Then create an L1 with the **Native Minter precompile** enabled.
 
 <Steps>
+  <Step>
+    ### Get 1 USDC from Circle Faucet
+
+    1. Go to the [Circle Faucet](https://faucet.circle.com/)
+    2. Select **"USDC"** as the token
+    3. Select **"Avalanche Fuji"** as the network
+    4. Enter your wallet address
+    5. Click **"Send 1 USDC"**
+
+    <Callout type="info">
+    **USDC Contract Address on Fuji**: `0x5425890298aed601595a70AB815c96711a31Bc65`
+    
+    You can request 1 USDC every 2 hours per address. This 1 USDC will be used to collateralize your bridge.
+    </Callout>
+
+    After receiving USDC, you can verify the balance in your Core Wallet or by checking the [Fuji Explorer](https://testnet.snowtrace.io/address/0x5425890298aed601595a70AB815c96711a31Bc65).
+
+  </Step>
+
   <Step>
     ### Create an L1 with Native Minter enabled
 
@@ -63,15 +82,13 @@ To bridge USDC as your native gas token, your L1 must have the **Native Minter p
   </Step>
 </Steps>
 
-## What You've Built
+## What You Have Now
 
-Your L1 is now ready with:
-
-- ✅ Native Minter precompile enabled at `0x0200000000000000000000000000000000000001`
+- ✅ **1 USDC** in your wallet on Fuji C-Chain
+- ✅ **Native Minter precompile** enabled at `0x0200000000000000000000000000000000000001`
 - ✅ A hosted node producing blocks
 - ✅ Converted to a sovereign L1
 
 ## Next Steps
 
 Next, you'll set up a relayer between Fuji C-Chain and your new L1 to deliver cross-chain messages.
-
