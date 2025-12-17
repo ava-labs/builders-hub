@@ -9,17 +9,21 @@ When running an EVM-based blockchain (C-Chain or Subnet-EVM L1s), your node stor
 
 Your node's storage requirements depend on which type of state you're maintaining:
 
-| Property | Active State | Archival State |
-|----------|--------------|----------------|
-| **Size (C-Chain)** | ~500 GB | ~3 TB+ (and growing) |
-| **Contents** | Current account balances, contract storage, code | Complete state history at every block |
-| **Required for** | Validating, sending transactions, reading current state | Historical queries at any block height, block explorers, analytics |
-| **Sync method** | State sync (fast, hours) | Full sync from genesis (slow, days) |
-| **Maintenance** | Periodic pruning or resync recommended | None needed (intentional full history) |
+| Property | Active State | Active State with Snapshots | Archival State |
+|----------|--------------|------------------------------|----------------|
+| **Size (C-Chain)** | ~500 GB | ~750 GB - 1 TB | ~3 TB+ (and growing) |
+| **Contents** | Current account balances, contract storage, code | Current state + state sync snapshots for serving peers | Complete state history at every block |
+| **Required for** | Validating, sending transactions, reading current state | Same as Active State, helps other nodes bootstrap | Historical queries at any block height, block explorers, analytics |
+| **Sync method** | State sync (fast, hours) | State sync, then grows over time | Full sync from genesis (slow, days) |
+| **Maintenance** | Periodic pruning or resync recommended | Periodic pruning or resync recommended | None needed (intentional full history) |
 
 ### Active State
 
 The **active state** represents the current state of the blockchain—all account balances, contract storage, and code as of the latest block. This is what your node needs to validate new transactions and participate in consensus. When you bootstrap with state sync, you start with just the active state.
+
+### Active State with State Sync Snapshots
+
+**Active state with state sync snapshots** is what your node accumulates over time after starting with active state. As blocks are processed, state sync snapshots are retained for serving other nodes that want to bootstrap via state sync. This causes disk usage to grow beyond the active state size. Running offline pruning periodically removes these snapshots while keeping your node functional. Most long-running validators operate in this state.
 
 ### Archival State
 
