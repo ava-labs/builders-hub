@@ -1,57 +1,12 @@
 "use client";
-import {
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-  useRef,
-  useTransition,
-} from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, useTransition } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Line,
-  LineChart,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Brush,
-  ResponsiveContainer,
-  ComposedChart,
-} from "recharts";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getMAConfig, calculateMovingAverage } from "@/utils/chart-utils";
-import {
-  Users,
-  Activity,
-  FileText,
-  MessageSquare,
-  TrendingUp,
-  UserPlus,
-  Hash,
-  Code2,
-  Gauge,
-  DollarSign,
-  Clock,
-  Fuel,
-  ArrowUpRight,
-  Twitter,
-  Linkedin,
-  Download,
-  Camera,
-} from "lucide-react";
+import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera } from "lucide-react";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
@@ -64,10 +19,7 @@ import { LinkableHeading } from "@/components/stats/LinkableHeading";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
-import {
-  ChainCategoryFilter,
-  allChains,
-} from "@/components/stats/ChainCategoryFilter";
+import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
 import { useTheme } from "next-themes";
 import { toPng } from "html-to-image";
@@ -895,7 +847,7 @@ export default function ChainMetricsPage({
     },
     {
       title: "Interchain Messages",
-      icon: MessageSquare,
+      icon: MessageCircleMore,
       metricKey: "icmMessages" as const,
       description: "Interchain messaging activity",
       color: themeColor,
@@ -1444,7 +1396,7 @@ export default function ChainMetricsPage({
                   },
                   {
                     key: "icmMessages",
-                    icon: MessageSquare,
+                    icon: MessageCircleMore,
                     label: "Daily Interchain Messages",
                   },
                 ].map((item) => {
