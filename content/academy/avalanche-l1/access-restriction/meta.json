@@ -8,14 +8,15 @@
     "...01-introduction",
     "---Genesis Activation---",
     "...02-genesis-activation",
-    "---Understanding Flow---",
-    "...03-understanding-flow",
-    "---Everyone Makes Mistakes---",
-    "...04-everyone-makes-mistakes",
+    "---Precompile Flow (Advanced)---",
+    "...03-precompile-flow",
+    "---User Errors---",
+    "...04-user-error",
     "---Network Upgrade De-Activation---",
     "...05-network-upgrade-de-activation",
     "---Network Upgrade Activation---",
     "...06-network-upgrade-activation",
+    "---Course Completion---",
     "certificate"
   ]
 }

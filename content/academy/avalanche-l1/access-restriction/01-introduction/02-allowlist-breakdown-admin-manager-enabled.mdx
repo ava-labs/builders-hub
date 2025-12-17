@@ -1,5 +1,5 @@
 ---
-title: Allowlist Breakdown (Admin, Manager, Enabled)
+title: Allowlist Interface
 description: Understand the AllowList interface used by many Avalanche L1 precompiles and how its roles work.
 updated: 2025-12-10
 authors: [nicolasarnedo]
@@ -14,11 +14,9 @@ This matters because once you understand **Admin / Manager / Enabled**, you can 
 
 ## The AllowList interface
 
-Reference: `https://build.avax.network/docs/avalanche-l1s/precompiles/allowlist-interface`
-
 The AllowList interface exposes a small set of functions to manage roles for addresses:
 
-### Functions (brief)
+### Functions
 
 - `setAdmin(address addr)`: give `addr` **Admin** role.
 - `setManager(address addr)`: give `addr` **Manager** role.
@@ -49,13 +47,4 @@ Several default Avalanche L1 precompiles implement this interface (examples):
 
 ## Note on stateful precompiles
 
-Many precompiles are **stateful** (they can read/write chain state at the VM layer). If you haven’t seen this concept yet, review the **Stateful Precompiles** section in Customizing the EVM:
-
-- `/academy/avalanche-l1/customizing-evm/09-stateful-precompiles`
-
-## Summary
-
-Key points:
-- AllowList is a shared permission interface reused across multiple Avalanche L1 precompiles.
-- The role model is consistent: Admin (full), Manager (manage Enabled), Enabled (use), None (no access).
-- Understanding AllowList once helps you operate many precompiles safely.
+Many precompiles are **stateful** (they can read/write chain state at the VM layer). If you haven't seen this concept yet, review the [Stateful Precompiles](/academy/avalanche-l1/customizing-evm/09-stateful-precompiles) section in the [Customizing the EVM](/academy/avalanche-l1/customizing-evm) course.

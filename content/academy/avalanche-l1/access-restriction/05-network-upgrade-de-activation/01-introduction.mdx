@@ -1,0 +1,21 @@
+---
+title: Introduction
+description: Use a network upgrade (upgrade.json) to disable allowlist precompiles after genesis.
+updated: 2025-12-10
+authors: [nicolasarnedo]
+icon: Book
+---
+
+## Overview
+
+So far, you enabled **Transaction AllowList** and **Contract Deployer AllowList** in genesis. In a real network, you won’t always get the genesis config “perfect” on day one, and you may need to **turn precompiles on/off** (or change their parameters) later.
+
+Subnet-EVM supports doing this via **network upgrades** using an `upgrade.json` file. In this section, you’ll **disable** both allowlist precompiles by updating your **Docker validator node** configuration, restarting the node, and then verifying (in the Builder Console) that the precompiles are no longer available.
+
+## Key Concepts
+
+- **Network upgrades** change how blocks are processed. All validators must upgrade consistently, or the chain can halt or fall out of sync.
+- **Upgrade file location**: `{chain-config-dir}/{blockchainID}/upgrade.json`
+- **Timestamps must be in the future** (relative to the chain head). Past timestamps will cause the node to fail on startup.
+- **Upgrade lists are append-only** — you can only add new entries, not modify or remove existing ones.
+- **Disabling a precompile** prevents all calls and clears its storage, allowing it to be re-enabled later with fresh configuration.

@@ -14,13 +14,6 @@ By the end of this exercise, you will be able to:
 - Verify you can no longer deploy contracts after removing your deployer permissions
 - Recognize the failure modes users will see in wallets and dApps
 
-## Prerequisites
-
-Before starting this exercise, ensure you have:
-
-- Completed the previous lesson and removed your wallet from **Admin** on both allowlist precompiles
-- Still connected to your L1 in Core Wallet
-
 ## Instructions
 
 import { Steps, Step } from 'fumadocs-ui/components/steps';
@@ -50,17 +43,6 @@ import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWr
 
     When you try to deploy, the transaction should fail because the **Contract Deployer AllowList** blocks your address from deploying contracts.
   </Step>
-
-  <Step>
-    ### Step 3: Record what you observed
-
-    Note the exact error messages you see in:
-
-    - Core Wallet
-    - Console UI (if any)
-
-    These are the same user-facing symptoms you must plan for when operating a restricted-access L1.
-  </Step>
 </Steps>
 
 ## Expected Output
@@ -69,20 +51,6 @@ You should see:
 
 - A failed **value transfer transaction** (blocked by Transaction AllowList)
 - A failed **contract deployment** (blocked by Contract Deployer AllowList)
-
-## Verification
-
-To verify you've completed this exercise successfully:
-
-1. You cannot send transactions from your wallet on the L1
-2. You cannot deploy a contract from your wallet on the L1
-
-## Troubleshooting
-
-### My transaction still succeeds
-
-- You likely still have **Enabled** access on the Transaction AllowList (or you didn’t enable it at genesis).
-- Verify the precompile is enabled and your role is **None**.
 
 ## Next Steps
 

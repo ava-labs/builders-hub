@@ -8,7 +8,7 @@ icon: Book
 
 ## Overview
 
-This course uses **precompiles** to enforce network access restrictions. If you’re not already comfortable with what precompiles are and how they work, you should complete the **Customizing the EVM** course first (especially the **Precompiles** chapter).
+This course uses **precompiles** to enforce network access restrictions. If you're not already comfortable with what precompiles are and how they work, you should complete the [Customizing the EVM](/academy/avalanche-l1/customizing-evm) course first (especially the [Precompiles](/academy/avalanche-l1/customizing-evm/precompiles) chapter).
 
 Precompiles are “built-in contracts” backed by the VM implementation (typically Go), mapped to reserved addresses. From Solidity’s point of view, they look like normal contracts you call via an interface — but they execute faster and can expose VM-level capabilities that regular contracts can’t safely implement.
 
@@ -29,9 +29,8 @@ We’ll focus on two default precompiles that use the same underlying permission
 
 In the next lesson, you’ll learn the shared permission model these precompiles use: the **AllowList interface**.
 
-## Summary
+## Key Concepts
 
-Key points:
 - Precompiles are VM-implemented contracts at reserved addresses, callable like normal Solidity contracts.
 - Avalanche L1s use precompiles for privileged network behavior (like access restriction).
 - Many default precompiles share a common permission pattern, which we cover next.

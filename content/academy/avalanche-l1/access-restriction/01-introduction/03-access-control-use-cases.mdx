@@ -6,8 +6,6 @@ authors: [nicolasarnedo]
 icon: BookOpen
 ---
 
-## Access control in real-world networks
-
 In permissioned or semi-permissioned environments, “open access” is often not acceptable. Organizations may need to control **who can submit transactions** (“transactors”) and **who can deploy contracts** (“deployers”) for operational risk management and compliance.
 
 Here are common use-cases (non-exhaustive):
@@ -18,6 +16,3 @@ Here are common use-cases (non-exhaustive):
 - **Reducing exploit surface**: Limiting deployers reduces the risk of malicious contract deployments; limiting transactors mitigates spam and abuse.
 - **Operational controls**: Restrict privileged actions to approved operators (e.g., deployments via CI/CD wallets) and separate duties between teams.
 - **Regulatory requirements**: Some businesses must prove control over participants, auditability of access changes, and governance over who can run what.
-
-In the rest of this course, we’ll implement these controls using two AllowList-based precompiles:
-the **Transaction AllowList** and the **Contract Deployer AllowList**.

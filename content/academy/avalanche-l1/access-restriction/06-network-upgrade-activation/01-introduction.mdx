@@ -1,5 +1,5 @@
 ---
-title: Intro
+title: Introduction
 description: Re-enable the allowlist precompiles via upgrade.json and set your wallet as admin.
 updated: 2025-12-10
 authors: [nicolasarnedo]
@@ -19,14 +19,4 @@ The rules from the official guide still apply:
 - `upgrade.json` lives at `{chain-config-dir}/{blockchainID}/upgrade.json` next to `config.json`.
 - `precompileUpgrades` must be treated as **append-only** once upgrades activate.
 - `blockTimestamp` must be **in the future** and upgrades must be in **increasing order**.
-
-Reference:
-
-- `/docs/avalanche-l1s/upgrade/precompile-upgrades`
-
-## Summary
-
-Key points:
-- You’ll re-enable `txAllowListConfig` and `contractDeployerAllowListConfig` by appending new entries.
 - You must include your wallet address in `adminAddresses` for both precompiles.
-- After restarting the node and passing the activation timestamps, the Console tools should show the allowlist UI again.

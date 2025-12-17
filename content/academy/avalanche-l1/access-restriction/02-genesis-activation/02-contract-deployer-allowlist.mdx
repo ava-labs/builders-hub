@@ -3,12 +3,16 @@ title: Contract Deployer Allowlist
 description: Enable and understand the Contract Deployer AllowList precompile (who can deploy contracts).
 updated: 2025-12-10
 authors: [nicolasarnedo]
-icon: Book
+icon: BookOpen
 ---
 
 ## Overview
 
 The **Contract Deployer AllowList** precompile controls **who can deploy smart contracts** on your Avalanche L1. If an address is not allowed, contract deployment transactions will revert.
+
+- **Precompile address**: `0x0200000000000000000000000000000000000000`
+- **Genesis config key**: `contractDeployerAllowListConfig`
+- **Permission model**: uses the [AllowList interface](/docs/avalanche-l1s/precompiles/allowlist-interface)
 
 This is commonly used to:
 
@@ -16,19 +20,9 @@ This is commonly used to:
 - Enforce “only approved deployers” policies (CI/CD wallets, audited teams)
 - Run curated ecosystems with stronger guarantees
 
-## Quick reference
-
-From the docs:
-
-- **Precompile address**: `0x0200000000000000000000000000000000000000`
-- **Genesis config key**: `contractDeployerAllowListConfig`
-- **Permission model**: uses the [AllowList interface](/docs/avalanche-l1s/precompiles/allowlist-interface)
-
-Docs: `/docs/avalanche-l1s/precompiles/deployer-allowlist`
-
 ## Genesis activation
 
-To enable it from genesis, include a config block like:
+To enable it from genesis, include a config block like - the Console will have a toggle button to do this automatically:
 
 ```json
 {
@@ -42,10 +36,3 @@ To enable it from genesis, include a config block like:
 ```
 
 The `adminAddresses` become **AllowList Admins** for this precompile.
-
-## Summary
-
-Key points:
-- Contract Deployer AllowList gates *contract deployment* at the network level.
-- It’s configured at genesis via `contractDeployerAllowListConfig`.
-- It reuses the AllowList permission model (Admin/Manager/Enabled).

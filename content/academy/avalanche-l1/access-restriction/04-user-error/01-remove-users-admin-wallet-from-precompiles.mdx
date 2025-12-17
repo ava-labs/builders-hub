@@ -1,5 +1,5 @@
 ---
-title: Remove Users Admin Wallet from Precompiles
+title: Remove Users Admin Wallet
 description: "Hands-on exercise: Remove Users Admin Wallet from Precompiles"
 updated: 2025-12-10
 authors: [nicolasarnedo]
@@ -61,27 +61,6 @@ import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWr
     After each transaction, refresh the UI and verify `readAllowList(yourAddress)` now resolves to **None** for both precompiles.
   </Step>
 </Steps>
-
-## Expected Output
-
-Your wallet no longer has Admin rights on:
-
-- Transaction AllowList
-- Contract Deployer AllowList
-
-## Verification
-
-To verify you've completed this exercise successfully:
-
-1. The console UI shows your wallet has role **None** (or non-admin) on both precompiles
-2. You can no longer use the UI to re-add yourself as Admin
-
-## Troubleshooting
-
-### I don’t see my wallet / role doesn’t update
-
-- Make sure you’re connected to the correct L1 network in Core Wallet
-- Wait for the transaction to confirm, then refresh the component
 
 ## Next Steps
 
