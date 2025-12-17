@@ -66,6 +66,7 @@ import {
 } from "@/components/stats/ICTTDashboard";
 import ICMFlowChart from "@/components/stats/ICMFlowChart";
 import { LinkableHeading } from "@/components/stats/LinkableHeading";
+import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
 
 interface AggregatedICMDataPoint {
   timestamp: number;
@@ -126,6 +127,25 @@ export default function ICMStatsPage() {
     "D"
   );
   const [activeSection, setActiveSection] = useState<string>("overview");
+
+  // Chain filter state - start with all chains
+  const [selectedChainIds, setSelectedChainIds] = useState<Set<string>>(
+    () => new Set(allChains.map((c) => c.chainId))
+  );
+
+  const handleSelectionChange = (newSelection: Set<string>) => {
+    setSelectedChainIds(newSelection);
+  };
+
+  const selectedChainNames = useMemo(() => {
+    const names = new Set<string>();
+    allChains.forEach((chain) => {
+      if (selectedChainIds.has(chain.chainId)) {
+        names.add(chain.chainName);
+      }
+    });
+    return names;
+  }, [selectedChainIds]);
 
   const fetchData = async () => {
     try {
@@ -278,11 +298,24 @@ export default function ICMStatsPage() {
     if (!metrics?.aggregatedData) return [];
 
     return metrics.aggregatedData
-      .map((point: AggregatedICMDataPoint) => ({
-        day: point.date,
-        value: point.totalMessageCount,
-        chainBreakdown: point.chainBreakdown,
-      }))
+      .map((point: AggregatedICMDataPoint) => {
+        // only include selected chains
+        const filteredBreakdown: Record<string, number> = {};
+        let filteredTotal = 0;
+
+        Object.entries(point.chainBreakdown).forEach(([chainName, count]) => {
+          if (selectedChainNames.has(chainName)) {
+            filteredBreakdown[chainName] = count;
+            filteredTotal += count;
+          }
+        });
+
+        return {
+          day: point.date,
+          value: filteredTotal,
+          chainBreakdown: filteredBreakdown,
+        };
+      })
       .reverse();
   };
 
@@ -293,7 +326,10 @@ export default function ICMStatsPage() {
 
     metrics.aggregatedData.forEach((point) => {
       Object.entries(point.chainBreakdown).forEach(([chainName, count]) => {
-        chainTotals[chainName] = (chainTotals[chainName] || 0) + count;
+        // Only include selected chains
+        if (selectedChainNames.has(chainName)) {
+          chainTotals[chainName] = (chainTotals[chainName] || 0) + count;
+        }
       });
     });
 
@@ -313,14 +349,14 @@ export default function ICMStatsPage() {
   };
 
   const getTopPeers = (chainName: string) => {
-    if (!icmFlowData?.flows) return [];
+    if (!filteredIcmFlowData?.flows) return [];
 
     const peerMap = new Map<
       string,
       { count: number; logo: string; color: string }
     >();
 
-    icmFlowData.flows.forEach((flow: any) => {
+    filteredIcmFlowData.flows.forEach((flow: any) => {
       if (flow.sourceChain === chainName) {
         const current = peerMap.get(flow.targetChain) || {
           count: 0,
@@ -357,13 +393,31 @@ export default function ICMStatsPage() {
     },
   ];
 
-  // Calculate key metrics for header
-  const totalICMMessages =
-    metrics?.aggregatedData?.reduce(
-      (sum, point) => sum + point.totalMessageCount,
+  // Calculate key metrics for header (filtered by selected chains)
+  const totalICMMessages = useMemo(() => {
+    if (!metrics?.aggregatedData) return 0;
+    return metrics.aggregatedData.reduce((sum, point) => {
+      const filteredSum = Object.entries(point.chainBreakdown).reduce(
+        (acc, [chainName, count]) => {
+          return selectedChainNames.has(chainName) ? acc + count : acc;
+        },
+        0
+      );
+      return sum + filteredSum;
+    }, 0);
+  }, [metrics?.aggregatedData, selectedChainNames]);
+
+  const dailyICM = useMemo(() => {
+    if (!metrics?.aggregatedData || metrics.aggregatedData.length === 0) return 0;
+    const latestPoint = metrics.aggregatedData[0];
+    return Object.entries(latestPoint.chainBreakdown).reduce(
+      (acc, [chainName, count]) => {
+        return selectedChainNames.has(chainName) ? acc + count : acc;
+      },
       0
-    ) || 0;
-  const dailyICM = metrics?.dailyMessageVolume?.current_value || 0; // Use current day value instead of average
+    );
+  }, [metrics?.aggregatedData, selectedChainNames]);
+
   const avgDailyICM = Math.round(totalICMMessages / 365); // Keep average for reference
   const totalICTTTransfers = icttData?.overview?.totalTransfers || 0;
   const totalICTTVolumeUsd = icttData?.overview?.totalVolumeUsd || 0;
@@ -371,6 +425,73 @@ export default function ICMStatsPage() {
     totalICMMessages > 0
       ? ((totalICTTTransfers / totalICMMessages) * 100).toFixed(1)
       : "0";
+
+  // Filter ICM flow data based on selected chains
+  const filteredIcmFlowData = useMemo(() => {
+    if (!icmFlowData) return null;
+
+    const filteredFlows = icmFlowData.flows.filter(
+      (flow: any) => selectedChainNames.has(flow.sourceChain) || selectedChainNames.has(flow.targetChain)
+    );
+    
+    const sourceNodeMap = new Map<string, any>();
+    const targetNodeMap = new Map<string, any>();
+    let totalMessages = 0;
+
+    filteredFlows.forEach((flow: any) => {
+      totalMessages += flow.messageCount;
+
+      if (!sourceNodeMap.has(flow.sourceChain)) {
+        sourceNodeMap.set(flow.sourceChain, {
+          id: flow.sourceChainId,
+          name: flow.sourceChain,
+          logo: flow.sourceLogo,
+          color: flow.sourceColor,
+          totalMessages: 0,
+          isSource: true,
+        });
+      }
+      sourceNodeMap.get(flow.sourceChain).totalMessages += flow.messageCount;
+
+      if (!targetNodeMap.has(flow.targetChain)) {
+        targetNodeMap.set(flow.targetChain, {
+          id: flow.targetChainId,
+          name: flow.targetChain,
+          logo: flow.targetLogo,
+          color: flow.targetColor,
+          totalMessages: 0,
+          isSource: false,
+        });
+      }
+      targetNodeMap.get(flow.targetChain).totalMessages += flow.messageCount;
+    });
+
+    return {
+      ...icmFlowData,
+      flows: filteredFlows,
+      sourceNodes: Array.from(sourceNodeMap.values()),
+      targetNodes: Array.from(targetNodeMap.values()),
+      totalMessages,
+    };
+  }, [icmFlowData, selectedChainNames]);
+
+  // Filter ICTT transfers data based on selected chains
+  const filteredIcttData = useMemo(() => {
+    if (!icttData) return null;
+
+    const filteredTransfers = icttData.transfers.filter(
+      (transfer: any) =>
+        selectedChainNames.has(transfer.homeChainName) ||
+        selectedChainNames.has(transfer.remoteChainName) ||
+        selectedChainNames.has(transfer.homeChainDisplayName) ||
+        selectedChainNames.has(transfer.remoteChainDisplayName)
+    );
+
+    return {
+      ...icttData,
+      transfers: filteredTransfers,
+    };
+  }, [icttData, selectedChainNames]);
 
   if (loading) {
     return (
@@ -633,6 +754,15 @@ export default function ICMStatsPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Chain Filter */}
+              <div className="mt-6">
+                <ChainCategoryFilter
+                  selectedChainIds={selectedChainIds}
+                  onSelectionChange={handleSelectionChange}
+                  showChainChips={true}
+                />
+              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-2">
@@ -757,7 +887,7 @@ export default function ICMStatsPage() {
                   </div>
                 </div>
               ) : (
-                <ICMFlowChart data={icmFlowData} height={520} maxFlows={30} />
+                <ICMFlowChart data={filteredIcmFlowData} height={520} maxFlows={30} />
               )}
             </div>
 
@@ -968,11 +1098,7 @@ export default function ICMStatsPage() {
             </p>
           </div>
 
-          <ICTTTransfersTable
-            data={icttData}
-            onLoadMore={handleLoadMoreTransfers}
-            loadingMore={loadingMoreTransfers}
-          />
+          <ICTTTransfersTable data={filteredIcttData} onLoadMore={handleLoadMoreTransfers} loadingMore={loadingMoreTransfers} />
         </section>
       </main>
 
