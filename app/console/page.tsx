@@ -5,7 +5,6 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, Suspense } from "react";
 import { ChevronRight, Layers, Users, MessagesSquare, ArrowUpDown, Settings, Droplets } from "lucide-react";
 import Link from "next/link";
-import posthog from 'posthog-js';
 
 function RedirectLogic() {
   const { data: session, status } = useSession();
@@ -14,26 +13,9 @@ function RedirectLogic() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (status === "authenticated" && session.user.is_new_user) {
-      // Track new user creation in PostHog (once per user)
-      const trackingKey = `posthog_user_created_${session.user.id}`;
-      if (typeof window !== "undefined" && !localStorage.getItem(trackingKey)) {
-        posthog.identify(session.user.id, {
-          email: session.user.email,
-          name: session.user.name,
-        });
-        posthog.capture('user_created', {
-          auth_provider: session.user.authentication_mode,
-          utm_source: searchParams.get('utm_source') || undefined,
-          utm_medium: searchParams.get('utm_medium') || undefined,
-          utm_campaign: searchParams.get('utm_campaign') || undefined,
-          utm_content: searchParams.get('utm_content') || undefined,
-          utm_term: searchParams.get('utm_term') || undefined,
-          referrer: document.referrer || undefined,
-        });
-        localStorage.setItem(trackingKey, 'true');
-      }
-
+    // Note: PostHog tracking is handled by the layout's TrackNewUser component
+    // This component only handles the redirect logic to avoid duplicate tracking
+    if (status === "authenticated" && session?.user?.is_new_user) {
       // Redirect new users to profile page
       if (pathname !== "/profile") {
         // Store the original URL with search params (including UTM) in localStorage
