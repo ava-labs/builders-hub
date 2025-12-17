@@ -1,0 +1,85 @@
+---
+title: Deploy Native Token Home
+description: Deploy the NativeTokenHome contract on Fuji for AVAX.
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import DeployTokenHome from "@/components/toolbox/console/ictt/setup/DeployTokenHome";
+
+# Deploy NativeTokenHome
+
+The `NativeTokenHome` contract is deployed on Fuji C-Chain. It locks wrapped AVAX (WAVAX) when users bridge to your L1 and releases it when they bridge back.
+
+## Understanding NativeTokenHome
+
+The NativeTokenHome contract:
+
+- **Wraps and locks AVAX** when users bridge to your L1
+- **Releases AVAX** when users bridge back from your L1
+- **Uses WAVAX** as the underlying ERC-20 representation
+- **Manages remote contract registrations** for security
+
+## WAVAX on Fuji
+
+Fuji C-Chain already has a deployed wrapped AVAX (WAVAX) contract. The toolbox will automatically detect and use it.
+
+<Callout type="info">
+**WAVAX** is an ERC-20 wrapper for native AVAX. When you deposit AVAX, you receive WAVAX. When you withdraw, you get AVAX back. This allows native tokens to be used in ERC-20 compatible contracts.
+</Callout>
+
+<Steps>
+<Step>
+### Connect to Fuji C-Chain
+
+Ensure your wallet is connected to **Fuji C-Chain**. The toolbox will detect the chain and show relevant options.
+
+</Step>
+
+<Step>
+### Deploy NativeTokenHome
+
+Use the Deploy Token Home tool below:
+
+1. Select **"Native Token"** as the Transferrer Type
+2. Verify the **Wrapped Token Address** (WAVAX) is populated
+3. Confirm the **Teleporter Registry** address is set
+
+<Callout type="warning">
+Make sure you have:
+1. Connected your Core Wallet to Fuji testnet
+2. Sufficient test AVAX for gas fees
+3. Selected "Native Token" as the transferrer type
+</Callout>
+
+<ToolboxMdxWrapper enforceChainId={43113}>
+    <DeployTokenHome />
+</ToolboxMdxWrapper>
+
+</Step>
+
+<Step>
+### Save the Contract Address
+
+After deployment, save the **Token Home Address**. You'll need it when deploying the NativeTokenRemote contract on your L1.
+
+</Step>
+</Steps>
+
+## Contract State After Deployment
+
+After deployment, your NativeTokenHome:
+
+- ✅ Is linked to WAVAX on Fuji
+- ✅ Is connected to the Teleporter Registry for ICM
+- ✅ Is ready to accept remote contract registrations
+- ❌ Has no remote contracts registered yet
+
+## Next Steps
+
+Now deploy `NativeTokenRemote` on your L1 to complete the bridge setup.
+

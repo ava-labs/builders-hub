@@ -1,0 +1,77 @@
+---
+title: Deploy Native Token Home
+description: Deploy the NativeTokenHome contract on your L1.
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import DeployTokenHome from "@/components/toolbox/console/ictt/setup/DeployTokenHome";
+
+# Deploy NativeTokenHome
+
+The `NativeTokenHome` contract is deployed on **your L1**. It locks your wrapped native token (WTEST) when users bridge to C-Chain.
+
+## Understanding NativeTokenHome
+
+The NativeTokenHome contract:
+
+- **Wraps and locks** native tokens when users bridge out
+- **Releases** native tokens when users bridge back
+- **Uses your wrapped token** (WTEST) as the ERC-20 representation
+- **Manages remote contract registrations** for security
+
+<Steps>
+<Step>
+### Connect to Your L1
+
+Ensure your wallet is connected to your L1 where your native token lives.
+
+</Step>
+
+<Step>
+### Deploy NativeTokenHome
+
+Use the Deploy Token Home tool below:
+
+1. Select **"Native Token"** as the Transferrer Type
+2. Enter your **Wrapped Token Address** (WTEST) from the previous step
+3. Confirm the **Teleporter Registry** address is set
+
+<Callout type="warning">
+Make sure you have:
+1. Connected to your L1
+2. Deployed your wrapped token (WTEST)
+3. Native tokens (TEST) for gas fees
+</Callout>
+
+<ToolboxMdxWrapper>
+    <DeployTokenHome />
+</ToolboxMdxWrapper>
+
+</Step>
+
+<Step>
+### Save the Contract Address
+
+After deployment, save the **Token Home Address**. You'll need it when deploying ERC20TokenRemote on C-Chain.
+
+</Step>
+</Steps>
+
+## Contract State After Deployment
+
+After deployment, your NativeTokenHome:
+
+- ✅ Is linked to your wrapped token (WTEST)
+- ✅ Is connected to the Teleporter Registry for ICM
+- ✅ Is ready to accept remote contract registrations
+- ❌ Has no remote contracts registered yet
+
+## Next Steps
+
+Now deploy `ERC20TokenRemote` on C-Chain to complete the bridge setup.
+

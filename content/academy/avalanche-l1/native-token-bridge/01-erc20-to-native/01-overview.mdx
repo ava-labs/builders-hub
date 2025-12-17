@@ -1,0 +1,89 @@
+---
+title: Introduction
+description: Learn how to bridge ERC-20 tokens from Fuji to become native gas tokens on your L1.
+updated: 2024-09-09
+authors: [nicolasarnedo]
+icon: Book
+---
+
+# ERC-20 to Native Token Bridge
+
+In this section, you'll learn how to bridge an **ERC-20 token** (like USDC) from Fuji C-Chain to your own L1, where it becomes the **native gas token**.
+
+## Use Case
+
+This bridge type is ideal when:
+
+- You want to use an **established stablecoin** (like USDC) as your chain's gas currency
+- You need **predictable gas costs** for users (no volatile native token)
+- You're building for **enterprise or regulated environments** that prefer fiat-pegged tokens
+
+## Architecture Overview
+
+```
+Source Chain (Fuji C-Chain)                 Destination Chain (Your L1)
+┌──────────────────────────────┐           ┌──────────────────────────────┐
+│                              │           │                              │
+│  USDC (ERC-20)               │           │  Native Token (minted USDC)  │
+│       ↓                      │           │       ↑                      │
+│  ERC20TokenHome   ───────────│───────────│  NativeTokenRemote           │
+│  (locks USDC)                │    ICM    │  (calls Native Minter)       │
+│                              │           │                              │
+└──────────────────────────────┘           └──────────────────────────────┘
+```
+
+## Contracts Involved
+
+| Contract | Chain | Purpose |
+|----------|-------|---------|
+| **ERC20TokenHome** | Fuji C-Chain | Locks USDC when bridging out, releases when bridging back |
+| **NativeTokenRemote** | Your L1 | Calls Native Minter to create native tokens |
+| **Native Minter Precompile** | Your L1 | System contract that mints native tokens |
+
+## Key Requirement: Native Minter Precompile
+
+Your L1 must have the **Native Minter precompile** enabled. This precompile:
+
+- Is a built-in Avalanche L1 feature
+- Allows authorized contracts to mint native tokens
+- Must be configured in the chain's genesis
+- Address: `0x0200000000000000000000000000000000000001`
+
+<Callout type="warning">
+**Important**: You'll create an L1 with Native Minter enabled as the first step of this chapter.
+</Callout>
+
+## Collateral Requirement
+
+Unlike ERC-20 bridging, native-token bridging requires **collateral**:
+
+1. **Initial Reserve Imbalance**: Set during NativeTokenRemote deployment
+2. **Collateral Deposit**: USDC deposited to back the minted native supply
+3. **Full Collateralization**: Required before bridging is enabled
+
+## Deployment Flow
+
+Here's what we'll build:
+
+| Step | Action | Chain |
+|------|--------|-------|
+| 1 | Create L1 with Native Minter | Fuji (P-Chain) |
+| 2 | Set up relayer | Local (Docker) |
+| 3 | Deploy ERC20TokenHome | Fuji C-Chain |
+| 4 | Deploy NativeTokenRemote | Your L1 |
+| 5 | Register + Collateralize | Your L1 → Fuji |
+| 6 | Bridge USDC → Native | Fuji → Your L1 |
+
+## What You'll Achieve
+
+By the end of this section:
+
+- ✅ Your L1 uses **USDC as the native gas token**
+- ✅ Users can bridge USDC from Fuji to get native tokens for gas
+- ✅ The bridge is fully collateralized and secure
+
+<Callout type="info">
+**Token Backing**: Every native token minted on your L1 is backed 1:1 by USDC locked in the ERC20TokenHome contract on Fuji.
+</Callout>
+
+Let's get started by creating your L1!

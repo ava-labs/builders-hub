@@ -1,0 +1,105 @@
+---
+title: Register and Collateralize
+description: Register the remote bridge and add collateral to enable bridging.
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import RegisterWithHome from "@/components/toolbox/console/ictt/setup/RegisterWithHome";
+import AddCollateral from "@/components/toolbox/console/ictt/setup/AddCollateral";
+
+# Register and Collateralize
+
+Before you can bridge USDC to your L1, you need to:
+
+1. **Register** the NativeTokenRemote with the ERC20TokenHome
+2. **Add collateral** to back any pre-existing native token supply
+
+## Step 1: Register Remote with Home
+
+Registration creates a secure, bidirectional connection between the contracts. The home contract must know about the remote before accepting bridge requests.
+
+<Steps>
+<Step>
+### Switch to Your L1
+
+Ensure your wallet is connected to **your L1** (where NativeTokenRemote is deployed).
+
+</Step>
+
+<Step>
+### Register the Remote
+
+<Callout type="warning">
+Make sure you have:
+1. Successfully deployed NativeTokenRemote
+2. Native tokens on your L1 for gas fees
+</Callout>
+
+<ToolboxMdxWrapper>
+    <RegisterWithHome />
+</ToolboxMdxWrapper>
+
+</Step>
+</Steps>
+
+## Step 2: Add Collateral
+
+Collateral is required to back any native tokens that might already exist on your L1. The bridge needs to be fully collateralized before minting is enabled.
+
+### Why Collateral?
+
+When NativeTokenRemote mints native tokens, it's creating real gas tokens. The protocol requires:
+
+1. **Collateral Amount** = Initial Reserve Imbalance you set during deployment
+2. **Full Collateralization** = Collateral deposited on the source chain (Fuji)
+3. **Minting Enabled** = Only after full collateralization
+
+<Callout type="info">
+If you set `initialReserveImbalance` to `0` during deployment, you may not need to add collateral. The tool will show the required amount.
+</Callout>
+
+<Steps>
+<Step>
+### Switch to Fuji C-Chain
+
+Switch your wallet to **Fuji C-Chain** (where ERC20TokenHome is deployed).
+
+</Step>
+
+<Step>
+### Add Collateral
+
+The tool will show how much USDC collateral is required. You need to deposit this amount to fully collateralize the bridge.
+
+<Callout type="warning">
+Make sure you have:
+1. Connected to Fuji C-Chain
+2. Enough USDC to cover the collateral requirement
+3. Test AVAX for gas fees
+</Callout>
+
+<ToolboxMdxWrapper enforceChainId={43113}>
+    <AddCollateral />
+</ToolboxMdxWrapper>
+
+</Step>
+</Steps>
+
+## Bridge State After Collateralization
+
+After completing both steps:
+
+- ✅ NativeTokenRemote is registered with ERC20TokenHome
+- ✅ Bridge is fully collateralized
+- ✅ USDC can now be bridged to your L1 as native tokens
+- ✅ Native tokens can be bridged back to Fuji as USDC
+
+## Next Steps
+
+Your bridge is fully configured! Let's test it by bridging some USDC.
+

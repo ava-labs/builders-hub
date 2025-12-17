@@ -1,0 +1,90 @@
+---
+title: Bridge Tokens
+description: Transfer your native token from your L1 to C-Chain as an ERC-20.
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import TestSend from "@/components/toolbox/console/ictt/token-transfer/TestSend";
+
+# Bridge Your Native Token to C-Chain
+
+With your bridge configured, you can now transfer your L1's native token to C-Chain, where it becomes an **ERC-20 token**.
+
+<Steps>
+<Step>
+### Connect to Your L1
+
+Switch your wallet to your **L1** (the source chain where your native token lives).
+
+<Callout type="info">
+You need native tokens (TEST) for the amount you want to bridge, **plus additional tokens** for gas.
+</Callout>
+
+</Step>
+
+<Step>
+### Bridge using the Token Transfer tool
+
+Use the tool below to initiate the cross-chain transfer:
+
+1. Select your **NativeTokenHome** as the source bridge contract
+2. Select your **ERC20TokenRemote** (on C-Chain) as the destination bridge contract
+3. Enter the amount of native tokens to bridge
+
+<Callout type="warning">
+Make sure you have:
+1. Successfully registered the remote with the home
+2. Native tokens in your wallet to bridge
+3. Additional native tokens for gas fees
+</Callout>
+
+<ToolboxMdxWrapper>
+    <TestSend />
+</ToolboxMdxWrapper>
+
+</Step>
+
+<Step>
+### Switch to C-Chain and check your ERC-20 balance
+
+Switch your wallet to **Fuji C-Chain** and check your ERC-20 balance.
+
+You can add the ERC20TokenRemote contract address as a custom token in your wallet to see the balance.
+
+</Step>
+</Steps>
+
+## What Happened
+
+1. Your native tokens were **wrapped to WTEST** and locked in NativeTokenHome
+2. An ICM message was sent to C-Chain via the relayer
+3. ERC20TokenRemote **minted ERC-20 tokens** representing your native token
+4. ERC-20 tokens were credited to your address on C-Chain
+
+## Bridging Back
+
+To bridge ERC-20 tokens back to your L1 as native tokens:
+
+1. Switch to C-Chain
+2. Use the Token Transfer tool with reversed source/destination
+3. ERC-20 tokens will be burned and native tokens released on your L1
+
+## Summary
+
+You've successfully:
+
+- ✅ Created an L1 with a custom native token
+- ✅ Deployed a wrapped token (WTEST)
+- ✅ Deployed NativeTokenHome on your L1
+- ✅ Deployed ERC20TokenRemote on C-Chain
+- ✅ Bridged native tokens → ERC-20
+
+## What's Next?
+
+In the next chapter, you'll learn how to use AVAX (C-Chain's native token) as the native gas token for your L1.
+

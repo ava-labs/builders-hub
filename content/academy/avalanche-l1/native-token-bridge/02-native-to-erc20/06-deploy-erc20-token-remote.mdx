@@ -1,0 +1,77 @@
+---
+title: Deploy ERC20 Token Remote
+description: Deploy the ERC20TokenRemote contract on C-Chain.
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import DeployERC20TokenRemote from "@/components/toolbox/console/ictt/setup/DeployERC20TokenRemote";
+
+# Deploy ERC20TokenRemote
+
+The `ERC20TokenRemote` contract is deployed on **Fuji C-Chain**. It mints ERC-20 tokens representing your L1's native token when users bridge from your L1.
+
+## Understanding ERC20TokenRemote
+
+The ERC20TokenRemote contract:
+
+- **Mints ERC-20 tokens** when receiving bridge messages from your L1
+- **Burns ERC-20 tokens** when users bridge back to your L1
+- **Is itself an ERC-20 token** (users can transfer, trade, etc.)
+- **References the NativeTokenHome** on your L1 for security
+
+<Steps>
+<Step>
+### Switch to Fuji C-Chain
+
+Switch your wallet to **Fuji C-Chain**. This is where you'll deploy the ERC-20 representation of your token.
+
+</Step>
+
+<Step>
+### Deploy ERC20TokenRemote
+
+Use the Deploy ERC20 Token Remote tool below:
+
+1. Select your **L1** as the source chain
+2. Enter the **NativeTokenHome address** from the previous step
+3. Set the token **name** and **symbol** (e.g., "Wrapped TEST", "wTEST")
+4. Set the **decimals** (should match your native token, usually 18)
+
+<Callout type="warning">
+Make sure you have:
+1. Connected to Fuji C-Chain
+2. Test AVAX for gas fees
+3. Your NativeTokenHome address from the previous step
+</Callout>
+
+<ToolboxMdxWrapper enforceChainId={43113}>
+    <DeployERC20TokenRemote />
+</ToolboxMdxWrapper>
+
+</Step>
+
+<Step>
+### Save the Contract Address
+
+After deployment, save the **ERC20 Token Remote Address**. This is the ERC-20 token address that represents your native token on C-Chain.
+
+</Step>
+</Steps>
+
+## Contract State After Deployment
+
+After deployment, your ERC20TokenRemote:
+
+- ✅ Is configured as an ERC-20 token on C-Chain
+- ✅ Knows which NativeTokenHome to communicate with
+- ❌ Is NOT registered with the home (transfers won't work yet)
+
+## Next Steps
+
+Now you need to **register the remote** with the home contract to enable bridging.
+

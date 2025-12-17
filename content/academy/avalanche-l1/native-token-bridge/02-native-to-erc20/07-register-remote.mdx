@@ -1,0 +1,65 @@
+---
+title: Register Remote
+description: Register the ERC20TokenRemote with the NativeTokenHome.
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import RegisterWithHome from "@/components/toolbox/console/ictt/setup/RegisterWithHome";
+
+# Register Remote with Home
+
+Before you can bridge tokens, you need to register the ERC20TokenRemote with the NativeTokenHome. This establishes a secure connection between the contracts.
+
+## Why Registration?
+
+Registration:
+
+- Creates a **bidirectional link** between home and remote contracts
+- Prevents **unauthorized remote contracts** from claiming tokens
+- Is a **one-time setup** per remote contract
+
+<Steps>
+<Step>
+### Switch to C-Chain
+
+Ensure your wallet is connected to **Fuji C-Chain** (where ERC20TokenRemote is deployed).
+
+</Step>
+
+<Step>
+### Register the Remote
+
+<Callout type="warning">
+Make sure you have:
+1. Successfully deployed ERC20TokenRemote on C-Chain
+2. Test AVAX for gas fees
+</Callout>
+
+<ToolboxMdxWrapper enforceChainId={43113}>
+    <RegisterWithHome />
+</ToolboxMdxWrapper>
+
+</Step>
+</Steps>
+
+## Bridge State After Registration
+
+After completing registration:
+
+- ✅ ERC20TokenRemote is registered with NativeTokenHome
+- ✅ Your L1's native token can now be bridged to C-Chain as ERC-20
+- ✅ ERC-20 tokens can be bridged back to your L1 as native tokens
+
+<Callout type="info">
+Unlike native-token bridges (Chapters 1 and 3), this bridge does **not** require collateralization. The home contract simply locks tokens on one side and the remote mints on the other.
+</Callout>
+
+## Next Steps
+
+Your bridge is fully configured! Let's test it by bridging some tokens.
+

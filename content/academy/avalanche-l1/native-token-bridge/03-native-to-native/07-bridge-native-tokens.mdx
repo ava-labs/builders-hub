@@ -1,0 +1,97 @@
+---
+title: Bridge Tokens
+description: Transfer AVAX from Fuji to your L1 as native gas tokens.
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import TestSend from "@/components/toolbox/console/ictt/token-transfer/TestSend";
+
+# Bridge AVAX to Native Tokens
+
+With your bridge fully configured and collateralized, you can now transfer AVAX from Fuji to your L1, where it becomes **native gas tokens**.
+
+<Steps>
+<Step>
+### Connect to Fuji C-Chain
+
+Switch your wallet to **Fuji C-Chain** (the source chain).
+
+<Callout type="info">
+You need **AVAX** on Fuji for the amount you want to bridge, **plus additional AVAX** for gas.
+</Callout>
+
+</Step>
+
+<Step>
+### Bridge using the Token Transfer tool
+
+Use the tool below to initiate the cross-chain transfer:
+
+1. Select your **NativeTokenHome** as the source bridge contract
+2. Select your **NativeTokenRemote** as the destination bridge contract
+3. Enter the amount of AVAX to bridge
+
+<Callout type="warning">
+Make sure you have:
+1. Successfully registered and collateralized your bridge
+2. AVAX in your wallet to bridge
+3. Additional AVAX for gas fees on Fuji
+</Callout>
+
+<ToolboxMdxWrapper enforceChainId={43113}>
+    <TestSend />
+</ToolboxMdxWrapper>
+
+</Step>
+
+<Step>
+### Switch to your L1 and confirm
+
+Switch your wallet to **your L1** and confirm your native token balance increased.
+
+The bridged AVAX is now usable as **native gas tokens** on your L1!
+
+</Step>
+</Steps>
+
+## What Happened
+
+1. AVAX was **wrapped to WAVAX** and locked in the NativeTokenHome on Fuji
+2. An ICM message was sent to your L1 via the relayer
+3. NativeTokenRemote called the **Native Minter precompile** to mint native tokens
+4. Native tokens were credited to your address
+
+## Bridging Back
+
+To bridge native tokens back to AVAX:
+
+1. Switch to your L1
+2. Use the Token Transfer tool with reversed source/destination
+3. Native tokens will be burned and AVAX released on Fuji
+
+## Summary
+
+You've successfully:
+
+- ✅ Created an L1 with AVAX as the native gas token
+- ✅ Deployed NativeTokenHome on Fuji
+- ✅ Deployed NativeTokenRemote on your L1
+- ✅ Collateralized the bridge
+- ✅ Bridged AVAX → Native tokens
+
+## Course Complete!
+
+You've now learned both native-token bridging patterns:
+
+| Pattern | Source Token | Home Contract | Remote Contract | Result |
+|---------|-------------|---------------|-----------------|--------|
+| ERC-20 → Native | USDC | ERC20TokenHome | NativeTokenRemote | USDC becomes gas token |
+| Native → Native | AVAX | NativeTokenHome | NativeTokenRemote | AVAX becomes gas token |
+
+Both patterns require the **Native Minter precompile** and **collateralization** on the destination L1.
+

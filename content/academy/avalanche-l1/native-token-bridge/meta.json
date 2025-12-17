@@ -4,10 +4,12 @@
   "root": true,
   "pages": [
     "index",
-    "---Native to ERC-20 Bridge---",
-    "...01-native-to-erc-20-bridge",
-    "---Native to Native Bridge---",
-    "...02-native-to-native-bridge",
+    "---Chapter 1: ERC-20 to Native---",
+    "...01-erc20-to-native",
+    "---Chapter 2: Native to ERC-20---",
+    "...02-native-to-erc20",
+    "---Chapter 3: Native to Native---",
+    "...03-native-to-native",
     "---Course Completion---",
     "certificate"
   ]

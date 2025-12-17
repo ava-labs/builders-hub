@@ -1,0 +1,92 @@
+---
+title: Introduction
+description: Learn how to bridge native AVAX from Fuji to become native gas tokens on your L1.
+updated: 2024-09-09
+authors: [nicolasarnedo]
+icon: Book
+---
+
+# Native to Native Token Bridge
+
+In this section, you'll learn how to bridge **native AVAX** from Fuji C-Chain to your own L1, where it becomes the **native gas token**.
+
+## Use Case
+
+This bridge type is ideal when:
+
+- You want to use **AVAX** as your chain's gas currency
+- You're building a chain that's part of the **Avalanche ecosystem**
+- You need **shared security** via AVAX staking value
+
+## Architecture Overview
+
+```
+Source Chain (Fuji C-Chain)                 Destination Chain (Your L1)
+┌──────────────────────────────┐           ┌──────────────────────────────┐
+│                              │           │                              │
+│  AVAX (Native) → WAVAX       │           │  Native Token (minted AVAX)  │
+│       ↓                      │           │       ↑                      │
+│  NativeTokenHome  ───────────│───────────│  NativeTokenRemote           │
+│  (wraps & locks AVAX)        │    ICM    │  (calls Native Minter)       │
+│                              │           │                              │
+└──────────────────────────────┘           └──────────────────────────────┘
+```
+
+## Contracts Involved
+
+| Contract | Chain | Purpose |
+|----------|-------|---------|
+| **NativeTokenHome** | Fuji C-Chain | Wraps AVAX to WAVAX, locks when bridging out, releases when bridging back |
+| **NativeTokenRemote** | Your L1 | Calls Native Minter to create native tokens |
+| **Native Minter Precompile** | Your L1 | System contract that mints native tokens |
+| **WAVAX** | Fuji C-Chain | ERC-20 wrapper for native AVAX |
+
+## Key Difference from Chapter 1
+
+| | ERC-20 → Native (Chapter 1) | Native → Native (Chapter 2) |
+|--|--|--|
+| **Source Token** | USDC (ERC-20) | AVAX (Native) |
+| **Home Contract** | ERC20TokenHome | NativeTokenHome |
+| **Wrapping** | Not needed | AVAX wraps to WAVAX |
+| **Use Case** | Stablecoin gas token | AVAX-based ecosystem |
+
+## WAVAX (Wrapped AVAX)
+
+Since native AVAX isn't an ERC-20 token, NativeTokenHome uses **WAVAX** internally:
+
+1. User sends **AVAX** to NativeTokenHome
+2. Contract **wraps** AVAX to WAVAX
+3. WAVAX is **locked** in the contract
+4. Bridge message is sent via ICM
+5. On your L1, **native tokens are minted**
+
+<Callout type="info">
+Fuji C-Chain already has a deployed WAVAX contract. The toolbox will automatically detect and use it.
+</Callout>
+
+## Deployment Flow
+
+Here's what we'll build:
+
+| Step | Action | Chain |
+|------|--------|-------|
+| 1 | Create L1 with Native Minter | Fuji (P-Chain) |
+| 2 | Set up relayer | Local (Docker) |
+| 3 | Deploy NativeTokenHome | Fuji C-Chain |
+| 4 | Deploy NativeTokenRemote | Your L1 |
+| 5 | Register + Collateralize | Your L1 → Fuji |
+| 6 | Bridge AVAX → Native | Fuji → Your L1 |
+
+## What You'll Achieve
+
+By the end of this section:
+
+- ✅ Your L1 uses **AVAX as the native gas token**
+- ✅ Users can bridge AVAX from Fuji to get native tokens for gas
+- ✅ The bridge is fully collateralized and secure
+
+<Callout type="info">
+**Token Backing**: Every native token minted on your L1 is backed 1:1 by WAVAX (wrapped AVAX) locked in the NativeTokenHome contract on Fuji.
+</Callout>
+
+Let's get started by creating your L1!

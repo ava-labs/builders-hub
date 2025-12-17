@@ -1,0 +1,35 @@
+---
+title: Relayer Setup
+description: Run an ICM relayer between your L1 and Fuji C-Chain.
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import ICMRelayer from "@/components/toolbox/console/icm/setup/ICMRelayer";
+
+# Set Up the Relayer
+
+Token bridging uses Interchain Messaging (ICM) under the hood, so you must run a relayer between your **L1** and **Fuji C-Chain**.
+
+<ToolboxMdxWrapper walletMode="l1">
+  <ICMRelayer />
+</ToolboxMdxWrapper>
+
+## Instructions
+
+In the tool above:
+1. Select your **L1** and **Fuji C-Chain** as the networks to relay between
+2. Fund the generated relayer address with enough gas on **both** chains
+3. Run the provided Docker command to start the relayer
+
+<Callout type="info">
+If you don't have the relayer running, cross-chain messages will be created but **never delivered**, and your bridge transfers will appear "stuck".
+</Callout>
+
+## Next Steps
+
+With the relayer running, you're ready to deploy `NativeTokenHome` on your L1.
+
