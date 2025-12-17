@@ -1,7 +1,7 @@
 ---
-title: Test Transaction Deployer Allowlist
-description: "Hands-on exercise: Test Transaction Deployer Allowlist"
-updated: 2025-12-10
+title: Test Transaction Allowlist
+description: "Hands-on exercise: Verify the Transaction Allowlist precompile is active and manage roles."
+updated: 2025-12-17
 authors: [nicolasarnedo]
 icon: Terminal
 ---
@@ -10,83 +10,110 @@ icon: Terminal
 
 By the end of this exercise, you will be able to:
 
-- [PLACEHOLDER: Objective 1]
-- [PLACEHOLDER: Objective 2]
-- [PLACEHOLDER: Objective 3]
+- Verify the Transaction Allowlist precompile is active on your L1
+- Confirm your wallet has Admin permissions
+- Read and modify allowlist roles using the Builder Console
 
 ## Prerequisites
 
 Before starting this exercise, ensure you have:
 
-- [PLACEHOLDER: Prerequisite 1]
-- [PLACEHOLDER: Prerequisite 2]
-- [PLACEHOLDER: Prerequisite 3]
+- Completed the L1 creation with Transaction Allowlist enabled at genesis
+- Your Docker-hosted node is running and synced
+- Core Wallet connected to your custom L1
+- Your wallet address was added as an admin in the genesis config
 
 ## Instructions
 
 import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import TransactionAllowlist from "@/components/toolbox/console/l1-access-restrictions/TransactionAllowlist";
 
 <Steps>
   <Step>
-    ### Step 1: [PLACEHOLDER: Step Title]
+    ### Step 1: Open the Transaction Allowlist tool
 
-    [PLACEHOLDER: Detailed instructions for step 1]
+    Connect to your custom L1 and open the Transaction Allowlist tool:
 
-    ```bash
-    # Example command
-    [PLACEHOLDER: Add command]
-    ```
+    <ToolboxMdxWrapper>
+      <TransactionAllowlist />
+    </ToolboxMdxWrapper>
+
+    **Expected Result**: The tool should load the full UI. If you see "not available" or "not activated", the precompile was not enabled at genesis.
   </Step>
 
   <Step>
-    ### Step 2: [PLACEHOLDER: Step Title]
+    ### Step 2: Verify your Admin role
 
-    [PLACEHOLDER: Detailed instructions for step 2]
+    1. Select `readAllowList` 
+    2. Paste your wallet address
+    3. Execute the read
 
-    ```typescript
-    // Example code
-    [PLACEHOLDER: Add code]
-    ```
+    **Expected Result**: Your role should show as **Admin** (value `2`).
+
+    <Callout type="info">
+    Role values: `0` = None, `1` = Enabled, `2` = Manager, `3` = Admin
+    </Callout>
   </Step>
 
   <Step>
-    ### Step 3: [PLACEHOLDER: Step Title]
+    ### Step 3: Test adding an Enabled address
 
-    [PLACEHOLDER: Detailed instructions for step 3]
+    As an Admin, you can grant permissions to other addresses:
+
+    1. Select `setEnabled`
+    2. Enter a test address (can be any valid Ethereum address)
+    3. Execute the transaction and confirm in Core Wallet
+
+    After the transaction confirms, use `readAllowList` on that address to verify it now shows **Enabled**.
+  </Step>
+
+  <Step>
+    ### Step 4: Test sending a transaction
+
+    In Core Wallet (connected to your custom L1):
+    
+    1. Send a small amount of native token to any address
+    2. The transaction should succeed since your wallet is authorized
+
+    <Callout type="warning">
+    If the transaction fails with an authorization error, double-check that your wallet address is in the admin list and the precompile is activated.
+    </Callout>
   </Step>
 </Steps>
 
 ## Expected Output
 
-[PLACEHOLDER: Describe what students should see or achieve after completing this exercise. Include screenshots or example output if applicable.]
-
-```
-[PLACEHOLDER: Example output]
-```
+- The Transaction Allowlist tool renders the full UI (not "not available")
+- Your wallet reads as Admin (role `2` or `3`)
+- You can successfully grant Enabled status to another address
+- Transactions from your wallet succeed
 
 ## Verification
 
 To verify you've completed this exercise successfully:
 
-1. [PLACEHOLDER: Verification step 1]
-2. [PLACEHOLDER: Verification step 2]
+1. `readAllowList` for your wallet returns Admin
+2. You successfully called `setEnabled` for a test address
+3. A transaction from your wallet was confirmed on-chain
 
 ## Troubleshooting
 
-[PLACEHOLDER: Add common issues and solutions]
+### Issue: Tool shows "not available"
 
-### Issue 1: [PLACEHOLDER]
+**Problem**: The Transaction Allowlist tool shows the precompile is not activated.
 
-**Problem**: [PLACEHOLDER: Describe the problem]
+**Solution**: The precompile was not enabled at genesis. You'll need to either:
+- Recreate the L1 with the precompile enabled, or
+- Use a network upgrade to activate it (covered in a later section)
 
-**Solution**: [PLACEHOLDER: Describe the solution]
+### Issue: readAllowList shows None for my wallet
 
-### Issue 2: [PLACEHOLDER]
+**Problem**: Your wallet address is not recognized as an admin.
 
-**Problem**: [PLACEHOLDER: Describe the problem]
-
-**Solution**: [PLACEHOLDER: Describe the solution]
+**Solution**: Verify the address in your genesis config matches your connected wallet exactly (case-insensitive but must be a valid checksum address).
 
 ## Next Steps
 
-[PLACEHOLDER: Suggest what students should do next or additional resources to explore]
+Next, test the Contract Deployer Allowlist to verify you can control who deploys smart contracts on your L1.

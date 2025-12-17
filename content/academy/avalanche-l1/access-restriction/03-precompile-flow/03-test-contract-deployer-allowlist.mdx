@@ -1,7 +1,7 @@
 ---
 title: Test Contract Deployer Allowlist
-description: "Hands-on exercise: Test Contract Deployer Allowlist"
-updated: 2025-12-10
+description: "Hands-on exercise: Verify the Contract Deployer Allowlist precompile is active and manage roles."
+updated: 2025-12-17
 authors: [nicolasarnedo]
 icon: Terminal
 ---
@@ -10,83 +10,128 @@ icon: Terminal
 
 By the end of this exercise, you will be able to:
 
-- [PLACEHOLDER: Objective 1]
-- [PLACEHOLDER: Objective 2]
-- [PLACEHOLDER: Objective 3]
+- Verify the Contract Deployer Allowlist precompile is active on your L1
+- Confirm your wallet has Admin permissions for deploying contracts
+- Test deploying a contract using the Builder Console
 
 ## Prerequisites
 
 Before starting this exercise, ensure you have:
 
-- [PLACEHOLDER: Prerequisite 1]
-- [PLACEHOLDER: Prerequisite 2]
-- [PLACEHOLDER: Prerequisite 3]
+- Completed the L1 creation with Contract Deployer Allowlist enabled at genesis
+- Your Docker-hosted node is running and synced
+- Core Wallet connected to your custom L1
+- Your wallet address was added as an admin in the genesis config
 
 ## Instructions
 
 import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import DeployerAllowlist from "@/components/toolbox/console/l1-access-restrictions/DeployerAllowlist";
+import DeployICMDemo from "@/components/toolbox/console/icm/test-connection/DeployICMDemo";
 
 <Steps>
   <Step>
-    ### Step 1: [PLACEHOLDER: Step Title]
+    ### Step 1: Open the Contract Deployer Allowlist tool
 
-    [PLACEHOLDER: Detailed instructions for step 1]
+    Connect to your custom L1 and open the Deployer Allowlist tool:
 
-    ```bash
-    # Example command
-    [PLACEHOLDER: Add command]
-    ```
+    <ToolboxMdxWrapper>
+      <DeployerAllowlist />
+    </ToolboxMdxWrapper>
+
+    **Expected Result**: The tool should load the full UI. If you see "not available" or "not activated", the precompile was not enabled at genesis.
   </Step>
 
   <Step>
-    ### Step 2: [PLACEHOLDER: Step Title]
+    ### Step 2: Verify your Admin role
 
-    [PLACEHOLDER: Detailed instructions for step 2]
+    1. Select `readAllowList`
+    2. Paste your wallet address
+    3. Execute the read
 
-    ```typescript
-    // Example code
-    [PLACEHOLDER: Add code]
-    ```
+    **Expected Result**: Your role should show as **Admin** (value `2`).
+
+    <Callout type="info">
+    Role values: `0` = None, `1` = Enabled, `2` = Manager, `3` = Admin
+    </Callout>
   </Step>
 
   <Step>
-    ### Step 3: [PLACEHOLDER: Step Title]
+    ### Step 3: Test deploying a contract
 
-    [PLACEHOLDER: Detailed instructions for step 3]
+    Use the ICM Demo deployment tool to verify you can deploy contracts:
+
+    <ToolboxMdxWrapper>
+      <DeployICMDemo />
+    </ToolboxMdxWrapper>
+
+    1. Click "Deploy ICMDemo"
+    2. Confirm the transaction in Core Wallet
+    3. Wait for the deployment to complete
+
+    **Expected Result**: The contract deploys successfully and you receive a contract address.
+  </Step>
+
+  <Step>
+    ### Step 4: Test granting deploy permissions
+
+    As an Admin, you can authorize other addresses to deploy contracts:
+
+    1. Go back to the Deployer Allowlist tool
+    2. Select `setEnabled`
+    3. Enter a test address
+    4. Execute the transaction and confirm in Core Wallet
+
+    After the transaction confirms, use `readAllowList` on that address to verify it now shows **Enabled**.
+
+    <Callout type="warning">
+    Be careful who you grant deploy permissions to. On a production network, unauthorized contract deployments could introduce security risks.
+    </Callout>
   </Step>
 </Steps>
 
 ## Expected Output
 
-[PLACEHOLDER: Describe what students should see or achieve after completing this exercise. Include screenshots or example output if applicable.]
-
-```
-[PLACEHOLDER: Example output]
-```
+- The Contract Deployer Allowlist tool renders the full UI (not "not available")
+- Your wallet reads as Admin (role `2` or `3`)
+- The ICMDemo contract deploys successfully
+- You can grant Enabled status to another address
 
 ## Verification
 
 To verify you've completed this exercise successfully:
 
-1. [PLACEHOLDER: Verification step 1]
-2. [PLACEHOLDER: Verification step 2]
+1. `readAllowList` for your wallet returns Admin
+2. You successfully deployed the ICMDemo contract
+3. You successfully called `setEnabled` for a test address
 
 ## Troubleshooting
 
-[PLACEHOLDER: Add common issues and solutions]
+### Issue: Tool shows "not available"
 
-### Issue 1: [PLACEHOLDER]
+**Problem**: The Contract Deployer Allowlist tool shows the precompile is not activated.
 
-**Problem**: [PLACEHOLDER: Describe the problem]
+**Solution**: The precompile was not enabled at genesis. You'll need to either:
+- Recreate the L1 with the precompile enabled, or
+- Use a network upgrade to activate it (covered in a later section)
 
-**Solution**: [PLACEHOLDER: Describe the solution]
+### Issue: Contract deployment fails with authorization error
 
-### Issue 2: [PLACEHOLDER]
+**Problem**: Deployment fails even though you believe you're an admin.
 
-**Problem**: [PLACEHOLDER: Describe the problem]
+**Solution**: 
+1. Verify your wallet address in the genesis config matches exactly
+2. Ensure you're connected to the correct L1 network in Core Wallet
+3. Use `readAllowList` to confirm your actual role
 
-**Solution**: [PLACEHOLDER: Describe the solution]
+### Issue: readAllowList shows None for my wallet
+
+**Problem**: Your wallet address is not recognized as an admin.
+
+**Solution**: Verify the address in your genesis config's `contractDeployerAllowListConfig.adminAddresses` matches your connected wallet.
 
 ## Next Steps
 
-[PLACEHOLDER: Suggest what students should do next or additional resources to explore]
+You've now verified both allowlist precompiles are working. In the next section, you'll intentionally remove yourself from the admin list to experience what happens when permissions are misconfigured—and how to recover.
