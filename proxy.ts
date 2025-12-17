@@ -32,7 +32,8 @@ export async function proxy(req: NextRequest) {
       "/hackathons/project-submission",
       "/showcase",
       "/profile",
-      "/student-launchpad"
+      "/student-launchpad",
+      "/grants/"
     ];
 
     const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
@@ -90,5 +91,6 @@ export const config = {
     "/academy/:path*/get-certificate",
     "/academy/:path*/certificate",
     "/console/utilities/data-api-keys",
+    "/grants/:path+",
   ],
 };
