@@ -2,6 +2,7 @@
   {
     "chainId": "80000",
     "chainName": "AIB Mainnet",
+    "isActive": true,
     "chainLogoURI": "",
     "subnetId": "2qJPnDkDH6hn3PVzxzkUdTqDD1HeAnTT8FL4t2BJagc2iuq8j7",
     "slug": "aibmainnet",
@@ -12,6 +13,7 @@
   {
     "chainId": "8787",
     "chainName": "Animalia",
+    "isActive": true,
     "description": "Free-to-play trading card game with crypto-inspired meme creatures. The L1 chain is now live on Avalanche mainnet, powered by AvaCloud. Features full NFT migration, new $ANIM token airdrop, and node & staking features.",
     "website": "https://animalia.games/",
     "socials": {
@@ -33,6 +35,7 @@
   {
     "chainId": "4313",
     "chainName": "Artery",
+    "isActive": true,
     "description": "AI-powered gaming blockchain on Avalanche featuring rich storytelling, game-first mechanics, and intelligent AI systems. Processes over 4 million transactions with 30K+ daily active users. Ecosystem includes games like Animalia, NEXA, and Degit.",
     "website": "https://studioartery.com/",
     "socials": {
@@ -58,6 +61,7 @@
   {
     "chainId": "65713",
     "chainName": "AS0314T1TP",
+    "isActive": true,
     "chainLogoURI": "",
     "subnetId": "2vL4TMT23mZzTsdkSSMFWZArFNWskR3xRWvCLxdrgd4rCe6vVy",
     "slug": "as0314t1tp",
@@ -68,6 +72,7 @@
   {
     "chainId": "43114",
     "chainName": "Avalanche C-Chain",
+    "isActive": true,
     "description": "The Avalanche C-Chain is the EVM chain of the Primary L1. It is the liquidity hub of the Avalanche ecosystem and is validated by a large permissionless validator set.",
     "website": "https://avax.network/",
     "socials": {
@@ -103,6 +108,7 @@
   {
     "chainId": "40404",
     "chainName": "Bango",
+    "isActive": true,
     "chainLogoURI": "",
     "subnetId": "2r7mmEKg3R2gTD22TtErn8KD8TmLeSjVXHdwMpH2S9BESUxH7q",
     "slug": "bango",
@@ -113,6 +119,7 @@
   {
     "chainId": "5506",
     "chainName": "Bangochain",
+    "isActive": true,
     "chainLogoURI": "",
     "subnetId": "4Wuefof5Lp2v5KfmJRnsGJz9HPX4UzWP7DZC5SyhQcXRQkyPp",
     "slug": "bangochain",
@@ -123,6 +130,7 @@
   {
     "chainId": "4337",
     "chainName": "Beam",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/2ZXZw0POSuXhwoGTiv2fzh/5b9d9e81acb434461da5addb1965f59d/chain-logo.png",
     "subnetId": "eYwmVU67LmSfZb1RwqCMhBYkFyG8ftxn6jAwqzFmxC9STBWLC",
     "slug": "beam",
@@ -150,6 +158,7 @@
   {
     "chainId": "836",
     "chainName": "Binary Holdings",
+    "isActive": true,
     "chainLogoURI": "https://explorer-binaryholdings.cogitus.io/_next/image?url=https%3A%2F%2Ff005.backblazeb2.com%2Ffile%2Ftracehawk-prod%2Flogo%2FBinaryHoldings%2FLight.png&w=96&q=75",
     "subnetId": "23dqTMHK186m4Rzcn1ukJdmHy13nqido4LjTp5Kh9W6qBKaFib",
     "slug": "binary-holdings",
@@ -171,6 +180,7 @@
   {
     "chainId": "46975",
     "chainName": "Blaze",
+    "isActive": true,
     "description": "Layer 1 blockchain powering decentralized streaming. Built for creators, not platforms, with community ownership elements. Features $BLAZE token, streamer tier systems, and Blaze Bridge connected to Avalanche C-Chain. Pioneering Web3 streaming to transfer power and revenue back to creators.",
     "website": "https://blaze.stream/",
     "socials": {
@@ -192,6 +202,7 @@
   {
     "chainId": "1344",
     "chainName": "Blitz",
+    "isActive": true,
     "description": "TSM's competitive gaming platform with 30 million users. Built on an Avalanche Subnet using $AVAX for gas fees, burning a portion with every transaction. Features performance insights, learning tools, and hosts Avalanche-branded tournaments.",
     "website": "https://blitz.gg/",
     "socials": {
@@ -212,6 +223,7 @@
   {
     "chainId": "28530",
     "chainName": "BTIC",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/36pifYYyfEVzkW3jCisM2u/c3479f3502db59f18a2d61c988ae66d1/BC_symbol_logo__teal.png",
     "subnetId": "2Ypm6RVhddu5Ps8DEbb35Y1PgX4uXE76yyxn6JMhnZy8ftAFLW",
     "slug": "btic",
@@ -231,6 +243,7 @@
   {
     "chainId": "35414",
     "chainName": "Cedomis",
+    "isActive": true,
     "chainLogoURI": "",
     "subnetId": "2LyJdHSdQDwg84nrbLrmtvEoAuudg41dWnhrbjMQUq78bdDHnT",
     "slug": "cedomis",
@@ -241,6 +254,7 @@
   {
     "chainId": "235235",
     "chainName": "CodeNekt",
+    "isActive": true,
     "description": "Blockchain-based automotive ecosystem on Layer 1 designed for the industry. Enables vehicle tokenization where each vehicle is assigned a unique digital identity (NFT) with tamper-proof records of VIN and ownership history. CDK token powers transactions, governance, and staking.",
     "website": "https://codenekt-ecosystem.io/",
     "socials": {
@@ -257,6 +271,7 @@
   {
     "chainId": "42069",
     "chainName": "Coqnet",
+    "isActive": true,
     "description": "Coqnet is a Layer-1 blockchain built within the Avalanche ecosystem. It is specifically designed to serve an empower memecoin communities. Coqnet leverages the robust infraestructure that Avalanche offers while having a unique identity and feature set.",
     "website": "https://coqnet.io/",
     "socials": {
@@ -281,6 +296,7 @@
   {
     "chainId": "737373",
     "chainName": "CX",
+    "isActive": true,
     "description": "CX Chain is a decentralized game execution layer where any participant can act as a liquidity provider or game operator.",
     "website": "https://cxchain.xyz/",
     "socials": {
@@ -303,6 +319,7 @@
   {
     "chainId": "326663",
     "chainName": "DComm",
+    "isActive": true,
     "chainLogoURI": "https://f005.backblazeb2.com/file/tracehawk-prod/logo/dcomm/Light.png",
     "subnetId": "fmmMAGwEYQZMGN7BC4b86gqmukSMEc6rAkG1SXapq3cz1W7y7",
     "slug": "dcomm",
@@ -313,6 +330,7 @@
   {
     "chainId": "96786",
     "chainName": "Delaunch",
+    "isActive": true,
     "chainLogoURI": "",
     "subnetId": "2ocjsdpN9czPYmHqS4Tc5Aydj4zk2WWVdX9jdXtqvMjQuf9pgV",
     "slug": "delaunch",
@@ -328,6 +346,7 @@
   {
     "chainId": "20250320",
     "chainName": "Dera Chain",
+    "isActive": true,
     "description": "Provides best Web3 UX with Account Abstraction, fully on-chain data with AI-powered analytics, diversified asset classes, and high-yield staking (40% APY). Features gas sponsorship via Paymaster and smooth fiat on/off ramps.",
     "socials": {
       "twitter": "DeraChain"
@@ -342,6 +361,7 @@
   {
     "chainId": "432204",
     "chainName": "Dexalot",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/6tKCXL3AqxfxSUzXLGfN6r/be31715b87bc30c0e4d3da01a3d24e9a/dexalot-subnet.png",
     "blockchainId": "0x84bdd5b728daf315c23da60a4dc97e82da8027bfc64389f4b04ae1d3d91686b2",
     "subnetId": "wenKDikJWAYQs3f2v9JhV86fC6kHZwkFZsuUBftnmgZ4QXPnu",
@@ -367,6 +387,7 @@
   {
     "chainId": "202110",
     "chainName": "Dinari Financial Network",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
     "subnetId": "2Ee4oBUute1PV5XaeS4b256eLH98r4NE8YgzX5nSX4cUxvtgre",
     "slug": "dinari-financial-network",
@@ -388,6 +409,7 @@
   {
     "chainId": "53935",
     "chainName": "DeFi Kingdoms",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/6ee8eu4VdSJNo93Rcw6hku/2c6c5691e8a7c3b68654e5a4f219b2a2/chain-logo.png",
     "subnetId": "Vn3aX6hNRstj5VHHm63TCgPNaeGnRSqCYXQqemSqDd2TQH4qJ",
     "slug": "defikingdoms",
@@ -411,6 +433,7 @@
   {
     "chainId": "7979",
     "chainName": "DOS",
+    "isActive": true,
     "description": "High-speed, gas-free, AI-powered L1 blockchain built for Web3 gaming. DOS Labs has over 400k daily active players and provides game developers with SDKs (Unity, Unreal, etc.) for quick Web3 integration. Features sub-second finality and gasless transactions.",
     "website": "https://doschain.com/",
     "socials": {
@@ -432,6 +455,7 @@
   {
     "chainId": "389",
     "chainName": "ETX",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
     "subnetId": "q54cgHa9RN2NFp9qsfpPzVkhgn8xqDgKEQR1G997xZ1P5Dc8o",
     "slug": "etx",
@@ -447,6 +471,7 @@
   {
     "chainId": "33345",
     "chainName": "Even",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
     "subnetId": "VsxF67NQTACc2fLQL9fD3F8LzJ5eezcSGFNitGsk7VxKbPwcD",
     "slug": "even",
@@ -464,6 +489,7 @@
   {
     "chainId": "33311",
     "chainName": "Feature",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/2hWSbxXPv2QTPCtCaEp7Kp/522b520e7e5073f7e7459f9bd581bafa/FTR_LOGO_-_FLAT_BLACK.png",
     "subnetId": "29p4FdSKaXQPyw8sqhzJSK37FXuPHdyECau186qZSUNRhk3QuB",
     "slug": "feature",
@@ -485,6 +511,7 @@
   {
     "chainId": "13322",
     "chainName": "FIFA",
+    "isActive": true,
     "description": "The FIFA Blockchain is a custom Avalanche L1, designed to streamline operations, optimize user experience, and deliver consistent, interoperable digital products to its fan base of over five billion people, even during high-traffic events like World Cup matches or major tournament launches.",
     "website": "https://collect.fifa.com/",
     "socials": {
@@ -509,6 +536,7 @@
   {
     "chainId": "62789",
     "chainName": "Frqtalnet",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
     "subnetId": "5vcCHz5fgd1hWyXaKiLnMAVjmh4qW7yFxNbASBjxCXZYE445N",
     "slug": "frqtalnet",
@@ -524,6 +552,7 @@
   {
     "chainId": "741741",
     "chainName": "Goodcare",
+    "isActive": true,
     "chainLogoURI": "",
     "subnetId": "2TqrQau4E99KoUXcFjyf1Pek3rUHpDpqtN9rC5GDaCKFu7dfPo",
     "slug": "goodcare",
@@ -534,6 +563,7 @@
   {
     "chainId": "7084",
     "chainName": "Growfitter",
+    "isActive": true,
     "chainLogoURI": "https://f005.backblazeb2.com/file/tracehawk-prod/logo/GrowFitter/Light.png",
     "subnetId": "BCDGWbjqYBJLsXEzHNc2qy9VYPTrF3aGaSMbTGyjn7qJ7RxH8",
     "slug": "growfitter",
@@ -544,6 +574,7 @@
   {
     "chainId": "43419",
     "chainName": "Gunzilla",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/3z2BVey3D1mak361p87Vu/ca7191fec2aa23dfa845da59d4544784/unnamed.png",
     "subnetId": "2MbQjnTg3yxEtZBfnamboi7K9AajwNq7WExiwReBQSBtwbBVer",
     "slug": "gunzilla",
@@ -567,6 +598,7 @@
   {
     "chainId": "7272",
     "chainName": "Hashfire",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/4TCWxdtzvtZ8iD4255nAgU/e4d12af0a594bcf38b53a27e6beb07a3/FlatIcon_Large_.png",
     "subnetId": "2LwJgsZLT52eAaxLTMLtBQeiUnEZuMibCqpAzJSQWHvRPs1iWN",
     "slug": "hashfire",
@@ -588,6 +620,7 @@
   {
     "chainId": "68414",
     "chainName": "Henesys",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/Uu31h98BapTCwbhHGBtFu/6b72f8e30337e4387338c82fa0e1f246/MSU_symbol.png",
     "blockchainId": "0xaf6a974f467006d94388f438014162dd12ec2d1475c48faf09ffe7222d59e478",
     "subnetId": "jmLmezoViv3F72XLzpdmSNk3qLEGb72g5EYkp3ij4wHXPF2KN",
@@ -615,6 +648,7 @@
   {
     "chainId": "10036",
     "chainName": "Innovo Markets Mainnet L1",
+    "isActive": true,
     "description": "Blockchain-based platform transforming the procurement of renewable energy certificates (RECs). Achieves instant settlement of funds and REC transfers with verified serial numbers across 11+ registries. Built to reduce friction and accelerate the energy transition.",
     "website": "https://www.innovomarkets.com/",
     "socials": {
@@ -639,6 +673,7 @@
   {
     "chainId": "151122",
     "chainName": "Intain Market",
+    "isActive": true,
     "description": "Debt capital markets platform on Avalanche L1 for structured finance. Tokenizes loans as NFTs with automated settlements and stablecoins. Digital Liquidity Gateway serves 2,000+ regional banks, connecting them to institutional investors. Built for permissioned access with U.S.-based infrastructure.",
     "website": "https://www.intainft.com/",
     "socials": {
@@ -654,6 +689,7 @@
   {
     "chainId": "1216",
     "chainName": "Intersect",
+    "isActive": true,
     "description": "Exclusive L1 blockchain network launched by STC Bahrain to create a pivotal entry point for Web3 adoption in the Middle East. Hosted 30-day hackathon with tracks in Gaming, Music, Media, Interoperability, and Security.",
     "website": "https://wholesale.stc.com.bh/web3-section/",
     "chainLogoURI": "",
@@ -675,6 +711,7 @@
   {
     "chainId": "6533",
     "chainName": "Kali Chain",
+    "isActive": true,
     "description": "Revolutionizes product certification with blockchain, ensuring a secure, reliable space for brands and consumers where each product tells an authentic, verifiable story. Merges NFC technology with NFTs for certification of physical goods.",
     "website": "https://kalichain.com/",
     "socials": {
@@ -699,6 +736,7 @@
   {
     "chainId": "379",
     "chainName": "Koroshi",
+    "isActive": true,
     "description": "Dynamic Web3 gaming project and decentralized studio powered by Avalanche L1. Features 2,000 upgradeable NFTs representing young warriors progressing through three life stages: Kid, Adolescent, and Adult. Combines competitive community with gaming development.",
     "website": "https://www.thekoroshi.com/",
     "socials": {
@@ -719,6 +757,7 @@
   {
     "chainId": "10849",
     "chainName": "Lamina1",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5KPky47nVRvtHKYV0rQy5X/e0d153df56fd1eac204f58ca5bc3e133/L1-YouTube-Avatar.png",
     "subnetId": "2hoHzxcZktxrTNoqCZhR9bEctc5oCuBqSp6SpRn6uvwxzLkvnD",
     "slug": "lamina1",
@@ -740,6 +779,7 @@
   {
     "chainId": "10850",
     "chainName": "Lamina1 Identity L1",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/4ihNeP5Qo9diLy0y6ouG3L/8c656592cc45f820188fb647f1a178f2/L1-YouTube-Avatar.png",
     "subnetId": "2T4gpnissLkoezQ36XKxhrFAH5yynqKGa1u47XxCYTdfvePuNz",
     "slug": "lamina1id",
@@ -759,6 +799,7 @@
   {
     "chainId": "50776",
     "chainName": "LetsbuyHC",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
     "subnetId": "f6ewGNYxGRjQ1SFfhL2tiHCMHzz9AHdTuPe11dRNarGbp3dES",
     "slug": "letsbuyhc",
@@ -774,6 +815,7 @@
   {
     "chainId": "72379",
     "chainName": "Loyal",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
     "subnetId": "fZu9D9Ldxq9svbgRNdycWCSbLyEZLmTfKNxEnSqF3UXQztHP7",
     "slug": "loyal",
@@ -791,6 +833,7 @@
   {
     "chainId": "62521",
     "chainName": "Lucid",
+    "isActive": true,
     "chainLogoURI": "",
     "subnetId": "hbP3PrnQS71Py1VVxvHfnCnr7MWos3XQesEsCKQoA9hpciyVR",
     "slug": "lucid",
@@ -806,6 +849,7 @@
   {
     "chainId": "17177",
     "chainName": "Lylty",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/B1sZPnAmwB0v26VmFW0oB/80596b43abce7f22384a30ce99e3a6ab/fanhub_thirdweb_icon.png",
     "subnetId": "2iumcj2wiV9BQ96LRHpYNpD1SHhb8Vcvm8YUebZSqcFeJakTo6",
     "slug": "lylty",
@@ -823,6 +867,7 @@
   {
     "chainId": "5419",
     "chainName": "Marnisa",
+    "isActive": true,
     "chainLogoURI": "",
     "subnetId": "sZ1zmoQx3NeV8WB5D3np8xYUJ2p5hKfWFXDeuSGvxyZkCABs2",
     "slug": "marnisa",
@@ -833,6 +878,7 @@
   {
     "chainId": "1888",
     "chainName": "Memoria",
+    "isActive": true,
     "description": "Memoria is the first decentralized AI Gaming and AI Agent concept platform, seamlessly merging AI-driven gaming with meme culture.",
     "website": "https://hub.xyz/memoria",
     "socials": {
@@ -853,6 +899,7 @@
   {
     "chainId": "29111",
     "chainName": "Mugen",
+    "isActive": true,
     "chainLogoURI": "",
     "subnetId": "LbvSkGmUJSpUby1gUrk4g9mmdeZQWcVGiFCXv57CJHBrxxEos",
     "slug": "mugen",
@@ -863,6 +910,7 @@
   {
     "chainId": "8021",
     "chainName": "Numi",
+    "isActive": true,
     "description": "Blockchain-based content platform integrating digital media formats—including games, videos, music, and books—into a Web 3.0 framework.",
     "website": "https://numine.io/",
     "socials": {
@@ -888,6 +936,7 @@
   {
     "chainId": "1510",
     "chainName": "Orange",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/4jmmb8oMQwW5My8YYcEmAx/ee1f1cef8766cc934e9190c5c1c7fa21/Orange_Logo_Mark_Slightly_Padded.png",
     "subnetId": "4onzNay6p7oru7GfZLCMrXhxvUqtmoC4vz8r8ev9e7r2C5wju",
     "slug": "orange",
@@ -908,6 +957,7 @@
   {
     "chainId": "58166",
     "chainName": "Oumla",
+    "isActive": true,
     "description": "First digital asset custody infrastructure provider in Saudi Arabia, delivering enterprise-grade security and efficiency. Partnered with Avalanche to create Saudi Arabia's first Layer One Blockchain fully hosted in KSA. Provides secure, scalable blockchain infrastructure for businesses, enterprises, and governments.",
     "website": "https://www.oumla.com/",
     "socials": {
@@ -923,6 +973,7 @@
   {
     "chainId": "7776",
     "chainName": "PandaSea",
+    "isActive": true,
     "description": "Web3 sports technology platform with custom Layer 1 blockchain. TheSportsExchange allows fans to buy tradable digital keys tied to real-world sports performance. Features sub-second finality and low-cost micro transactions for high-volume consumer marketplace.",
     "website": "https://pandasea.io/",
     "socials": {
@@ -938,6 +989,7 @@
   {
     "chainId": "3011",
     "chainName": "Playa3ull",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/27mn0a6a5DJeUxcJnZr7pb/8a28d743d65bf35dfbb2e63ba2af7f61/brandmark_-_square_-_Sam_Thompson.png",
     "subnetId": "2wLe8Ma7YcUmxMJ57JVWETMSHz1mjXmJc5gmssvKm3Pw8GkcFq",
     "slug": "playa3ull",
@@ -961,6 +1013,7 @@
   {
     "chainId": "16180",
     "chainName": "PLYR",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5K1xUbrhZPhSOEtsHoghux/b64edf007db24d8397613f7d9338260a/logomark_fullorange.svg",
     "subnetId": "axp7DUSPvFghTM883ug2B8btAReBAACxD1VyENmRDStH4Lfed",
     "slug": "plyr",
@@ -987,6 +1040,7 @@
   {
     "chainId": "77757",
     "chainName": "QR0723T1MS",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
     "subnetId": "TsijYHafTXCUZGoisGnMorh2HGwY9Vg2YzviEo8nrmtZZESp9",
     "slug": "qr0723t1ms",
@@ -1002,6 +1056,7 @@
   {
     "chainId": "12150",
     "chainName": "Quboid Chain",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5jRNt6keCaCe0Z35ZQbwtL/94f81aa95f9d9229111693aa6a705437/Quboid_Logo.jpg",
     "subnetId": "26wQKuvA5kjwrKDaje7nmuJAx6Ke2bGvDDr3EiypNr53rH1pMc",
     "slug": "qchain",
@@ -1027,6 +1082,7 @@
   {
     "chainId": "6119",
     "chainName": "SK Planet",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5jmuPVLmmUSDrfXxbIrWwo/4bdbe8d55b775b613156760205d19f9f/symbol_UPTN_-_js_won.png",
     "subnetId": "yDxaSh2hoVxQKRHmacV1xFpuSgHf6Q6cCMu4v3GoLQnqQWk6L",
     "slug": "skplanet",
@@ -1048,6 +1104,7 @@
   {
     "chainId": "8227",
     "chainName": "Space",
+    "isActive": true,
     "description": "Interoperable L1 blockchain by Otherworld for Solo Leveling: Unlimited digital collectibles platform. Features gasless NFT transactions and partnerships with LayerZero for cross-chain asset movement. Based on Korean mega-hit anime with 14.3B views.",
     "website": "https://otherworld.network/",
     "socials": {
@@ -1073,6 +1130,7 @@
   {
     "chainId": "1234",
     "chainName": "Step Network",
+    "isActive": true,
     "description": "EVM-compatible blockchain built on Avalanche for fitness and lifestyle. Step App is the first Web3-based fitness application on the network, allowing users to earn FITFI tokens through physical activity under the 'move-to-earn' model.",
     "website": "https://step.network/",
     "socials": {
@@ -1096,6 +1154,7 @@
   {
     "chainId": "5566",
     "chainName": "StraitsX",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/3jGGJxIwb3GjfSEJFXkpj9/2ea8ab14f7280153905a29bb91b59ccb/icon.png",
     "subnetId": "2W9sERL7Zf7NrWpz7Bzg3fKSEt46gSQaKAU7ntTMSShLy64yMz",
     "slug": "straitsx",
@@ -1117,6 +1176,7 @@
   {
     "chainId": "61587",
     "chainName": "TGP",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/76IPuyrLUYnK0VgueFSi7M/aee8e71bbc409578afcb1ab13593da43/TGP_Logo_Short_-_Straight_BG.png",
     "subnetId": "2eq3DtJp4cWzvGd8Q3ZFo8VpZmmD235Xoxgq6CmX8anZ69M54",
     "slug": "tgp",
@@ -1142,6 +1202,7 @@
   {
     "chainId": "710420",
     "chainName": "Tiltyard",
+    "isActive": true,
     "description": "On-chain gaming platform by Crypto Raiders team. Hosts large-scale poker-style tournaments and integrates fantasy sports elements. First game Midnight Heist is 100% on-chain card-based strategy game. Built on Avalanche Subnet for gas-less transactions.",
     "website": "https://tiltyard.gg/",
     "socials": {
@@ -1166,6 +1227,7 @@
   {
     "chainId": "84358",
     "chainName": "Titan",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5m6pgoG1znzD3CA0HEh7D0/6850391f9ba90d9a97e37790b32f89ba/TITAN_mainnet_logo.png",
     "subnetId": "2LbGgyVZE5aMMYPp3h1F2MkKbjefR51nSZWaZzarDZf8GThCcX",
     "slug": "titan",
@@ -1187,6 +1249,7 @@
   {
     "chainId": "13790",
     "chainName": "Tixchain",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/3vVAZlWMvseaIUrzOruj87/a75c589d46548fde238ad3a48dc3cbf1/tixbase.jpg",
     "subnetId": "2BLtazsGwYAFEHpvZQGQUPavjQZ2YUqpvfYPdAdTtKpJ1m3eRK",
     "slug": "tixchain",
@@ -1208,6 +1271,7 @@
   {
     "chainId": "21024",
     "chainName": "TRX",
+    "isActive": true,
     "chainLogoURI": "",
     "subnetId": "JD8MbaUp75twdVJ7A4j2ryk7gFJ8FCgQeNLhvDv3y4up9bExp",
     "slug": "trx",
@@ -1227,6 +1291,7 @@
   {
     "chainId": "62334",
     "chainName": "Turf Network",
+    "isActive": true,
     "description": "TURF Network is a real‑time data‑orchestration protocol for gaming and AI built on Avalanche. It converts gameplay events into on‑chain, validated data structures via a network of nodes. Games integrate with TURF to turn in‑game telemetry into composable, verifiable data for analytics, AI, e‑sports, prediction markets, and more.",
     "website": "https://turf.network/",
     "socials": {
@@ -1248,6 +1313,7 @@
   {
     "chainId": "237007",
     "chainName": "Ulalo",
+    "isActive": true,
     "chainLogoURI": "https://f005.backblazeb2.com/file/tracehawk-prod/logo/UOLO/Light.png",
     "subnetId": "sopy3uXvCFVLorg4kmqQfZpqVg9GXzs8GmjSwM18GZJtf66h6",
     "slug": "ulalo",
@@ -1258,6 +1324,7 @@
   {
     "chainId": "40875",
     "chainName": "V1Migrate",
+    "isActive": true,
     "chainLogoURI": "",
     "subnetId": "kf1sMrGJSA2x9yZfvjBJCHu3ZdTievrCyrbEEPKXbHMH2tXuA",
     "slug": "v1migrate",
@@ -1268,6 +1335,7 @@
   {
     "chainId": "299792",
     "chainName": "WARP Gaming",
+    "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
     "subnetId": "9L3hT5PtJVhiyJt1FHVqeJKtguyTM7V98KZobBeCUhYCQEHeQ",
     "slug": "warp",
@@ -1285,6 +1353,7 @@
   {
     "chainId": "192",
     "chainName": "Watr",
+    "isActive": true,
     "chainLogoURI": "https://f005.backblazeb2.com/file/tracehawk-prod/logo/watr/Light.svg",
     "subnetId": "QL49tBK9T84NSHQYYSP33Ru7h1KcybDR6MGA8dARVWhw1zLB8",
     "slug": "watr",
@@ -1300,6 +1369,7 @@
   {
     "chainId": "98968",
     "chainName": "Wow",
+    "isActive": true,
     "chainLogoURI": "",
     "subnetId": "hqqtt4VGmzSACDn2yYxTFMhHu9RpFTECEhbexb4bXu2w6Pxtf",
     "slug": "wow",
@@ -1310,6 +1380,7 @@
   {
     "chainId": "8888",
     "chainName": "Xanachain",
+    "isActive": true,
     "description": "World's first metaverse-focused public chain leveraging Avalanche's L1 technology. AI-powered Web 3.0 metaverse infrastructure with EVM compatibility. Features $XETA gas token, bridging with Avalanche C-Chain, and customized environment for metaverse applications. Adopted by 100+ institutions and global brands.",
     "website": "https://xana.net/",
     "socials": {
@@ -1325,6 +1396,7 @@
   {
     "chainId": "61360",
     "chainName": "Youmio",
+    "isActive": true,
     "description": "Youmio is a new kind of blockchain: the first Layer 1 built from the ground up as an agent chain, introducing foundational infrastructure for autonomous agents to operate across apps, games and digital environments.",
     "website": "https://youmio.ai/",
     "socials": {
@@ -1345,6 +1417,7 @@
   {
     "chainId": "27827",
     "chainName": "Zeroone",
+    "isActive": true,
     "description": "By operating its own chain, Zeroone can offer gasless minting, instant transactions, and customizable economics for creators and collectors—delivering the performance of Web2 social platforms with the transparency and true ownership of Web3.",
     "website": "https://zeroone.art/",
     "socials": {
@@ -1366,6 +1439,7 @@
   {
     "chainId": "8198",
     "chainName": "Hatchyverse",
+    "isActive": true,
     "description": "The world's first decentralized IP owned by a DAO. A gamified ecosystem combining collecting, competitive gameplay, and content creation revolving around Hatchies: unique creatures that hatch from mysterious eggs. Features over 400 elemental monsters.",
     "website": "https://hatchyverse.com/",
     "socials": {
@@ -1387,6 +1461,7 @@
   {
     "chainId": "69420",
     "chainName": "ETO",
+    "isActive": true,
     "chainLogoURI": "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/ETO.png",
     "subnetId": "2ku5ZCd4t4CDc7ahotdJcoDxc6efE6uMC5C445S9ZKih473LpN",
     "slug": "eto",
