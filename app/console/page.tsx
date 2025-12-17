@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, Suspense } from "react";
 import { ChevronRight, Layers, Users, MessagesSquare, ArrowUpDown, Settings, Droplets } from "lucide-react";
 import Link from "next/link";
+import posthog from 'posthog-js';
 
 function RedirectLogic() {
   const { data: session, status } = useSession();
@@ -13,17 +14,35 @@ function RedirectLogic() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (
-      status === "authenticated" &&
-      session.user.is_new_user &&
-      pathname !== "/profile"
-    ) {
-      // Store the original URL with search params (including UTM) in localStorage
-      const originalUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-      if (typeof window !== "undefined") {
-        localStorage.setItem("redirectAfterProfile", originalUrl);
+    if (status === "authenticated" && session.user.is_new_user) {
+      // Track new user creation in PostHog (once per user)
+      const trackingKey = `posthog_user_created_${session.user.id}`;
+      if (typeof window !== "undefined" && !localStorage.getItem(trackingKey)) {
+        posthog.identify(session.user.id, {
+          email: session.user.email,
+          name: session.user.name,
+        });
+        posthog.capture('user_created', {
+          auth_provider: session.user.authentication_mode,
+          utm_source: searchParams.get('utm_source') || undefined,
+          utm_medium: searchParams.get('utm_medium') || undefined,
+          utm_campaign: searchParams.get('utm_campaign') || undefined,
+          utm_content: searchParams.get('utm_content') || undefined,
+          utm_term: searchParams.get('utm_term') || undefined,
+          referrer: document.referrer || undefined,
+        });
+        localStorage.setItem(trackingKey, 'true');
       }
-      router.replace("/profile");
+
+      // Redirect new users to profile page
+      if (pathname !== "/profile") {
+        // Store the original URL with search params (including UTM) in localStorage
+        const originalUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+        if (typeof window !== "undefined") {
+          localStorage.setItem("redirectAfterProfile", originalUrl);
+        }
+        router.replace("/profile");
+      }
     }
   }, [session, status, pathname, router, searchParams]);
 
