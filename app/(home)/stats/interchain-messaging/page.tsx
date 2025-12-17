@@ -1,49 +1,12 @@
 "use client";
 import { useState, useEffect, useMemo, useRef } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Line,
-  LineChart,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Brush,
-  ResponsiveContainer,
-} from "recharts";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import {Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer} from "recharts";
+import {Card, CardContent} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  MessageSquare,
-  TrendingUp,
-  Trophy,
-  ArrowUpRight,
-  BookOpen,
-  Activity,
-  BadgeDollarSign,
-  Layers,
-  Camera,
-  Download,
-  Globe,
-  ChevronRight,
-} from "lucide-react";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {MessageSquare, TrendingUp, ArrowUpRight, BookOpen, Camera, Download, Globe, ChevronRight} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
-import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { ICMMetric } from "@/types/stats";
 import Image from "next/image";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -51,19 +14,8 @@ import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { useTheme } from "next-themes";
 import { toPng } from "html-to-image";
 import Link from "next/link";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import {
-  ICTTDashboard,
-  ICTTTransfersTable,
-} from "@/components/stats/ICTTDashboard";
+import { ICTTDashboard, ICTTTransfersTable } from "@/components/stats/ICTTDashboard";
 import ICMFlowChart from "@/components/stats/ICMFlowChart";
 import { LinkableHeading } from "@/components/stats/LinkableHeading";
 import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
