@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, Suspense } from "react";
+import { ReactNode } from "react";
 import { ConsoleSidebar } from "../../components/console/console-sidebar";
 import { SiteHeader } from "../../components/console/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -8,20 +8,7 @@ import { SessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";
 import { useAutomatedFaucet } from "@/hooks/useAutomatedFaucet";
-import { useTrackNewUser } from "@/hooks/useTrackNewUser";
-
-function TrackNewUserWrapper() {
-  useTrackNewUser();
-  return null;
-}
-
-function TrackNewUser() {
-  return (
-    <Suspense fallback={null}>
-      <TrackNewUserWrapper />
-    </Suspense>
-  );
-}
+import { TrackNewUser } from "@/components/analytics/TrackNewUser";
 
 function ConsoleContent({ children }: { children: ReactNode }) {
   useAutomatedFaucet();

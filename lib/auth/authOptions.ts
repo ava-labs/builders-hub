@@ -13,19 +13,24 @@ declare module 'next-auth' {
     user: {
       id: string;
       avatar?: string;
-      custom_attributes: string[]
+      custom_attributes: string[];
       role?: string;
       email?: string;
       user_name?: string;
-      is_new_user: boolean
+      is_new_user: boolean;
       authentication_mode?: string;
     } & DefaultSession['user'];
   }
+}
+
+declare module 'next-auth/jwt' {
   interface JWT {
     id?: string;
-    avatar?: string;
-    custom_attributes: string[]
+    avatar?: string | null;
+    custom_attributes: string[];
     authentication_mode?: string;
+    is_new_user?: boolean;
+    user_name?: string;
   }
 }
 
@@ -171,7 +176,7 @@ export const AuthOptions: NextAuthOptions = {
       session.user.name = token.name ?? '';
       session.user.email = token.email ?? '';
       session.user.is_new_user = token.is_new_user ? true : false;
-      session.user.authentication_mode = token.authentication_mode as string;
+      session.user.authentication_mode = token.authentication_mode ?? '';
       return session;
     },
     async redirect({ url, baseUrl }) {

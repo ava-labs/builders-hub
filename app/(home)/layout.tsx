@@ -9,7 +9,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { LayoutWrapper } from "@/app/layout-wrapper.client";
 import { NavbarDropdownInjector } from "@/components/navigation/navbar-dropdown-injector";
 import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";
-import { useTrackNewUser } from "@/hooks/useTrackNewUser";
+import { TrackNewUser } from "@/components/analytics/TrackNewUser";
 
 export default function Layout({
   children,
@@ -18,6 +18,7 @@ export default function Layout({
 }): React.ReactElement {
   return (
     <SessionProvider>
+      <TrackNewUser />
       <Suspense fallback={null}>
         <RedirectIfNewUser />
       </Suspense>
@@ -32,14 +33,15 @@ export default function Layout({
   );
 }
 
+/**
+ * Component to redirect new users to the profile page.
+ * Tracking is handled separately by TrackNewUser component.
+ */
 function RedirectIfNewUser() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  // Track new user in PostHog (shared hook handles deduplication)
-  useTrackNewUser();
 
   useEffect(() => {
     if (status === "authenticated" && session?.user?.is_new_user) {

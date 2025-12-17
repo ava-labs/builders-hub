@@ -9,11 +9,17 @@ import posthog from "posthog-js";
 // This ensures only one tracking call happens even if multiple components mount simultaneously
 let isTrackingInProgress = false;
 
+// Maximum number of retry attempts for PostHog initialization
+const MAX_RETRY_ATTEMPTS = 5;
+// Delay between retry attempts in milliseconds
+const RETRY_DELAY_MS = 500;
+
 /**
  * Hook to track new user creation in PostHog.
  *
  * Features:
  * - Checks if PostHog is initialized before calling identify/capture
+ * - Retries tracking if PostHog is not yet ready (up to MAX_RETRY_ATTEMPTS)
  * - Prevents duplicate tracking via localStorage + module-level flag
  * - Captures UTM parameters and referrer for attribution
  *
@@ -23,6 +29,7 @@ export function useTrackNewUser(): void {
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const hasTrackedRef = useRef(false);
+  const retryCountRef = useRef(0);
 
   useEffect(() => {
     // Only proceed if authenticated with a new user
@@ -48,27 +55,20 @@ export function useTrackNewUser(): void {
       return;
     }
 
-    // Set flags BEFORE async operations to prevent race conditions
-    isTrackingInProgress = true;
-    hasTrackedRef.current = true;
-    localStorage.setItem(trackingKey, "true");
-
-    // Check if PostHog is initialized and ready
-    // posthog-js sets __loaded to true once initialization is complete
-    const isPostHogReady =
+    /**
+     * Check if PostHog is initialized and ready.
+     * posthog-js sets __loaded to true once initialization is complete.
+     */
+    const isPostHogReady = (): boolean =>
       typeof posthog !== "undefined" &&
       typeof posthog.identify === "function" &&
       typeof posthog.capture === "function" &&
       (posthog as unknown as { __loaded?: boolean }).__loaded === true;
 
-    if (!isPostHogReady) {
-      // PostHog not ready - flags are already set so we won't retry
-      // This prevents duplicate events if PostHog loads later
-      isTrackingInProgress = false;
-      return;
-    }
-
-    try {
+    /**
+     * Perform the actual tracking call to PostHog.
+     */
+    const performTracking = (): void => {
       // Identify the user in PostHog
       posthog.identify(userId, {
         email: session.user.email,
@@ -85,8 +85,39 @@ export function useTrackNewUser(): void {
         utm_term: searchParams.get("utm_term") || undefined,
         referrer: document.referrer || undefined,
       });
-    } finally {
+
+      // Mark as tracked in localStorage for persistence across page loads
+      localStorage.setItem(trackingKey, "true");
+      hasTrackedRef.current = true;
       isTrackingInProgress = false;
-    }
+    };
+
+    /**
+     * Attempt to track with retry logic if PostHog is not ready.
+     */
+    const attemptTracking = (): void => {
+      if (isPostHogReady()) {
+        performTracking();
+      } else if (retryCountRef.current < MAX_RETRY_ATTEMPTS) {
+        // PostHog not ready yet - schedule a retry
+        retryCountRef.current += 1;
+        setTimeout(attemptTracking, RETRY_DELAY_MS);
+      } else {
+        // Max retries exceeded - give up to avoid blocking
+        // User will be tracked on their next session if PostHog loads
+        isTrackingInProgress = false;
+      }
+    };
+
+    // Set flag to prevent concurrent tracking attempts
+    isTrackingInProgress = true;
+    attemptTracking();
+
+    // Cleanup: reset tracking flag if component unmounts during retry
+    return () => {
+      if (!hasTrackedRef.current) {
+        isTrackingInProgress = false;
+      }
+    };
   }, [session, status, searchParams]);
 }
