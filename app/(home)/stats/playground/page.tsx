@@ -426,7 +426,9 @@ function PlaygroundContent() {
             stackSameMetrics: chart.stackSameMetrics || false,
             abbreviateNumbers: chart.abbreviateNumbers !== undefined ? chart.abbreviateNumbers : true,
             startTime: chart.startTime || null,
-            endTime: chart.endTime || null
+            endTime: chart.endTime || null,
+            brushStartIndex: chart.brushStartIndex ?? null,
+            brushEndIndex: chart.brushEndIndex ?? null
           }));
           setCharts(loadedCharts);
           setSavedCharts(loadedCharts.map((chart: ChartConfig) => ({
@@ -628,7 +630,7 @@ function PlaygroundContent() {
     for (let i = 0; i < charts.length; i++) {
       const current = charts[i];
       const saved = savedCharts[i];
-      if (!saved || current.id !== saved.id || current.title !== saved.title || current.colSpan !== saved.colSpan || current.stackSameMetrics !== saved.stackSameMetrics || current.abbreviateNumbers !== saved.abbreviateNumbers || current.startTime !== saved.startTime || current.endTime !== saved.endTime) {
+      if (!saved || current.id !== saved.id || current.title !== saved.title || current.colSpan !== saved.colSpan || current.stackSameMetrics !== saved.stackSameMetrics || current.abbreviateNumbers !== saved.abbreviateNumbers || current.startTime !== saved.startTime || current.endTime !== saved.endTime || current.brushStartIndex !== saved.brushStartIndex || current.brushEndIndex !== saved.brushEndIndex) {
         return true;
       }
       
