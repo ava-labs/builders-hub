@@ -22,6 +22,7 @@ const RETRY_DELAY_MS = 500;
  * - Retries tracking if PostHog is not yet ready (up to MAX_RETRY_ATTEMPTS)
  * - Prevents duplicate tracking via localStorage + module-level flag
  * - Captures UTM parameters and referrer for attribution
+ * - Properly cleans up timeouts on unmount
  *
  * @returns void - This hook only performs side effects
  */
@@ -30,6 +31,7 @@ export function useTrackNewUser(): void {
   const searchParams = useSearchParams();
   const hasTrackedRef = useRef(false);
   const retryCountRef = useRef(0);
+  const timeoutIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Only proceed if authenticated with a new user
@@ -69,27 +71,34 @@ export function useTrackNewUser(): void {
      * Perform the actual tracking call to PostHog.
      */
     const performTracking = (): void => {
-      // Identify the user in PostHog
-      posthog.identify(userId, {
-        email: session.user.email,
-        name: session.user.name,
-      });
+      try {
+        // Identify the user in PostHog
+        posthog.identify(userId, {
+          email: session.user.email,
+          name: session.user.name,
+        });
 
-      // Capture the user_created event with attribution data
-      posthog.capture("user_created", {
-        auth_provider: session.user.authentication_mode,
-        utm_source: searchParams.get("utm_source") || undefined,
-        utm_medium: searchParams.get("utm_medium") || undefined,
-        utm_campaign: searchParams.get("utm_campaign") || undefined,
-        utm_content: searchParams.get("utm_content") || undefined,
-        utm_term: searchParams.get("utm_term") || undefined,
-        referrer: document.referrer || undefined,
-      });
+        // Capture the user_created event with attribution data
+        posthog.capture("user_created", {
+          auth_provider: session.user.authentication_mode,
+          utm_source: searchParams.get("utm_source") || undefined,
+          utm_medium: searchParams.get("utm_medium") || undefined,
+          utm_campaign: searchParams.get("utm_campaign") || undefined,
+          utm_content: searchParams.get("utm_content") || undefined,
+          utm_term: searchParams.get("utm_term") || undefined,
+          referrer: document.referrer || undefined,
+        });
 
-      // Mark as tracked in localStorage for persistence across page loads
-      localStorage.setItem(trackingKey, "true");
-      hasTrackedRef.current = true;
-      isTrackingInProgress = false;
+        // Mark as tracked in localStorage for persistence across page loads
+        localStorage.setItem(trackingKey, "true");
+        hasTrackedRef.current = true;
+      } catch (error) {
+        // Log error but don't throw - tracking failures shouldn't break the app
+        console.error("[useTrackNewUser] Failed to track new user in PostHog:", error);
+      } finally {
+        // Always release the tracking lock
+        isTrackingInProgress = false;
+      }
     };
 
     /**
@@ -101,10 +110,16 @@ export function useTrackNewUser(): void {
       } else if (retryCountRef.current < MAX_RETRY_ATTEMPTS) {
         // PostHog not ready yet - schedule a retry
         retryCountRef.current += 1;
-        setTimeout(attemptTracking, RETRY_DELAY_MS);
+        timeoutIdRef.current = setTimeout(attemptTracking, RETRY_DELAY_MS);
       } else {
         // Max retries exceeded - give up to avoid blocking
         // User will be tracked on their next session if PostHog loads
+        console.warn(
+          "[useTrackNewUser] PostHog failed to initialize after",
+          MAX_RETRY_ATTEMPTS,
+          "attempts. Skipping user_created tracking for user:",
+          userId
+        );
         isTrackingInProgress = false;
       }
     };
@@ -113,8 +128,14 @@ export function useTrackNewUser(): void {
     isTrackingInProgress = true;
     attemptTracking();
 
-    // Cleanup: reset tracking flag if component unmounts during retry
+    // Cleanup: clear timeout and reset tracking flag if component unmounts
     return () => {
+      // Clear any pending timeout to prevent memory leaks and stale callbacks
+      if (timeoutIdRef.current !== null) {
+        clearTimeout(timeoutIdRef.current);
+        timeoutIdRef.current = null;
+      }
+      // Only reset the flag if we haven't successfully tracked yet
       if (!hasTrackedRef.current) {
         isTrackingInProgress = false;
       }
