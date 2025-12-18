@@ -1,0 +1,254 @@
+{
+  "0x420FcA0121DC28039145009570975747295f2329": {
+    "name": "Coq Inu",
+    "symbol": "COQ",
+    "coingeckoId": "coq-inu"
+  },
+  "0x0ceE9001DafFf03080E71b76c47e2C89c4c9e752": {
+    "name": "Wrapped AVAX (non-official)",
+    "symbol": "WAVAX",
+    "coingeckoId": "wrapped-avax"
+  },
+  "0x81CB6998c6313E1782A6bf1491c43cF36935E41d": {
+    "name": "Wrapped PEARL",
+    "symbol": "wPEARL"
+  },
+  "0x8776490087dc5FdF25193F4F441A0c9735e8D3CC": {
+    "name": "Wrapped Lamina1",
+    "symbol": "wLAMINA1"
+  },
+  "0x59234B44214D88C57B7c54A6D2633334D95C5161": {
+    "name": "NUMINE Token",
+    "symbol": "NUMINE"
+  },
+  "0xAAAaBe49A72EcF0804292CE8e889016d9D05767c": {
+    "name": "Wrapped PLYR",
+    "symbol": "WPLYR"
+  },
+  "0x748048d9616CBd531209277898391f458C0D9E31": {
+    "name": "GAMR",
+    "symbol": "GAMR"
+  },
+  "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7": {
+    "name": "WAVAX",
+    "symbol": "WAVAX",
+    "coingeckoId": "wrapped-avax"
+  },
+  "0x413F1a8F0A2Bd9b6D31B2CA91c4aa7bC08266731": {
+    "name": "GAMR",
+    "symbol": "GAMR"
+  },
+  "0xb2F85b7AB3c2b6f2DF06dE6aE7D09c010a5096E": {
+    "name": "XSGD (StraitsX Singapore Dollar)",
+    "symbol": "XSGD",
+    "coingeckoId": "xsgd"
+  },
+  "0x37B6B53F2C7048F260CeA145Ffa28fA0Ff800fE9": {
+    "name": "SPEED INK",
+    "symbol": "SPEEDINK"
+  },
+  "0x46B9144771Cb3195D66e4EDA643a7493fADCAF9D": {
+    "name": "Bloodloop BLS",
+    "symbol": "BLS"
+  },
+  "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E": {
+    "name": "USDC",
+    "symbol": "USDC",
+    "coingeckoId": "usd-coin"
+  },
+  "0x441EEd9FeE4f002c541abC91075D35cD28Fd6f7D": {
+    "name": "Gold Fever Native Gold",
+    "symbol": "GFNG"
+  },
+  "0xACC95Afa65768aa74044E6f6e267AD417CD3e55": {
+    "name": "Boi the Bear",
+    "symbol": "BOI"
+  },
+  "0x26deBD39D5eD069770406FCa10A0E4f8d2c743eB": {
+    "name": "Gunz",
+    "symbol": "GUNZ"
+  },
+  "0x59414b3089ce2AF0010e7523Dea7E2b35d776ec7": {
+    "name": "YieldYak",
+    "symbol": "YAK"
+  },
+  "0x502580fc390606b47FC3b741d6D49093383c28a9": {
+    "name": "Hatchy",
+    "symbol": "HATCHY"
+  },
+  "0xFFFF003a6BAD9b743d6580487429935fFfE2b6ED7": {
+    "name": "KET",
+    "symbol": "KET"
+  },
+  "0x62D0A8458eD7719FDAF978fe5929C6D342B0BFcE": {
+    "name": "Beam",
+    "symbol": "BEAM",
+    "coingeckoId": "beam-2"
+  },
+  "0x4A5Bb433132B7E7F75D6A9a3e4136bB85CE6E4d5": {
+    "name": "BOOTY",
+    "symbol": "BOOTY"
+  },
+  "0xC139Aa91399600f6b72975AC3317b6d49Cb30a69": {
+    "name": "Avax Meme Index",
+    "symbol": "AMI"
+  },
+  "0x0000000000000000000000000000000000000000": {
+    "name": "C-Chain Native Token",
+    "symbol": "AVAX",
+    "coingeckoId": "avalanche"
+  },
+  "0x7916aA8ceecdc0bF72D7Bd38fDd82592e0146D4": {
+    "name": "Wrapped KALIS",
+    "symbol": "WKALIS"
+  },
+  "0xB8d7710f7d8349A506b75dD184F05777c82dAd0C": {
+    "name": "ArenaToken",
+    "symbol": "ARENA"
+  },
+  "0x383eE996b783145c4d1d311144c5c35d5096937": {
+    "name": "Token",
+    "symbol": "TOKEN"
+  },
+  "0xa77e70d0Af1Ac7f86726740dB1Bd065c356e6937": {
+    "name": "Token",
+    "symbol": "TOKEN"
+  },
+  "0x48F35050BCEFab98eA1aF491B8ef859bCe16f240": {
+    "name": "Token",
+    "symbol": "TOKEN"
+  },
+  "0x7698A5311DA174A95253Ce86C21ca7272b9B05f8": {
+    "name": "Wink",
+    "symbol": "WINK"
+  },
+  "0x386905718368aDeD7e544a40cA2Bd60cEb4D2B80": {
+    "name": "Eat The Banana",
+    "symbol": "ETB"
+  },
+  "0xFF24003428Fb2E969C39EdEe4e9F464b0b78313d": {
+    "name": "WAIFU",
+    "symbol": "WAIFU"
+  },
+  "0x8729438EB15e2C8B576fCc6AeCdA6A148776C0F5": {
+    "name": "BENQI",
+    "symbol": "QI",
+    "coingeckoId": "benqi"
+  },
+  "0xCa58b8AD4a83D9e456cA88bB228803714074e23": {
+    "name": "Token",
+    "symbol": "TOKEN"
+  },
+  "0x665c48BD24ddD775FA924e2d92442e1d33CB752": {
+    "name": "Token",
+    "symbol": "TOKEN"
+  },
+  "0xD512837f76c5ed811193FAC8EBB71b55129288ad": {
+    "name": "LYLTY",
+    "symbol": "LYLTY"
+  },
+  "0x0f669808d88B2b0b3D23214DCD2a1cc6A8B1B5cd": {
+    "name": "Blub",
+    "symbol": "BLUB"
+  },
+  "0xC654721fBf1F374fd9Ffa33285A45e0cD28Fd6f5": {
+    "name": "Juicy",
+    "symbol": "JUICY"
+  },
+  "0x152b9d0FdC40C096757F570A51E494bd4b943E50": {
+    "name": "Bitcoin",
+    "symbol": "BTC.b",
+    "coingeckoId": "bitcoin"
+  },
+  "0x6F43fF77A9C0Cf552b5b6532688FBfe26A0e52429b": {
+    "name": "Lambo",
+    "symbol": "LAMBO"
+  },
+  "0x0000000eEF302BEAA2b3e6e1B18d08D69a9012a": {
+    "name": "AUSD",
+    "symbol": "AUSD"
+  },
+  "0xCaC4904E1DB1589Aa17A2Ec742F5a6bCF4c4D037": {
+    "name": "Token",
+    "symbol": "TOKEN"
+  },
+  "0xAcFb898Cff266E53278cC0124fC2C7C94c8cB9a5": {
+    "name": "Token",
+    "symbol": "TOKEN"
+  },
+  "0xf4865D3Ec2f8D5607c2b571eB0F368655cB2C61": {
+    "name": "Fancy",
+    "symbol": "FANCY"
+  },
+  "0xAAAB9D12A30504559b0C5a9A5977fEE4A6081c6b": {
+    "name": "PHARAOH",
+    "symbol": "PHARAOH",
+    "coingeckoId": "pharaoh"
+  },
+  "0x2d0aFed89a6D6A100273Db377dBA7a32C739E314": {
+    "name": "BIG",
+    "symbol": "BIG"
+  },
+  "0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd": {
+    "name": "JoeToken",
+    "symbol": "JOE",
+    "coingeckoId": "joe"
+  },
+  "0xb279f8DD152B99Ec1D84A489D32c35C0Acf6F5674": {
+    "name": "Token",
+    "symbol": "TOKEN"
+  },
+  "0xd402298a793948698b9a633114c5ee2F5BBEe944eAfD": {
+    "name": "Token",
+    "symbol": "TOKEN"
+  },
+  "0xcd94a87696FAC69Edae3a70fE5725307Ae1c43f6": {
+    "name": "Token",
+    "symbol": "TOKEN"
+  },
+  "0x09d65725487bB3980bf581590208213069F7a02": {
+    "name": "Token",
+    "symbol": "TOKEN"
+  },
+  "0xb5DAc0dEE18fF7C3535C3b460966bbf5e2b4606966": {
+    "name": "Token",
+    "symbol": "TOKEN"
+  },
+  "0x509a8Ec5060D36B29F17b9EE351BEbD8B80f53c": {
+    "name": "testXSGD",
+    "symbol": "testXSGD"
+  },
+  "0x98B172A091028869adD73116FC92A0060BFF4778F": {
+    "name": "Apex",
+    "symbol": "APEX"
+  },
+  "0xa77d05fd853af120cD4dB48e73498773Abd3F628": {
+    "name": "AI 404",
+    "symbol": "AI404"
+  },
+  "0xa6c187afd89aaa4961832abB01099a781aFa2AA1": {
+    "name": "ULALO",
+    "symbol": "ULALO"
+  },
+  "0x184ff13B3EBCB25Be44e86013A50191d568c1": {
+    "name": "Kimbo",
+    "symbol": "KIMBO"
+  },
+  "0xD5Cf122e4e0F1bdDD54E17e046469Bd12C7fC6D5Cbc": {
+    "name": "Token",
+    "symbol": "TOKEN"
+  },
+  "0x451532F1C9eb7E4Dc2d493dB52b682C0Acf6F5EF": {
+    "name": "Token",
+    "symbol": "TOKEN"
+  },
+  "0x34a528Da3b2EA5c6Ad1796Eba756445D1299a577": {
+    "name": "Integrity DAO",
+    "symbol": "IDAO"
+  },
+  "0x885c3a3A4998f0b5ac367A46799E3B90D1299a577": {
+    "name": "ALBERT",
+    "symbol": "ALBERT"
+  }
+}
+

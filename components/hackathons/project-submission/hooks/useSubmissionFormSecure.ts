@@ -193,23 +193,15 @@ export const useSubmissionFormSecure = () => {
         params: {
           fileName,
           hackaton_id: state.hackathonId,
-          user_id: session?.user?.id
         }
       });
       const newUrl = await uploadFile(newFile);
 
-      toast({
-        title: 'Image replaced',
-        description: 'The image has been replaced successfully.',
-      });
+   
       return newUrl;
     } catch (error: any) {
       const message = error.response?.data?.error || error.message || 'Error replacing image';
-      toast({
-        title: 'Error replacing image',
-        description: message,
-        variant: 'destructive',
-      });
+  
       throw new Error(message);
     }
   }, [state.hackathonId, session?.user?.id, uploadFile, toast]);
@@ -223,21 +215,17 @@ export const useSubmissionFormSecure = () => {
     if (!fileName) throw new Error('Invalid old image URL');
 
     try {
-      await fetch(`/api/file?fileName=${encodeURIComponent(fileName)}&hackathon_id=${state.hackathonId}&user_id=${session?.user?.id}`, {
-        method: 'DELETE',
+      await axios.delete('/api/file', {
+        params: {
+          fileName,
+          hackaton_id: state.hackathonId,
+        }
       });
 
-      toast({
-        title: 'Image deleted',
-        description: 'The image has been deleted successfully.',
-      });
+     
     } catch (error: any) {
       const message = error.response?.data?.error || error.message || 'Error deleting image';
-      toast({
-        title: 'Error deleting image',
-        description: message,
-        variant: 'destructive',
-      });
+     
       throw new Error(message);
     }
   }, [state.hackathonId, session?.user?.id, toast]);

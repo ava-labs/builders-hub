@@ -73,6 +73,8 @@ export const DELETE = withAuth(async (request: NextRequest, context: any, sessio
   const { searchParams } = new URL(request.url);
   const fileName = searchParams.get('fileName');
   const url = searchParams.get('url');
+  // Support both spellings for backward compatibility
+  const hackathonId = searchParams.get('hackaton_id') || searchParams.get('hackathon_id');
 
   if (!fileName && !url) {
     return NextResponse.json(
@@ -99,7 +101,8 @@ export const DELETE = withAuth(async (request: NextRequest, context: any, sessio
     const hasPermission = await canUserDeleteFile(
       fileIdentifier,
       userId,
-      customAttributes
+      customAttributes,
+      hackathonId || undefined
     );
 
     if (!hasPermission) {
