@@ -4,6 +4,28 @@ import { documentation, academy, integration, blog } from '@/lib/source';
 import { getLLMText } from '@/lib/llm-utils';
 import { captureServerEvent } from '@/lib/posthog-server';
 
+// Maximum length for tracked strings (queries, errors)
+const MAX_TRACKED_STRING_LENGTH = 100;
+
+/**
+ * Truncate a string for analytics tracking.
+ */
+function truncateForTracking(str: string): string {
+  if (str.length <= MAX_TRACKED_STRING_LENGTH) return str;
+  return str.slice(0, MAX_TRACKED_STRING_LENGTH - 3) + '...';
+}
+
+/**
+ * Sanitize an error message for analytics (remove potentially sensitive info).
+ */
+function sanitizeErrorMessage(error: unknown): string {
+  if (!(error instanceof Error)) return 'Unknown error';
+  // Only return the error name and a truncated message
+  const name = error.name || 'Error';
+  const message = truncateForTracking(error.message);
+  return `${name}: ${message}`;
+}
+
 // Helper to capture MCP-specific events
 function captureMCPEvent(event: string, properties: Record<string, unknown>) {
   // Intentionally not awaited - analytics should not block MCP responses
@@ -196,9 +218,9 @@ async function handleToolCall(name: string, args: Record<string, unknown>) {
       const results = searchDocs(query, { source, limit });
       const latencyMs = Date.now() - startTime;
 
-      // Track search event
+      // Track search event (truncate query for privacy/size)
       captureMCPEvent('mcp_search', {
-        query,
+        query: truncateForTracking(query),
         source_filter: source || 'all',
         result_count: results.length,
         latency_ms: latencyMs,
@@ -469,10 +491,11 @@ async function processRequest(request: z.infer<typeof jsonRpcRequestSchema>) {
       result,
     };
   } catch (error) {
-    // Track error event
+    // Track error event (sanitized to avoid leaking sensitive info)
     captureMCPEvent('mcp_error', {
       method,
-      error_message: error instanceof Error ? error.message : 'Internal error',
+      error_type: error instanceof Error ? error.name : 'Error',
+      error_message: sanitizeErrorMessage(error),
     });
 
     return {
