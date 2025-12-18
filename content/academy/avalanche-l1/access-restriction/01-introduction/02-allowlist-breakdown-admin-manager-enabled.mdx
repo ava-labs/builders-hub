@@ -6,23 +6,8 @@ authors: [nicolasarnedo]
 icon: BookOpen
 ---
 
-## Overview
 
-Avalanche L1s ship multiple default precompiles that need access control. Rather than inventing a new permission model for each feature, many of them reuse the same audited permission interface: the **AllowList interface**.
-
-This matters because once you understand **Admin / Manager / Enabled**, you can reason about (and safely operate) a large set of precompiles with the same mental model.
-
-## The AllowList interface
-
-The AllowList interface exposes a small set of functions to manage roles for addresses:
-
-### Functions
-
-- `setAdmin(address addr)`: give `addr` **Admin** role.
-- `setManager(address addr)`: give `addr` **Manager** role.
-- `setEnabled(address addr)`: give `addr` **Enabled** role.
-- `setNone(address addr)`: remove any role from `addr` (back to **None**).
-- `readAllowList(address addr) -> uint256`: read the current role value.
+Avalanche L1s ship multiple default precompiles that need access control, this is done via the same audited permission interface: the **AllowList interface**.
 
 ### Permission levels
 
@@ -35,6 +20,19 @@ The roles are:
 
 This is a *role-based access control* pattern, implemented consistently across precompiles that opt into it.
 
+## AllowList interface
+
+This interface exposes a small set of functions to manage roles for addresses:
+
+### Functions
+
+- `setAdmin(address addr)`: give `addr` **Admin** role.
+- `setManager(address addr)`: give `addr` **Manager** role.
+- `setEnabled(address addr)`: give `addr` **Enabled** role.
+- `setNone(address addr)`: remove any role from `addr` (back to **None**).
+- `readAllowList(address addr) -> uint256`: read the current role value.
+
+
 ## Precompiles that use AllowList
 
 Several default Avalanche L1 precompiles implement this interface (examples):
@@ -44,7 +42,3 @@ Several default Avalanche L1 precompiles implement this interface (examples):
 - [Native Minter](/docs/avalanche-l1s/precompiles/native-minter)
 - [Fee Manager](/docs/avalanche-l1s/precompiles/fee-manager)
 - [Reward Manager](/docs/avalanche-l1s/precompiles/reward-manager)
-
-## Note on stateful precompiles
-
-Many precompiles are **stateful** (they can read/write chain state at the VM layer). If you haven't seen this concept yet, review the [Stateful Precompiles](/academy/avalanche-l1/customizing-evm/09-stateful-precompiles) section in the [Customizing the EVM](/academy/avalanche-l1/customizing-evm) course.

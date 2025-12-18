@@ -158,6 +158,19 @@ const officialCourses: Course[] = [
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
+        name: "Access Restriction",
+        description: "Control who can transact and deploy contracts on your Avalanche L1 using allowlist precompiles",
+        slug: "access-restriction",
+        icon: <SquareStackIcon />,
+        duration: "2 hours",
+        status: "featured",
+        tools: ["L1 Toolbox", "Docker"],
+        languages: [],
+        instructors: ["Nicolas Arnedo"],
+        category: "L1 Development",
+        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
+    },
+    {
         name: "AvaCloud APIs",
         description: "Learn how to leverage AvaCloud APIs to build web apps on Avalanche",
         slug: "avacloudapis",

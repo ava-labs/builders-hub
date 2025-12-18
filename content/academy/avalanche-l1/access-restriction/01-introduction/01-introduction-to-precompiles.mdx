@@ -1,16 +1,28 @@
 ---
 title: Introduction to Precompiles
 description: A quick refresher on precompiles and why Avalanche L1s use them for privileged features.
-updated: 2025-12-10
+updated: 2025-12-17
 authors: [nicolasarnedo]
 icon: Book
 ---
 
-## Overview
+import { Callout } from 'fumadocs-ui/components/callout';
 
-This course uses **precompiles** to enforce network access restrictions. If you're not already comfortable with what precompiles are and how they work, you should complete the [Customizing the EVM](/academy/avalanche-l1/customizing-evm) course first (especially the [Precompiles](/academy/avalanche-l1/customizing-evm/precompiles) chapter).
+Precompiles are "built-in contracts" backed by the VM implementation (typically Go), mapped to reserved addresses. From Solidity's point of view, they look like normal contracts you call via an interface — but they execute faster and can expose VM-level capabilities that regular contracts can't safely implement.
 
-Precompiles are “built-in contracts” backed by the VM implementation (typically Go), mapped to reserved addresses. From Solidity’s point of view, they look like normal contracts you call via an interface — but they execute faster and can expose VM-level capabilities that regular contracts can’t safely implement.
+### Precompile Types
+
+There are two main types of precompiles:
+
+- **Stateless precompiles**: Pure computation with no persistent storage. Examples include cryptographic operations like `ecrecover` (signature recovery) or `sha256`. They take input, compute a result, and return it—nothing is stored.
+
+- **Stateful precompiles**: Can read and write data to the EVM state. The AllowList precompiles we use in this course are stateful—they store role assignments (Admin, Manager, Enabled) for each address. This data persists across blocks.
+
+The Transaction AllowList and Contract Deployer AllowList are **stateful precompiles** because they need to remember which addresses have which permissions.
+
+<Callout type="info">
+For a deeper dive into how stateful precompiles work, see the [Stateful Precompiles](/academy/avalanche-l1/customizing-evm/stateful-precompiles) lesson in the Customizing the EVM course.
+</Callout>
 
 ## Why precompiles matter for access restriction
 

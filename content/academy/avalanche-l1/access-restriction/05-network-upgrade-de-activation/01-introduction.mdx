@@ -1,16 +1,26 @@
 ---
 title: Introduction
 description: Use a network upgrade (upgrade.json) to disable allowlist precompiles after genesis.
-updated: 2025-12-10
+updated: 2025-12-17
 authors: [nicolasarnedo]
 icon: Book
 ---
 
+import { Callout } from 'fumadocs-ui/components/callout';
+
 ## Overview
 
-So far, you enabled **Transaction AllowList** and **Contract Deployer AllowList** in genesis. In a real network, you won’t always get the genesis config “perfect” on day one, and you may need to **turn precompiles on/off** (or change their parameters) later.
+So far, you enabled **Transaction AllowList** and **Contract Deployer AllowList** in genesis using a BuilderHub hosted node. In a real network, you won't always get the genesis config "perfect" on day one, and you may need to **turn precompiles on/off** (or change their parameters) later.
 
-Subnet-EVM supports doing this via **network upgrades** using an `upgrade.json` file. In this section, you’ll **disable** both allowlist precompiles by updating your **Docker validator node** configuration, restarting the node, and then verifying (in the Builder Console) that the precompiles are no longer available.
+Subnet-EVM supports doing this via **network upgrades** using an `upgrade.json` file. In this section, you'll:
+
+1. **Set up a Docker validator** (required to access config files)
+2. **Disable** both allowlist precompiles via `upgrade.json`
+3. Restart the node and verify the precompiles are no longer available
+
+<Callout type="info">
+**Why Docker?** BuilderHub hosted nodes don't allow direct access to configuration files. To perform network upgrades, you need to run your own validator with full filesystem access.
+</Callout>
 
 ## Key Concepts
 
