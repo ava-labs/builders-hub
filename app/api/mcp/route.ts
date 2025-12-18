@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { documentation, academy, integration, blog } from '@/lib/source';
 import { getLLMText } from '@/lib/llm-utils';
+import { captureServerEvent } from '@/lib/posthog-server';
+
+// Helper to capture MCP-specific events
+function captureMCPEvent(event: string, properties: Record<string, unknown>) {
+  // Intentionally not awaited - analytics should not block MCP responses
+  void captureServerEvent(event, { ...properties, source: 'mcp-server' }, 'mcp_server');
+}
 
 // Helper to get page content
 async function getPageContent(url: string): Promise<string | null> {
@@ -178,6 +185,8 @@ const RESOURCES = [
 
 // Handle tool calls
 async function handleToolCall(name: string, args: Record<string, unknown>) {
+  const startTime = Date.now();
+
   switch (name) {
     case 'avalanche_docs_search': {
       const query = args.query as string;
@@ -185,6 +194,15 @@ async function handleToolCall(name: string, args: Record<string, unknown>) {
       const limit = args.limit as number | undefined;
 
       const results = searchDocs(query, { source, limit });
+      const latencyMs = Date.now() - startTime;
+
+      // Track search event
+      captureMCPEvent('mcp_search', {
+        query,
+        source_filter: source || 'all',
+        result_count: results.length,
+        latency_ms: latencyMs,
+      });
 
       if (results.length === 0) {
         return {
@@ -214,6 +232,14 @@ async function handleToolCall(name: string, args: Record<string, unknown>) {
       const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
 
       const content = await getPageContent(normalizedUrl);
+      const latencyMs = Date.now() - startTime;
+
+      // Track fetch event
+      captureMCPEvent('mcp_fetch', {
+        url: normalizedUrl,
+        found: !!content,
+        latency_ms: latencyMs,
+      });
 
       if (!content) {
         return {
@@ -267,6 +293,13 @@ async function handleToolCall(name: string, args: Record<string, unknown>) {
       text += `\n## Integrations\n- ${integrationPages.length} integration pages\n`;
       text += `\n## Blog\n- ${blogPages.length} blog posts\n`;
 
+      const latencyMs = Date.now() - startTime;
+
+      // Track list sections event
+      captureMCPEvent('mcp_list_sections', {
+        latency_ms: latencyMs,
+      });
+
       return {
         content: [{ type: 'text', text }],
       };
@@ -279,12 +312,21 @@ async function handleToolCall(name: string, args: Record<string, unknown>) {
 
 // Handle resource reads
 async function handleResourceRead(uri: string) {
+  const startTime = Date.now();
+
   switch (uri) {
     case 'docs://index': {
       const docPages = documentation.getPages();
       const content = docPages
         .map((p) => `- [${p.data.title}](${p.url})${p.data.description ? `: ${p.data.description}` : ''}`)
         .join('\n');
+
+      // Track resource read event
+      captureMCPEvent('mcp_resource_read', {
+        uri,
+        latency_ms: Date.now() - startTime,
+      });
+
       return {
         contents: [
           {
@@ -301,6 +343,13 @@ async function handleResourceRead(uri: string) {
       const content = academyPages
         .map((p) => `- [${p.data.title}](${p.url})${p.data.description ? `: ${p.data.description}` : ''}`)
         .join('\n');
+
+      // Track resource read event
+      captureMCPEvent('mcp_resource_read', {
+        uri,
+        latency_ms: Date.now() - startTime,
+      });
+
       return {
         contents: [
           {
@@ -317,6 +366,13 @@ async function handleResourceRead(uri: string) {
       const content = integrationPages
         .map((p) => `- [${p.data.title}](${p.url})${p.data.description ? `: ${p.data.description}` : ''}`)
         .join('\n');
+
+      // Track resource read event
+      captureMCPEvent('mcp_resource_read', {
+        uri,
+        latency_ms: Date.now() - startTime,
+      });
+
       return {
         contents: [
           {
@@ -349,7 +405,17 @@ async function processRequest(request: z.infer<typeof jsonRpcRequestSchema>) {
     let result: unknown;
 
     switch (method) {
-      case 'initialize':
+      case 'initialize': {
+        // Extract client info from params (per MCP spec)
+        const clientInfo = params?.clientInfo as { name?: string; version?: string } | undefined;
+
+        // Track client connection
+        captureMCPEvent('mcp_initialize', {
+          client_name: clientInfo?.name || 'unknown',
+          client_version: clientInfo?.version || 'unknown',
+          protocol_version: SERVER_INFO.protocolVersion,
+        });
+
         result = {
           protocolVersion: SERVER_INFO.protocolVersion,
           capabilities: {
@@ -362,6 +428,7 @@ async function processRequest(request: z.infer<typeof jsonRpcRequestSchema>) {
           },
         };
         break;
+      }
 
       case 'tools/list':
         result = { tools: TOOLS };
@@ -402,6 +469,12 @@ async function processRequest(request: z.infer<typeof jsonRpcRequestSchema>) {
       result,
     };
   } catch (error) {
+    // Track error event
+    captureMCPEvent('mcp_error', {
+      method,
+      error_message: error instanceof Error ? error.message : 'Internal error',
+    });
+
     return {
       jsonrpc: '2.0',
       id,
