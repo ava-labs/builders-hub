@@ -175,7 +175,7 @@ export const AuthOptions: NextAuthOptions = {
       session.user.image = token.avatar as string;
       session.user.name = token.name ?? '';
       session.user.email = token.email ?? '';
-      session.user.is_new_user = token.is_new_user ? true : false;
+      session.user.is_new_user = !!token.is_new_user;
       session.user.authentication_mode = token.authentication_mode ?? '';
       return session;
     },

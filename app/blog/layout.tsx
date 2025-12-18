@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Footer } from '@/components/navigation/footer';
 import { baseOptions } from '@/app/layout.config';
 import { SessionProvider } from 'next-auth/react';

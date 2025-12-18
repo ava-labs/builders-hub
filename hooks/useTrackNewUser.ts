@@ -5,74 +5,49 @@ import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
 
-// Module-level flag to prevent race conditions across component instances
-// This ensures only one tracking call happens even if multiple components mount simultaneously
-let isTrackingInProgress = false;
-
-// Maximum number of retry attempts for PostHog initialization
-const MAX_RETRY_ATTEMPTS = 5;
-// Delay between retry attempts in milliseconds
-const RETRY_DELAY_MS = 500;
-
 /**
  * Hook to track new user creation in PostHog.
  *
- * Features:
- * - Checks if PostHog is initialized before calling identify/capture
- * - Retries tracking if PostHog is not yet ready (up to MAX_RETRY_ATTEMPTS)
- * - Prevents duplicate tracking via localStorage + module-level flag
- * - Captures UTM parameters and referrer for attribution
- * - Properly cleans up timeouts on unmount
+ * This hook identifies new users and captures a "user_created" event with
+ * attribution data (UTM parameters, referrer). Deduplication is handled via
+ * localStorage to ensure each user is only tracked once.
  *
  * @returns void - This hook only performs side effects
  */
 export function useTrackNewUser(): void {
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
-  const hasTrackedRef = useRef(false);
-  const retryCountRef = useRef(0);
-  const timeoutIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
+
     // Only proceed if authenticated with a new user
     if (status !== "authenticated" || !session?.user?.is_new_user) {
-      return;
-    }
-
-    // Skip if already tracked in this component instance
-    if (hasTrackedRef.current) {
       return;
     }
 
     const userId = session.user.id;
     const trackingKey = `posthog_user_created_${userId}`;
 
-    // Check localStorage first (handles persistence across page loads)
+    // Check if already tracked (localStorage handles deduplication across all scenarios)
     if (typeof window === "undefined" || localStorage.getItem(trackingKey)) {
       return;
     }
 
-    // Check module-level flag (handles race conditions from concurrent mounts)
-    if (isTrackingInProgress) {
-      return;
-    }
+    // Mark as tracked immediately to prevent any race conditions
+    localStorage.setItem(trackingKey, "true");
 
     /**
-     * Check if PostHog is initialized and ready.
-     * posthog-js sets __loaded to true once initialization is complete.
+     * Track the new user in PostHog.
+     * PostHog's library handles queuing internally if not yet initialized.
      */
-    const isPostHogReady = (): boolean =>
-      typeof posthog !== "undefined" &&
-      typeof posthog.identify === "function" &&
-      typeof posthog.capture === "function" &&
-      (posthog as unknown as { __loaded?: boolean }).__loaded === true;
+    const trackUser = (): void => {
+      // Safety check - don't track if component unmounted
+      if (!isMountedRef.current) return;
 
-    /**
-     * Perform the actual tracking call to PostHog.
-     */
-    const performTracking = (): void => {
       try {
-        // Identify the user in PostHog
+        // Identify the user
         posthog.identify(userId, {
           email: session.user.email,
           name: session.user.name,
@@ -88,57 +63,16 @@ export function useTrackNewUser(): void {
           utm_term: searchParams.get("utm_term") || undefined,
           referrer: document.referrer || undefined,
         });
-
-        // Mark as tracked in localStorage for persistence across page loads
-        localStorage.setItem(trackingKey, "true");
-        hasTrackedRef.current = true;
       } catch (error) {
         // Log error but don't throw - tracking failures shouldn't break the app
-        console.error("[useTrackNewUser] Failed to track new user in PostHog:", error);
-      } finally {
-        // Always release the tracking lock
-        isTrackingInProgress = false;
+        console.error("[useTrackNewUser] Failed to track new user:", error);
       }
     };
 
-    /**
-     * Attempt to track with retry logic if PostHog is not ready.
-     */
-    const attemptTracking = (): void => {
-      if (isPostHogReady()) {
-        performTracking();
-      } else if (retryCountRef.current < MAX_RETRY_ATTEMPTS) {
-        // PostHog not ready yet - schedule a retry
-        retryCountRef.current += 1;
-        timeoutIdRef.current = setTimeout(attemptTracking, RETRY_DELAY_MS);
-      } else {
-        // Max retries exceeded - give up to avoid blocking
-        // User will be tracked on their next session if PostHog loads
-        console.warn(
-          "[useTrackNewUser] PostHog failed to initialize after",
-          MAX_RETRY_ATTEMPTS,
-          "attempts. Skipping user_created tracking for user:",
-          userId
-        );
-        isTrackingInProgress = false;
-      }
-    };
+    trackUser();
 
-    // Set flag to prevent concurrent tracking attempts
-    isTrackingInProgress = true;
-    attemptTracking();
-
-    // Cleanup: clear timeout and reset tracking flag if component unmounts
     return () => {
-      // Clear any pending timeout to prevent memory leaks and stale callbacks
-      if (timeoutIdRef.current !== null) {
-        clearTimeout(timeoutIdRef.current);
-        timeoutIdRef.current = null;
-      }
-      // Only reset the flag if we haven't successfully tracked yet
-      if (!hasTrackedRef.current) {
-        isTrackingInProgress = false;
-      }
+      isMountedRef.current = false;
     };
   }, [session, status, searchParams]);
 }
