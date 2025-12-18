@@ -25,6 +25,8 @@ interface ChartConfig {
   abbreviateNumbers?: boolean;
   startTime?: string | null; // Local start time filter (ISO string)
   endTime?: string | null; // Local end time filter (ISO string)
+  brushStartIndex?: number | null; // Brush slider start position
+  brushEndIndex?: number | null; // Brush slider end position
 }
 
 function PlaygroundContent() {
@@ -156,6 +158,14 @@ function PlaygroundContent() {
     setCharts((prev) =>
       prev.map((c) =>
         c.id === chartId ? { ...c, startTime, endTime } : c
+      )
+    );
+  }, []);
+
+  const handleBrushChange = useCallback((chartId: string, startIndex: number | null, endIndex: number | null) => {
+    setCharts((prev) =>
+      prev.map((c) =>
+        c.id === chartId ? { ...c, brushStartIndex: startIndex, brushEndIndex: endIndex } : c
       )
     );
   }, []);
@@ -544,7 +554,9 @@ function PlaygroundContent() {
           stackSameMetrics: chart.stackSameMetrics || false,
           abbreviateNumbers: chart.abbreviateNumbers !== undefined ? chart.abbreviateNumbers : true,
           startTime: chart.startTime || null,
-          endTime: chart.endTime || null
+          endTime: chart.endTime || null,
+          brushStartIndex: chart.brushStartIndex ?? null,
+          brushEndIndex: chart.brushEndIndex ?? null
         }))
       };
       
@@ -1343,6 +1355,9 @@ function PlaygroundContent() {
                 endTime={chart.endTime || globalEndTime || null}
                 onTimeFilterChange={isOwner ? (startTime, endTime) => handleChartTimeFilterChange(chart.id, startTime, endTime) : undefined}
                 reloadTrigger={reloadTrigger}
+                initialBrushStartIndex={chart.brushStartIndex}
+                initialBrushEndIndex={chart.brushEndIndex}
+                onBrushChange={isOwner ? (startIndex, endIndex) => handleBrushChange(chart.id, startIndex, endIndex) : undefined}
               />
             </div>
             );
