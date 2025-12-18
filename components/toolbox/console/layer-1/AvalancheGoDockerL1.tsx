@@ -75,7 +75,15 @@ function AvalanchegoDockerInner() {
     // Show advanced settings
     const [showAdvancedSettings, setShowAdvancedSettings] = useState<boolean>(false);
 
+    // Network detection from subnet lookup (independent of wallet connection)
+    const [detectedIsTestnet, setDetectedIsTestnet] = useState<boolean | null>(null);
+
     const { avalancheNetworkID } = useWalletStore();
+
+    // Use detected network from subnet lookup, fallback to wallet network
+    const effectiveNetworkID = detectedIsTestnet !== null
+        ? (detectedIsTestnet ? 5 : 1)  // Fuji = 5, Mainnet = 1
+        : avalancheNetworkID;
 
     const isRPC = nodeType === "public-rpc" || nodeType === "validator-rpc";
     const isValidator = nodeType === "validator" || nodeType === "validator-rpc";
@@ -179,6 +187,7 @@ function AvalanchegoDockerInner() {
         setChainId("");
         setSubnet(null);
         setBlockchainInfo(null);
+        setDetectedIsTestnet(null);
         if (!subnetId) return;
 
         // Use AbortController to cancel previous requests
@@ -194,6 +203,8 @@ function AvalanchegoDockerInner() {
                 if (abortController.signal.aborted) return;
 
                 setSubnet(subnetInfo);
+                // Store which network this subnet was found on
+                setDetectedIsTestnet(subnetInfo.isTestnet);
 
                 // Always get blockchain info for the first blockchain (for Docker command generation)
                 if (subnetInfo.blockchains && subnetInfo.blockchains.length > 0) {
@@ -244,6 +255,7 @@ function AvalanchegoDockerInner() {
         setSubnetId("");
         setSubnet(null);
         setBlockchainInfo(null);
+        setDetectedIsTestnet(null);
         setNodeType("validator");
         setDomain("");
         setEnableDebugTrace(false);
@@ -326,7 +338,7 @@ function AvalanchegoDockerInner() {
                                     key={blockchain.blockchainId}
                                     blockchain={{
                                         ...blockchain,
-                                        isTestnet: avalancheNetworkID === networkIDs.FujiID
+                                        isTestnet: detectedIsTestnet ?? (avalancheNetworkID === networkIDs.FujiID)
                                     }}
                                     isLoading={isLoading}
                                     customTitle={`${blockchain.blockchainName} Blockchain Details`}
@@ -1060,7 +1072,7 @@ function AvalanchegoDockerInner() {
                                             chainId,
                                             config,
                                             nodeType,
-                                            avalancheNetworkID,
+                                            effectiveNetworkID,
                                             vmId
                                         );
                                     } catch {
