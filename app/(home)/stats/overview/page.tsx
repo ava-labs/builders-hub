@@ -355,6 +355,14 @@ export default function AvalancheMetrics() {
     return chain?.slug || null;
   };
 
+  // Helper function to get category for a subnet ID
+  const getCategoryForSubnetId = (subnetId: string, subnetName: string): string => {
+    const chain = (l1ChainsData as any[]).find(
+      (c) => c.subnetId === subnetId || c.chainName?.toLowerCase() === subnetName.toLowerCase()
+    );
+    return chain?.category || "General";
+  };
+
   // Calculate validator stats for a subnet
   const calculateValidatorStats = (subnet: SubnetStats) => {
     const totalStake = BigInt(subnet.totalStakeString);
@@ -676,10 +684,13 @@ export default function AvalancheMetrics() {
 
   // Filter and sort validator stats
   const filteredValidatorData = validatorStats.filter((subnet) => {
-    return (
+    const subnetCategory = getCategoryForSubnetId(subnet.id, subnet.name);
+    const matchesCategory =
+      selectedCategory === "All" || subnetCategory === selectedCategory;
+    const matchesSearch =
       subnet.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      subnet.id.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+      subnet.id.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
   });
 
   const sortedValidatorData = [...filteredValidatorData].sort((a, b) => {
