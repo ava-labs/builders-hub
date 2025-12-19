@@ -75,19 +75,19 @@ export default async function RewardBoard() {
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-      {/* COMMENTED OUT: Hackathon badges feature disabled */}
-      {/* <div>
+      <div>
         <div className="flex flex-col gap-4 sm:gap-6 mb-2 sm:mb-4">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
               Hackathon Badges
             </h1>
-            COMMENTED OUT: Points feature disabled
+            {/* COMMENTED OUT: Points feature disabled
             <div className="px-4 py-2 border rounded border-red-500 ">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
                 Total Points: {totalPoints}
               </h2>
             </div>
+            */}
           </div>
         </div>
         <Separator className="mb-6 mt-6 bg-zinc-700 " />
@@ -103,7 +103,7 @@ export default async function RewardBoard() {
             {rewards}
           </div>
         )}
-      </div> */}
+      </div>
 
       <div className="flex flex-col gap-4 sm:gap-6 mb-2 mt-3 ">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">

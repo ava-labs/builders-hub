@@ -226,6 +226,9 @@ content/docs/rpcs/other/subnet-evm-rpc.mdx
 content/docs/rpcs/p-chain/rpc.mdx
 content/docs/rpcs/x-chain/rpc.mdx
 content/docs/tooling/cli-commands.mdx
+# Generated event signatures for explorer
+abi/event-signatures.generated.ts
+
 # Generated OpenAPI specs (fetched during build)
 public/openapi/glacier.json
 public/openapi/popsicle.json

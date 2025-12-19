@@ -149,6 +149,7 @@ export default function GeneralSecureComponent({
           title: "Project submitted",
           description:
             "Your project has been successfully submitted. You will be redirected to the project showcase page.",
+          variant: "success",
         });
         setTimeout(() => {
           router.push(`/showcase/${projectId}`);

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import l1ChainsData from "@/constants/l1-chains.json";
+const mainnetChains = l1ChainsData.filter(c => c.isTestnet !== true);
 
 interface ICMFlowData {
   sourceChain: string;
@@ -28,29 +29,12 @@ interface ICMFlowResponse {
   targetNodes: ChainNode[];
   totalMessages: number;
   last_updated: number;
+  failedChainIds: string[];
 }
 
 // Cache for flow data - keyed by days parameter
 const cachedFlowData: Map<number, { data: ICMFlowResponse; timestamp: number }> = new Map();
 const CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 hours
-
-// Helper to get chain info
-function getChainInfo(chainId: string | null, chainName: string | null) {
-  if (!chainId && !chainName) return null;
-  
-  const chain = l1ChainsData.find(c => 
-    c.chainId === chainId || 
-    c.chainName.toLowerCase() === chainName?.toLowerCase() ||
-    c.chainName.toLowerCase().includes(chainName?.toLowerCase() || '')
-  );
-  
-  return chain ? {
-    chainId: chain.chainId,
-    chainName: chain.chainName,
-    logo: chain.chainLogoURI || '',
-    color: chain.color || generateColor(chain.chainName)
-  } : null;
-}
 
 // Generate a consistent color from chain name
 function generateColor(name: string): string {
@@ -62,28 +46,34 @@ function generateColor(name: string): string {
   return `hsl(${hue}, 70%, 55%)`;
 }
 
+interface AggregateResult {
+  flows: ICMFlowData[];
+  failedChainIds: string[];
+}
+
 // Fetch ICM route data - aggregate from all chains in l1-chains.json
-async function fetchICMRoutes(days: number = 30): Promise<ICMFlowData[]> {
-  console.log(`Fetching ICM data for ${l1ChainsData.length} chains over ${days} days...`);
+async function fetchICMRoutes(days: number = 30): Promise<AggregateResult> {
+  console.log(`Fetching ICM data for ${mainnetChains.length} chains over ${days} days...`);
   
   try {
     // Aggregate from all chains in l1-chains.json
-    const flows = await aggregateChainICMData(days);
-    console.log(`Found ${flows.length} ICM flow routes with data`);
-    return flows;
+    const result = await aggregateChainICMData(days);
+    console.log(`Found ${result.flows.length} ICM flow routes with data, ${result.failedChainIds.length} chains failed`);
+    return result;
   } catch (error) {
     console.error('Failed to fetch ICM routes:', error);
-    return [];
+    return { flows: [], failedChainIds: [] };
   }
 }
 
 // Aggregate ICM data from ALL chains in l1-chains.json
-async function aggregateChainICMData(days: number): Promise<ICMFlowData[]> {
+async function aggregateChainICMData(days: number): Promise<AggregateResult> {
   const flowsMap = new Map<string, ICMFlowData>();
+  const failedChainIds: string[] = [];
   
   // Process chains in batches to avoid overwhelming the API
   const BATCH_SIZE = 20;
-  const allChains = l1ChainsData;
+  const allChains = mainnetChains;
   
   for (let i = 0; i < allChains.length; i += BATCH_SIZE) {
     const batch = allChains.slice(i, i + BATCH_SIZE);
@@ -108,7 +98,7 @@ async function aggregateChainICMData(days: number): Promise<ICMFlowData[]> {
               const totalOutgoing = data.reduce((sum: number, d: any) => sum + (d.outgoingCount || 0), 0);
               
               // For chains with ICM activity, create flows to/from C-Chain as the hub
-              const cChain = l1ChainsData.find(c => c.chainId === '43114');
+              const cChain = mainnetChains.find(c => c.chainId === '43114');
               
               if (totalOutgoing > 0 && chain.chainId !== '43114') {
                 const key = `${chain.chainId}-43114`;
@@ -144,17 +134,23 @@ async function aggregateChainICMData(days: number): Promise<ICMFlowData[]> {
                 }
               }
             }
+          } else {
+            // Non-OK response - track as failed
+            failedChainIds.push(chain.chainId);
           }
         } catch (error) {
-          // Silently skip chains that fail or timeout
+          // Silently skip chains that fail or timeout, but track them
+          failedChainIds.push(chain.chainId);
         }
       })
     );
   }
 
-  return Array.from(flowsMap.values())
+  const flows = Array.from(flowsMap.values())
     .filter(f => f.messageCount > 0)
     .sort((a, b) => b.messageCount - a.messageCount);
+    
+  return { flows, failedChainIds };
 }
 
 export async function GET(request: Request) {
@@ -176,7 +172,7 @@ export async function GET(request: Request) {
     }
 
     // Fetch flow data from all chains
-    const flows = await fetchICMRoutes(days);
+    const { flows, failedChainIds } = await fetchICMRoutes(days);
     
     // Build source and target node lists
     const sourceNodesMap = new Map<string, ChainNode>();
@@ -225,6 +221,7 @@ export async function GET(request: Request) {
       targetNodes,
       totalMessages,
       last_updated: Date.now(),
+      failedChainIds,
     };
 
     // Update cache for this days value
@@ -235,7 +232,8 @@ export async function GET(request: Request) {
         'X-Data-Source': 'fresh',
         'X-Total-Flows': flows.length.toString(),
         'X-Days': days.toString(),
-        'X-Chains-Scanned': l1ChainsData.length.toString(),
+        'X-Chains-Scanned': mainnetChains.length.toString(),
+        'X-Failed-Chains': failedChainIds.length.toString(),
       }
     });
   } catch (error) {

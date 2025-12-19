@@ -145,10 +145,10 @@ thrown indicating that unfinalized data cannot be queried (as of
 
 If you plan on extracting data from the C-Chain into your own systems using
 Golang, we recommend using our custom
-[`ethclient`](https://github.com/ava-labs/coreth/tree/master/ethclient). The
+[`ethclient`](https://github.com/ava-labs/avalanchego/tree/master/graft/coreth/ethclient). The
 standard `go-ethereum` Ethereum client does not compute block hashes correctly
 (when you call `block.Hash()`) because it doesn't take into account the added
-[ExtDataHash](https://github.com/ava-labs/coreth/blob/2c3cfac5f766ce5f32a2eddc43451bdb473b84f1/core/types/block.go#L98)
+[ExtDataHash](https://github.com/ava-labs/avalanchego/blob/master/graft/coreth/core/types/block.go#L98)
 header field in Avalanche C-Chain blocks, which is used move AVAX between chains
 (X-Chain and P-Chain). You can read more about our multi-chain abstraction
 [here](/docs/primary-network) (out of scope for a

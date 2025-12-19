@@ -22,6 +22,7 @@ interface ChartConfig {
   colSpan: 6 | 12;
   dataSeries?: any[]; // DataSeries array from ConfigurableChart
   stackSameMetrics?: boolean;
+  abbreviateNumbers?: boolean;
   startTime?: string | null; // Local start time filter (ISO string)
   endTime?: string | null; // Local end time filter (ISO string)
 }
@@ -92,7 +93,7 @@ function PlaygroundContent() {
   const hasLoadedRef = useRef(false);
   
   const initialCharts: ChartConfig[] = [
-    { id: "1", title: "Chart 1", colSpan: 6, dataSeries: [] },
+    { id: "1", title: "Chart 1", colSpan: 6, dataSeries: [], stackSameMetrics: false, abbreviateNumbers: true },
   ];
   const [charts, setCharts] = useState<ChartConfig[]>(initialCharts);
   const [savedCharts, setSavedCharts] = useState<ChartConfig[]>(initialCharts);
@@ -142,6 +143,14 @@ function PlaygroundContent() {
     );
   }, []);
 
+  const handleAbbreviateNumbersChange = useCallback((chartId: string, abbreviateNumbers: boolean) => {
+    setCharts((prev) =>
+      prev.map((c) =>
+        c.id === chartId ? { ...c, abbreviateNumbers } : c
+      )
+    );
+  }, []);
+
   const handleChartTimeFilterChange = useCallback((chartId: string, startTime: string | null, endTime: string | null) => {
     setCharts((prev) =>
       prev.map((c) =>
@@ -152,7 +161,7 @@ function PlaygroundContent() {
 
   const addChart = () => {
     const newId = String(charts.length + 1);
-    setCharts([...charts, { id: newId, title: `Chart ${newId}`, colSpan: 6, dataSeries: [], stackSameMetrics: false }]);
+    setCharts([...charts, { id: newId, title: `Chart ${newId}`, colSpan: 6, dataSeries: [], stackSameMetrics: false, abbreviateNumbers: true }]);
   };
 
   const removeChart = (chartId: string) => {
@@ -160,7 +169,7 @@ function PlaygroundContent() {
       // If this is the last chart, create a new blank one instead of removing it
       if (prev.length === 1) {
         const newId = String(prev.length + 1);
-        return [{ id: newId, title: `Blank Chart`, colSpan: 6, dataSeries: [], stackSameMetrics: false }];
+        return [{ id: newId, title: `Blank Chart`, colSpan: 6, dataSeries: [], stackSameMetrics: false, abbreviateNumbers: true }];
       }
       // Otherwise, remove the chart normally
       return prev.filter((chart) => chart.id !== chartId);
@@ -404,6 +413,7 @@ function PlaygroundContent() {
             colSpan: chart.colSpan || 12,
             dataSeries: chart.dataSeries || [],
             stackSameMetrics: chart.stackSameMetrics || false,
+            abbreviateNumbers: chart.abbreviateNumbers !== undefined ? chart.abbreviateNumbers : true,
             startTime: chart.startTime || null,
             endTime: chart.endTime || null
           }));
@@ -459,7 +469,7 @@ function PlaygroundContent() {
       setTempGlobalEndTime(undefined);
       // Create new chart objects to ensure React detects the change and remounts ConfigurableChart
       const resetCharts: ChartConfig[] = [
-        { id: `chart-${Date.now()}`, title: "Chart 1", colSpan: 6, dataSeries: [], stackSameMetrics: false }
+        { id: `chart-${Date.now()}`, title: "Chart 1", colSpan: 6, dataSeries: [], stackSameMetrics: false, abbreviateNumbers: true }
       ];
       setCharts(resetCharts);
       setSavedCharts(resetCharts.map(chart => ({ ...chart })));
@@ -531,6 +541,7 @@ function PlaygroundContent() {
           colSpan: chart.colSpan,
           dataSeries: chart.dataSeries || [],
           stackSameMetrics: chart.stackSameMetrics || false,
+          abbreviateNumbers: chart.abbreviateNumbers !== undefined ? chart.abbreviateNumbers : true,
           startTime: chart.startTime || null,
           endTime: chart.endTime || null
         }))
@@ -604,7 +615,7 @@ function PlaygroundContent() {
     for (let i = 0; i < charts.length; i++) {
       const current = charts[i];
       const saved = savedCharts[i];
-      if (!saved || current.id !== saved.id || current.title !== saved.title || current.colSpan !== saved.colSpan || current.stackSameMetrics !== saved.stackSameMetrics || current.startTime !== saved.startTime || current.endTime !== saved.endTime) {
+      if (!saved || current.id !== saved.id || current.title !== saved.title || current.colSpan !== saved.colSpan || current.stackSameMetrics !== saved.stackSameMetrics || current.abbreviateNumbers !== saved.abbreviateNumbers || current.startTime !== saved.startTime || current.endTime !== saved.endTime) {
         return true;
       }
       
@@ -1289,10 +1300,12 @@ function PlaygroundContent() {
                 colSpan={chart.colSpan}
                 initialDataSeries={chart.dataSeries || []}
                 initialStackSameMetrics={chart.stackSameMetrics || false}
+                initialAbbreviateNumbers={chart.abbreviateNumbers !== undefined ? chart.abbreviateNumbers : true}
                 onColSpanChange={isOwner ? (newColSpan) => handleColSpanChange(chart.id, newColSpan) : undefined}
                 onTitleChange={isOwner ? (newTitle) => handleTitleChange(chart.id, newTitle) : undefined}
                 onDataSeriesChange={isOwner ? (dataSeries) => handleDataSeriesChange(chart.id, dataSeries) : undefined}
                 onStackSameMetricsChange={isOwner ? (stackSameMetrics) => handleStackSameMetricsChange(chart.id, stackSameMetrics) : undefined}
+                onAbbreviateNumbersChange={isOwner ? (abbreviateNumbers) => handleAbbreviateNumbersChange(chart.id, abbreviateNumbers) : undefined}
                 onRemove={isOwner ? () => removeChart(chart.id) : undefined}
                 disableControls={!isOwner}
                 startTime={chart.startTime || globalStartTime || null}

@@ -1,0 +1,649 @@
+---
+title: Testing Cross-Chain Messaging
+description: Test Teleporter cross-chain messaging between Avalanche L1s
+---
+
+This guide shows how to test cross-chain messaging using Teleporter, Avalanche's native cross-chain communication protocol. Learn the complete flow from sending messages to relaying and verifying delivery.
+
+## Overview
+
+Teleporter enables L1s to communicate by:
+
+1. **Sending** a message on the source chain
+2. **Aggregating** signatures from validators via Warp
+3. **Relaying** the signed message to the destination chain
+4. **Verifying** delivery and execution
+
+## Prerequisites
+
+- Complete [Getting Started](/docs/tooling/tmpnet/guides/getting-started)
+- Have a network with two L1s configured
+- Understand Warp message basics
+
+## Basic Send and Receive Flow
+
+### Complete Test Example
+
+```go title="teleporter_test.go"
+package teleporter_test
+
+import (
+    "context"
+    "flag"
+    "math/big"
+    "os"
+    "testing"
+    "time"
+
+    "github.com/ava-labs/avalanchego/tests/fixture/e2e"
+    "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+    teleportermessenger "github.com/ava-labs/teleporter/abi-bindings/go/teleporter/TeleporterMessenger"
+    "github.com/ethereum/go-ethereum/common"
+    "github.com/ethereum/go-ethereum/crypto"
+    "github.com/onsi/ginkgo/v2"
+    . "github.com/onsi/gomega"
+)
+
+var (
+    network            *tmpnet.Network
+    e2eFlags           *e2e.FlagVars
+    l1A, l1B           L1TestInfo
+    teleporterAddress  common.Address
+    fundedKey          *ecdsa.PrivateKey
+)
+
+func TestMain(m *testing.M) {
+    e2eFlags = e2e.RegisterFlags()
+    flag.Parse()
+    os.Exit(m.Run())
+}
+
+func TestTeleporter(t *testing.T) {
+    if os.Getenv("RUN_E2E") == "" {
+        t.Skip("RUN_E2E not set")
+    }
+
+    RegisterFailHandler(ginkgo.Fail)
+    ginkgo.RunSpecs(t, "Teleporter Test Suite")
+}
+
+var _ = ginkgo.BeforeSuite(func() {
+    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+    defer cancel()
+
+    // Create network with two L1s and Teleporter pre-deployed
+    network, l1A, l1B, teleporterAddress = createNetworkWithTeleporter(ctx)
+
+    fundedKey = network.PreFundedKeys[0]
+})
+
+var _ = ginkgo.AfterSuite(func() {
+    if network != nil {
+        network.Stop(context.Background())
+    }
+})
+
+var _ = ginkgo.Describe("[Teleporter Messaging]", func() {
+    ginkgo.It("should send and receive message",
+        ginkgo.Label("teleporter", "basic"),
+        func() {
+            ctx := context.Background()
+            fundedAddress := crypto.PubkeyToAddress(fundedKey.PublicKey)
+
+            // Create signature aggregator
+            aggregator := NewSignatureAggregator(
+                l1A.NodeURIs[0],
+                []ids.ID{l1A.SubnetID, l1B.SubnetID},
+            )
+            defer aggregator.Shutdown()
+
+            // 1. Send cross-chain message
+            messageID, receipt := sendCrossChainMessage(
+                ctx,
+                l1A,
+                l1B,
+                teleporterAddress,
+                fundedAddress,
+                []byte("Hello from Chain A!"),
+                fundedKey,
+            )
+
+            Expect(receipt.Status).To(Equal(uint64(1)))
+
+            // 2. Relay message to destination
+            deliveryReceipt := relayMessage(
+                ctx,
+                receipt,
+                l1A,
+                l1B,
+                teleporterAddress,
+                aggregator,
+                fundedKey,
+            )
+
+            Expect(deliveryReceipt.Status).To(Equal(uint64(1)))
+
+            // 3. Verify message was received
+            teleporter := getTeleporterContract(l1B, teleporterAddress)
+            delivered, err := teleporter.MessageReceived(
+                &bind.CallOpts{},
+                messageID,
+            )
+            Expect(err).NotTo(HaveOccurred())
+            Expect(delivered).To(BeTrue())
+        })
+})
+```
+
+## Step-by-Step Implementation
+
+### 1. Sending a Message
+
+```go
+func sendCrossChainMessage(
+    ctx context.Context,
+    source L1TestInfo,
+    destination L1TestInfo,
+    teleporterAddress common.Address,
+    recipientAddress common.Address,
+    message []byte,
+    senderKey *ecdsa.PrivateKey,
+) (common.Hash, *types.Receipt) {
+
+    // Get Teleporter contract
+    teleporter := getTeleporterContract(source, teleporterAddress)
+
+    // Prepare message input
+    input := teleportermessenger.TeleporterMessageInput{
+        DestinationBlockchainID: destination.BlockchainID,
+        DestinationAddress:      recipientAddress,
+        FeeInfo: teleportermessenger.TeleporterFeeInfo{
+            FeeTokenAddress: common.Address{}, // No fee for this example
+            Amount:          big.NewInt(0),
+        },
+        RequiredGasLimit:        big.NewInt(100000),
+        AllowedRelayerAddresses: []common.Address{}, // Any relayer allowed
+        Message:                 message,
+    }
+
+    // Send transaction
+    opts, err := bind.NewKeyedTransactorWithChainID(senderKey, source.EVMChainID)
+    Expect(err).NotTo(HaveOccurred())
+
+    tx, err := teleporter.SendCrossChainMessage(opts, input)
+    Expect(err).NotTo(HaveOccurred())
+
+    // Wait for transaction success
+    receipt := waitForSuccess(ctx, source, tx.Hash())
+
+    // Extract message ID from logs
+    messageID := extractMessageIDFromReceipt(receipt, teleporter)
+
+    return messageID, receipt
+}
+```
+
+### 2. Constructing Warp Message
+
+```go
+func constructWarpMessage(
+    ctx context.Context,
+    source L1TestInfo,
+    destination L1TestInfo,
+    receipt *types.Receipt,
+    aggregator *SignatureAggregator,
+) *avalancheWarp.Message {
+
+    // Extract unsigned Warp message from logs
+    unsignedMessage := extractWarpMessageFromLogs(ctx, receipt, source)
+
+    // Wait for all validators to accept the block
+    waitForAllValidatorsToAcceptBlock(
+        ctx,
+        source.NodeURIs,
+        source.BlockchainID,
+        receipt.BlockNumber.Uint64(),
+    )
+
+    // Get signed message from aggregator
+    signedMessage, err := aggregator.CreateSignedMessage(
+        unsignedMessage,
+        nil, // No justification needed for Teleporter
+        source.SubnetID,
+        67, // 67% quorum (warp.WarpDefaultQuorumNumerator)
+    )
+    Expect(err).NotTo(HaveOccurred())
+
+    return signedMessage
+}
+```
+
+### 3. Relaying the Message
+
+```go
+func relayMessage(
+    ctx context.Context,
+    sourceReceipt *types.Receipt,
+    source L1TestInfo,
+    destination L1TestInfo,
+    teleporterAddress common.Address,
+    aggregator *SignatureAggregator,
+    relayerKey *ecdsa.PrivateKey,
+) *types.Receipt {
+
+    // Construct signed Warp message
+    signedMessage := constructWarpMessage(
+        ctx,
+        source,
+        destination,
+        sourceReceipt,
+        aggregator,
+    )
+
+    // Get Teleporter contract on destination
+    teleporter := getTeleporterContract(destination, teleporterAddress)
+
+    // Create predicate transaction (includes Warp message in access list)
+    tx := createPredicateTx(
+        ctx,
+        destination,
+        teleporterAddress,
+        signedMessage,
+        relayerKey,
+        func(opts *bind.TransactOpts) (*types.Transaction, error) {
+            return teleporter.ReceiveCrossChainMessage(opts, 0, relayerKey.Address)
+        },
+    )
+
+    // Send and wait for success
+    err := destination.RPCClient.SendTransaction(ctx, tx)
+    Expect(err).NotTo(HaveOccurred())
+
+    receipt := waitForSuccess(ctx, destination, tx.Hash())
+
+    return receipt
+}
+```
+
+## Message Fees and Relayer Rewards
+
+### Sending with Fees
+
+```go
+ginkgo.It("should handle message fees",
+    ginkgo.Label("teleporter", "fees"),
+    func() {
+        ctx := context.Background()
+
+        // Deploy ERC20 token for fees
+        feeTokenAddress, feeToken := deployERC20Token(
+            ctx,
+            l1A,
+            fundedKey,
+            "FeeToken",
+            "FEE",
+        )
+
+        // Approve Teleporter to spend tokens
+        approveERC20(
+            ctx,
+            l1A,
+            feeToken,
+            teleporterAddress,
+            big.NewInt(1e18),
+            fundedKey,
+        )
+
+        // Send message with fee
+        feeAmount := big.NewInt(1000)
+        input := teleportermessenger.TeleporterMessageInput{
+            DestinationBlockchainID: l1B.BlockchainID,
+            DestinationAddress:      recipientAddress,
+            FeeInfo: teleportermessenger.TeleporterFeeInfo{
+                FeeTokenAddress: feeTokenAddress,
+                Amount:          feeAmount,
+            },
+            RequiredGasLimit: big.NewInt(100000),
+            Message:          []byte("paid message"),
+        }
+
+        messageID, receipt := sendMessage(ctx, l1A, teleporterAddress, input, fundedKey)
+
+        // Relay and collect fee
+        relayReceipt := relayMessage(ctx, receipt, l1A, l1B, teleporterAddress, aggregator, relayerKey)
+
+        // Verify relayer received fee
+        verifyRelayerReward(ctx, l1B, teleporterAddress, relayerAddress, feeTokenAddress, feeAmount)
+    })
+```
+
+### Redeeming Relayer Rewards
+
+```go
+func redeemRelayerRewards(
+    ctx context.Context,
+    l1 L1TestInfo,
+    teleporterAddress common.Address,
+    feeTokenAddress common.Address,
+    relayerKey *ecdsa.PrivateKey,
+) {
+
+    teleporter := getTeleporterContract(l1, teleporterAddress)
+    relayerAddress := crypto.PubkeyToAddress(relayerKey.PublicKey)
+
+    // Check pending rewards
+    pendingReward, err := teleporter.CheckRelayerRewardAmount(
+        &bind.CallOpts{},
+        relayerAddress,
+        feeTokenAddress,
+    )
+    Expect(err).NotTo(HaveOccurred())
+    Expect(pendingReward.Uint64()).To(BeNumerically(">", 0))
+
+    // Redeem rewards
+    opts, _ := bind.NewKeyedTransactorWithChainID(relayerKey, l1.EVMChainID)
+    tx, err := teleporter.RedeemRelayerRewards(opts, feeTokenAddress)
+    Expect(err).NotTo(HaveOccurred())
+
+    receipt := waitForSuccess(ctx, l1, tx.Hash())
+
+    // Verify rewards received
+    feeToken := getERC20Contract(l1, feeTokenAddress)
+    balance, err := feeToken.BalanceOf(&bind.CallOpts{}, relayerAddress)
+    Expect(err).NotTo(HaveOccurred())
+    Expect(balance).To(Equal(pendingReward))
+}
+```
+
+## Advanced Patterns
+
+### Adding Fees to Existing Messages
+
+```go
+ginkgo.It("should add fee to message",
+    ginkgo.Label("teleporter", "add-fee"),
+    func() {
+        ctx := context.Background()
+
+        // Send message with low initial fee
+        messageID, _ := sendMessage(ctx, l1A, teleporterAddress, input, fundedKey)
+
+        // Add additional fee
+        additionalFee := big.NewInt(500)
+
+        approveERC20(ctx, l1A, feeToken, teleporterAddress, additionalFee, fundedKey)
+
+        teleporter := getTeleporterContract(l1A, teleporterAddress)
+        opts, _ := bind.NewKeyedTransactorWithChainID(fundedKey, l1A.EVMChainID)
+
+        tx, err := teleporter.AddFeeAmount(
+            opts,
+            messageID,
+            teleportermessenger.TeleporterFeeInfo{
+                FeeTokenAddress: feeTokenAddress,
+                Amount:          additionalFee,
+            },
+        )
+        Expect(err).NotTo(HaveOccurred())
+
+        waitForSuccess(ctx, l1A, tx.Hash())
+    })
+```
+
+### Sending Specific Receipts
+
+```go
+ginkgo.It("should send specific receipts",
+    ginkgo.Label("teleporter", "receipts"),
+    func() {
+        ctx := context.Background()
+
+        // Send messages A->B
+        messageIDs := []common.Hash{
+            sendSimpleMessage(ctx, l1A, l1B, "msg1"),
+            sendSimpleMessage(ctx, l1A, l1B, "msg2"),
+            sendSimpleMessage(ctx, l1A, l1B, "msg3"),
+        }
+
+        // Relay all messages
+        for _, msgID := range messageIDs {
+            relayMessageByID(ctx, l1A, l1B, msgID, aggregator, fundedKey)
+        }
+
+        // Send receipts back B->A
+        teleporter := getTeleporterContract(l1B, teleporterAddress)
+        opts, _ := bind.NewKeyedTransactorWithChainID(fundedKey, l1B.EVMChainID)
+
+        tx, err := teleporter.SendSpecifiedReceipts(
+            opts,
+            l1A.BlockchainID,
+            messageIDs,
+            teleportermessenger.TeleporterFeeInfo{
+                FeeTokenAddress: common.Address{},
+                Amount:          big.NewInt(0),
+            },
+            []common.Address{},
+        )
+        Expect(err).NotTo(HaveOccurred())
+
+        receiptTx := waitForSuccess(ctx, l1B, tx.Hash())
+
+        // Relay receipt message to A
+        relayMessage(ctx, receiptTx, l1B, l1A, teleporterAddress, aggregator, fundedKey)
+    })
+```
+
+### Retrying Failed Execution
+
+```go
+ginkgo.It("should retry failed message execution",
+    ginkgo.Label("teleporter", "retry"),
+    func() {
+        ctx := context.Background()
+
+        // Send message that will fail (insufficient gas)
+        input := teleportermessenger.TeleporterMessageInput{
+            DestinationBlockchainID: l1B.BlockchainID,
+            DestinationAddress:      contractAddress,
+            RequiredGasLimit:        big.NewInt(10), // Too low
+            Message:                 callData,
+        }
+
+        messageID, receipt := sendMessage(ctx, l1A, teleporterAddress, input, fundedKey)
+
+        // Relay - will fail but message is delivered
+        relayMessage(ctx, receipt, l1A, l1B, teleporterAddress, aggregator, fundedKey)
+
+        // Verify message not executed
+        teleporter := getTeleporterContract(l1B, teleporterAddress)
+        executed, _ := teleporter.MessageReceived(&bind.CallOpts{}, messageID)
+        Expect(executed).To(BeFalse())
+
+        // Retry with more gas
+        opts, _ := bind.NewKeyedTransactorWithChainID(fundedKey, l1B.EVMChainID)
+        opts.GasLimit = 500000
+
+        tx, err := teleporter.RetryMessageExecution(
+            opts,
+            l1A.BlockchainID,
+            teleportermessenger.TeleporterMessage{
+                MessageID:               messageID,
+                DestinationBlockchainID: l1B.BlockchainID,
+                DestinationAddress:      contractAddress,
+                RequiredGasLimit:        big.NewInt(10),
+                Message:                 callData,
+            },
+        )
+        Expect(err).NotTo(HaveOccurred())
+
+        waitForSuccess(ctx, l1B, tx.Hash())
+
+        // Verify now executed
+        executed, _ = teleporter.MessageReceived(&bind.CallOpts{}, messageID)
+        Expect(executed).To(BeTrue())
+    })
+```
+
+## Signature Aggregation
+
+### Setting Up Aggregator
+
+```go
+type SignatureAggregator struct {
+    client     *aggregator.Client
+    subnetIDs  []ids.ID
+}
+
+func NewSignatureAggregator(
+    nodeURI string,
+    subnetIDs []ids.ID,
+) *SignatureAggregator {
+
+    client, err := aggregator.NewSignatureAggregatorClient(nodeURI)
+    Expect(err).NotTo(HaveOccurred())
+
+    return &SignatureAggregator{
+        client:    client,
+        subnetIDs: subnetIDs,
+    }
+}
+
+func (a *SignatureAggregator) CreateSignedMessage(
+    unsignedMessage *avalancheWarp.UnsignedMessage,
+    justification []byte,
+    subnetID ids.ID,
+    quorumNum uint64,
+) (*avalancheWarp.Message, error) {
+
+    signedMessage, err := a.client.CreateSignedMessage(
+        unsignedMessage,
+        justification,
+        subnetID,
+        quorumNum,
+    )
+
+    return signedMessage, err
+}
+
+func (a *SignatureAggregator) Shutdown() {
+    // Clean up aggregator resources
+}
+```
+
+## Testing Error Scenarios
+
+### Deliver to Wrong Chain
+
+```go
+ginkgo.It("should reject wrong chain delivery",
+    ginkgo.Label("teleporter", "error"),
+    func() {
+        ctx := context.Background()
+
+        // Send message A -> B
+        messageID, receipt := sendMessage(ctx, l1A, l1B, message, fundedKey)
+
+        // Try to deliver on wrong chain (A instead of B)
+        signedMessage := constructWarpMessage(ctx, l1A, l1A, receipt, aggregator)
+
+        // This should fail
+        tx := createPredicateTx(ctx, l1A, teleporterAddress, signedMessage, fundedKey, /*...*/)
+
+        err := l1A.RPCClient.SendTransaction(ctx, tx)
+
+        // Expect transaction to fail
+        receipt := waitForFailure(ctx, l1A, tx.Hash())
+        Expect(receipt.Status).To(Equal(uint64(0)))
+    })
+```
+
+### Insufficient Gas
+
+```go
+ginkgo.It("should handle insufficient gas",
+    ginkgo.Label("teleporter", "error"),
+    func() {
+        // Message with required gas of 100k
+        input := teleportermessenger.TeleporterMessageInput{
+            RequiredGasLimit: big.NewInt(100000),
+            // ... other fields
+        }
+
+        messageID, receipt := sendMessage(ctx, l1A, teleporterAddress, input, fundedKey)
+
+        // Relay with insufficient gas (50k)
+        tx := createPredicateTxWithGasLimit(
+            ctx,
+            l1B,
+            teleporterAddress,
+            signedMessage,
+            50000,
+            relayerKey,
+        )
+
+        // Transaction succeeds but message execution fails
+        receipt := waitForSuccess(ctx, l1B, tx.Hash())
+
+        // Message not marked as received
+        teleporter := getTeleporterContract(l1B, teleporterAddress)
+        received, _ := teleporter.MessageReceived(&bind.CallOpts{}, messageID)
+        Expect(received).To(BeFalse())
+    })
+```
+
+## Best Practices
+
+1. **Always use signature aggregator**: Don't manually collect signatures
+2. **Wait for block acceptance**: Ensure validators have seen the block before aggregating
+3. **Handle async operations**: Use `Eventually` for checking message delivery
+4. **Test error cases**: Verify wrong chain, insufficient gas, etc.
+5. **Clean up aggregator**: Always defer `aggregator.Shutdown()`
+6. **Use appropriate timeouts**: Cross-chain operations can be slow
+
+## Common Patterns
+
+### Wait for Message Delivery
+
+```go
+Eventually(func() bool {
+    delivered, _ := teleporter.MessageReceived(&bind.CallOpts{}, messageID)
+    return delivered
+}, 30*time.Second, 500*time.Millisecond).Should(BeTrue())
+```
+
+### Verify Receipt Received
+
+```go
+func verifyReceiptReceived(
+    ctx context.Context,
+    l1 L1TestInfo,
+    teleporterAddress common.Address,
+    messageID common.Hash,
+) {
+    teleporter := getTeleporterContract(l1, teleporterAddress)
+
+    received, err := teleporter.ReceiptReceived(&bind.CallOpts{}, messageID)
+    Expect(err).NotTo(HaveOccurred())
+    Expect(received).To(BeTrue())
+}
+```
+
+## Next Steps
+
+<Cards>
+  <Card title="Token Transfers" href="/docs/tooling/tmpnet/guides/token-transfers-erc20">
+    Test ICTT cross-chain token transfers
+  </Card>
+  <Card title="Warp Messages" href="/docs/tooling/tmpnet/guides/warp-messages">
+    Deep dive into Warp message construction
+  </Card>
+  <Card title="Transaction Utilities" href="/docs/tooling/tmpnet/guides/transaction-utilities">
+    Helper functions for transactions and events
+  </Card>
+</Cards>
+
+## Additional Resources
+
+- [Teleporter Documentation](https://github.com/ava-labs/teleporter)
+- [ICM Services Tests](https://github.com/ava-labs/icm-services/tree/main/tests)
+- [Warp Messaging](https://docs.avax.network/cross-chain)
