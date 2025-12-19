@@ -4,10 +4,9 @@ import type { ReactNode } from "react";
 import { Footer } from "@/components/navigation/footer";
 import { baseOptions } from "@/app/layout.config";
 import { SessionProvider, useSession } from "next-auth/react";
-import { useEffect, Suspense, useState } from "react";
+import { useEffect, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import Modal from "@/components/ui/Modal";
-import { Button } from "@/components/ui/button";
+import { toast } from "@/lib/toast";
 import { LayoutWrapper } from "@/app/layout-wrapper.client";
 import { NavbarDropdownInjector } from "@/components/navigation/navbar-dropdown-injector";
 import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";
@@ -38,7 +37,6 @@ function RedirectIfNewUser() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     if (
@@ -52,37 +50,14 @@ function RedirectIfNewUser() {
         localStorage.setItem("redirectAfterProfile", originalUrl);
       }
       
-      // Show confirmation modal and redirect immediately
-      setShowModal(true);
+      // Show informative toast and redirect to profile
+      toast.info(
+        "Complete your profile", 
+        "Please fill your profile information to continue. This will help us provide you with a better experience."
+      );
       router.replace("/profile");
     }
   }, [session, status, pathname, router, searchParams]);
 
-  const handleContinue = () => {
-    setShowModal(false);
-  };
-
-  return (
-    <>
-      {showModal && (
-        <Modal
-          className="border border-red-500"
-          isOpen={showModal}
-          onOpenChange={setShowModal}
-          title="Complete your profile"
-          description="Please fill your profile information to continue. This will help us provide you with a better experience."
-          footer={
-            <div className="flex gap-3 w-full">
-              <Button
-                onClick={handleContinue}
-                className="flex-1"
-              >
-                Continue
-              </Button>
-            </div>
-          }
-        />
-      )}
-    </>
-  );
+  return null;
 }

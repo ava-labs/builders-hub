@@ -20,7 +20,7 @@ export function SubmissionWrapperSecure({
     <ProjectSubmissionProvider>
       {!showComponent && (
         <UserNotRegistered
-          hackathonId={searchParams.hackathon as string}
+          hackathonId={(searchParams?.hackathon ?? "") as string}
           onToggle={handleShowComponent}
         />
       )}
