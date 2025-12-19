@@ -50,7 +50,7 @@ async function listClassicValidators(network: "mainnet" | "fuji"): Promise<Simpl
     validators.push(...activeValidators.map(v => ({
       nodeId: v.nodeId,
       subnetId: v.subnetId,
-      weight: Number(v.amountStaked)
+      weight: Number(v.amountStaked) + Number(v.amountDelegated)
     })));
   }
 
