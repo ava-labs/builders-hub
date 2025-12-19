@@ -25,13 +25,27 @@ import { blockchainLearningPaths, blockchainCategoryStyles } from './learning-pa
 
 interface LearningTreeProps {
   pathType?: 'avalanche' | 'entrepreneur' | 'blockchain';
+  externalHoveredCategory?: string | null;
+  onCategoryHover?: (category: string | null) => void;
 }
 
-export default function LearningTree({ pathType = 'avalanche' }: LearningTreeProps) {
+export default function LearningTree({ 
+  pathType = 'avalanche',
+  externalHoveredCategory,
+  onCategoryHover
+}: LearningTreeProps) {
   const [hoveredNode, setHoveredNode] = React.useState<string | null>(null);
-  const [hoveredCategory, setHoveredCategory] = React.useState<string | null>(null);
+  const [internalHoveredCategory, setInternalHoveredCategory] = React.useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = React.useState(false);
   const isMobile = useIsMobile();
+  
+  // Use external category if provided, otherwise use internal state
+  const hoveredCategory = externalHoveredCategory ?? internalHoveredCategory;
+  
+  const setHoveredCategory = (category: string | null) => {
+    setInternalHoveredCategory(category);
+    onCategoryHover?.(category);
+  };
 
   // Detect dark mode
   React.useEffect(() => {
@@ -389,8 +403,14 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
                 width: '280px',
                 zIndex: isHighlighted || isCategoryHovered ? 20 : 10
               }}
-              onMouseEnter={() => setHoveredNode(node.id)}
-              onMouseLeave={() => setHoveredNode(null)}
+              onMouseEnter={() => {
+                setHoveredNode(node.id);
+                setHoveredCategory(node.category);
+              }}
+              onMouseLeave={() => {
+                setHoveredNode(null);
+                setHoveredCategory(null);
+              }}
             >
               <Link
                 href={resolveSlug(node.slug)}
@@ -449,35 +469,100 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
   );
 
   return (
-    <>
-      {/* Vertical Legend on far left of screen - positioned absolutely relative to viewport */}
-      <div 
-        className="hidden lg:block absolute z-10"
-        style={{
-          left: '1rem',
-          top: '30%',
-          transform: 'translateY(-50%)',
-          marginLeft: 'calc(-50vw + 50%)'
-        }}
-      >
-        <Legend isMobile={false} vertical={true} />
+    <div className="relative w-full">
+      {/* Mobile Layout - visible on small screens, hidden on lg and up */}
+      <div className="block lg:hidden">
+        <MobileLayout />
       </div>
 
-      <div className="relative w-full">
-        {/* Mobile Layout - visible on small screens, hidden on lg and up */}
-        <div className="block lg:hidden">
-          {/* Legend at top for mobile */}
-          <div className="mb-8">
-            <Legend isMobile={true} />
+      {/* Desktop Layout - hidden on small screens, visible on lg and up */}
+      <div className="hidden lg:block">
+        <DesktopLayout />
+      </div>
+    </div>
+  );
+}
+
+// Export Legend component for use in academy-learning-path
+export function LearningTreeLegend({ 
+  pathType = 'avalanche',
+  isMobile = false,
+  activeCategory = null,
+  onCategoryHover
+}: { 
+  pathType?: 'avalanche' | 'entrepreneur' | 'blockchain';
+  isMobile?: boolean;
+  activeCategory?: string | null;
+  onCategoryHover?: (category: string | null) => void;
+}) {
+  const [localHoveredCategory, setLocalHoveredCategory] = React.useState<string | null>(null);
+  
+  // Use external activeCategory if provided, otherwise use local state
+  const hoveredCategory = activeCategory ?? localHoveredCategory;
+  
+  const handleMouseEnter = (category: string) => {
+    setLocalHoveredCategory(category);
+    onCategoryHover?.(category);
+  };
+  
+  const handleMouseLeave = () => {
+    setLocalHoveredCategory(null);
+    onCategoryHover?.(null);
+  };
+  
+  const categoryStyles = pathType === 'avalanche' 
+    ? avalancheCategoryStyles 
+    : pathType === 'blockchain' 
+    ? blockchainCategoryStyles 
+    : entrepreneurCategoryStyles;
+
+  return (
+    <div className={
+      isMobile 
+        ? "flex flex-wrap gap-3 justify-center" 
+        : "flex flex-wrap gap-2 justify-center"
+    }>
+      {Object.entries(categoryStyles).map(([category, style]) => {
+        const Icon = style.icon;
+        const isActive = hoveredCategory === category;
+        return (
+          <div 
+            key={category} 
+            className={cn(
+              "flex items-center cursor-pointer transition-all duration-300 ease-out",
+              "rounded-full",
+              isActive 
+                ? "gap-2 sm:gap-3 bg-zinc-100 dark:bg-zinc-800 px-2 py-1.5" 
+                : "gap-0 px-1 py-1.5"
+            )}
+            onMouseEnter={() => handleMouseEnter(category)}
+            onMouseLeave={handleMouseLeave}
+          >
+            <div className={cn(
+              isMobile ? "w-8 h-8" : "w-9 h-9",
+              "rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm transition-all duration-200",
+              "flex-shrink-0",
+              style.gradient,
+              isActive && "shadow-md scale-110"
+            )}>
+              <Icon className={isMobile ? "w-4 h-4 text-white" : "w-[18px] h-[18px] text-white"} />
+            </div>
+            <div
+              className={cn(
+                "overflow-hidden transition-all duration-300 ease-out",
+                isActive
+                  ? "max-w-[120px] opacity-100"
+                  : "max-w-0 opacity-0"
+              )}
+            >
+              <span className={cn(
+                isMobile ? "text-xs" : "text-sm",
+                "font-medium text-zinc-700 dark:text-zinc-200 whitespace-nowrap pr-1"
+              )}>{style.label || category}</span>
+            </div>
           </div>
-          <MobileLayout />
-        </div>
-
-        {/* Desktop Layout - hidden on small screens, visible on lg and up */}
-        <div className="hidden lg:block">
-          <DesktopLayout />
-        </div>
-      </div>
-    </>
+        );
+      })}
+    </div>
   );
 } 
