@@ -55,7 +55,7 @@ export function AcademyDocsLayoutWrapper({
     );
 
     return (
-        <>
+        <div data-route-layout="academy">
             <NavbarDropdownInjector />
             <ForceMobileSidebar />
             <AcademyLayoutClient />
@@ -123,7 +123,7 @@ export function AcademyDocsLayoutWrapper({
                 </span>
                 {children}
             </DocsLayout>
-        </>
+        </div>
     );
 }
 

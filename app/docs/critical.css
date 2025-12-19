@@ -1,0 +1,113 @@
+/* Critical CSS for Docs - Scoped to docs layout only */
+[data-route-layout="docs"] {
+  --fd-sidebar-width: 16rem;
+}
+
+/* Subnavbar positioning - docs only */
+[data-route-layout="docs"] #docs-subnav {
+  width: 100vw !important;
+  margin-left: calc(50% - 50vw) !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Desktop: Apply sidebar positioning immediately */
+@media (min-width: 1024px) {
+  /* Subnavbar positioning on desktop */
+  [data-route-layout="docs"] #docs-subnav {
+    z-index: 30 !important;
+  }
+
+  [data-route-layout="docs"] #docs-subnav > div {
+    padding-left: 3rem !important;
+    justify-content: flex-start !important;
+  }
+
+  /* Docs sidebar positioning */
+  [data-route-layout="docs"] #nd-sidebar,
+  [data-route-layout="docs"] [data-sidebar="sidebar"] {
+    position: fixed !important;
+    left: 3rem !important;
+    right: auto !important;
+    inset-inline-start: 3rem !important;
+    inset-inline-end: auto !important;
+    top: calc(3.5rem + 3rem) !important;
+    height: calc(100vh - 3.5rem - 3rem) !important;
+    width: var(--fd-sidebar-width) !important;
+    z-index: 20 !important;
+    padding-left: 0.5rem !important;
+    padding-right: 1.5rem !important;
+    border-right: none !important;
+    background: transparent !important;
+  }
+
+  /* Main content layout and padding */
+  [data-route-layout="docs"] main#nd-docs-layout.fd-notebook-layout,
+  [data-route-layout="docs"] main#nd-docs-layout.fd-default-layout {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: calc(3rem + var(--fd-sidebar-width) + 0.5rem) !important;
+    padding-right: 5rem !important;
+  }
+
+  /* Content wrapper padding */
+  [data-route-layout="docs"] .nd-layout-notebook {
+    padding-top: 3rem !important;
+  }
+
+  /* Page content centering */
+  [data-route-layout="docs"] #nd-page {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-width: var(--fd-page-width) !important;
+  }
+
+  /* First child padding */
+  [data-route-layout="docs"] main .nd-layout-notebook > div:first-child {
+    padding-top: 0.5rem !important;
+  }
+}
+
+/* Mobile: reset sidebar width and force left side */
+@media (max-width: 1023px) {
+  [data-route-layout="docs"] {
+    --fd-sidebar-width: 0px;
+  }
+
+  [data-route-layout="docs"] #nd-docs-layout {
+    --fd-sidebar-width: 0px !important;
+    padding-inline-start: 0 !important;
+  }
+
+  /* Subnavbar fixed on mobile */
+  [data-route-layout="docs"] #docs-subnav {
+    position: fixed !important;
+    top: 3.5rem !important;
+    z-index: 30 !important;
+    width: 100vw !important;
+  }
+
+  [data-route-layout="docs"] #docs-subnav > div {
+    justify-content: center !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Mobile sidebar should appear from left, not right */
+  [data-route-layout="docs"] #nd-sidebar-mobile {
+    left: 0 !important;
+    right: auto !important;
+    inset-inline-start: 0 !important;
+    inset-inline-end: auto !important;
+  }
+
+  /* Mobile content padding for navbar + subnavbar */
+  [data-route-layout="docs"] .nd-layout-notebook {
+    padding-top: 6.5rem !important;
+  }
+
+  /* If TOC exists, add extra padding */
+  [data-route-layout="docs"] .nd-layout-notebook:has(#nd-tocnav) {
+    padding-top: 9.5rem !important;
+  }
+}

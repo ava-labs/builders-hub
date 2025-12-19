@@ -9,7 +9,7 @@ import { Project } from "@/types/showcase";
 import VideoRenderer from "./DemoVideoRenderer";
 import { TeamBadge } from "./sections/TeamBadge";
 import { UserBadge } from "@/types/badge";
-
+import DemoLinks from "./sections/DemoLinks";
 
 type Props = {
   project: Project;
@@ -52,6 +52,9 @@ export default function ProjectOverview({ project, badges }: Props) {
           )}
           {project.demo_video_link && (
             <VideoRenderer link={project.demo_video_link} />
+          )}
+          {project.demo_link && (
+            <DemoLinks demoLink={project.demo_link} />
           )}
 
           {project.prizes?.length > 0 && <Prizes prizes={project.prizes} />}

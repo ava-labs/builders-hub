@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowUpRight, ChevronDown } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,6 +19,9 @@ interface ExplorerDropdownProps {
   buttonText?: string;
 }
 
+// Helper to check if link is internal (starts with /)
+const isInternalLink = (link: string) => link.startsWith("/");
+
 export function ExplorerDropdown({
   explorers,
   size = "sm",
@@ -25,6 +29,17 @@ export function ExplorerDropdown({
   showIcon = true,
   buttonText = "View Explorer",
 }: ExplorerDropdownProps) {
+  const router = useRouter();
+
+  // Navigate to link - internal links use router, external open new tab
+  const handleNavigate = (link: string) => {
+    if (isInternalLink(link)) {
+      router.push(link);
+    } else {
+      window.open(link, "_blank");
+    }
+  };
+
   // No explorers available
   if (!explorers || explorers.length === 0) {
     return null;
@@ -32,18 +47,21 @@ export function ExplorerDropdown({
 
   // Single explorer - show direct link button
   if (explorers.length === 1) {
+    const explorer = explorers[0];
+    const isInternal = isInternalLink(explorer.link);
+    
     return (
       <Button
         variant={variant}
         size={size}
         onClick={(e) => {
           e.stopPropagation();
-          window.open(explorers[0].link, "_blank");
+          handleNavigate(explorer.link);
         }}
         className="flex items-center gap-2 whitespace-nowrap"
       >
         {buttonText}
-        {showIcon && <ArrowUpRight className="h-4 w-4" />}
+        {showIcon && !isInternal && <ArrowUpRight className="h-4 w-4" />}
       </Button>
     );
   }
@@ -63,19 +81,22 @@ export function ExplorerDropdown({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
-        {explorers.map((explorer, index) => (
+        {explorers.map((explorer, index) => {
+          const isInternal = isInternalLink(explorer.link);
+          return (
           <DropdownMenuItem
             key={index}
             onClick={(e) => {
               e.stopPropagation();
-              window.open(explorer.link, "_blank");
+                handleNavigate(explorer.link);
             }}
             className="cursor-pointer text-xs"
           >
             {explorer.name}
-            <ArrowUpRight className="h-3 w-3 ml-auto" />
+              {!isInternal && <ArrowUpRight className="h-3 w-3 ml-auto" />}
           </DropdownMenuItem>
-        ))}
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

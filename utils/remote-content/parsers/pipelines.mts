@@ -317,6 +317,8 @@ export const fixUnicodeMathSymbols: TransformFunction = (content) => {
     // Replace ASCII comparison operators that can cause MDX issues (but not HTML tags)
     .replace(/([^<>=!\w/])<=/g, '$1&lt;=')
     .replace(/([^<>=!\w/])>=/g, '$1&gt;=')
+    // Escape < followed by a digit (like <1k) which MDX would try to parse as JSX tag
+    .replace(/<(\d)/g, '&lt;$1')
     // Fix table formatting issues with backslashes and asterisks
     .replace(/\\\*/g, '\\\\*')
     // Replace other common mathematical symbols that might cause MDX issues
