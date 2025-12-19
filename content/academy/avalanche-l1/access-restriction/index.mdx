@@ -12,24 +12,30 @@ Access restriction is a core requirement for many real-world networks: you may n
 
 In Avalanche L1s, these controls are implemented as **precompiles** (go code wrapped in a solidity interface) that follow a shared, audited permission model: the **AllowList interface**.
 
-## Course Content
+## Course Structure
 
-import { Steps, Step } from 'fumadocs-ui/components/steps';
+This course is divided into two parts:
 
-<Steps>
-  <Step>
-    ### Introduction
-    Precompiles refresher, the AllowList permission model (Admin/Manager/Enabled), and why this pattern is reused across multiple L1 precompiles.
-  </Step>
-  <Step>
-    ### Genesis Activation
-    Configure and launch an L1 with **Transaction AllowList** and **Contract Deployer AllowList** enabled from genesis (self-hosted node via Docker).
-  </Step>
-  <Step>
-    ### Everyone Makes Mistakes
-    Intentionally lock yourself out, observe failures, and learn the recovery path (network upgrade sections come next).
-  </Step>
-</Steps>
+### Part 1: Fundamentals
+
+The first section covers the basics of access restriction precompiles:
+
+- **Introduction** — What precompiles are, the AllowList permission model (Admin/Manager/Enabled), and real-world use cases
+- **Genesis Activation** — Create an L1 with **Transaction AllowList** and **Contract Deployer AllowList** enabled from genesis, then test that permissions work as expected
+
+### Part 2: Advanced Topics
+
+The second section dives deeper into precompile internals and recovery patterns:
+
+- **Precompile Flow (Optional)** — Understand how Solidity calls route to Go code, and how the blockchain automatically enforces permissions even when you're not directly calling the precompile
+- **User Error** — Intentionally lock yourself out by removing your admin privileges, then observe the resulting failures
+- **Network Upgrades** — Learn how to **deactivate** and **reactivate** precompiles via `upgrade.json` to recover from misconfigurations (requires a self-hosted Docker validator)
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout type="info">
+Part 1 uses a **BuilderHub hosted node** for quick setup. Part 2 (Advanced) requires running your own **Docker validator** to access configuration files for network upgrades.
+</Callout>
 
 ## Prerequisites
 

@@ -132,6 +132,24 @@ To verify you've completed this exercise successfully:
 
 **Solution**: Verify the address in your genesis config's `contractDeployerAllowListConfig.adminAddresses` matches your connected wallet.
 
-## Next Steps
+## 🎉 Part 1 Complete!
 
-You've now verified both allowlist precompiles are working. In the next section, you'll intentionally remove yourself from the admin list to experience what happens when permissions are misconfigured—and how to recover.
+Congratulations! You've completed the **Fundamentals** section of this course. You now know how to:
+
+- Enable Transaction AllowList and Contract Deployer AllowList at genesis
+- Manage roles (Admin, Manager, Enabled) via the Builder Console
+- Test that your permissions are correctly configured
+
+**You can stop here** if you only need to configure access restrictions for a new L1.
+
+---
+
+## Continue to Advanced Topics (Optional)
+
+The remaining sections dive deeper into precompile internals and recovery patterns:
+
+- **Precompile Flow** — Understand how allowlist enforcement works at the VM level
+- **User Error** — Intentionally lock yourself out and observe the failures
+- **Network Upgrades** — Learn to deactivate and reactivate precompiles via `upgrade.json` (requires a Docker validator)
+
+These advanced topics are useful if you need to recover from misconfigurations or want a deeper understanding of how precompiles work under the hood.

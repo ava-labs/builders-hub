@@ -4,20 +4,25 @@
   "root": true,
   "pages": [
     "index",
+    "---",
+    "---📘 FUNDAMENTALS---",
     "---Introduction---",
     "...01-introduction",
     "---Genesis Activation---",
     "...02-genesis-activation",
-    "---ADVANCED TOPICS---",
+    "---Fundamentals Certificate---",
+    "certificate-fundamentals",
+    "---",
+    "---🔬 ADVANCED TOPICS---",
     "---Precompile Flow (Optional)---",
     "...03-precompile-flow",
-    "---User Errors---",
+    "---User Error---",
     "...04-user-error",
-    "---Network Upgrade De-Activation---",
+    "---Network Upgrade: Deactivation---",
     "...05-network-upgrade-de-activation",
-    "---Network Upgrade Activation---",
+    "---Network Upgrade: Activation---",
     "...06-network-upgrade-activation",
-    "---Course Completion---",
-    "certificate"
+    "---Advanced Certificate---",
+    "certificate-advanced"
   ]
 }
