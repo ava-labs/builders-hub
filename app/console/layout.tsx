@@ -8,6 +8,7 @@ import { SessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";
 import { useAutomatedFaucet } from "@/hooks/useAutomatedFaucet";
+import { TrackNewUser } from "@/components/analytics/TrackNewUser";
 
 function ConsoleContent({ children }: { children: ReactNode }) {
   useAutomatedFaucet();
@@ -39,6 +40,7 @@ function ConsoleContent({ children }: { children: ReactNode }) {
 export default function Layout({ children }: { children: ReactNode }) {
   return (
     <SessionProvider>
+      <TrackNewUser />
       <ConsoleContent>{children}</ConsoleContent>
     </SessionProvider>
   );

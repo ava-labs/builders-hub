@@ -126,7 +126,7 @@ export async function getReleasesConfigs(): Promise<FileConfig[]> {
   return [
     {
       sourceUrl: 'https://api.github.com/repos/ava-labs/avalanchego/releases',
-      outputPath: 'content/docs/nodes/maintain/releases.mdx',
+      outputPath: 'content/docs/nodes/releases.mdx',
       title: 'AvalancheGo Releases',
       description: 'Track AvalancheGo releases, network upgrades, and version compatibility for your node.',
       contentUrl: 'https://github.com/ava-labs/avalanchego/releases',
