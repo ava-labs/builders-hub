@@ -107,6 +107,9 @@ export interface ConfigurableChartProps {
   endTime?: string | null;
   onTimeFilterChange?: (startTime: string | null, endTime: string | null) => void;
   reloadTrigger?: number;
+  initialBrushStartIndex?: number | null;
+  initialBrushEndIndex?: number | null;
+  onBrushChange?: (startIndex: number | null, endIndex: number | null) => void;
 }
 
 const DEFAULT_COLORS = [
@@ -189,6 +192,9 @@ export default function ConfigurableChart({
   endTime,
   onTimeFilterChange,
   reloadTrigger = 0,
+  initialBrushStartIndex,
+  initialBrushEndIndex,
+  onBrushChange,
 }: ConfigurableChartProps) {
   const { resolvedTheme } = useTheme();
   const [isMounted, setIsMounted] = useState(false);
@@ -557,9 +563,40 @@ export default function ConfigurableChart({
     }
   }, [isResolutionEnabled, resolution]);
 
-  // Set default brush range
+  // Track if we've used the initial brush values
+  const hasUsedInitialBrush = useRef(false);
+  // Track if user has manually interacted with brush
+  const userHasInteractedWithBrush = useRef(false);
+
+  // Initialize brush from saved values (runs once when initial values are available)
   useEffect(() => {
     if (aggregatedData.length === 0) return;
+    if (hasUsedInitialBrush.current) return;
+    
+    if (initialBrushStartIndex !== undefined && initialBrushStartIndex !== null &&
+        initialBrushEndIndex !== undefined && initialBrushEndIndex !== null) {
+      hasUsedInitialBrush.current = true;
+      setBrushRange({
+        startIndex: Math.max(0, Math.min(initialBrushStartIndex, aggregatedData.length - 1)),
+        endIndex: Math.max(0, Math.min(initialBrushEndIndex, aggregatedData.length - 1)),
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aggregatedData.length]);
+
+  // Set default brush range when resolution changes (only if user hasn't interacted)
+  useEffect(() => {
+    if (aggregatedData.length === 0) return;
+    if (hasUsedInitialBrush.current && !userHasInteractedWithBrush.current) {
+      // Skip on first render when we have initial values
+      return;
+    }
+    if (userHasInteractedWithBrush.current) {
+      // User has interacted, don't reset
+      userHasInteractedWithBrush.current = false; // Reset for next resolution change
+      return;
+    }
+    
     if (resolution === "D") {
       setBrushRange({
         startIndex: Math.max(0, aggregatedData.length - 90),
@@ -1716,10 +1753,13 @@ export default function ConfigurableChart({
                         e.startIndex !== undefined &&
                         e.endIndex !== undefined
                       ) {
+                        userHasInteractedWithBrush.current = true;
                         setBrushRange({
                           startIndex: e.startIndex,
                           endIndex: e.endIndex,
                         });
+                        // Notify parent of brush change
+                        onBrushChange?.(e.startIndex, e.endIndex);
                       }
                     }}
                     travellerWidth={8}
