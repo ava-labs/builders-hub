@@ -157,6 +157,7 @@ export default function LearningTree({
     </div>
   );
 
+  // Draw connections using SVG curved paths
   const drawConnections = () => {
     const connections: React.JSX.Element[] = [];
 
@@ -183,7 +184,7 @@ export default function LearningTree({
             const midY = (parentBottomY + childTopY) / 2;
 
             // Adjust the end point to account for arrow marker
-            const adjustedChildTopY = childTopY + (isActive ? 6 : 5); // Account for marker size
+            const adjustedChildTopY = childTopY + (isActive ? 6 : 5);
 
             // Create a curved path
             const pathData = `M ${parentCenterX} ${parentBottomY} C ${parentCenterX} ${midY}, ${childCenterX} ${midY}, ${childCenterX} ${adjustedChildTopY}`;
@@ -306,7 +307,7 @@ export default function LearningTree({
     );
   };
 
-  // Desktop layout component (existing code)
+  // Desktop layout component
   const DesktopLayout = () => (
     <>
       <div className="relative p-8 lg:p-12" style={{ minHeight: `${maxY}px` }}>

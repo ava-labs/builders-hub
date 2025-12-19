@@ -1,8 +1,39 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import LearningTree, { LearningTreeLegend } from '@/components/academy/learning-tree';
 import type { AcademyPathType } from './academy-types';
+
+// Typewriter effect component
+function TypewriterText({ text, speed = 30 }: { text: string; speed?: number }) {
+    const [displayedText, setDisplayedText] = useState('');
+    const [currentIndex, setCurrentIndex] = useState(0);
+
+    useEffect(() => {
+        // Reset when text changes
+        setDisplayedText('');
+        setCurrentIndex(0);
+    }, [text]);
+
+    useEffect(() => {
+        if (currentIndex < text.length) {
+            const timeout = setTimeout(() => {
+                setDisplayedText(prev => prev + text[currentIndex]);
+                setCurrentIndex(prev => prev + 1);
+            }, speed);
+            return () => clearTimeout(timeout);
+        }
+    }, [currentIndex, text, speed]);
+
+    return (
+        <span>
+            {displayedText}
+            {currentIndex < text.length && (
+                <span className="inline-block w-0.5 h-5 bg-zinc-400 dark:bg-zinc-500 ml-0.5 animate-pulse" />
+            )}
+        </span>
+    );
+}
 
 interface AcademyLearningPathProps {
     pathType: AcademyPathType;
@@ -20,19 +51,12 @@ export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
     return (
         <div id="learning-path-section" className="mb-20 scroll-mt-20">
             <div className="text-center mb-10">
-                <h1 className="text-5xl sm:text-6xl font-bold mb-4">
-                    <span className="text-red-600">
-                        {pathType === 'avalanche' ? 'Avalanche L1' : pathType === 'blockchain' ? 'Blockchain' : 'Entrepreneur'}
-                    </span>{' '}
-                    <span className="text-zinc-900 dark:text-white">Academy</span>
-                </h1>
-
-                {/* Description between title and topics */}
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto mb-8">
-                    {description}
+                {/* Description with typewriter effect */}
+                <p className="text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto mb-8">
+                    <TypewriterText text={description} speed={25} />
                 </p>
 
-                {/* Category legend under description */}
+                {/* Category legend */}
                 <div>
                     {/* Desktop legend */}
                     <div className="hidden sm:block">

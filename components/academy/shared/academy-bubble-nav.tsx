@@ -75,10 +75,26 @@ export function AcademyBubbleNav() {
     };
 
     return (
+        <>
+        <style jsx>{`
+            @keyframes bubble-breathe {
+                0%, 100% {
+                    transform: scale(1);
+                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+                }
+                50% {
+                    transform: scale(1.03);
+                    box-shadow: 0 14px 20px -4px rgba(0, 0, 0, 0.12), 0 6px 8px -5px rgba(0, 0, 0, 0.1), 0 0 15px rgba(232, 65, 66, 0.15);
+                }
+            }
+            .bubble-active {
+                animation: bubble-breathe 6s ease-in-out infinite;
+            }
+        `}</style>
         <nav
             className="fixed left-3 top-1/2 -translate-y-1/2 z-50 hidden lg:block"
         >
-            <div className="flex flex-col items-start gap-1.5">
+            <div className="flex flex-col items-start gap-2">
                 {academyItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = activeItem === item.id;
@@ -88,27 +104,27 @@ export function AcademyBubbleNav() {
                             key={item.id}
                             onClick={() => handleItemClick(item)}
                             className={cn(
-                                "group flex items-center cursor-pointer rounded-full transition-all duration-300 ease-out",
-                                "bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm shadow-md border border-gray-200/50 dark:border-zinc-800/50",
+                                "group flex items-center cursor-pointer rounded-full",
+                                "bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm shadow-lg border border-gray-200/50 dark:border-zinc-800/50",
                                 isActive
-                                    ? "text-red-600 dark:text-red-400"
-                                    : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                                    ? "text-red-600 dark:text-red-400 bubble-active"
+                                    : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all duration-300 ease-out"
                             )}
                             style={{
-                                padding: "10px",
+                                padding: "14px",
                             }}
                             title={item.label}
                         >
-                            <Icon className="w-5 h-5 flex-shrink-0" />
+                            <Icon className="w-7 h-7 flex-shrink-0" />
                             <div
                                 className={cn(
                                     "overflow-hidden transition-all duration-300 ease-out whitespace-nowrap",
                                     isActive
-                                        ? "max-w-[90px] opacity-100 ml-2 pr-1"
-                                        : "max-w-0 opacity-0 ml-0 pr-0 group-hover:max-w-[90px] group-hover:opacity-100 group-hover:ml-2 group-hover:pr-1"
+                                        ? "max-w-[120px] opacity-100 ml-3 pr-2"
+                                        : "max-w-0 opacity-0 ml-0 pr-0 group-hover:max-w-[120px] group-hover:opacity-100 group-hover:ml-3 group-hover:pr-2"
                                 )}
                             >
-                                <span className="font-medium text-xs">
+                                <span className="font-semibold text-sm">
                                     {item.label}
                                 </span>
                             </div>
@@ -117,5 +133,6 @@ export function AcademyBubbleNav() {
                 })}
             </div>
         </nav>
+        </>
     );
 }
