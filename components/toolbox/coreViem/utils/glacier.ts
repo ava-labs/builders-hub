@@ -90,7 +90,7 @@ interface SubnetInfo {
     blockchains: SubnetBlockchainInfo[];
 }
 
-export async function getSubnetInfo(subnetId: string, signal?: AbortSignal): Promise<SubnetInfo> {
+export async function getSubnetInfo(subnetId: string, signal?: AbortSignal): Promise<SubnetInfo & { isTestnet: boolean }> {
     // Get current network from wallet store
     const { avalancheNetworkID } = useWalletStore.getState();
     const currentNetwork = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "testnet";
@@ -98,14 +98,16 @@ export async function getSubnetInfo(subnetId: string, signal?: AbortSignal): Pro
 
     try {
         // Try current network first
-        return await getSubnetInfoForNetwork(currentNetwork, subnetId, signal);
+        const info = await getSubnetInfoForNetwork(currentNetwork, subnetId, signal);
+        return { ...info, isTestnet: currentNetwork === "testnet" };
     } catch (error) {
         // If request was aborted, don't try the other network
         if (signal?.aborted) {
             throw error;
         }
         // If subnet doesn't exist on current network, try the other network
-        return await getSubnetInfoForNetwork(otherNetwork, subnetId, signal);
+        const info = await getSubnetInfoForNetwork(otherNetwork, subnetId, signal);
+        return { ...info, isTestnet: otherNetwork === "testnet" };
     }
 }
 

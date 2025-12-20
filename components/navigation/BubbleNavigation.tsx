@@ -177,8 +177,8 @@ export default function BubbleNavigation({
         className="fixed left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ease-in-out"
         style={{ bottom: `${bottomOffset}px` }}
       >
-        <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm rounded-full px-3 py-3 shadow-md border border-gray-200/50 dark:border-zinc-800/50">
-          <div className="flex items-center gap-4">
+        <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm rounded-full px-2.5 py-2.5 sm:px-3 sm:py-3 shadow-md border border-gray-200/50 dark:border-zinc-800/50">
+          <div className="flex items-center gap-2.5 sm:gap-4">
             {config.items.map((item) => {
               const Icon = item.icon;
               const isActive = resolvedActiveItem === item.id;
@@ -190,22 +190,22 @@ export default function BubbleNavigation({
                   className={cn(
                     "group relative flex items-center cursor-pointer",
                     isActive
-                      ? cn(config.activeColor, config.activeTextColor, "gap-3")
-                      : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-zinc-800 hover:gap-3"
+                      ? cn(config.activeColor, config.activeTextColor, "gap-2 sm:gap-3")
+                      : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-zinc-800 sm:hover:gap-3"
                   )}
                   style={{
                     borderRadius: "20px",
-                    padding: isActive ? "10px 18px 10px 14px" : "10px",
+                    padding: isActive ? "10px 16px 10px 12px" : "10px",
                     transition: "all 300ms ease-out",
                   }}
                 >
-                  {Icon && <Icon className="w-5 h-5 flex-shrink-0" />}
+                  {Icon && <Icon className="w-[19px] h-[19px] sm:w-5 sm:h-5 flex-shrink-0" />}
                   <div
                     className={cn(
                       "overflow-hidden",
                       isActive
-                        ? "max-w-[100px] opacity-100"
-                        : "max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100"
+                        ? "max-w-[85px] sm:max-w-[100px] opacity-100"
+                        : "max-w-0 opacity-0 sm:group-hover:max-w-[100px] sm:group-hover:opacity-100"
                     )}
                     style={{ transition: "all 300ms ease-out" }}
                   >

@@ -20,7 +20,7 @@ New validators should use **state sync** to bootstrap. While full sync from gene
 | Storage Type | Initial Size | Description |
 |--------------|--------------|-------------|
 | Active State | ~500 GB | Current state required to validate. Downloaded via state sync. |
-| Full Archive | ~3 TB+ | Complete historical state. Only needed for archive nodes or block explorers. |
+| Full Archive | ~12.5 TB | Complete historical state. Only needed for archive nodes or block explorers. |
 
 <Callout title="Storage Grows Over Time">
 Even with state sync, your node's storage usage will grow over time as new blocks are added and old state accumulates. A node starting at 500 GB can grow to 1 TB+ over months of operation. Plan for this growth when provisioning storage, or schedule periodic maintenance using [state management strategies](/docs/nodes/maintain/chain-state-management).
