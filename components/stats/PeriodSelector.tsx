@@ -52,7 +52,7 @@ export function PeriodSelector({
                 : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400"
             }`}
           >
-            {PERIOD_LABELS[period]}
+            {period}
             {selected === period && (
               <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-red-500 rounded-full" />
             )}
