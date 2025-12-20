@@ -179,7 +179,7 @@ export const stats: LinkItemType = {
     {
       icon: <Hexagon />,
       text: "Primary Network Validators",
-      url: "/stats/validators",
+      url: "/stats/validators/c-chain",
       description:
       "View the latest metrics for the Avalanche Primary Network validators.",
       menu: {
