@@ -21,7 +21,7 @@ interface CountryData {
   longitude: number;
 }
 
-type VisualizationMode = "validators" | "stake" | "heatmap";
+type VisualizationMode = "validators" | "stake";
 
 interface Marker {
   location: [number, number];
@@ -197,9 +197,6 @@ export function ValidatorWorldMap() {
       case "stake":
         value = parseFloat(country.totalStaked) / 1e9;
         break;
-      case "heatmap":
-        value = country.percentage;
-        break;
       default:
         value = country.validators;
     }
@@ -212,8 +209,6 @@ export function ValidatorWorldMap() {
     switch (visualMode) {
       case "stake":
         return Math.max(...geoData.map((d) => parseFloat(d.totalStaked) / 1e9));
-      case "heatmap":
-        return Math.max(...geoData.map((d) => d.percentage));
       default:
         return Math.max(...geoData.map((d) => d.validators));
     }
@@ -227,12 +222,14 @@ export function ValidatorWorldMap() {
     }));
   };
 
+  const themeColor = "#E57373";
+
   if (!isClient) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="text-xl flex items-center gap-2 font-medium">
-            <GlobeIcon className="h-5 w-5" style={{ color: "#40c9ff" }} />
+            <GlobeIcon className="h-5 w-5" style={{ color: themeColor }} />
             Global Validator Distribution
           </CardTitle>
           <CardDescription>
@@ -252,7 +249,7 @@ export function ValidatorWorldMap() {
       <Card>
         <CardHeader>
           <CardTitle className="text-xl flex items-center gap-2 font-medium">
-            <GlobeIcon className="h-5 w-5" style={{ color: "#40c9ff" }} />
+            <GlobeIcon className="h-5 w-5" style={{ color: themeColor }} />
             Global Validator Distribution
           </CardTitle>
           <CardDescription>
@@ -277,7 +274,7 @@ export function ValidatorWorldMap() {
       <Card>
         <CardHeader>
           <CardTitle className="text-xl flex items-center gap-2 font-medium">
-            <GlobeIcon className="h-5 w-5" style={{ color: "#40c9ff" }} />
+            <GlobeIcon className="h-5 w-5" style={{ color: themeColor }} />
             Global Validator Distribution
           </CardTitle>
         </CardHeader>
@@ -304,8 +301,6 @@ export function ValidatorWorldMap() {
     switch (visualMode) {
       case "stake":
         return parseFloat(b.totalStaked) - parseFloat(a.totalStaked);
-      case "heatmap":
-        return b.percentage - a.percentage;
       default:
         return b.validators - a.validators;
     }
@@ -317,7 +312,7 @@ export function ValidatorWorldMap() {
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="space-y-1.5">
             <CardTitle className="text-xl flex items-center gap-2 font-medium">
-              <GlobeIcon className="h-5 w-5" style={{ color: "#40c9ff" }} />
+              <GlobeIcon className="h-5 w-5" style={{ color: themeColor }} />
               Global Validator Distribution
             </CardTitle>
             <CardDescription>
@@ -325,36 +320,36 @@ export function ValidatorWorldMap() {
               worldwide
             </CardDescription>
           </div>
-          <div className="flex gap-2 shrink-0">
+          <div className="flex gap-1">
             <button
               onClick={() => setVisualMode("validators")}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors font-medium ${
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
                 visualMode === "validators"
-                  ? "bg-[#40c9ff] text-white"
-                  : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                  ? "text-white dark:text-white"
+                  : "text-muted-foreground hover:bg-muted"
               }`}
+              style={
+                visualMode === "validators"
+                  ? { backgroundColor: themeColor, opacity: 0.9 }
+                  : {}
+              }
             >
               Validators
             </button>
             <button
               onClick={() => setVisualMode("stake")}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors font-medium ${
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
                 visualMode === "stake"
-                  ? "bg-[#40c9ff] text-white"
-                  : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                  ? "text-white dark:text-white"
+                  : "text-muted-foreground hover:bg-muted"
               }`}
+              style={
+                visualMode === "stake"
+                  ? { backgroundColor: themeColor, opacity: 0.9 }
+                  : {}
+              }
             >
               Stake
-            </button>
-            <button
-              onClick={() => setVisualMode("heatmap")}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors font-medium ${
-                visualMode === "heatmap"
-                  ? "bg-[#40c9ff] text-white"
-                  : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700"
-              }`}
-            >
-              Heatmap
             </button>
           </div>
         </div>
@@ -370,11 +365,7 @@ export function ValidatorWorldMap() {
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-4">
               Top Countries by{" "}
-              {visualMode === "validators"
-                ? "Validator Count"
-                : visualMode === "stake"
-                ? "Total Stake"
-                : "Network Share"}
+              {visualMode === "validators" ? "Validator Count" : "Total Stake"}
             </h3>
             <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
               {sortedCountries.map((country, index) => (
@@ -403,16 +394,12 @@ export function ValidatorWorldMap() {
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                      {visualMode === "validators" &&
-                        `${country.validators.toLocaleString()}`}
-                      {visualMode === "stake" &&
-                        `${formatStaked(country.totalStaked)} AVAX`}
-                      {visualMode === "heatmap" &&
-                        `${country.percentage.toFixed(1)}%`}
+                      {visualMode === "validators"
+                        ? `${country.validators.toLocaleString()}`
+                        : `${formatStaked(country.totalStaked)} AVAX`}
                     </div>
                     <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                      {visualMode !== "heatmap" &&
-                        `${country.percentage.toFixed(1)}% share`}
+                      {country.percentage.toFixed(1)}% share
                     </div>
                   </div>
                 </div>

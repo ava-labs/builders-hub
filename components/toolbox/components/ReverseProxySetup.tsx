@@ -50,7 +50,7 @@ const generateHealthCheckCommand = (domain: string, chainId: string) => {
     const processedDomain = nipify(domain);
 
     return `curl -X POST --data '{ 
-  "jsonrpc":"2.0", "method":"eth_chainId", "params":[], "id":1 
+  "jsonrpc":"2.0", "method":"eth_blockNumber", "params":[], "id":1 
 }' -H 'content-type:application/json;' \\
 https://${processedDomain}/ext/bc/${chainId}/rpc`;
 };

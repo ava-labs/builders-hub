@@ -1,5 +1,5 @@
 import { type LinkItemType } from 'fumadocs-ui/layouts/docs';
-import { type BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
+import { MainItemType, type BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 import {
   Sprout,
@@ -179,7 +179,7 @@ export const stats: LinkItemType = {
     {
       icon: <Hexagon />,
       text: "Primary Network Validators",
-      url: "/stats/validators",
+      url: "/stats/validators/c-chain",
       description:
       "View the latest metrics for the Avalanche Primary Network validators.",
       menu: {
@@ -187,6 +187,12 @@ export const stats: LinkItemType = {
       },
     },
   ],
+};
+
+export const explorerMenu: MainItemType = {
+  type: "main",
+  text: "Explorer",
+  url: "/explorer"
 };
 
 export const docsMenu: LinkItemType = {
@@ -301,7 +307,7 @@ export const academyMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase-Entrepreneur-Academy-banner.png"}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/avalanche-entrepreneur-academy-header.png"}
               alt='Entrepreneur Academy'
               width={900}
               height={400}
@@ -489,7 +495,7 @@ export const universityMenu: LinkItemType = {
 export const eventsMenu: LinkItemType = {
   type: 'menu',
   text: 'Events',
-  url: '/events',
+  url: '/hackathons',
   items: [
     {
       menu: {
@@ -583,6 +589,7 @@ export const baseOptions: BaseLayoutProps = {
     consoleMenu,
     docsMenu,
     eventsMenu,
+    explorerMenu,
     grantsMenu,
     integrationsMenu,
     stats,

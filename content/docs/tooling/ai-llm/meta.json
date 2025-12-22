@@ -1,0 +1,9 @@
+{
+  "title": "AI & LLM",
+  "description": "Integrate docs with AI apps and LLMs",
+  "icon": "Bot",
+  "root": true,
+  "pages": [
+    "index"
+  ]
+}

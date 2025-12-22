@@ -171,9 +171,9 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
             // Adjust the end point to account for arrow marker
             const adjustedChildTopY = childTopY + (isActive ? 6 : 5); // Account for marker size
 
-            // Create a path with straight lines and corners
-            const pathData = `M ${parentCenterX} ${parentBottomY} L ${parentCenterX} ${midY} L ${childCenterX} ${midY} L ${childCenterX} ${adjustedChildTopY}`;
-
+            // Create a curved path
+            const pathData = `M ${parentCenterX} ${parentBottomY} C ${parentCenterX} ${midY}, ${childCenterX} ${midY}, ${childCenterX} ${adjustedChildTopY}`;
+            
             const inactiveMarker = isDarkMode ? "url(#arrow-inactive-dark)" : "url(#arrow-inactive-light)";
             const activeMarker = isDarkMode ? "url(#arrow-active-dark)" : "url(#arrow-active-light)";
             

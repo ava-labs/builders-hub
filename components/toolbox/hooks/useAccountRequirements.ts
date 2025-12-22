@@ -2,6 +2,7 @@ import { useMemo, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { User } from "lucide-react";
 import type { RequirementAction, Requirement } from "../types/requirements";
+import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 
 export enum AccountRequirementsConfigKey {
     UserLoggedIn = "userLoggedIn",
@@ -56,6 +57,7 @@ export function useAccountRequirements(configKey: AccountRequirementsConfigKey |
 } {
     const session = useSession();
     const status = session?.status || 'loading';
+    const { openLoginModal } = useLoginModalTrigger();
     
     const isAuthenticated: boolean = status === 'authenticated';
     const isLoading: boolean = status === 'loading'
@@ -82,15 +84,13 @@ export function useAccountRequirements(configKey: AccountRequirementsConfigKey |
                 }
                 break;
             case 'login':
-                if (typeof window !== 'undefined') {
-                    const currentUrl = window.location.href;
-                    window.location.href = `/login?callbackUrl=${encodeURIComponent(currentUrl)}`;
-                }
+                // Use embedded login modal instead of redirect
+                openLoginModal();
                 break;
             default:
                 console.log('Unknown action:', action);
         }
-    }, []);
+    }, [openLoginModal]);
 
     // Function to recursively collect all prerequisites in dependency order
     const collectAllRequirements = useCallback((keys: AccountRequirementsConfigKey[]): AccountRequirementsConfigKey[] => {

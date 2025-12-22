@@ -1,0 +1,11 @@
+{
+  "title": "Architecture Reference",
+  "description": "Deep dive into AvalancheGo's internal architecture and components",
+  "pages": [
+    "index",
+    "core-components",
+    "consensus",
+    "virtual-machines",
+    "networking"
+  ]
+}
